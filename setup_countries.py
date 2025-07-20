@@ -22,7 +22,8 @@ AFRICAN_COUNTRIES = {
         "regional_cluster": "North Africa",
         "neighbors": ["Libya", "Mali", "Mauritania", "Morocco", "Niger", "Tunisia"],
         "conflict_status": "Stable",
-        "surveillance_capacity": "Moderate"
+        "surveillance_capacity": "Moderate",
+        "total_provinces": "58"
     },
     "EGY": {
         "name": "Egypt",
@@ -222,7 +223,8 @@ AFRICAN_COUNTRIES = {
         "regional_cluster": "West Africa",
         "neighbors": ["Benin", "Cameroon", "Chad", "Niger"],
         "conflict_status": "Post-conflict",
-        "surveillance_capacity": "Moderate"
+        "surveillance_capacity": "Moderate",
+        "total_provinces": "36"
     },
     "SEN": {
         "name": "Senegal",
@@ -312,7 +314,8 @@ AFRICAN_COUNTRIES = {
         "regional_cluster": "Central Africa", 
         "neighbors": ["Angola", "Burundi", "CAR", "Republic of Congo", "Rwanda", "South Sudan", "Tanzania", "Uganda", "Zambia"],
         "conflict_status": "Post-conflict",
-        "surveillance_capacity": "Weak"
+        "surveillance_capacity": "Weak",
+        "total_provinces": "26"
     },
     "GNQ": {
         "name": "Equatorial Guinea",
@@ -391,7 +394,8 @@ AFRICAN_COUNTRIES = {
         "regional_cluster": "East Africa",
         "neighbors": ["Djibouti", "Eritrea", "Kenya", "Somalia", "South Sudan", "Sudan"],
         "conflict_status": "Post-conflict",
-        "surveillance_capacity": "Moderate"
+        "surveillance_capacity": "Moderate",
+        "total_provinces": "12"
     },
     "KEN": {
         "name": "Kenya",
@@ -514,7 +518,8 @@ AFRICAN_COUNTRIES = {
         "regional_cluster": "Southern Africa",
         "neighbors": ["DRC", "Republic of Congo", "Namibia", "Zambia"],
         "conflict_status": "Post-conflict",
-        "surveillance_capacity": "Moderate"
+        "surveillance_capacity": "Moderate",
+        "total_provinces": "18"
     },
     "BWA": {
         "name": "Botswana",
@@ -580,7 +585,8 @@ AFRICAN_COUNTRIES = {
         "regional_cluster": "Southern Africa",
         "neighbors": ["Botswana", "Eswatini", "Lesotho", "Mozambique", "Namibia", "Zimbabwe"],
         "conflict_status": "Stable",
-        "surveillance_capacity": "Strong"
+        "surveillance_capacity": "Strong",
+        "total_provinces": "9"
     },
     "ZMB": {
         "name": "Zambia", 
@@ -647,7 +653,8 @@ def customize_prompt(template_content, iso_code, country_info):
         "{REGIONAL_CLUSTER}": country_info["regional_cluster"],
         "{NEIGHBOR_LIST}": neighbors_str,
         "{CONFLICT_STATUS}": country_info["conflict_status"],
-        "{SURVEILLANCE_CAPACITY}": country_info["surveillance_capacity"]
+        "{SURVEILLANCE_CAPACITY}": country_info["surveillance_capacity"],
+        "{TOTAL_PROVINCES}": country_info.get("total_provinces", "Unknown")
     }
     
     # Apply substitutions to the template
