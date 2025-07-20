@@ -72,10 +72,9 @@
 
 ### Enhanced File Formats:
 - **metadata.csv**: Enhanced dual-reference indexing system
-- **additional_cholera_data.csv**: Complete data with confidence weighting
+- **cholera_data.csv**: Complete data with confidence weighting
 - **search_log.txt**: Phase-by-phase execution tracking
 - **search_report.txt**: Comprehensive methodology documentation
-- **search_strategy_validation.txt**: Validation protocol verification
 
 ## Countries by ISO Code and Classification:
 

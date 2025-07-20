@@ -294,7 +294,7 @@ Use AI-powered internet searches to identify, validate, and integrate unofficial
 ai_cholera_data/data/{country}/
 ├── search_report.txt
 ├── metadata.csv
-├── additional_cholera_data.csv
+├── cholera_data.csv
 └── source_documents/ (if available)
 ```
 
@@ -305,7 +305,7 @@ ai_cholera_data/data/{country}/
 #### Source Indexing Protocol:
 1. **Sequential Numbering**: Assign consecutive integer indices (1, 2, 3...) to all sources in metadata.csv
 2. **Dual Reference System**: Each data point references sources by BOTH index number AND exact source name
-3. **Consistency Enforcement**: Source names must match EXACTLY between metadata.csv and additional_cholera_data.csv
+3. **Consistency Enforcement**: Source names must match EXACTLY between metadata.csv and cholera_data.csv
 4. **Traceability**: Index system enables automated processing while names provide human readability
 
 #### Benefits of Enhanced System:
@@ -323,7 +323,7 @@ Index,Source,URL,Description,Date_Range,Data_Type,Status,Reliability_Level,Valid
 2,UNICEF Angola Humanitarian Report 2018,https://reliefweb.int/...,Monthly humanitarian situation report,2018,Humanitarian Response,Active,Level 2,Validated
 ```
 
-**additional_cholera_data.csv:**
+**cholera_data.csv:**
 ```
 Location,TL,TR,Primary,Phantom,deaths,sCh,cCh,CFR,reporting_date,source_index,source,confidence_weight,validation_status
 AFR::AGO,2006-02-19,2006-05-08,true,false,1156,30612,,3.8,2006-05-08,1,WHO Disease Outbreak News 2006 Initial,1.0,VALIDATED
@@ -358,8 +358,8 @@ Must include:
 - All metadata fields MUST be completed for every source
 - Index numbers provide permanent reference for data traceability
 
-#### 3. Data CSV (additional_cholera_data.csv)
-**MANDATORY columns in exact order:**
+#### 3. Data CSV (cholera_data.csv)
+**MANDATORY columns in exact order:
 - `Location`: Geographic identifier (AFR::{ISO}::{Province}::{District})
 - `TL`: Time left (start date in YYYY-MM-DD format)
 - `TR`: Time right (end date in YYYY-MM-DD format)

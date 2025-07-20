@@ -819,10 +819,9 @@ def create_enhanced_summary_report(base_path):
 
 ### Enhanced File Formats:
 - **metadata.csv**: Enhanced dual-reference indexing system
-- **additional_cholera_data.csv**: Complete data with confidence weighting
+- **cholera_data.csv**: Complete data with confidence weighting
 - **search_log.txt**: Phase-by-phase execution tracking
 - **search_report.txt**: Comprehensive methodology documentation
-- **search_strategy_validation.txt**: Validation protocol verification
 
 ## Countries by ISO Code and Classification:
 
@@ -871,7 +870,7 @@ def create_enhanced_summary_report(base_path):
 
 def create_country_workflows(base_path):
     """Create customized agentic workflow files for each country"""
-    print("Creating 4-agent progressive workflow files...")
+    print("Creating 6-agent progressive workflow files...")
     
     # Read the agentic workflow template file
     workflow_template_path = Path(base_path) / "template_agentic_workflow.txt"
@@ -896,7 +895,7 @@ def create_country_workflows(base_path):
         
         print(f"  Created: {workflow_file}")
     
-    print(f"Created 4-agent workflow files for {len(AFRICAN_COUNTRIES)} countries")
+    print(f"Created 6-agent workflow files for {len(AFRICAN_COUNTRIES)} countries")
 
 def create_execution_checklist(base_path):
     """Create execution checklist template for tracking country completion"""
@@ -1039,7 +1038,7 @@ def main():
         print("=" * 80)
         print(f"📁 Created {len(AFRICAN_COUNTRIES)} country directories")
         print(f"📄 Created {len(AFRICAN_COUNTRIES)} search protocol files")
-        print(f"🤖 Created {len(AFRICAN_COUNTRIES)} 4-agent progressive workflow files")
+        print(f"🤖 Created {len(AFRICAN_COUNTRIES)} 6-agent progressive workflow files")
         print(f"🔑 Created comprehensive country information key")
         print(f"📊 Created enhanced setup summary report")
         print(f"📋 Created execution checklist template")
@@ -1047,7 +1046,7 @@ def main():
         print("\n🚀 IMPLEMENTATION READY:")
         print("1. 📖 Review setup_summary.md for complete protocol overview")
         print("2. 🎯 Use search_protocol_{ISO_CODE}.txt files for Agent 1 (baseline search)")
-        print("3. 🤖 Use agentic_workflow_{ISO_CODE}.txt for complete 4-agent progressive workflow")
+        print("3. 🤖 Use agentic_workflow_{ISO_CODE}.txt for complete 6-agent progressive workflow")
         print("4. 📋 Track progress using country_checklist.txt")
         print("5. 🔍 Reference country_info_key.json for detailed country information")
         print("6. 📚 Follow CLAUDE.md for complete 8-phase methodology")
