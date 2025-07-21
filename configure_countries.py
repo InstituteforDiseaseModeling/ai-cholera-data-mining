@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 MOSAIC AI Cholera Data Collection - Country Setup Script v2.0
-Creates directories and customized prompts for ULTRA DEEP SEARCH protocol
+Creates directories and customized prompts for 8-phase search protocol
 Supports all 54 African countries with enhanced dual-reference system
 """
 
@@ -684,14 +684,14 @@ def customize_workflow(template_content, iso_code, country_info):
     return customized_content
 
 def create_country_prompts(base_path):
-    """Create customized prompt files for each country using ULTRA DEEP SEARCH protocol"""
-    print("Creating ULTRA DEEP SEARCH protocol prompt files...")
+    """Create customized prompt files for each country using 8-phase search protocol"""
+    print("Creating 8-phase search protocol prompt files...")
     
     # Read the search protocol template file
     template_path = Path(base_path) / "template_search_protocol.txt"
     
     if not template_path.exists():
-        raise FileNotFoundError(f"ULTRA DEEP SEARCH template file not found: {template_path}")
+        raise FileNotFoundError(f"Search protocol template file not found: {template_path}")
     
     with open(template_path, 'r', encoding='utf-8') as f:
         template_content = f.read()
@@ -711,7 +711,7 @@ def create_country_prompts(base_path):
         
         print(f"  Created: {search_protocol_file}")
     
-    print(f"Created ULTRA DEEP SEARCH search protocols for {len(AFRICAN_COUNTRIES)} countries")
+    print(f"Created 8-phase search protocols for {len(AFRICAN_COUNTRIES)} countries")
 
 def create_country_info_key(base_path):
     """Create comprehensive country information key with all classifications"""
@@ -723,7 +723,7 @@ def create_country_info_key(base_path):
     country_info_complete = {
         "metadata": {
             "version": "2.0",
-            "protocol": "ULTRA DEEP SEARCH",
+            "protocol": "8-Phase Search Protocol",
             "countries_total": len(AFRICAN_COUNTRIES),
             "creation_date": "2025-01-20",
             "description": "Complete country information for MOSAIC AI Cholera Data Collection"
@@ -736,141 +736,10 @@ def create_country_info_key(base_path):
     
     print(f"Created comprehensive country information key: {key_file}")
 
-def create_enhanced_summary_report(base_path):
-    """Create enhanced summary report with detailed classifications and statistics"""
-    print("Creating enhanced setup summary report...")
-    
-    # Count countries by various classifications
-    classifications = {
-        "linguistic_group": {},
-        "system_type": {},
-        "regional_cluster": {},
-        "conflict_status": {},
-        "surveillance_capacity": {}
-    }
-    
-    for country_info in AFRICAN_COUNTRIES.values():
-        for classification_type, classification_dict in classifications.items():
-            value = country_info[classification_type]
-            classification_dict[value] = classification_dict.get(value, 0) + 1
-    
-    # Generate enhanced report content
-    report_content = f"""# MOSAIC AI Cholera Data Collection - Setup Summary v2.0
-
-## ULTRA DEEP SEARCH Protocol Configuration
-
-**Protocol Version**: 2.0  
-**Total African Countries**: {len(AFRICAN_COUNTRIES)}  
-**Setup Date**: 2025-01-20  
-**Search Engine Minimum**: 20+ engines per country  
-**Query Minimum**: 100+ unique queries per country  
-**Quality Gates**: 6 comprehensive validation gates  
-
-## Enhanced Classification Breakdown
-
-### Linguistic Groups:
-"""
-    
-    for group, count in sorted(classifications["linguistic_group"].items()):
-        percentage = (count / len(AFRICAN_COUNTRIES)) * 100
-        report_content += f"- **{group}**: {count} countries ({percentage:.1f}%)\n"
-    
-    report_content += "\n### Political Systems:\n"
-    for system, count in sorted(classifications["system_type"].items()):
-        percentage = (count / len(AFRICAN_COUNTRIES)) * 100
-        report_content += f"- **{system}**: {count} countries ({percentage:.1f}%)\n"
-    
-    report_content += "\n### Regional Clusters:\n" 
-    for cluster, count in sorted(classifications["regional_cluster"].items()):
-        percentage = (count / len(AFRICAN_COUNTRIES)) * 100
-        report_content += f"- **{cluster}**: {count} countries ({percentage:.1f}%)\n"
-    
-    report_content += "\n### Conflict Status:\n"
-    for status, count in sorted(classifications["conflict_status"].items()):
-        percentage = (count / len(AFRICAN_COUNTRIES)) * 100
-        report_content += f"- **{status}**: {count} countries ({percentage:.1f}%)\n"
-    
-    report_content += "\n### Surveillance Capacity:\n"
-    for capacity, count in sorted(classifications["surveillance_capacity"].items()):
-        percentage = (count / len(AFRICAN_COUNTRIES)) * 100
-        report_content += f"- **{capacity}**: {count} countries ({percentage:.1f}%)\n"
-
-    report_content += f"""
-
-## ULTRA DEEP SEARCH Protocol Features
-
-### 8-Phase Systematic Methodology:
-1. **Workspace Setup & Priority Source Mining** - WHO GHO Module Integration
-2. **Deep Dive Execution** - UNICEF & MSF Modules Integration  
-3. **Topical Gap-Fill Sweep** - Academic Citation Networks Module
-4. **Historical Deep Dive** - Cross-Border Intelligence
-5. **Critical Review & Targeted Gap Analysis** - Precision Gap-Filling
-6. **Multi-Stage Validation & Quality Control** - 4-Tier Reliability Classification
-7. **Integration & Stop Criteria Assessment** - Discovery Saturation Evaluation
-8. **Comprehensive Reporting & Deliverables** - Dual-Reference System
-
-### Enhanced Data Collection Features:
-- **Discovery Saturation Criteria**: < 1 new source per 15 queries
-- **Multi-Language Search**: All associated languages per country
-- **Cross-Border Intelligence**: Neighboring country validation
-- **Institutional Modules**: WHO GHO, UNICEF, MSF, Academic Networks
-- **Quality Gates**: 6 comprehensive validation checkpoints
-- **Dual-Reference System**: source_index + source name matching
-
-### Enhanced File Formats:
-- **metadata.csv**: Enhanced dual-reference indexing system
-- **cholera_data.csv**: Complete data with confidence weighting
-- **search_log.txt**: Phase-by-phase execution tracking
-- **search_report.txt**: Comprehensive methodology documentation
-
-## Countries by ISO Code and Classification:
-
-"""
-    
-    for iso_code, country_info in sorted(AFRICAN_COUNTRIES.items()):
-        neighbors_display = ", ".join(country_info["neighbors"][:3]) + ("..." if len(country_info["neighbors"]) > 3 else "") if country_info["neighbors"] else "Island"
-        report_content += f"- **{iso_code}**: {country_info['name']} | {country_info['linguistic_group']} | {country_info['regional_cluster']} | {country_info['surveillance_capacity']} | Neighbors: {neighbors_display}\n"
-    
-    report_content += f"""
-
-## Implementation Instructions
-
-### File Structure Created:
-- **Root Directory**: `./`
-- **Data Directories**: `./data/{{ISO_CODE}}/` (54 directories)
-- **Prompt Files**: `./data/{{ISO_CODE}}/prompt_{{ISO_CODE}}.txt` (54 customized prompts)
-- **Reference Files**: `./country_info_key.json`, `./setup_summary.md`
-
-### Next Steps:
-1. **Review Protocol**: Read CLAUDE.md for complete 8-phase methodology
-2. **Launch Collection**: Use `data/{{ISO_CODE}}/prompt_{{ISO_CODE}}.txt` for each country's AI instance
-3. **Monitor Progress**: Track completion in country_checklist.txt
-4. **Validate Results**: Ensure all 6 quality gates passed per country
-
-### Success Criteria per Country:
-- ✅ All 8 phases systematically completed
-- ✅ Discovery saturation achieved (< 1 new source per 15 queries)
-- ✅ All institutional modules executed until exhaustion
-- ✅ ≥85% validation pass rate maintained
-- ✅ Enhanced dual-reference system implemented
-- ✅ Complete documentation generated
-
----
-**MOSAIC AI Cholera Data Collection v2.0**  
-**ULTRA DEEP SEARCH Protocol Ready for Implementation**  
-**Total Setup**: {len(AFRICAN_COUNTRIES)} countries configured for comprehensive discovery
-"""
-    
-    # Write enhanced summary report
-    summary_file = Path(base_path) / "setup_summary.md"
-    with open(summary_file, 'w', encoding='utf-8') as f:
-        f.write(report_content)
-    
-    print(f"Created enhanced setup summary: {summary_file}")
 
 def create_country_workflows(base_path):
     """Create customized agentic workflow files for each country"""
-    print("Creating 6-agent progressive workflow files...")
+    print("Creating 6-agent workflow files...")
     
     # Read the agentic workflow template file
     workflow_template_path = Path(base_path) / "template_agentic_workflow.txt"
@@ -903,7 +772,7 @@ def create_execution_checklist(base_path):
     
     checklist_content = """# MOSAIC AI Cholera Data Collection - Execution Checklist
 
-## ULTRA DEEP SEARCH Protocol Tracking
+## 8-Phase Search Protocol Tracking
 
 **Protocol Version**: 2.0  
 **Total Countries**: 54 African countries  
@@ -996,16 +865,16 @@ Format: ☐ COUNTRY_NAME (ISO_CODE) - Status: [PENDING/IN_PROGRESS/COMPLETED] - 
     print(f"Created execution checklist: {checklist_file}")
 
 def main():
-    """Main function to set up all countries with ULTRA DEEP SEARCH protocol"""
+    """Main function to set up all countries with 8-phase search protocol"""
     # Get the base path (directory containing this script)
     base_path = Path(__file__).parent
     
     print("=" * 80)
-    print("MOSAIC AI CHOLERA DATA COLLECTION - ULTRA DEEP SEARCH SETUP v2.0")
+    print("MOSAIC AI CHOLERA DATA COLLECTION - 8-PHASE SEARCH SETUP v2.0")
     print("=" * 80)
     print(f"Setting up comprehensive data collection for {len(AFRICAN_COUNTRIES)} African countries")
     print(f"Base directory: {base_path}")
-    print(f"Protocol: ULTRA DEEP SEARCH (8-Phase Systematic Methodology)")
+    print(f"Protocol: 8-Phase Search Protocol (Systematic Methodology)")
     print("-" * 80)
     
     try:
@@ -1013,7 +882,7 @@ def main():
         create_country_directories(base_path)
         print()
         
-        # Step 2: Create customized ULTRA DEEP SEARCH prompt files
+        # Step 2: Create customized 8-phase search prompt files
         create_country_prompts(base_path)
         print()
         
@@ -1025,33 +894,27 @@ def main():
         create_country_workflows(base_path)
         print()
         
-        # Step 5: Create enhanced summary report
-        create_enhanced_summary_report(base_path)
-        print()
-        
-        # Step 6: Create execution checklist
+        # Step 5: Create execution checklist
         create_execution_checklist(base_path)
         print()
         
         print("=" * 80)
-        print("✅ ULTRA DEEP SEARCH SETUP COMPLETED SUCCESSFULLY!")
+        print("✅ 8-PHASE SEARCH SETUP COMPLETED SUCCESSFULLY!")
         print("=" * 80)
         print(f"📁 Created {len(AFRICAN_COUNTRIES)} country directories")
         print(f"📄 Created {len(AFRICAN_COUNTRIES)} search protocol files")
-        print(f"🤖 Created {len(AFRICAN_COUNTRIES)} 6-agent progressive workflow files")
+        print(f"🤖 Created {len(AFRICAN_COUNTRIES)} 6-agent workflow files")
         print(f"🔑 Created comprehensive country information key")
-        print(f"📊 Created enhanced setup summary report")
         print(f"📋 Created execution checklist template")
         
         print("\n🚀 IMPLEMENTATION READY:")
-        print("1. 📖 Review setup_summary.md for complete protocol overview")
+        print("1. 📚 Follow CLAUDE.md for complete 8-phase methodology")
         print("2. 🎯 Use search_protocol_{ISO_CODE}.txt files for Agent 1 (baseline search)")
-        print("3. 🤖 Use agentic_workflow_{ISO_CODE}.txt for complete 6-agent progressive workflow")
+        print("3. 🤖 Use agentic_workflow_{ISO_CODE}.txt for complete 6-agent workflow")
         print("4. 📋 Track progress using country_checklist.txt")
         print("5. 🔍 Reference country_info_key.json for detailed country information")
-        print("6. 📚 Follow CLAUDE.md for complete 8-phase methodology")
         
-        print("\n⚡ ULTRA DEEP SEARCH FEATURES ENABLED:")
+        print("\n⚡ 8-PHASE SEARCH FEATURES ENABLED:")
         print("- 8-Phase Systematic Methodology")
         print("- Discovery Saturation Criteria (< 1 new source per 15 queries)")
         print("- Multi-Language Search Capability")

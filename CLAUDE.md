@@ -1,638 +1,114 @@
-# CLAUDE.md - AI Cholera Data Collection and Enhancement
+# CLAUDE.md - AI Cholera Surveillance Data Enhancement
 
-This directory contains AI-enhanced cholera surveillance data that complements the JHU cholera taxonomy database and official WHO surveillance data. This file provides guidance for future AI instances working on expanding and improving cholera surveillance data for the MOSAIC project.
+**Mission**: Fill ~50% missing observations in WHO surveillance records (1970-present) through systematic identification, validation, and integration of unofficial cholera data sources.
 
-## Project Context and Motivation
+**Strategy**: Systematic internet searches to discover unreported transmission events and validate zero-transmission periods for complete historical time series.
 
-### The Challenge
-The processed weekly cholera surveillance data (MOSAIC-data/processed/cholera/weekly/cholera_surveillance_weekly_combined.csv) has approximately **50% missing observations** across the 2010-present period. Many missing observations represent unreported transmission or outbreaks that have slipped through official reporting channels. 
+## Data Sources & Hierarchy
 
-### The Opportunity
-Unofficial sources of information exist on the internet that can indicate whether a time period had no transmission or if there was transmission/outbreak where records were lost. These sources can fill critical gaps in our understanding of cholera transmission patterns.
+**Core Data**: Official surveillance, JHU database, AI-enhanced sources  
+**Source Tiers**: Level 1 (WHO/MoH) → Level 2 (UNICEF/Academic) → Level 3 (News/NGO) → Level 4 (Local/Social)
 
-### The Solution
-Use AI-powered internet searches to identify, validate, and integrate unofficial cholera surveillance data sources to create a more complete historical time series for epidemiological modeling.
+## Core Methodology
 
-## Data Architecture
-
-### Core Data Sources
-1. **Official Weekly Surveillance**: `../MOSAIC-data/processed/cholera/weekly/cholera_surveillance_weekly_combined.csv`
-2. **JHU Cholera Taxonomy Database**: `../jhu_cholera_data/data/{country}/`
-3. **AI-Enhanced Sources**: `ai_cholera_data/data/{country}/`
-
-### Data Hierarchy
-- **Primary Sources**: WHO official surveillance, Ministry of Health reports
-- **Secondary Sources**: UNICEF humanitarian reports, academic literature
-- **Tertiary Sources**: News reports, NGO situation updates, outbreak alerts
-
-## Original Workflow (from Historical surveillance data.md)
-
-**Goal is to emulate the workflow and formatting of the JHU cholera taxonomy database here: https://cholera-taxonomy.middle-distance.com/**
-
-**For each country in the cholera surveillance data:**
-
-1. Assess data missingness in the processed weekly cholera surveillance data: ../MOSAIC-data/processed/cholera/weekly/cholera_surveillance_weekly_combined.csv
-2. Survey data scraped from the JHU cholera taxonomy database: ../MOSAIC/jhu_cholera_data
-	1. Perform an inventory of the jhu data sources for the country of interest
-	2. Identify time periods where weekly surveillance are missing but there are other reports of transmission or outbreaks
-3. Use AI to do a deep internet search to find any other unofficial sources of information. Place any new sources in same format as JHU database csv files
-	1. Save any additional information sources in: ai_cholera_data/data/{country}
-	2. Each country directory should have:
-		1. A text based report outlining results of searches, relation to JHU data, summary of information etc
-		2. Metadata csv containing a working url for each information source
-		3. a csv file with the locations, times, and data following the csv file formatting of the jhu_cholera_data/data/{country} formatting
-		4. If possible, download hardcopies of each information source
-4. Compile JHU + AI-found sources: columns must have at least: country, start_date, stop_date, source, cases, deaths...
-5. Build a down scaling and imputation method:
-	1. Down sample to weekly (based on seasonal patterns? or correlation with neighbors?)
-	2. Impute missing weeks (only those that are obvious, e.g. one or two missing weeks between clear trending weeks)
-	3. Add weights: lower weights for the unofficial sources and imputed values so that the weights reflect our confidence in the data source. Weights are used in model calibration in the likelihoods functions.
-	4. Down scale to daily as already implemented, keep weights form model fitting
-
-## Detailed Workflow Implementation for AI Instances
-
-### Phase 1: Data Assessment
-1. **Assess data missingness** in weekly surveillance data for the target country
-2. **Calculate missing percentage** and identify critical time periods with gaps
-3. **Identify seasonal patterns** and outbreak periods from available data
-
-### Phase 2: JHU Database Inventory
-1. **Inventory existing JHU data sources** for the country
-2. **Analyze time periods** where weekly surveillance is missing but JHU has reports
-3. **Assess data quality** and coverage of JHU sources
-4. **Identify complementary information** that could fill gaps
-
-### Phase 3: AI-Powered Internet Search
-1. **Conduct systematic searches** using multiple search strategies
-2. **Validate data sources** for credibility and accuracy
-3. **Extract relevant data** following standardized formats
-4. **Cross-reference findings** with existing data sources
-
-### Phase 4: Data Integration and Quality Control
-1. **Compile all sources** into standardized format
-2. **Assign confidence weights** based on source reliability
-3. **Implement quality checks** for consistency and validity
-4. **Document methodology** and limitations
+**Workflow**: Gap assessment → JHU inventory → AI systematic search → Data integration  
+**Output Format**: JHU-compatible CSV with enhanced dual-reference indexing  
+**Deliverables**: search_report.txt, metadata.csv, cholera_data.csv, search_log.txt
 
 ## ULTRA DEEP SEARCH METHODOLOGY
 
-**CRITICAL INSTRUCTION: Future AI instances MUST conduct ULTRA thorough searches. This means exhaustive, systematic, and comprehensive internet searches that leave no stone unturned. The goal is to find EVERY possible data source, not just the obvious ones.**
+**CRITICAL**: Exhaustive, systematic internet searches across ALL discoverable sources.
 
-### Multi-Engine Search Strategy
-**REQUIREMENT: Use multiple search engines and databases systematically:**
-- Google Scholar (academic literature)
-- PubMed/PMC (medical literature)
-- WHO databases and regional offices
-- ReliefWeb (humanitarian data)
-- Government health ministry websites
-- Regional health organization websites
-- News archives and databases
-- Institutional repositories
-- International organization databases (UNICEF, MSF, IRC, etc.)
-- Regional surveillance networks
-- Social media and informal reporting channels (with extreme caution)
+### Search Strategy
+**Multi-Engine Protocol**: 15+ search engines/databases per country  
+**Query Framework**: 7 mandatory categories, 50+ unique queries minimum  
+**Source Coverage**: 486 tiered domains in priority_sources.txt + expansion
 
-### Exhaustive Search Query Framework
+### Query Categories (Mandatory)
 
-**MANDATORY: Conduct ALL query categories below for EACH target country. Do not skip any category.**
+1. **WHO/Official**: Surveillance reports, epidemiological bulletins, situation updates
+2. **Academic**: Peer-reviewed literature, epidemiological studies, phylogenetic analyses
+3. **Humanitarian**: UNICEF, OCHA, MSF outbreak responses, emergency assessments
+4. **Regional**: Cross-border transmission, surveillance networks, neighboring countries
+5. **Historical**: Colonial records, pandemic waves, archive searches by decade
+6. **Technical**: Laboratory networks, diagnostic evaluation, environmental monitoring
+7. **Linguistic**: Local language searches, vernacular terms, regional media
 
-#### 1. **WHO and Official Sources (PRIMARY PRIORITY)**
-**Base Queries:**
-- "{country} cholera outbreak WHO situation reports {year}"
-- "{country} Ministry Health cholera surveillance {year}"
-- "WHO AFRO cholera bulletin {country} {year}"
-- "WHO cholera {country} epidemiological update {year}"
-- "WHO {country} cholera weekly surveillance {year}"
-- "{country} national cholera response plan"
-- "{country} cholera preparedness surveillance"
+**Query Templates**: See template_search_protocol.txt for complete query lists
 
-**Extended Queries:**
-- "WHO disease outbreak news {country} cholera {year}"
-- "WHO regional office Africa {country} cholera"
-- "{country} health ministry cholera statistics {year}"
-- "{country} epidemiological surveillance cholera weekly"
-- "{country} cholera case investigation reports"
-- "{country} cholera laboratory confirmation {year}"
-- "WHO AFRO weekly bulletin cholera {country}"
+### Advanced Techniques
 
-#### 2. **Academic and Research Sources (SYSTEMATIC REVIEW)**
-**Base Queries:**
-- "{country} cholera epidemiology academic papers {year}"
-- "{country} cholera transmission modeling {year}"
-- "{country} cholera burden studies {year}"
+**Temporal Granularity**: Monthly/seasonal/decade-specific searches  
+**Geographic Granularity**: National → Provincial → District → Municipal levels  
+**Source Chain Following**: Citation networks, reference tracing, report versions  
+**Institutional Deep Dives**: Ministry archives, university repositories, regional organizations
 
-**Extended Queries:**
-- "{country} cholera molecular epidemiology"
-- "{country} cholera environmental surveillance"
-- "{country} cholera case control study"
-- "{country} cholera outbreak investigation"
-- "{country} cholera phylogenetic analysis"
-- "{country} cholera antimicrobial resistance"
-- "{country} cholera vaccination effectiveness"
-- "{country} cholera transmission dynamics"
-- "{country} cholera spatiotemporal analysis"
-- "{country} cholera water sanitation epidemiology"
-- "{country} cholera climate variability"
-- "Vibrio cholerae {country} genomics"
+**Temporal Focus Periods**:  
+- 1970s-1990s: Historical/colonial records  
+- 1990s-2010: Early surveillance development  
+- **2010-2020**: Primary gap-filling target  
+- 2020-present: COVID impact assessment
 
-#### 3. **Humanitarian and NGO Sources (COMPREHENSIVE)**
-**Base Queries:**
-- "{country} cholera UNICEF humanitarian reports {year}"
-- "{country} cholera OCHA situation reports {year}"
-- "{country} cholera MSF outbreak response {year}"
+## Data Standards
 
-**Extended Queries:**
-- "{country} cholera emergency response IRC"
-- "{country} cholera outbreak Oxfam response"
-- "{country} cholera WHO emergency operations"
-- "{country} cholera humanitarian needs assessment"
-- "{country} cholera WASH intervention evaluation"
-- "{country} cholera vaccination campaign report"
-- "{country} cholera refugee camp outbreak"
-- "{country} cholera displacement population"
-- "{country} cholera humanitarian coordination"
-- "ReliefWeb {country} cholera situation report"
-- "{country} cholera flash appeal humanitarian"
-- "{country} cholera health cluster response"
+**Directory**: `data/{ISO_CODE}/`  
+**Files**: search_report.txt, metadata.csv, cholera_data.csv, search_log.txt
 
-#### 4. **Regional and Cross-border Sources (TRANSNATIONAL)**
-**Base Queries:**
-- "{country} cholera cross-border transmission {year}"
-- "{region} cholera outbreaks {country} {year}"
-- "{country} cholera seasonal patterns {year}"
+### DUAL-REFERENCE INDEXING SYSTEM
 
-**Extended Queries:**
-- "{country} cholera regional surveillance network"
-- "{country} {neighboring_countries} cholera border"
-- "{region} cholera early warning system"
-- "{country} cholera migratory population"
-- "{region} cholera lake river transmission"
-- "{country} cholera trade route transmission"
-- "{region} integrated disease surveillance"
-- "{country} cholera regional coordination"
-- "{region} cholera preparedness response network"
+**CRITICAL**: Mandatory enhanced indexing for data integrity
 
-#### 5. **Historical and Archival Sources (TEMPORAL DEPTH)**
-**MANDATORY for filling historical gaps:**
-- "{country} cholera historical outbreak records"
-- "{country} cholera colonial period surveillance"
-- "{country} cholera pandemic waves historical"
-- "{country} cholera mortality statistics historical"
-- "WHO archives {country} cholera reports"
-- "{country} cholera newspaper archives {decade}"
-- "{country} cholera medical journal historical"
-- "{country} cholera government archives health"
-- "{country} cholera missionary hospital records"
-- "{country} cholera colonial administrative reports"
-
-#### 6. **Specialized and Technical Sources**
-**Laboratory and surveillance systems:**
-- "{country} cholera laboratory network surveillance"
-- "{country} cholera rapid diagnostic test evaluation"
-- "{country} cholera environmental monitoring"
-- "{country} cholera antimicrobial surveillance"
-- "{country} cholera serotype distribution"
-- "{country} cholera outbreak detection algorithms"
-- "{country} cholera syndromic surveillance"
-- "{country} cholera community based surveillance"
-
-#### 7. **Linguistic and Cultural Search Expansion**
-**REQUIREMENT: Search in local languages where applicable:**
-- Conduct searches in official local languages
-- Use local terminology for cholera (e.g., "cólera" in Portuguese for Angola)
-- Search local news websites and health ministry sites
-- Check local university repositories
-- Review local medical journals and publications
-
-### Advanced Search Techniques
-
-#### 1. **Temporal Granularity Searches**
-**REQUIREMENT: Search by specific time periods:**
-- Monthly searches for outbreak years: "{country} cholera {month} {year}"
-- Seasonal searches: "{country} cholera rainy season {year}"
-- Event-driven searches: "{country} cholera {disaster/conflict} {year}"
-- Multi-year trends: "{country} cholera {start_year}-{end_year} trends"
-
-#### 2. **Geographic Granularity Searches**
-**REQUIREMENT: Search all administrative levels:**
-- National level: Standard country queries
-- Provincial/State level: "{province} {country} cholera outbreak"
-- District/Municipality level: "{district} cholera surveillance"
-- City-specific: "{major_city} {country} cholera cases"
-- Border region specific: "{border_region} cholera transmission"
-
-#### 3. **Source Chain Following**
-**REQUIREMENT: Follow ALL reference chains:**
-- Check references in found papers/reports
-- Follow citation networks in academic literature
-- Trace data sources mentioned in reports
-- Follow up on preliminary/draft reports mentioned
-- Check for updated versions of reports
-- Look for companion reports or follow-up studies
-
-#### 4. **Institutional Deep Dives**
-**REQUIREMENT: Systematically search institutional websites:**
-- Government health ministry archives
-- National statistics offices
-- University institutional repositories
-- Regional health organization databases
-- International organization country offices
-- Research institution websites
-- Hospital and health facility reports
-
-## Search Strategy Framework
-
-### Systematic Temporal Search Requirements
-
-**MANDATORY: Search ALL time periods systematically:**
-
-#### **Historical Deep Dive (1970s-1990s)**
-- Colonial and post-independence health records
-- Early WHO surveillance reports
-- Historical pandemic documentation
-- Missionary and colonial medical records
-- Early academic epidemiological studies
-- Regional health organization formation documents
-
-#### **Pre-surveillance Establishment (1990s-2010)**
-- Early surveillance system development
-- WHO cholera surveillance strengthening reports
-- Initial regional coordination efforts
-- Early outbreak response documentation
-- Academic baseline studies
-- Initial WASH intervention evaluations
-
-#### **Surveillance Gap Period (2010-2020)**
-- **PRIMARY FOCUS**: Most missing data in this period
-- Systematic search of ALL potential sources
-- Cross-reference with regional outbreak patterns
-- Check humanitarian crisis documentation
-- Review academic literature for case studies
-- Examine climate-disease correlation studies
-
-#### **Recent and Current (2020-present)**
-- COVID-19 impact on cholera surveillance
-- Recent outbreak documentation
-- Current surveillance system reports
-- Real-time monitoring systems
-- Recent academic analyses
-- Current preparedness and response plans
-
-#### **Decade-by-Decade Systematic Review**
-**REQUIREMENT: For each decade, conduct specific searches:**
-- "1970s {country} cholera outbreaks historical"
-- "1980s {country} cholera surveillance records"
-- "1990s {country} cholera epidemiology baseline"
-- "2000s {country} cholera outbreak patterns"
-- "2010s {country} cholera transmission analysis"
-- "2020s {country} cholera current surveillance"
-
-## Data Collection Standards
-
-### Required Directory Structure
-```
-ai_cholera_data/data/{country}/
-├── search_report.txt
-├── metadata.csv
-├── cholera_data.csv
-└── source_documents/ (if available)
-```
-
-### ENHANCED DATA INDEXING SYSTEM
-
-**CRITICAL REQUIREMENT: All future instances MUST implement the dual-reference indexing system developed in pilot_2.**
-
-#### Source Indexing Protocol:
-1. **Sequential Numbering**: Assign consecutive integer indices (1, 2, 3...) to all sources in metadata.csv
-2. **Dual Reference System**: Each data point references sources by BOTH index number AND exact source name
-3. **Consistency Enforcement**: Source names must match EXACTLY between metadata.csv and cholera_data.csv
-4. **Traceability**: Index system enables automated processing while names provide human readability
-
-#### Benefits of Enhanced System:
-- **Automated Processing**: Integer indices enable efficient database operations
-- **Human Readability**: Source names provide immediate context for data users  
-- **Error Prevention**: Dual referencing catches inconsistencies between files
-- **Data Integrity**: Permanent index references prevent source misattribution
-- **Version Control**: Changes to source names don't break data linkages
-
-#### Implementation Example:
-**metadata.csv:**
-```
-Index,Source,URL,Description,Date_Range,Data_Type,Status,Reliability_Level,Validation_Status
-1,WHO Disease Outbreak News 2006 Initial,https://www.who.int/...,Initial 2006 outbreak report,2006,Outbreak Cases,Active,Level 1,Validated
-2,UNICEF Angola Humanitarian Report 2018,https://reliefweb.int/...,Monthly humanitarian situation report,2018,Humanitarian Response,Active,Level 2,Validated
-```
-
-**cholera_data.csv:**
-```
-Location,TL,TR,Primary,Phantom,deaths,sCh,cCh,CFR,reporting_date,source_index,source,confidence_weight,validation_status
-AFR::AGO,2006-02-19,2006-05-08,true,false,1156,30612,,3.8,2006-05-08,1,WHO Disease Outbreak News 2006 Initial,1.0,VALIDATED
-AFR::AGO::Uige,2018-01-01,2018-03-10,true,false,13,751,,,2018-03-10,2,UNICEF Angola Humanitarian Report 2018,0.8,VALIDATED
-```
+**Protocol**: Sequential integer indices (1,2,3...) + exact source names  
+**Benefit**: Automated processing + human readability + error prevention  
+**Format**: metadata.csv Index column ↔ cholera_data.csv source_index column
 
 ### File Specifications
 
-#### 1. Search Report (search_report.txt)
-Must include:
-- **Executive Summary**: Key findings and data gaps filled
-- **Search Methodology**: Queries used and sources consulted
-- **Data Quality Assessment**: Reliability ratings and limitations
-- **Relationship to JHU Data**: How new sources complement existing data
-- **Recommendations**: Priority areas for future data collection
+**search_report.txt**: Executive summary, methodology, quality assessment, JHU relationship, recommendations
 
-#### 2. Metadata CSV (metadata.csv)
-**MANDATORY columns in exact order:**
-- `Index`: Integer index number for each source (1, 2, 3, etc.)
-- `Source`: Organization or publication name (exact name to be used in data file)
-- `URL`: Working link to data source
-- `Description`: Brief description of content
-- `Date_Range`: Time period covered
-- `Data_Type`: Classification (Official, Academic, Humanitarian, etc.)
-- `Status`: Link status (Active, Archived, Broken)
-- `Reliability_Level`: Level 1, Level 2, Level 3, or Level 4
-- `Validation_Status`: Validated, Provisional, or Reference
+**metadata.csv** (9 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status
 
-**CRITICAL REQUIREMENTS:**
-- Each source MUST have a unique integer index starting from 1
-- Source names MUST be consistent between metadata and data files
-- All metadata fields MUST be completed for every source
-- Index numbers provide permanent reference for data traceability
+**cholera_data.csv** (14 columns): Location, TL, TR, Primary, Phantom, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, validation_status
 
-#### 3. Data CSV (cholera_data.csv)
-**MANDATORY columns in exact order:
-- `Location`: Geographic identifier (AFR::{ISO}::{Province}::{District})
-- `TL`: Time left (start date in YYYY-MM-DD format)
-- `TR`: Time right (end date in YYYY-MM-DD format)
-- `Primary`: Boolean indicating primary source (true/false)
-- `Phantom`: Boolean indicating phantom/estimated data (true/false)
-- `deaths`: Death count (integer or empty)
-- `sCh`: Suspected cholera cases (integer or empty)
-- `cCh`: Confirmed cholera cases (integer or empty)
-- `CFR`: Case fatality rate (percentage, decimal format)
-- `reporting_date`: When data was reported (YYYY-MM-DD format)
-- `source_index`: Integer index referencing metadata.csv Index column
-- `source`: Source name (MUST exactly match Source column in metadata.csv)
-- `confidence_weight`: Quality-based confidence weight (0.1-1.0)
-- `validation_status`: VALIDATED, PROVISIONAL, or FLAGGED
+**Requirements**: Dual-reference system (source_index ↔ Index), exact name matching, YYYY-MM-DD dates, AFR::{ISO} location codes
 
-**CRITICAL REQUIREMENTS:**
-- Every data row MUST have both source_index AND source columns
-- source_index MUST correspond to valid Index number in metadata.csv
-- source name MUST exactly match Source column in metadata.csv
-- This dual-reference system ensures both automated processing and human readability
-- Confidence weights must reflect source reliability and validation results
+## DATA QUALITY FRAMEWORK
 
-## COMPREHENSIVE DATA QUALITY FRAMEWORK
+**CRITICAL**: Mandatory 4-stage validation for ALL sources
 
-**CRITICAL REQUIREMENT: ALL data sources must undergo rigorous multi-stage validation before inclusion. Quality control is mandatory, not optional.**
+### Source Reliability Levels
 
-### Enhanced Source Reliability Assessment
+**Level 1 (0.9-1.0)**: WHO, MoH, peer-reviewed journals, government statistics  
+**Level 2 (0.7-0.9)**: UNICEF, OCHA, established NGOs, regional organizations  
+**Level 3 (0.3-0.6)**: Reputable news, local government, preliminary academic reports  
+**Level 4 (0.1-0.3)**: Local media, social media, unofficial reports (extreme caution)
 
-#### **Level 1 (Confidence Weight: 0.9-1.0) - Gold Standard**
-- **WHO Official Reports**: Disease Outbreak News, surveillance bulletins, situation reports
-- **National Ministry of Health**: Official surveillance data, epidemiological bulletins
-- **Peer-reviewed Academic Literature**: Published in indexed journals with editorial review
-- **Government Statistical Offices**: Official health statistics and demographic data
-- **WHO Regional Offices**: AFRO, PAHO, SEARO official documentation
+### Validation Protocol (4 Stages)
 
-**Validation Requirements:**
-- Cross-verify with at least 2 other Level 1 sources
-- Check for official endorsement or publication
-- Verify methodological soundness
-- Confirm data collection standards
+**Stage 1 - Authentication**: URL verification, author credentials, domain validation  
+**Stage 2 - Data Quality**: CFR 0.1-15%, attack rates 0.01-10%, duration 2 weeks-2 years  
+**Stage 3 - Cross-Reference**: Multi-source confirmation (>1000 cases), historical consistency  
+**Stage 4 - Duplication**: Exact/partial detection, resolution protocol, documentation
 
-#### **Level 2 (Confidence Weight: 0.7-0.9) - High Quality**
-- **UNICEF**: Humanitarian situation reports, emergency response data
-- **OCHA**: Coordination and humanitarian needs assessments
-- **Established International NGOs**: MSF, IRC, Oxfam outbreak responses
-- **Regional Health Organizations**: African CDC, ECDC surveillance
-- **Academic Institutional Reports**: University research centers, epidemiological institutes
+### Quality Control
 
-**Validation Requirements:**
-- Verify institutional credibility and expertise
-- Cross-reference with Level 1 sources where possible
-- Check methodological documentation
-- Assess potential bias or limitations
+**Quantitative Rules**: Statistical outlier detection, trend analysis, demographic consistency  
+**Qualitative Criteria**: Methodological soundness, reporting quality, institutional credibility  
+**Documentation**: URL, validation status, quality score, confidence weight, limitations, cross-references  
+**Conflict Resolution**: Source hierarchy, uncertainty ranges, sensitivity analysis flags
 
-#### **Level 3 (Confidence Weight: 0.3-0.6) - Moderate Quality**
-- **Reputable News Organizations**: Reuters, BBC, AFP health reporting
-- **Local Government Health Departments**: Provincial/state health reports
-- **Preliminary Academic Reports**: Conference abstracts, pre-prints, working papers
-- **Health Professional Organizations**: Medical associations, epidemiological societies
-- **International Alert Systems**: ProMED, GOARN, epidemic intelligence
+**Quality Flags**: HIGH/MEDIUM/LOW/PROVISIONAL based on validation results
 
-**Validation Requirements:**
-- Verify journalist/author expertise in health reporting
-- Cross-check facts with higher-level sources
-- Assess potential sensationalism or bias
-- Document limitations and uncertainties
+## MOSAIC Integration
 
-#### **Level 4 (Confidence Weight: 0.1-0.3) - Limited Quality**
-- **Local News Media**: Regional newspapers, radio, television
-- **Social Media**: Twitter alerts, Facebook reports, WhatsApp chains
-- **Blog Posts**: Health professional blogs, outbreak tracking websites
-- **Unofficial Reports**: Community health worker reports, informal surveillance
-
-**Validation Requirements:**
-- USE WITH EXTREME CAUTION
-- Require corroboration from higher-level sources
-- Document all limitations and potential inaccuracies
-- Mark clearly as unverified/provisional
-
-### MANDATORY DATA VALIDATION PROTOCOL
-
-#### **Stage 1: Source Authentication**
-**REQUIREMENT: Verify every source before data extraction**
-1. **URL Verification**: Confirm links lead to legitimate, official sources
-2. **Publication Authentication**: Verify publication date, author credentials, institutional affiliation
-3. **Domain Validation**: Check for official government (.gov), organization (.org), or academic (.edu) domains
-4. **Archive Status**: Document if source is archived, current, or deprecated
-5. **Version Control**: Identify if multiple versions exist, use most recent/complete
-
-#### **Stage 2: Data Quantity Validation**
-**MANDATORY CHECKS for all numerical data:**
-
-1. **Epidemiological Plausibility Ranges**:
-   - **Case Fatality Rate (CFR)**: 0.1% - 15% (flag values outside range)
-   - **Attack Rates**: 0.01% - 10% of population (flag extreme values)
-   - **Outbreak Duration**: 2 weeks - 2 years (flag very short/long outbreaks)
-   - **Case Numbers**: Minimum 1, maximum population of affected area
-   - **Deaths**: Cannot exceed suspected cases, CFR consistency check
-
-2. **Temporal Consistency Checks**:
-   - Start date must precede end date
-   - Reporting date must be ≥ end date
-   - Duration must be epidemiologically reasonable
-   - No future dates beyond data collection
-   - Seasonal patterns consistent with known cholera epidemiology
-
-3. **Geographic Consistency Checks**:
-   - Location codes match WHO/ISO standards
-   - Administrative hierarchies are correct (Country→Province→District)
-   - Coordinates fall within correct administrative boundaries
-   - Population denominators match census data
-   - Cross-border transmission patterns are plausible
-
-#### **Stage 3: Cross-Reference Validation**
-**REQUIREMENT: Cross-verify all major data points**
-
-1. **Multi-Source Confirmation**:
-   - Major outbreaks (>1000 cases) must have ≥2 independent sources
-   - High CFR (>5%) must be confirmed by clinical sources
-   - Cross-border outbreaks must be confirmed by neighboring country data
-   - Seasonal patterns must match regional/historical patterns
-
-2. **Historical Consistency**:
-   - Compare with known historical outbreak patterns
-   - Check against WHO annual surveillance summaries
-   - Verify consistency with regional epidemic waves
-   - Cross-reference with climate/environmental data
-
-3. **Mathematical Consistency**:
-   - CFR = deaths/cases (allow ±0.1% tolerance for rounding)
-   - Case progression follows epidemiological curves
-   - Attack rates consistent with population data
-   - Cumulative totals match period-specific data
-
-#### **Stage 4: Duplication Detection Protocol**
-**MANDATORY: Prevent duplicate data inclusion**
-
-1. **Exact Duplication Check**:
-   - Same location, dates, case numbers across sources
-   - Same outbreak reported by multiple organizations
-   - Updated reports that supersede earlier versions
-   - Aggregated data that includes sub-national components
-
-2. **Partial Duplication Detection**:
-   - Overlapping time periods with similar case numbers
-   - Different geographic scales reporting same outbreak
-   - Multiple sources citing the same original data
-   - Revised case counts that update preliminary reports
-
-3. **Resolution Protocol**:
-   - **Exact duplicates**: Keep highest reliability source, flag others
-   - **Partial duplicates**: Use most specific geographic/temporal data
-   - **Updated reports**: Use most recent, flag superseded versions
-   - **Aggregation conflicts**: Use sub-national data sum, verify totals
-
-4. **Documentation Requirements**:
-   - Record all detected duplications in metadata
-   - Explain resolution decisions clearly
-   - Maintain traceability to original sources
-   - Flag any remaining uncertainties
-
-### ENHANCED QUALITY CONTROL MEASURES
-
-#### **Quantitative Validation Rules**
-
-1. **Statistical Outlier Detection**:
-   - Flag case numbers >3 standard deviations from regional mean
-   - Identify CFR values outside historical country-specific ranges
-   - Detect unusually short/long outbreak durations
-   - Flag attack rates inconsistent with population density
-
-2. **Trend Analysis**:
-   - Seasonal patterns must align with known cholera epidemiology
-   - Year-to-year changes must be epidemiologically plausible
-   - Outbreak progressions must follow typical epidemic curves
-   - Geographic spread patterns must be consistent with transmission routes
-
-3. **Demographic Consistency**:
-   - Age distributions must match known cholera epidemiology
-   - Gender ratios should be approximately equal unless explained
-   - Population denominators must match census/UN estimates
-   - Urban/rural distributions should match settlement patterns
-
-#### **Qualitative Assessment Criteria**
-
-1. **Methodological Soundness**:
-   - Case definitions clearly stated and appropriate
-   - Surveillance methods described and systematic
-   - Laboratory confirmation procedures documented
-   - Bias potential acknowledged and addressed
-
-2. **Reporting Quality**:
-   - Complete geographic and temporal information
-   - Clear case counting methodologies
-   - Appropriate uncertainty/confidence intervals
-   - Limitations clearly acknowledged
-
-3. **Institutional Credibility**:
-   - Established track record in disease surveillance
-   - Appropriate technical expertise demonstrated
-   - Transparent methodologies and data sharing
-   - Independence from political/commercial interests
-
-### MANDATORY DOCUMENTATION STANDARDS
-
-#### **For Each Data Point**:
-1. **Primary Source**: Direct URL and full citation
-2. **Validation Status**: Pass/fail for each validation stage
-3. **Quality Score**: Numerical rating (1-10) based on validation results
-4. **Confidence Weight**: Final weight for modeling (0.1-1.0)
-5. **Limitations**: Specific concerns or uncertainties
-6. **Cross-references**: Supporting or contradicting sources
-7. **Extraction Notes**: Any interpretations or conversions made
-8. **Verification Date**: When validation was performed
-
-#### **For Each Search**:
-1. **Search Strategy**: Complete list of queries and databases used
-2. **Results Summary**: Number of sources found, filtered, included
-3. **Quality Assessment**: Distribution of sources by reliability level
-4. **Gap Analysis**: Remaining data gaps after search completion
-5. **Recommendations**: Priority areas for future data collection
-
-### AUTOMATED VALIDATION TOOLS
-
-#### **Recommended Implementations**:
-1. **Date Validation**: Automated checking of temporal logic
-2. **Geographic Validation**: API calls to verify location codes
-3. **Statistical Validation**: Outlier detection algorithms
-4. **Duplication Detection**: Fuzzy matching for similar records
-5. **URL Validation**: Automated checking of link status
-6. **Cross-reference Matrix**: Systematic comparison across sources
-
-### ERROR HANDLING AND UNCERTAINTY QUANTIFICATION
-
-#### **When Data Conflicts Occur**:
-1. **Document all conflicting sources** with specific values
-2. **Apply source hierarchy** to resolve conflicts
-3. **Calculate uncertainty ranges** based on source variation
-4. **Flag high-uncertainty data points** for sensitivity analysis
-5. **Provide alternative scenarios** for major discrepancies
-
-#### **Quality Flags for Modeling**:
-- **HIGH**: Multiple Level 1 sources, consistent validation
-- **MEDIUM**: Mixed source levels, minor validation concerns
-- **LOW**: Limited sources, validation issues present
-- **PROVISIONAL**: Single source, major uncertainties
-
-### Confidence Weighting System (UPDATED)
-- **Gold Standard (0.9-1.0)**: Level 1 sources, full validation passed
-- **High Quality (0.7-0.9)**: Level 2 sources, most validation passed
-- **Moderate Quality (0.4-0.7)**: Level 3 sources, some validation concerns
-- **Limited Quality (0.2-0.4)**: Level 4 sources, significant limitations
-- **Provisional (0.1-0.2)**: Unverified sources, major uncertainties
-
-## Integration with MOSAIC Project
-
-### Data Flow
-1. **Input**: Weekly surveillance data with gaps
-2. **Enhancement**: AI-found sources fill missing periods
-3. **Processing**: Downscaling and imputation methods
-4. **Output**: Complete time series with confidence weights
-5. **Modeling**: Enhanced data used in MOSAIC cholera transmission models
-
-### Model Integration
-- **Likelihood Functions**: Use confidence weights in model calibration
-- **Uncertainty Quantification**: Propagate data quality uncertainty
-- **Sensitivity Analysis**: Test model robustness to data source variations
+**Data Flow**: Gap-filled surveillance → Enhanced time series → Weighted modeling  
+**Integration**: Confidence weights in likelihood functions, uncertainty propagation, sensitivity analysis
 
 ## MANDATORY BEST PRACTICES FOR AI INSTANCES
 
-**WARNING: These are not suggestions - they are REQUIREMENTS. Failure to follow these practices will result in data quality issues that compromise the entire MOSAIC modeling effort.**
+**REQUIREMENTS: These practices are mandatory. Non-compliance compromises MOSAIC modeling effectiveness.**
 
-### ULTRA-SYSTEMATIC Search Strategy (MANDATORY)
+### Systematic Search Strategy (MANDATORY)
 
 #### **Multi-Phase Search Protocol**
 **PHASE 1: Broad Discovery (REQUIRED)**
@@ -797,9 +273,9 @@ Must include:
 - [ ] **INDEX SYSTEM: All data rows have both source_index AND source columns populated**
 - [ ] **INDEX SYSTEM: No index numbers are duplicated or missing in metadata**
 
-**CRITICAL REMINDER: The cholera surveillance data enhancement directly impacts MOSAIC model accuracy and public health decision-making. Thoroughness and accuracy are essential, not optional.**
+**CRITICAL: This data enhancement directly impacts MOSAIC model accuracy and public health decisions. Thoroughness and accuracy are mandatory.**
 
-### ULTRA-RIGOROUS QUALITY CONTROL PROTOCOL
+### Quality Control Protocol
 
 **MANDATORY: Every data point must pass ALL quality control stages**
 
@@ -1140,6 +616,47 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 - **Expert review** of all high-uncertainty data points
 
 This pilot validates the ULTRA-deep search approach and demonstrates that comprehensive, systematic searching can dramatically improve cholera surveillance data completeness while maintaining high quality standards.
+
+## COMPREHENSIVE ACCESS PERMISSIONS
+
+### UNRESTRICTED ACCESS TO SUGGESTED SOURCES
+
+**EXPLICIT AUTHORIZATION**: All AI instances working on cholera surveillance data collection have **UNRESTRICTED AND IMMEDIATE ACCESS** to all domains, websites, databases, and platforms listed in `./priority_sources.txt`.
+
+**PRE-APPROVED DOMAIN ACCESS**: The priority_sources.txt file contains **486 pre-authorized domains** organized into 4 priority tiers:
+
+- **TIER 1 (105 sources)**: WHO Official, Government Health Ministries, Major Academic Medical Centers
+- **TIER 2 (138 sources)**: UN Agencies, Major Universities, Established NGOs, Major Journals  
+- **TIER 3 (141 sources)**: Regional Organizations, News Media, Surveillance Networks, WASH Organizations
+- **TIER 4 (102 sources)**: Archives, Specialized Databases, Secondary Sources
+
+**ACCESS PROTOCOL**: 
+1. **No Permission Required**: Proceed immediately with WebFetch(), WebSearch(), and data extraction from any domain in priority_sources.txt
+2. **Systematic Coverage Mandatory**: Execute the required queries per tier (30/15/8/4 queries respectively) 
+3. **Documentation Required**: Log all access attempts and results in search logs
+4. **Quality Standards**: Apply appropriate reliability ratings based on tier classifications
+
+**EXPANDED ACCESS AUTHORIZATION**: Beyond suggested sources, AI instances are authorized to access:
+- **Government Archives**: National, regional, and local government health records
+- **Academic Databases**: University repositories, institutional archives, library systems
+- **International Organizations**: UN agency reports, NGO documentation, humanitarian databases  
+- **Historical Sources**: Colonial records, missionary archives, pre-digital surveillance documentation
+- **News Media**: Regional and local news websites, press archives, media databases
+- **Specialized Platforms**: Disease surveillance networks, laboratory databases, outbreak tracking systems
+
+**PROHIBITED ACCESS**: Do not access:
+- Personal social media accounts or private communications
+- Paywalled content requiring subscription fees
+- Classified or restricted government databases requiring special clearance
+- Medical records or personally identifiable health information
+
+**QUALITY ASSURANCE**: All accessed sources must be:
+- Documented with URLs and access timestamps
+- Validated for institutional credibility
+- Rated according to 4-tier reliability classification
+- Cross-referenced when possible for accuracy
+
+This comprehensive access authorization enables thorough, systematic cholera surveillance data collection while maintaining appropriate security and quality standards.
 
 ## CRITICAL SUCCESS FACTORS AND FINAL REQUIREMENTS
 
