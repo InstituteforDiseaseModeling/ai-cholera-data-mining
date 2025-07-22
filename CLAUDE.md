@@ -4,6 +4,8 @@
 
 **Strategy**: Systematic internet searches to discover unreported transmission events and validate zero-transmission periods for complete historical time series.
 
+**CRITICAL SCOPE RESTRICTION**: AI cholera data collection is **RESTRICTED TO THE 40 MOSAIC FRAMEWORK COUNTRIES ONLY**. Do not process any countries outside the MOSAIC framework. The analysis scope is limited to these 40 core modeling countries.
+
 ## Data Sources & Hierarchy
 
 **Core Data**: Official surveillance, JHU database, AI-enhanced sources  
@@ -107,7 +109,7 @@ FOR EACH COUNTRY:
 ### Search Strategy
 **Multi-Engine Protocol**: 15+ search engines/databases per country  
 **Query Framework**: 7 mandatory categories, 50+ unique queries minimum  
-**Source Coverage**: 486 tiered domains in priority_sources.txt + expansion
+**Source Coverage**: 486 tiered domains in reference/priority_sources.txt + expansion
 
 ### Query Categories (Mandatory)
 
@@ -149,7 +151,7 @@ FOR EACH COUNTRY:
 
 ### File Specifications
 
-**search_report.txt**: Executive summary, methodology, quality assessment, JHU relationship, recommendations
+**search_report.txt**: Executive summary consolidating all 6 agents - methodology, quality assessment, performance metrics, JHU relationship, recommendations, and gap-filling effectiveness analysis
 
 **metadata.csv** (9 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status
 
@@ -249,7 +251,54 @@ BEFORE ADDING ANY ROW:
 □ Processing notes include exact source quote supporting interpretation
 ```
 
-**MANDATORY DATA INCLUSION REQUIREMENT**: Agents are **PROHIBITED** from adding any data observations (rows) to cholera_data.csv unless they can identify at least one cholera case value (sCh or cCh). Sources that only mention cholera outbreaks without providing quantitative case counts **MUST NOT** be included in the data file. Only sources with identifiable case numbers, death counts, or calculable epidemiological metrics qualify for data extraction.
+**MANDATORY DATA INCLUSION REQUIREMENT**: Agents are **PROHIBITED** from adding any data observations (rows) to cholera_data.csv unless they can identify at least one cholera case value (sCh or cCh) **OR** can document a confirmed zero-transmission period. Sources that only mention cholera outbreaks without providing quantitative case counts **MUST NOT** be included in the data file. Only sources with identifiable case numbers, death counts, calculable epidemiological metrics, or validated absence periods qualify for data extraction.
+
+**MANDATORY ZERO-TRANSMISSION DOCUMENTATION PROTOCOL**:
+
+**CRITICAL REQUIREMENT**: All validated cholera-free periods MUST be documented as data observations in cholera_data.csv with the following specifications:
+
+**Zero-Transmission Data Entry Format**:
+```
+Location: AFR::{ISO} (national level for absence periods)
+TL: YYYY-01-01 (start of absence period)  
+TR: YYYY-12-31 (end of absence period)
+deaths: 0
+sCh: 0
+cCh: (empty)
+CFR: 0.0
+reporting_date: End date + 1 day
+source_index: [metadata reference]
+source: [WHO surveillance confirmation or academic validation]
+confidence_weight: 0.8-1.0 (based on surveillance system quality)
+processing_notes: "Source confirms zero cholera transmission during [period] - validated absence via [surveillance system/WHO reporting]"
+```
+
+**Mandatory Zero-Transmission Entry Triggers**:
+1. **Gap Periods Validated**: Any period >1 year between documented outbreaks where surveillance confirms no cases
+2. **WHO "Zero Reporting"**: Official surveillance data showing no cholera cases for specific years
+3. **Academic Documentation**: Peer-reviewed studies confirming absence periods (e.g., "decade-long absence 1997-2006")
+4. **Surveillance System Validation**: Evidence of functioning disease surveillance during cholera-free periods
+5. **Regional Context**: Confirmed absence during periods when neighboring countries had outbreaks
+
+**Source Requirements for Zero-Transmission Entries**:
+- WHO surveillance reports explicitly stating "no cases reported"
+- Academic literature documenting absence periods with epidemiological evidence
+- Government health ministry annual reports confirming zero cholera cases
+- Regional surveillance networks documenting cholera-free status
+- Cross-border analysis confirming absence despite regional transmission
+
+**Quality Standards for Absence Documentation**:
+- **Level 1 (1.0 weight)**: WHO official surveillance confirming zero cases
+- **Level 1 (0.9 weight)**: Academic studies with epidemiological evidence of absence
+- **Level 2 (0.8 weight)**: Government reports confirming cholera-free periods
+- **Level 3 (0.7 weight)**: Inferred absence from regional surveillance patterns
+
+**MANDATORY VALIDATION for Zero-Transmission Entries**:
+1. **Surveillance System Functioning**: Evidence that disease surveillance was operational during absence period
+2. **Regional Consistency**: Cross-check with neighboring countries' outbreak patterns
+3. **Historical Continuity**: Validate absence periods fit within known outbreak cycles
+4. **Duration Plausibility**: Confirm absence duration is epidemiologically reasonable (typically 1-10 years)
+5. **Documentation Quality**: Ensure source explicitly confirms absence rather than just lack of reporting
 
 **ENHANCED QUALITY CONTROL FOR sCh/cCh COLUMNS**:
 
@@ -596,6 +645,31 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 
 **CRITICAL: This data enhancement directly impacts MOSAIC model accuracy and public health decisions. Thoroughness, accuracy, and efficient parallel execution are mandatory.**
 
+## MANDATORY ZERO-TRANSMISSION DOCUMENTATION SUMMARY
+
+**CRITICAL REQUIREMENT FOR ALL AGENTS**: Every validated cholera-free period MUST be documented as a data observation in cholera_data.csv. This is not optional.
+
+**Examples of Required Zero-Transmission Entries**:
+- WHO surveillance reports: "no cholera cases reported in [Country] during [Year]" → MANDATORY cholera_data.csv entry
+- Academic studies: "decade-long absence 1997-2006" → MANDATORY cholera_data.csv entries for each year or period
+- Government reports: "cholera-free period following end of civil war" → MANDATORY cholera_data.csv entry
+- Regional analysis: "Country X remained cholera-free while neighbors experienced outbreaks" → MANDATORY cholera_data.csv entry
+
+**Quality Impact**: Zero-transmission documentation is essential for:
+1. **Complete time series**: MOSAIC models require knowledge of both presence AND absence of disease
+2. **Accurate transmission modeling**: Understanding when/why cholera is absent informs transmission parameters
+3. **Public health planning**: Documented cholera-free periods guide resource allocation and preparedness
+4. **Regional analysis**: Cross-border transmission patterns depend on accurate absence documentation
+5. **Intervention effectiveness**: Measuring success requires documenting sustained absence periods
+
+**Agent Responsibilities**:
+- **Agent 1**: Document any zero-transmission periods discovered during baseline searches
+- **Agent 2**: Document provincial-level absence periods where surveillance confirms zero cases
+- **Agent 3**: PRIMARY RESPONSIBILITY - systematically validate and document ALL cholera-free periods
+- **All Agents**: If absence periods are identified, MANDATORY documentation in cholera_data.csv
+
+**Validation Standard**: Zero-transmission entries require the same validation rigor as outbreak data - appropriate confidence weighting, source documentation, and cross-reference validation.
+
 ### Quality Control Protocol
 
 **MANDATORY: Every data point must pass ALL quality control stages**
@@ -924,7 +998,7 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 #### **Updated Search Requirements (Using Parallel Methodology)**
 - **PARALLEL EXECUTION MANDATORY**: All queries must use batch processing (20 parallel queries per batch)
 - **Minimum Performance Standards**: Agent 1 minimum 5 batches/100 queries with data observation yield stopping criteria, Agent 4 conditional batching based on data discovery
-- **Systematic Coverage Required**: Agent 1 uses focused 45 highest-priority sources (200 queries from priority_sources.txt)
+- **Systematic Coverage Required**: Agent 1 uses focused 45 highest-priority sources (200 queries from reference/priority_sources.txt)
 - **Multi-language Parallel Batches**: Execute simultaneous searches in English, Portuguese, French, Arabic, and local languages
 - **Cross-border Parallel Validation**: Batch searches across neighboring countries simultaneously
 - **Accelerated Temporal Coverage**: Parallel decade-specific searches (1970s-2020s executed simultaneously)
@@ -939,13 +1013,25 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 
 This methodology validates that **systematic parallel execution** can complete comprehensive searches (1,000-1,320 queries) in 10-15 minutes while maintaining the highest quality standards for MOSAIC epidemiological modeling.
 
+## MOSAIC FRAMEWORK COUNTRY PRIORITIZATION
+
+**MANDATORY SCOPE RESTRICTION**: AI instances must work ONLY on the 40 MOSAIC framework countries for cholera data collection:
+
+**Load MOSAIC Countries**: Read `./reference/country_mapping.json` and work ONLY on countries with `"mosaic_framework": true`:
+- AGO, BDI, BEN, BFA, BWA, CAF, CIV, CMR, COD, COG, ERI, ETH, GAB, GHA, GIN, GMB, GNB, GNQ, KEN, LBR, MLI, MOZ, MRT, MWI, NAM, NER, NGA, RWA, SEN, SLE, SOM, SSD, SWZ, TCD, TGO, TZA, UGA, ZAF, ZMB, ZWE
+
+**PROHIBITED**: 
+- **NO analysis of non-MOSAIC countries**: COM, CPV, DJI, DZA, EGY, LBY, LSO, MAR, MDG, MUS, SDN, STP, SYC, TUN
+- **NO work outside the 40 MOSAIC framework countries**
+- **Scope validation required**: Always verify countries are MOSAIC-eligible before processing
+
 ## COMPREHENSIVE ACCESS PERMISSIONS
 
 ### UNRESTRICTED ACCESS TO SUGGESTED SOURCES
 
-**EXPLICIT AUTHORIZATION**: All AI instances working on cholera surveillance data collection have **UNRESTRICTED AND IMMEDIATE ACCESS** to all domains, websites, databases, and platforms listed in `./priority_sources.txt`.
+**EXPLICIT AUTHORIZATION**: All AI instances working on cholera surveillance data collection have **UNRESTRICTED AND IMMEDIATE ACCESS** to all domains, websites, databases, and platforms listed in `./reference/priority_sources.txt`.
 
-**PRE-APPROVED DOMAIN ACCESS**: The priority_sources.txt file contains **486 pre-authorized domains** organized into 4 priority tiers:
+**PRE-APPROVED DOMAIN ACCESS**: The reference/priority_sources.txt file contains **486 pre-authorized domains** organized into 4 priority tiers:
 
 - **TIER 1 (105 sources)**: WHO Official, Government Health Ministries, Major Academic Medical Centers
 - **TIER 2 (138 sources)**: UN Agencies, Major Universities, Established NGOs, Major Journals  
@@ -953,7 +1039,7 @@ This methodology validates that **systematic parallel execution** can complete c
 - **TIER 4 (102 sources)**: Archives, Specialized Databases, Secondary Sources
 
 **ACCESS PROTOCOL**: 
-1. **No Permission Required**: Proceed immediately with WebFetch(), WebSearch(), and data extraction from any domain in priority_sources.txt
+1. **No Permission Required**: Proceed immediately with WebFetch(), WebSearch(), and data extraction from any domain in reference/priority_sources.txt
 2. **Systematic Coverage Mandatory**: Execute the required queries per tier (30/15/8/4 queries respectively) 
 3. **Documentation Required**: Log all access attempts and results in search logs
 4. **Quality Standards**: Apply appropriate reliability ratings based on tier classifications
@@ -998,20 +1084,17 @@ Given batches of 20 queries:
 
 **Agent-Specific Parameters**:
 
-**Agent 1**: X=5 batches minimum (100 queries), Y=2 consecutive batches, Z=8% threshold
+**Agent 1**: X=5 batches minimum (100 queries), Y=2 consecutive batches, Z=10% threshold
 - Ensures adequate systematic coverage of priority sources
 - Establishes baseline performance patterns before applying stopping criteria
 - Prevents premature termination during initial high-yield discovery phases
 
-**Agents 2,3,5**: X=2 batches minimum (40 queries), Y=2 consecutive batches, Z=4% threshold  
+**Agents 2,3,4,5**: X=2 batches minimum (40 queries), Y=2 consecutive batches, Z=5% threshold  
 - Accounts for natural variability in discovery process
 - Prevents stopping due to temporary methodology shifts or access issues
 - Balances thoroughness with efficiency requirements
 
-**Agent 4**: Conditional batching protocol
-- Initial 2 batches (40 queries) mandatory
-- If ANY new data observations found in first 2 batches: continue for 2 additional batches
-- If NO new data observations in first 2 batches: stop after 2 batches
+**Agent 4**: Obscure source expansion continues until 2 consecutive batches <4% yield (minimum 2 batches/40 queries) - **MAXIMUM 240 queries (12 batches)**
 
 **Threshold Rationale**:
 - 8% threshold (Agent 1): Set below typical declining trend, establishes strong baseline
@@ -1084,20 +1167,19 @@ Where "Successful Queries" are those that produce:
 #### **Integration with Agent Framework**
 
 **Agent-Specific Application with Maximum Query Safeguards**:
-- **Agent 1**: Data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <8% yield) - **MAXIMUM 400 queries (20 batches)**
-- **Agent 2**: Geographic expansion continues until 2 consecutive batches <4% yield (minimum 2 batches/40 queries) - **MAXIMUM 240 queries (12 batches)**
-- **Agent 3**: Zero-transmission validation continues until 2 consecutive batches <4% yield (minimum 2 batches/40 queries) - **MAXIMUM 240 queries (12 batches)**
-- **Agent 4**: Conditional requirement (2 batches mandatory, +2 if data found) - **MINIMUM 40 queries (2 batches), MAXIMUM 80 queries (4 batches)**
-- **Agent 5**: Source permutation continues until 2 consecutive batches <4% yield (minimum 2 batches/40 queries) - **MAXIMUM 240 queries (12 batches)**
-- **Agent 6**: Quality audit (not focused on data discovery) - **MAXIMUM 80 queries (4 batches)**
+- **Agent 1**: Data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <10% yield) - **MAXIMUM 200 queries (10 batches)**
+- **Agent 2**: Geographic expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+- **Agent 3**: Zero-transmission validation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)** - **MANDATORY: Document ALL validated absence periods as data observations in cholera_data.csv using zero-transmission protocol**
+- **Agent 4**: Obscure source expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+- **Agent 5**: Source permutation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+- **Agent 6**: Quality audit and dataset finalization (internal processing, source validation, and URL verification as needed)
 
 **Three-Tier Stopping System with Hard Limits**:
-- **Agent 1** (Baseline): X=5, Y=2, Z=8% (comprehensive foundation requiring thorough systematic coverage) - Hard stop at 400 queries
-- **Agents 2,3,5** (Expansion): X=2, Y=2, Z=4% (specialized expansion with faster saturation detection) - Hard stop at 240 queries each
-- **Agent 4** (Conditional): 2 batches mandatory + 2 if data found - Hard stop at 80 queries (4 batches maximum)
-- **Agent 6** (Quality): Hard stop at 80 queries (4 batches)
+- **Agent 1** (Baseline): X=5, Y=2, Z=10% (comprehensive foundation requiring thorough systematic coverage) - Hard stop at 200 queries
+- **Agents 2,3,4,5** (Expansion): X=2, Y=2, Z=5% (specialized expansion with faster saturation detection) - Hard stop at 100 queries each
+- **Agent 6** (Quality): Complete validation until all quality objectives achieved (no query limit)
 
-**Total Maximum Workflow Limit: 1,320 queries across all 6 agents**
+**Total Maximum Workflow Limit: 600 queries for Agents 1-5, unlimited validation queries for Agent 6**
 
 **Performance Monitoring**:
 - Track yield trends across all continuing agents
@@ -1201,6 +1283,8 @@ Task(description="Compact context", prompt="/compact")
 - Supports evidence-based public health decision-making
 - Enables accurate epidemiological modeling across the WHO African Region
 - Serves as a model for AI-enhanced surveillance data collection
+
+**MANDATORY AGENT 6 GAP ASSESSMENT**: Every country completion must include quantitative gap-filling impact analysis comparing pre-workflow vs post-workflow surveillance coverage using reference data, with specific documentation of gaps filled and remaining priority periods requiring future attention.
 
 **This work directly impacts global cholera control efforts. Excellence is required, not requested.**
 
