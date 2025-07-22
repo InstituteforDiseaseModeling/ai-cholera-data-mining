@@ -70,6 +70,68 @@
 
 **cholera_data.csv** (14 columns): Location, TL, TR, Primary, Phantom, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, validation_status
 
+**MANDATORY DATA INCLUSION REQUIREMENT**: Agents are **PROHIBITED** from adding any data observations (rows) to cholera_data.csv unless they can identify at least one cholera case value (sCh or cCh). Sources that only mention cholera outbreaks without providing quantitative case counts **MUST NOT** be included in the data file. Only sources with identifiable case numbers, death counts, or calculable epidemiological metrics qualify for data extraction.
+
+**ENHANCED QUALITY CONTROL FOR sCh/cCh COLUMNS**:
+
+**Mandatory Pre-Entry Validation**
+```
+BEFORE ADDING TO cholera_data.csv:
+□ Number explicitly described as cholera "cases" (not vaccinated, population, density)
+□ Source context indicates disease incidence (not prevention/demographics)
+□ Quote exact source text supporting case interpretation
+□ Validate units are case counts, not rates/coverage/capacity
+```
+
+**High-Risk Context Flags**
+```
+EXTRA VALIDATION REQUIRED FOR:
+- Vaccination reports → likely vaccinated count, not cases
+- Demographics → likely population, not cases  
+- WASH assessments → likely coverage, not cases
+
+ACCEPT: "cases", "infections", "ill", "hospitalized"
+REJECT: "affected", "targeted", "covered", "population"
+```
+
+**Mandatory Documentation**
+```
+processing_notes MUST include: "Source states: '[exact quote]' - interpreted as [sCh/cCh] cases"
+```
+
+**MANDATORY EXTENDED THINKING REQUIREMENT**
+```
+USE EXTENDED ULTRATHINK WHEN:
+□ Synthesizing data from multiple sources
+□ Interpreting ambiguous numbers or context
+□ Performing any cross-validation between sources
+□ Resolving conflicts between different reports
+□ Determining if numbers represent cases vs. other metrics
+
+THINK THROUGH: Context clues, source credibility, temporal alignment, 
+epidemiological plausibility, alternative interpretations
+```
+
+**Tiered Cross-Validation Framework**
+```
+TIER 1: High-Value Cases (>1000 cases)
+- REQUIRE: 2+ independent sources for major outbreaks
+- USE ULTRATHINK: Compare sources, resolve discrepancies
+
+TIER 2: Moderate Cases (100-1000 cases)  
+- ENCOURAGE: Seek secondary confirmation when possible
+- ACCEPT: Single high-quality source (Level 1-2)
+- FLAG: Note single-source status
+
+TIER 3: Small Cases (<100 cases)
+- ACCEPT: Single source with appropriate confidence weighting
+
+CROSS-VALIDATION TRIGGERS (REQUIRE 2+ SOURCES):
+□ Cases >1000 (major outbreak)
+□ First outbreak in new geographic area
+□ Dates conflict with regional patterns
+```
+
 **Requirements**: Dual-reference system (source_index ↔ Index), exact name matching, YYYY-MM-DD dates, AFR::{ISO} location codes
 
 ## DATA QUALITY FRAMEWORK
@@ -110,27 +172,60 @@
 
 ### Systematic Search Strategy (MANDATORY)
 
-#### **Multi-Phase Search Protocol**
+#### **MANDATORY PARALLEL SEARCH METHODOLOGY**
+
+**CRITICAL**: This section overrides all other search guidance. Failure to implement parallel execution will result in incomplete data collection and methodology non-compliance.
+
+##### **A. Fundamental Parallel Processing Mandate**
+
+**PROHIBITED BEHAVIOR**: Sequential query execution
+```python
+# NEVER DO THIS - Sequential Processing
+WebSearch("Angola cholera WHO 2024")     # Wait
+WebSearch("Angola cholera UNICEF 2024")  # Wait  
+WebSearch("Angola cholera MSF 2024")     # Wait
+```
+
+**MANDATORY BEHAVIOR**: Parallel batch execution
+```python
+# REQUIRED - Parallel Batch Processing: batches of 25 queries
+[
+  WebSearch("Angola cholera WHO 2024"),
+  WebSearch("Angola cholera UNICEF 2024"),
+  WebSearch("Angola cholera MSF 2024"),
+  WebSearch("Angola cholera ReliefWeb 2024"),
+  WebSearch("Angola cholera government 2024"),
+  WebSearch("Angola cholera academic 2024"),
+  WebSearch("Angola cholera surveillance 2024"),
+  WebSearch("Angola cholera cases 2002")
+  WebSearch("Angola cholera deaths 2006")
+  WebSearch("Angola oral cholera vaccine 2018")
+]
+```
+
+**MANDATORY BEHAVIOR**: Complete ALL stated queries without shortcuts
+
+#### **Multi-Phase Search Protocol (Using Parallel Execution)**
 **PHASE 1: Broad Discovery (REQUIRED)**
-1. **Start with systematic queries**: Use ALL query categories in ULTRA DEEP SEARCH section
-2. **Multiple search engines**: Google, Google Scholar, PubMed, WHO databases, ReliefWeb, government sites
-3. **Language diversity**: Search in English, French, Portuguese, Arabic, and local languages
-4. **Temporal comprehensiveness**: Search each decade systematically (1970s, 1980s, etc.)
-5. **Geographic completeness**: National, provincial, district levels
+1. **Start with systematic queries**: Execute ALL query categories using parallel batch processing from section above
+2. **Multiple search engines**: Use parallel WebSearch calls across Google, Google Scholar, PubMed, WHO databases, ReliefWeb, government sites
+3. **Language diversity**: Execute multi-language query batches simultaneously (English, French, Portuguese, Arabic, local languages)
+4. **Temporal comprehensiveness**: Batch decade-specific searches in parallel (1970s, 1980s, etc.)
+5. **Geographic completeness**: Parallel execution across administrative levels (national, provincial, district)
 
 **PHASE 2: Targeted Gap Filling (REQUIRED)**
-1. **Identify specific gaps**: Missing years, regions, outbreak periods
-2. **Focused searches**: Target identified gaps with specific queries
-3. **Cross-reference validation**: Verify gaps aren't due to search limitations
-4. **Regional contextualization**: Check neighboring countries for cross-border patterns
-5. **Alternative terminology**: Use synonyms, local terms, different spellings
+1. **Identify specific gaps**: Missing years, regions, outbreak periods from Phase 1 results
+2. **Focused searches**: Execute gap-specific queries in parallel batches using accelerated methodology
+3. **Cross-reference validation**: Use parallel WebFetch to verify gaps across multiple sources simultaneously
+4. **Regional contextualization**: Batch cross-border searches for neighboring countries (execute in parallel)
+5. **Alternative terminology**: Create synonym/local term query batches for parallel execution
 
 **PHASE 3: Deep Validation (REQUIRED)**
-1. **Source chain following**: Check references, citations, follow-up studies
-2. **Institution deep dives**: Systematically search organization websites
-3. **Archive exploration**: Use Internet Archive for historical sources
-4. **Expert consultation**: Contact authors/institutions when possible
-5. **Peer verification**: Cross-check findings with multiple independent sources
+1. **Source chain following**: Execute reference/citation searches in parallel batches
+2. **Institution deep dives**: Use parallel WebSearch across multiple organization websites simultaneously
+3. **Archive exploration**: Batch Internet Archive searches using parallel processing
+4. **Expert consultation**: Contact authors/institutions when possible (maintain parallel processing for other searches)
+5. **Peer verification**: Execute cross-checking across multiple sources using parallel WebFetch
 
 #### **Search Completeness Verification**
 **MANDATORY CHECKLIST before concluding search:**
@@ -272,8 +367,12 @@
 - [ ] **INDEX SYSTEM: Data CSV source names exactly match metadata Source column**
 - [ ] **INDEX SYSTEM: All data rows have both source_index AND source columns populated**
 - [ ] **INDEX SYSTEM: No index numbers are duplicated or missing in metadata**
+- [ ] **PARALLEL EXECUTION: All searches conducted using parallel batch methodology**
+- [ ] **PERFORMANCE STANDARDS: Agent 1 minimum 8 batches/200 queries with stopping criteria, Agent 4 exactly 200 queries**
+- [ ] **SYSTEMATIC COVERAGE: Priority sources parsed and systematically searched**
+- [ ] **BATCH LOGGING: Query rates and performance metrics documented**
 
-**CRITICAL: This data enhancement directly impacts MOSAIC model accuracy and public health decisions. Thoroughness and accuracy are mandatory.**
+**CRITICAL: This data enhancement directly impacts MOSAIC model accuracy and public health decisions. Thoroughness, accuracy, and efficient parallel execution are mandatory.**
 
 ### Quality Control Protocol
 
@@ -600,22 +699,23 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 
 ### Scaling Requirements for Future Countries
 
-#### **Minimum Search Requirements (Learned from Angola)**
-- **Minimum 15 distinct search engines/databases** per country
-- **Minimum 50 unique search queries** across all categories
-- **Minimum 10 hours of systematic searching** per country
-- **Mandatory multi-language searches** for non-English speaking countries
-- **Required cross-border validation** with neighboring countries
-- **Systematic decade-by-decade temporal coverage**
+#### **Updated Search Requirements (Using Parallel Methodology)**
+- **PARALLEL EXECUTION MANDATORY**: All queries must use batch processing (15-25 parallel queries per batch)
+- **Minimum Performance Standards**: Agent 1 minimum 8 batches/200 queries with data observation yield stopping criteria, Agent 4 exactly 200 queries
+- **Systematic Coverage Required**: Agent 1 uses focused 45 highest-priority sources (300 queries from priority_sources.txt)
+- **Multi-language Parallel Batches**: Execute simultaneous searches in English, Portuguese, French, Arabic, and local languages
+- **Cross-border Parallel Validation**: Batch searches across neighboring countries simultaneously
+- **Accelerated Temporal Coverage**: Parallel decade-specific searches (1970s-2020s executed simultaneously)
 
-#### **Quality Control Minimums**
-- **100% validation** of all extracted data points
-- **Multi-source confirmation** for all major outbreaks (>1000 cases)
-- **Cross-reference checking** against WHO annual summaries
-- **Duplication screening** for all overlapping time periods
-- **Expert review** of all high-uncertainty data points
+#### **Quality Control Minimums (Enhanced)**
+- **100% validation** of all extracted data points using parallel validation techniques
+- **Multi-source confirmation** for all major outbreaks (>1000 cases) via parallel WebFetch
+- **Cross-reference checking** against WHO annual summaries using batch processing
+- **Duplication screening** for all overlapping time periods with automated detection
+- **Expert review** of all high-uncertainty data points while maintaining search momentum
+- **Performance Monitoring**: Real-time tracking of query rates and batch completion times
 
-This pilot validates the ULTRA-deep search approach and demonstrates that comprehensive, systematic searching can dramatically improve cholera surveillance data completeness while maintaining high quality standards.
+This methodology validates that **systematic parallel execution** can complete comprehensive searches (4,000-5,000 queries) in 15-20 minutes while maintaining the highest quality standards for MOSAIC epidemiological modeling.
 
 ## COMPREHENSIVE ACCESS PERMISSIONS
 
@@ -658,6 +758,129 @@ This pilot validates the ULTRA-deep search approach and demonstrates that compre
 
 This comprehensive access authorization enables thorough, systematic cholera surveillance data collection while maintaining appropriate security and quality standards.
 
+## ENHANCED DISCOVERY SATURATION PROTOCOL
+
+### DATA OBSERVATION YIELD STOPPING CRITERIA
+
+**MANDATORY STOPPING PROTOCOL**: Advanced systematic discovery saturation detection based on empirically-validated data observation yield methodology.
+
+#### **Protocol Structure**
+```
+Given batches of 25 queries:
+1. Run minimum X=8 batches (200 queries) for baseline coverage
+2. After X batches, stop when Y=3 consecutive batches achieve <Z=8% data observation yield
+3. Exception: If source quality remains high (>0.8 average reliability), continue for 2 additional batches before applying stopping criteria
+```
+
+#### **Parameter Specifications**
+
+**X = 8 batches minimum** (200 queries minimum coverage)
+- Ensures adequate systematic coverage of priority sources
+- Allows natural variation to stabilize based on observed patterns
+- Establishes baseline performance patterns before applying stopping criteria
+- Prevents premature termination during initial high-yield discovery phases
+
+**Y = 3 consecutive batches**  
+- Accounts for natural variability in discovery process (observed 2-4 batch fluctuation cycles)
+- Prevents stopping due to temporary methodology shifts or access issues
+- Provides confidence that saturation is genuine, not temporary
+- Balances thoroughness with efficiency requirements
+
+**Z = 8% data observation yield threshold**
+- Set below typical declining trend (12-16% recent average in validation data)
+- Above observed noise floor (4% minimum observed in systematic studies)
+- Accounts for continued discovery of institutional sources with sparse but valuable data
+- Empirically validated to distinguish productive discovery from diminishing returns
+
+#### **Data Observation Yield = Successful Queries Only**
+```
+Batch Yield = (Number of queries that resulted in at least one new row added to cholera_data.csv / 25 queries) × 100%
+
+**CRITICAL ERROR TO AVOID**: Do NOT count queries that only found cholera information.
+**MANDATORY**: After each batch, count ONLY the queries that successfully resulted in new cholera_data.csv additions.
+**NOT** sources found, **NOT** potential data discovered, **NOT** information about cholera - ONLY queries that produced completed CSV additions with quantitative data (cases, deaths, CFRs, dates, locations).
+
+**QUANTITATIVE DATA REQUIREMENT**: Sources MUST contain identifiable cholera case values (sCh or cCh) to qualify for cholera_data.csv inclusion. Qualitative mentions of outbreaks without case counts do NOT count toward data observation yield.
+
+**Example**: If 8 out of 25 queries each resulted in at least one new cholera_data.csv row (regardless of how many rows each query produced), yield = 8/25 = 32%
+
+Where "Successful Queries" are those that produce:
+- Novel cholera case/death counts with dates → cholera_data.csv
+- New geographic breakdowns (provincial/district level) → cholera_data.csv
+- Historical outbreak periods previously undocumented → cholera_data.csv
+- Surveillance system capacity data → cholera_data.csv
+- Cross-border transmission evidence → cholera_data.csv
+- Vaccination campaign effectiveness data → cholera_data.csv
+```
+
+#### **Quality Exception Protocol**
+- **High-Quality Source Exception**: If average source reliability >0.8 in low-yield batches, continue for 2 additional batches
+- **Rationale**: High-reliability institutional sources (WHO, government ministries, peer-reviewed literature) may have sparse but extremely valuable data that justifies continued searching
+- **Implementation**: Calculate weighted average reliability using confidence weights from 4-tier classification system
+- **Documentation**: Record quality exception application and additional findings
+
+#### **Implementation Requirements**
+
+**CRITICAL BATCH COMPLETION CHECKLIST - ALL ITEMS MANDATORY**:
+□ 25 parallel searches executed
+□ All quantitative cholera data extracted from results
+□ cholera_data.csv updated with new rows (count: ___)
+□ metadata.csv updated with new sources  
+□ Dual-reference indexing verified (source_index ↔ Index)
+□ Data observation yield calculated: ___% (successful queries / 25)
+□ Search log updated with actual CSV additions count
+
+**BATCH IS NOT COMPLETE UNTIL ALL CSV UPDATES ARE FINISHED**
+
+1. **Real-Time Success Tracking**: Document which queries successfully added new rows to cholera_data.csv per batch
+2. **Successful Query Calculation**: (Successful Queries/25) × 100% for each 25-query batch  
+3. **Consecutive Performance Monitoring**: Track sequence of low-yield batches with batch identification
+4. **Quality Assessment**: Calculate average source reliability when approaching threshold using confidence weighting
+5. **Decision Documentation**: Record rationale for search termination including yield history and quality assessment
+6. **Legacy Integration**: Apply alongside existing completion criteria (temporal coverage, institutional module completion)
+
+#### **Validation Evidence**
+
+**Angola Pilot Results** (10 batches, 130 queries):
+- **Yield Range**: 4% to 48% (average 22%)
+- **Declining Trend**: Later batches averaged 17% vs early batches 22%
+- **Variability Pattern**: 2-4 batch fluctuation cycles confirmed 3-batch consecutive requirement
+- **Quality Correlation**: High-yield batches (>30%) corresponded with WebFetch intensive methods and institutional source discovery
+- **Threshold Validation**: 8% threshold would trigger after observed declining trend while maintaining discovery of quality sources
+
+**Expected Benefits**:
+- **Prevents Premature Stopping**: Accounts for natural variation in search productivity
+- **Ensures Thorough Coverage**: Minimum 200-query baseline ensures systematic priority source coverage
+- **Quality Preservation**: Exception protocol prevents loss of high-reliability institutional sources
+- **Efficiency Optimization**: Systematic stopping criteria prevents over-searching with minimal additional yield
+- **Reproducible Results**: Empirically-validated parameters ensure consistent application across countries
+
+#### **Integration with Agent Framework**
+
+**Agent-Specific Application with Maximum Query Safeguards**:
+- **Agent 1**: Data observation yield stopping criteria (minimum 8 batches/200 queries, stop when 3 consecutive batches <10% yield) - **MAXIMUM 500 queries (20 batches)**
+- **Agent 2**: Geographic expansion continues until 3 consecutive batches <5% yield (minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
+- **Agent 3**: Zero-transmission validation continues until 3 consecutive batches <5% yield (minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
+- **Agent 4**: Fixed requirement (EXACTLY 200 queries) - stopping protocol not applicable - **EXACTLY 200 queries (8 batches)**
+- **Agent 5**: Source permutation continues until 3 consecutive batches <5% yield (minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
+- **Agent 6**: Quality audit (not focused on data discovery) - **MAXIMUM 100 queries (4 batches)**
+
+**Two-Tier Stopping System with Hard Limits**:
+- **Agent 1** (Baseline): X=8, Y=3, Z=10% (comprehensive foundation requiring thorough systematic coverage) - Hard stop at 500 queries
+- **Agents 2,3,5** (Expansion): X=4, Y=3, Z=5% (specialized expansion with faster saturation detection) - Hard stop at 300 queries each
+- **Agent 4** (Fixed): Exactly 200 queries (8 batches × 25 queries) - no stopping criteria applicable
+- **Agent 6** (Quality): Hard stop at 100 queries (4 batches)
+
+**Total Maximum Workflow Limit: 1,700 queries across all 6 agents**
+
+**Performance Monitoring**:
+- Track yield trends across all continuing agents
+- Document quality exception applications
+- Report stopping criteria achievement in search logs
+- Validate stopping decisions meet minimum coverage requirements
+
+This enhanced protocol ensures systematic, thorough data collection while preventing inefficient over-searching through empirically-validated stopping criteria.
+
 ## CRITICAL SUCCESS FACTORS AND FINAL REQUIREMENTS
 
 ### NON-NEGOTIABLE REQUIREMENTS FOR ALL FUTURE INSTANCES
@@ -672,7 +895,10 @@ This comprehensive access authorization enables thorough, systematic cholera sur
 
 ### FAILURE CONDITIONS (WORK WILL BE REJECTED IF:)
 
+- **Sequential query execution detected** (parallel requirement violated)
+- **Query performance below minimum standards** (<50% of required rate for >10 minutes)
 - Search methodology is incomplete or unsystematic
+- **Priority sources not systematically covered** (missing TIER coverage)
 - Validation protocols are skipped or inadequately performed
 - Documentation is missing or insufficient
 - Quality control standards are not met
@@ -680,6 +906,7 @@ This comprehensive access authorization enables thorough, systematic cholera sur
 - Source authentication is inadequate
 - Duplication detection is not performed
 - Uncertainty quantification is missing
+- **Performance metrics not logged** (batch times and query rates undocumented)
 
 ### SUCCESS METRICS (MINIMUM ACCEPTABLE STANDARDS)
 

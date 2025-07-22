@@ -1,19 +1,22 @@
+Review the ./CLAUDE.md and ./data/{ISO_CODE}/search_protocol_{ISO_CODE}.txt files and then execute the 6-agent workflow outlined below from start to finish without stopping.
+
 # MOSAIC AI CHOLERA DATA COLLECTION - 6-AGENT SEARCH WORKFLOW
 
-## OVERVIEW
 **Target Country**: {COUNTRY_NAME} ({ISO_CODE})
 
 This workflow implements a 6-agent system for maximizing cholera surveillance data discovery while maintaining rigorous quality standards. Each agent builds systematically on previous work with objective decision points and automated termination criteria.
 
 ## WORKFLOW CONTROL PARAMETERS
 
-### **Agent Targets**:
-- Agent 1: Baseline establishment (8-phase protocol completion)
-- Agent 2: Geographic expansion (continue until <1% data yield increase achieved)
-- Agent 3: Temporal completion (continue until <1% data yield increase achieved)
-- Agent 4: Obscure source expansion (continue until <1% data yield increase achieved)
-- Agent 5: Source permutation & adjacent data mining (continue until <1% data yield increase achieved)
-- Agent 6: Final validation and quality audit (comprehensive quality review)
+### **Agent Targets with Maximum Query Safeguards**:
+- **Agent 1**: Baseline establishment (minimum 8 batches/200 queries, stop when 3 consecutive batches <10% data observation yield) - **MAXIMUM 500 queries (20 batches)**
+- **Agent 2**: Geographic expansion (continue until 3 consecutive batches <5% data observation yield, minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
+- **Agent 3**: Temporal completion (continue until 3 consecutive batches <5% data observation yield, minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
+- **Agent 4**: Obscure source expansion (EXACTLY 200 queries: 10 search engines × 20 queries each) - **EXACTLY 200 queries (8 batches)**
+- **Agent 5**: Source permutation & adjacent data mining (continue until 3 consecutive batches <5% data observation yield, minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
+- **Agent 6**: Final validation and quality audit (comprehensive quality review) - **MAXIMUM 100 queries (4 batches)**
+
+**Total Workflow Maximum: 1,700 queries across all 6 agents**
 
 ### **Quality Gates**:
 - **Agents 1-3**: ≥90% Level 1-2 source reliability maintained
@@ -57,19 +60,92 @@ This workflow implements a 6-agent system for maximizing cholera surveillance da
 **SEQUENTIAL AGENTIC WORKFLOW IS AS FOLLOWS:**
 
 ## AGENT 1: BASELINE ESTABLISHMENT
-**Objective**: Execute foundational 8-phase search protocol
+**Objective**: Execute foundational 8-phase search protocol with batch-based stopping criteria
 
 **Reporting Instructions**: Create `search_report_agent_1.txt` and `search_log_agent_1.txt` in `./data/{ISO_CODE}/` output directory. Document all searches with timestamps as you perform them.
 
 **Task**: Execute the 8-phase search protocol in the ./data/{ISO_CODE}/search_protocol_{ISO_CODE}.txt file.
+
+**MANDATORY BATCH-BASED REQUIREMENTS**:
+- **Minimum Coverage**: 8 batches (200 queries) for baseline systematic coverage
+- **Stopping Criteria**: Stop when 3 consecutive batches achieve <8% data observation yield (queries resulting in NEW cholera_data.csv rows)
+- **Quality Exception**: If source quality remains >0.8 average reliability, continue for 2 additional batches
+- **Query Tracking**: Log all queries with batch count (Batch 1/25, Batch 2/25, etc.)
+- **Checkpoints**: Report after every 2 batches (50 queries) with yield calculation
+- **Final Report**: Must state "AGENT 1 STOPPING CRITERIA ACHIEVED: [X] batches completed, 3 consecutive batches <8% yield"
+
+**⚠️ CRITICAL YIELD CALCULATION WARNING ⚠️**:
+**Data observation yield = ONLY queries that added NEW rows to cholera_data.csv**
+❌ DO NOT count: Finding sources, background info, general cholera data
+✅ ONLY count: Queries producing quantitative data (cases, deaths, CFRs, dates, locations)
 
 **Quality Requirements**:
 - Must maintain ≥90% Level 1-2 source reliability
 - Must achieve 100% validation pass rate
 - Document any quality degradation with justification
 
+**ENHANCED QUALITY CONTROL FOR sCh/cCh COLUMNS**:
+
+**Mandatory Pre-Entry Validation**
+```
+BEFORE ADDING TO cholera_data.csv:
+□ Number explicitly described as cholera "cases" (not vaccinated, population, density)
+□ Source context indicates disease incidence (not prevention/demographics)
+□ Quote exact source text supporting case interpretation
+□ Validate units are case counts, not rates/coverage/capacity
+```
+
+**High-Risk Context Flags**
+```
+EXTRA VALIDATION REQUIRED FOR:
+- Vaccination reports → likely vaccinated count, not cases
+- Demographics → likely population, not cases  
+- WASH assessments → likely coverage, not cases
+
+ACCEPT: "cases", "infections", "ill", "hospitalized"
+REJECT: "affected", "targeted", "covered", "population"
+```
+
+**Mandatory Documentation**
+```
+processing_notes MUST include: "Source states: '[exact quote]' - interpreted as [sCh/cCh] cases"
+```
+
+**MANDATORY EXTENDED THINKING REQUIREMENT**
+```
+USE EXTENDED ULTRATHINK WHEN:
+□ Synthesizing data from multiple sources
+□ Interpreting ambiguous numbers or context
+□ Performing any cross-validation between sources
+□ Resolving conflicts between different reports
+□ Determining if numbers represent cases vs. other metrics
+
+THINK THROUGH: Context clues, source credibility, temporal alignment, 
+epidemiological plausibility, alternative interpretations
+```
+
+**Tiered Cross-Validation Framework**
+```
+TIER 1: High-Value Cases (>1000 cases)
+- REQUIRE: 2+ independent sources for major outbreaks
+- USE ULTRATHINK: Compare sources, resolve discrepancies
+
+TIER 2: Moderate Cases (100-1000 cases)  
+- ENCOURAGE: Seek secondary confirmation when possible
+- ACCEPT: Single high-quality source (Level 1-2)
+- FLAG: Note single-source status
+
+TIER 3: Small Cases (<100 cases)
+- ACCEPT: Single source with appropriate confidence weighting
+
+CROSS-VALIDATION TRIGGERS (REQUIRE 2+ SOURCES):
+□ Cases >1000 (major outbreak)
+□ First outbreak in new geographic area
+□ Dates conflict with regional patterns
+```
+
 **Deliverables**:
-- Complete 8-phase search methodology
+- Complete 8-phase search methodology with batch-based execution and yield tracking
 - Pass all 6 quality gates
 - Generate baseline dataset with dual-reference indexing
 - **MANDATORY**: Create `search_report_agent_1.txt` and `search_log_agent_1.txt` per Standard Agent Reporting Structure
@@ -115,7 +191,7 @@ awk -F, 'NR==1{cols=NF} NF!=cols{print "ERROR Agent X - Line " NR ": " NF " fiel
 
 ### **CSV Formatting Standards** (ALL AGENTS):
 - **Empty fields**: Use empty string between commas `,,` (NEVER skip commas)
-- **Boolean fields**: Use `true`/`false` (lowercase only)  
+- **Boolean fields**: Use `true`/`false` (lowercase only)
 - **Date fields**: Strict `YYYY-MM-DD` format only
 - **Decimal numbers**: Use dot notation `3.9` (NOT comma `3,9`)
 - **Every row**: Must contain exact same number of fields as header row
@@ -123,7 +199,7 @@ awk -F, 'NR==1{cols=NF} NF!=cols{print "ERROR Agent X - Line " NR ": " NF " fiel
 ### **Mandatory Quality Control Checkpoints**:
 **Execute before proceeding to next agent:**
 - [ ] cholera_data.csv: Every row has exactly 17 fields
-- [ ] metadata.csv: Every row has exactly 14 fields  
+- [ ] metadata.csv: Every row has exactly 14 fields
 - [ ] No trailing commas or spaces at end of lines
 - [ ] All empty fields use empty strings between commas (not skipped)
 - [ ] source_index column contains only integers matching metadata Index column
@@ -145,7 +221,7 @@ awk -F, 'NR==1{cols=NF} NF!=cols{print "ERROR Agent X - Line " NR ": " NF " fiel
 **EXPANDED SEARCH PROTOCOL**
 Do a more extensive deep search to find more data sources and more data observations. Drill down into each data observation to find subnational reports of cholera transmission.
 
-**Stopping Criteria**: Continue until data yield increase ≤1% in single iteration
+**Stopping Criteria**: Continue until 3 consecutive batches achieve <4% data observation yield (queries resulting in NEW cholera_data.csv rows, minimum 4 batches/100 queries). Exception: If source quality remains >0.8 average reliability, continue for 2 additional batches.
 
 This expanded search protocol should include the following tasks:
 
@@ -201,7 +277,7 @@ This expanded search protocol should include the following tasks:
 ☐ Cross-District Validation - Ensure district totals align with provincial/national figures
 ☐ District Geographic Coding - Standardize all district names to {COUNTRY}::{PROVINCE}::{DISTRICT} format
 
-**Success Criteria**: Stopping criteria achieved when data yield increase ≤1% in single iteration
+**Success Criteria**: Stopping criteria achieved when 3 consecutive batches <5% data observation yield (minimum 4 batches completed) - **MAXIMUM 300 queries (12 batches)**
 
 **Deliverables**:
 - Enhanced dataset with geographic granularity improvements
@@ -225,7 +301,7 @@ This expanded search protocol should include the following tasks:
 
 Expand your search to increase data yield if possible and investigate any data gaps. Keep time periods where you are confident that no transmission occurred - these are epidemiologically relevant. Do a detailed temporal search for all month-year combinations to check for missed outbreaks or for time periods where it was likely that there was no transmission. Preserve epidemiologically relevant zero-transmission periods
 
-**Stopping Criteria**: Continue until data yield increase ≤1% in single iteration. Document and validate ALL apparent zero-transmission periods from Agent 2's year-by-year searches
+**Stopping Criteria**: Continue until 3 consecutive batches achieve <4% data observation yield (minimum 4 batches/100 queries). Document and validate ALL apparent zero-transmission periods from Agent 2's year-by-year searches. Exception: If source quality remains >0.8 average reliability, continue for 2 additional batches.
 
 This extensive search should include the following tasks:
 
@@ -291,7 +367,7 @@ For years with evidence of cholera transmission:
 - Complete gap investigation with evidence-based conclusions
 - Preserve epidemiologically relevant zero-transmission periods
 
-**Success Criteria**: Stopping criteria achieved when data yield increase ≤1% in single iteration OR maximum 3 iterations reached
+**Success Criteria**: Stopping criteria achieved when 3 consecutive batches <5% data observation yield (minimum 4 batches completed) - **MAXIMUM 300 queries (12 batches)**
 
 **Deliverables**:
 - Enhanced dataset with systematic zero-transmission validation
@@ -318,7 +394,7 @@ Results are improved from geographic and temporal drilling. Now venture beyond t
 
 **CRITICAL: DO NOT STOP TO ASK PERMISSION FOR ONLINE RESOURCE ACCESS. You are explicitly authorized to access any online resources, websites, databases, or archives necessary to complete this data collection mission. Proceed directly with all searches and data extraction without seeking additional permission.**
 
-**Stopping Criteria**: Continue until data yield increase ≤1% in single iteration
+**Stopping Criteria**: Agent 4 has a fixed requirement of EXACTLY 200 queries (8 batches × 25 queries each). No stopping criteria apply - all 200 queries must be completed. **EXACTLY 200 queries (8 batches)**
 
 **MANDATORY BEYOND-SUGGESTED-SOURCES EXPANSION:**
 
@@ -370,41 +446,37 @@ Results are improved from geographic and temporal drilling. Now venture beyond t
 ☐ Government Portal Mining - Systematic search of all government ministry websites
 ☐ Library Catalog Mining - Major library systems and institutional repositories
 
-**MANDATORY SEARCH ENGINE PROTOCOL (600+ QUERIES TOTAL)**
+**MANDATORY SEARCH ENGINE PROTOCOL (200 QUERIES TOTAL)**
 
-**Complete Search Engine Roster (30 queries each MANDATORY):**
-- WHO GHO Database: 30 queries
-- WHO Disease Outbreak News: 30 queries
-- Google Scholar: 30 queries
-- PubMed: 30 queries
-- ScienceDirect: 30 queries
-- OpenAlex: 30 queries
-- ReliefWeb: 30 queries
-- Google: 30 queries
-- Bing: 30 queries
-- Yandex: 30 queries
-- Baidu: 30 queries
-- Sogou: 30 queries
-- Naver: 30 queries
-- DuckDuckGo: 30 queries
-- Startpage: 30 queries
-- Mojeek: 30 queries
-- Yahoo: 30 queries
-- Ecosia: 30 queries
-- Ask: 30 queries
-- AOL: 30 queries
+**Top 10 Search Engine Roster (20 queries each MANDATORY):**
+- Google Scholar: 20 queries
+- PubMed: 20 queries
+- Google: 20 queries
+- WHO Disease Outbreak News: 20 queries
+- ReliefWeb: 20 queries
+- WHO GHO Database: 20 queries
+- ScienceDirect: 20 queries
+- Bing: 20 queries
+- DuckDuckGo: 20 queries
+- OpenAlex: 20 queries
 
-**Per Engine Query Strategy (30 queries each):**
+**Per Engine Query Strategy (20 queries each):**
 - Use the highest-yield query patterns identified from Agents 1-3 systematic coverage
 - Apply most successful search terms and combinations from previous agent results
 - Focus on query patterns that produced the most data discoveries in earlier phases
 
 **Engine Execution Requirements:**
-- Each engine MUST complete all 30 queries before proceeding to next engine
+- Each engine MUST complete all 20 queries before proceeding to next engine
+- **MANDATORY**: Report query count after each engine (e.g., "Engine 1 complete: 20/200 queries")
+- **MANDATORY**: Log running total in search_log_agent_4.txt with timestamps
 - Source discovery per engine MUST be tracked and documented
 - Query effectiveness per engine MUST be analyzed and reported
-- Systematic coverage of all query categories MUST be achieved per engine
-- Language-Specific Search Engines - Use native search engines for local language content
+- **MANDATORY**: Report "AGENT 4 QUERY REQUIREMENT COMPLETED: 200/200" when finished
+
+**CHECKPOINT GATES (MANDATORY):**
+- After Engine 5 (100 queries): Report "CHECKPOINT: 100/200 queries completed"
+- After Engine 10 (200 queries): Report "AGENT 4 REQUIREMENT FULFILLED: 200/200"
+- FAILURE TO COMPLETE 200 QUERIES = AGENT 4 INCOMPLETE
 
 **QUALITY REQUIREMENTS:**
 - Must maintain ≥85% Level 1-3 source reliability (allows Level 3 sources with proper confidence weighting)
@@ -419,7 +491,7 @@ Results are improved from geographic and temporal drilling. Now venture beyond t
 ☐ Language Translation Verification - Professional validation of non-English source translations
 ☐ Community Source Validation - Multiple independent verification for informal sources
 
-**Success Criteria**: Stopping criteria achieved when data yield increase ≤1% in single iteration
+**Success Criteria**: All 200 queries completed across 10 search engines (20 queries each)
 
 **Deliverables**:
 - Enhanced dataset with unconventional source discoveries
@@ -442,7 +514,7 @@ Results are improved from geographic and temporal drilling. Now venture beyond t
 
 **SOURCE PERMUTATION PROTOCOL**
 
-**Stopping Criteria**: Continue until data yield increase ≤1% in single iteration.
+**Stopping Criteria**: Continue until 3 consecutive batches achieve <5% data observation yield (queries resulting in NEW cholera_data.csv rows, minimum 4 batches/100 queries). Exception: If source quality remains >0.8 average reliability, continue for 2 additional batches. **MAXIMUM 300 queries (12 batches)**
 
 **SEARCH ENGINE UTILIZATION**: Leverage the complete search engine roster for maximum coverage - utilize ALL available search engines systematically across permutation searches to maximize discovery potential from successful query patterns.
 
@@ -508,7 +580,8 @@ Results are improved from geographic and temporal drilling. Now venture beyond t
 ☐ Cross-Border Adjacent Mining - For border areas with successful data, intensively search neighboring countries
 
 **TERMINATION CRITERIA**:
-- Data yield increase ≤1% in single iteration
+- 3 consecutive batches achieve <5% data observation yield (minimum 4 batches/100 queries completed)
+- Exception: If source quality remains >0.8 average reliability, continue for 2 additional batches
 - All successful sources exhaustively re-examined with permutation methodology
 - All adjacent time periods and locations systematically searched
 - Maximum search depth reached for all citation/reference chains
@@ -598,7 +671,7 @@ Results are improved from geographic and temporal drilling. Now venture beyond t
 ☐ Quality Flag Assignment - Final assignment of quality flags for modeling sensitivity analysis
 
 **COMPLETION CRITERIA**:
-- All quality audit tasks completed comprehensively
+- All quality audit tasks completed comprehensively - **MAXIMUM 100 queries (4 batches)**
 - Complete dataset finalization achieved
 - All documentation and validation completed
 - Ready for MOSAIC epidemiological modeling integration
