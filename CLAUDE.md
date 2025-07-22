@@ -1150,6 +1150,35 @@ This enhanced protocol ensures systematic, thorough data collection while preven
 - 100% of conversions and interpretations documented
 - 100% of quality assessments completed
 
+### Automatic Context Management (MANDATORY)
+
+**REQUIREMENT: Proactive context compression when approaching limits**
+
+**WHEN TO COMPACT:**
+- After completing each agent (before starting next agent)
+- When search logs exceed 500 lines
+- When approaching context window limits during batch execution
+- Before major phase transitions in the workflow
+
+**HOW TO COMPACT:**
+Use the Task tool with "/compact" as the entire prompt to compress context while preserving:
+- Current agent progress and batch counts
+- Data observation yield calculations
+- Critical search findings and CSV updates
+- Next steps and stopping criteria status
+
+**EXAMPLE USAGE:**
+```python
+# After completing Agent 1, before starting Agent 2
+Task(description="Compact context", prompt="/compact")
+```
+
+**MANDATORY TRIGGERS:**
+□ Agent completion (mark todo complete, then compact)
+□ Mid-agent if search logs become unwieldy
+□ Before quality audit phases
+□ When context impacts performance
+
 ### KNOWLEDGE TRANSFER REQUIREMENTS
 
 **For technical questions or methodological guidance:**
