@@ -2,7 +2,12 @@
 """
 MOSAIC AI Cholera Data Collection - Country Setup Script v2.0
 Creates directories and customized prompts for 8-phase search protocol
-Supports all 54 African countries with enhanced dual-reference system
+Supports all 54 MOSAIC countries with enhanced dual-reference system
+
+USAGE: Run from project root directory:
+    python py/configure_countries.py
+
+The script automatically detects template files in the parent directory.
 """
 
 import os
@@ -10,78 +15,9 @@ import json
 import shutil
 from pathlib import Path
 
-# Country information database - Complete 54 African countries
-AFRICAN_COUNTRIES = {
-    # North Africa
-    "DZA": {
-        "name": "Algeria",
-        "linguistic_group": "Arabic/Francophone", 
-        "primary_language": "Arabic",
-        "secondary_languages": "French, English",
-        "system_type": "Unitary",
-        "regional_cluster": "North Africa",
-        "neighbors": ["Libya", "Mali", "Mauritania", "Morocco", "Niger", "Tunisia"],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Moderate",
-        "total_provinces": "58"
-    },
-    "EGY": {
-        "name": "Egypt",
-        "linguistic_group": "Arabic",
-        "primary_language": "Arabic", 
-        "secondary_languages": "English, French",
-        "system_type": "Unitary",
-        "regional_cluster": "North Africa",
-        "neighbors": ["Libya", "Sudan"],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Moderate"
-    },
-    "LBY": {
-        "name": "Libya",
-        "linguistic_group": "Arabic",
-        "primary_language": "Arabic",
-        "secondary_languages": "English, Italian", 
-        "system_type": "Post-conflict",
-        "regional_cluster": "North Africa",
-        "neighbors": ["Algeria", "Chad", "Egypt", "Niger", "Sudan", "Tunisia"],
-        "conflict_status": "Post-conflict",
-        "surveillance_capacity": "Weak"
-    },
-    "MAR": {
-        "name": "Morocco", 
-        "linguistic_group": "Arabic/Francophone",
-        "primary_language": "Arabic",
-        "secondary_languages": "French, English",
-        "system_type": "Unitary",
-        "regional_cluster": "North Africa", 
-        "neighbors": ["Algeria"],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Strong"
-    },
-    "SDN": {
-        "name": "Sudan",
-        "linguistic_group": "Arabic",
-        "primary_language": "Arabic",
-        "secondary_languages": "English, Local languages",
-        "system_type": "Federal",
-        "regional_cluster": "North Africa/East Africa",
-        "neighbors": ["CAR", "Chad", "Egypt", "Eritrea", "Ethiopia", "Libya", "South Sudan"],
-        "conflict_status": "Post-conflict", 
-        "surveillance_capacity": "Weak"
-    },
-    "TUN": {
-        "name": "Tunisia",
-        "linguistic_group": "Arabic/Francophone",
-        "primary_language": "Arabic",
-        "secondary_languages": "French, English", 
-        "system_type": "Unitary",
-        "regional_cluster": "North Africa",
-        "neighbors": ["Algeria", "Libya"],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Moderate"
-    },
-    
-    # West Africa
+# Country information database - 40 MOSAIC Framework Countries ONLY
+MOSAIC_COUNTRIES = {
+    # West Africa - MOSAIC Countries
     "BEN": {
         "name": "Benin",
         "linguistic_group": "Francophone",
@@ -103,17 +39,6 @@ AFRICAN_COUNTRIES = {
         "neighbors": ["Benin", "Côte d'Ivoire", "Ghana", "Mali", "Niger", "Togo"],
         "conflict_status": "Post-conflict",
         "surveillance_capacity": "Weak"
-    },
-    "CPV": {
-        "name": "Cape Verde",
-        "linguistic_group": "Lusophone",
-        "primary_language": "Portuguese",
-        "secondary_languages": "Cape Verdean Creole",
-        "system_type": "Unitary", 
-        "regional_cluster": "West Africa/Island",
-        "neighbors": [],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Moderate"
     },
     "CIV": {
         "name": "Côte d'Ivoire",
@@ -352,28 +277,6 @@ AFRICAN_COUNTRIES = {
         "conflict_status": "Post-conflict",
         "surveillance_capacity": "Weak"
     },
-    "COM": {
-        "name": "Comoros",
-        "linguistic_group": "Francophone/Arabic",
-        "primary_language": "Arabic",
-        "secondary_languages": "French, Comorian",
-        "system_type": "Unitary",
-        "regional_cluster": "Indian Ocean",
-        "neighbors": [],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Weak"
-    },
-    "DJI": {
-        "name": "Djibouti",
-        "linguistic_group": "Arabic/Francophone", 
-        "primary_language": "Arabic",
-        "secondary_languages": "French, Somali, Afar",
-        "system_type": "Unitary",
-        "regional_cluster": "East Africa",
-        "neighbors": ["Eritrea", "Ethiopia", "Somalia"],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Moderate"
-    },
     "ERI": {
         "name": "Eritrea",
         "linguistic_group": "Arabic/Multilingual",
@@ -408,28 +311,6 @@ AFRICAN_COUNTRIES = {
         "conflict_status": "Stable",
         "surveillance_capacity": "Strong"
     },
-    "MDG": {
-        "name": "Madagascar",
-        "linguistic_group": "Francophone",
-        "primary_language": "Malagasy",
-        "secondary_languages": "French, English",
-        "system_type": "Unitary",
-        "regional_cluster": "Indian Ocean",
-        "neighbors": [],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Weak"
-    },
-    "MUS": {
-        "name": "Mauritius",
-        "linguistic_group": "Anglophone/Francophone",
-        "primary_language": "English", 
-        "secondary_languages": "French, Mauritian Creole, Hindi",
-        "system_type": "Unitary",
-        "regional_cluster": "Indian Ocean",
-        "neighbors": [],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Strong"
-    },
     "MOZ": {
         "name": "Mozambique",
         "linguistic_group": "Lusophone",
@@ -451,17 +332,6 @@ AFRICAN_COUNTRIES = {
         "neighbors": ["Burundi", "DRC", "Tanzania", "Uganda"],
         "conflict_status": "Post-conflict",
         "surveillance_capacity": "Moderate"
-    },
-    "SYC": {
-        "name": "Seychelles",
-        "linguistic_group": "Anglophone/Francophone", 
-        "primary_language": "English",
-        "secondary_languages": "French, Seychellois Creole",
-        "system_type": "Unitary",
-        "regional_cluster": "Indian Ocean",
-        "neighbors": [],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Strong"
     },
     "SOM": {
         "name": "Somalia",
@@ -543,17 +413,6 @@ AFRICAN_COUNTRIES = {
         "conflict_status": "Stable",
         "surveillance_capacity": "Moderate"
     },
-    "LSO": {
-        "name": "Lesotho",
-        "linguistic_group": "Anglophone",
-        "primary_language": "English",
-        "secondary_languages": "Sesotho",
-        "system_type": "Unitary",
-        "regional_cluster": "Southern Africa",
-        "neighbors": ["South Africa"],
-        "conflict_status": "Stable", 
-        "surveillance_capacity": "Moderate"
-    },
     "MWI": {
         "name": "Malawi",
         "linguistic_group": "Anglophone",
@@ -611,30 +470,18 @@ AFRICAN_COUNTRIES = {
         "surveillance_capacity": "Weak"
     },
     
-    # Additional countries
-    "STP": {
-        "name": "São Tomé and Príncipe",
-        "linguistic_group": "Lusophone",
-        "primary_language": "Portuguese",
-        "secondary_languages": "Forro, Local languages",
-        "system_type": "Unitary",
-        "regional_cluster": "Central Africa/Island",
-        "neighbors": [],
-        "conflict_status": "Stable",
-        "surveillance_capacity": "Weak"
-    }
 }
 
 def create_country_directories(base_path):
-    """Create data subdirectories for all African countries with enhanced structure"""
+    """Create data subdirectories for MOSAIC countries with enhanced structure"""
     print("Creating country directories with enhanced structure...")
     
-    for iso_code, country_info in AFRICAN_COUNTRIES.items():
+    for iso_code, country_info in MOSAIC_COUNTRIES.items():
         country_dir = Path(base_path) / "data" / iso_code
         country_dir.mkdir(parents=True, exist_ok=True)
         print(f"  Created: {country_dir}")
     
-    print(f"Created directories for {len(AFRICAN_COUNTRIES)} countries")
+    print(f"Created directories for {len(MOSAIC_COUNTRIES)} countries")
 
 def customize_prompt(template_content, iso_code, country_info):
     """Customize the prompt template with country-specific information"""
@@ -688,7 +535,7 @@ def create_country_prompts(base_path):
     print("Creating 8-phase search protocol prompt files...")
     
     # Read the search protocol template file
-    template_path = Path(base_path) / "template_search_protocol.txt"
+    template_path = Path(base_path) / "templates" / "template_search_protocol.txt"
     
     if not template_path.exists():
         raise FileNotFoundError(f"Search protocol template file not found: {template_path}")
@@ -697,7 +544,7 @@ def create_country_prompts(base_path):
         template_content = f.read()
     
     # Create customized prompts for each country
-    for iso_code, country_info in AFRICAN_COUNTRIES.items():
+    for iso_code, country_info in MOSAIC_COUNTRIES.items():
         # Customize the prompt content with country-specific variables
         customized_content = customize_prompt(template_content, iso_code, country_info)
         
@@ -711,24 +558,24 @@ def create_country_prompts(base_path):
         
         print(f"  Created: {search_protocol_file}")
     
-    print(f"Created 8-phase search protocols for {len(AFRICAN_COUNTRIES)} countries")
+    print(f"Created 8-phase search protocols for {len(MOSAIC_COUNTRIES)} countries")
 
 def create_country_info_key(base_path):
     """Create comprehensive country information key with all classifications"""
     print("Creating comprehensive country information key...")
     
-    key_file = Path(base_path) / "country_info_key.json"
+    key_file = Path(base_path) / "reference" / "country_info_key.json"
     
     # Create comprehensive information structure
     country_info_complete = {
         "metadata": {
-            "version": "2.0",
-            "protocol": "8-Phase Search Protocol",
-            "countries_total": len(AFRICAN_COUNTRIES),
-            "creation_date": "2025-01-20",
-            "description": "Complete country information for MOSAIC AI Cholera Data Collection"
+            "version": "3.0",
+            "protocol": "6-Agent Batch-Based Search Protocol",
+            "countries_total": len(MOSAIC_COUNTRIES),
+            "creation_date": "2025-01-22",
+            "description": "MOSAIC Framework countries ONLY for AI Cholera Data Collection"
         },
-        "countries": AFRICAN_COUNTRIES
+        "countries": MOSAIC_COUNTRIES
     }
     
     with open(key_file, 'w', encoding='utf-8') as f:
@@ -742,7 +589,7 @@ def create_country_workflows(base_path):
     print("Creating 6-agent workflow files...")
     
     # Read the agentic workflow template file
-    workflow_template_path = Path(base_path) / "template_agentic_workflow.txt"
+    workflow_template_path = Path(base_path) / "templates" / "template_agentic_workflow.txt"
     
     if not workflow_template_path.exists():
         raise FileNotFoundError(f"Agentic workflow template file not found: {workflow_template_path}")
@@ -751,7 +598,7 @@ def create_country_workflows(base_path):
         workflow_template_content = f.read()
     
     # Create customized workflow files for each country
-    for iso_code, country_info in AFRICAN_COUNTRIES.items():
+    for iso_code, country_info in MOSAIC_COUNTRIES.items():
         # Customize the workflow content with country-specific variables and file references
         customized_workflow = customize_workflow(workflow_template_content, iso_code, country_info)
         
@@ -764,7 +611,7 @@ def create_country_workflows(base_path):
         
         print(f"  Created: {workflow_file}")
     
-    print(f"Created 6-agent workflow files for {len(AFRICAN_COUNTRIES)} countries")
+    print(f"Created 6-agent workflow files for {len(MOSAIC_COUNTRIES)} countries")
 
 def create_execution_checklist(base_path):
     """Create execution checklist template for tracking country completion"""
@@ -772,10 +619,10 @@ def create_execution_checklist(base_path):
     
     checklist_content = """# MOSAIC AI Cholera Data Collection - Execution Checklist
 
-## 8-Phase Search Protocol Tracking
+## 6-Agent Batch-Based Search Protocol Tracking
 
-**Protocol Version**: 2.0  
-**Total Countries**: 54 African countries  
+**Protocol Version**: 3.0  
+**SCOPE**: 40 MOSAIC Framework Countries ONLY  
 **Completion Target**: 100% comprehensive discovery  
 
 ## Completion Status Tracking
@@ -849,10 +696,10 @@ Format: ☐ COUNTRY_NAME (ISO_CODE) - Status: [PENDING/IN_PROGRESS/COMPLETED] - 
 ☐ São Tomé and Príncipe (STP) - Status: PENDING - Date: ____-__-__
 
 ## Summary Statistics
-- **Total Countries**: 54
-- **Completed**: __/54 (_%%)
-- **In Progress**: __/54 (_%%)
-- **Pending**: __/54 (_%%)
+- **Total Countries**: 40
+- **Completed**: __/40 (_%%)
+- **In Progress**: __/40 (_%%)
+- **Pending**: __/40 (_%%)
 
 ---
 **Last Updated**: ____-__-__ by: ____________
@@ -866,13 +713,13 @@ Format: ☐ COUNTRY_NAME (ISO_CODE) - Status: [PENDING/IN_PROGRESS/COMPLETED] - 
 
 def main():
     """Main function to set up all countries with 8-phase search protocol"""
-    # Get the base path (directory containing this script)
-    base_path = Path(__file__).parent
+    # Get the base path (parent directory of the py directory)
+    base_path = Path(__file__).parent.parent
     
     print("=" * 80)
     print("MOSAIC AI CHOLERA DATA COLLECTION - 8-PHASE SEARCH SETUP v2.0")
     print("=" * 80)
-    print(f"Setting up comprehensive data collection for {len(AFRICAN_COUNTRIES)} African countries")
+    print(f"Setting up comprehensive data collection for {len(MOSAIC_COUNTRIES)} MOSAIC countries")
     print(f"Base directory: {base_path}")
     print(f"Protocol: 8-Phase Search Protocol (Systematic Methodology)")
     print("-" * 80)
@@ -901,9 +748,9 @@ def main():
         print("=" * 80)
         print("✅ 8-PHASE SEARCH SETUP COMPLETED SUCCESSFULLY!")
         print("=" * 80)
-        print(f"📁 Created {len(AFRICAN_COUNTRIES)} country directories")
-        print(f"📄 Created {len(AFRICAN_COUNTRIES)} search protocol files")
-        print(f"🤖 Created {len(AFRICAN_COUNTRIES)} 6-agent workflow files")
+        print(f"📁 Created {len(MOSAIC_COUNTRIES)} country directories")
+        print(f"📄 Created {len(MOSAIC_COUNTRIES)} search protocol files")
+        print(f"🤖 Created {len(MOSAIC_COUNTRIES)} 6-agent workflow files")
         print(f"🔑 Created comprehensive country information key")
         print(f"📋 Created execution checklist template")
         
