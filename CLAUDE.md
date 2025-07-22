@@ -15,6 +15,91 @@
 **Output Format**: JHU-compatible CSV with enhanced dual-reference indexing  
 **Deliverables**: search_report.txt, metadata.csv, cholera_data.csv, search_log.txt
 
+## MANDATORY GAP-TARGETED SEARCH PROTOCOL
+
+**CRITICAL**: Before beginning any search, agents MUST consult surveillance coverage reference files to target missing periods.
+
+### Pre-Search Requirements (MANDATORY)
+
+1. **Load Reference Files**: Read `./reference/agent_quick_reference.csv` for country-specific gaps
+2. **Identify Priority Periods**: Focus searches on specific missing date ranges
+3. **Apply Temporal Filters**: Include missing years/periods in ALL search queries
+4. **Prioritize High-Gap Countries**: Begin with HIGH priority countries (<70% coverage)
+
+### Gap-Targeted Query Strategy
+
+**MANDATORY QUERY MODIFICATION**: All searches must include temporal constraints targeting missing periods.
+
+**Standard Query**: `"Angola cholera outbreak WHO"`
+**Gap-Targeted Query**: `"Angola cholera outbreak WHO 2019 2020 2021 2022"` (targeting specific missing years)
+
+**Template Examples**:
+- `"{Country} cholera cases {missing_year_1} {missing_year_2}"` 
+- `"{Country} cholera surveillance {gap_start_year}-{gap_end_year}"`
+- `"{Country} cholera outbreak {specific_missing_period}"`
+
+### Reference File Usage Protocol
+
+**agent_quick_reference.csv Usage**:
+```
+FOR EACH COUNTRY:
+1. Check search_priority (HIGH/MEDIUM/LOW)
+2. Read missing_recent_years for temporal targeting
+3. Use priority_periods for exact date range focus
+4. Apply coverage_pct for effort allocation
+```
+
+**Example for Ethiopia (59.1% coverage, HIGH priority)**:
+- **Priority Gap**: 2018-12-10 to 2023-01-01
+- **Missing Years**: 2000-2009 (historical)
+- **Search Focus**: "Ethiopia cholera 2019 2020 2021 2022" + historical searches
+
+### Temporal Search Allocation (MANDATORY)
+
+**HIGH Priority Countries** (<70% coverage): 80% of searches target priority gaps, 20% historical extension
+**MEDIUM Priority Countries** (70-90%): 60% gap-filling, 40% historical extension  
+**LOW Priority Countries** (>90%): 40% gap-filling, 60% historical/future extension
+
+### Gap Validation Requirements
+
+**MANDATORY**: For each identified gap period, agents must:
+1. **Confirm Zero Transmission**: Search for evidence that NO cholera occurred
+2. **Identify Surveillance Gaps**: Distinguish between no disease vs. no reporting
+3. **Document Gap Type**: Disease-free period vs. surveillance system failure
+4. **Cross-Reference Regional**: Check neighboring countries for outbreak patterns
+
+### Success Metrics for Gap-Targeted Searches
+
+**Primary Goal**: Fill identified priority gaps with confirmed zero-transmission or discovered outbreak data
+**Secondary Goal**: Extend historical coverage before earliest observed data
+**Tertiary Goal**: Validate recent surveillance completeness
+
+### Practical Gap-Targeting Example
+
+**ETHIOPIA (ETH) - 59.1% coverage, HIGH priority**:
+- **Priority Gap**: 2018-12-10 to 2023-01-01 (4+ year gap)
+- **Missing Historical**: 2000-2014 
+- **Current Data**: 2015-2018, 2023-2025
+
+**Mandatory Search Allocation**:
+1. **80% effort on Priority Gap (2019-2022)**:
+   - "Ethiopia cholera 2019 surveillance WHO"
+   - "Ethiopia cholera outbreak 2020 2021 UNICEF" 
+   - "Ethiopia cholera epidemic 2022 MSF"
+   - "Ethiopia cholera cases 2019-2022 government"
+
+2. **20% effort on Historical Extension (pre-2015)**:
+   - "Ethiopia cholera 2010-2014 surveillance"
+   - "Ethiopia cholera 2000s decade outbreak"
+   - "Ethiopia cholera historical 1990s 2000s"
+
+**Gap Validation Searches**:
+- "Ethiopia cholera-free 2019 2020 2021" (confirm no disease)
+- "Ethiopia surveillance system 2019-2022" (check reporting gaps)
+- "Ethiopia neighboring countries cholera 2019-2022" (regional context)
+
+**RESULT EXPECTATION**: Either fill 2019-2022 gap with data OR confirm no cholera transmission with evidence
+
 ## ULTRA DEEP SEARCH METHODOLOGY
 
 **CRITICAL**: Exhaustive, systematic internet searches across ALL discoverable sources.
@@ -68,7 +153,101 @@
 
 **metadata.csv** (9 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status
 
-**cholera_data.csv** (14 columns): Location, TL, TR, Primary, Phantom, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, validation_status
+**cholera_data.csv** (12 columns): Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes
+
+## COMPREHENSIVE COLUMN DEFINITIONS
+
+### cholera_data.csv Column Specifications
+
+**Location** (CRITICAL - Geographic Administrative Units ONLY):
+- **Purpose**: Geographic administrative unit where cholera cases/deaths occurred
+- **Format**: `AFR::{ISO}` (national), `AFR::{ISO}::{PROVINCE}` (provincial), `AFR::{ISO}::{PROVINCE}::{DISTRICT}` (district)
+- **ACCEPTABLE**: `AFR::AGO`, `AFR::AGO::Luanda`, `AFR::AGO::Luanda::Belas`, `AFR::AGO::Multi_Provincial`
+- **PROHIBITED**: Any non-geographic categories (Vaccination, Training, Demographics_*, Age_Group_*, Laboratory_*, Surveillance_*)
+- **Rule**: Must represent a physical location where people contracted cholera
+
+**TL** (Time Left - Start Date):
+- **Purpose**: Outbreak/reporting period start date
+- **Format**: YYYY-MM-DD (ISO 8601)
+- **Required**: Always required, use best available estimate if exact date unknown
+
+**TR** (Time Right - End Date): 
+- **Purpose**: Outbreak/reporting period end date
+- **Format**: YYYY-MM-DD (ISO 8601)
+- **Rule**: Must be ≥ TL date
+
+**deaths** (Integer):
+- **Purpose**: Number of confirmed cholera deaths
+- **Format**: Positive integer or empty
+- **Validation**: Must be ≤ sCh (deaths cannot exceed suspected cases)
+
+**sCh** (Suspected Cholera Cases - Integer):
+- **Purpose**: Clinically diagnosed cholera cases (including probable cases)
+- **Format**: Positive integer or empty
+- **Primary Metric**: Main case count for surveillance
+- **Rule**: Must have actual case numbers, not vaccination counts, population figures, or capacity data
+
+**cCh** (Confirmed Cholera Cases - Integer):
+- **Purpose**: Laboratory-confirmed cholera cases only
+- **Format**: Positive integer or empty
+- **Rule**: Must be ≤ sCh (confirmed cases subset of suspected)
+
+**CFR** (Case Fatality Rate - Percentage):
+- **Purpose**: Percentage of cases resulting in death
+- **Format**: 0-100 (percentage, not decimal)
+- **Calculation**: (deaths/sCh) × 100
+- **Validation**: Must be 0.1-15% for most outbreaks (flag outliers)
+
+**reporting_date** (Date):
+- **Purpose**: Date when data was reported/published
+- **Format**: YYYY-MM-DD
+- **Rule**: Must be ≥ TR (reporting after outbreak end)
+
+**source_index** (Integer):
+- **Purpose**: Reference to metadata.csv Index column
+- **Format**: Sequential integer (1, 2, 3...)
+- **Critical**: Must match exactly with metadata.csv Index
+
+**source** (Text):
+- **Purpose**: Exact name of source from metadata.csv
+- **Format**: Free text matching metadata Source column exactly
+- **Validation**: Must exist in metadata.csv Source column
+
+**confidence_weight** (Decimal):
+- **Purpose**: Quality-based weighting for modeling
+- **Format**: 0.1-1.0 decimal
+- **Levels**: Level 1 (0.9-1.0), Level 2 (0.7-0.9), Level 3 (0.3-0.6), Level 4 (0.1-0.3)
+
+**processing_notes** (Text):
+- **Purpose**: Detailed notes on data extraction and interpretation
+- **Format**: Free text with exact source quotes
+- **Required**: Must include source quotes supporting case/death interpretations
+- **Template**: "Source states: '[exact quote]' - interpreted as [sCh/cCh] cases"
+
+## CRITICAL DATA INCLUSION RULES
+
+### MANDATORY Requirements for cholera_data.csv Entry:
+1. **Geographic Location**: Must be actual administrative unit (country/province/district)
+2. **Quantitative Data**: Must have specific numbers for cases, deaths, or CFR
+3. **Cholera-Specific**: Must be cholera cases/deaths, not vaccination/training/capacity data
+4. **Source Attribution**: Must have matching metadata entry with working source
+
+### PROHIBITED Entries (DO NOT ADD):
+- **Vaccination Data**: `AFR::{ISO}::Vaccination`, `AFR::{ISO}::OCV_Campaign`
+- **Training Data**: `AFR::{ISO}::Training`, `AFR::{ISO}::Health_Workers`
+- **Demographics Without Location**: `AFR::{ISO}::Demographics_*`, `AFR::{ISO}::Age_*`
+- **System Capacity**: `AFR::{ISO}::Laboratory_*`, `AFR::{ISO}::Surveillance_*`
+- **Population Data**: Population denominators, coverage percentages, capacity figures
+
+### DATA EXTRACTION VALIDATION CHECKLIST:
+```
+BEFORE ADDING ANY ROW:
+□ Location is geographic administrative unit (not program/demographic category)
+□ sCh or cCh contains actual cholera case numbers (not vaccination/population/capacity)
+□ Source explicitly mentions cholera cases/deaths (not just cholera programs)
+□ Numbers represent disease incidence (not prevention/demographics/training)
+□ Processing notes include exact source quote supporting interpretation
+```
 
 **MANDATORY DATA INCLUSION REQUIREMENT**: Agents are **PROHIBITED** from adding any data observations (rows) to cholera_data.csv unless they can identify at least one cholera case value (sCh or cCh). Sources that only mention cholera outbreaks without providing quantitative case counts **MUST NOT** be included in the data file. Only sources with identifiable case numbers, death counts, or calculable epidemiological metrics qualify for data extraction.
 
@@ -169,6 +348,49 @@ CROSS-VALIDATION TRIGGERS (REQUIRE 2+ SOURCES):
 ## MANDATORY BEST PRACTICES FOR AI INSTANCES
 
 **REQUIREMENTS: These practices are mandatory. Non-compliance compromises MOSAIC modeling effectiveness.**
+
+### Gap-Targeted Search Initialization (MANDATORY)
+
+**STEP 1: Load Reference Data (BEFORE ANY SEARCHES)**
+```python
+# REQUIRED: Read reference files before starting
+import pandas as pd
+agent_ref = pd.read_csv('./reference/agent_quick_reference.csv')
+target_country = agent_ref[agent_ref['iso_code'] == 'ETH'].iloc[0]  # Example: Ethiopia
+priority_periods = target_country['priority_periods']  # "2018-12-10 to 2023-01-01"
+missing_years = target_country['missing_recent_years']  # "2000, 2001, 2002..."
+search_priority = target_country['search_priority']  # "HIGH"
+```
+
+**STEP 2: Parse Target Periods**
+```python
+# Extract specific years and periods for targeted searching
+if 'to' in priority_periods:
+    gap_start, gap_end = priority_periods.split(' to ')
+    gap_years = list(range(int(gap_start[:4]), int(gap_end[:4]) + 1))
+else:
+    gap_years = []
+
+missing_years_list = [int(y.strip()) for y in missing_years.split(',') if y.strip() != 'None']
+```
+
+**STEP 3: Generate Gap-Targeted Queries**
+```python
+# MANDATORY: Include temporal constraints in ALL queries
+base_queries = [
+    f"{country} cholera outbreak",
+    f"{country} cholera surveillance", 
+    f"{country} cholera epidemic"
+]
+
+# Add temporal targeting
+targeted_queries = []
+for query in base_queries:
+    for year in gap_years:
+        targeted_queries.append(f"{query} {year}")
+    for year in missing_years_list[:5]:  # Focus on first 5 missing years
+        targeted_queries.append(f"{query} {year}")
+```
 
 ### Systematic Search Strategy (MANDATORY)
 

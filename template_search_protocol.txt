@@ -1,5 +1,20 @@
 # AI-Enhanced Cholera Surveillance Data Collection - MOSAIC Project Search Protocol
 
+## MANDATORY PRE-SEARCH REQUIREMENTS
+
+**STEP 1: Review Surveillance Coverage Gaps**
+Before beginning any searches, MUST read ./reference/agent_quick_reference.csv to identify:
+- Country-specific data coverage percentage
+- Priority search periods (exact date ranges where data is missing)
+- Missing recent years requiring targeted searches
+- Search priority level (HIGH/MEDIUM/LOW)
+
+**STEP 2: Apply Gap-Targeted Search Strategy**  
+ALL search queries must target identified missing periods using temporal constraints:
+- Include specific missing years in search queries
+- Focus on priority gap periods identified in reference data
+- Allocate search effort based on coverage priority level
+
 ## CRITICAL: DATA EXTRACTION IS MANDATORY
 **PRIMARY OBJECTIVE**: Every search batch must result in NEW DATA POINTS added to cholera_data.csv
 
@@ -470,7 +485,7 @@ Index,Source,URL,Description,Date_Range,Data_Type,Status,Reliability_Level,Valid
 
 **cholera_data.csv** (Complete Data Collection):
 ```csv
-Index,Location,TL,TR,Primary,Phantom,deaths,sCh,cCh,CFR,reporting_date,source_index,source,confidence_weight,quality_status,extraction_method,processing_notes
+Index,Location,TL,TR,deaths,sCh,cCh,CFR,reporting_date,source_index,source,confidence_weight,processing_notes
 ```
 
 ## CRITICAL CSV FORMATTING REQUIREMENTS
@@ -480,13 +495,13 @@ Index,Location,TL,TR,Primary,Phantom,deaths,sCh,cCh,CFR,reporting_date,source_in
 ### 1. **Consistent Missing Value Handling**
 - **Empty fields MUST use empty string between commas**: `,,` (correct)
 - **NEVER skip commas for missing values**: `,3.9,` (incorrect - creates column shift)
-- **All 17 columns MUST be present in every row** regardless of missing values
+- **All 13 columns MUST be present in every row** regardless of missing values
 
 ### 2. **Required CSV Validation Protocol**
 **Execute BEFORE finalizing any CSV file:**
 
 ```bash
-# Verify column count consistency (must be 17 for cholera_data.csv, 14 for metadata.csv)
+# Verify column count consistency (must be 13 for cholera_data.csv, 14 for metadata.csv)
 awk -F, 'NR==1{cols=NF} NF!=cols{print "ERROR - Line " NR ": " NF " fields (expected " cols ")"}' cholera_data.csv
 awk -F, 'NR==1{cols=NF} NF!=cols{print "ERROR - Line " NR ": " NF " fields (expected " cols ")"}' metadata.csv
 
@@ -504,7 +519,7 @@ grep -n '[^,]$' cholera_data.csv | head -5  # Lines ending without comma structu
 
 ### 4. **Quality Control Checkpoints**
 **MANDATORY before file completion:**
-- [ ] Header row contains exactly 17 fields for cholera_data.csv
+- [ ] Header row contains exactly 13 fields for cholera_data.csv
 - [ ] Header row contains exactly 14 fields for metadata.csv
 - [ ] Every data row contains exactly same number of fields as header
 - [ ] No trailing commas or spaces at end of lines
@@ -515,11 +530,11 @@ grep -n '[^,]$' cholera_data.csv | head -5  # Lines ending without comma structu
 
 ### 5. **CSV Error Prevention Example**
 ```csv
-# CORRECT - maintains 17 columns with empty fields
-1,AFR::AGO,2025-01-01,2025-03-23,true,false,329,8543,,3.9,2025-03-28,1,WHO Disease Outbreak News 2025 Angola,1.0,VALIDATED,Direct extraction,16 of 21 provinces affected
+# CORRECT - maintains 13 columns with empty fields
+1,AFR::AGO,2025-01-01,2025-03-23,329,8543,,3.9,2025-03-28,1,WHO Disease Outbreak News 2025 Angola,1.0,16 of 21 provinces affected
 
-# INCORRECT - missing comma creates column shift (only 16 columns)
-1,AFR::AGO,2025-01-01,2025-03-23,true,false,329,8543,3.9,2025-03-28,1,WHO Disease Outbreak News 2025 Angola,1.0,VALIDATED,Direct extraction,16 of 21 provinces affected
+# INCORRECT - missing comma creates column shift (only 12 columns)
+1,AFR::AGO,2025-01-01,2025-03-23,329,8543,3.9,2025-03-28,1,WHO Disease Outbreak News 2025 Angola,1.0,16 of 21 provinces affected
 ```
 
 **CRITICAL**: Column shifting errors corrupt the entire dataset and prevent MOSAIC modeling integration. Systematic validation is mandatory.
