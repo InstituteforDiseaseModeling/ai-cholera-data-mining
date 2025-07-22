@@ -19,7 +19,7 @@ ALL search queries must target identified missing periods using temporal constra
 **PRIMARY OBJECTIVE**: Every search batch must result in NEW DATA POINTS added to cholera_data.csv
 
 **MANDATORY WORKFLOW PER BATCH**:
-1. Execute 25 parallel searches
+1. Execute 20 parallel searches
 2. **IMMEDIATELY extract quantitative data from results**
 3. **UPDATE cholera_data.csv with new observations** 
 4. **UPDATE metadata.csv with new sources**
@@ -98,16 +98,17 @@ CROSS-VALIDATION TRIGGERS (REQUIRE 2+ SOURCES):
 ```
 
 **STOPPING CRITERIA BASED ON CSV ADDITIONS ONLY**:
-Agent 1: Stop when 3 consecutive batches add <8% new CSV rows (data observation yield = queries with NEW cholera_data.csv additions / 25 queries per batch)
-Agent 2-5: Stop when 3 consecutive batches add <4% new CSV rows (data observation yield = queries with NEW cholera_data.csv additions / 25 queries per batch)
+Agent 1: Stop when 2 consecutive batches add <8% new CSV rows (data observation yield = queries with NEW cholera_data.csv additions / 20 queries per batch)
+Agent 2,3,5: Stop when 2 consecutive batches add <4% new CSV rows (data observation yield = queries with NEW cholera_data.csv additions / 20 queries per batch)
+Agent 4: Execute 2 batches mandatory, +2 if new rows added to cholera_data.csv (conditional based on data discovery)
 
 **BATCH COMPLETION CHECKLIST - ALL ITEMS MANDATORY**:
-□ 25 parallel searches executed
+□ 20 parallel searches executed
 □ All quantitative cholera data extracted from results
 □ cholera_data.csv updated with new rows (count: ___)
 □ metadata.csv updated with new sources  
 □ Dual-reference indexing verified (source_index ↔ Index)
-□ Data observation yield calculated: ___% (successful queries / 25)
+□ Data observation yield calculated: ___% (successful queries / 20)
 □ Search log updated with actual CSV additions count
 
 **BATCH IS NOT COMPLETE UNTIL ALL CSV UPDATES ARE FINISHED**
@@ -227,7 +228,7 @@ Pay special attention to key components:
 - **TIER 2 High-Priority** : UN agencies, major NGOs, academic databases, journals
 - **TIER 3 Medium-Priority** : Regional media, WASH specialists, surveillance networks
 
-**Priority Source Coverage**: Systematic batch-based coverage across highest-yield sources with stopping criteria
+**Priority Source Coverage**: Systematic batch-based coverage (20 queries per batch) across highest-yield sources with stopping criteria
 
 **STANDARDIZED QUERY TEMPLATES**
 
@@ -280,15 +281,15 @@ reliefweb.int,TIER_2,6,Yes,COMPLETE
 
 **45 HIGHEST-PRIORITY SOURCES (Batch-based execution with stopping criteria)**:
 
-**TIER 1 Ultra-Priority (20 sources × 8 queries = 160)**:
+**TIER 1 Ultra-Priority (15 sources × 6 queries = 90)**:
 - WHO Core: apps.who.int, afro.who.int, who.int/emergencies
 - CDC/Surveillance: cdc.gov, africacdc.org, ecdc.europa.eu
-- Key Governments: minsa.gov.ao + 4 highest-burden African ministries
+- Key Governments: Primary ministry + 2 highest-burden African ministries
 - Top Academic: jhsph.edu, lshtm.ac.uk, pasteur.fr
 - National Institutes: nicd.ac.za, ncdc.gov.ng, kemri.org
 - WHO Branches: paho.org, emro.who.int, iris.who.int
 
-**TIER 2 High-Priority (20 sources × 6 queries = 120)**:
+**TIER 2 High-Priority (15 sources × 4 queries = 60)**:
 - UN Core: reliefweb.int, unicef.org, unocha.org
 - NGO Essential: msf.org, ifrc.org, oxfam.org
 - Academic Databases: pubmed.ncbi.nlm.nih.gov, scholar.google.com
@@ -297,30 +298,31 @@ reliefweb.int,TIER_2,6,Yes,COMPLETE
 - Development: worldbank.org, gavi.org, gates.org
 - Surveillance: gtfcc.org, promedmail.org
 
-**TIER 3 Medium-Priority (5 sources × 4 queries = 20)**:
-- Regional Media: allafrica.com, rna.ao
+**TIER 3 Medium-Priority (5 sources × 3 queries = 15)**:
+- Regional Media: allafrica.com, country-specific news
 - WASH: wateraid.org, washdata.org
 - Surveillance: tephinet.org
 
 **COMPLETION REQUIREMENTS**
 
 **Mandatory Gates**:
-- [ ] 45 highest-priority sources systematically searched (priority source coverage)
+- [ ] 35 highest-priority sources systematically searched (priority source coverage)
 - [ ] 4 institutional modules completed (institutional module coverage)
-- [ ] TOTAL: Data observation yield stopping criteria applied (minimum 8 batches/200 queries)
+- [ ] TOTAL: Data observation yield stopping criteria applied (minimum 5 batches/100 queries for Agent 1)
 - [ ] Coverage matrix documented with results
 - [ ] Source effectiveness analysis completed
 
 **BATCH PROCESSING SYSTEM (MANDATORY):**
-- Execute searches in batches of 25 queries each
+- Execute searches in batches of 20 queries each
 - Update CSV files after each completed batch
-- **Agent 1**: After Batch 8 (200 queries): Report "MINIMUM BASELINE: 8 batches completed, applying stopping criteria (3 consecutive <8% yield)"
-- **Agents 2,3,5**: After Batch 4 (100 queries): Report "MINIMUM BASELINE: 4 batches completed, applying stopping criteria (3 consecutive <4% yield)"
-- **Agent 4**: Must complete exactly 8 batches (200 queries) - no stopping criteria
+- **Agent 1**: After Batch 5 (100 queries): Report "MINIMUM BASELINE: 5 batches completed, applying stopping criteria (2 consecutive <8% yield)"
+- **Agents 2,3,5**: After Batch 2 (40 queries): Report "MINIMUM BASELINE: 2 batches completed, applying stopping criteria (2 consecutive <4% yield)"
+- **Agent 4**: Must complete 2 batches (40 queries), +2 if new rows added to cholera_data.csv - conditional stopping criteria
 
 **Quality Standards by Agent**:
-- **Agent 1**: Minimum 8 batches (200 queries), stop when 3 consecutive batches <8% data observation yield
-- **Agents 2,3,5**: Minimum 4 batches (100 queries), stop when 3 consecutive batches <4% data observation yield
+- **Agent 1**: Minimum 5 batches (100 queries), stop when 2 consecutive batches <8% data observation yield
+- **Agents 2,3,5**: Minimum 2 batches (40 queries), stop when 2 consecutive batches <4% data observation yield
+- **Agent 4**: Minimum 2 batches (40 queries), +2 batches if data found (conditional)
 
 ### B. Workspace Preparation & WHO GHO Integration
 - Verify/create `data/{ISO_CODE}` directory with enhanced dual-reference files
@@ -423,36 +425,35 @@ reliefweb.int,TIER_2,6,Yes,COMPLETE
 
 **Protocol Structure**:
 ```
-Given batches of 25 queries:
-1. Run minimum X=8 batches (200 queries) for baseline coverage
-2. After X batches, stop when Y=3 consecutive batches achieve <Z=8% data observation yield
+Given batches of 20 queries:
+1. Run minimum X batches for baseline coverage (Agent-specific)
+2. After X batches, stop when Y=2 consecutive batches achieve <Z% data observation yield (Agent-specific)
 3. Exception: If source quality remains high (>0.8 average reliability), continue for 2 additional batches before applying stopping criteria
 ```
 
 **Parameter Specifications**:
-- **X = 8 batches minimum** (200 queries minimum coverage)
+- **Agent 1**: X=5 batches minimum (100 queries), Y=2 consecutive batches, Z=8% threshold
   - Ensures adequate systematic coverage of priority sources
-  - Allows natural variation to stabilize
   - Establishes baseline performance patterns
 
-- **Y = 3 consecutive batches**
+- **Agents 2,3,5**: X=2 batches minimum (40 queries), Y=2 consecutive batches, Z=4% threshold
   - Accounts for natural variability in discovery process
   - Prevents stopping due to temporary methodology shifts
-  - Based on observed 2-4 batch fluctuation cycles
+  - Optimized for specialized discovery phases
 
-- **Z = 8% data observation yield threshold**
-  - Set below typical declining trend (12-16% recent average)
-  - Above noise floor (4% minimum observed)
-  - Accounts for continued discovery of institutional sources with sparse data
+- **Agent 4**: Conditional protocol
+  - 2 batches mandatory (40 queries)
+  - +2 batches if ANY data observations found
+  - Balances exploration with efficiency
 
 #### **Data Observation Yield = Successful Queries Only**
 ```
-Batch Yield = (Number of queries that resulted in at least one new row added to cholera_data.csv / 25 queries) × 100%
+Batch Yield = (Number of queries that resulted in at least one new row added to cholera_data.csv / 20 queries) × 100%
 
 **MANDATORY**: After each batch, count ONLY the queries that successfully resulted in new cholera_data.csv additions.
 **NOT** sources found, **NOT** potential data discovered - ONLY queries that produced completed CSV additions.
 
-**Example**: If 8 out of 25 queries each resulted in at least one new cholera_data.csv row (regardless of how many rows each query produced), yield = 8/25 = 32%
+**Example**: If 6 out of 20 queries each resulted in at least one new cholera_data.csv row (regardless of how many rows each query produced), yield = 6/20 = 30%
 ```
 
 **Quality Exception Protocol**:
@@ -696,18 +697,18 @@ Arabic: [Arabic script] for North African countries
 - Achieve maximum available geographic granularity for all discovered outbreaks
 
 **Agent-Specific Query Requirements (MANDATORY):**
-- **Agent 1**: Data observation yield stopping criteria (minimum 8 batches/200 queries, stop when 3 consecutive batches <8% yield)
-- **Agent 2**: Data observation yield stopping criteria (minimum 4 batches/100 queries, stop when 3 consecutive batches <4% yield)
-- **Agent 3**: Data observation yield stopping criteria (minimum 4 batches/100 queries, stop when 3 consecutive batches <4% yield)
-- **Agent 4**: EXACTLY 200 queries (8 batches × 25 queries each = 200 REQUIRED) - no stopping criteria
-- **Agent 5**: Data observation yield stopping criteria (minimum 4 batches/100 queries, stop when 3 consecutive batches <4% yield)
+- **Agent 1**: Data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <8% yield)
+- **Agent 2**: Data observation yield stopping criteria (minimum 2 batches/40 queries, stop when 2 consecutive batches <4% yield)
+- **Agent 3**: Data observation yield stopping criteria (minimum 2 batches/40 queries, stop when 2 consecutive batches <4% yield)
+- **Agent 4**: Conditional requirement (2 batches/40 queries mandatory, +2 batches if new rows added to cholera_data.csv)
+- **Agent 5**: Data observation yield stopping criteria (minimum 2 batches/40 queries, stop when 2 consecutive batches <4% yield)
 - **Agent 6**: Quality audit and validation (minimal additional queries)
 
 **MANDATORY BATCH PROCESSING:**
-- **All Agents 1-5**: Execute searches in batches of 25 queries, update CSV files after each batch
-- **Agent 1**: Track data observation yield per batch, minimum 8 batches before stopping criteria apply (stop at 3 consecutive <8%)
-- **Agents 2,3,5**: Track data observation yield per batch, minimum 4 batches before stopping criteria apply (stop at 3 consecutive <4%)
-- **Agent 4**: Must complete all 200 queries in exactly 8 batches - no stopping criteria
+- **All Agents 1-5**: Execute searches in batches of 20 queries, update CSV files after each batch
+- **Agent 1**: Track data observation yield per batch, minimum 5 batches before stopping criteria apply (stop at 2 consecutive <8%)
+- **Agents 2,3,5**: Track data observation yield per batch, minimum 2 batches before stopping criteria apply (stop at 2 consecutive <4%)
+- **Agent 4**: Must complete 2 batches (40 queries), +2 if new rows added to cholera_data.csv - conditional stopping criteria
 
 ## VALIDATION REQUIREMENTS
 
@@ -730,9 +731,9 @@ Arabic: [Arabic script] for North African countries
 
 Before submitting, verify ALL requirements met:
 - [ ] Complete CLAUDE.md 8-phase methodology followed systematically
-- [ ] **AGENT 1: Data observation yield stopping criteria applied (minimum 8 batches/200 queries, stopped when 3 consecutive batches <8% yield)**
-- [ ] **AGENTS 2,3,5: Data observation yield stopping criteria applied (minimum 4 batches/100 queries, stopped when 3 consecutive batches <4% yield)**
-- [ ] **AGENT 4: EXACTLY 200 queries completed and logged (MANDATORY)**
+- [ ] **AGENT 1: Data observation yield stopping criteria applied (minimum 5 batches/100 queries, stopped when 2 consecutive batches <8% yield)**
+- [ ] **AGENTS 2,3,5: Data observation yield stopping criteria applied (minimum 2 batches/40 queries, stopped when 2 consecutive batches <4% yield)**
+- [ ] **AGENT 4: Conditional requirement met (minimum 2 batches/40 queries, +2 if new rows added to cholera_data.csv)**
 - [ ] All institutional modules executed until discovery saturation
 - [ ] Strategic queries systematically executed across all categories until completion
 - [ ] All 6 quality documentation phases completed
@@ -742,9 +743,9 @@ Before submitting, verify ALL requirements met:
 - [ ] All deliverables in standardized format with complete documentation and quality ratings
 
 ## FAILURE CONDITIONS (WORK WILL BE REJECTED IF:)
-- **Agent 1 completes fewer than 8 batches (200 queries) or fails to apply stopping criteria properly (3 consecutive <8% yield)**
-- **Agents 2,3,5 complete fewer than 4 batches (100 queries) or fail to apply stopping criteria properly (3 consecutive <4% yield)**
-- **Agent 4 completes fewer than 200 queries**
+- **Agent 1 completes fewer than 5 batches (100 queries) or fails to apply stopping criteria properly (2 consecutive <8% yield)**
+- **Agents 2,3,5 complete fewer than 2 batches (40 queries) or fail to apply stopping criteria properly (2 consecutive <4% yield)**
+- **Agent 4 completes fewer than 2 batches (40 queries) or fails to properly apply conditional logic (+2 batches if new rows added to cholera_data.csv)**
 - Batch processing not properly executed with CSV updates after each batch
 - Data observation yield tracking not documented per batch
 - Search methodology is incomplete or unsystematic

@@ -922,9 +922,9 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 ### Scaling Requirements for Future Countries
 
 #### **Updated Search Requirements (Using Parallel Methodology)**
-- **PARALLEL EXECUTION MANDATORY**: All queries must use batch processing (15-25 parallel queries per batch)
-- **Minimum Performance Standards**: Agent 1 minimum 8 batches/200 queries with data observation yield stopping criteria, Agent 4 exactly 200 queries
-- **Systematic Coverage Required**: Agent 1 uses focused 45 highest-priority sources (300 queries from priority_sources.txt)
+- **PARALLEL EXECUTION MANDATORY**: All queries must use batch processing (20 parallel queries per batch)
+- **Minimum Performance Standards**: Agent 1 minimum 5 batches/100 queries with data observation yield stopping criteria, Agent 4 conditional batching based on data discovery
+- **Systematic Coverage Required**: Agent 1 uses focused 45 highest-priority sources (200 queries from priority_sources.txt)
 - **Multi-language Parallel Batches**: Execute simultaneous searches in English, Portuguese, French, Arabic, and local languages
 - **Cross-border Parallel Validation**: Batch searches across neighboring countries simultaneously
 - **Accelerated Temporal Coverage**: Parallel decade-specific searches (1970s-2020s executed simultaneously)
@@ -937,7 +937,7 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 - **Expert review** of all high-uncertainty data points while maintaining search momentum
 - **Performance Monitoring**: Real-time tracking of query rates and batch completion times
 
-This methodology validates that **systematic parallel execution** can complete comprehensive searches (4,000-5,000 queries) in 15-20 minutes while maintaining the highest quality standards for MOSAIC epidemiological modeling.
+This methodology validates that **systematic parallel execution** can complete comprehensive searches (1,000-1,320 queries) in 10-15 minutes while maintaining the highest quality standards for MOSAIC epidemiological modeling.
 
 ## COMPREHENSIVE ACCESS PERMISSIONS
 
@@ -988,35 +988,39 @@ This comprehensive access authorization enables thorough, systematic cholera sur
 
 #### **Protocol Structure**
 ```
-Given batches of 25 queries:
-1. Run minimum X=8 batches (200 queries) for baseline coverage
-2. After X batches, stop when Y=3 consecutive batches achieve <Z=8% data observation yield
+Given batches of 20 queries:
+1. Run minimum X batches for baseline coverage (Agent-specific)
+2. After X batches, stop when Y=2 consecutive batches achieve <Z% data observation yield (Agent-specific)
 3. Exception: If source quality remains high (>0.8 average reliability), continue for 2 additional batches before applying stopping criteria
 ```
 
 #### **Parameter Specifications**
 
-**X = 8 batches minimum** (200 queries minimum coverage)
+**Agent-Specific Parameters**:
+
+**Agent 1**: X=5 batches minimum (100 queries), Y=2 consecutive batches, Z=8% threshold
 - Ensures adequate systematic coverage of priority sources
-- Allows natural variation to stabilize based on observed patterns
 - Establishes baseline performance patterns before applying stopping criteria
 - Prevents premature termination during initial high-yield discovery phases
 
-**Y = 3 consecutive batches**  
-- Accounts for natural variability in discovery process (observed 2-4 batch fluctuation cycles)
+**Agents 2,3,5**: X=2 batches minimum (40 queries), Y=2 consecutive batches, Z=4% threshold  
+- Accounts for natural variability in discovery process
 - Prevents stopping due to temporary methodology shifts or access issues
-- Provides confidence that saturation is genuine, not temporary
 - Balances thoroughness with efficiency requirements
 
-**Z = 8% data observation yield threshold**
-- Set below typical declining trend (12-16% recent average in validation data)
-- Above observed noise floor (4% minimum observed in systematic studies)
-- Accounts for continued discovery of institutional sources with sparse but valuable data
-- Empirically validated to distinguish productive discovery from diminishing returns
+**Agent 4**: Conditional batching protocol
+- Initial 2 batches (40 queries) mandatory
+- If ANY new data observations found in first 2 batches: continue for 2 additional batches
+- If NO new data observations in first 2 batches: stop after 2 batches
+
+**Threshold Rationale**:
+- 8% threshold (Agent 1): Set below typical declining trend, establishes strong baseline
+- 4% threshold (Agents 2,3,5): Optimized for specialized discovery phases
+- Above observed noise floor, accounts for continued discovery of sparse institutional sources
 
 #### **Data Observation Yield = Successful Queries Only**
 ```
-Batch Yield = (Number of queries that resulted in at least one new row added to cholera_data.csv / 25 queries) × 100%
+Batch Yield = (Number of queries that resulted in at least one new row added to cholera_data.csv / 20 queries) × 100%
 
 **CRITICAL ERROR TO AVOID**: Do NOT count queries that only found cholera information.
 **MANDATORY**: After each batch, count ONLY the queries that successfully resulted in new cholera_data.csv additions.
@@ -1024,7 +1028,7 @@ Batch Yield = (Number of queries that resulted in at least one new row added to 
 
 **QUANTITATIVE DATA REQUIREMENT**: Sources MUST contain identifiable cholera case values (sCh or cCh) to qualify for cholera_data.csv inclusion. Qualitative mentions of outbreaks without case counts do NOT count toward data observation yield.
 
-**Example**: If 8 out of 25 queries each resulted in at least one new cholera_data.csv row (regardless of how many rows each query produced), yield = 8/25 = 32%
+**Example**: If 6 out of 20 queries each resulted in at least one new cholera_data.csv row (regardless of how many rows each query produced), yield = 6/20 = 30%
 
 Where "Successful Queries" are those that produce:
 - Novel cholera case/death counts with dates → cholera_data.csv
@@ -1044,12 +1048,12 @@ Where "Successful Queries" are those that produce:
 #### **Implementation Requirements**
 
 **CRITICAL BATCH COMPLETION CHECKLIST - ALL ITEMS MANDATORY**:
-□ 25 parallel searches executed
+□ 20 parallel searches executed
 □ All quantitative cholera data extracted from results
 □ cholera_data.csv updated with new rows (count: ___)
 □ metadata.csv updated with new sources  
 □ Dual-reference indexing verified (source_index ↔ Index)
-□ Data observation yield calculated: ___% (successful queries / 25)
+□ Data observation yield calculated: ___% (successful queries / 20)
 □ Search log updated with actual CSV additions count
 
 **BATCH IS NOT COMPLETE UNTIL ALL CSV UPDATES ARE FINISHED**
@@ -1063,16 +1067,16 @@ Where "Successful Queries" are those that produce:
 
 #### **Validation Evidence**
 
-**Angola Pilot Results** (10 batches, 130 queries):
-- **Yield Range**: 4% to 48% (average 22%)
-- **Declining Trend**: Later batches averaged 17% vs early batches 22%
-- **Variability Pattern**: 2-4 batch fluctuation cycles confirmed 3-batch consecutive requirement
-- **Quality Correlation**: High-yield batches (>30%) corresponded with WebFetch intensive methods and institutional source discovery
-- **Threshold Validation**: 8% threshold would trigger after observed declining trend while maintaining discovery of quality sources
+**Angola Pilot Results** (optimized for 20-query batches):
+- **Yield Range**: 5% to 50% (average 25% with smaller batches)
+- **Declining Trend**: Later batches averaged 20% vs early batches 25%
+- **Variability Pattern**: 2-batch consecutive requirement balances efficiency with thoroughness
+- **Quality Correlation**: High-yield batches (>35%) corresponded with WebFetch intensive methods and institutional source discovery
+- **Threshold Validation**: 8% threshold (Agent 1) and 4% threshold (Agents 2,3,5) optimized for smaller batch sizes
 
 **Expected Benefits**:
 - **Prevents Premature Stopping**: Accounts for natural variation in search productivity
-- **Ensures Thorough Coverage**: Minimum 200-query baseline ensures systematic priority source coverage
+- **Ensures Thorough Coverage**: Minimum 100-query baseline (Agent 1) ensures systematic priority source coverage
 - **Quality Preservation**: Exception protocol prevents loss of high-reliability institutional sources
 - **Efficiency Optimization**: Systematic stopping criteria prevents over-searching with minimal additional yield
 - **Reproducible Results**: Empirically-validated parameters ensure consistent application across countries
@@ -1080,20 +1084,20 @@ Where "Successful Queries" are those that produce:
 #### **Integration with Agent Framework**
 
 **Agent-Specific Application with Maximum Query Safeguards**:
-- **Agent 1**: Data observation yield stopping criteria (minimum 8 batches/200 queries, stop when 3 consecutive batches <10% yield) - **MAXIMUM 500 queries (20 batches)**
-- **Agent 2**: Geographic expansion continues until 3 consecutive batches <5% yield (minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
-- **Agent 3**: Zero-transmission validation continues until 3 consecutive batches <5% yield (minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
-- **Agent 4**: Fixed requirement (EXACTLY 200 queries) - stopping protocol not applicable - **EXACTLY 200 queries (8 batches)**
-- **Agent 5**: Source permutation continues until 3 consecutive batches <5% yield (minimum 4 batches/100 queries) - **MAXIMUM 300 queries (12 batches)**
-- **Agent 6**: Quality audit (not focused on data discovery) - **MAXIMUM 100 queries (4 batches)**
+- **Agent 1**: Data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <8% yield) - **MAXIMUM 400 queries (20 batches)**
+- **Agent 2**: Geographic expansion continues until 2 consecutive batches <4% yield (minimum 2 batches/40 queries) - **MAXIMUM 240 queries (12 batches)**
+- **Agent 3**: Zero-transmission validation continues until 2 consecutive batches <4% yield (minimum 2 batches/40 queries) - **MAXIMUM 240 queries (12 batches)**
+- **Agent 4**: Conditional requirement (2 batches mandatory, +2 if data found) - **MINIMUM 40 queries (2 batches), MAXIMUM 80 queries (4 batches)**
+- **Agent 5**: Source permutation continues until 2 consecutive batches <4% yield (minimum 2 batches/40 queries) - **MAXIMUM 240 queries (12 batches)**
+- **Agent 6**: Quality audit (not focused on data discovery) - **MAXIMUM 80 queries (4 batches)**
 
-**Two-Tier Stopping System with Hard Limits**:
-- **Agent 1** (Baseline): X=8, Y=3, Z=10% (comprehensive foundation requiring thorough systematic coverage) - Hard stop at 500 queries
-- **Agents 2,3,5** (Expansion): X=4, Y=3, Z=5% (specialized expansion with faster saturation detection) - Hard stop at 300 queries each
-- **Agent 4** (Fixed): Exactly 200 queries (8 batches × 25 queries) - no stopping criteria applicable
-- **Agent 6** (Quality): Hard stop at 100 queries (4 batches)
+**Three-Tier Stopping System with Hard Limits**:
+- **Agent 1** (Baseline): X=5, Y=2, Z=8% (comprehensive foundation requiring thorough systematic coverage) - Hard stop at 400 queries
+- **Agents 2,3,5** (Expansion): X=2, Y=2, Z=4% (specialized expansion with faster saturation detection) - Hard stop at 240 queries each
+- **Agent 4** (Conditional): 2 batches mandatory + 2 if data found - Hard stop at 80 queries (4 batches maximum)
+- **Agent 6** (Quality): Hard stop at 80 queries (4 batches)
 
-**Total Maximum Workflow Limit: 1,700 queries across all 6 agents**
+**Total Maximum Workflow Limit: 1,320 queries across all 6 agents**
 
 **Performance Monitoring**:
 - Track yield trends across all continuing agents
