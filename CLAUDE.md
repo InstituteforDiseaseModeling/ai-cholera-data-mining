@@ -154,9 +154,9 @@ FOR EACH COUNTRY:
 
 **search_report.txt**: Executive summary consolidating all 6 agents - methodology, quality assessment, performance metrics, JHU relationship, recommendations, and gap-filling effectiveness analysis
 
-**metadata.csv** (9 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status
+**metadata.csv** (14 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth, Cross_References, Discovery_Method
 
-**cholera_data.csv** (12 columns): Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes
+**cholera_data.csv** (13 columns): Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes
 
 ## COMPREHENSIVE COLUMN DEFINITIONS
 
