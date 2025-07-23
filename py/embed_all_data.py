@@ -197,11 +197,7 @@ def embed_all_data():
                 lines = len(cholera_content.split('\n')) - 1
                 print(f"✅ Loaded AI cholera data for {iso} ({lines} observations)")
     
-    # Process WHO and JHU data
-    who_data = process_who_data()
-    jhu_data = process_jhu_data()
-    
-    # Generate JavaScript code for embedding all data sources
+    # Generate JavaScript code for embedding AI-mined data only
     metadata_js = "{\n"
     for iso, content in ai_data['metadata'].items():
         metadata_js += f'        "{iso}": `{content}`,\n'
@@ -212,16 +208,6 @@ def embed_all_data():
         cholera_data_js += f'        "{iso}": `{content}`,\n'
     cholera_data_js += "    }"
     
-    who_data_js = "{\n"
-    for iso, content in who_data.items():
-        who_data_js += f'        "{iso}": `{content}`,\n'
-    who_data_js += "    }"
-    
-    jhu_data_js = "{\n"
-    for iso, content in jhu_data.items():
-        jhu_data_js += f'        "{iso}": `{content}`,\n'
-    jhu_data_js += "    }"
-    
     # Generate country data JavaScript
     country_data_json = json.dumps(country_data, indent=8)
     
@@ -231,10 +217,6 @@ def embed_all_data():
         const embeddedMetadata = {metadata_js};
         
         const embeddedCholeraData = {cholera_data_js};
-        
-        const embeddedWHOData = {who_data_js};
-        
-        const embeddedJHUData = {jhu_data_js};
         
 """
     
@@ -287,14 +269,10 @@ def embed_all_data():
     # Calculate statistics
     total_metadata_sources = sum(len(content.split('\n')) - 1 for content in ai_data['metadata'].values())
     total_cholera_observations = sum(len(content.split('\n')) - 1 for content in ai_data['cholera_data'].values())
-    total_who_records = sum(len(content.split('\n')) - 1 for content in who_data.values())
-    total_jhu_records = sum(len(content.split('\n')) - 1 for content in jhu_data.values())
     
-    print(f"\n🎉 Successfully embedded all data sources into dashboard!")
+    print(f"\n🎉 Successfully embedded AI-mined data into dashboard!")
     print(f"📈 Summary:")
     print(f"   • AI-mined data: {len(completed_countries)} countries, {total_metadata_sources} sources, {total_cholera_observations} observations")
-    print(f"   • WHO data: {len(who_data)} countries, {total_who_records} weekly records")
-    print(f"   • JHU data: {len(jhu_data)} countries, {total_jhu_records} weekly records")
     print(f"   • Dashboard updated: {dashboard_file}")
     
     return True
@@ -309,8 +287,8 @@ if __name__ == "__main__":
     
     success = embed_all_data()
     if success:
-        print(f"\n✨ Comprehensive data embedding completed successfully!")
-        print(f"🌐 All dashboard tabs should now display real data.")
+        print(f"\n✨ AI-mined data embedding completed successfully!")
+        print(f"🌐 Dashboard should now display AI-mined data correctly.")
     else:
         print(f"\n❌ Data embedding failed!")
         exit(1)
