@@ -314,6 +314,12 @@
             line-height: 1.4;
         }
         
+        .quick-summary {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+        }
+        
         
         @media (max-width: 768px) {
             .container {
@@ -1383,10 +1389,10 @@
                             <tr>
                                 <th class="tooltip" data-tooltip="Country name in the MOSAIC framework (40 African countries)" onclick="sortTable(0)">Country <i class="fas fa-sort"></i></th>
                                 <th class="tooltip" data-tooltip="ISO 3166-1 alpha-3 country code (e.g., AGO for Angola)" onclick="sortTable(1)">ISO <i class="fas fa-sort"></i></th>
-                                <th class="tooltip" data-tooltip="Data collection status: COMPLETED (all 6 agents finished), PENDING (work in progress), NOT_STARTED" onclick="sortTable(2)">Status <i class="fas fa-sort"></i></th>
-                                <th class="tooltip" data-tooltip="Most recent timestamp when country data was updated" onclick="sortTable(3)">Last Updated <i class="fas fa-sort"></i></th>
-                                <th class="tooltip" data-tooltip="Summary of sources found, observations collected, and date range covered" onclick="sortTable(4)">Data Summary <i class="fas fa-sort"></i></th>
-                                <th class="tooltip" data-tooltip="Current agent progress and workflow status notes" onclick="sortTable(5)">Status Notes <i class="fas fa-sort"></i></th>
+                                <th class="tooltip" data-tooltip="Most recent timestamp when country data was updated" onclick="sortTable(2)">Date <i class="fas fa-sort"></i></th>
+                                <th class="tooltip" data-tooltip="Data collection status: COMPLETED (all 6 agents finished), PENDING (work in progress), NOT_STARTED" onclick="sortTable(3)">Status <i class="fas fa-sort"></i></th>
+                                <th class="tooltip" data-tooltip="Current agent progress and workflow status notes" onclick="sortTable(4)">Status Notes <i class="fas fa-sort"></i></th>
+                                <th class="tooltip" data-tooltip="Quick summary: sources, observations, date span, total cases, total deaths" onclick="sortTable(5)">Quick Data Summary <i class="fas fa-sort"></i></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1580,14 +1586,14 @@
                 "country": "Central African Republic",
                 "iso": "CAF",
                 "status": "PENDING",
-                "datetime": "2025-07-23 01:29:41",
+                "datetime": "2025-07-23 01:33:47",
                 "sources": 3,
                 "observations": 3,
                 "date_range": "1997-2011",
                 "priority": "HIGH",
                 "execution_time": 1,
-                "queries": 4,
-                "yield_pct": 25.0,
+                "queries": 5,
+                "yield_pct": 40.0,
                 "notes": "Agent 1 completed; 3 data observations"
         },
         {
@@ -2848,10 +2854,10 @@ Zimbabwe,ZWE,0,119,268`;
                 <tr>
                     <th class="tooltip" data-tooltip="Country name in the MOSAIC framework (40 African countries)" onclick="sortTable(0)">Country <i class="fas fa-sort"></i></th>
                     <th class="tooltip" data-tooltip="ISO 3166-1 alpha-3 country code (e.g., AGO for Angola)" onclick="sortTable(1)">ISO <i class="fas fa-sort"></i></th>
-                    <th class="tooltip" data-tooltip="Data collection status: COMPLETED (all 6 agents finished), PENDING (work in progress), NOT_STARTED" onclick="sortTable(2)">Status <i class="fas fa-sort"></i></th>
-                    <th class="tooltip" data-tooltip="Most recent timestamp when country data was updated" onclick="sortTable(3)">Last Updated <i class="fas fa-sort"></i></th>
-                    <th class="tooltip" data-tooltip="Summary of sources found, observations collected, and date range covered" onclick="sortTable(4)">Data Summary <i class="fas fa-sort"></i></th>
-                    <th class="tooltip" data-tooltip="Current agent progress and workflow status notes" onclick="sortTable(5)">Status Notes <i class="fas fa-sort"></i></th>
+                    <th class="tooltip" data-tooltip="Most recent timestamp when country data was updated" onclick="sortTable(2)">Date <i class="fas fa-sort"></i></th>
+                    <th class="tooltip" data-tooltip="Data collection status: COMPLETED (all 6 agents finished), PENDING (work in progress), NOT_STARTED" onclick="sortTable(3)">Status <i class="fas fa-sort"></i></th>
+                    <th class="tooltip" data-tooltip="Current agent progress and workflow status notes" onclick="sortTable(4)">Status Notes <i class="fas fa-sort"></i></th>
+                    <th class="tooltip" data-tooltip="Quick summary: sources, observations, date span, total cases, total deaths" onclick="sortTable(5)">Quick Data Summary <i class="fas fa-sort"></i></th>
                 </tr>
             `;
 
@@ -2881,32 +2887,39 @@ Zimbabwe,ZWE,0,119,268`;
                 }
                 
                 const statusBadge = `<span class="status-badge ${statusClass}">${statusEmoji} ${statusText}</span>`;
-                const lastUpdated = country.datetime ? new Date(country.datetime).toLocaleDateString() : 'N/A';
+                const lastUpdated = country.datetime ? new Date(country.datetime).toLocaleString() : 'N/A';
                 
-                // Create data summary (sources, observations, priority)
-                let dataSummary = '<div class="country-stats">';
+                // Calculate total cases and deaths from embedded cholera data
+                let totalCases = 0;
+                let totalDeaths = 0;
                 
-                // Add sources and observations if available
-                if (country.sources > 0 || country.observations > 0) {
-                    dataSummary += `<strong>Data:</strong> ${country.sources || 0} sources, ${country.observations || 0} observations`;
-                    if (country.date_range && country.date_range !== '') {
-                        dataSummary += ` (${country.date_range})`;
+                if (country.status === 'COMPLETED' && embeddedCholeraData && embeddedCholeraData[country.iso]) {
+                    try {
+                        const csvData = embeddedCholeraData[country.iso];
+                        const lines = csvData.trim().split('\n');
+                        const rows = lines.slice(1); // Skip header
+                        
+                        rows.forEach(row => {
+                            const cols = parseCSVRow(row);
+                            if (cols.length >= 6) {
+                                const deaths = parseInt(cols[4]) || 0; // deaths column
+                                const sCh = parseInt(cols[5]) || 0; // suspected cases column
+                                totalDeaths += deaths;
+                                totalCases += sCh;
+                            }
+                        });
+                    } catch (error) {
+                        console.warn(`Error calculating totals for ${country.iso}:`, error);
                     }
-                    dataSummary += '<br>';
                 }
                 
-                // Add priority if available
-                if (country.priority && country.priority !== '') {
-                    dataSummary += `<strong>Priority:</strong> ${country.priority}`;
-                }
-                
-                dataSummary += '</div>';
-                
-                // Create status notes (agent progress information)
+                // Create status notes (agent progress information only)
                 let statusNotes = '<div class="status-notes">';
                 
                 if (country.notes && country.notes !== '' && country.notes !== 'No activity detected') {
-                    statusNotes += country.notes;
+                    // Extract only the agent status part, removing observation counts
+                    let cleanNotes = country.notes.replace(/; \d+ data observations/g, '');
+                    statusNotes += cleanNotes;
                 } else if (country.status === 'NOT_STARTED') {
                     statusNotes += 'No activity detected';
                 } else {
@@ -2915,14 +2928,33 @@ Zimbabwe,ZWE,0,119,268`;
                 
                 statusNotes += '</div>';
                 
+                // Create quick data summary
+                let quickSummary = '<div class="quick-summary">';
+                
+                if (country.sources > 0 || country.observations > 0) {
+                    quickSummary += `${country.sources || 0} sources, ${country.observations || 0} obs`;
+                    
+                    if (country.date_range && country.date_range !== '') {
+                        quickSummary += `, ${country.date_range}`;
+                    }
+                    
+                    if (totalCases > 0 || totalDeaths > 0) {
+                        quickSummary += `<br>${totalCases.toLocaleString()} cases, ${totalDeaths.toLocaleString()} deaths`;
+                    }
+                } else {
+                    quickSummary += 'No data available';
+                }
+                
+                quickSummary += '</div>';
+                
                 return `
                     <tr class="${statusClass}">
                         <td><strong>${country.country}</strong></td>
                         <td>${country.iso}</td>
-                        <td>${statusBadge}</td>
                         <td>${lastUpdated}</td>
-                        <td>${dataSummary}</td>
+                        <td>${statusBadge}</td>
                         <td>${statusNotes}</td>
+                        <td>${quickSummary}</td>
                     </tr>
                 `;
             }).join('');
@@ -2979,7 +3011,7 @@ Zimbabwe,ZWE,0,119,268`;
                 
                 // Handle different data types
                 let comparison = 0;
-                if (columnIndex === 3) { // Last Updated column
+                if (columnIndex === 2) { // Date column
                     const aDate = new Date(aText === 'N/A' ? '1970-01-01' : aText);
                     const bDate = new Date(bText === 'N/A' ? '1970-01-01' : bText);
                     comparison = aDate - bDate;
