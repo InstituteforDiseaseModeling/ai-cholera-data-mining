@@ -636,10 +636,10 @@ def create_3source_timeline_plot(country_data, country_name, iso_code, output_di
     who_blocks = find_data_blocks(who_data)
     jhu_blocks = find_data_blocks(jhu_data)
     
-    # Skip countries with no data
+    # Handle countries with no data by creating empty plot
     if not ai_blocks and not who_blocks and not jhu_blocks:
-        print(f"  Skipping {country_name} - no data blocks found")
-        return
+        print(f"    Creating empty plot for {country_name} - no data found")
+        # Continue to create empty plot instead of returning
     
     # Set up the plot
     fig, ax = plt.subplots(figsize=(16, 5))
@@ -939,7 +939,9 @@ def update_all_dashboard_data(base_path: Path):
         
         if country_data.empty:
             print(f"    No data found for {country_name}")
-            continue
+            # Still create an empty plot for countries without data
+            # Create empty dataframe with required columns for plotting
+            country_data = pd.DataFrame(columns=['source', 'week_start'])
         
         # Create timeline plot
         try:

@@ -202,7 +202,7 @@
         
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            background: linear-gradient(90deg, #0167af 0%, #014d82 100%);
             border-radius: 6px;
             transition: width 0.3s ease;
             position: relative;
@@ -804,7 +804,7 @@
         }
         
         .timeline-card-header {
-            background: linear-gradient(135deg, #0167af 0%, #014d82 100%);
+            background: linear-gradient(135deg, rgba(1, 103, 175, 0.75) 0%, rgba(1, 77, 130, 0.75) 100%);
             color: white;
             padding: 1rem 1.5rem;
             display: flex;
@@ -2899,11 +2899,20 @@ Zimbabwe,ZWE,0,119,268`;
                 // In a full implementation, this would query the actual data sources
                 const weekSummary = getWeekSummaryForCountry(country.iso);
                 
+                // Get status badge
+                const statusBadges = {
+                    'COMPLETED': { text: 'COMPLETED', bg: '#1e7e34', color: 'white' },
+                    'PENDING': { text: 'PENDING', bg: '#b8860b', color: 'white' },
+                    'NOT_STARTED': { text: 'NOT STARTED', bg: '#495057', color: 'white' }
+                };
+                const statusBadge = statusBadges[country.status] || { text: 'UNKNOWN', bg: '#6c757d', color: 'white' };
+                
                 timelineHTML += `
                     <div class="timeline-card">
                         <div class="timeline-card-header">
-                            <div class="timeline-card-title">
-                                ${country.country} (${country.iso})
+                            <div class="timeline-card-title" style="display: flex; align-items: center; justify-content: space-between; gap: 2rem;">
+                                <span>${country.country} (${country.iso})</span>
+                                <span class="status-badge" style="background-color: ${statusBadge.bg}; color: ${statusBadge.color}; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${statusBadge.text}</span>
                             </div>
                             <div class="timeline-card-coverage">
                                 ${coverage.coverageText} | ${weekSummary}
@@ -3039,28 +3048,15 @@ Zimbabwe,ZWE,0,119,268`;
             const tableRows = countryData.map(country => {
                 const statusClass = country.status.toLowerCase().replace('_', '-');
                 
-                // Add emoji badges based on status
-                let statusEmoji = '';
-                let statusText = '';
-                switch(country.status) {
-                    case 'COMPLETED':
-                        statusEmoji = '✅';
-                        statusText = 'COMPLETED';
-                        break;
-                    case 'PENDING':
-                        statusEmoji = '⏳';
-                        statusText = 'PENDING';
-                        break;
-                    case 'NOT_STARTED':
-                        statusEmoji = '⭕';
-                        statusText = 'NOT STARTED';
-                        break;
-                    default:
-                        statusEmoji = '❓';
-                        statusText = country.status.replace('_', ' ');
-                }
+                // Create styled status badge (matching timeline cards)
+                const statusBadges = {
+                    'COMPLETED': { text: 'COMPLETED', bg: '#1e7e34', color: 'white' },
+                    'PENDING': { text: 'PENDING', bg: '#b8860b', color: 'white' },
+                    'NOT_STARTED': { text: 'NOT STARTED', bg: '#495057', color: 'white' }
+                };
+                const statusBadgeInfo = statusBadges[country.status] || { text: country.status.replace('_', ' '), bg: '#6c757d', color: 'white' };
                 
-                const statusBadge = `<span class="status-badge ${statusClass}">${statusEmoji} ${statusText}</span>`;
+                const statusBadge = `<span style="background-color: ${statusBadgeInfo.bg}; color: ${statusBadgeInfo.color}; padding: 0.25rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">${statusBadgeInfo.text}</span>`;
                 const lastUpdated = country.datetime ? new Date(country.datetime).toLocaleString() : 'N/A';
                 
                 // Calculate total cases and deaths from embedded cholera data
