@@ -335,54 +335,162 @@ def load_existing_csv(csv_file: Path) -> Dict[str, Dict]:
     return existing_data
 
 # ============================================================================
+# SURVEILLANCE DATA MANAGEMENT FUNCTIONS
+# ============================================================================
+
+def embed_original_surveillance_data(base_path: Path):
+    """
+    Embed MOSAIC surveillance data into reference/ directory for CI environments.
+    
+    This function copies the essential MOSAIC surveillance data to ./reference/
+    so it's available in GitHub Pages and other CI environments that don't have
+    access to the full MOSAIC project structure.
+    """
+    print("🔄 EMBEDDING ORIGINAL SURVEILLANCE DATA...")
+    
+    # Source file (full MOSAIC project structure)
+    source_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
+    
+    # Destination file (this repo's reference directory)
+    dest_file = base_path / "reference" / "cholera_surveillance_weekly_combined.csv"
+    
+    if not source_file.exists():
+        print(f"❌ Source MOSAIC surveillance file not found: {source_file}")
+        print("   Cannot embed surveillance data - only AI data will be available in CI environments")
+        return False
+    
+    # Load MOSAIC country mapping to filter data
+    country_mapping = load_country_mapping(base_path)
+    mosaic_iso_codes = set(country_mapping.keys())
+    
+    print(f"📂 Reading source: {source_file}")
+    print(f"📂 Writing to: {dest_file}")
+    print(f"🌍 Filtering to {len(mosaic_iso_codes)} MOSAIC framework countries")
+    
+    # Process and filter the data
+    filtered_rows = []
+    total_rows = 0
+    filtered_count = 0
+    
+    try:
+        with open(source_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            
+            for row in reader:
+                total_rows += 1
+                iso_code = row['iso_code'].strip('"')
+                
+                # Filter to MOSAIC framework countries only
+                if iso_code in mosaic_iso_codes:
+                    # Keep only rows with actual data (not NA)
+                    cases = row['cases'].strip('"')
+                    date_start = row['date_start'].strip('"')
+                    
+                    if cases != 'NA' and date_start != 'NA':
+                        filtered_rows.append(row)
+                        filtered_count += 1
+        
+        print(f"📊 Processed {total_rows:,} total rows")
+        print(f"✅ Filtered to {filtered_count:,} MOSAIC framework rows with data")
+        
+        # Write filtered data to reference directory
+        dest_file.parent.mkdir(exist_ok=True)
+        
+        with open(dest_file, 'w', newline='', encoding='utf-8') as f:
+            if filtered_rows:
+                fieldnames = filtered_rows[0].keys()
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                
+                writer.writeheader()
+                writer.writerows(filtered_rows)
+        
+        print(f"✅ Successfully embedded surveillance data to {dest_file}")
+        print(f"📈 Data includes WHO, JHU, and supplementary sources for timeline generation")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error embedding surveillance data: {e}")
+        return False
+
+# ============================================================================
 # TIMELINE PLOT FUNCTIONS
 # ============================================================================
 
 def load_separated_surveillance_data(base_path: Path) -> pd.DataFrame:
-    """Load MOSAIC surveillance data with WHO/JHU sources separated"""
+    """
+    Load MOSAIC surveillance data with WHO/JHU sources separated.
     
-    surveillance_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
+    Uses fallback logic:
+    1. First try: ../MOSAIC-data/processed/cholera/weekly/ (local development)
+    2. Fallback: ./reference/cholera_surveillance_weekly_combined.csv (CI environments)
+    3. Final fallback: Empty DataFrame
+    """
     
-    if not surveillance_file.exists():
-        print(f"Warning: MOSAIC surveillance file not found: {surveillance_file}")
+    # Try primary location (full MOSAIC project structure)
+    primary_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
+    
+    # Try fallback location (embedded in this repo)
+    fallback_file = base_path / "reference" / "cholera_surveillance_weekly_combined.csv"
+    
+    surveillance_file = None
+    data_source = None
+    
+    if primary_file.exists():
+        surveillance_file = primary_file
+        data_source = "MOSAIC-data"
+        print("Loading MOSAIC surveillance data with source separation...")
+    elif fallback_file.exists():
+        surveillance_file = fallback_file
+        data_source = "reference"
+        print("Loading embedded surveillance data from reference/ directory...")
+    else:
+        print(f"Warning: No surveillance data found at:")
+        print(f"  Primary: {primary_file}")
+        print(f"  Fallback: {fallback_file}")
+        print("  Proceeding with AI data only...")
         return pd.DataFrame()
     
     surveillance_data = []
     
-    print("Loading MOSAIC surveillance data with source separation...")
-    
-    with open(surveillance_file, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        
-        for row in reader:
-            iso_code = row['iso_code'].strip('"')
-            year = int(row['year'].strip('"'))
-            week = int(row['week'].strip('"'))
-            date_start = row['date_start'].strip('"')
-            cases = row['cases'].strip('"')
-            source = row['source'].strip('"')
+    try:
+        with open(surveillance_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
             
-            # Only include rows with actual data (not NA)
-            if cases != 'NA' and date_start != 'NA':
-                # Map sources
-                if source == 'WHO':
-                    mapped_source = 'WHO'
-                elif source == 'JHU':
-                    mapped_source = 'JHU'
-                elif source == 'SUPP':  # Supplementary data, treat as WHO
-                    mapped_source = 'WHO'
-                else:
-                    continue  # Skip NA or unknown sources
+            for row in reader:
+                iso_code = row['iso_code'].strip('"')
+                year = int(row['year'].strip('"'))
+                week = int(row['week'].strip('"'))
+                date_start = row['date_start'].strip('"')
+                cases = row['cases'].strip('"')
+                source = row['source'].strip('"')
                 
-                surveillance_data.append({
-                    'iso_code': iso_code,
-                    'source': mapped_source,
-                    'year': year,
-                    'week': week,
-                    'date_from': date_start,
-                    'date_to': row['date_stop'].strip('"'),
-                    'present': 1
-                })
+                # Only include rows with actual data (not NA)
+                if cases != 'NA' and date_start != 'NA':
+                    # Map sources
+                    if source == 'WHO':
+                        mapped_source = 'WHO'
+                    elif source == 'JHU':
+                        mapped_source = 'JHU'
+                    elif source == 'SUPP':  # Supplementary data, treat as WHO
+                        mapped_source = 'WHO'
+                    else:
+                        continue  # Skip NA or unknown sources
+                    
+                    surveillance_data.append({
+                        'iso_code': iso_code,
+                        'source': mapped_source,
+                        'year': year,
+                        'week': week,
+                        'date_from': date_start,
+                        'date_to': row['date_stop'].strip('"'),
+                        'present': 1
+                    })
+        
+        print(f"✅ Loaded {len(surveillance_data)} surveillance records from {data_source}")
+        
+    except Exception as e:
+        print(f"❌ Error loading surveillance data from {surveillance_file}: {e}")
+        return pd.DataFrame()
     
     return pd.DataFrame(surveillance_data)
 
