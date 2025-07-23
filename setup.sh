@@ -13,7 +13,7 @@ echo ""
 
 # Check if we're in the right directory
 if [ ! -f "CLAUDE.md" ]; then
-    echo "❌ ERROR: Must run from ai_cholera_data directory"
+    echo "❌ ERROR: Must run from ai-cholera-data-mining directory"
     echo "Please cd to the directory containing CLAUDE.md"
     exit 1
 fi
@@ -40,7 +40,7 @@ if [ ! -f "$SURVEILLANCE_DATA" ]; then
     echo "   $SURVEILLANCE_DATA"
     echo ""
     echo "This file is required for gap analysis. Options:"
-    echo "1. Ensure MOSAIC-data repository is at the same level as ai_cholera_data"
+    echo "1. Ensure MOSAIC-data repository is at the same level as ai-cholera-data-mining"
     echo "2. Run MOSAIC-pkg processing to generate the surveillance data"
     echo "3. Continue setup without gap analysis (agents will use existing reference files)"
     echo ""
