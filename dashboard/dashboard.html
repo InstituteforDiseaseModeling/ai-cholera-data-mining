@@ -1509,9 +1509,8 @@ Zimbabwe,ZWE,NOT_STARTED,,0,0,,,0,0,,No activity detected`;
             updateSummaryCards();
             updateLastUpdated();
             
-            // Initialize tabs - ensure Country Status tab is active by default
-            document.querySelector('.tab-button').classList.add('active');
-            document.getElementById('country-status').classList.add('active');
+            // Initialize tabs with saved state persistence
+            restoreActiveTab();
         }
 
         // Update statistics
@@ -1707,8 +1706,23 @@ Zimbabwe,ZWE,NOT_STARTED,,0,0,,,0,0,,No activity detected`;
         // - Manual updates via bash update_dashboard.sh
         // - Browser refresh shows latest file system state
 
-        // Tab functionality
+        // Restore active tab from localStorage
+        function restoreActiveTab() {
+            const savedTab = localStorage.getItem('mosaic-dashboard-active-tab');
+            const validTabs = ['country-status', 'data-timelines', 'source-metadata', 'cholera-data'];
+            
+            // Use saved tab if valid, otherwise default to country-status
+            const activeTab = (savedTab && validTabs.includes(savedTab)) ? savedTab : 'country-status';
+            
+            // Set the active tab without triggering the onclick event
+            showTab(activeTab);
+        }
+
+        // Tab functionality with state persistence
         function showTab(tabName) {
+            // Save active tab to localStorage
+            localStorage.setItem('mosaic-dashboard-active-tab', tabName);
+            
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(tab => {
@@ -1727,10 +1741,13 @@ Zimbabwe,ZWE,NOT_STARTED,,0,0,,,0,0,,No activity detected`;
                 selectedTab.classList.add('active');
             }
             
-            // Add active class to clicked button
-            const clickedButton = event.target.closest('.tab-button');
-            if (clickedButton) {
-                clickedButton.classList.add('active');
+            // Add active class to clicked button - find button by tabName instead of event
+            const targetButton = Array.from(document.querySelectorAll('.tab-button')).find(button => {
+                const onclick = button.getAttribute('onclick');
+                return onclick && onclick.includes(`'${tabName}'`);
+            });
+            if (targetButton) {
+                targetButton.classList.add('active');
             }
             
             // Load timeline data if switching to timelines tab
