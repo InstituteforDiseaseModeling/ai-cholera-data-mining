@@ -339,16 +339,51 @@
         
         .data-summary {
             font-size: 0.85rem;
-            line-height: 1.5;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        
+        .data-summary-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .data-summary-icon {
+            font-size: 0.75rem;
+            width: 12px;
+            color: #666;
+        }
+        
+        .data-summary-label {
+            color: #666;
+            font-size: 0.8rem;
+            min-width: 60px;
+        }
+        
+        .data-summary-value {
+            color: #666;
+            font-size: 0.8rem;
+            font-weight: 500;
         }
         
         .data-summary .date-range {
             color: #666;
             font-size: 0.8rem;
+            font-weight: 400;
         }
         
         .data-summary .cases-deaths {
-            color: #d63384;
+            color: #666;
+            font-weight: 400;
+        }
+        
+        .data-summary .coverage-info {
+            color: #666;
+            font-size: 0.8rem;
+            font-weight: 400;
         }
         
         
@@ -1802,15 +1837,15 @@
                 "country": "Kenya",
                 "iso": "KEN",
                 "status": "PENDING",
-                "datetime": "2025-07-23 15:54:07",
-                "sources": 43,
-                "observations": 35,
+                "datetime": "2025-07-23 16:17:00",
+                "sources": 48,
+                "observations": 40,
                 "date_range": "1971-2025",
                 "priority": "LOW",
                 "execution_time": 0,
                 "queries": 0,
                 "yield_pct": 0.0,
-                "notes": "Agent 3 completed; 35 data observations | Manual: Agent 2 completed; 15 data observations"
+                "notes": "Agent 5 completed; 40 data observations | Manual: Agent 2 completed; 15 data observations"
         },
         {
                 "country": "Liberia",
@@ -1913,8 +1948,8 @@
         {
                 "country": "Nigeria",
                 "iso": "NGA",
-                "status": "NOT_STARTED",
-                "datetime": "",
+                "status": "PENDING",
+                "datetime": "2025-07-23 16:25:27",
                 "sources": 0,
                 "observations": 0,
                 "date_range": "",
@@ -1922,7 +1957,7 @@
                 "execution_time": 0,
                 "queries": 0,
                 "yield_pct": 0.0,
-                "notes": "No activity detected"
+                "notes": "Agent 1 completed | Manual: No activity detected"
         },
         {
                 "country": "Rwanda",
@@ -2559,7 +2594,7 @@ Guinea,GIN,0,0,623
 Gambia,GMB,0,0,0
 Guinea-Bissau,GNB,0,0,327
 Equatorial Guinea,GNQ,0,0,0
-Kenya,KEN,695,125,320
+Kenya,KEN,1339,125,320
 Liberia,LBR,0,0,431
 Mali,MLI,0,0,378
 Mozambique,MOZ,0,125,287
@@ -3019,6 +3054,20 @@ Zimbabwe,ZWE,0,119,268`;
             console.log(`Progress bar updated: ${completedCount}/${totalCount} (${progressPercentage}%)`);
         }
 
+        // Helper function to calculate date span
+        function calculateDateSpan(dateRange) {
+            if (!dateRange || dateRange === '') return null;
+            
+            const matches = dateRange.match(/(\d{4})-(\d{4})/);
+            if (matches) {
+                const startYear = parseInt(matches[1]);
+                const endYear = parseInt(matches[2]);
+                const span = endYear - startYear + 1;
+                return span === 1 ? '1 year' : `${span} years`;
+            }
+            return null;
+        }
+
         // Load country table with all country data
         function loadCountryTable() {
             const table = document.getElementById('countryTable');
@@ -3098,22 +3147,63 @@ Zimbabwe,ZWE,0,119,268`;
                 
                 statusNotes += '</div>';
                 
-                // Create data summary
+                // Create enhanced data summary
                 let dataSummary = '<div class="data-summary">';
                 
                 if (country.sources > 0 || country.observations > 0) {
-                    dataSummary += `<strong>${country.sources || 0}</strong> sources<br>`;
-                    dataSummary += `<strong>${country.observations || 0}</strong> observations<br>`;
+                    // Sources and observations
+                    dataSummary += `
+                        <div class="data-summary-item">
+                            <i class="fas fa-database data-summary-icon"></i>
+                            <span class="data-summary-value">${country.sources || 0}</span>
+                            <span class="data-summary-label">sources</span>
+                        </div>`;
                     
+                    dataSummary += `
+                        <div class="data-summary-item">
+                            <i class="fas fa-chart-bar data-summary-icon"></i>
+                            <span class="data-summary-value">${country.observations || 0}</span>
+                            <span class="data-summary-label">observations</span>
+                        </div>`;
+                    
+                    // Date range with enhanced formatting
                     if (country.date_range && country.date_range !== '') {
-                        dataSummary += `<span class="date-range">${country.date_range}</span><br>`;
+                        const dateSpan = calculateDateSpan(country.date_range);
+                        dataSummary += `
+                            <div class="data-summary-item">
+                                <i class="fas fa-calendar data-summary-icon"></i>
+                                <span class="date-range">${country.date_range}</span>
+                                ${dateSpan ? `<span class="coverage-info">(${dateSpan})</span>` : ''}
+                            </div>`;
                     }
                     
+                    // Cases and deaths with better formatting
                     if (totalCases > 0 || totalDeaths > 0) {
-                        dataSummary += `<span class="cases-deaths"><strong>${totalCases.toLocaleString()}</strong> cases, <strong>${totalDeaths.toLocaleString()}</strong> deaths</span>`;
+                        const cfrRate = totalCases > 0 ? ((totalDeaths / totalCases) * 100).toFixed(1) : '0.0';
+                        dataSummary += `
+                            <div class="data-summary-item">
+                                <i class="fas fa-heartbeat data-summary-icon"></i>
+                                <span class="data-summary-value">${totalCases.toLocaleString()}</span>
+                                <span class="cases-deaths">cases</span>
+                            </div>`;
+                        
+                        if (totalDeaths > 0) {
+                            dataSummary += `
+                                <div class="data-summary-item">
+                                    <i class="fas fa-cross data-summary-icon"></i>
+                                    <span class="data-summary-value">${totalDeaths.toLocaleString()}</span>
+                                    <span class="cases-deaths">deaths</span>
+                                    <span class="coverage-info">(CFR: ${cfrRate}%)</span>
+                                </div>`;
+                        }
                     }
+                    
                 } else {
-                    dataSummary += '<em>No data available</em>';
+                    dataSummary += `
+                        <div class="data-summary-item">
+                            <i class="fas fa-info-circle data-summary-icon"></i>
+                            <em>No data available</em>
+                        </div>`;
                 }
                 
                 dataSummary += '</div>';
