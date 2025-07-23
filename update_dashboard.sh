@@ -6,7 +6,7 @@
 # - Completion checklist (based on file analysis)
 # - 3-source timeline coverage plots (with synchronized date ranges)
 # - Timeline week counts data (embedded in dashboard)
-# - CSV data embedding (metadata.csv and cholera_data.csv files)
+# - All data source embedding (AI-mined, WHO, and JHU data)
 # - Dashboard HTML with all embedded data
 #
 # Usage: bash update_dashboard.sh
@@ -19,10 +19,10 @@ echo "================================================"
 echo "📊 Updating completion status and timeline data..."
 python py/update_dashboard_data.py
 
-# Embed CSV data for completed countries
+# Embed all data sources (AI-mined, WHO, JHU)
 echo ""
-echo "💾 Embedding CSV data into dashboard..."
-python py/embed_csv_data.py
+echo "💾 Embedding all data sources into dashboard..."
+python py/embed_all_data.py
 
 echo ""
 echo "✅ Dashboard update complete!"
