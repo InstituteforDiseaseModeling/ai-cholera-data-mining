@@ -692,12 +692,9 @@
             cursor: help;
         }
         
-        .tooltip:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
+        /* Custom tooltip using JavaScript positioning */
+        .custom-tooltip {
+            position: fixed;
             background: rgba(0, 0, 0, 0.95);
             color: white;
             padding: 12px 16px;
@@ -705,27 +702,24 @@
             font-size: 0.85rem;
             font-weight: normal;
             white-space: normal;
-            z-index: 99999;
+            z-index: 999999;
             box-shadow: 0 6px 20px rgba(0,0,0,0.4);
             max-width: 350px;
             text-align: left;
             line-height: 1.4;
             border: 1px solid #666;
             pointer-events: none;
-            margin-bottom: 8px;
+            display: none;
         }
         
-        .tooltip:hover::before {
+        .custom-tooltip::before {
             content: '';
             position: absolute;
-            bottom: 100%;
+            top: 100%;
             left: 50%;
             transform: translateX(-50%);
             border: 8px solid transparent;
             border-top-color: rgba(0, 0, 0, 0.95);
-            z-index: 100000;
-            pointer-events: none;
-            margin-bottom: -8px;
         }
         
         .data-table td {
@@ -2175,6 +2169,9 @@ Zimbabwe,ZWE,0,119,268`;
             `;
             
             contentDiv.innerHTML = summaryHTML + tableHTML;
+            
+            // Reinitialize tooltips for the new content
+            setTimeout(() => setupTooltipListeners(), 100);
         }
         
         // Display cholera data table
@@ -2259,6 +2256,9 @@ Zimbabwe,ZWE,0,119,268`;
             `;
             
             contentDiv.innerHTML = summaryHTML + tableHTML;
+            
+            // Reinitialize tooltips for the new content
+            setTimeout(() => setupTooltipListeners(), 100);
         }
         
         // Utility function to truncate text
@@ -2415,10 +2415,74 @@ Zimbabwe,ZWE,0,119,268`;
             contentDiv.insertAdjacentHTML('afterbegin', dictionaryHTML);
         }
         
+        // Custom tooltip functionality
+        let globalTooltip = null;
+        
+        function initializeTooltips() {
+            // Create tooltip element if it doesn't exist
+            if (!globalTooltip) {
+                globalTooltip = document.createElement('div');
+                globalTooltip.className = 'custom-tooltip';
+                document.body.appendChild(globalTooltip);
+            }
+            
+            setupTooltipListeners();
+        }
+        
+        function setupTooltipListeners() {
+            // Remove existing listeners to avoid duplicates
+            document.querySelectorAll('.tooltip').forEach(element => {
+                element.removeEventListener('mouseenter', handleTooltipMouseEnter);
+                element.removeEventListener('mouseleave', handleTooltipMouseLeave);
+            });
+            
+            // Add event listeners to all tooltip elements
+            document.querySelectorAll('.tooltip').forEach(element => {
+                element.addEventListener('mouseenter', handleTooltipMouseEnter);
+                element.addEventListener('mouseleave', handleTooltipMouseLeave);
+            });
+        }
+        
+        function handleTooltipMouseEnter(e) {
+            const tooltipText = this.getAttribute('data-tooltip');
+            if (tooltipText && globalTooltip) {
+                globalTooltip.textContent = tooltipText;
+                globalTooltip.style.display = 'block';
+                
+                // Position tooltip above the element
+                const rect = this.getBoundingClientRect();
+                const tooltipRect = globalTooltip.getBoundingClientRect();
+                
+                // Calculate position
+                let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                let top = rect.top - tooltipRect.height - 10;
+                
+                // Keep tooltip within viewport
+                if (left < 10) left = 10;
+                if (left + tooltipRect.width > window.innerWidth - 10) {
+                    left = window.innerWidth - tooltipRect.width - 10;
+                }
+                if (top < 10) {
+                    // If no room above, show below
+                    top = rect.bottom + 10;
+                }
+                
+                globalTooltip.style.left = left + 'px';
+                globalTooltip.style.top = top + 'px';
+            }
+        }
+        
+        function handleTooltipMouseLeave() {
+            if (globalTooltip) {
+                globalTooltip.style.display = 'none';
+            }
+        }
+        
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initializeDashboard();
             initializeDataTabs();
+            initializeTooltips();
         });
     </script>
 </body>
