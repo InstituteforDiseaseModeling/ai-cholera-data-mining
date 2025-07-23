@@ -389,6 +389,122 @@
             display: block;
         }
         
+        /* Summary Tab Styles */
+        .summary-overview {
+            padding: 2rem;
+        }
+        
+        .summary-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .summary-header h2 {
+            color: #0167af;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .summary-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .country-summary-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .country-summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        .country-summary-card.completed {
+            border-left: 4px solid #28a745;
+        }
+        
+        .country-summary-card.pending {
+            border-left: 4px solid #ffc107;
+        }
+        
+        .country-summary-card.not-started {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .country-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .country-card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .country-card-iso {
+            background: #f8f9fa;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .country-card-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .country-stat {
+            text-align: center;
+        }
+        
+        .country-stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0167af;
+        }
+        
+        .country-stat-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.2rem;
+        }
+        
+        .country-card-description {
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+        
+        .country-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
         /* Timeline Tab Styles */
         .timeline-grid {
             display: flex;
@@ -964,6 +1080,10 @@
                 <i class="fas fa-table"></i>
                 Country Status
             </button>
+            <button class="tab-button" onclick="showTab('summary')">
+                <i class="fas fa-th-large"></i>
+                Summary
+            </button>
             <button class="tab-button" onclick="showTab('data-timelines')">
                 <i class="fas fa-chart-line"></i>
                 Data Coverage
@@ -1003,6 +1123,19 @@
                             <!-- Table rows will be populated by JavaScript -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Tab -->
+        <div id="summary" class="tab-content">
+            <div class="summary-overview">
+                <div class="summary-header">
+                    <h2><i class="fas fa-th-large"></i> Country Data Summary</h2>
+                    <p>Overview of cholera surveillance data collection progress across all MOSAIC framework countries</p>
+                </div>
+                <div class="summary-grid" id="summary-grid">
+                    <!-- Summary cards will be populated by JavaScript -->
                 </div>
             </div>
         </div>
@@ -1616,7 +1749,7 @@ Zimbabwe,ZWE,NOT_STARTED,,0,0,,,0,0,,No activity detected`;
         // Restore active tab from localStorage
         function restoreActiveTab() {
             const savedTab = localStorage.getItem('mosaic-dashboard-active-tab');
-            const validTabs = ['country-status', 'data-timelines', 'source-metadata', 'cholera-data'];
+            const validTabs = ['country-status', 'summary', 'data-timelines', 'source-metadata', 'cholera-data'];
             
             // Use saved tab if valid, otherwise default to country-status
             const activeTab = (savedTab && validTabs.includes(savedTab)) ? savedTab : 'country-status';
@@ -1660,6 +1793,11 @@ Zimbabwe,ZWE,NOT_STARTED,,0,0,,,0,0,,No activity detected`;
             // Load timeline data if switching to timelines tab
             if (tabName === 'data-timelines') {
                 loadTimelineData();
+            }
+            
+            // Load summary cards if switching to summary tab
+            if (tabName === 'summary') {
+                loadSummaryCards();
             }
         }
         
@@ -1727,6 +1865,79 @@ Zimbabwe,ZWE,0,119,268`;
         }
         
         // Load and display timeline data with PNG plots
+        // Load summary cards for all countries
+        function loadSummaryCards() {
+            const summaryGrid = document.getElementById('summary-grid');
+            summaryGrid.innerHTML = '';
+            
+            countryData.forEach(country => {
+                const card = createCountrySummaryCard(country);
+                summaryGrid.appendChild(card);
+            });
+        }
+        
+        // Create individual country summary card
+        function createCountrySummaryCard(country) {
+            const card = document.createElement('div');
+            const statusClass = country.status.toLowerCase().replace('_', '-');
+            card.className = `country-summary-card ${statusClass}`;
+            
+            // Get status description
+            const statusDescriptions = {
+                'COMPLETED': 'All 6 agents have completed data collection with comprehensive source validation.',
+                'PENDING': 'Data collection in progress. Agent work underway with preliminary results available.',
+                'NOT_STARTED': 'Data collection not yet initiated. Country queued for future agent processing.'
+            };
+            
+            // Get status icon
+            const statusIcons = {
+                'COMPLETED': 'fas fa-check-circle',
+                'PENDING': 'fas fa-clock',
+                'NOT_STARTED': 'fas fa-hourglass-start'
+            };
+            
+            // Parse date range for display
+            let dateRangeText = 'No data available';
+            if (country.date_range && country.date_range !== '') {
+                const range = country.date_range.split('-');
+                if (range.length >= 2) {
+                    dateRangeText = `${range[0]} - ${range[range.length - 1]}`;
+                }
+            }
+            
+            card.innerHTML = `
+                <div class="country-card-header">
+                    <div class="country-card-title">${country.country}</div>
+                    <div class="country-card-iso">${country.iso}</div>
+                </div>
+                
+                <div class="country-card-stats">
+                    <div class="country-stat">
+                        <div class="country-stat-value">${country.sources || 0}</div>
+                        <div class="country-stat-label">Sources</div>
+                    </div>
+                    <div class="country-stat">
+                        <div class="country-stat-value">${country.observations || 0}</div>
+                        <div class="country-stat-label">Observations</div>
+                    </div>
+                </div>
+                
+                <div class="country-card-description">
+                    ${statusDescriptions[country.status] || 'Status information not available.'}
+                </div>
+                
+                <div class="country-card-footer">
+                    <div>
+                        <i class="${statusIcons[country.status] || 'fas fa-question-circle'}"></i>
+                        ${country.status.replace('_', ' ')}
+                    </div>
+                    <div>${dateRangeText}</div>
+                </div>
+            `;
+            
+            return card;
+        }
+        
         async function loadTimelineData() {
             const timelineGrid = document.getElementById('timeline-grid');
             
