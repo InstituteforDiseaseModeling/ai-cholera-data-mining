@@ -729,6 +729,18 @@
             text-decoration: underline;
         }
         
+        /* Source link styling */
+        .data-table td a {
+            color: #0167af;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .data-table td a:hover {
+            text-decoration: underline;
+            color: #014a87;
+        }
+        
         .data-table .description-cell {
             max-width: 250px;
             line-height: 1.3;
@@ -2152,6 +2164,18 @@ Zimbabwe,ZWE,0,119,268`;
             const contentDiv = document.getElementById('data-content');
             const countryInfo = countryData.find(c => c.iso === countryISO);
             
+            // Get metadata for this country to create hyperlinks
+            let metadata = [];
+            if (embeddedMetadata[countryISO]) {
+                metadata = parseCSV(embeddedMetadata[countryISO]);
+            }
+            
+            // Helper function to find URL by source_index
+            function getSourceUrl(sourceIndex) {
+                const metadataRow = metadata.find(row => row.Index === sourceIndex);
+                return metadataRow ? metadataRow.URL : null;
+            }
+            
             // Calculate summary statistics
             const totalCases = choleraData.reduce((sum, row) => sum + (parseInt(row.sCh) || 0), 0);
             const totalDeaths = choleraData.reduce((sum, row) => sum + (parseInt(row.deaths) || 0), 0);
@@ -2206,6 +2230,17 @@ Zimbabwe,ZWE,0,119,268`;
                 const confidenceClass = confidenceValue >= 0.8 ? 'confidence-high' : 
                                        confidenceValue >= 0.5 ? 'confidence-medium' : 'confidence-low';
                 
+                // Create hyperlink for source if URL is available
+                let sourceCell = '-';
+                if (row.source) {
+                    const sourceUrl = getSourceUrl(row.source_index);
+                    if (sourceUrl && sourceUrl !== '' && sourceUrl !== '-') {
+                        sourceCell = `<a href="${sourceUrl}" target="_blank" title="Open source: ${row.source}">${truncateText(row.source, 30)}</a>`;
+                    } else {
+                        sourceCell = truncateText(row.source, 30);
+                    }
+                }
+                
                 tableHTML += `
                     <tr>
                         <td><strong>${row.Index || '-'}</strong></td>
@@ -2215,7 +2250,7 @@ Zimbabwe,ZWE,0,119,268`;
                         <td><strong>${row.sCh ? parseInt(row.sCh).toLocaleString() : '-'}</strong></td>
                         <td><strong>${row.deaths ? parseInt(row.deaths).toLocaleString() : '-'}</strong></td>
                         <td>${row.CFR ? parseFloat(row.CFR).toFixed(1) + '%' : '-'}</td>
-                        <td>${truncateText(row.source || '-', 30)}</td>
+                        <td>${sourceCell}</td>
                         <td><span class="confidence-weight ${confidenceClass}">${confidenceValue.toFixed(2)}</span></td>
                         <td class="notes-cell">${truncateText(row.processing_notes || '-', 100)}</td>
                     </tr>
