@@ -65,25 +65,25 @@ def get_all_countries():
         return []
 
 def process_who_data():
-    """Process WHO data from MOSAIC-data directory."""
+    """Process WHO data from embedded reference directory."""
     who_data = {}
-    mosaic_data_path = Path("../MOSAIC-data/processed/WHO/weekly/cholera_country_weekly_processed.csv")
+    # Use embedded surveillance data from reference directory
+    reference_data_path = Path("reference/cholera_surveillance_weekly_combined.csv")
     
-    # Try alternative path if first doesn't exist
-    if not mosaic_data_path.exists():
-        mosaic_data_path = Path("../../MOSAIC-data/processed/WHO/weekly/cholera_country_weekly_processed.csv")
-    
-    if not mosaic_data_path.exists():
-        print(f"⚠️  WHO data file not found at expected path")
+    if not reference_data_path.exists():
+        print(f"⚠️  Reference surveillance data file not found at {reference_data_path}")
         return who_data
     
     try:
-        print(f"📊 Processing WHO data from {mosaic_data_path}")
-        df = pd.read_csv(mosaic_data_path)
+        print(f"📊 Processing WHO data from {reference_data_path}")
+        df = pd.read_csv(reference_data_path)
+        
+        # Filter to WHO source data only
+        who_df = df[df['source'] == 'WHO'].copy()
         
         # Group by country and format as CSV for embedding
-        for iso_code in df['iso_code'].unique():
-            country_data = df[df['iso_code'] == iso_code].copy()
+        for iso_code in who_df['iso_code'].unique():
+            country_data = who_df[who_df['iso_code'] == iso_code].copy()
             
             # Sort by year and week
             country_data = country_data.sort_values(['year', 'week'])
@@ -100,25 +100,25 @@ def process_who_data():
     return who_data
 
 def process_jhu_data():
-    """Process JHU data from MOSAIC-data directory."""
+    """Process JHU data from embedded reference directory."""
     jhu_data = {}
-    mosaic_data_path = Path("../MOSAIC-data/processed/JHU/weekly/cholera_country_weekly_processed.csv")
+    # Use embedded surveillance data from reference directory
+    reference_data_path = Path("reference/cholera_surveillance_weekly_combined.csv")
     
-    # Try alternative path if first doesn't exist
-    if not mosaic_data_path.exists():  
-        mosaic_data_path = Path("../../MOSAIC-data/processed/JHU/weekly/cholera_country_weekly_processed.csv")
-    
-    if not mosaic_data_path.exists():
-        print(f"⚠️  JHU data file not found at expected path")
+    if not reference_data_path.exists():
+        print(f"⚠️  Reference surveillance data file not found at {reference_data_path}")
         return jhu_data
     
     try:
-        print(f"📊 Processing JHU data from {mosaic_data_path}")
-        df = pd.read_csv(mosaic_data_path)
+        print(f"📊 Processing JHU data from {reference_data_path}")
+        df = pd.read_csv(reference_data_path)
+        
+        # Filter to JHU source data only
+        jhu_df = df[df['source'] == 'JHU'].copy()
         
         # Group by country and format as CSV for embedding
-        for iso_code in df['iso_code'].unique():
-            country_data = df[df['iso_code'] == iso_code].copy()
+        for iso_code in jhu_df['iso_code'].unique():
+            country_data = jhu_df[jhu_df['iso_code'] == iso_code].copy()
             
             # Sort by year and week
             country_data = country_data.sort_values(['year', 'week'])
