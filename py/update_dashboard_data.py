@@ -832,7 +832,10 @@ def update_all_dashboard_data(base_path: Path):
         print(f"  Processing {country_name} ({iso_code})...")
         
         # Get surveillance data for this country
-        country_surveillance = surveillance_df[surveillance_df['iso_code'] == iso_code]
+        if not surveillance_df.empty and 'iso_code' in surveillance_df.columns:
+            country_surveillance = surveillance_df[surveillance_df['iso_code'] == iso_code]
+        else:
+            country_surveillance = pd.DataFrame()
         
         # Get AI data for this country
         country_ai = load_ai_enhanced_data(base_path, iso_code)
@@ -876,7 +879,10 @@ def update_all_dashboard_data(base_path: Path):
         print(f"  Processing {country_name} ({iso_code})...")
         
         # Get surveillance data for this country
-        country_surveillance = surveillance_df[surveillance_df['iso_code'] == iso_code]
+        if not surveillance_df.empty and 'iso_code' in surveillance_df.columns:
+            country_surveillance = surveillance_df[surveillance_df['iso_code'] == iso_code]
+        else:
+            country_surveillance = pd.DataFrame()
         
         # Get AI data for this country
         country_ai = load_ai_enhanced_data(base_path, iso_code)
