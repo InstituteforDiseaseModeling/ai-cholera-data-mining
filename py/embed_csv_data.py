@@ -122,29 +122,63 @@ def embed_csv_data():
     with open(dashboard_file, 'r', encoding='utf-8') as f:
         html_content = f.read()
     
-    # Find the location to insert the embedded data
-    # Look for the existing embedded data section and replace it
-    start_marker = "        // Embedded CSV data - updated automatically by the Python script"
-    end_marker = "        let countryData = [];"
+    # Find and replace existing embedded data section
+    # Look for existing embedded data and replace it, or insert if not found
     
-    start_pos = html_content.find(start_marker)
-    if start_pos == -1:
-        # Try alternative marker
-        start_marker = "        // Embedded CSV data - updated automatically by py/embed_csv_data.py"
-        start_pos = html_content.find(start_marker)
+    # Try to find existing embedded data section
+    embed_start_marker = "        // Embedded CSV data - updated automatically by py/embed_csv_data.py"
+    embed_end_marker = "        // Embedded CSV data - updated automatically by the Python script"
     
-    if start_pos == -1:
-        print("❌ Could not find insertion point in dashboard HTML")
-        print("Looking for marker:", start_marker)
-        return False
-    
-    # Insert the embedded data right after the marker
-    insertion_point = start_pos
-    new_content = (
-        html_content[:insertion_point] +
-        js_code +
-        html_content[insertion_point:]
-    )
+    embed_start = html_content.find(embed_start_marker)
+    if embed_start == -1:
+        embed_start = html_content.find(embed_end_marker)
+        if embed_start == -1:
+            # No existing embedded data, insert before csvData
+            csvdata_marker = "        const csvData = `"
+            csvdata_pos = html_content.find(csvdata_marker)
+            if csvdata_pos == -1:
+                print("❌ Could not find insertion point in dashboard HTML")
+                return False
+            
+            new_content = (
+                html_content[:csvdata_pos] +
+                js_code + "\n        " +
+                html_content[csvdata_pos:]
+            )
+        else:
+            # Found embedded data, need to replace it
+            print("🔄 Replacing existing embedded data...")
+            # Find the end of the embedded data section (look for the next major section)
+            search_start = embed_start + len(embed_end_marker)
+            csvdata_marker = "        const csvData = `"
+            csvdata_pos = html_content.find(csvdata_marker, search_start)
+            
+            if csvdata_pos == -1:
+                print("❌ Could not find end of embedded data section")
+                return False
+                
+            new_content = (
+                html_content[:embed_start] +
+                js_code + "\n        " +
+                html_content[csvdata_pos:]
+            )
+    else:
+        # Found embedded data, need to replace it
+        print("🔄 Replacing existing embedded data...")
+        # Find the end of the embedded data section
+        search_start = embed_start + len(embed_start_marker)
+        csvdata_marker = "        const csvData = `"
+        csvdata_pos = html_content.find(csvdata_marker, search_start)
+        
+        if csvdata_pos == -1:
+            print("❌ Could not find end of embedded data section")
+            return False
+            
+        new_content = (
+            html_content[:embed_start] +
+            js_code + "\n        " +
+            html_content[csvdata_pos:]
+        )
     
     # Write updated HTML
     print(f"💾 Writing updated dashboard HTML...")
