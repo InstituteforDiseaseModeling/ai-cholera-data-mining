@@ -1,6 +1,6 @@
 <img src="dashboard/logo.png" alt="MOSAIC Logo" width="98" align="left" style="box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-right: 25px; margin-bottom: 10px; margin-top: 20px;"/> 
 
-## **AI-Enhanced Cholera Surveillance Data Mining**
+# **AI-Enhanced Cholera Surveillance Data Mining**
 
 [![License](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
@@ -11,11 +11,16 @@
 
 ---
 
-## **🚀 Live Interactive Dashboard**
+### **Live Interactive Dashboard**
+Real-time progress tracking across 40 MOSAIC framework countries with interactive visualizations, completion status, and timeline coverage analysis.
+<div align="center">
+  <a href="https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/">
+    <img src="./dashboard/dashboard-preview.png" alt="MOSAIC Dashboard Preview" width="250" style="box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='scale(1.025)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.3)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
+  </a>
+  <br>
+  <strong><a href="https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/">🔗 View Live Dashboard</a></strong>
+</div>
 
-[![MOSAIC Dashboard](dashboard/dashboard-preview.png)](https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/)
-
-**Click above to access real-time progress tracking across 40 MOSAIC framework countries with interactive visualizations, completion status, and timeline coverage analysis.**
 
 ---
 
