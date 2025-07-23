@@ -15,7 +15,7 @@
 
 **Workflow**: Gap assessment → JHU inventory → AI systematic search → Data integration  
 **Output Format**: JHU-compatible CSV with enhanced dual-reference indexing  
-**Deliverables**: search_report.txt, metadata.csv, cholera_data.csv, search_log.txt
+**Deliverables**: search_report.txt, metadata.csv, cholera_data.csv, individual search_log_agent_X.txt files
 **Progress Tracking**: dashboard/completion_checklist.csv (automatically updated from file system analysis)
 
 ## Dashboard Management
@@ -33,9 +33,9 @@ python py/update_completion_checklist.py
 ### **AGENT RESPONSIBILITIES** (What Agents Should Do):
 
 **✅ FOCUS ON DATA COLLECTION:**
-- Create/update cholera_data.csv and metadata.csv files
-- Complete all 6 agent workflows with comprehensive search logs
-- Generate quality audit files when completing Agent 6
+- Create/update cholera_data.csv and metadata.csv files (all agents)
+- Complete individual agent search logs (Agents 1-6: search_log_agent_X.txt)
+- Generate quality audit and brief search_report.txt (Agent 6 only)
 - Document all work in proper file formats
 
 **❌ DO NOT MANUALLY UPDATE DASHBOARD:**
@@ -186,7 +186,7 @@ FOR EACH COUNTRY:
 ## Data Standards
 
 **Directory**: `data/{ISO_CODE}/`  
-**Files**: search_report.txt, metadata.csv, cholera_data.csv, search_log.txt
+**Files**: search_report.txt, metadata.csv, cholera_data.csv, search_log_agent_1.txt, search_log_agent_2.txt, search_log_agent_3.txt, search_log_agent_4.txt, search_log_agent_5.txt, search_log_agent_6.txt
 
 ### DUAL-REFERENCE INDEXING SYSTEM
 
@@ -198,7 +198,7 @@ FOR EACH COUNTRY:
 
 ### File Specifications
 
-**search_report.txt**: Executive summary consolidating all 6 agents - methodology, quality assessment, performance metrics, JHU relationship, recommendations, and gap-filling effectiveness analysis
+**search_report.txt**: Brief summary created by Agent 6 only - key outcomes, data collected, sources found, and gap-filling results. Should include: total sources discovered, total data observations added, key gaps filled, overall data quality assessment, and remaining limitations.
 
 **metadata.csv** (14 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth, Cross_References, Discovery_Method
 
@@ -649,7 +649,7 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 
 #### **Completeness Requirements**
 **ALL deliverables must include:**
-- Search report with methodology and findings
+- Search report (created by Agent 6 only) with brief outcome summary
 - Metadata CSV with enhanced indexing system (Index column + all required fields)
 - Data CSV in standardized JHU format with dual-reference system (source_index + source columns)
 - Quality assessment documentation
@@ -1215,11 +1215,11 @@ Where "Successful Queries" are those that produce:
 
 **Agent-Specific Application with Maximum Query Safeguards**:
 - **Agent 1**: **MANDATORY INITIALIZATION**: Create search_log_agent_1.txt and run `python py/update_completion_checklist.py` immediately to mark country as "PENDING". Then proceed with data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <10% yield) - **MAXIMUM 200 queries (10 batches)**
-- **Agent 2**: Geographic expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
-- **Agent 3**: Zero-transmission validation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)** - **MANDATORY: Document ALL validated absence periods as data observations in cholera_data.csv using zero-transmission protocol**
-- **Agent 4**: Obscure source expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
-- **Agent 5**: Source permutation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
-- **Agent 6**: Quality audit and dataset finalization (internal processing, source validation, and URL verification as needed)
+- **Agent 2**: **MANDATORY**: Create search_log_agent_2.txt with comprehensive batch documentation. Geographic expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+- **Agent 3**: **MANDATORY**: Create search_log_agent_3.txt with zero-transmission validation documentation. Zero-transmission validation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)** - **MANDATORY: Document ALL validated absence periods as data observations in cholera_data.csv using zero-transmission protocol**
+- **Agent 4**: **MANDATORY**: Create search_log_agent_4.txt with obscure source exploration documentation. Obscure source expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+- **Agent 5**: **MANDATORY**: Create search_log_agent_5.txt with source permutation and adjacent data mining documentation. Source permutation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+- **Agent 6**: Quality audit, dataset finalization, and creation of brief search_report.txt summarizing key outcomes (internal processing, source validation, and URL verification as needed)
 
 **Three-Tier Stopping System with Hard Limits**:
 - **Agent 1** (Baseline): X=5, Y=2, Z=10% (comprehensive foundation requiring thorough systematic coverage) - Hard stop at 200 queries
@@ -1275,7 +1275,7 @@ Proceed with systematic search methodology.
 
 **Agent Completion Updates**:
 - **Agent 1**: MANDATORY after completing baseline establishment
-- **Agent 2-5**: RECOMMENDED after each agent completion (if substantial data added)
+- **Agent 2-5**: MANDATORY after each agent completion
 - **Agent 6**: MANDATORY after quality audit completion
 
 **Dashboard Update Commands (All Agents)**:
