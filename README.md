@@ -21,6 +21,8 @@ Real-time progress tracking across 40 MOSAIC framework countries with interactiv
   <strong><a href="https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/">🔗 View Live Dashboard</a></strong>
 </div>
 
+> **Note**: The online dashboard displays AI-enhanced data fully, but WHO/JHU surveillance data may appear reduced compared to local development environment due to MOSAIC dataset availability in the GitHub Pages CI environment. All AI-collected data and completion tracking remain fully functional.
+
 
 ---
 
