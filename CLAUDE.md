@@ -16,7 +16,53 @@
 **Workflow**: Gap assessment → JHU inventory → AI systematic search → Data integration  
 **Output Format**: JHU-compatible CSV with enhanced dual-reference indexing  
 **Deliverables**: search_report.txt, metadata.csv, cholera_data.csv, search_log.txt
-**Progress Tracking**: dashboard/completion_checklist.txt (alphabetical table format with date/time stamps)
+**Progress Tracking**: dashboard/completion_checklist.csv (automatically updated from file system analysis)
+
+## Dashboard Management
+
+### **AUTOMATED DASHBOARD SYSTEM** (Agents: READ-ONLY Awareness)
+
+**CRITICAL FOR AGENTS**: The dashboard completion tracking is **FULLY AUTOMATED**. Agents should **FOCUS ONLY ON DATA COLLECTION** - the dashboard updates automatically based on file system analysis.
+
+**Automated Update System**:
+```bash
+# Dashboard updates automatically by scanning ./data directory
+python py/update_completion_checklist.py
+```
+
+### **AGENT RESPONSIBILITIES** (What Agents Should Do):
+
+**✅ FOCUS ON DATA COLLECTION:**
+- Create/update cholera_data.csv and metadata.csv files
+- Complete all 6 agent workflows with comprehensive search logs
+- Generate quality audit files when completing Agent 6
+- Document all work in proper file formats
+
+**❌ DO NOT MANUALLY UPDATE DASHBOARD:**
+- ~~Dashboard CSV editing~~ (Auto-updated by Python script)
+- ~~Status tracking~~ (Detected from file analysis) 
+- ~~Progress calculations~~ (Auto-calculated from actual data)
+- ~~Completion timestamps~~ (Based on file modification times)
+
+### **HOW THE AUTOMATED SYSTEM WORKS:**
+
+**Status Detection Logic**:
+- **COMPLETED**: 6 agent logs + data files + (quality audit OR substantial data)
+- **PENDING**: Some agent work started, files present
+- **NOT_STARTED**: No significant activity detected
+
+**Automatic Metrics**:
+- **Sources**: Count from metadata.csv
+- **Observations**: Count from cholera_data.csv rows
+- **Date Range**: Calculated from TL/TR columns
+- **Execution Time**: Estimated from query counts
+- **Progress**: Real-time based on file system state
+
+**Key Benefits**:
+- **Agents Focus on Core Mission**: No dashboard maintenance distractions
+- **Real-Time Accuracy**: Dashboard reflects actual file system state
+- **No Manual Errors**: Eliminates human tracking mistakes
+- **Automatic Updates**: Dashboard refreshes when Python script runs
 
 ## MANDATORY GAP-TARGETED SEARCH PROTOCOL
 

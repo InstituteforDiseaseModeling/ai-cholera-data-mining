@@ -705,11 +705,34 @@ Format: ☐ COUNTRY_NAME (ISO_CODE) - Status: [PENDING/IN_PROGRESS/COMPLETED] - 
 **Last Updated**: ____-__-__ by: ____________
 """
     
-    checklist_file = Path(base_path) / "dashboard" / "completion_checklist.txt"
-    with open(checklist_file, 'w', encoding='utf-8') as f:
-        f.write(checklist_content)
+    # Check if CSV file already exists to avoid overwriting progress data
+    csv_file = Path(base_path) / "dashboard" / "completion_checklist.csv"
+    txt_file = Path(base_path) / "dashboard" / "completion_checklist.txt"
     
-    print(f"Created execution checklist: {checklist_file}")
+    if csv_file.exists():
+        print(f"CSV checklist already exists: {csv_file} - SKIPPING to preserve progress data")
+        return
+    
+    # Generate CSV content with MOSAIC framework countries only
+    csv_content = "country,iso,status,datetime,sources,observations,date_range,priority,execution_time,queries,yield_pct,notes\n"
+    
+    # Use MOSAIC_COUNTRIES from the script to generate CSV rows
+    for iso_code, country_info in MOSAIC_COUNTRIES.items():
+        csv_content += f"{country_info['name']},{iso_code},NOT_STARTED,,,,,,,,,\n"
+    
+    # Write CSV file (primary format for dashboard)
+    with open(csv_file, 'w', encoding='utf-8') as f:
+        f.write(csv_content)
+    
+    print(f"Created CSV execution checklist: {csv_file}")
+    
+    # Write text file (backup/reference version) only if it doesn't exist
+    if not txt_file.exists():
+        with open(txt_file, 'w', encoding='utf-8') as f:
+            f.write(checklist_content)
+        print(f"Created backup text checklist: {txt_file}")
+    else:
+        print(f"Text checklist already exists: {txt_file} - SKIPPING")
 
 def main():
     """Main function to set up all countries with 8-phase search protocol"""
@@ -758,7 +781,7 @@ def main():
         print("1. 📚 Follow CLAUDE.md for complete 8-phase methodology")
         print("2. 🎯 Use search_protocol_{ISO_CODE}.txt files for Agent 1 (baseline search)")
         print("3. 🤖 Use agentic_workflow_{ISO_CODE}.txt for complete 6-agent workflow")
-        print("4. 📋 Track progress using dashboard/completion_checklist.txt")
+        print("4. 📋 Track progress using dashboard/completion_checklist.csv (CSV format for dashboard)")
         print("5. 🔍 Reference country_info_key.json for detailed country information")
         
         print("\n⚡ 8-PHASE SEARCH FEATURES ENABLED:")
