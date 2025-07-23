@@ -1228,23 +1228,31 @@ Where "Successful Queries" are those that produce:
 
 **Total Maximum Workflow Limit: 600 queries for Agents 1-5, unlimited validation queries for Agent 6**
 
-## MANDATORY AGENT 1 INITIALIZATION PROTOCOL
+## UNIFIED DASHBOARD UPDATE SYSTEM
 
-**CRITICAL**: Before beginning ANY search activities, Agent 1 MUST execute the following initialization steps to immediately update dashboard tracking:
+**SINGLE UPDATE COMMAND**: All agents should use the unified dashboard update system to refresh all dashboard data simultaneously.
 
-### **AUTOMATED INITIALIZATION (RECOMMENDED)**
+### **RECOMMENDED UPDATE COMMANDS**
+
+**Option 1: Shell Script (Simplest)**
 ```bash
-# Use the automated initialization script
-python py/initialize_country.py {ISO_CODE}
+bash update_dashboard.sh
 ```
 
-This script automatically:
-- Creates search_log_agent_1.txt with timestamp
-- Updates dashboard to show PENDING status
-- Provides confirmation and next steps
+**Option 2: Python Script (Direct)**
+```bash
+python py/update_dashboard_data.py
+```
 
-### **MANUAL INITIALIZATION (Alternative)**
-If you prefer manual setup:
+**What Gets Updated**:
+- ✅ **Completion Checklist**: Real-time status based on file analysis
+- ✅ **3-Source Timeline Plots**: Coverage visualization with synchronized date ranges
+- ✅ **Week Counts Data**: Actual data extracted from sources and embedded in dashboard
+- ✅ **Dashboard HTML**: All embedded CSV data refreshed automatically
+
+### **AGENT INITIALIZATION PROTOCOL**
+
+**CRITICAL**: Agent 1 should run the dashboard update command immediately after creating their first search log to mark the country as "PENDING":
 
 **Step 1: Create Initial Log File**
 ```bash
@@ -1255,19 +1263,32 @@ echo "Agent 1 Status: INITIALIZED" >> ./data/{ISO_CODE}/search_log_agent_1.txt
 echo "" >> ./data/{ISO_CODE}/search_log_agent_1.txt
 ```
 
-**Step 2: Update Dashboard Immediately**  
+**Step 2: Update All Dashboard Data**  
 ```bash
-python py/update_completion_checklist.py
+bash update_dashboard.sh
 ```
 
-**Step 3: Verify Dashboard Update**
+**Step 3: Begin Search Protocol**
+Proceed with systematic search methodology.
+
+### **MANDATORY DASHBOARD UPDATE POINTS**
+
+**Agent Completion Updates**:
+- **Agent 1**: MANDATORY after completing baseline establishment
+- **Agent 2-5**: RECOMMENDED after each agent completion (if substantial data added)
+- **Agent 6**: MANDATORY after quality audit completion
+
+**Dashboard Update Commands (All Agents)**:
 ```bash
-echo "Dashboard updated. Country status should now show PENDING."
-echo "Beginning systematic search protocol..."
+bash update_dashboard.sh
 ```
 
-### **Begin Search Protocol**
-Only after completing initialization (automated or manual), proceed with the systematic search methodology.
+**Benefits of Unified System**:
+- **Single Command**: No need to run multiple scripts
+- **Complete Synchronization**: All dashboard elements updated together
+- **Real-Time Accuracy**: Reflects actual file system state
+- **Timeline Integration**: Plots and data perfectly synchronized
+- **No Manual Errors**: Automated CSV embedding prevents version mismatches
 
 **Benefits of Initialization Protocol**:
 - **Immediate Visibility**: Dashboard shows "PENDING" status within seconds
