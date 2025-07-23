@@ -56,8 +56,9 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
         'agentic_workflow': (country_dir / f'agentic_workflow_{iso_code}.txt').exists(),
     }
     
-    # Count agent log files
+    # Analyze agent log files
     agent_logs = list(country_dir.glob('search_log_agent_*.txt'))
+    agent_analysis = analyze_agent_logs(agent_logs)
     num_agents = len(agent_logs)
     
     # Check for quality audit
@@ -86,7 +87,7 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
         'execution_time': str(execution_metrics.get('total_time', '')),
         'queries': str(execution_metrics.get('total_queries', '')),
         'yield_pct': f"{execution_metrics.get('yield_pct', ''):.1f}" if execution_metrics.get('yield_pct') else '',
-        'auto_notes': generate_auto_notes(files_present, num_agents, quality_audit, cholera_data_info)
+        'auto_notes': generate_auto_notes(files_present, num_agents, quality_audit, cholera_data_info, agent_analysis)
     }
 
 def analyze_cholera_data(csv_file: Path) -> Dict:
@@ -135,6 +136,39 @@ def analyze_cholera_data(csv_file: Path) -> Dict:
     except Exception as e:
         print(f"Warning: Could not analyze {csv_file}: {e}")
         return {'row_count': 0, 'date_range': '', 'earliest_date': None, 'latest_date': None}
+
+def analyze_agent_logs(agent_logs: List[Path]) -> Dict:
+    """Analyze agent log files to determine their status"""
+    agent_status = {}
+    
+    for log_file in agent_logs:
+        # Extract agent number from filename
+        agent_match = re.search(r'agent_(\d+)', log_file.name)
+        if not agent_match:
+            continue
+            
+        agent_num = int(agent_match.group(1))
+        
+        try:
+            with open(log_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+            # Determine if agent is initialized vs completed
+            if "=== AGENT 1 INITIALIZATION ===" in content and "Agent 1 Status: INITIALIZED" in content:
+                # This is just an initialization - agent hasn't actually started work yet
+                if len(content.strip().split('\n')) <= 10:  # Very short file = just initialization
+                    agent_status[agent_num] = 'initialized'
+                else:
+                    agent_status[agent_num] = 'completed'
+            else:
+                # Regular agent log with actual work
+                agent_status[agent_num] = 'completed'
+                
+        except Exception as e:
+            print(f"Warning: Could not analyze agent log {log_file}: {e}")
+            agent_status[agent_num] = 'unknown'
+    
+    return agent_status
 
 def analyze_metadata(csv_file: Path) -> Dict:
     """Analyze metadata.csv for source count"""
@@ -243,7 +277,7 @@ def calculate_execution_metrics(agent_logs: List[Path]) -> Dict:
         'data_observations': data_observations
     }
 
-def generate_auto_notes(files_present: Dict, num_agents: int, quality_audit: bool, cholera_data_info: Dict) -> str:
+def generate_auto_notes(files_present: Dict, num_agents: int, quality_audit: bool, cholera_data_info: Dict, agent_analysis: Dict) -> str:
     """Generate automatic notes describing current state"""
     notes = []
     
@@ -252,7 +286,16 @@ def generate_auto_notes(files_present: Dict, num_agents: int, quality_audit: boo
     elif num_agents >= 6:
         notes.append("All agents executed")
     elif num_agents > 0:
-        notes.append(f"Agent {num_agents} completed")
+        # Check if we have any completed agents or just initialized
+        completed_agents = [num for num, status in agent_analysis.items() if status == 'completed']
+        initialized_agents = [num for num, status in agent_analysis.items() if status == 'initialized']
+        
+        if completed_agents:
+            max_completed = max(completed_agents)
+            notes.append(f"Agent {max_completed} completed")
+        elif initialized_agents:
+            # Only initialized agents, no completed work yet
+            notes.append("Agent 1 initialized - starting work")
     
     if files_present['cholera_data'] and cholera_data_info.get('row_count', 0) > 0:
         notes.append(f"{cholera_data_info['row_count']} data observations")

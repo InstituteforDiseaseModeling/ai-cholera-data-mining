@@ -1214,7 +1214,7 @@ Where "Successful Queries" are those that produce:
 #### **Integration with Agent Framework**
 
 **Agent-Specific Application with Maximum Query Safeguards**:
-- **Agent 1**: Data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <10% yield) - **MAXIMUM 200 queries (10 batches)**
+- **Agent 1**: **MANDATORY INITIALIZATION**: Create search_log_agent_1.txt and run `python py/update_completion_checklist.py` immediately to mark country as "PENDING". Then proceed with data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <10% yield) - **MAXIMUM 200 queries (10 batches)**
 - **Agent 2**: Geographic expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
 - **Agent 3**: Zero-transmission validation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)** - **MANDATORY: Document ALL validated absence periods as data observations in cholera_data.csv using zero-transmission protocol**
 - **Agent 4**: Obscure source expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
@@ -1227,6 +1227,54 @@ Where "Successful Queries" are those that produce:
 - **Agent 6** (Quality): Complete validation until all quality objectives achieved (no query limit)
 
 **Total Maximum Workflow Limit: 600 queries for Agents 1-5, unlimited validation queries for Agent 6**
+
+## MANDATORY AGENT 1 INITIALIZATION PROTOCOL
+
+**CRITICAL**: Before beginning ANY search activities, Agent 1 MUST execute the following initialization steps to immediately update dashboard tracking:
+
+### **AUTOMATED INITIALIZATION (RECOMMENDED)**
+```bash
+# Use the automated initialization script
+python py/initialize_country.py {ISO_CODE}
+```
+
+This script automatically:
+- Creates search_log_agent_1.txt with timestamp
+- Updates dashboard to show PENDING status
+- Provides confirmation and next steps
+
+### **MANUAL INITIALIZATION (Alternative)**
+If you prefer manual setup:
+
+**Step 1: Create Initial Log File**
+```bash
+echo "=== AGENT 1 INITIALIZATION ===" > ./data/{ISO_CODE}/search_log_agent_1.txt
+echo "Country: {COUNTRY_NAME} ({ISO_CODE})" >> ./data/{ISO_CODE}/search_log_agent_1.txt  
+echo "Start Time: $(date '+%Y-%m-%d %H:%M:%S')" >> ./data/{ISO_CODE}/search_log_agent_1.txt
+echo "Agent 1 Status: INITIALIZED" >> ./data/{ISO_CODE}/search_log_agent_1.txt
+echo "" >> ./data/{ISO_CODE}/search_log_agent_1.txt
+```
+
+**Step 2: Update Dashboard Immediately**  
+```bash
+python py/update_completion_checklist.py
+```
+
+**Step 3: Verify Dashboard Update**
+```bash
+echo "Dashboard updated. Country status should now show PENDING."
+echo "Beginning systematic search protocol..."
+```
+
+### **Begin Search Protocol**
+Only after completing initialization (automated or manual), proceed with the systematic search methodology.
+
+**Benefits of Initialization Protocol**:
+- **Immediate Visibility**: Dashboard shows "PENDING" status within seconds
+- **Progress Tracking**: Stakeholders know work has begun
+- **Time Tracking**: Precise start timestamps for performance metrics  
+- **Quality Assurance**: Ensures proper file structure from the beginning
+- **Error Prevention**: Creates necessary directory structure early
 
 **Performance Monitoring**:
 - Track yield trends across all continuing agents
