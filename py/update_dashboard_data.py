@@ -646,6 +646,9 @@ def create_3source_timeline_plot(country_data, country_name, iso_code, output_di
 def count_weeks_by_source(country_data: pd.DataFrame) -> tuple:
     """Count unique weeks for each source"""
     
+    if country_data.empty or 'source' not in country_data.columns:
+        return 0, 0, 0
+    
     ai_weeks = len(country_data[country_data['source'] == 'AI'])
     who_weeks = len(country_data[country_data['source'] == 'WHO'])
     jhu_weeks = len(country_data[country_data['source'] == 'JHU'])
