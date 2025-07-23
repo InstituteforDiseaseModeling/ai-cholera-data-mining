@@ -307,6 +307,13 @@
             color: #333;
         }
         
+        .status-notes {
+            font-size: 0.85rem;
+            color: #666;
+            font-style: italic;
+            line-height: 1.4;
+        }
+        
         
         @media (max-width: 768px) {
             .container {
@@ -1379,6 +1386,7 @@
                                 <th class="tooltip" data-tooltip="Data collection status: COMPLETED (all 6 agents finished), PENDING (work in progress), NOT_STARTED" onclick="sortTable(2)">Status <i class="fas fa-sort"></i></th>
                                 <th class="tooltip" data-tooltip="Most recent timestamp when country data was updated" onclick="sortTable(3)">Last Updated <i class="fas fa-sort"></i></th>
                                 <th class="tooltip" data-tooltip="Summary of sources found, observations collected, and date range covered" onclick="sortTable(4)">Data Summary <i class="fas fa-sort"></i></th>
+                                <th class="tooltip" data-tooltip="Current agent progress and workflow status notes" onclick="sortTable(5)">Status Notes <i class="fas fa-sort"></i></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1572,14 +1580,14 @@
                 "country": "Central African Republic",
                 "iso": "CAF",
                 "status": "PENDING",
-                "datetime": "2025-07-23 01:25:32",
+                "datetime": "2025-07-23 01:29:41",
                 "sources": 3,
                 "observations": 3,
                 "date_range": "1997-2011",
                 "priority": "HIGH",
-                "execution_time": 0,
-                "queries": 2,
-                "yield_pct": 50.0,
+                "execution_time": 1,
+                "queries": 4,
+                "yield_pct": 25.0,
                 "notes": "Agent 1 completed; 3 data observations"
         },
         {
@@ -2831,7 +2839,7 @@ Zimbabwe,ZWE,0,119,268`;
             }
 
             if (!countryData || countryData.length === 0) {
-                table.innerHTML = '<tr><td colspan="5">No country data available</td></tr>';
+                table.innerHTML = '<tr><td colspan="6">No country data available</td></tr>';
                 return;
             }
 
@@ -2842,7 +2850,8 @@ Zimbabwe,ZWE,0,119,268`;
                     <th class="tooltip" data-tooltip="ISO 3166-1 alpha-3 country code (e.g., AGO for Angola)" onclick="sortTable(1)">ISO <i class="fas fa-sort"></i></th>
                     <th class="tooltip" data-tooltip="Data collection status: COMPLETED (all 6 agents finished), PENDING (work in progress), NOT_STARTED" onclick="sortTable(2)">Status <i class="fas fa-sort"></i></th>
                     <th class="tooltip" data-tooltip="Most recent timestamp when country data was updated" onclick="sortTable(3)">Last Updated <i class="fas fa-sort"></i></th>
-                    <th class="tooltip" data-tooltip="Summary of sources found, observations collected, date range covered, and current progress notes" onclick="sortTable(4)">Data Summary <i class="fas fa-sort"></i></th>
+                    <th class="tooltip" data-tooltip="Summary of sources found, observations collected, and date range covered" onclick="sortTable(4)">Data Summary <i class="fas fa-sort"></i></th>
+                    <th class="tooltip" data-tooltip="Current agent progress and workflow status notes" onclick="sortTable(5)">Status Notes <i class="fas fa-sort"></i></th>
                 </tr>
             `;
 
@@ -2874,7 +2883,7 @@ Zimbabwe,ZWE,0,119,268`;
                 const statusBadge = `<span class="status-badge ${statusClass}">${statusEmoji} ${statusText}</span>`;
                 const lastUpdated = country.datetime ? new Date(country.datetime).toLocaleDateString() : 'N/A';
                 
-                // Create comprehensive data summary
+                // Create data summary (sources, observations, priority)
                 let dataSummary = '<div class="country-stats">';
                 
                 // Add sources and observations if available
@@ -2888,19 +2897,23 @@ Zimbabwe,ZWE,0,119,268`;
                 
                 // Add priority if available
                 if (country.priority && country.priority !== '') {
-                    dataSummary += `<strong>Priority:</strong> ${country.priority}<br>`;
-                }
-                
-                // Add notes (this includes agent status information)
-                if (country.notes && country.notes !== '' && country.notes !== 'No activity detected') {
-                    dataSummary += `<strong>Status:</strong> ${country.notes}`;
-                } else if (country.status === 'NOT_STARTED') {
-                    dataSummary += '<strong>Status:</strong> No activity detected';
-                } else {
-                    dataSummary += '<strong>Status:</strong> Processing in progress';
+                    dataSummary += `<strong>Priority:</strong> ${country.priority}`;
                 }
                 
                 dataSummary += '</div>';
+                
+                // Create status notes (agent progress information)
+                let statusNotes = '<div class="status-notes">';
+                
+                if (country.notes && country.notes !== '' && country.notes !== 'No activity detected') {
+                    statusNotes += country.notes;
+                } else if (country.status === 'NOT_STARTED') {
+                    statusNotes += 'No activity detected';
+                } else {
+                    statusNotes += 'Processing in progress';
+                }
+                
+                statusNotes += '</div>';
                 
                 return `
                     <tr class="${statusClass}">
@@ -2909,6 +2922,7 @@ Zimbabwe,ZWE,0,119,268`;
                         <td>${statusBadge}</td>
                         <td>${lastUpdated}</td>
                         <td>${dataSummary}</td>
+                        <td>${statusNotes}</td>
                     </tr>
                 `;
             }).join('');
