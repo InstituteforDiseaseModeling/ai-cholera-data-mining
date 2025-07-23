@@ -143,6 +143,32 @@ def embed_all_data():
     completed_countries = get_completed_countries()
     print(f"📊 Found {len(completed_countries)} completed countries: {completed_countries}")
     
+    # Load completion checklist data for countryData variable
+    country_data = []
+    try:
+        with open('dashboard/completion_checklist.csv', 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row.get('country'):  # Skip empty rows
+                    country_data.append({
+                        'country': row.get('country', ''),
+                        'iso': row.get('iso', ''),
+                        'status': row.get('status', ''),
+                        'datetime': row.get('datetime', ''),
+                        'sources': int(row.get('sources', 0) or 0),
+                        'observations': int(row.get('observations', 0) or 0),
+                        'date_range': row.get('date_range', ''),
+                        'priority': row.get('priority', ''),
+                        'execution_time': int(row.get('execution_time', 0) or 0),
+                        'queries': int(row.get('queries', 0) or 0),
+                        'yield_pct': float(row.get('yield_pct', 0) or 0),
+                        'notes': row.get('notes', '')
+                    })
+        print(f"📊 Loaded completion data for {len(country_data)} countries")
+    except Exception as e:
+        print(f"❌ Error loading completion checklist: {e}")
+        country_data = []
+    
     # AI-mined data (existing functionality)
     ai_data = {
         'metadata': {},
@@ -196,7 +222,12 @@ def embed_all_data():
         jhu_data_js += f'        "{iso}": `{content}`,\n'
     jhu_data_js += "    }"
     
+    # Generate country data JavaScript
+    country_data_json = json.dumps(country_data, indent=8)
+    
     js_code = f"""        // Embedded CSV data - updated automatically by py/embed_all_data.py
+        const countryData = {country_data_json};
+        
         const embeddedMetadata = {metadata_js};
         
         const embeddedCholeraData = {cholera_data_js};
