@@ -9,6 +9,14 @@
 
 **AI-enhanced data mining for cholera surveillance data to fill ~50% missing observations in WHO African Region historical records through systematic multi-agent search, validation, and integration workflows.**
 
+---
+
+## **🚀 [View Live Interactive Dashboard](https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/)**
+
+**Real-time progress tracking across 40 MOSAIC framework countries with interactive visualizations, completion status, and timeline coverage analysis.**
+
+---
+
 ### **Abstract**
 
 This project addresses a critical gap in global cholera surveillance by using advanced AI agents to systematically mine, validate, and integrate unofficial cholera data sources. With approximately 50% of cholera surveillance records missing from WHO databases (1970-present), this work directly supports enhanced epidemiological modeling for the MOSAIC framework, evidence-based public health decision-making across the WHO African Region, improved outbreak preparedness through complete historical time series, and regional transmission analysis using cross-validated data sources.
@@ -120,7 +128,7 @@ The methodology employs a systematic 6-agent workflow designed for comprehensive
 - **Individual agent logs**: Detailed search and validation documentation
 
 **Secondary Products**:
-- **Interactive dashboard**: Real-time progress tracking across all countries
+- **[Interactive dashboard](https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/)**: Real-time progress tracking across all countries
 - **Timeline visualizations**: Coverage plots showing data enhancement impact
 - **Reference datasets**: Gap analysis and prioritization matrices
 
