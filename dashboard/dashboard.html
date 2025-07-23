@@ -415,7 +415,7 @@
         
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
             gap: 1.5rem;
         }
         
@@ -426,6 +426,7 @@
             padding: 1.5rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
+            min-height: 350px;
         }
         
         .country-summary-card:hover {
@@ -469,9 +470,64 @@
         
         .country-card-stats {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.8rem;
             margin-bottom: 1rem;
+        }
+        
+        .country-card-metrics {
+            margin-bottom: 1rem;
+        }
+        
+        .metrics-section {
+            margin-bottom: 0.8rem;
+        }
+        
+        .metrics-section h4 {
+            font-size: 0.9rem;
+            color: #0167af;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+        }
+        
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.2rem 0;
+            font-size: 0.85rem;
+        }
+        
+        .metric-label {
+            color: #666;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .reliability-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .reliability-high {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .reliability-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .reliability-low {
+            background: #f8d7da;
+            color: #721c24;
         }
         
         .country-stat {
@@ -1876,17 +1932,146 @@ Zimbabwe,ZWE,0,119,268`;
             });
         }
         
-        // Create individual country summary card
+        // Calculate comprehensive metrics for a country
+        function calculateCountryMetrics(country) {
+            const metrics = {
+                sources: country.sources || 0,
+                observations: country.observations || 0,
+                totalCases: 0,
+                totalDeaths: 0,
+                outbreakCount: 0,
+                reliabilityScore: 'N/A',
+                reliabilityClass: 'reliability-low',
+                sourceTypes: 0,
+                dataSpan: 'No data',
+                mostRecent: 'N/A',
+                coveragePercentage: 0,
+                peakYear: 'N/A',
+                lastUpdated: 'Never'
+            };
+            
+            // Get week counts data for coverage calculation
+            const weekData = getWeekCountsForCountry(country.iso);
+            if (weekData) {
+                const totalWeeks = weekData.ai_weeks + weekData.who_weeks + weekData.jhu_weeks;
+                const possibleWeeks = (2025 - 1970) * 52; // Approximate weeks since 1970
+                metrics.coveragePercentage = totalWeeks > 0 ? Math.round((totalWeeks / possibleWeeks) * 100) : 0;
+            }
+            
+            // Calculate metrics from embedded cholera data if available
+            if (country.status === 'COMPLETED' && embeddedCholeraData[country.iso]) {
+                const choleraData = parseCSV(embeddedCholeraData[country.iso]);
+                
+                // Calculate totals
+                metrics.totalCases = choleraData.reduce((sum, row) => sum + (parseInt(row.sCh) || 0), 0);
+                metrics.totalDeaths = choleraData.reduce((sum, row) => sum + (parseInt(row.deaths) || 0), 0);
+                metrics.outbreakCount = choleraData.length;
+                
+                // Find peak year
+                const yearCases = {};
+                choleraData.forEach(row => {
+                    const year = row.TL ? row.TL.substring(0, 4) : null;
+                    if (year && row.sCh) {
+                        yearCases[year] = (yearCases[year] || 0) + parseInt(row.sCh);
+                    }
+                });
+                
+                if (Object.keys(yearCases).length > 0) {
+                    metrics.peakYear = Object.keys(yearCases).reduce((a, b) => yearCases[a] > yearCases[b] ? a : b);
+                }
+            }
+            
+            // Calculate metrics from embedded metadata if available
+            if (country.status === 'COMPLETED' && embeddedMetadata[country.iso]) {
+                const metadata = parseCSV(embeddedMetadata[country.iso]);
+                
+                // Calculate reliability score
+                const reliabilityScores = { 'Level_1': 4, 'Level_2': 3, 'Level_3': 2, 'Level_4': 1 };
+                let totalScore = 0, validSources = 0;
+                
+                metadata.forEach(row => {
+                    if (row.Reliability_Level && reliabilityScores[row.Reliability_Level]) {
+                        totalScore += reliabilityScores[row.Reliability_Level];
+                        validSources++;
+                    }
+                });
+                
+                if (validSources > 0) {
+                    const avgScore = totalScore / validSources;
+                    if (avgScore >= 3.5) {
+                        metrics.reliabilityScore = 'High';
+                        metrics.reliabilityClass = 'reliability-high';
+                    } else if (avgScore >= 2.5) {
+                        metrics.reliabilityScore = 'Medium';
+                        metrics.reliabilityClass = 'reliability-medium';
+                    } else {
+                        metrics.reliabilityScore = 'Low';
+                        metrics.reliabilityClass = 'reliability-low';
+                    }
+                }
+                
+                // Count unique source types
+                const sourceTypes = new Set();
+                metadata.forEach(row => {
+                    if (row.Data_Type) {
+                        sourceTypes.add(row.Data_Type);
+                    }
+                });
+                metrics.sourceTypes = sourceTypes.size;
+            }
+            
+            // Parse date range for temporal metrics
+            if (country.date_range && country.date_range !== '') {
+                const range = country.date_range.split('-');
+                if (range.length >= 2) {
+                    const startYear = parseInt(range[0]);
+                    const endYear = parseInt(range[range.length - 1]);
+                    const span = endYear - startYear + 1;
+                    
+                    metrics.dataSpan = `${span} years`;
+                    metrics.mostRecent = range[range.length - 1];
+                }
+            }
+            
+            // Format last updated
+            if (country.datetime) {
+                const date = new Date(country.datetime);
+                metrics.lastUpdated = date.toLocaleDateString();
+            }
+            
+            return metrics;
+        }
+        
+        // Helper function to get week counts for a country
+        function getWeekCountsForCountry(iso) {
+            const lines = weekCountsCSV.trim().split('\n');
+            for (let i = 1; i < lines.length; i++) {
+                const parts = lines[i].split(',');
+                if (parts[1] === iso) {
+                    return {
+                        ai_weeks: parseInt(parts[2]) || 0,
+                        who_weeks: parseInt(parts[3]) || 0,
+                        jhu_weeks: parseInt(parts[4]) || 0
+                    };
+                }
+            }
+            return null;
+        }
+        
+        // Create individual country summary card with comprehensive metrics
         function createCountrySummaryCard(country) {
             const card = document.createElement('div');
             const statusClass = country.status.toLowerCase().replace('_', '-');
             card.className = `country-summary-card ${statusClass}`;
             
+            // Calculate comprehensive metrics
+            const metrics = calculateCountryMetrics(country);
+            
             // Get status description
             const statusDescriptions = {
-                'COMPLETED': 'All 6 agents have completed data collection with comprehensive source validation.',
-                'PENDING': 'Data collection in progress. Agent work underway with preliminary results available.',
-                'NOT_STARTED': 'Data collection not yet initiated. Country queued for future agent processing.'
+                'COMPLETED': 'All 6 agents completed with comprehensive validation.',
+                'PENDING': 'Data collection in progress with preliminary results.',
+                'NOT_STARTED': 'Queued for future agent processing.'
             };
             
             // Get status icon
@@ -1896,15 +2081,6 @@ Zimbabwe,ZWE,0,119,268`;
                 'NOT_STARTED': 'fas fa-hourglass-start'
             };
             
-            // Parse date range for display
-            let dateRangeText = 'No data available';
-            if (country.date_range && country.date_range !== '') {
-                const range = country.date_range.split('-');
-                if (range.length >= 2) {
-                    dateRangeText = `${range[0]} - ${range[range.length - 1]}`;
-                }
-            }
-            
             card.innerHTML = `
                 <div class="country-card-header">
                     <div class="country-card-title">${country.country}</div>
@@ -1913,25 +2089,71 @@ Zimbabwe,ZWE,0,119,268`;
                 
                 <div class="country-card-stats">
                     <div class="country-stat">
-                        <div class="country-stat-value">${country.sources || 0}</div>
+                        <div class="country-stat-value">${metrics.sources}</div>
                         <div class="country-stat-label">Sources</div>
                     </div>
                     <div class="country-stat">
-                        <div class="country-stat-value">${country.observations || 0}</div>
+                        <div class="country-stat-value">${metrics.observations}</div>
                         <div class="country-stat-label">Observations</div>
+                    </div>
+                    <div class="country-stat">
+                        <div class="country-stat-value">${metrics.totalCases.toLocaleString()}</div>
+                        <div class="country-stat-label">Total Cases</div>
                     </div>
                 </div>
                 
-                <div class="country-card-description">
-                    ${statusDescriptions[country.status] || 'Status information not available.'}
+                <div class="country-card-metrics">
+                    <div class="metrics-section">
+                        <h4>Data Quality</h4>
+                        <div class="metrics-row">
+                            <span class="metric-label">Reliability</span>
+                            <span class="reliability-badge ${metrics.reliabilityClass}">${metrics.reliabilityScore}</span>
+                        </div>
+                        <div class="metrics-row">
+                            <span class="metric-label">Source Types</span>
+                            <span class="metric-value">${metrics.sourceTypes}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metrics-section">
+                        <h4>Temporal Coverage</h4>
+                        <div class="metrics-row">
+                            <span class="metric-label">Data Span</span>
+                            <span class="metric-value">${metrics.dataSpan}</span>
+                        </div>
+                        <div class="metrics-row">
+                            <span class="metric-label">Most Recent</span>
+                            <span class="metric-value">${metrics.mostRecent}</span>
+                        </div>
+                        <div class="metrics-row">
+                            <span class="metric-label">Coverage</span>
+                            <span class="metric-value">${metrics.coveragePercentage}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metrics-section">
+                        <h4>Epidemiological</h4>
+                        <div class="metrics-row">
+                            <span class="metric-label">Total Deaths</span>
+                            <span class="metric-value">${metrics.totalDeaths.toLocaleString()}</span>
+                        </div>
+                        <div class="metrics-row">
+                            <span class="metric-label">Outbreaks</span>
+                            <span class="metric-value">${metrics.outbreakCount}</span>
+                        </div>
+                        <div class="metrics-row">
+                            <span class="metric-label">Peak Year</span>
+                            <span class="metric-value">${metrics.peakYear}</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="country-card-footer">
                     <div>
                         <i class="${statusIcons[country.status] || 'fas fa-question-circle'}"></i>
-                        ${country.status.replace('_', ' ')}
+                        ${statusDescriptions[country.status] || 'Status unknown'}
                     </div>
-                    <div>${dateRangeText}</div>
+                    <div>${metrics.lastUpdated}</div>
                 </div>
             `;
             
