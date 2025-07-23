@@ -1480,6 +1480,7 @@
                                     <th>Reporting Date</th>
                                     <th>Source</th>
                                     <th>Confidence</th>
+                                    <th>URL</th>
                                 </tr>
                             </thead>
                             <tbody id="cholera-data-table-body">
@@ -1571,15 +1572,15 @@
                 "country": "Central African Republic",
                 "iso": "CAF",
                 "status": "PENDING",
-                "datetime": "2025-07-23 01:22:01",
-                "sources": 1,
-                "observations": 1,
-                "date_range": "2011",
+                "datetime": "2025-07-23 01:25:32",
+                "sources": 3,
+                "observations": 3,
+                "date_range": "1997-2011",
                 "priority": "HIGH",
                 "execution_time": 0,
-                "queries": 0,
-                "yield_pct": 0.0,
-                "notes": "Agent 1 completed; 1 data observations | Manual: Agent 1 completed"
+                "queries": 2,
+                "yield_pct": 50.0,
+                "notes": "Agent 1 completed; 3 data observations | Manual: Agent 1 completed"
         },
         {
                 "country": "C\u00f4te d'Ivoire",
@@ -2365,7 +2366,7 @@ Burundi,BDI,1039,124,164
 Benin,BEN,558,0,538
 Burkina Faso,BFA,1055,0,482
 Botswana,BWA,1250,0,0
-Central African Republic,CAF,9,0,482
+Central African Republic,CAF,31,0,482
 Côte d'Ivoire,CIV,489,0,469
 Cameroon,CMR,662,0,672
 Democratic Republic of Congo,COD,1325,124,553
@@ -3202,6 +3203,28 @@ Zimbabwe,ZWE,0,119,268`;
                     // Format confidence weight
                     const confidence = cols[11] ? parseFloat(cols[11]).toFixed(2) : '';
                     
+                    // Get URL from metadata using source_index (column 9)
+                    let urlLink = '';
+                    const sourceIndex = cols[9];
+                    if (sourceIndex && embeddedMetadata[iso]) {
+                        const metadataLines = embeddedMetadata[iso].trim().split('\n');
+                        const metadataRows = metadataLines.slice(1); // Skip header
+                        
+                        // Find matching metadata row by Index
+                        const matchingRow = metadataRows.find(metadataRow => {
+                            const metadataCols = parseCSVRow(metadataRow);
+                            return metadataCols[0] === sourceIndex; // Index column
+                        });
+                        
+                        if (matchingRow) {
+                            const metadataCols = parseCSVRow(matchingRow);
+                            const url = metadataCols[2]; // URL column
+                            if (url && url.trim() !== '') {
+                                urlLink = `<a href="${url}" target="_blank" class="url-link"><i class="fas fa-external-link-alt"></i></a>`;
+                            }
+                        }
+                    }
+                    
                     tr.innerHTML = `
                         <td>${cols[0] || ''}</td>
                         <td><strong>${cols[1] || ''}</strong></td>
@@ -3214,6 +3237,7 @@ Zimbabwe,ZWE,0,119,268`;
                         <td>${cols[8] || ''}</td>
                         <td>${cols[10] || ''}</td>
                         <td><span class="confidence-badge">${confidence}</span></td>
+                        <td>${urlLink}</td>
                     `;
                     tableBody.appendChild(tr);
                 }
