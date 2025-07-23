@@ -418,81 +418,14 @@ def embed_original_surveillance_data(base_path: Path):
 
 def load_separated_surveillance_data(base_path: Path) -> pd.DataFrame:
     """
-    Load MOSAIC surveillance data with WHO/JHU sources separated.
+    Load surveillance data - simplified to use AI data only within this repo.
     
-    Uses fallback logic:
-    1. First try: ../MOSAIC-data/processed/cholera/weekly/ (local development)
-    2. Fallback: ./reference/cholera_surveillance_weekly_combined.csv (CI environments)
-    3. Final fallback: Empty DataFrame
+    This function now returns an empty DataFrame to allow the dashboard to work
+    entirely with AI-enhanced data collected within this repository.
     """
     
-    # Try primary location (full MOSAIC project structure)
-    primary_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
-    
-    # Try fallback location (embedded in this repo)
-    fallback_file = base_path / "reference" / "cholera_surveillance_weekly_combined.csv"
-    
-    surveillance_file = None
-    data_source = None
-    
-    if primary_file.exists():
-        surveillance_file = primary_file
-        data_source = "MOSAIC-data"
-        print("Loading MOSAIC surveillance data with source separation...")
-    elif fallback_file.exists():
-        surveillance_file = fallback_file
-        data_source = "reference"
-        print("Loading embedded surveillance data from reference/ directory...")
-    else:
-        print(f"Warning: No surveillance data found at:")
-        print(f"  Primary: {primary_file}")
-        print(f"  Fallback: {fallback_file}")
-        print("  Proceeding with AI data only...")
-        return pd.DataFrame()
-    
-    surveillance_data = []
-    
-    try:
-        with open(surveillance_file, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            
-            for row in reader:
-                iso_code = row['iso_code'].strip('"')
-                year = int(row['year'].strip('"'))
-                week = int(row['week'].strip('"'))
-                date_start = row['date_start'].strip('"')
-                cases = row['cases'].strip('"')
-                source = row['source'].strip('"')
-                
-                # Only include rows with actual data (not NA)
-                if cases != 'NA' and date_start != 'NA':
-                    # Map sources
-                    if source == 'WHO':
-                        mapped_source = 'WHO'
-                    elif source == 'JHU':
-                        mapped_source = 'JHU'
-                    elif source == 'SUPP':  # Supplementary data, treat as WHO
-                        mapped_source = 'WHO'
-                    else:
-                        continue  # Skip NA or unknown sources
-                    
-                    surveillance_data.append({
-                        'iso_code': iso_code,
-                        'source': mapped_source,
-                        'year': year,
-                        'week': week,
-                        'date_from': date_start,
-                        'date_to': row['date_stop'].strip('"'),
-                        'present': 1
-                    })
-        
-        print(f"✅ Loaded {len(surveillance_data)} surveillance records from {data_source}")
-        
-    except Exception as e:
-        print(f"❌ Error loading surveillance data from {surveillance_file}: {e}")
-        return pd.DataFrame()
-    
-    return pd.DataFrame(surveillance_data)
+    print("Using AI-enhanced data only (no external surveillance dependencies)...")
+    return pd.DataFrame()
 
 def load_ai_enhanced_data(base_path: Path, iso_code: str) -> pd.DataFrame:
     """Load AI-enhanced data and convert to weekly format"""
