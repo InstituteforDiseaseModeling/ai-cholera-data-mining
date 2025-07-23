@@ -11,9 +11,11 @@
 
 ---
 
-## **🚀 [View Live Interactive Dashboard](https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/)**
+## **🚀 Live Interactive Dashboard**
 
-**Real-time progress tracking across 40 MOSAIC framework countries with interactive visualizations, completion status, and timeline coverage analysis.**
+[![MOSAIC Dashboard](dashboard/dashboard-preview.png)](https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/)
+
+**Click above to access real-time progress tracking across 40 MOSAIC framework countries with interactive visualizations, completion status, and timeline coverage analysis.**
 
 ---
 
