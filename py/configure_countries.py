@@ -705,7 +705,7 @@ Format: ☐ COUNTRY_NAME (ISO_CODE) - Status: [PENDING/IN_PROGRESS/COMPLETED] - 
 **Last Updated**: ____-__-__ by: ____________
 """
     
-    checklist_file = Path(base_path) / "completion_checklist.txt"
+    checklist_file = Path(base_path) / "dashboard" / "completion_checklist.txt"
     with open(checklist_file, 'w', encoding='utf-8') as f:
         f.write(checklist_content)
     
@@ -758,7 +758,7 @@ def main():
         print("1. 📚 Follow CLAUDE.md for complete 8-phase methodology")
         print("2. 🎯 Use search_protocol_{ISO_CODE}.txt files for Agent 1 (baseline search)")
         print("3. 🤖 Use agentic_workflow_{ISO_CODE}.txt for complete 6-agent workflow")
-        print("4. 📋 Track progress using completion_checklist.txt")
+        print("4. 📋 Track progress using dashboard/completion_checklist.txt")
         print("5. 🔍 Reference country_info_key.json for detailed country information")
         
         print("\n⚡ 8-PHASE SEARCH FEATURES ENABLED:")

@@ -16,7 +16,7 @@
 **Workflow**: Gap assessment → JHU inventory → AI systematic search → Data integration  
 **Output Format**: JHU-compatible CSV with enhanced dual-reference indexing  
 **Deliverables**: search_report.txt, metadata.csv, cholera_data.csv, search_log.txt
-**Progress Tracking**: completion_checklist.txt (alphabetical table format with date/time stamps)
+**Progress Tracking**: dashboard/completion_checklist.txt (alphabetical table format with date/time stamps)
 
 ## MANDATORY GAP-TARGETED SEARCH PROTOCOL
 
