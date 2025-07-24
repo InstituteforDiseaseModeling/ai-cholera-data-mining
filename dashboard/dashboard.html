@@ -662,6 +662,56 @@
             min-height: 400px;
         }
         
+        /* Timeline Controls Styles */
+        .timeline-controls {
+            background: white;
+            border-radius: 10px 10px 0 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin: 2rem 2rem 0 2rem;
+        }
+        
+        .timeline-header {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .timeline-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .timeline-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .timeline-dropdown select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            min-width: 200px;
+            background: white;
+        }
+        
+        .timeline-stats {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+        
         .placeholder-message {
             display: flex;
             flex-direction: column;
@@ -796,7 +846,11 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            padding: 2rem;
+            padding: 0 2rem 2rem 2rem;
+            background: white;
+            margin: 0 2rem 2rem 2rem;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
         .timeline-card {
@@ -899,8 +953,29 @@
         }
         
         @media (max-width: 768px) {
+            .timeline-controls {
+                margin: 1rem;
+            }
+            
+            .timeline-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            
+            .timeline-dropdown {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            
+            .timeline-dropdown select {
+                min-width: auto;
+            }
+            
             .timeline-grid {
-                padding: 1rem;
+                margin: 0 1rem 1rem 1rem;
+                padding: 0 1rem 1rem 1rem;
             }
             
             .timeline-card-body {
@@ -1312,6 +1387,7 @@
                 min-width: auto;
             }
             
+            
             .cholera-data-header {
                 flex-direction: column;
                 align-items: stretch;
@@ -1444,6 +1520,22 @@
 
         <!-- Data Timelines Tab -->
         <div id="data-timelines" class="tab-content">
+            <div class="timeline-controls">
+                <div class="timeline-header">
+                    <div class="timeline-title">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Data Coverage Timelines</span>
+                    </div>
+                    <div class="timeline-dropdown">
+                        <select id="timeline-country-select" onchange="filterTimelineByCountry()">
+                            <option value="">All countries</option>
+                        </select>
+                        <div class="timeline-stats">
+                            <span id="timeline-count">0 countries shown</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="timeline-grid" id="timeline-grid">
                 <!-- Timeline cards will be populated by JavaScript -->
             </div>
@@ -2903,6 +2995,9 @@ Zimbabwe,ZWE,0,119,268`;
         async function loadTimelineData() {
             const timelineGrid = document.getElementById('timeline-grid');
             
+            // Initialize timeline dropdown
+            initializeTimelineDropdown();
+            
             // Load week counts data first
             loadWeekCountsData();
             
@@ -2962,7 +3057,7 @@ Zimbabwe,ZWE,0,119,268`;
                 const statusBadge = statusBadges[country.status] || { text: 'UNKNOWN', bg: '#6c757d', color: 'white' };
                 
                 timelineHTML += `
-                    <div class="timeline-card">
+                    <div class="timeline-card" data-iso="${country.iso}">
                         <div class="timeline-card-header">
                             <div class="timeline-card-title" style="display: flex; align-items: center; justify-content: space-between; gap: 2rem;">
                                 <span>${country.country} (${country.iso})</span>
@@ -3548,6 +3643,69 @@ Zimbabwe,ZWE,0,119,268`;
             });
             
             console.log(`Loaded cholera data for ${iso}: ${rows.length} observations`);
+        }
+
+        // Timeline Filtering Functions
+        function initializeTimelineDropdown() {
+            const select = document.getElementById('timeline-country-select');
+            if (!select) return;
+            
+            // Clear existing options except the first one
+            select.innerHTML = '<option value="">All countries</option>';
+            
+            // Get all countries with timeline plots
+            const availablePlots = [
+                'AGO', 'BDI', 'BEN', 'BFA', 'BWA', 'CAF', 'CIV', 'CMR', 'COD', 'COG', 
+                'ERI', 'ETH', 'GAB', 'GHA', 'GIN', 'GMB', 'GNB', 'GNQ', 'KEN', 'LBR', 
+                'MLI', 'MOZ', 'MRT', 'MWI', 'NAM', 'NER', 'NGA', 'RWA', 'SEN', 'SLE', 
+                'SOM', 'SSD', 'SWZ', 'TCD', 'TGO', 'TZA', 'UGA', 'ZAF', 'ZMB', 'ZWE'
+            ];
+            
+            // Filter to countries with timeline plots available and sort
+            const countriesWithPlots = countryData
+                .filter(country => availablePlots.includes(country.iso))
+                .sort((a, b) => a.country.localeCompare(b.country));
+            
+            countriesWithPlots.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.iso;
+                option.textContent = `${country.country} (${country.iso})`;
+                select.appendChild(option);
+            });
+            
+            // Update the count
+            updateTimelineCount(countriesWithPlots.length);
+            
+            console.log(`Initialized timeline dropdown with ${countriesWithPlots.length} countries`);
+        }
+        
+        function filterTimelineByCountry() {
+            const select = document.getElementById('timeline-country-select');
+            const selectedISO = select.value;
+            const timelineCards = document.querySelectorAll('.timeline-card');
+            
+            let visibleCount = 0;
+            
+            timelineCards.forEach(card => {
+                const cardISO = card.getAttribute('data-iso');
+                if (!selectedISO || cardISO === selectedISO) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            updateTimelineCount(visibleCount);
+            
+            console.log(`Filtered timelines: showing ${visibleCount} countries`);
+        }
+        
+        function updateTimelineCount(count) {
+            const countElement = document.getElementById('timeline-count');
+            if (countElement) {
+                countElement.textContent = `${count} ${count === 1 ? 'country' : 'countries'} shown`;
+            }
         }
 
         // Initialize dashboard when page loads
