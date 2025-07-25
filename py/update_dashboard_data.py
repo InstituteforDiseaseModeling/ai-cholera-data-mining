@@ -583,9 +583,10 @@ def find_global_date_range(base_path: Path, country_mapping: dict) -> tuple:
                 continue
     
     if all_dates:
-        min_date = min(all_dates)
+        # HARDCODED: Always start timeline plots at 1970 regardless of data
+        min_date = pd.Timestamp('1970-01-01')
         max_date = max(all_dates)
-        print(f"  Global date range: {min_date.strftime('%Y-%m-%d')} to {max_date.strftime('%Y-%m-%d')}")
+        print(f"  Global date range: {min_date.strftime('%Y-%m-%d')} to {max_date.strftime('%Y-%m-%d')} (start hardcoded to 1970)")
         return min_date, max_date
     else:
         # Fallback dates if no data found
