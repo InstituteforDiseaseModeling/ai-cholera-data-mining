@@ -229,7 +229,7 @@ def embed_all_data():
     
     # Find and replace existing embedded data section
     embed_start_marker = "        // Embedded CSV data - updated automatically by py/"
-    embed_end_marker = "        // Embedded week counts data"
+    embed_end_marker = "        // Load and display timeline data with PNG plots"
     
     embed_start = html_content.find(embed_start_marker)
     if embed_start != -1:

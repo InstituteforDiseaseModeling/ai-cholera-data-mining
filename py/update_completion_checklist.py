@@ -51,7 +51,9 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
     # Check for key files
     files_present = {
         'cholera_data': (country_dir / 'cholera_data.csv').exists(),
+        'cholera_data_ai': (country_dir / 'cholera_data_ai.csv').exists(),  # AI-specific data
         'metadata': (country_dir / 'metadata.csv').exists(),
+        'metadata_ai': (country_dir / 'metadata_ai.csv').exists(),  # AI-specific metadata
         'search_protocol': (country_dir / f'search_protocol_{iso_code}.txt').exists(),
         'agentic_workflow': (country_dir / f'agentic_workflow_{iso_code}.txt').exists(),
     }
@@ -64,9 +66,16 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
     # Check for quality audit
     quality_audit = (country_dir / 'quality_audit_report_agent_6.txt').exists()
     
-    # Analyze cholera_data.csv if it exists
-    cholera_data_info = analyze_cholera_data(country_dir / 'cholera_data.csv')
-    metadata_info = analyze_metadata(country_dir / 'metadata.csv')
+    # Analyze cholera_data files - prioritize AI-specific files if they exist
+    if files_present['cholera_data_ai']:
+        cholera_data_info = analyze_cholera_data(country_dir / 'cholera_data_ai.csv')
+    else:
+        cholera_data_info = analyze_cholera_data(country_dir / 'cholera_data.csv')
+    
+    if files_present['metadata_ai']:
+        metadata_info = analyze_metadata(country_dir / 'metadata_ai.csv')
+    else:
+        metadata_info = analyze_metadata(country_dir / 'metadata.csv')
     
     # Determine completion status
     status = determine_status(files_present, num_agents, quality_audit, cholera_data_info)
@@ -191,19 +200,18 @@ def determine_status(files_present: Dict, num_agents: int, quality_audit: bool, 
     
     # Check if workflow has been completed
     # Option 1: Agent 6 quality audit exists (ideal completion)
-    if quality_audit and files_present['cholera_data'] and files_present['metadata']:
+    if quality_audit and files_present['cholera_data_ai'] and files_present['metadata_ai']:
         return 'COMPLETED'
     
-    # Option 2: All 6 agents completed with data files (workflow complete without formal audit)
-    if (num_agents >= 6 and files_present['cholera_data'] and files_present['metadata'] 
-        and cholera_data_info.get('row_count', 0) > 0):
+    # Option 2: All 6 agents completed with AI data files (workflow complete without formal audit)
+    if (num_agents >= 6 and files_present['cholera_data_ai'] and files_present['metadata_ai']):
         return 'COMPLETED'
     
-    # Check if work is in progress (some agent logs exist or data files present)
-    if num_agents > 0 or files_present['cholera_data']:
+    # Check if AI work is in progress (agent logs exist OR AI-specific files exist)
+    if num_agents > 0 or files_present['cholera_data_ai'] or files_present['metadata_ai']:
         return 'PENDING'
     
-    # Check if setup files exist but no work started
+    # Check if setup files exist but no AI work started
     if files_present['search_protocol'] or files_present['agentic_workflow']:
         return 'NOT_STARTED'
     
@@ -297,8 +305,11 @@ def generate_auto_notes(files_present: Dict, num_agents: int, quality_audit: boo
             # Only initialized agents, no completed work yet
             notes.append("Agent 1 initialized - starting work")
     
-    if files_present['cholera_data'] and cholera_data_info.get('row_count', 0) > 0:
-        notes.append(f"{cholera_data_info['row_count']} data observations")
+    # Only count observations if AI work has actually started (AI files exist)
+    if files_present['cholera_data_ai'] and cholera_data_info.get('row_count', 0) > 0:
+        notes.append(f"{cholera_data_info['row_count']} AI data observations")
+    elif files_present['cholera_data'] and cholera_data_info.get('row_count', 0) > 0:
+        notes.append(f"{cholera_data_info['row_count']} baseline data observations")
     
     if not files_present['search_protocol']:
         notes.append("Setup incomplete")

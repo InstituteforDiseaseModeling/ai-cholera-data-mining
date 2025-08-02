@@ -127,9 +127,12 @@ def embed_csv_data():
     
     # Try to find existing embedded data section
     embed_start_marker = "        // Embedded CSV data - updated automatically by py/embed_csv_data.py"
+    embed_start_marker_alt = "        // Embedded CSV data - updated automatically by py/embed_all_data.py"
     embed_end_marker = "        // Embedded CSV data - updated automatically by the Python script"
     
     embed_start = html_content.find(embed_start_marker)
+    if embed_start == -1:
+        embed_start = html_content.find(embed_start_marker_alt)
     if embed_start == -1:
         embed_start = html_content.find(embed_end_marker)
         if embed_start == -1:
@@ -166,9 +169,27 @@ def embed_csv_data():
         # Found embedded data, need to replace it
         print("🔄 Replacing existing embedded data...")
         # Find the end of the embedded data section
-        search_start = embed_start + len(embed_start_marker)
-        csvdata_marker = "        const csvData = `"
-        csvdata_pos = html_content.find(csvdata_marker, search_start)
+        # Determine which marker was found
+        if html_content[embed_start:embed_start+len(embed_start_marker)] == embed_start_marker:
+            marker_len = len(embed_start_marker)
+        elif html_content[embed_start:embed_start+len(embed_start_marker_alt)] == embed_start_marker_alt:
+            marker_len = len(embed_start_marker_alt)
+        else:
+            marker_len = len(embed_end_marker)
+        search_start = embed_start + marker_len
+        # Look for the end of embedded data section - find the countryData array
+        end_markers = [
+            "        const countryData = [",
+            "        // Load and display timeline data",
+            "        function parseCSV"
+        ]
+        
+        csvdata_pos = -1
+        for end_marker in end_markers:
+            pos = html_content.find(end_marker, search_start)
+            if pos != -1:
+                csvdata_pos = pos
+                break
         
         if csvdata_pos == -1:
             print("❌ Could not find end of embedded data section")
