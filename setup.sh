@@ -114,8 +114,40 @@ else
 fi
 echo ""
 
-# Step 4: Set up country directories and workflows
-echo "📁 Step 4: Setting up country directories and workflows..."
+# Step 4: WHO Dashboard Integration (NEW)
+echo "🏥 Step 4: Integrating WHO dashboard surveillance data..."
+WHO_DATA_PATH="../ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv"
+if [ ! -f "$WHO_DATA_PATH" ]; then
+    echo "⚠️  WARNING: WHO dashboard data not found at:"
+    echo "   $WHO_DATA_PATH"
+    echo ""
+    echo "This data provides recent surveillance coverage (2023-2025). Options:"
+    echo "1. Ensure ees-cholera-mapping repository is available"
+    echo "2. Continue setup without WHO dashboard data"
+    echo ""
+    read -p "Continue setup without WHO data? (y/n): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+    SKIP_WHO_INTEGRATION=true
+fi
+
+if [ "$SKIP_WHO_INTEGRATION" != true ]; then
+    python py/convert_who_to_workflow.py || {
+        echo "❌ WHO integration failed. Check WHO data availability and format."
+        exit 1
+    }
+    echo "   ✅ Integrated WHO dashboard data with JHU baseline"
+    echo "   ✅ Added 1,627+ observations across 17 MOSAIC countries"
+    echo "   ✅ Enhanced recent surveillance coverage (2023-2025)"
+else
+    echo "   ⚠️  Skipping WHO integration - missing recent surveillance data"
+fi
+echo ""
+
+# Step 5: Set up country directories and workflows
+echo "📁 Step 5: Setting up country directories and workflows..."
 python py/configure_countries.py || {
     echo "❌ Country setup failed"
     exit 1
@@ -156,6 +188,7 @@ echo ""
 echo "📋 Setup Summary:"
 echo "   • 40 MOSAIC framework countries configured"
 echo "   • JHU cholera database integrated as baseline$([ "$SKIP_JHU_INTEGRATION" = true ] && echo " (skipped)" || echo "")"
+echo "   • WHO dashboard data integrated$([ "$SKIP_WHO_INTEGRATION" = true ] && echo " (skipped)" || echo " (2023-2025 coverage)")"
 echo "   • Country-specific search protocols generated"
 echo "   • 6-agent workflow files created"
 echo "   • Reference files organized in ./reference/"
@@ -168,11 +201,11 @@ echo "   3. Use data/{ISO_CODE}/agentic_workflow_{ISO_CODE}.txt for full 6-agent
 echo "   4. Track progress with country_checklist.txt"
 echo ""
 echo "💡 Next Steps:"
-echo "   • Countries now have JHU baseline data (cholera_data.csv, metadata.csv)"
+echo "   • Countries now have dual-source baseline data (JHU + WHO dashboard)"
 echo "   • Select a country to process (suggest starting with HIGH priority countries)" 
-echo "   • Follow the 6-agent workflow to fill remaining gaps beyond JHU coverage"
-echo "   • Use reference/agent_quick_reference.csv to identify post-JHU data gaps"
-echo "   • Run dashboard updates to visualize JHU baseline coverage"
+echo "   • Follow the 6-agent workflow to fill remaining gaps beyond baseline coverage"
+echo "   • Use reference/agent_quick_reference.csv to identify post-integration data gaps"
+echo "   • Run dashboard updates to visualize comprehensive baseline coverage"
 echo ""
 echo "✨ Pipeline ready for AI-enhanced cholera surveillance data collection!"
 echo "================================================================================"

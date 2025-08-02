@@ -46,7 +46,7 @@ def add_source_database_to_metadata(file_path):
                 return 'WHO'
             
             # AI mined entries (default for new discoveries)
-            return 'AI_MINED'
+            return 'AI'
         
         # Add source_database column
         df['source_database'] = df.apply(determine_source_database, axis=1)
@@ -84,7 +84,7 @@ def add_source_database_to_cholera_data(file_path):
                 return 'WHO'
             
             # AI mined entries (default for new discoveries)
-            return 'AI_MINED'
+            return 'AI'
         
         # Add source_database column
         df['source_database'] = df.apply(determine_source_database, axis=1)
@@ -154,7 +154,7 @@ def main():
     logger.info("🎯 SOURCE_DATABASE VALUES:")
     logger.info("• 'JHU' - Data from JHU cholera database baseline")
     logger.info("• 'WHO' - Data from WHO surveillance dashboards")
-    logger.info("• 'AI_MINED' - Data discovered through AI agent searches")
+    logger.info("• 'AI' - Data discovered through AI agent searches")
     logger.info("")
     logger.info("📈 BENEFITS:")
     logger.info("• Clear data provenance tracking")

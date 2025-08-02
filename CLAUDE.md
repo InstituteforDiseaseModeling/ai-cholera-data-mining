@@ -275,12 +275,13 @@ FOR EACH COUNTRY:
 
 **source_database** (Text):
 - **Purpose**: Track data provenance across different source systems
-- **Format**: Controlled vocabulary: 'JHU', 'WHO', 'AI_MINED'
+- **Format**: Controlled vocabulary: 'JHU', 'WHO', 'AI'
 - **Values**: 
-  - 'JHU': Data from JHU cholera database baseline integration
-  - 'WHO': Data from WHO surveillance dashboards and reports
-  - 'AI_MINED': Data discovered through AI agent systematic searches
+  - 'JHU': Data from JHU cholera database baseline integration (historical coverage)
+  - 'WHO': Data from WHO surveillance dashboards and emergency reports (2023-2025 coverage)
+  - 'AI': Data discovered through AI agent systematic searches (gap-filling enhancement)
 - **Required**: All data rows must have source_database classification
+- **Baseline Integration**: Countries now begin with dual-source baseline combining JHU historical data with WHO recent surveillance
 
 ## CRITICAL DATA INCLUSION RULES
 
