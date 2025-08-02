@@ -58,7 +58,7 @@ Historical cholera surveillance data in the WHO African Region contains substant
 
 The methodology employs a systematic 6-agent workflow designed for comprehensive data discovery and validation:
 
-**Agent 1**: Baseline establishment and priority source coverage using the "Ultra-Deep Search Protocol" with deep dive modules for WHO DON reports, WHO WER, UNICEF, and MSF \
+**Agent 1**: Baseline enhancement and priority source coverage using the "Ultra-Deep Search Protocol" with deep dive modules for WHO DON reports, WHO WER, UNICEF, and MSF \
 **Agent 2**: Geographic expansion around found sources (provincial/district-level data)  
 **Agent 3**: Zero-transmission validation and absence period documentation with mandatory cross references  
 **Agent 4**: Obscure source exploration and archive mining  
@@ -155,33 +155,51 @@ The methodology employs a systematic 6-agent workflow designed for comprehensive
 #### **Prerequisites**
 ```bash
 # Required Python packages
-pip install pandas matplotlib pathlib pillow
+pip install pandas numpy matplotlib pathlib pillow
 
-# Required data dependencies
-# - MOSAIC surveillance data (processed/cholera/weekly/)
-# - Country mapping files (reference/country_mapping.json)
+# Required data dependencies (automatically checked by setup script)
+# - MOSAIC surveillance data (../MOSAIC-data/processed/cholera/weekly/)
+# - JHU cholera database (../jhu_cholera_data/data/)
+# - WHO dashboard data (../ees-cholera-mapping/data/cholera/who/awd/)
 ```
 
-#### **Project Setup**
+#### **Automated Setup**
 ```bash
 # Clone repository
 git clone https://github.com/InstituteforDiseaseModeling/ai-cholera-data-mining.git
 cd ai-cholera-data-mining
 
-# Configure country directories and workflows
-python py/configure_countries.py
+# Run complete automated setup (handles all initialization)
+bash setup.sh
+```
 
-# Generate reference data
-python py/get_iso_codes.py
-python py/get_surveillance_gaps.py
+**The setup script automatically:**
+- ✅ Generates integrated baseline gap analysis using JHU and WHO data
+- ✅ Creates country codes and mappings for 40 MOSAIC framework countries
+- ✅ Integrates JHU cholera database as baseline data
+- ✅ Integrates WHO dashboard surveillance data (2023-2025)
+- ✅ Creates 40 country directories with baseline data files
+- ✅ Generates country-specific search protocols from templates
+- ✅ Generates 6-agent workflow files from templates
+- ✅ Sets up dashboard tracking system
+
+#### **Manual Setup (Alternative)**
+```bash
+# If you prefer manual step-by-step setup:
+python py/analyze_integrated_coverage_gaps.py  # Updated gap analysis
+python py/get_iso_codes.py                     # Country mappings
+python py/convert_jhu_to_workflow.py           # JHU baseline integration
+python py/convert_who_to_workflow.py           # WHO data integration
+python py/configure_countries.py              # Template generation
 ```
 
 #### **Workflow Execution**
 ```bash
-# Initialize new country workflow
-python py/initialize_country.py {ISO_CODE}
+# Countries now start with integrated JHU/WHO baseline data
+# Use country-specific workflow files:
+# ./data/{ISO_CODE}/agentic_workflow_{ISO_CODE}.txt
 
-# Update dashboard after agent completion
+# Update unified dashboard after agent completion
 bash update_dashboard.sh
 
 # Generate specialized analysis datasets
@@ -189,31 +207,46 @@ python py/generate_weekly_surveillance_longform.py
 python py/generate_monthly_surveillance_matrix_v2.py
 ```
 
+#### **Key Workflow Changes**
+- **Integrated Baseline**: Countries start with combined JHU + WHO data instead of empty datasets
+- **Data Enhancement**: Mission changed from data collection to baseline enhancement
+- **Gap-Targeted Search**: AI agents focus on specific missing periods identified in baseline analysis
+- **Template-Based Generation**: All workflow files generated from centralized templates
+- **Unified Dashboard**: Single command (`bash update_dashboard.sh`) updates all dashboard components
+
 ### **Repository Structure**
 
 ```
 ai-cholera-data-mining/
+├── setup.sh                       # Automated setup script (NEW)
 ├── data/                           # Country-specific data and logs
 │   └── {ISO_CODE}/
-│       ├── cholera_data.csv       # Enhanced surveillance data
-│       ├── metadata.csv           # Source documentation
-│       ├── search_log_agent_*.txt # Individual agent logs
+│       ├── cholera_data.csv       # Integrated baseline + AI enhancements
+│       ├── metadata.csv           # Source documentation (dual-reference)
+│       ├── agentic_workflow_{ISO}.txt  # Country-specific 6-agent workflow
+│       ├── search_protocol_{ISO}.txt   # Country-specific search protocol
+│       ├── search_log_agent_*.txt # Individual agent logs (1-6)
 │       └── search_report.txt      # Final summary report
 ├── dashboard/                      # Real-time progress tracking
-│   ├── completion_checklist.csv   # Country status overview
+│   ├── completion_checklist.csv   # Automated country status tracking
 │   ├── dashboard.html             # Interactive dashboard
 │   └── timeline_plots/            # Coverage visualization
 ├── py/                            # Core Python utilities
-│   ├── update_dashboard_data.py   # Unified dashboard updater
-│   ├── configure_countries.py    # Project setup
-│   └── *.py                       # Specialized analysis tools
+│   ├── analyze_integrated_coverage_gaps.py  # NEW: Integrated gap analysis
+│   ├── convert_jhu_to_workflow.py          # NEW: JHU baseline integration
+│   ├── convert_who_to_workflow.py          # NEW: WHO data integration
+│   ├── update_dashboard_data.py            # Unified dashboard updater
+│   ├── configure_countries.py             # Template-based setup
+│   └── *.py                               # Specialized analysis tools
 ├── reference/                     # Reference data and mappings
 │   ├── country_mapping.json      # MOSAIC country definitions
-│   ├── agent_quick_reference.csv # Gap-targeting data
-│   └── priority_sources.txt      # Pre-authorized domains
-└── templates/                     # Workflow templates
-    ├── template_agentic_workflow.txt
-    └── template_search_protocol.txt
+│   ├── agent_quick_reference.csv # Gap-targeting data (auto-generated)
+│   ├── observed_time_periods.csv # Baseline coverage analysis (NEW)
+│   ├── priority_data_gaps.csv    # Identified gaps for targeting (NEW)
+│   └── priority_sources.txt      # Pre-authorized domains (486 sources)
+└── templates/                     # Workflow templates (NEW)
+    ├── template_agentic_workflow.txt   # 6-agent workflow template
+    └── template_search_protocol.txt    # Search protocol template
 ```
 
 ### **Contributing**
