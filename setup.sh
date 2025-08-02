@@ -82,8 +82,40 @@ echo "   ✅ Generated: ./reference/country_mapping.json"
 echo "   ✅ Generated: ./reference/iso_codes_usage.md"
 echo ""
 
-# Step 3: Set up country directories and workflows
-echo "📁 Step 3: Setting up country directories and workflows..."
+# Step 3: JHU Database Integration (NEW)
+echo "🏥 Step 3: Integrating JHU cholera database as baseline..."
+JHU_DATA_PATH="../jhu_cholera_data/data"
+if [ ! -d "$JHU_DATA_PATH" ]; then
+    echo "⚠️  WARNING: JHU cholera data not found at:"
+    echo "   $JHU_DATA_PATH"
+    echo ""
+    echo "This data provides the baseline for AI agent searches. Options:"
+    echo "1. Ensure jhu_cholera_data repository is available"
+    echo "2. Continue setup without JHU baseline (agents start from empty datasets)"
+    echo ""
+    read -p "Continue setup without JHU baseline? (y/n): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+    SKIP_JHU_INTEGRATION=true
+fi
+
+if [ "$SKIP_JHU_INTEGRATION" != true ]; then
+    python py/convert_jhu_to_workflow.py || {
+        echo "❌ JHU integration failed. Check JHU data availability and format."
+        exit 1
+    }
+    echo "   ✅ Converted JHU data to AI workflow format"
+    echo "   ✅ Generated baseline cholera_data.csv and metadata.csv files"
+    echo "   ✅ Applied appropriate confidence weighting for JHU sources"
+else
+    echo "   ⚠️  Skipping JHU integration - agents will start with empty datasets"
+fi
+echo ""
+
+# Step 4: Set up country directories and workflows
+echo "📁 Step 4: Setting up country directories and workflows..."
 python py/configure_countries.py || {
     echo "❌ Country setup failed"
     exit 1
@@ -123,6 +155,7 @@ echo "==========================================================================
 echo ""
 echo "📋 Setup Summary:"
 echo "   • 40 MOSAIC framework countries configured"
+echo "   • JHU cholera database integrated as baseline$([ "$SKIP_JHU_INTEGRATION" = true ] && echo " (skipped)" || echo "")"
 echo "   • Country-specific search protocols generated"
 echo "   • 6-agent workflow files created"
 echo "   • Reference files organized in ./reference/"
@@ -135,9 +168,11 @@ echo "   3. Use data/{ISO_CODE}/agentic_workflow_{ISO_CODE}.txt for full 6-agent
 echo "   4. Track progress with country_checklist.txt"
 echo ""
 echo "💡 Next Steps:"
-echo "   • Select a country to process (suggest starting with HIGH priority countries)"
-echo "   • Follow the 6-agent workflow for systematic data collection"
-echo "   • Use reference/agent_quick_reference.csv to identify data gaps"
+echo "   • Countries now have JHU baseline data (cholera_data.csv, metadata.csv)"
+echo "   • Select a country to process (suggest starting with HIGH priority countries)" 
+echo "   • Follow the 6-agent workflow to fill remaining gaps beyond JHU coverage"
+echo "   • Use reference/agent_quick_reference.csv to identify post-JHU data gaps"
+echo "   • Run dashboard updates to visualize JHU baseline coverage"
 echo ""
-echo "✨ Pipeline ready for AI cholera surveillance data collection!"
+echo "✨ Pipeline ready for AI-enhanced cholera surveillance data collection!"
 echo "================================================================================"

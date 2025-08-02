@@ -200,9 +200,9 @@ FOR EACH COUNTRY:
 
 **search_report.txt**: Brief summary created by Agent 6 only - key outcomes, data collected, sources found, and gap-filling results. Should include: total sources discovered, total data observations added, key gaps filled, overall data quality assessment, and remaining limitations.
 
-**metadata.csv** (14 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth, Cross_References, Discovery_Method
+**metadata.csv** (15 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth, Cross_References, Discovery_Method, source_database
 
-**cholera_data.csv** (13 columns): Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes
+**cholera_data.csv** (14 columns): Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes, source_database
 
 ## COMPREHENSIVE COLUMN DEFINITIONS
 
@@ -272,6 +272,15 @@ FOR EACH COUNTRY:
 - **Format**: Free text with exact source quotes
 - **Required**: Must include source quotes supporting case/death interpretations
 - **Template**: "Source states: '[exact quote]' - interpreted as [sCh/cCh] cases"
+
+**source_database** (Text):
+- **Purpose**: Track data provenance across different source systems
+- **Format**: Controlled vocabulary: 'JHU', 'WHO', 'AI_MINED'
+- **Values**: 
+  - 'JHU': Data from JHU cholera database baseline integration
+  - 'WHO': Data from WHO surveillance dashboards and reports
+  - 'AI_MINED': Data discovered through AI agent systematic searches
+- **Required**: All data rows must have source_database classification
 
 ## CRITICAL DATA INCLUSION RULES
 
