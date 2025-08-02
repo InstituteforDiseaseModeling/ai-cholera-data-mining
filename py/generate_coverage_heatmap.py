@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 DATA_PATH = "./data"
 REFERENCE_PATH = "./reference"
-OUTPUT_PATH = "./figures"
+OUTPUT_PATH = "./reference/heatmaps"
 
 def load_country_mapping():
     """Load country name to ISO code mapping."""
@@ -97,11 +97,28 @@ def separate_national_subnational_data(data_df):
     
     return national_data, subnational_data
 
-def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_year=2025):
-    """Generate coverage heatmap by country and year."""
+def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_year=2025, monthly=False):
+    """Generate coverage heatmap by country and year or month."""
     
-    # Create year range
-    years = list(range(start_year, end_year + 1))
+    if monthly:
+        # Create month range for specified years
+        import datetime
+        months = []
+        month_labels = []
+        for year in range(start_year, end_year + 1):
+            for month in range(1, 13):
+                months.append(datetime.date(year, month, 1))
+                if month == 1 or (year % 5 == 0 and month % 3 == 1):  # Show label every 3 months for 5-year intervals
+                    month_labels.append(f"{year}-{month:02d}")
+                else:
+                    month_labels.append("")
+        time_periods = months
+        time_labels = month_labels
+    else:
+        # Create year range
+        years = list(range(start_year, end_year + 1))
+        time_periods = years
+        time_labels = [str(y) if y % 5 == 0 else "" for y in years]
     
     # Get unique countries sorted by total data availability
     country_counts = data_df.groupby(['country_iso', 'country_name']).size().reset_index(name='count')
@@ -109,49 +126,60 @@ def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_
     countries = [(row['country_iso'], row['country_name']) for _, row in country_counts.iterrows()]
     
     # Create coverage matrix
-    coverage_matrix = np.zeros((len(countries), len(years)), dtype=int)
-    source_matrix = np.full((len(countries), len(years)), '', dtype=object)
+    coverage_matrix = np.zeros((len(countries), len(time_periods)), dtype=int)
+    source_matrix = np.full((len(countries), len(time_periods)), '', dtype=object)
     
     # Source database mapping to colors
     source_colors = {
         'JHU': 1,      # Blue
-        'WHO': 2,      # Orange  
+        'WHO': 2,      # Red  
         'AI': 3,       # Green
-        'Mixed': 4     # Purple (multiple sources in same year)
+        'Mixed': 4     # Purple (multiple sources in same period)
     }
     
     for i, (country_iso, country_name) in enumerate(countries):
         country_data = data_df[data_df['country_iso'] == country_iso]
         
-        for year in years:
-            year_data = country_data[
-                (country_data['TL'].dt.year <= year) & 
-                (country_data['TR'].dt.year >= year)
-            ]
-            
-            if len(year_data) > 0:
-                # Check sources for this year
-                year_sources = year_data['source_database'].unique()
-                year_sources = [s for s in year_sources if pd.notna(s)]
+        for j, time_period in enumerate(time_periods):
+            if monthly:
+                # Check if data overlaps with this month
+                month_start = pd.Timestamp(time_period)
+                month_end = month_start + pd.DateOffset(months=1) - pd.Timedelta(days=1)
                 
-                if len(year_sources) == 1:
-                    source = year_sources[0]
-                    coverage_matrix[i, year - start_year] = source_colors.get(source, 1)
-                    source_matrix[i, year - start_year] = source
-                elif len(year_sources) > 1:
-                    coverage_matrix[i, year - start_year] = source_colors['Mixed']
-                    source_matrix[i, year - start_year] = 'Mixed'
+                period_data = country_data[
+                    (country_data['TL'] <= month_end) & 
+                    (country_data['TR'] >= month_start)
+                ]
+            else:
+                # Original yearly logic
+                period_data = country_data[
+                    (country_data['TL'].dt.year <= time_period) & 
+                    (country_data['TR'].dt.year >= time_period)
+                ]
+            
+            if len(period_data) > 0:
+                # Check sources for this period
+                period_sources = period_data['source_database'].unique()
+                period_sources = [s for s in period_sources if pd.notna(s)]
+                
+                if len(period_sources) == 1:
+                    source = period_sources[0]
+                    coverage_matrix[i, j] = source_colors.get(source, 1)
+                    source_matrix[i, j] = source
+                elif len(period_sources) > 1:
+                    coverage_matrix[i, j] = source_colors['Mixed']
+                    source_matrix[i, j] = 'Mixed'
                 else:
-                    coverage_matrix[i, year - start_year] = 1  # Default to JHU
-                    source_matrix[i, year - start_year] = 'Unknown'
+                    coverage_matrix[i, j] = 1  # Default to JHU
+                    source_matrix[i, j] = 'Unknown'
     
-    return coverage_matrix, source_matrix, countries, years, source_colors
+    return coverage_matrix, source_matrix, countries, time_periods, time_labels, source_colors
 
-def plot_heatmap(coverage_matrix, source_matrix, countries, years, source_colors, data_type="National"):
+def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_labels, source_colors, data_type="National", monthly=False):
     """Create and save the coverage heatmap."""
     
     # Create figure with wider aspect ratio for better readability
-    fig, ax = plt.subplots(figsize=(32, 14))
+    fig, ax = plt.subplots(figsize=(34, 16))  # Slightly larger for better text readability
     
     # Create custom colormap with complementary color scheme
     colors = ['white', '#0167af', '#E74C3C', '#2ECC71', '#9B59B6']  # white, JHU blue, WHO red, AI green, mixed purple
@@ -164,16 +192,16 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, years, source_colors
     # Set country labels (Y-axis) with larger font
     country_labels = [f"{iso} - {name}" for iso, name in countries]
     ax.set_yticks(range(len(countries)))
-    ax.set_yticklabels(country_labels, fontsize=16)
+    ax.set_yticklabels(country_labels, fontsize=18)  # Increased text size
     
     # Set year labels (X-axis) - show every 5 years with larger font
-    year_indices = [i for i, year in enumerate(years) if year % 5 == 0]
-    year_labels = [str(years[i]) for i in year_indices]
+    year_indices = [i for i, period in enumerate(time_periods) if period % 5 == 0]
+    year_labels = [str(time_periods[i]) for i in year_indices]
     ax.set_xticks(year_indices)
-    ax.set_xticklabels(year_labels, rotation=45, fontsize=16)
+    ax.set_xticklabels(year_labels, rotation=45, fontsize=18)  # Increased text size
     
     # Add minor ticks for all years
-    ax.set_xticks(range(len(years)), minor=True)
+    ax.set_xticks(range(len(time_periods)), minor=True)
     
     # Remove axis titles as requested
     
@@ -182,7 +210,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, years, source_colors
     else:
         title = 'Cholera Surveillance Data Coverage - National Level'
     
-    ax.set_title(title, fontsize=26, fontweight='bold', pad=30)
+    ax.set_title(title, fontsize=28, fontweight='bold', pad=30)
     
     # Create legend with larger font
     legend_elements = [
@@ -195,7 +223,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, years, source_colors
     
     # Place legend below heatmap in 1 horizontal row
     ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.10), 
-             fontsize=16, ncol=5, frameon=False, columnspacing=1.2)
+             fontsize=18, ncol=5, frameon=False, columnspacing=1.2)  # Increased text size
     
     # Add grid
     ax.grid(True, which='major', alpha=0.3, linewidth=0.5)
@@ -300,13 +328,13 @@ def main():
     if len(national_data) > 0:
         logger.info("\n🏛️  GENERATING NATIONAL-LEVEL HEATMAP...")
         logger.info("Creating coverage matrix for country-level data...")
-        coverage_matrix_nat, source_matrix_nat, countries_nat, years, source_colors = create_coverage_heatmap(
-            national_data, data_type="National"
+        coverage_matrix_nat, source_matrix_nat, countries_nat, time_periods, time_labels, source_colors = create_coverage_heatmap(
+            national_data, data_type="National", monthly=False
         )
         
         logger.info("Creating national-level visualization...")
         output_file_nat = plot_heatmap(
-            coverage_matrix_nat, source_matrix_nat, countries_nat, years, source_colors, data_type="National"
+            coverage_matrix_nat, source_matrix_nat, countries_nat, time_periods, time_labels, source_colors, data_type="National", monthly=False
         )
         output_files.append(output_file_nat)
         
@@ -319,13 +347,13 @@ def main():
     if len(subnational_data) > 0:
         logger.info("\n🗺️  GENERATING SUB-NATIONAL HEATMAP...")
         logger.info("Creating coverage matrix for provincial/district-level data...")
-        coverage_matrix_sub, source_matrix_sub, countries_sub, years, source_colors = create_coverage_heatmap(
-            subnational_data, data_type="Sub-national"
+        coverage_matrix_sub, source_matrix_sub, countries_sub, time_periods, time_labels, source_colors = create_coverage_heatmap(
+            subnational_data, data_type="Sub-national", monthly=False
         )
         
         logger.info("Creating sub-national visualization...")
         output_file_sub = plot_heatmap(
-            coverage_matrix_sub, source_matrix_sub, countries_sub, years, source_colors, data_type="Sub-national"
+            coverage_matrix_sub, source_matrix_sub, countries_sub, time_periods, time_labels, source_colors, data_type="Sub-national", monthly=False
         )
         output_files.append(output_file_sub)
         

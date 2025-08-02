@@ -5,8 +5,7 @@ MOSAIC AI Cholera Data Collection - Unified Dashboard Data Updater
 This script combines all dashboard data updates into a single command:
 1. Updates completion checklist based on file analysis
 2. Generates 3-source timeline coverage plots for all countries
-3. Creates timeline week counts CSV
-4. Updates dashboard HTML with embedded data
+3. Updates dashboard HTML with embedded data
 
 USAGE: Run from project root directory:
     python py/update_dashboard_data.py
@@ -712,23 +711,12 @@ def create_3source_timeline_plot(country_data, country_name, iso_code, output_di
     
     print(f"  ✅ Timeline plot: {output_file.name}")
 
-def count_weeks_by_source(country_data: pd.DataFrame) -> tuple:
-    """Count unique weeks for each source"""
-    
-    if country_data.empty or 'source' not in country_data.columns:
-        return 0, 0, 0
-    
-    ai_weeks = len(country_data[country_data['source'] == 'AI'])
-    who_weeks = len(country_data[country_data['source'] == 'WHO'])
-    jhu_weeks = len(country_data[country_data['source'] == 'JHU'])
-    
-    return ai_weeks, who_weeks, jhu_weeks
 
 # ============================================================================
 # MAIN UNIFIED UPDATE FUNCTION
 # ============================================================================
 
-def update_dashboard_html(base_path: Path, updated_data: List[Dict], week_counts_data: List[Dict]):
+def update_dashboard_html(base_path: Path, updated_data: List[Dict]):
     """Update the dashboard HTML with embedded CSV data"""
     dashboard_file = base_path / "dashboard" / "dashboard.html"
     
@@ -753,14 +741,6 @@ def update_dashboard_html(base_path: Path, updated_data: List[Dict], week_counts
     
     checklist_csv_data = '\n'.join(checklist_csv_lines)
     
-    # Generate week counts CSV string
-    week_counts_fieldnames = ['country', 'iso_code', 'ai_weeks', 'who_weeks', 'jhu_weeks']
-    week_counts_csv_lines = [','.join(week_counts_fieldnames)]
-    for row in week_counts_data:
-        csv_row = [str(row.get(field, '')) for field in week_counts_fieldnames]
-        week_counts_csv_lines.append(','.join(csv_row))
-    
-    week_counts_csv_data = '\n'.join(week_counts_csv_lines)
     
     try:
         # Read current HTML
@@ -775,10 +755,6 @@ def update_dashboard_html(base_path: Path, updated_data: List[Dict], week_counts
         checklist_replacement = f'const csvData = `{checklist_csv_data}`;'
         html_content = re.sub(checklist_pattern, checklist_replacement, html_content, flags=re.DOTALL)
         
-        # Update week counts data
-        week_counts_pattern = r'const weekCountsCSV = `[^`]*`;'
-        week_counts_replacement = f'const weekCountsCSV = `{week_counts_csv_data}`;'
-        html_content = re.sub(week_counts_pattern, week_counts_replacement, html_content, flags=re.DOTALL)
         
         # Write updated HTML
         with open(dashboard_file, 'w', encoding='utf-8') as f:
@@ -931,74 +907,14 @@ def update_all_dashboard_data(base_path: Path):
     print(f"✅ Timeline plots generated for {countries_with_data} countries")
     
     # ========================================================================
-    # 3. GENERATE WEEK COUNTS DATA
+    # 3. UPDATE DASHBOARD HTML
     # ========================================================================
-    print("\n📈 STEP 3: Generating timeline week counts data...")
+    print("\n📱 STEP 3: Updating dashboard HTML with embedded data...")
     
-    # Get countries with timeline plots
-    countries_with_plots = []
-    for plot_file in output_dir.glob("*_3sources_timeline.png"):
-        # Extract ISO code from filename (format: ISO_Country_Name_3sources_timeline.png)
-        iso_code = plot_file.name.split('_')[0]
-        countries_with_plots.append(iso_code)
-    
-    # Filter to countries that have timeline plots
-    plot_countries = {iso: mosaic_countries[iso] for iso in countries_with_plots if iso in mosaic_countries}
-    
-    # Prepare week counts results
-    week_counts_results = []
-    
-    for iso_code, country_info in sorted(plot_countries.items()):
-        country_name = country_info.get('name', iso_code)
-        print(f"  Processing {country_name} ({iso_code})...")
-        
-        # Get surveillance data for this country
-        if not surveillance_df.empty and 'iso_code' in surveillance_df.columns:
-            country_surveillance = surveillance_df[surveillance_df['iso_code'] == iso_code]
-        else:
-            country_surveillance = pd.DataFrame()
-        
-        # Get AI data for this country
-        country_ai = load_ai_enhanced_data(base_path, iso_code)
-        
-        # Combine all data
-        country_data = pd.concat([country_surveillance, country_ai], ignore_index=True)
-        
-        # Count weeks by source
-        ai_weeks, who_weeks, jhu_weeks = count_weeks_by_source(country_data)
-        
-        week_counts_results.append({
-            'country': country_name,
-            'iso_code': iso_code,
-            'ai_weeks': ai_weeks,
-            'who_weeks': who_weeks,
-            'jhu_weeks': jhu_weeks
-        })
-        
-        print(f"    AI: {ai_weeks} weeks | WHO: {who_weeks} weeks | JHU: {jhu_weeks} weeks")
-    
-    # Create output CSV
-    week_counts_file = base_path / "dashboard" / "timeline_week_counts.csv"
-    
-    with open(week_counts_file, 'w', newline='', encoding='utf-8') as f:
-        fieldnames = ['country', 'iso_code', 'ai_weeks', 'who_weeks', 'jhu_weeks']
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        
-        writer.writeheader()
-        for result in week_counts_results:
-            writer.writerow(result)
-    
-    print(f"✅ Timeline week counts CSV created: {week_counts_file}")
+    update_dashboard_html(base_path, updated_data)
     
     # ========================================================================
-    # 4. UPDATE DASHBOARD HTML
-    # ========================================================================
-    print("\n📱 STEP 4: Updating dashboard HTML with embedded data...")
-    
-    update_dashboard_html(base_path, updated_data, week_counts_results)
-    
-    # ========================================================================
-    # 5. GENERATE SUMMARY STATISTICS
+    # 4. GENERATE SUMMARY STATISTICS
     # ========================================================================
     print("\n" + "=" * 80)
     print("✅ ALL DASHBOARD DATA UPDATED SUCCESSFULLY!")
@@ -1020,24 +936,11 @@ def update_all_dashboard_data(base_path: Path):
     print(f"\n📊 Timeline Plots: {output_dir}")
     print(f"🎨 Countries with plots: {countries_with_data}")
     
-    # Week counts summary
-    total_ai_weeks = sum(r['ai_weeks'] for r in week_counts_results)
-    total_who_weeks = sum(r['who_weeks'] for r in week_counts_results)
-    total_jhu_weeks = sum(r['jhu_weeks'] for r in week_counts_results)
-    
-    print(f"\n📈 Week Counts Data: {week_counts_file}")
-    print(f"  Total AI weeks: {total_ai_weeks:,}")
-    print(f"  Total WHO weeks: {total_who_weeks:,}")
-    print(f"  Total JHU weeks: {total_jhu_weeks:,}")
-    print(f"  Countries with AI data: {sum(1 for r in week_counts_results if r['ai_weeks'] > 0)}")
-    print(f"  Countries with WHO data: {sum(1 for r in week_counts_results if r['who_weeks'] > 0)}")
-    print(f"  Countries with JHU data: {sum(1 for r in week_counts_results if r['jhu_weeks'] > 0)}")
     
     print(f"\n🔄 DASHBOARD UPDATED:")
     print(f"📱 Real-time status based on file analysis")
     print(f"📊 Automatic metrics calculation")
     print(f"🎨 Timeline plots with synchronized date ranges")
-    print(f"📈 Week counts data embedded")
     print(f"💾 All data automatically synchronized")
     print("=" * 80)
 
