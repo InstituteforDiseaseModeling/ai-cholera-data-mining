@@ -136,11 +136,11 @@ def create_dual_timeline_plot(country_iso, country_name, national_data, subnatio
     # Create figure with two subplots (national on top, sub-national on bottom)
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 8), sharex=True)
     
-    # Color mapping for sources - more opaque colors
+    # Color mapping for sources - complementary color scheme
     source_colors = {
-        'JHU': '#9467bd',    # Purple
-        'WHO': '#1f77b4',    # Blue  
-        'AI': '#2ca02c'      # Green
+        'JHU': '#0167af',    # Blue
+        'WHO': '#E74C3C',    # Bright complementary red  
+        'AI': '#2ECC71'      # Emerald green
     }
     
     # All possible sources - ensure all 3 are always present
@@ -341,8 +341,8 @@ def main():
     logger.info("🎯 TIMELINE INTERPRETATION:")
     logger.info("• Top panel = National-level surveillance data")
     logger.info("• Bottom panel = Sub-national (provincial/district) surveillance data")
-    logger.info("• Purple bars = JHU historical database")
-    logger.info("• Blue bars = WHO dashboard data")
+    logger.info("• Blue bars = JHU historical database")
+    logger.info("• Red bars = WHO dashboard data")
     logger.info("• Green bars = AI-enhanced sources")
     logger.info("")
     logger.info("✅ Dual timeline generation complete!")

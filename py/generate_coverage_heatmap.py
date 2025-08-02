@@ -153,8 +153,8 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, years, source_colors
     # Create figure with wider aspect ratio for better readability
     fig, ax = plt.subplots(figsize=(32, 14))
     
-    # Create custom colormap
-    colors = ['white', '#1f77b4', '#ff7f0e', '#2ca02c', '#9467bd']  # white, blue, orange, green, purple
+    # Create custom colormap with complementary color scheme
+    colors = ['white', '#0167af', '#E74C3C', '#2ECC71', '#9B59B6']  # white, JHU blue, WHO red, AI green, mixed purple
     from matplotlib.colors import ListedColormap
     cmap = ListedColormap(colors)
     
@@ -164,39 +164,38 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, years, source_colors
     # Set country labels (Y-axis) with larger font
     country_labels = [f"{iso} - {name}" for iso, name in countries]
     ax.set_yticks(range(len(countries)))
-    ax.set_yticklabels(country_labels, fontsize=14)
+    ax.set_yticklabels(country_labels, fontsize=16)
     
     # Set year labels (X-axis) - show every 5 years with larger font
     year_indices = [i for i, year in enumerate(years) if year % 5 == 0]
     year_labels = [str(years[i]) for i in year_indices]
     ax.set_xticks(year_indices)
-    ax.set_xticklabels(year_labels, rotation=45, fontsize=14)
+    ax.set_xticklabels(year_labels, rotation=45, fontsize=16)
     
     # Add minor ticks for all years
     ax.set_xticks(range(len(years)), minor=True)
     
-    # Labels and title with larger fonts - customize based on data type
-    ax.set_xlabel('Year', fontsize=18, fontweight='bold')
-    ax.set_ylabel('Country', fontsize=18, fontweight='bold')
+    # Remove axis titles as requested
     
     if data_type == "Sub-national":
-        title = 'Cholera Surveillance Data Coverage - Sub-national Level\n(Provincial/District-Level Data by Country and Source)'
+        title = 'Cholera Surveillance Data Coverage - Sub-national Level'
     else:
-        title = 'Cholera Surveillance Data Coverage - National Level\n(Country-Level Data by Source)'
+        title = 'Cholera Surveillance Data Coverage - National Level'
     
-    ax.set_title(title, fontsize=22, fontweight='bold', pad=30)
+    ax.set_title(title, fontsize=26, fontweight='bold', pad=30)
     
     # Create legend with larger font
     legend_elements = [
         plt.Rectangle((0,0),1,1, facecolor='white', edgecolor='black', label='No Data'),
-        plt.Rectangle((0,0),1,1, facecolor='#1f77b4', label='JHU Database'),
-        plt.Rectangle((0,0),1,1, facecolor='#ff7f0e', label='WHO Dashboard'),
-        plt.Rectangle((0,0),1,1, facecolor='#2ca02c', label='AI Enhanced'),
-        plt.Rectangle((0,0),1,1, facecolor='#9467bd', label='Mixed Sources')
+        plt.Rectangle((0,0),1,1, facecolor='#0167af', label='JHU Database'),
+        plt.Rectangle((0,0),1,1, facecolor='#E74C3C', label='WHO Dashboard'),
+        plt.Rectangle((0,0),1,1, facecolor='#2ECC71', label='AI Enhanced'),
+        plt.Rectangle((0,0),1,1, facecolor='#9B59B6', label='Mixed Sources')
     ]
     
-    ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1.02, 1), 
-             fontsize=14, title='Data Source', title_fontsize=16)
+    # Place legend below heatmap in 1 horizontal row
+    ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.10), 
+             fontsize=16, ncol=5, frameon=False, columnspacing=1.2)
     
     # Add grid
     ax.grid(True, which='major', alpha=0.3, linewidth=0.5)
@@ -353,7 +352,7 @@ def main():
     logger.info("\n🎯 HEATMAP INTERPRETATION:")
     logger.info("• White cells = No cholera data available")
     logger.info("• Blue cells = JHU historical database")
-    logger.info("• Orange cells = WHO dashboard data")
+    logger.info("• Red cells = WHO dashboard data")
     logger.info("• Green cells = AI-enhanced sources")
     logger.info("• Purple cells = Multiple sources in same year")
     logger.info("")
