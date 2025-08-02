@@ -340,37 +340,14 @@ def load_existing_csv(csv_file: Path) -> Dict[str, Dict]:
 
 def embed_original_surveillance_data(base_path: Path):
     """
-    Embed MOSAIC surveillance data into reference/ directory for CI environments.
+    NOTE: No longer embedding surveillance data - using original file directly.
     
-    This function copies the essential MOSAIC surveillance data to ./reference/
-    so it's available in GitHub Pages and other CI environments that don't have
-    access to the full MOSAIC project structure.
+    This function previously copied MOSAIC surveillance data to ./reference/
+    but now references the original file to avoid duplication.
     """
-    print("🔄 EMBEDDING ORIGINAL SURVEILLANCE DATA...")
-    
-    # Source file (full MOSAIC project structure)
-    source_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
-    
-    # Destination file (this repo's reference directory)
-    dest_file = base_path / "reference" / "cholera_surveillance_weekly_combined.csv"
-    
-    if not source_file.exists():
-        print(f"❌ Source MOSAIC surveillance file not found: {source_file}")
-        print("   Cannot embed surveillance data - only AI data will be available in CI environments")
-        return False
-    
-    # Load MOSAIC country mapping to filter data
-    country_mapping = load_country_mapping(base_path)
-    mosaic_iso_codes = set(country_mapping.keys())
-    
-    print(f"📂 Reading source: {source_file}")
-    print(f"📂 Writing to: {dest_file}")
-    print(f"🌍 Filtering to {len(mosaic_iso_codes)} MOSAIC framework countries")
-    
-    # Process and filter the data
-    filtered_rows = []
-    total_rows = 0
-    filtered_count = 0
+    print("✅ Using original surveillance data from MOSAIC-data directory")
+    print("   (No local copy needed - referencing source directly)")
+    return True
     
     try:
         with open(source_file, 'r', encoding='utf-8') as f:
@@ -420,11 +397,11 @@ def load_separated_surveillance_data(base_path: Path) -> pd.DataFrame:
     """
     Load MOSAIC surveillance data with WHO/JHU sources separated.
     
-    Uses the reference file within this repo for CI compatibility.
+    Uses the original file from MOSAIC-data directory to avoid duplication.
     """
     
-    # Use embedded surveillance data from reference directory
-    surveillance_file = base_path / "reference" / "cholera_surveillance_weekly_combined.csv"
+    # Use original surveillance data from MOSAIC-data directory
+    surveillance_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
     
     if not surveillance_file.exists():
         print(f"Warning: Reference surveillance file not found: {surveillance_file}")

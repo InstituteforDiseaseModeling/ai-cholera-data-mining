@@ -1,22 +1,24 @@
 # CLAUDE.md - AI Cholera Surveillance Data Enhancement
 
-**Mission**: Fill ~50% missing observations in WHO surveillance records (1970-present) through systematic identification, validation, and integration of unofficial cholera data sources.
+**Mission**: Enhance integrated JHU/WHO baseline cholera surveillance data (1970-present) by systematically filling identified gaps through AI-driven discovery, validation, and integration of additional cholera data sources.
 
-**Strategy**: Systematic internet searches to discover unreported transmission events and validate zero-transmission periods for complete historical time series.
+**Strategy**: Gap-targeted systematic internet searches to discover unreported transmission events and validate zero-transmission periods, building on integrated JHU historical database and WHO dashboard baseline data.
 
 **CRITICAL SCOPE RESTRICTION**: AI cholera data collection is **RESTRICTED TO THE 40 MOSAIC FRAMEWORK COUNTRIES ONLY**. Do not process any countries outside the MOSAIC framework. The analysis scope is limited to these 40 core modeling countries.
 
 ## Data Sources & Hierarchy
 
-**Core Data**: Official surveillance, JHU database, AI-enhanced sources  
-**Source Tiers**: Level 1 (WHO/MoH) → Level 2 (UNICEF/Academic) → Level 3 (News/NGO) → Level 4 (Local/Social)
+**Integrated Baseline**: JHU historical database + WHO dashboard surveillance (pre-integrated in `./data/{ISO}/cholera_data.csv`)  
+**AI Enhancement Tiers**: Level 1 (WHO/MoH) → Level 2 (UNICEF/Academic) → Level 3 (News/NGO) → Level 4 (Local/Social)  
+**Data Architecture**: Integrated JHU/WHO baseline → AI gap-filling enhancement → Validated enhanced dataset
 
 ## Core Methodology
 
-**Workflow**: Gap assessment → JHU inventory → AI systematic search → Data integration  
-**Output Format**: JHU-compatible CSV with enhanced dual-reference indexing  
-**Deliverables**: search_report.txt, metadata.csv, cholera_data.csv, individual search_log_agent_X.txt files
+**Workflow**: Integrated baseline analysis → Gap identification (≥7 days) → AI systematic enhancement → Data validation  
+**Output Format**: Enhanced cholera_data.csv with integrated JHU/WHO baseline + AI discoveries using dual-reference indexing  
+**Deliverables**: search_report.txt, enhanced metadata.csv, enhanced cholera_data.csv, individual search_log_agent_X.txt files
 **Progress Tracking**: dashboard/completion_checklist.csv (automatically updated from file system analysis)
+**Gap Analysis**: `py/analyze_integrated_coverage_gaps.py` generates reference files from actual baseline data
 
 ## Dashboard Management
 
@@ -26,8 +28,8 @@
 
 **Automated Update System**:
 ```bash
-# Dashboard updates automatically by scanning ./data directory
-python py/update_completion_checklist.py
+# Unified dashboard update (completion checklist + timeline plots + embedded data)
+bash update_dashboard.sh
 ```
 
 ### **AGENT RESPONSIBILITIES** (What Agents Should Do):
@@ -66,14 +68,14 @@ python py/update_completion_checklist.py
 
 ## MANDATORY GAP-TARGETED SEARCH PROTOCOL
 
-**CRITICAL**: Before beginning any search, agents MUST consult surveillance coverage reference files to target missing periods.
+**CRITICAL**: Before beginning any search, agents MUST consult integrated coverage analysis files to target missing periods in baseline data.
 
 ### Pre-Search Requirements (MANDATORY)
 
-1. **Load Reference Files**: Read `./reference/agent_quick_reference.csv` for country-specific gaps
-2. **Identify Priority Periods**: Focus searches on specific missing date ranges
-3. **Apply Temporal Filters**: Include missing years/periods in ALL search queries
-4. **Prioritize High-Gap Countries**: Begin with HIGH priority countries (<70% coverage)
+1. **Load Reference Files**: Read `./reference/agent_quick_reference.csv` for country-specific gaps (generated from integrated baseline analysis)
+2. **Identify Priority Periods**: Focus searches on specific missing date ranges (≥7 days gaps) identified from actual baseline data
+3. **Apply Temporal Filters**: Include missing years/periods in ALL search queries targeting gaps in integrated JHU/WHO baseline
+4. **Prioritize High-Gap Countries**: Begin with HIGH priority countries (<70% coverage) based on meaningful observations in baseline data
 
 ### Gap-Targeted Query Strategy
 
@@ -89,19 +91,20 @@ python py/update_completion_checklist.py
 
 ### Reference File Usage Protocol
 
-**agent_quick_reference.csv Usage**:
+**agent_quick_reference.csv Usage** (Generated from Integrated Baseline Analysis):
 ```
 FOR EACH COUNTRY:
-1. Check search_priority (HIGH/MEDIUM/LOW)
-2. Read missing_recent_years for temporal targeting
-3. Use priority_periods for exact date range focus
-4. Apply coverage_pct for effort allocation
+1. Check search_priority (HIGH/MEDIUM/LOW) based on baseline coverage
+2. Read missing_recent_years for temporal targeting (gaps in JHU/WHO data)
+3. Use priority_periods for exact date range focus (≥7 day gaps identified)
+4. Apply coverage_pct for effort allocation (meaningful observations/total span)
 ```
 
-**Example for Ethiopia (59.1% coverage, HIGH priority)**:
-- **Priority Gap**: 2018-12-10 to 2023-01-01
-- **Missing Years**: 2000-2009 (historical)
-- **Search Focus**: "Ethiopia cholera 2019 2020 2021 2022" + historical searches
+**Example for Ethiopia (24.5% coverage, HIGH priority)**:
+- **Baseline Data**: JHU + WHO integrated in `./data/ETH/cholera_data.csv`
+- **Priority Gap**: 2024-12-15 to 2024-12-23 (8-day gap identified)
+- **Coverage**: 649 meaningful observations from 1970-2025 span
+- **Search Focus**: Target recent gaps + historical extension based on actual baseline analysis
 
 ### Temporal Search Allocation (MANDATORY)
 
@@ -147,7 +150,40 @@ FOR EACH COUNTRY:
 - "Ethiopia surveillance system 2019-2022" (check reporting gaps)
 - "Ethiopia neighboring countries cholera 2019-2022" (regional context)
 
-**RESULT EXPECTATION**: Either fill 2019-2022 gap with data OR confirm no cholera transmission with evidence
+**RESULT EXPECTATION**: Either fill identified gaps with data OR confirm no cholera transmission with evidence
+
+## INTEGRATED BASELINE DATA ANALYSIS
+
+**FOUNDATION**: All countries start with integrated JHU/WHO baseline data pre-loaded in `./data/{ISO}/cholera_data.csv`
+
+### Baseline Data Structure
+- **JHU Historical Database**: Comprehensive 1970-2020+ cholera surveillance data (source_database: 'JHU')
+- **WHO Dashboard Data**: Recent 2023-2025 surveillance updates (source_database: 'WHO')  
+- **AI Enhancement Target**: Fill gaps and add discoveries (source_database: 'AI')
+
+### Coverage Analysis System
+```bash
+# Generate integrated coverage analysis and agent reference files
+python py/analyze_integrated_coverage_gaps.py
+```
+
+**Output Files Generated from Baseline Analysis**:
+- `./reference/agent_quick_reference.csv` - Country priorities with gap analysis from baseline data
+- `./reference/observed_time_periods.csv` - Detailed temporal coverage with gap identification  
+- `./reference/priority_data_gaps.csv` - Priority gaps ranked by duration (8 days to 18 years)
+
+### Coverage Metrics Calculation
+- **Coverage Percentage**: Meaningful observations (cases/deaths >0) as percentage of weekly grid coverage
+- **Gap Detection**: Periods ≥7 days without meaningful cholera data in baseline
+- **Priority Classification**: HIGH (<70%), MEDIUM (70-90%), LOW (>90%) based on actual baseline coverage
+- **Meaningful Observations**: Data rows with sCh>0 OR deaths>0 OR cCh>0 (excluding administrative records)
+
+### Visual Coverage Analysis
+```bash
+# Generate coverage heatmap showing temporal patterns by data source
+python py/generate_coverage_heatmap.py
+```
+**Output**: `./figures/cholera_coverage_heatmap.png` - Countries×Years heatmap colored by JHU/WHO/AI sources
 
 ## ULTRA DEEP SEARCH METHODOLOGY
 

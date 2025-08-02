@@ -123,16 +123,9 @@ def convert_who_data_to_workflow(who_data, country_iso, country_name):
             'Source': f'WHO Cholera Surveillance Dashboard ({year})',
             'URL': 'https://extranet.who.int/publicemergency/',
             'Description': f'WHO cholera surveillance data for {country_name} in {year}. Weekly reporting from WHO emergency surveillance dashboard. {len(year_data)} weekly observations.',
-            'Date_Range': f'{start_date} to {end_date}',
-            'Data_Type': 'Surveillance',
-            'Status': 'Validated',
-            'Reliability_Level': 'Level 1',
-            'Validation_Status': 'WHO_Dashboard',
-            'Search_Technique': 'Database_Import',
-            'Language_Original': 'English',
-            'Citation_Depth': 'Primary',
-            'Cross_References': 'WHO_Emergency_Dashboard',
-            'Discovery_Method': 'WHO_Integration',
+            'TL': start_date,
+            'TR': end_date,
+            'Reliability_Level': 1,
             'source_database': 'WHO'
         }
         metadata_entries.append(metadata_entry)

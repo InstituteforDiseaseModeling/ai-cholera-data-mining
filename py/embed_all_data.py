@@ -67,8 +67,8 @@ def get_all_countries():
 def process_who_data():
     """Process WHO data from embedded reference directory."""
     who_data = {}
-    # Use embedded surveillance data from reference directory
-    reference_data_path = Path("reference/cholera_surveillance_weekly_combined.csv")
+    # Use original surveillance data from MOSAIC-data directory
+    reference_data_path = Path("../MOSAIC-data/processed/cholera/weekly/cholera_surveillance_weekly_combined.csv")
     
     if not reference_data_path.exists():
         print(f"⚠️  Reference surveillance data file not found at {reference_data_path}")
@@ -102,8 +102,8 @@ def process_who_data():
 def process_jhu_data():
     """Process JHU data from embedded reference directory."""
     jhu_data = {}
-    # Use embedded surveillance data from reference directory
-    reference_data_path = Path("reference/cholera_surveillance_weekly_combined.csv")
+    # Use original surveillance data from MOSAIC-data directory
+    reference_data_path = Path("../MOSAIC-data/processed/cholera/weekly/cholera_surveillance_weekly_combined.csv")
     
     if not reference_data_path.exists():
         print(f"⚠️  Reference surveillance data file not found at {reference_data_path}")

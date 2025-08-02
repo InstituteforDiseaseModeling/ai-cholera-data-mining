@@ -217,37 +217,31 @@ def convert_jhu_metadata_to_workflow(jhu_metadata_df, country_name):
         else:
             source_name = f"JHU Cholera Database (UID: {uid})"
         
-        # Date range
-        date_range = f"{row['Earliest observation']} to {row['Latest observation']}"
+        # Date range - split into TL and TR columns
+        tl = row['Earliest observation']
+        tr = row['Latest observation']
         
         # Description
         description = f"JHU cholera database entry with {row['# of observations']} observations. Frequency: {row['Observation Frequency']}. Updated: {row['Updated On']}"
         if tags:
             description += f" Source tags: {tags}"
         
-        # Reliability level based on source tags
+        # Reliability level based on source tags (as integer)
         if 'WHOannual' in tags or 'WHOafro' in tags:
-            reliability_level = 'Level 1'
+            reliability_level = 1
         elif 'UNICEFcp' in tags:
-            reliability_level = 'Level 2'
+            reliability_level = 2
         else:
-            reliability_level = 'Level 2'  # JHU data is generally high quality
+            reliability_level = 2  # JHU data is generally high quality
         
         workflow_metadata.append({
             'Index': idx + 1,  # Sequential indexing starting from 1
             'Source': source_name,
             'URL': f"https://github.com/InstituteforDiseaseModeling/jhu_cholera_data/blob/main/data/{country_name}/ObservationCollection{uid}.csv",
             'Description': description,
-            'Date_Range': date_range,
-            'Data_Type': 'Surveillance',
-            'Status': 'Validated',
+            'TL': tl,
+            'TR': tr,
             'Reliability_Level': reliability_level,
-            'Validation_Status': 'JHU_Integrated',
-            'Search_Technique': 'Database_Import',
-            'Language_Original': 'English',
-            'Citation_Depth': 'Primary',
-            'Cross_References': 'JHU_Database',
-            'Discovery_Method': 'JHU_Integration',
             'source_database': 'JHU'
         })
     

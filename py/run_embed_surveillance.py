@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-One-time script to embed MOSAIC surveillance data into reference/ directory.
+DEPRECATED: One-time script to embed MOSAIC surveillance data.
 
-This creates ./reference/cholera_surveillance_weekly_combined.csv for use in
-CI environments where the full MOSAIC project structure isn't available.
+NOTE: This script is no longer needed as we now reference the original
+file directly to avoid duplication.
 """
 
 from pathlib import Path

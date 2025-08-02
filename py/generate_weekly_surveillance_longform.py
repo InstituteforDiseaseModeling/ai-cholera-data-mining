@@ -82,8 +82,8 @@ def generate_complete_weekly_framework(start_year: int = 1970) -> List[Dict]:
 def load_mosaic_surveillance_data(base_path: Path) -> Dict[str, Set[Tuple[int, int]]]:
     """Load MOSAIC processed surveillance data from reference directory"""
     
-    # Use embedded surveillance data from reference directory
-    surveillance_file = base_path / "reference" / "cholera_surveillance_weekly_combined.csv"
+    # Use original surveillance data from MOSAIC-data directory
+    surveillance_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
     mosaic_data = {}
     
     if not surveillance_file.exists():
