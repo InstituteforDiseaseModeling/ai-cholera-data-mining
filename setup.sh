@@ -55,24 +55,8 @@ fi
 echo "✅ Dependencies check complete"
 echo ""
 
-# Step 1: Generate integrated baseline gap analysis
-echo "📊 Step 1: Generating integrated baseline gap analysis..."
-if [ "$SKIP_GAP_ANALYSIS" = true ]; then
-    echo "   ⚠️  Skipping gap analysis (surveillance data not available)"
-    echo "   Agents will use existing reference files if available"
-else
-    python py/analyze_integrated_coverage_gaps.py || {
-        echo "❌ Integrated gap analysis failed. Check that baseline data exists and is properly formatted."
-        exit 1
-    }
-    echo "   ✅ Generated: ./reference/agent_quick_reference.csv"
-    echo "   ✅ Generated: ./reference/observed_time_periods.csv"  
-    echo "   ✅ Generated: ./reference/priority_data_gaps.csv"
-fi
-echo ""
-
-# Step 2: Generate ISO codes and country mappings
-echo "🗺️  Step 2: Generating country codes and mappings..."
+# Step 1: Generate ISO codes and country mappings
+echo "🗺️  Step 1: Generating country codes and mappings..."
 python py/get_iso_codes.py || {
     echo "❌ Country code generation failed"
     exit 1
@@ -82,8 +66,8 @@ echo "   ✅ Generated: ./reference/country_mapping.json"
 echo "   ✅ Generated: ./reference/iso_codes_usage.md"
 echo ""
 
-# Step 3: JHU Database Integration (NEW)
-echo "🏥 Step 3: Integrating JHU cholera database as baseline..."
+# Step 2: JHU Database Integration (NEW)
+echo "🏥 Step 2: Integrating JHU cholera database as baseline..."
 JHU_DATA_PATH="../jhu_cholera_data/data"
 if [ ! -d "$JHU_DATA_PATH" ]; then
     echo "⚠️  WARNING: JHU cholera data not found at:"
@@ -102,20 +86,21 @@ if [ ! -d "$JHU_DATA_PATH" ]; then
 fi
 
 if [ "$SKIP_JHU_INTEGRATION" != true ]; then
+    echo "   📁 Checking for existing AI-enhanced results..."
     python py/convert_jhu_to_workflow.py || {
         echo "❌ JHU integration failed. Check JHU data availability and format."
         exit 1
     }
-    echo "   ✅ Converted JHU data to AI workflow format"
-    echo "   ✅ Generated baseline cholera_data.csv and metadata.csv files"
+    echo "   ✅ JHU baseline integration complete"
+    echo "   ✅ Created cholera_data_jhu.csv and metadata_jhu.csv files"
     echo "   ✅ Applied appropriate confidence weighting for JHU sources"
 else
     echo "   ⚠️  Skipping JHU integration - agents will start with empty datasets"
 fi
 echo ""
 
-# Step 4: WHO Dashboard Integration (NEW)
-echo "🏥 Step 4: Integrating WHO dashboard surveillance data..."
+# Step 3: WHO Dashboard Integration (NEW)
+echo "🏥 Step 3: Integrating WHO dashboard surveillance data..."
 WHO_DATA_PATH="../ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv"
 if [ ! -f "$WHO_DATA_PATH" ]; then
     echo "⚠️  WARNING: WHO dashboard data not found at:"
@@ -138,16 +123,42 @@ if [ "$SKIP_WHO_INTEGRATION" != true ]; then
         echo "❌ WHO integration failed. Check WHO data availability and format."
         exit 1
     }
-    echo "   ✅ Integrated WHO dashboard data with JHU baseline"
-    echo "   ✅ Added 1,627+ observations across 17 MOSAIC countries"
+    echo "   ✅ WHO dashboard integration complete"
+    echo "   ✅ Created cholera_data_who.csv and metadata_who.csv files"
     echo "   ✅ Enhanced recent surveillance coverage (2023-2025)"
 else
     echo "   ⚠️  Skipping WHO integration - missing recent surveillance data"
 fi
 echo ""
 
-# Step 5: Set up country directories and workflows
-echo "📁 Step 5: Setting up country directories and workflows..."
+# Step 4: Combine all data sources
+echo "🔄 Step 4: Combining all data sources into integrated baseline..."
+python py/combine_all_sources.py || {
+    echo "❌ Data source combination failed"
+    exit 1
+}
+echo "   ✅ Combined JHU, WHO, and AI sources into cholera_data.csv"
+echo "   ✅ Created unified metadata.csv with dual-reference indexing"
+echo ""
+
+# Step 5: Generate integrated baseline gap analysis
+echo "📊 Step 5: Generating integrated baseline gap analysis..."
+if [ "$SKIP_GAP_ANALYSIS" = true ]; then
+    echo "   ⚠️  Skipping gap analysis (surveillance data not available)"
+    echo "   Agents will use existing reference files if available"
+else
+    python py/analyze_integrated_coverage_gaps.py || {
+        echo "❌ Integrated gap analysis failed. Check that baseline data exists and is properly formatted."
+        exit 1
+    }
+    echo "   ✅ Generated: ./reference/agent_quick_reference.csv"
+    echo "   ✅ Generated: ./reference/observed_time_periods.csv"  
+    echo "   ✅ Generated: ./reference/priority_data_gaps.csv"
+fi
+echo ""
+
+# Step 6: Set up country directories and workflows
+echo "📁 Step 6: Setting up country directories and workflows..."
 python py/configure_countries.py || {
     echo "❌ Country setup failed"
     exit 1
@@ -189,10 +200,11 @@ echo "📋 Setup Summary:"
 echo "   • 40 MOSAIC framework countries configured"
 echo "   • JHU cholera database integrated as baseline$([ "$SKIP_JHU_INTEGRATION" = true ] && echo " (skipped)" || echo "")"
 echo "   • WHO dashboard data integrated$([ "$SKIP_WHO_INTEGRATION" = true ] && echo " (skipped)" || echo " (2023-2025 coverage)")"
+echo "   • All data sources combined into integrated baseline files"
+echo "   • Gap analysis data prepared$([ "$SKIP_GAP_ANALYSIS" = true ] && echo " (skipped)" || echo "")"
 echo "   • Country-specific search protocols generated"
 echo "   • 6-agent workflow files created"
 echo "   • Reference files organized in ./reference/"
-echo "   • Gap analysis data prepared$([ "$SKIP_GAP_ANALYSIS" = true ] && echo " (skipped)" || echo "")"
 echo ""
 echo "🚀 Ready to Execute:"
 echo "   1. Review CLAUDE.md for complete methodology"

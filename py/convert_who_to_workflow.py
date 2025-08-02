@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Configuration
+# Configuration - Updated path to match current OneDrive structure  
 WHO_DATA_PATH = "/Users/johngiles/Library/CloudStorage/OneDrive-Bill&MelindaGatesFoundation/Projects/MOSAIC/ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv"
 DATA_PATH = "./data"
 COUNTRY_MAPPING_PATH = "./reference/country_mapping.json"
@@ -173,8 +173,8 @@ def update_existing_data(country_iso, new_metadata, new_cholera_data):
     """Update existing country data files with WHO data."""
     
     country_path = os.path.join(DATA_PATH, country_iso)
-    metadata_file = os.path.join(country_path, "metadata.csv")
-    cholera_data_file = os.path.join(country_path, "cholera_data.csv")
+    metadata_file = os.path.join(country_path, "metadata_who.csv")
+    cholera_data_file = os.path.join(country_path, "cholera_data_who.csv")
     
     # Load existing data or create empty DataFrames
     try:

@@ -308,7 +308,10 @@ def main():
     # Create detailed time periods analysis
     detailed_periods = create_detailed_time_periods(results)
     periods_df = pd.DataFrame(detailed_periods)
-    periods_df = periods_df.sort_values('coverage_percentage')
+    
+    # Only sort if DataFrame is not empty
+    if not periods_df.empty and 'coverage_percentage' in periods_df.columns:
+        periods_df = periods_df.sort_values('coverage_percentage')
     
     # Save reference files
     quick_ref_file = f"{REFERENCE_PATH}/agent_quick_reference.csv"
@@ -360,9 +363,13 @@ def main():
     
     logger.info("📈 INTEGRATED BASELINE DATA SUMMARY:")
     logger.info(f"• Total observations: {total_obs:,}")
-    logger.info(f"• JHU database: {total_jhu:,} observations ({total_jhu/total_obs*100:.1f}%)")
-    logger.info(f"• WHO dashboard: {total_who:,} observations ({total_who/total_obs*100:.1f}%)")
-    logger.info(f"• AI-mined: {total_ai:,} observations ({total_ai/total_obs*100:.1f}%)")
+    if total_obs > 0:
+        logger.info(f"• JHU database: {total_jhu:,} observations ({total_jhu/total_obs*100:.1f}%)")
+        logger.info(f"• WHO dashboard: {total_who:,} observations ({total_who/total_obs*100:.1f}%)")
+        logger.info(f"• AI-mined: {total_ai:,} observations ({total_ai/total_obs*100:.1f}%)")
+    else:
+        logger.info("• No observations found - baseline data conversion needed first")
+        logger.info("• Run JHU and WHO conversion scripts to create integrated baseline data")
     logger.info("")
     
     # Priority country details

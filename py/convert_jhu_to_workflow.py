@@ -19,8 +19,8 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Configuration
-JHU_DATA_PATH = "/Users/johngiles/OneDrive/Projects/MOSAIC/jhu_cholera_data/data"
+# Configuration - Updated path to match current OneDrive structure
+JHU_DATA_PATH = "/Users/johngiles/Library/CloudStorage/OneDrive-Bill&MelindaGatesFoundation/Projects/MOSAIC/jhu_cholera_data/data"
 OUTPUT_DATA_PATH = "./data"
 REFERENCE_PATH = "./reference"
 
@@ -337,9 +337,13 @@ def process_country(country_name, country_iso):
         # Add Index column to data (sequential numbering)
         workflow_data_df.insert(0, 'Index', range(1, len(workflow_data_df) + 1))
         
-        # Save to CSV files
-        workflow_data_df.to_csv(f"{output_country_path}/cholera_data.csv", index=False)
-        workflow_metadata_df.to_csv(f"{output_country_path}/metadata.csv", index=False)
+        # Save to source-specific CSV files (JHU baseline)
+        data_file_path = f"{output_country_path}/cholera_data_jhu.csv"
+        metadata_file_path = f"{output_country_path}/metadata_jhu.csv"
+        
+        workflow_data_df.to_csv(data_file_path, index=False)
+        workflow_metadata_df.to_csv(metadata_file_path, index=False)
+        logger.info(f"Created JHU baseline for {country_name}: {len(workflow_data_df)} observations, {len(workflow_metadata_df)} sources")
         
         logger.info(f"Successfully converted {country_name}: {len(workflow_data_df)} observations, {len(workflow_metadata_df)} sources")
         return True
