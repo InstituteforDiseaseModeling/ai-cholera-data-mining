@@ -5,6 +5,7 @@
 # This script provides a simple command for agents to update all dashboard data:
 # - Completion checklist (based on file analysis)
 # - 3-source timeline coverage plots (with synchronized date ranges)
+# - Coverage heatmaps (national and sub-national data visualization)
 # - Timeline week counts data (embedded in dashboard)
 # - All data source embedding (AI-mined, WHO, and JHU data)
 # - Dashboard HTML with all embedded data
@@ -60,6 +61,7 @@ echo "✅ All Python dependencies available"
 echo "📁 Validating directory structure..."
 ensure_directory "dashboard"
 ensure_directory "dashboard/timeline_plots"
+ensure_directory "dashboard/heatmaps"
 ensure_directory "py"
 
 # Run the unified dashboard data update script with error handling
@@ -69,6 +71,15 @@ if ! python py/update_dashboard_data.py; then
     exit 1
 fi
 echo "✅ Dashboard data update completed"
+
+# Generate coverage heatmaps with error handling
+echo ""
+echo "🗺️ Generating coverage heatmaps..."
+if ! python py/generate_coverage_heatmap.py; then
+    echo "❌ ERROR: Coverage heatmap generation failed"
+    exit 1
+fi
+echo "✅ Coverage heatmaps generated"
 
 # Embed all data sources (AI-mined, WHO, JHU) with error handling
 echo ""
@@ -86,6 +97,7 @@ echo "🔄 Committing dashboard updates to GitHub..."
 safe_git_add "dashboard/completion_checklist.csv"
 safe_git_add "dashboard/timeline_week_counts.csv"
 safe_git_add "dashboard/timeline_plots/"
+safe_git_add "dashboard/heatmaps/"
 safe_git_add "dashboard/dashboard.html"
 
 # Check if there are changes to commit
