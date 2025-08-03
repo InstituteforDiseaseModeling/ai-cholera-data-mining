@@ -131,18 +131,8 @@ else
 fi
 echo ""
 
-# Step 4: Combine all data sources
-echo "🔄 Step 4: Combining all data sources into integrated baseline..."
-python py/combine_all_sources.py || {
-    echo "❌ Data source combination failed"
-    exit 1
-}
-echo "   ✅ Combined JHU, WHO, and AI sources into cholera_data.csv"
-echo "   ✅ Created unified metadata.csv with dual-reference indexing"
-echo ""
-
-# Step 5: Generate integrated baseline gap analysis
-echo "📊 Step 5: Generating integrated baseline gap analysis..."
+# Step 4: Generate integrated baseline gap analysis
+echo "📊 Step 4: Generating integrated baseline gap analysis..."
 if [ "$SKIP_GAP_ANALYSIS" = true ]; then
     echo "   ⚠️  Skipping gap analysis (surveillance data not available)"
     echo "   Agents will use existing reference files if available"
@@ -157,31 +147,48 @@ else
 fi
 echo ""
 
-# Step 6: Set up country directories and workflows
-echo "📁 Step 6: Setting up country directories and workflows..."
+# Step 5: Set up country directories and configuration
+echo "📁 Step 5: Setting up country directories and configuration..."
 python py/configure_countries.py || {
     echo "❌ Country setup failed"
     exit 1
 }
 echo "   ✅ Created 40 country directories"
-echo "   ✅ Generated 40 search protocol files"
-echo "   ✅ Generated 40 agentic workflow files"  
 echo "   ✅ Generated comprehensive country information key"
 echo "   ✅ Generated execution checklist"
+echo ""
+
+# Step 6: Generate country-specific prompt files
+echo "🤖 Step 6: Generating country-specific prompt files..."
+python py/generate_country_prompt.py --all || {
+    echo "❌ Country prompt generation failed"
+    exit 1
+}
+echo "   ✅ Generated 40 country-specific prompt files"
+echo "   ✅ Created prompt_{ISO}.txt for each country"
+echo "   ✅ Simple Task tool invocations for workflow orchestrator subagent"
+echo ""
+
+# Step 7: Clean up obsolete files
+echo "🧹 Step 7: Cleaning up obsolete workflow files..."
+find data -name "search_protocol_*.txt" -delete 2>/dev/null || true
+find data -name "agentic_workflow_*.txt" -delete 2>/dev/null || true
+echo "   ✅ Removed obsolete search_protocol_*.txt files"
+echo "   ✅ Removed obsolete agentic_workflow_*.txt files"
+echo "   ✅ Workflow now uses orchestrator files exclusively"
 echo ""
 
 # Verification
 echo "🔍 Verifying setup..."
 
 EXPECTED_DIRS=$(find data -maxdepth 1 -type d | grep -E '/[A-Z]{3}$' | wc -l)
-EXPECTED_PROTOCOLS=$(find data -name "search_protocol_*.txt" | wc -l)  
-EXPECTED_WORKFLOWS=$(find data -name "agentic_workflow_*.txt" | wc -l)
+EXPECTED_PROMPTS=$(find data -name "prompt_*.txt" | wc -l)
 
-if [ "$EXPECTED_DIRS" -eq 40 ] && [ "$EXPECTED_PROTOCOLS" -eq 40 ] && [ "$EXPECTED_WORKFLOWS" -eq 40 ]; then
-    echo "✅ Verification passed: All country files created successfully"
+if [ "$EXPECTED_DIRS" -eq 40 ] && [ "$EXPECTED_PROMPTS" -eq 40 ]; then
+    echo "✅ Verification passed: All country directories and prompt files created successfully"
 else
-    echo "⚠️  Verification warning: Expected 40 directories, protocols, and workflows"
-    echo "   Found: $EXPECTED_DIRS directories, $EXPECTED_PROTOCOLS protocols, $EXPECTED_WORKFLOWS workflows"
+    echo "⚠️  Verification warning: Expected 40 directories and prompt files"
+    echo "   Found: $EXPECTED_DIRS directories, $EXPECTED_PROMPTS prompt files"
 fi
 
 # Check reference files
@@ -200,17 +207,18 @@ echo "📋 Setup Summary:"
 echo "   • 40 MOSAIC framework countries configured"
 echo "   • JHU cholera database integrated as baseline$([ "$SKIP_JHU_INTEGRATION" = true ] && echo " (skipped)" || echo "")"
 echo "   • WHO dashboard data integrated$([ "$SKIP_WHO_INTEGRATION" = true ] && echo " (skipped)" || echo " (2023-2025 coverage)")"
-echo "   • All data sources combined into integrated baseline files"
+echo "   • Separate baseline files maintained: cholera_data_jhu.csv, cholera_data_who.csv, cholera_data_ai.csv"
 echo "   • Gap analysis data prepared$([ "$SKIP_GAP_ANALYSIS" = true ] && echo " (skipped)" || echo "")"
-echo "   • Country-specific search protocols generated"
-echo "   • 6-agent workflow files created"
+echo "   • Country information database generated"
+echo "   • Execution checklist created"
+echo "   • Country-specific prompt files generated for workflow orchestrator subagent"
 echo "   • Reference files organized in ./reference/"
 echo ""
 echo "🚀 Ready to Execute:"
 echo "   1. Review CLAUDE.md for complete methodology"
-echo "   2. Use data/{ISO_CODE}/search_protocol_{ISO_CODE}.txt for individual countries"  
-echo "   3. Use data/{ISO_CODE}/agentic_workflow_{ISO_CODE}.txt for full 6-agent pipeline"
-echo "   4. Track progress with country_checklist.txt"
+echo "   2. Create workflow orchestrator subagent using ./subagents/agent_0_workflow_orchestrator.md"
+echo "   3. Use data/{ISO_CODE}/prompt_{ISO_CODE}.txt files for simple workflow execution"
+echo "   4. Track progress with dashboard/completion_checklist.csv"
 echo ""
 echo "💡 Next Steps:"
 echo "   • Countries now have dual-source baseline data (JHU + WHO dashboard)"

@@ -202,8 +202,8 @@ python py/configure_countries.py              # Template generation
 # Update unified dashboard after agent completion
 bash update_dashboard.sh
 
-# Generate specialized analysis datasets
-python py/generate_weekly_surveillance_longform.py
+# Generate specialized analysis datasets (optional)
+# python py/generate_weekly_surveillance_longform.py  # REMOVED - no longer needed
 python py/generate_monthly_surveillance_matrix_v2.py
 ```
 
@@ -230,7 +230,7 @@ ai-cholera-data-mining/
 ├── dashboard/                      # Real-time progress tracking
 │   ├── completion_checklist.csv   # Automated country status tracking
 │   ├── dashboard.html             # Interactive dashboard
-│   └── timeline_plots/            # Coverage visualization
+│   └── timeline_plots_dual/       # Dual timeline visualization (national vs sub-national)
 ├── py/                            # Core Python utilities
 │   ├── analyze_integrated_coverage_gaps.py  # NEW: Integrated gap analysis
 │   ├── convert_jhu_to_workflow.py          # NEW: JHU baseline integration

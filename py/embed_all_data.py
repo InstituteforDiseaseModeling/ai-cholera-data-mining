@@ -188,14 +188,23 @@ def embed_all_data():
                 lines = len(metadata_content.split('\n')) - 1
                 print(f"✅ Loaded AI metadata for {iso} ({lines} sources)")
         
-        # Read cholera_data.csv
-        cholera_file = data_dir / 'cholera_data.csv'
-        if cholera_file.exists():
-            cholera_content = read_csv_safe(cholera_file)
+        # Read cholera_data_ai.csv (prioritize AI-specific file)
+        cholera_ai_file = data_dir / 'cholera_data_ai.csv'
+        if cholera_ai_file.exists():
+            cholera_content = read_csv_safe(cholera_ai_file)
             if cholera_content:
                 ai_data['cholera_data'][iso] = escape_for_javascript(cholera_content)
                 lines = len(cholera_content.split('\n')) - 1
                 print(f"✅ Loaded AI cholera data for {iso} ({lines} observations)")
+        else:
+            # Fallback to unified cholera_data.csv if AI-specific file doesn't exist
+            cholera_file = data_dir / 'cholera_data.csv'
+            if cholera_file.exists():
+                cholera_content = read_csv_safe(cholera_file)
+                if cholera_content:
+                    ai_data['cholera_data'][iso] = escape_for_javascript(cholera_content)
+                    lines = len(cholera_content.split('\n')) - 1
+                    print(f"✅ Loaded fallback cholera data for {iso} ({lines} observations)")
     
     # Generate JavaScript code for embedding AI-mined data only
     metadata_js = "{\n"

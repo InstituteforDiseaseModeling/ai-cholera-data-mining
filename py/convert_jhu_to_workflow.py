@@ -10,9 +10,7 @@ Handles variable JHU file formats and column structures robustly.
 
 import pandas as pd
 import os
-import json
 from pathlib import Path
-from datetime import datetime
 import logging
 
 # Setup logging
@@ -381,22 +379,10 @@ def main():
     if failed_countries:
         logger.info(f"Failed: {', '.join(failed_countries)}")
     
-    # Generate summary report
-    summary = {
-        'conversion_date': datetime.now().isoformat(),
-        'total_countries': total_count,
-        'successful_conversions': success_count,
-        'failed_conversions': total_count - success_count,
-        'successful_countries': successful_countries,
-        'failed_countries': failed_countries,
-        'source': 'JHU Cholera Database',
-        'conversion_script': 'py/convert_jhu_to_workflow_fixed.py'
-    }
-    
-    with open(f"{OUTPUT_DATA_PATH}/jhu_conversion_summary.json", 'w') as f:
-        json.dump(summary, f, indent=2)
-    
-    logger.info("JHU conversion summary saved to data/jhu_conversion_summary.json")
+    # Final summary logging
+    logger.info(f"JHU conversion completed: {success_count}/{total_count} countries successful")
+    if failed_countries:
+        logger.warning(f"Failed countries: {', '.join(failed_countries)}")
 
 if __name__ == "__main__":
     main()

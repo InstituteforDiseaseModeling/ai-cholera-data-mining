@@ -46,19 +46,34 @@ def load_all_country_data():
     all_data = []
     
     for country_iso, country_info in country_mapping.items():
-        country_data_path = f"{DATA_PATH}/{country_iso}/cholera_data.csv"
+        # Try separate files first, then unified file as fallback
+        country_data_paths = [
+            f"{DATA_PATH}/{country_iso}/cholera_data_jhu.csv",
+            f"{DATA_PATH}/{country_iso}/cholera_data_who.csv", 
+            f"{DATA_PATH}/{country_iso}/cholera_data_ai.csv",
+            f"{DATA_PATH}/{country_iso}/cholera_data.csv"  # Fallback unified file
+        ]
         
-        if os.path.exists(country_data_path):
-            try:
-                df = pd.read_csv(country_data_path)
-                if len(df) > 0:
-                    df['country_iso'] = country_iso
-                    df['country_name'] = country_info['name']
-                    all_data.append(df)
-                    logger.info(f"Loaded {len(df)} observations from {country_iso}")
-            except Exception as e:
-                logger.warning(f"Error loading {country_iso}: {e}")
-                continue
+        country_data_combined = []
+        for data_path in country_data_paths:
+            if os.path.exists(data_path):
+                try:
+                    df = pd.read_csv(data_path)
+                    if len(df) > 0:
+                        df['country_iso'] = country_iso
+                        df['country_name'] = country_info['name']
+                        country_data_combined.append(df)
+                        logger.info(f"Loaded {len(df)} observations from {os.path.basename(data_path)} for {country_iso}")
+                except Exception as e:
+                    logger.warning(f"Error reading {data_path}: {e}")
+        
+        # Combine all data sources for this country
+        if country_data_combined:
+            combined_df = pd.concat(country_data_combined, ignore_index=True)
+            all_data.append(combined_df)
+            logger.info(f"Combined {len(combined_df)} total observations for {country_iso}")
+        else:
+            logger.info(f"No data files found for {country_iso}")
     
     if not all_data:
         logger.error("No country data found!")
@@ -239,7 +254,8 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
     logger.info(f"✅ {data_type} heatmap saved: {output_file}")
     
-    plt.show()
+    # Close the figure to free memory
+    plt.close()
     
     return output_file
 

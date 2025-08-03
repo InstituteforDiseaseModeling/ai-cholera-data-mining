@@ -467,11 +467,22 @@ def load_separated_surveillance_data(base_path: Path) -> pd.DataFrame:
 def load_ai_enhanced_data(base_path: Path, iso_code: str) -> pd.DataFrame:
     """Load AI-enhanced data and convert to weekly format"""
     
-    cholera_file = base_path / "data" / iso_code / "cholera_data.csv"
-    ai_data = []
+    # Try separate files first, then unified as fallback
+    cholera_files = [
+        base_path / "data" / iso_code / "cholera_data_ai.csv",    # AI-specific data
+        base_path / "data" / iso_code / "cholera_data.csv"       # Fallback unified file
+    ]
     
-    if not cholera_file.exists():
+    cholera_file = None
+    for file_path in cholera_files:
+        if file_path.exists():
+            cholera_file = file_path
+            break
+    
+    if cholera_file is None:
         return pd.DataFrame()
+    
+    ai_data = []
     
     try:
         with open(cholera_file, 'r', encoding='utf-8') as f:
@@ -868,54 +879,29 @@ def update_all_dashboard_data(base_path: Path):
     print(f"✅ Completion checklist updated: {csv_file}")
     
     # ========================================================================
-    # 2. GENERATE TIMELINE PLOTS
+    # 2. GENERATE DUAL TIMELINE PLOTS (via separate script)
     # ========================================================================
-    print("\n📊 STEP 2: Generating 3-source timeline coverage plots...")
+    print("\n📊 STEP 2: Generating dual timeline coverage plots...")
     
-    # Load surveillance data
-    surveillance_df = load_separated_surveillance_data(base_path)
+    # Call the dual timeline plots script
+    import subprocess
+    result = subprocess.run(['python', 'py/generate_dual_timeline_plots.py'], 
+                          capture_output=True, text=True, cwd=base_path)
     
-    # Find global date range across all countries
-    global_min_date, global_max_date = find_global_date_range(base_path, mosaic_countries)
+    if result.returncode == 0:
+        print("✅ Dual timeline plots generated successfully")
+    else:
+        print(f"❌ Error generating dual timeline plots: {result.stderr}")
+        # Continue anyway - don't fail the entire dashboard update
     
-    # Create output directory
-    output_dir = base_path / "dashboard" / "timeline_plots"
-    output_dir.mkdir(exist_ok=True)
-    
-    print(f"Using consistent date range: {global_min_date.strftime('%Y-%m-%d')} to {global_max_date.strftime('%Y-%m-%d')}")
-    
-    countries_with_data = 0
-    
-    for iso_code, country_info in mosaic_countries.items():
-        country_name = country_info.get('name', iso_code)
-        print(f"  Processing {country_name} ({iso_code})...")
-        
-        # Get surveillance data for this country
-        if not surveillance_df.empty and 'iso_code' in surveillance_df.columns:
-            country_surveillance = surveillance_df[surveillance_df['iso_code'] == iso_code]
-        else:
-            country_surveillance = pd.DataFrame()
-        
-        # Get AI data for this country
-        country_ai = load_ai_enhanced_data(base_path, iso_code)
-        
-        # Combine all data
-        country_data = pd.concat([country_surveillance, country_ai], ignore_index=True)
-        
-        if country_data.empty:
-            print(f"    No data found for {country_name}")
-            # Still create an empty plot for countries without data
-            # Create empty dataframe with required columns for plotting
-            country_data = pd.DataFrame(columns=['source', 'week_start'])
-        
-        # Create timeline plot
-        try:
-            create_3source_timeline_plot(country_data, country_name, iso_code, output_dir, global_min_date, global_max_date)
-            countries_with_data += 1
-        except Exception as e:
-            print(f"    Error creating plot for {country_name}: {e}")
-    
-    print(f"✅ Timeline plots generated for {countries_with_data} countries")
+    # Count countries with plots for summary
+    timeline_dir = base_path / "dashboard" / "timeline_plots_dual"
+    if timeline_dir.exists():
+        plot_files = list(timeline_dir.glob("*_dual_timeline.png"))
+        countries_with_data = len(plot_files)
+        print(f"📊 Dual timeline plots: {countries_with_data} countries processed")
+    else:
+        countries_with_data = 0
     
     # ========================================================================
     # 3. UPDATE DASHBOARD HTML
@@ -944,7 +930,8 @@ def update_all_dashboard_data(base_path: Path):
     print(f"📈 Progress: {completed/len(updated_data)*100:.1f}% complete")
     
     # Timeline plots summary
-    print(f"\n📊 Timeline Plots: {output_dir}")
+    timeline_dir = base_path / "dashboard" / "timeline_plots_dual"
+    print(f"\n📊 Dual Timeline Plots: {timeline_dir}")
     print(f"🎨 Countries with plots: {countries_with_data}")
     
     

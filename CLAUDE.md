@@ -8,17 +8,85 @@
 
 ## Data Sources & Hierarchy
 
-**Integrated Baseline**: JHU historical database + WHO dashboard surveillance (pre-integrated in `./data/{ISO}/cholera_data.csv`)  
+**Separate Source Files Architecture**: Each country now maintains separate baseline data files:
+- `./data/{ISO}/cholera_data_jhu.csv` - JHU historical database (1970-2020+ surveillance data)
+- `./data/{ISO}/cholera_data_who.csv` - WHO dashboard data (recent 2023-2025 surveillance)  
+- `./data/{ISO}/cholera_data_ai.csv` - AI discoveries (agents work with this file only)
+
 **AI Enhancement Tiers**: Level 1 (WHO/MoH) → Level 2 (UNICEF/Academic) → Level 3 (News/NGO) → Level 4 (Local/Social)  
-**Data Architecture**: Integrated JHU/WHO baseline → AI gap-filling enhancement → Validated enhanced dataset
+**Data Architecture**: Separate JHU/WHO baseline files → AI gap-filling enhancement (cholera_data_ai.csv) → Validated enhanced dataset
 
 ## Core Methodology
 
 **Workflow**: Integrated baseline analysis → Gap identification (≥7 days) → AI systematic enhancement → Data validation  
-**Output Format**: Enhanced cholera_data.csv with integrated JHU/WHO baseline + AI discoveries using dual-reference indexing  
-**Deliverables**: search_report.txt, enhanced metadata.csv, enhanced cholera_data.csv, individual search_log_agent_X.txt files
+**Output Format**: Enhanced cholera_data_ai.csv with AI discoveries using dual-reference indexing, separate from JHU/WHO baseline files  
+**Deliverables**: search_report.txt, enhanced metadata_ai.csv, enhanced cholera_data_ai.csv, individual search_log_agent_X.txt files
 **Progress Tracking**: dashboard/completion_checklist.csv (automatically updated from file system analysis)
 **Gap Analysis**: `py/analyze_integrated_coverage_gaps.py` generates reference files from actual baseline data
+
+## Orchestrator-Based Workflow Architecture
+
+**NEW WORKFLOW EXECUTION MODEL**: The system now uses a **workflow orchestrator** pattern for systematic country-specific data enhancement.
+
+### Country-Specific Orchestrator Files
+
+**Location**: `./data/{ISO_CODE}/workflow_orchestrator_{ISO_CODE}.txt`
+**Purpose**: Pre-configured, country-specific instructions for complete 6-agent workflow execution
+**Generation**: Use `python py/generate_country_orchestrator.py {ISO_CODE}` to create orchestrator files
+
+**Orchestrator Benefits**:
+- **Country-Specific Parameters**: Gap periods, neighboring countries, major cities, languages, administrative levels
+- **Complete Workflow Instructions**: All 6 agents with specialized subagent configurations
+- **Performance Standards**: Batch requirements, stopping criteria, and success metrics tailored to country priority
+- **Quality Specifications**: Country-specific validation requirements and deliverable standards
+
+### Specialized Subagent Architecture
+
+**Location**: `./subagents/agent_X_*.md` - Individual agent configurations and system prompts
+**Access Method**: Use Task tool with specific subagent_type parameters:
+- `cholera-baseline-collector` (Agent 1)
+- `geographic-expansion-specialist` (Agent 2)  
+- `zero-transmission-validator` (Agent 3)
+- `obscure-source-explorer` (Agent 4)
+- `cross-reference-integrator` (Agent 5)
+- `cholera-quality-auditor` (Agent 6)
+
+### Workflow Execution Protocol
+
+**NEW EXECUTION METHOD**: Use orchestrator files with Task tool for country-specific workflow execution.
+
+#### Step 1: Generate/Load Orchestrator File
+```bash
+# Generate country-specific orchestrator (if not exists)
+python py/generate_country_orchestrator.py {ISO_CODE}
+
+# Example: Generate for Ethiopia
+python py/generate_country_orchestrator.py ETH
+```
+
+#### Step 2: Execute Orchestrator-Based Workflow
+```python
+# Load and execute country-specific workflow instructions
+orchestrator_file = f"./data/{ISO_CODE}/workflow_orchestrator_{ISO_CODE}.txt"
+
+# Read orchestrator instructions and execute via Task tool
+# Each agent uses specialized subagent types:
+Task(description="Agent 1 Baseline Collection", 
+     prompt=orchestrator_instructions_agent_1, 
+     subagent_type="cholera-baseline-collector")
+
+Task(description="Agent 2 Geographic Expansion", 
+     prompt=orchestrator_instructions_agent_2, 
+     subagent_type="geographic-expansion-specialist")
+
+# Continue for all 6 agents...
+```
+
+#### Step 3: Monitor Progress via Dashboard
+```bash
+# Update dashboard after each agent completion
+bash update_dashboard.sh
+```
 
 ## Dashboard Management
 
@@ -35,7 +103,7 @@ bash update_dashboard.sh
 ### **AGENT RESPONSIBILITIES** (What Agents Should Do):
 
 **✅ FOCUS ON DATA COLLECTION:**
-- Create/update cholera_data.csv and metadata.csv files (all agents)
+- Create/update cholera_data_ai.csv and metadata_ai.csv files (all agents)
 - Complete individual agent search logs (Agents 1-6: search_log_agent_X.txt)
 - Generate quality audit and brief search_report.txt (Agent 6 only)
 - Document all work in proper file formats
@@ -55,7 +123,7 @@ bash update_dashboard.sh
 
 **Automatic Metrics**:
 - **Sources**: Count from metadata.csv
-- **Observations**: Count from cholera_data.csv rows
+- **Observations**: Count from cholera_data_ai.csv rows
 - **Date Range**: Calculated from TL/TR columns
 - **Execution Time**: Estimated from query counts
 - **Progress**: Real-time based on file system state
@@ -73,21 +141,58 @@ bash update_dashboard.sh
 ### Pre-Search Requirements (MANDATORY)
 
 1. **Load Reference Files**: Read `./reference/agent_quick_reference.csv` for country-specific gaps (generated from integrated baseline analysis)
-2. **Identify Priority Periods**: Focus searches on specific missing date ranges (≥7 days gaps) identified from actual baseline data
-3. **Apply Temporal Filters**: Include missing years/periods in ALL search queries targeting gaps in integrated JHU/WHO baseline
-4. **Prioritize High-Gap Countries**: Begin with HIGH priority countries (<70% coverage) based on meaningful observations in baseline data
+2. **Load Agent-Specific Gap Files**: Each agent must load their specialized gap targeting file:
+   - **Agent 1**: `./reference/agent_1_priority_gaps.csv` (50 CRITICAL/HIGH priority national/provincial gaps ≥30 days)
+   - **Agent 2**: `./reference/agent_2_geographic_gaps.csv` (40 district/municipal level gaps for geographic expansion)
+   - **Agent 3**: `./reference/agent_3_validation_gaps.csv` (60 gaps 7 days-1 year for zero-transmission validation)
+   - **Agent 4**: `./reference/agent_4_historical_gaps.csv` (30 historical/obscure gaps >5 years old or ≥3 years duration)
+   - **Agent 5**: Use comprehensive inventory `./reference/comprehensive_gaps_inventory.csv` for cross-reference integration
+   - **Agent 6**: Quality audit using all gap files for validation completeness
+3. **Identify Priority Periods**: Focus searches on specific missing date ranges (≥7 days gaps) identified from actual baseline data
+4. **Apply Enhanced Context**: Use seasonal_context, outbreak_scale, and geographic_level data for targeted query generation
+5. **Prioritize High-Gap Countries**: Begin with HIGH priority countries (<70% coverage) based on meaningful observations in baseline data
 
-### Gap-Targeted Query Strategy
+### Enhanced Gap-Targeted Query Strategy
 
-**MANDATORY QUERY MODIFICATION**: All searches must include temporal constraints targeting missing periods.
+**MANDATORY QUERY MODIFICATION**: All searches must include temporal constraints targeting missing periods with enhanced contextual targeting using the comprehensive gap analysis data.
 
-**Standard Query**: `"Angola cholera outbreak WHO"`
-**Gap-Targeted Query**: `"Angola cholera outbreak WHO 2019 2020 2021 2022"` (targeting specific missing years)
+#### **Standard Query Enhancement:**
+**Basic Query**: `"Angola cholera outbreak WHO"`
+**Enhanced Gap-Targeted Query**: `"Angola national cholera outbreak WHO dry season 2019-2025 surveillance following minimal outbreak Luanda"`
 
-**Template Examples**:
-- `"{Country} cholera cases {missing_year_1} {missing_year_2}"` 
-- `"{Country} cholera surveillance {gap_start_year}-{gap_end_year}"`
-- `"{Country} cholera outbreak {specific_missing_period}"`
+#### **Context-Enhanced Query Templates:**
+
+**Geographic Context Queries**:
+- `"{Country} {geographic_level} cholera cases {gap_start_year}-{gap_end_year}"` 
+- `"{Country} {specific_province} cholera surveillance {gap_period}"`
+- `"{Country} {district_name} cholera outbreak {seasonal_context}"`
+
+**Seasonal Context Queries**:
+- `"{Country} cholera {seasonal_context} {gap_years}"` (e.g., "Ethiopia cholera dry season 2019-2022")
+- `"{Country} cholera rainy season outbreak {gap_period}"` 
+- `"{Country} cholera flooding epidemic {specific_dates}"`
+
+**Outbreak Scale Context Queries**:
+- `"{Country} cholera following {preceding_outbreak_scale} outbreak {gap_period}"` 
+- `"{Country} cholera surveillance after {outbreak_magnitude} epidemic {gap_dates}"`
+- `"{Country} cholera cases between {preceding_location} {following_location} outbreaks"`
+
+#### **Priority-Based Query Generation:**
+
+**For CRITICAL Priority Gaps (Score 85-100)**:
+```
+"{Country} {geographic_level} cholera {seasonal_context} {gap_start_year}-{gap_end_year} {preceding_outbreak_scale} outbreak surveillance WHO UNICEF government"
+```
+
+**For HIGH Priority Gaps (Score 70-84)**:
+```
+"{Country} cholera {gap_period} {seasonal_context} surveillance {geographic_level}"
+```
+
+**For MEDIUM Priority Gaps (Score 50-69)**:
+```
+"{Country} cholera cases {gap_years} {seasonal_context}"
+```
 
 ### Reference File Usage Protocol
 
@@ -152,14 +257,107 @@ FOR EACH COUNTRY:
 
 **RESULT EXPECTATION**: Either fill identified gaps with data OR confirm no cholera transmission with evidence
 
+## COMPREHENSIVE GAP ANALYSIS WORKFLOW INTEGRATION
+
+**CRITICAL UPDATE**: The gap analysis system now provides comprehensive enumeration of ALL gaps ≥7 days with sophisticated prioritization. Agents must follow this enhanced workflow.
+
+### **Step 1: Pre-Work Gap Analysis Loading (ALL AGENTS)**
+
+**MANDATORY before any searches**:
+```python
+# Load your agent-specific gap targeting file
+agent_gaps_df = pd.read_csv(f'./reference/agent{AGENT_NUMBER}_{AGENT_TYPE}_gaps.csv')
+
+# Example for Agent 1:
+agent1_gaps = pd.read_csv('./reference/agent_1_priority_gaps.csv')
+
+# Sort by priority score (highest first)
+target_gaps = agent1_gaps.sort_values('priority_score', ascending=False)
+
+# Focus on top-priority gaps first
+critical_gaps = target_gaps[target_gaps['priority_tier'] == 'CRITICAL']
+high_gaps = target_gaps[target_gaps['priority_tier'] == 'HIGH']
+```
+
+### **Step 2: Context-Enhanced Query Generation**
+
+**Use gap context data for targeted queries**:
+```python
+for _, gap in target_gaps.iterrows():
+    country = gap['country']
+    iso_code = gap['iso_code']
+    gap_start = gap['gap_start']
+    gap_end = gap['gap_end']
+    seasonal_context = gap['seasonal_context']
+    geographic_level = gap['geographic_level']
+    preceding_scale = gap['preceding_outbreak_scale']
+    following_scale = gap['following_outbreak_scale']
+    
+    # Generate context-enhanced queries
+    query = f"{country} {geographic_level} cholera {seasonal_context} {gap_start}-{gap_end} surveillance following {preceding_scale} outbreak"
+    
+    # Execute WebSearch with enhanced query
+    WebSearch(query)
+```
+
+### **Step 3: Priority-Based Search Allocation**
+
+**Agent-Specific Priority Targeting**:
+
+**Agent 1**: Start with priority_score ≥ 90 (CRITICAL), then 85-89 (HIGH), focus on national/provincial only
+**Agent 2**: Target provincial/district gaps with geographic expansion potential (geographic_level != 'national')
+**Agent 3**: Focus on gaps 7-365 days for absence validation, start with recent gaps (gap_end >= 2020)
+**Agent 4**: Target historical gaps (gap_end < 2018) or very long gaps (gap_days >= 1095)
+**Agent 5**: Use comprehensive inventory for cross-reference validation across all priority levels
+
+### **Step 4: Gap-Specific Search Strategies**
+
+**Seasonal Context Targeting**:
+- **dry_season gaps**: Target water scarcity, drought monitoring, health system reports
+- **rainy_season gaps**: Target flooding, WASH disruption, refugee/displacement reports  
+- **pre_rainy gaps**: Target preparation, vaccination campaigns, early warning systems
+- **post_rainy gaps**: Target recovery, surveillance strengthening, outbreak aftermath
+
+**Geographic Level Targeting**:
+- **national gaps**: Target WHO country reports, government health ministry data, academic papers
+- **provincial gaps**: Target regional WHO offices, provincial health departments, NGO field reports
+- **district gaps**: Target local health centers, district surveillance, community health programs
+- **municipal gaps**: Target urban health systems, refugee camps, border health posts
+
+**Outbreak Scale Context Targeting**:
+- **Following major/large outbreaks**: Search for epidemic aftermath, system recovery, lessons learned
+- **Following minimal/small outbreaks**: Search for early detection, rapid response, containment efforts
+- **Between outbreak periods**: Focus on surveillance system validation, zero-transmission confirmation
+
+### **Step 5: Mandatory Gap Documentation**
+
+**For each targeted gap, agents must**:
+1. **Document Search Attempts**: Record which gaps were searched with what queries
+2. **Document Results**: Note if gap was filled with data or validated as zero-transmission
+3. **Document Remaining Gaps**: Identify gaps that still need attention
+4. **Update Gap Status**: Mark gaps as addressed/validated/remaining in search logs
+
+**Search Log Template Enhancement**:
+```
+=== GAP-TARGETED SEARCH BATCH X ===
+Target Gap: {country} {gap_start} to {gap_end} ({gap_days} days, {priority_score} score)
+Context: {seasonal_context}, {geographic_level}, following {preceding_outbreak_scale} outbreak
+Queries Executed: [list enhanced queries with context]
+Results: [data found/zero-transmission validated/gap remains]
+CSV Updates: [specific rows added to cholera_data_ai.csv]
+Gap Status: FILLED/VALIDATED/REMAINING
+```
+
 ## INTEGRATED BASELINE DATA ANALYSIS
 
-**FOUNDATION**: All countries start with integrated JHU/WHO baseline data pre-loaded in `./data/{ISO}/cholera_data.csv`
+**FOUNDATION**: All countries start with separate baseline data files for systematic gap-targeted enhancement
 
 ### Baseline Data Structure
-- **JHU Historical Database**: Comprehensive 1970-2020+ cholera surveillance data (source_database: 'JHU')
-- **WHO Dashboard Data**: Recent 2023-2025 surveillance updates (source_database: 'WHO')  
-- **AI Enhancement Target**: Fill gaps and add discoveries (source_database: 'AI')
+- **JHU Historical Database**: `./data/{ISO}/cholera_data_jhu.csv` - Comprehensive 1970-2020+ cholera surveillance data (source_database: 'JHU')
+- **WHO Dashboard Data**: `./data/{ISO}/cholera_data_who.csv` - Recent 2023-2025 surveillance updates (source_database: 'WHO')  
+- **AI Enhancement Target**: `./data/{ISO}/cholera_data_ai.csv` - Fill gaps and add discoveries (source_database: 'AI')
+
+**AGENT WORKFLOW**: Agents work exclusively with `cholera_data_ai.csv` to add new discoveries while baseline files remain separate for integration
 
 ### Coverage Analysis System
 ```bash
@@ -222,7 +420,8 @@ python py/generate_coverage_heatmap.py
 ## Data Standards
 
 **Directory**: `data/{ISO_CODE}/`  
-**Files**: search_report.txt, metadata.csv, cholera_data.csv, search_log_agent_1.txt, search_log_agent_2.txt, search_log_agent_3.txt, search_log_agent_4.txt, search_log_agent_5.txt, search_log_agent_6.txt
+**Files**: search_report.txt, metadata_ai.csv, cholera_data_ai.csv, search_log_agent_1.txt, search_log_agent_2.txt, search_log_agent_3.txt, search_log_agent_4.txt, search_log_agent_5.txt, search_log_agent_6.txt, workflow_orchestrator_{ISO_CODE}.txt
+**Baseline Files**: cholera_data_jhu.csv, cholera_data_who.csv (separate baseline data, read-only for agents)
 
 ### DUAL-REFERENCE INDEXING SYSTEM
 
@@ -230,19 +429,21 @@ python py/generate_coverage_heatmap.py
 
 **Protocol**: Sequential integer indices (1,2,3...) + exact source names  
 **Benefit**: Automated processing + human readability + error prevention  
-**Format**: metadata.csv Index column ↔ cholera_data.csv source_index column
+**Format**: metadata_ai.csv Index column ↔ cholera_data_ai.csv source_index column
 
 ### File Specifications
 
 **search_report.txt**: Brief summary created by Agent 6 only - key outcomes, data collected, sources found, and gap-filling results. Should include: total sources discovered, total data observations added, key gaps filled, overall data quality assessment, and remaining limitations.
 
-**metadata.csv** (15 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth, Cross_References, Discovery_Method, source_database
+**metadata_ai.csv** (15 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth, Cross_References, Discovery_Method, source_database
 
-**cholera_data.csv** (14 columns): Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes, source_database
+**cholera_data_ai.csv** (14 columns): Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes, source_database
+
+**CRITICAL**: Agents work exclusively with cholera_data_ai.csv and metadata_ai.csv files. Baseline files (cholera_data_jhu.csv, cholera_data_who.csv) are read-only references for gap analysis.
 
 ## COMPREHENSIVE COLUMN DEFINITIONS
 
-### cholera_data.csv Column Specifications
+### cholera_data_ai.csv Column Specifications
 
 **Location** (CRITICAL - Geographic Administrative Units ONLY):
 - **Purpose**: Geographic administrative unit where cholera cases/deaths occurred
@@ -321,7 +522,7 @@ python py/generate_coverage_heatmap.py
 
 ## CRITICAL DATA INCLUSION RULES
 
-### MANDATORY Requirements for cholera_data.csv Entry:
+### MANDATORY Requirements for cholera_data_ai.csv Entry:
 1. **Geographic Location**: Must be actual administrative unit (country/province/district)
 2. **Quantitative Data**: Must have specific numbers for cases, deaths, or CFR
 3. **Cholera-Specific**: Must be cholera cases/deaths, not vaccination/training/capacity data
@@ -344,11 +545,11 @@ BEFORE ADDING ANY ROW:
 □ Processing notes include exact source quote supporting interpretation
 ```
 
-**MANDATORY DATA INCLUSION REQUIREMENT**: Agents are **PROHIBITED** from adding any data observations (rows) to cholera_data.csv unless they can identify at least one cholera case value (sCh or cCh) **OR** can document a confirmed zero-transmission period. Sources that only mention cholera outbreaks without providing quantitative case counts **MUST NOT** be included in the data file. Only sources with identifiable case numbers, death counts, calculable epidemiological metrics, or validated absence periods qualify for data extraction.
+**MANDATORY DATA INCLUSION REQUIREMENT**: Agents are **PROHIBITED** from adding any data observations (rows) to cholera_data_ai.csv unless they can identify at least one cholera case value (sCh or cCh) **OR** can document a confirmed zero-transmission period. Sources that only mention cholera outbreaks without providing quantitative case counts **MUST NOT** be included in the data file. Only sources with identifiable case numbers, death counts, calculable epidemiological metrics, or validated absence periods qualify for data extraction.
 
 **MANDATORY ZERO-TRANSMISSION DOCUMENTATION PROTOCOL**:
 
-**CRITICAL REQUIREMENT**: All validated cholera-free periods MUST be documented as data observations in cholera_data.csv with the following specifications:
+**CRITICAL REQUIREMENT**: All validated cholera-free periods MUST be documented as data observations in cholera_data_ai.csv with the following specifications:
 
 **Zero-Transmission Data Entry Format**:
 ```
@@ -397,7 +598,7 @@ processing_notes: "Source confirms zero cholera transmission during [period] - v
 
 **Mandatory Pre-Entry Validation**
 ```
-BEFORE ADDING TO cholera_data.csv:
+BEFORE ADDING TO cholera_data_ai.csv:
 □ Number explicitly described as cholera "cases" (not vaccinated, population, density)
 □ Source context indicates disease incidence (not prevention/demographics)
 □ Quote exact source text supporting case interpretation
@@ -696,24 +897,24 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 #### **Completeness Requirements**
 **ALL deliverables must include:**
 - Search report (created by Agent 6 only) with brief outcome summary
-- Metadata CSV with enhanced indexing system (Index column + all required fields)
-- Data CSV in standardized JHU format with dual-reference system (source_index + source columns)
+- Metadata_ai.csv with enhanced indexing system (Index column + all required fields)
+- cholera_data_ai.csv in standardized JHU format with dual-reference system (source_index + source columns)
 - Quality assessment documentation
 - Validation report with all checks performed
 - Uncertainty quantification for all data points
 - Recommendations for future data collection
 
 #### **Enhanced Format Requirements (MANDATORY)**
-**Metadata CSV Format:**
+**Metadata_ai.csv Format:**
 - MUST include Index column with sequential integers (1, 2, 3...)
-- MUST include all 9 required columns in exact order
+- MUST include all 15 required columns in exact order
 - MUST have consistent Source names for data file referencing
 
-**Data CSV Format:**
-- MUST include source_index column referencing metadata Index numbers
-- MUST include source column with exact Source name from metadata
+**cholera_data_ai.csv Format:**
+- MUST include source_index column referencing metadata_ai.csv Index numbers
+- MUST include source column with exact Source name from metadata_ai.csv
 - MUST include confidence_weight column with quality-based weights
-- MUST include validation_status column with validation results
+- MUST include source_database column with 'AI' value for all agent discoveries
 
 #### **Quality Assurance Checklist**
 **MANDATORY verification before submission:**
@@ -740,13 +941,13 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 
 ## MANDATORY ZERO-TRANSMISSION DOCUMENTATION SUMMARY
 
-**CRITICAL REQUIREMENT FOR ALL AGENTS**: Every validated cholera-free period MUST be documented as a data observation in cholera_data.csv. This is not optional.
+**CRITICAL REQUIREMENT FOR ALL AGENTS**: Every validated cholera-free period MUST be documented as a data observation in cholera_data_ai.csv. This is not optional.
 
 **Examples of Required Zero-Transmission Entries**:
-- WHO surveillance reports: "no cholera cases reported in [Country] during [Year]" → MANDATORY cholera_data.csv entry
-- Academic studies: "decade-long absence 1997-2006" → MANDATORY cholera_data.csv entries for each year or period
-- Government reports: "cholera-free period following end of civil war" → MANDATORY cholera_data.csv entry
-- Regional analysis: "Country X remained cholera-free while neighbors experienced outbreaks" → MANDATORY cholera_data.csv entry
+- WHO surveillance reports: "no cholera cases reported in [Country] during [Year]" → MANDATORY cholera_data_ai.csv entry
+- Academic studies: "decade-long absence 1997-2006" → MANDATORY cholera_data_ai.csv entries for each year or period
+- Government reports: "cholera-free period following end of civil war" → MANDATORY cholera_data_ai.csv entry
+- Regional analysis: "Country X remained cholera-free while neighbors experienced outbreaks" → MANDATORY cholera_data_ai.csv entry
 
 **Quality Impact**: Zero-transmission documentation is essential for:
 1. **Complete time series**: MOSAIC models require knowledge of both presence AND absence of disease
@@ -759,7 +960,7 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 - **Agent 1**: Document any zero-transmission periods discovered during baseline searches
 - **Agent 2**: Document provincial-level absence periods where surveillance confirms zero cases
 - **Agent 3**: PRIMARY RESPONSIBILITY - systematically validate and document ALL cholera-free periods
-- **All Agents**: If absence periods are identified, MANDATORY documentation in cholera_data.csv
+- **All Agents**: If absence periods are identified, MANDATORY documentation in cholera_data_ai.csv
 
 **Validation Standard**: Zero-transmission entries require the same validation rigor as outbreak data - appropriate confidence weighting, source documentation, and cross-reference validation.
 
@@ -1196,23 +1397,23 @@ Given batches of 20 queries:
 
 #### **Data Observation Yield = Successful Queries Only**
 ```
-Batch Yield = (Number of queries that resulted in at least one new row added to cholera_data.csv / 20 queries) × 100%
+Batch Yield = (Number of queries that resulted in at least one new row added to cholera_data_ai.csv / 20 queries) × 100%
 
 **CRITICAL ERROR TO AVOID**: Do NOT count queries that only found cholera information.
-**MANDATORY**: After each batch, count ONLY the queries that successfully resulted in new cholera_data.csv additions.
+**MANDATORY**: After each batch, count ONLY the queries that successfully resulted in new cholera_data_ai.csv additions.
 **NOT** sources found, **NOT** potential data discovered, **NOT** information about cholera - ONLY queries that produced completed CSV additions with quantitative data (cases, deaths, CFRs, dates, locations).
 
-**QUANTITATIVE DATA REQUIREMENT**: Sources MUST contain identifiable cholera case values (sCh or cCh) to qualify for cholera_data.csv inclusion. Qualitative mentions of outbreaks without case counts do NOT count toward data observation yield.
+**QUANTITATIVE DATA REQUIREMENT**: Sources MUST contain identifiable cholera case values (sCh or cCh) to qualify for cholera_data_ai.csv inclusion. Qualitative mentions of outbreaks without case counts do NOT count toward data observation yield.
 
-**Example**: If 6 out of 20 queries each resulted in at least one new cholera_data.csv row (regardless of how many rows each query produced), yield = 6/20 = 30%
+**Example**: If 6 out of 20 queries each resulted in at least one new cholera_data_ai.csv row (regardless of how many rows each query produced), yield = 6/20 = 30%
 
 Where "Successful Queries" are those that produce:
-- Novel cholera case/death counts with dates → cholera_data.csv
-- New geographic breakdowns (provincial/district level) → cholera_data.csv
-- Historical outbreak periods previously undocumented → cholera_data.csv
-- Surveillance system capacity data → cholera_data.csv
-- Cross-border transmission evidence → cholera_data.csv
-- Vaccination campaign effectiveness data → cholera_data.csv
+- Novel cholera case/death counts with dates → cholera_data_ai.csv
+- New geographic breakdowns (provincial/district level) → cholera_data_ai.csv
+- Historical outbreak periods previously undocumented → cholera_data_ai.csv
+- Surveillance system capacity data → cholera_data_ai.csv
+- Cross-border transmission evidence → cholera_data_ai.csv
+- Vaccination campaign effectiveness data → cholera_data_ai.csv
 ```
 
 #### **Quality Exception Protocol**
@@ -1226,8 +1427,8 @@ Where "Successful Queries" are those that produce:
 **CRITICAL BATCH COMPLETION CHECKLIST - ALL ITEMS MANDATORY**:
 □ 20 parallel searches executed
 □ All quantitative cholera data extracted from results
-□ cholera_data.csv updated with new rows (count: ___)
-□ metadata.csv updated with new sources  
+□ cholera_data_ai.csv updated with new rows (count: ___)
+□ metadata_ai.csv updated with new sources  
 □ Dual-reference indexing verified (source_index ↔ Index)
 □ Data observation yield calculated: ___% (successful queries / 20)
 □ Search log updated with actual CSV additions count
@@ -1259,13 +1460,19 @@ Where "Successful Queries" are those that produce:
 
 #### **Integration with Agent Framework**
 
-**Agent-Specific Application with Maximum Query Safeguards**:
-- **Agent 1**: **MANDATORY INITIALIZATION**: Create search_log_agent_1.txt and run `python py/update_completion_checklist.py` immediately to mark country as "PENDING". Then proceed with data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <10% yield) - **MAXIMUM 200 queries (10 batches)**
-- **Agent 2**: **MANDATORY**: Create search_log_agent_2.txt with comprehensive batch documentation. Geographic expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
-- **Agent 3**: **MANDATORY**: Create search_log_agent_3.txt with zero-transmission validation documentation. Zero-transmission validation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)** - **MANDATORY: Document ALL validated absence periods as data observations in cholera_data.csv using zero-transmission protocol**
-- **Agent 4**: **MANDATORY**: Create search_log_agent_4.txt with obscure source exploration documentation. Obscure source expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
-- **Agent 5**: **MANDATORY**: Create search_log_agent_5.txt with source permutation and adjacent data mining documentation. Source permutation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
-- **Agent 6**: Quality audit, dataset finalization, and creation of brief search_report.txt summarizing key outcomes (internal processing, source validation, and URL verification as needed)
+**Agent-Specific Application with Enhanced Gap Targeting and Maximum Query Safeguards**:
+
+- **Agent 1 (Baseline Collector)**: **MANDATORY INITIALIZATION**: Create search_log_agent_1.txt and run `python py/update_completion_checklist.py` immediately to mark country as "PENDING". **LOAD agent_1_priority_gaps.csv** and target 50 CRITICAL/HIGH priority national/provincial gaps ≥30 days. Focus on substantial baseline establishment using priority score ≥85 gaps first. Proceed with data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <10% yield) - **MAXIMUM 200 queries (10 batches)**
+
+- **Agent 2 (Geographic Expansion Specialist)**: **MANDATORY**: Create search_log_agent_2.txt with comprehensive batch documentation. **LOAD agent_2_geographic_gaps.csv** and target 40 district/municipal level gaps plus high-scoring provincial gaps (≥60 priority score). Focus on geographic expansion within gap periods using location-specific queries. Geographic expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+
+- **Agent 3 (Zero-Transmission Validator)**: **MANDATORY**: Create search_log_agent_3.txt with zero-transmission validation documentation. **LOAD agent_3_validation_gaps.csv** and target 60 medium-duration gaps (7 days-1 year) with priority score ≥40 for systematic absence validation. **MANDATORY: Document ALL validated absence periods as data observations in cholera_data_ai.csv using zero-transmission protocol**. Zero-transmission validation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+
+- **Agent 4 (Obscure Source Explorer)**: **MANDATORY**: Create search_log_agent_4.txt with obscure source exploration documentation. **LOAD agent_4_historical_gaps.csv** and target 30 historical/obscure gaps (>5 years old or ≥3 years duration) requiring specialized source mining. Focus on gaps ending before 2018 or with duration ≥1095 days. Obscure source expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+
+- **Agent 5 (Cross-Reference Integrator)**: **MANDATORY**: Create search_log_agent_5.txt with source permutation and adjacent data mining documentation. **LOAD comprehensive_gaps_inventory.csv** and perform exhaustive source permutation across ALL priority tiers, focusing on cross-validation and conflict resolution between gap periods. Source permutation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+
+- **Agent 6 (Quality Auditor)**: Quality audit using ALL gap analysis files (agent1-4 + comprehensive inventory) for validation completeness, dataset finalization, and creation of brief search_report.txt summarizing key outcomes including **quantitative gap-filling impact analysis** comparing pre-workflow vs post-workflow surveillance coverage using reference data, with specific documentation of gaps filled and remaining priority periods requiring future attention.
 
 **Three-Tier Stopping System with Hard Limits**:
 - **Agent 1** (Baseline): X=5, Y=2, Z=10% (comprehensive foundation requiring thorough systematic coverage) - Hard stop at 200 queries
@@ -1446,7 +1653,46 @@ Task(description="Compact context", prompt="/compact")
 - Enables accurate epidemiological modeling across the WHO African Region
 - Serves as a model for AI-enhanced surveillance data collection
 
-**MANDATORY AGENT 6 GAP ASSESSMENT**: Every country completion must include quantitative gap-filling impact analysis comparing pre-workflow vs post-workflow surveillance coverage using reference data, with specific documentation of gaps filled and remaining priority periods requiring future attention.
+**MANDATORY AGENT 6 ENHANCED GAP ASSESSMENT**: Every country completion must include comprehensive quantitative gap-filling impact analysis using the enhanced gap analysis system:
+
+1. **Load Comprehensive Gap Inventory**: Use `./reference/comprehensive_gaps_inventory.csv` to assess total targetable gaps
+2. **Calculate Gap-Filling Success Rate**: Document how many CRITICAL/HIGH priority gaps were successfully filled or validated
+3. **Priority Score Impact**: Calculate the total priority score points addressed (sum of filled gaps' priority scores)
+4. **Geographic Coverage Enhancement**: Document coverage improvements by geographic level (national/provincial/district)
+5. **Seasonal Pattern Validation**: Assess whether seasonal gaps were appropriately targeted and filled
+6. **Remaining Critical Gaps**: Identify unfilled CRITICAL priority gaps (score ≥85) requiring future attention
+7. **Cross-Agent Performance Analysis**: Evaluate which agent types were most effective for different gap categories
+8. **Enhanced Surveillance Timeline**: Generate before/after timeline showing gap-filling impact using comprehensive inventory
+
+**Mandatory Gap Assessment Output Template**:
+```
+COMPREHENSIVE GAP-FILLING ASSESSMENT REPORT
+
+Pre-Workflow Gap Analysis:
+• Total gaps ≥7 days identified: {count}
+• CRITICAL priority gaps (≥85): {count}
+• HIGH priority gaps (70-84): {count}
+• Total priority score potential: {sum}
+
+Post-Workflow Results:
+• Gaps successfully filled: {count} ({percentage}%)
+• Gaps validated as zero-transmission: {count} ({percentage}%)
+• Priority score achieved: {sum} of {total} ({percentage}%)
+• Geographic levels enhanced: National: {count}, Provincial: {count}, District: {count}
+
+Remaining Priority Gaps:
+• CRITICAL gaps unfilled: {count} (requires immediate future attention)
+• HIGH gaps unfilled: {count}
+• Recommended next steps for remaining gaps
+
+Agent Performance Analysis:
+• Agent 1 success rate: {percentage}% on {count} targeted gaps
+• Agent 2 geographic expansion: {count} sub-national gaps filled
+• Agent 3 zero-transmission validation: {count} absence periods confirmed
+• Agent 4 historical gap mining: {count} historical gaps filled
+
+Overall Impact: Enhanced surveillance coverage by {percentage} percentage points through systematic gap-targeted methodology.
+```
 
 **This work directly impacts global cholera control efforts. Excellence is required, not requested.**
 

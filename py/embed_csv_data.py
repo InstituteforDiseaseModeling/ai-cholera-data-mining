@@ -84,18 +84,25 @@ def embed_csv_data():
         else:
             print(f"⚠️  No metadata.csv found for {iso}")
         
-        # Read cholera_data.csv
-        cholera_file = data_dir / 'cholera_data.csv'
-        if cholera_file.exists():
-            cholera_content = read_csv_safe(cholera_file)
+        # Read cholera_data_ai.csv (prioritize AI-specific file)
+        cholera_ai_file = data_dir / 'cholera_data_ai.csv'
+        if cholera_ai_file.exists():
+            cholera_content = read_csv_safe(cholera_ai_file)
             if cholera_content:
                 embedded_data['cholera_data'][iso] = escape_for_javascript(cholera_content)
                 lines = len(cholera_content.split('\n')) - 1  # -1 for header
-                print(f"✅ Loaded cholera data for {iso} ({lines} observations)")
-            else:
-                print(f"⚠️  Failed to read cholera data for {iso}")
+                print(f"✅ Loaded AI cholera data for {iso} ({lines} observations)")
         else:
-            print(f"⚠️  No cholera_data.csv found for {iso}")
+            # Fallback to unified cholera_data.csv if AI-specific file doesn't exist
+            cholera_file = data_dir / 'cholera_data.csv'
+            if cholera_file.exists():
+                cholera_content = read_csv_safe(cholera_file)
+                if cholera_content:
+                    embedded_data['cholera_data'][iso] = escape_for_javascript(cholera_content)
+                    lines = len(cholera_content.split('\n')) - 1  # -1 for header
+                    print(f"✅ Loaded fallback cholera data for {iso} ({lines} observations)")
+            else:
+                print(f"⚠️  No cholera data files found for {iso}")
     
     # Generate JavaScript code for embedding
     metadata_js = "{\n"

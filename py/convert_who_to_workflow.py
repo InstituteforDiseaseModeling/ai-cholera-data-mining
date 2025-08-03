@@ -317,24 +317,7 @@ def main():
         
         logger.info("")
     
-    # Create summary
-    summary = {
-        "conversion_date": datetime.now().isoformat(),
-        "who_countries_processed": len(WHO_TO_ISO_MAPPING),
-        "countries_updated": countries_updated,
-        "total_metadata_added": total_metadata_added,
-        "total_observations_added": total_observations_added,
-        "who_countries": list(WHO_TO_ISO_MAPPING.keys()),
-        "mosaic_iso_codes": list(WHO_TO_ISO_MAPPING.values()),
-        "source": "WHO Cholera Surveillance Dashboard",
-        "source_path": WHO_DATA_PATH,
-        "conversion_script": "py/convert_who_to_workflow.py"
-    }
-    
-    # Save summary
-    summary_file = os.path.join(DATA_PATH, "who_conversion_summary.json")
-    with open(summary_file, 'w') as f:
-        json.dump(summary, f, indent=2)
+    # Final summary (logged only, no file output)
     
     logger.info("================================================================================")
     logger.info("WHO DASHBOARD DATA CONVERSION COMPLETE")
@@ -351,7 +334,7 @@ def main():
     logger.info("• Comprehensive coverage across 17 MOSAIC framework countries")
     logger.info("• Seamless integration with existing JHU baseline data")
     logger.info("")
-    logger.info(f"📄 Conversion summary saved: {summary_file}")
+    logger.info("✅ WHO dashboard integration completed successfully")
     logger.info("================================================================================")
 
 if __name__ == "__main__":

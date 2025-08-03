@@ -56,14 +56,7 @@ This directory contains the essential Python scripts for the MOSAIC AI Cholera D
 
 ## 🔬 **SPECIALIZED DATA ANALYSIS**
 
-### **7. generate_weekly_surveillance_longform.py** 📋
-**Purpose**: Creates comprehensive weekly longform dataset combining MOSAIC and AI data
-- **Usage**: `python py/generate_weekly_surveillance_longform.py`
-- **Output**: Detailed weekly surveillance CSV for analysis
-- **When to run**: For specialized data export and analysis needs
-- **Use case**: Research analysis, data validation, external reporting
-
-### **8. generate_monthly_surveillance_matrix_v2.py** 📅
+### **7. generate_monthly_surveillance_matrix_v2.py** 📅
 **Purpose**: Creates comprehensive monthly surveillance matrix using full MOSAIC data
 - **Usage**: `python py/generate_monthly_surveillance_matrix_v2.py`
 - **Output**: Monthly matrix format for surveillance analysis
@@ -101,7 +94,7 @@ python py/get_surveillance_gaps.py
 ### **Data Analysis**
 ```bash
 # Specialized exports (as needed)
-python py/generate_weekly_surveillance_longform.py
+# python py/generate_weekly_surveillance_longform.py  # REMOVED - no longer needed
 python py/generate_monthly_surveillance_matrix_v2.py
 ```
 

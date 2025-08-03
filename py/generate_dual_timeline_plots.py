@@ -48,14 +48,36 @@ def load_country_mapping():
         return {}
 
 def load_country_data(country_iso):
-    """Load cholera data for a specific country."""
-    country_data_path = f"{DATA_PATH}/{country_iso}/cholera_data.csv"
+    """Load cholera data for a specific country from separate files."""
+    # Try separate files first, then unified file as fallback
+    data_paths = [
+        f"{DATA_PATH}/{country_iso}/cholera_data_jhu.csv",
+        f"{DATA_PATH}/{country_iso}/cholera_data_who.csv", 
+        f"{DATA_PATH}/{country_iso}/cholera_data_ai.csv",
+        f"{DATA_PATH}/{country_iso}/cholera_data.csv"  # Fallback unified file
+    ]
     
-    if not os.path.exists(country_data_path):
+    all_data = []
+    for data_path in data_paths:
+        if os.path.exists(data_path):
+            try:
+                df = pd.read_csv(data_path)
+                if len(df) > 0:
+                    all_data.append(df)
+                    logger.info(f"Loaded {len(df)} observations from {os.path.basename(data_path)} for {country_iso}")
+            except Exception as e:
+                logger.warning(f"Error reading {data_path}: {e}")
+    
+    # Combine all data sources for this country
+    if all_data:
+        combined_df = pd.concat(all_data, ignore_index=True)
+        logger.info(f"Combined {len(combined_df)} total observations for {country_iso}")
+        df = combined_df
+    else:
+        logger.info(f"No data files found for {country_iso}")
         return pd.DataFrame()
     
     try:
-        df = pd.read_csv(country_data_path)
         if len(df) == 0:
             return pd.DataFrame()
         
