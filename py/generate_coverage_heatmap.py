@@ -135,9 +135,9 @@ def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_
         time_periods = years
         time_labels = [str(y) if y % 5 == 0 else "" for y in years]
     
-    # Get unique countries sorted by total data availability
+    # Get unique countries sorted alphabetically by country name
     country_counts = data_df.groupby(['country_iso', 'country_name']).size().reset_index(name='count')
-    country_counts = country_counts.sort_values('count', ascending=True)
+    country_counts = country_counts.sort_values('country_name', ascending=True)  # Sort alphabetically by name
     countries = [(row['country_iso'], row['country_name']) for _, row in country_counts.iterrows()]
     
     # Create coverage matrix
@@ -194,7 +194,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     """Create and save the coverage heatmap."""
     
     # Create figure with wider aspect ratio for better readability
-    fig, ax = plt.subplots(figsize=(34, 16))  # Slightly larger for better text readability
+    fig, ax = plt.subplots(figsize=(36, 18))  # Larger figure for better text readability
     
     # Create custom colormap with complementary color scheme
     colors = ['white', '#0167af', '#E74C3C', '#2ECC71', '#9B59B6']  # white, JHU blue, WHO red, AI green, mixed purple
@@ -207,13 +207,13 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     # Set country labels (Y-axis) with larger font
     country_labels = [f"{iso} - {name}" for iso, name in countries]
     ax.set_yticks(range(len(countries)))
-    ax.set_yticklabels(country_labels, fontsize=18)  # Increased text size
+    ax.set_yticklabels(country_labels, fontsize=22)  # Increased text size for better readability
     
     # Set year labels (X-axis) - show every 5 years with larger font
     year_indices = [i for i, period in enumerate(time_periods) if period % 5 == 0]
     year_labels = [str(time_periods[i]) for i in year_indices]
     ax.set_xticks(year_indices)
-    ax.set_xticklabels(year_labels, rotation=45, fontsize=18)  # Increased text size
+    ax.set_xticklabels(year_labels, rotation=45, fontsize=22)  # Increased text size for better readability
     
     # Add minor ticks for all years
     ax.set_xticks(range(len(time_periods)), minor=True)
@@ -225,7 +225,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     else:
         title = 'Cholera Surveillance Data Coverage - National Level'
     
-    ax.set_title(title, fontsize=28, fontweight='bold', pad=30)
+    ax.set_title(title, fontsize=32, fontweight='bold', pad=35)
     
     # Create legend with larger font
     legend_elements = [
@@ -238,7 +238,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     
     # Place legend below heatmap in 1 horizontal row
     ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.10), 
-             fontsize=18, ncol=5, frameon=False, columnspacing=1.2)  # Increased text size
+             fontsize=22, ncol=5, frameon=False, columnspacing=1.2)  # Increased text size for better readability
     
     # Add grid
     ax.grid(True, which='major', alpha=0.3, linewidth=0.5)
