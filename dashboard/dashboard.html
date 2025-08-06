@@ -1970,9 +1970,21 @@
                 const descriptionCol = row[3]; // Description
                 const dateRangeCol = row[4]; // Date_Range
                 const dataTypeCol = row[5]; // Data_Type
-                const statusCol = row[6]; // Status
                 const reliabilityCol = row[7]; // Reliability_Level
                 const discoveryMethodCol = row[13]; // Discovery_Method
+                
+                // Parse date range into start and stop
+                let dataStart = '-';
+                let dataStop = '-';
+                if (dateRangeCol && dateRangeCol.includes(' to ')) {
+                    const dates = dateRangeCol.split(' to ');
+                    dataStart = dates[0] || '-';
+                    dataStop = dates[1] || '-';
+                } else if (dateRangeCol) {
+                    // Handle single dates or other formats
+                    dataStart = dateRangeCol;
+                    dataStop = dateRangeCol;
+                }
                 
                 // Get agent info from discovery method
                 const agentInfo = getAgentFromDiscoveryMethod(discoveryMethodCol);
@@ -1980,15 +1992,30 @@
                     ? `<span class="agent-badge agent-${agentInfo.number}" title="Agent ${agentInfo.number}: ${agentInfo.name}">A${agentInfo.number}</span>` 
                     : '-';
                 
+                // Map reliability level to tier badge
+                let tierBadge = '';
+                const reliabilityLower = reliabilityCol.toLowerCase();
+                if (reliabilityLower.includes('level 1')) {
+                    tierBadge = '<span class="level-badge level-1">Tier 1</span>';
+                } else if (reliabilityLower.includes('level 2')) {
+                    tierBadge = '<span class="level-badge level-2">Tier 2</span>';
+                } else if (reliabilityLower.includes('level 3')) {
+                    tierBadge = '<span class="level-badge level-3">Tier 3</span>';
+                } else if (reliabilityLower.includes('level 4')) {
+                    tierBadge = '<span class="level-badge level-4">Tier 4</span>';
+                } else {
+                    tierBadge = reliabilityCol;
+                }
+                
                 tr.innerHTML = `
                     <td>${indexCol}</td>
                     <td><a href="${urlCol}" target="_blank" class="data-link" title="${sourceCol}">${sourceCol}</a></td>
                     <td title="${descriptionCol}">${descriptionCol.length > 100 ? descriptionCol.substring(0, 100) + '...' : descriptionCol}</td>
-                    <td>${dateRangeCol}</td>
+                    <td>${dataStart}</td>
+                    <td>${dataStop}</td>
                     <td>${dataTypeCol}</td>
                     <td style="text-align: center;">${agentBadge}</td>
-                    <td>${statusCol}</td>
-                    <td><span class="reliability-badge ${reliabilityCol.toLowerCase().replace(' ', '-')}">${reliabilityCol}</span></td>
+                    <td>${tierBadge}</td>
                 `;
                 
                 tableBody.appendChild(tr);
