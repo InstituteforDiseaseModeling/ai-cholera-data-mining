@@ -1631,10 +1631,118 @@
             document.getElementById('last-updated').textContent = formattedDate + ' PST';
         }
 
+        // Populate country status table
+        function populateCountryTable() {
+            const tbody = document.querySelector('#countryTable tbody');
+            if (!tbody) return;
+            
+            // Clear existing rows
+            tbody.innerHTML = '';
+            
+            // Populate table with countryData
+            countryData.forEach(country => {
+                const row = document.createElement('tr');
+                
+                // Determine status badge style
+                let statusBadge = '';
+                let statusClass = '';
+                switch(country.status) {
+                    case 'COMPLETED':
+                        statusBadge = '<span class="status-badge completed">COMPLETED</span>';
+                        statusClass = 'status-completed';
+                        break;
+                    case 'PENDING':
+                        statusBadge = '<span class="status-badge pending">PENDING</span>';
+                        statusClass = 'status-pending';
+                        break;
+                    case 'NOT_STARTED':
+                    default:
+                        statusBadge = '<span class="status-badge not-started">NOT STARTED</span>';
+                        statusClass = 'status-not-started';
+                        break;
+                }
+                
+                // Format data summary
+                let dataSummary = '';
+                if (country.sources > 0 || country.observations > 0) {
+                    dataSummary = `${country.sources} sources, ${country.observations} observations`;
+                    if (country.date_range) {
+                        dataSummary += ` (${country.date_range})`;
+                    }
+                } else {
+                    dataSummary = 'No data collected yet';
+                }
+                
+                // Format datetime
+                const datetime = country.datetime || '-';
+                
+                row.className = statusClass;
+                row.innerHTML = `
+                    <td>${country.country}</td>
+                    <td><strong>${country.iso}</strong></td>
+                    <td>${datetime}</td>
+                    <td>${statusBadge}</td>
+                    <td>${dataSummary}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Sort table function
+        function sortTable(columnIndex) {
+            const table = document.getElementById('countryTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const th = table.querySelectorAll('th')[columnIndex];
+            
+            // Determine current sort direction
+            const isAscending = !th.classList.contains('sort-asc');
+            
+            // Remove sort classes from all headers
+            table.querySelectorAll('th').forEach(header => {
+                header.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            // Add appropriate sort class to current header
+            th.classList.add(isAscending ? 'sort-asc' : 'sort-desc');
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aValue = a.cells[columnIndex].textContent.trim();
+                let bValue = b.cells[columnIndex].textContent.trim();
+                
+                // Handle date sorting specially
+                if (columnIndex === 2) { // Date column
+                    aValue = aValue === '-' ? '0000-00-00' : aValue;
+                    bValue = bValue === '-' ? '0000-00-00' : bValue;
+                }
+                
+                // Handle numeric sorting for ISO codes
+                if (columnIndex === 1) { // ISO column
+                    return isAscending ? 
+                        aValue.localeCompare(bValue) : 
+                        bValue.localeCompare(aValue);
+                }
+                
+                // Default text sorting
+                if (isAscending) {
+                    return aValue.localeCompare(bValue);
+                } else {
+                    return bValue.localeCompare(aValue);
+                }
+            });
+            
+            // Clear tbody and re-append sorted rows
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
         // Update on page load
         document.addEventListener('DOMContentLoaded', function() {
             updateLastUpdated();
             loadTimelinePlots();
+            populateCountryTable();
         });
         
         // Load timeline plots dynamically
