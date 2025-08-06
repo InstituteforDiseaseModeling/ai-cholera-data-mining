@@ -764,9 +764,9 @@
         /* Column width adjustments */
         #countryTable th:nth-child(1) { width: 18%; }  /* Country */
         #countryTable th:nth-child(2) { width: 8%; }   /* ISO */
-        #countryTable th:nth-child(3) { width: 22%; min-width: 200px; }  /* Date - wider for datetime */
+        #countryTable th:nth-child(3) { width: 25%; min-width: 240px; }  /* Date - wider for datetime */
         #countryTable th:nth-child(4) { width: 12%; }  /* Status */
-        #countryTable th:nth-child(5) { width: 40%; }  /* Data Summary - wider without notes column */
+        #countryTable th:nth-child(5) { width: 37%; }  /* Data Summary - adjusted for wider date column */
         
         /* Prevent date wrapping */
         #countryTable td:nth-child(3) { 
@@ -1518,6 +1518,14 @@
                         <i class="fas fa-table"></i>
                         <span>Country Status</span>
                     </div>
+                    <div class="country-status-filter">
+                        <select id="status-filter" class="form-select" style="min-width: 200px; padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; font-size: 0.95rem;">
+                            <option value="all">All Countries</option>
+                            <option value="completed">Completed</option>
+                            <option value="pending">Pending</option>
+                            <option value="not_started">Not Started</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="table-wrapper">
                     <table id="countryTable">
@@ -1750,15 +1758,26 @@
         }
 
         // Populate country status table
-        function populateCountryTable() {
+        function populateCountryTable(filterStatus = 'all') {
             const tbody = document.querySelector('#countryTable tbody');
             if (!tbody) return;
             
             // Clear existing rows
             tbody.innerHTML = '';
             
-            // Populate table with countryData
-            countryData.forEach(country => {
+            // Filter data based on status
+            let filteredData = countryData;
+            if (filterStatus !== 'all') {
+                filteredData = countryData.filter(country => {
+                    if (filterStatus === 'completed') return country.status === 'COMPLETED';
+                    if (filterStatus === 'pending') return country.status === 'PENDING';
+                    if (filterStatus === 'not_started') return country.status === 'NOT_STARTED';
+                    return true;
+                });
+            }
+            
+            // Populate table with filtered data
+            filteredData.forEach(country => {
                 const row = document.createElement('tr');
                 
                 // Determine status badge style
