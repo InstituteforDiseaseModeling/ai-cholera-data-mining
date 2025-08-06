@@ -535,7 +535,7 @@ def create_country_prompts(base_path):
     print("Creating 8-phase search protocol prompt files...")
     
     # Read the search protocol template file
-    template_path = Path(base_path) / "templates" / "template_search_protocol.txt"
+    template_path = Path(base_path) / "deprecated" / "template_search_protocol.txt"
     
     if not template_path.exists():
         raise FileNotFoundError(f"Search protocol template file not found: {template_path}")
@@ -589,7 +589,7 @@ def create_country_workflows(base_path):
     print("Creating 6-agent workflow files...")
     
     # Read the agentic workflow template file
-    workflow_template_path = Path(base_path) / "templates" / "template_agentic_workflow.txt"
+    workflow_template_path = Path(base_path) / "deprecated" / "template_agentic_workflow.txt"
     
     if not workflow_template_path.exists():
         raise FileNotFoundError(f"Agentic workflow template file not found: {workflow_template_path}")
