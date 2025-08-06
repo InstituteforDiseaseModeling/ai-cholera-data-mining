@@ -5,8 +5,7 @@ MOSAIC AI Cholera Data Collection - Unified Dashboard Data Updater
 This script combines all dashboard data updates into a single command:
 1. Updates completion checklist based on file analysis
 2. Generates 3-source timeline coverage plots for all countries
-3. Creates timeline week counts CSV
-4. Updates dashboard HTML with embedded data
+3. Updates dashboard HTML with embedded data
 
 USAGE: Run from project root directory:
     python py/update_dashboard_data.py
@@ -54,14 +53,15 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
             'priority': '',
             'execution_time': '',
             'queries': '',
-            'yield_pct': '',
-            'auto_notes': f'Directory not found: {country_dir}'
+            'yield_pct': ''
         }
     
     # Check for key files
     files_present = {
         'cholera_data': (country_dir / 'cholera_data.csv').exists(),
+        'cholera_data_ai': (country_dir / 'cholera_data_ai.csv').exists(),  # AI-specific data
         'metadata': (country_dir / 'metadata.csv').exists(),
+        'metadata_ai': (country_dir / 'metadata_ai.csv').exists(),  # AI-specific metadata
         'search_protocol': (country_dir / f'search_protocol_{iso_code}.txt').exists(),
         'agentic_workflow': (country_dir / f'agentic_workflow_{iso_code}.txt').exists(),
     }
@@ -71,15 +71,22 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
     agent_analysis = analyze_agent_logs(agent_logs)
     num_agents = len(agent_logs)
     
-    # Check for quality audit
-    quality_audit = (country_dir / 'quality_audit_report_agent_6.txt').exists()
+    # Check for search report (created by Agent 7)
+    search_report = (country_dir / 'search_report.txt').exists()
     
-    # Analyze cholera_data.csv if it exists
-    cholera_data_info = analyze_cholera_data(country_dir / 'cholera_data.csv')
-    metadata_info = analyze_metadata(country_dir / 'metadata.csv')
+    # Analyze cholera_data files - prioritize AI-specific files if they exist
+    if files_present['cholera_data_ai']:
+        cholera_data_info = analyze_cholera_data(country_dir / 'cholera_data_ai.csv')
+    else:
+        cholera_data_info = analyze_cholera_data(country_dir / 'cholera_data.csv')
+    
+    if files_present['metadata_ai']:
+        metadata_info = analyze_metadata(country_dir / 'metadata_ai.csv')
+    else:
+        metadata_info = analyze_metadata(country_dir / 'metadata.csv')
     
     # Determine completion status
-    status = determine_status(files_present, num_agents, quality_audit, cholera_data_info)
+    status = determine_status(files_present, num_agents, search_report, cholera_data_info)
     
     # Get latest modification time
     latest_time = get_latest_modification_time(country_dir)
@@ -96,8 +103,7 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
         'priority': determine_priority(cholera_data_info),
         'execution_time': str(execution_metrics.get('total_time', '')),
         'queries': str(execution_metrics.get('total_queries', '')),
-        'yield_pct': f"{execution_metrics.get('yield_pct', ''):.1f}" if execution_metrics.get('yield_pct') else '',
-        'auto_notes': generate_auto_notes(files_present, num_agents, quality_audit, cholera_data_info, agent_analysis)
+        'yield_pct': f"{execution_metrics.get('yield_pct', ''):.1f}" if execution_metrics.get('yield_pct') else ''
     }
 
 def analyze_cholera_data(csv_file: Path) -> Dict:
@@ -196,27 +202,24 @@ def analyze_metadata(csv_file: Path) -> Dict:
         print(f"Warning: Could not analyze {csv_file}: {e}")
         return {'source_count': 0}
 
-def determine_status(files_present: Dict, num_agents: int, quality_audit: bool, cholera_data_info: Dict) -> str:
-    """Determine completion status based on file analysis"""
+def determine_status(files_present: Dict, num_agents: int, search_report: bool, cholera_data_info: Dict) -> str:
+    """Determine completion status based on file analysis
     
-    # Check if workflow has been completed
-    # Option 1: Agent 6 quality audit exists (ideal completion)
-    if quality_audit and files_present['cholera_data'] and files_present['metadata']:
+    Simplified logic for memory-optimized workflow:
+    - COMPLETED: All 7 agents have logs AND quality report exists (Agent 7 completed)
+    - PENDING: Any agent work has started (1+ agent logs exist)
+    - NOT_STARTED: No agent work has begun
+    """
+    
+    # Check if workflow has been completed (all 7 agents done)
+    if num_agents >= 7 and files_present['cholera_data_ai'] and files_present['metadata_ai']:
         return 'COMPLETED'
     
-    # Option 2: All 6 agents completed with data files (workflow complete without formal audit)
-    if (num_agents >= 6 and files_present['cholera_data'] and files_present['metadata'] 
-        and cholera_data_info.get('row_count', 0) > 0):
-        return 'COMPLETED'
-    
-    # Check if work is in progress (some agent logs exist or data files present)
-    if num_agents > 0 or files_present['cholera_data']:
+    # Check if workflow is in progress (any agent has started)
+    if num_agents > 0:
         return 'PENDING'
     
-    # Check if setup files exist but no work started
-    if files_present['search_protocol'] or files_present['agentic_workflow']:
-        return 'NOT_STARTED'
-    
+    # No work has started
     return 'NOT_STARTED'
 
 def determine_priority(cholera_data_info: Dict) -> str:
@@ -234,8 +237,8 @@ def determine_priority(cholera_data_info: Dict) -> str:
 
 def get_latest_modification_time(country_dir: Path) -> str:
     """Get the latest modification time of key files in the directory"""
-    key_files = ['cholera_data.csv', 'metadata.csv', 'quality_audit_report_agent_6.txt']
-    key_files.extend([f'search_log_agent_{i}.txt' for i in range(1, 7)])
+    key_files = ['cholera_data_ai.csv', 'metadata_ai.csv', 'search_report.txt']
+    key_files.extend([f'search_log_agent_{i}.txt' for i in range(1, 8)])
     
     latest_time = None
     
@@ -287,33 +290,104 @@ def calculate_execution_metrics(agent_logs: List[Path]) -> Dict:
         'data_observations': data_observations
     }
 
-def generate_auto_notes(files_present: Dict, num_agents: int, quality_audit: bool, cholera_data_info: Dict, agent_analysis: Dict) -> str:
-    """Generate automatic notes describing current state"""
-    notes = []
-    
-    if quality_audit:
-        notes.append("Quality audit completed")
-    elif num_agents >= 6:
-        notes.append("All agents executed")
-    elif num_agents > 0:
-        # Check if we have any completed agents or just initialized
-        completed_agents = [num for num, status in agent_analysis.items() if status == 'completed']
-        initialized_agents = [num for num, status in agent_analysis.items() if status == 'initialized']
+def calculate_coverage_after_ai(country_dir: Path, iso_code: str, baseline_coverage: float) -> str:
+    """Calculate coverage after AI enhancement using fixed 1970-present range"""
+    try:
+        import pandas as pd
+        from datetime import datetime
         
-        if completed_agents:
-            max_completed = max(completed_agents)
-            notes.append(f"Agent {max_completed} completed")
-        elif initialized_agents:
-            # Only initialized agents, no completed work yet
-            notes.append("Agent 1 initialized - starting work")
-    
-    if files_present['cholera_data'] and cholera_data_info.get('row_count', 0) > 0:
-        notes.append(f"{cholera_data_info['row_count']} data observations")
-    
-    if not files_present['search_protocol']:
-        notes.append("Setup incomplete")
-    
-    return "; ".join(notes) if notes else "No activity detected"
+        # Fixed date range: 1970 to present
+        min_year = 1970
+        current_year = datetime.now().year
+        total_months = (current_year - min_year + 1) * 12
+        
+        # Collect covered months from all sources
+        all_covered_months = set()
+        for data_file in ['cholera_data_jhu.csv', 'cholera_data_who.csv', 'cholera_data_ai.csv']:
+            file_path = country_dir / data_file
+            if file_path.exists():
+                try:
+                    df = pd.read_csv(file_path)
+                    if not df.empty and 'TL' in df.columns:
+                        for date_str in df['TL'].dropna():
+                            try:
+                                date = pd.to_datetime(date_str)
+                                # Count all months, even if outside 1970-present range
+                                all_covered_months.add((date.year, date.month))
+                            except:
+                                continue
+                except:
+                    continue
+        
+        # Count only months within the standard range for percentage calculation
+        covered_in_range = len([m for m in all_covered_months if 1970 <= m[0] <= current_year])
+        total_covered = len(all_covered_months)
+        
+        # Calculate percentage
+        if total_months > 0:
+            percentage = round((covered_in_range / total_months) * 100, 1)
+            # If we have data outside the standard range, indicate >100%
+            if total_covered > covered_in_range:
+                return ">100"  # Indicates data extends beyond 1970-present
+            else:
+                return str(percentage)
+        else:
+            return str(baseline_coverage)
+            
+    except Exception as e:
+        print(f"  Warning: Could not calculate after-AI coverage for {iso_code}: {e}")
+        return str(baseline_coverage)
+
+def get_baseline_coverage(iso_code: str) -> float:
+    """Calculate baseline coverage from JHU + WHO data using fixed 1970-present range"""
+    try:
+        import pandas as pd
+        from pathlib import Path
+        from datetime import datetime
+        
+        # Get the data directory for this country
+        base_path = Path('/Users/johngiles/Library/CloudStorage/OneDrive-Bill&MelindaGatesFoundation/Projects/MOSAIC/ai-cholera-data-mining')
+        country_dir = base_path / 'data' / iso_code
+        
+        # Fixed date range: 1970 to present
+        min_year = 1970
+        current_year = datetime.now().year
+        total_months = (current_year - min_year + 1) * 12
+        
+        # Collect covered months from BASELINE sources only (JHU + WHO)
+        baseline_covered_months = set()
+        for data_file in ['cholera_data_jhu.csv', 'cholera_data_who.csv']:
+            file_path = country_dir / data_file
+            if file_path.exists():
+                try:
+                    df = pd.read_csv(file_path)
+                    if not df.empty and 'TL' in df.columns:
+                        for date_str in df['TL'].dropna():
+                            try:
+                                date = pd.to_datetime(date_str)
+                                baseline_covered_months.add((date.year, date.month))
+                            except:
+                                continue
+                except:
+                    continue
+        
+        if not baseline_covered_months:
+            return 0.0
+        
+        # Count only months within the standard range
+        covered_in_range = len([m for m in baseline_covered_months if 1970 <= m[0] <= current_year])
+        
+        # Calculate percentage
+        if total_months > 0:
+            return round((covered_in_range / total_months) * 100, 1)
+        else:
+            return 0.0
+            
+    except Exception as e:
+        print(f"  Warning: Could not calculate baseline coverage for {iso_code}: {e}")
+        return 0.0
+
+# REMOVED: generate_auto_notes function no longer needed as notes column has been removed from dashboard
 
 def load_existing_csv(csv_file: Path) -> Dict[str, Dict]:
     """Load existing CSV file and preserve manual notes"""
@@ -340,37 +414,14 @@ def load_existing_csv(csv_file: Path) -> Dict[str, Dict]:
 
 def embed_original_surveillance_data(base_path: Path):
     """
-    Embed MOSAIC surveillance data into reference/ directory for CI environments.
+    NOTE: No longer embedding surveillance data - using original file directly.
     
-    This function copies the essential MOSAIC surveillance data to ./reference/
-    so it's available in GitHub Pages and other CI environments that don't have
-    access to the full MOSAIC project structure.
+    This function previously copied MOSAIC surveillance data to ./reference/
+    but now references the original file to avoid duplication.
     """
-    print("🔄 EMBEDDING ORIGINAL SURVEILLANCE DATA...")
-    
-    # Source file (full MOSAIC project structure)
-    source_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
-    
-    # Destination file (this repo's reference directory)
-    dest_file = base_path / "reference" / "cholera_surveillance_weekly_combined.csv"
-    
-    if not source_file.exists():
-        print(f"❌ Source MOSAIC surveillance file not found: {source_file}")
-        print("   Cannot embed surveillance data - only AI data will be available in CI environments")
-        return False
-    
-    # Load MOSAIC country mapping to filter data
-    country_mapping = load_country_mapping(base_path)
-    mosaic_iso_codes = set(country_mapping.keys())
-    
-    print(f"📂 Reading source: {source_file}")
-    print(f"📂 Writing to: {dest_file}")
-    print(f"🌍 Filtering to {len(mosaic_iso_codes)} MOSAIC framework countries")
-    
-    # Process and filter the data
-    filtered_rows = []
-    total_rows = 0
-    filtered_count = 0
+    print("✅ Using original surveillance data from MOSAIC-data directory")
+    print("   (No local copy needed - referencing source directly)")
+    return True
     
     try:
         with open(source_file, 'r', encoding='utf-8') as f:
@@ -420,11 +471,11 @@ def load_separated_surveillance_data(base_path: Path) -> pd.DataFrame:
     """
     Load MOSAIC surveillance data with WHO/JHU sources separated.
     
-    Uses the reference file within this repo for CI compatibility.
+    Uses the original file from MOSAIC-data directory to avoid duplication.
     """
     
-    # Use embedded surveillance data from reference directory
-    surveillance_file = base_path / "reference" / "cholera_surveillance_weekly_combined.csv"
+    # Use original surveillance data from MOSAIC-data directory
+    surveillance_file = base_path.parent / "MOSAIC-data" / "processed" / "cholera" / "weekly" / "cholera_surveillance_weekly_combined.csv"
     
     if not surveillance_file.exists():
         print(f"Warning: Reference surveillance file not found: {surveillance_file}")
@@ -480,11 +531,22 @@ def load_separated_surveillance_data(base_path: Path) -> pd.DataFrame:
 def load_ai_enhanced_data(base_path: Path, iso_code: str) -> pd.DataFrame:
     """Load AI-enhanced data and convert to weekly format"""
     
-    cholera_file = base_path / "data" / iso_code / "cholera_data.csv"
-    ai_data = []
+    # Try separate files first, then unified as fallback
+    cholera_files = [
+        base_path / "data" / iso_code / "cholera_data_ai.csv",    # AI-specific data
+        base_path / "data" / iso_code / "cholera_data.csv"       # Fallback unified file
+    ]
     
-    if not cholera_file.exists():
+    cholera_file = None
+    for file_path in cholera_files:
+        if file_path.exists():
+            cholera_file = file_path
+            break
+    
+    if cholera_file is None:
         return pd.DataFrame()
+    
+    ai_data = []
     
     try:
         with open(cholera_file, 'r', encoding='utf-8') as f:
@@ -624,134 +686,16 @@ def crop_timeline_plot(image_path, crop_cm=1.0):
     except Exception as e:
         print(f"    Warning: Could not crop {image_path}: {e}")
 
-def create_3source_timeline_plot(country_data, country_name, iso_code, output_dir, global_min_date, global_max_date):
-    """Create timeline coverage plot with 3 separate source tracks"""
-    
-    # Separate data by source
-    ai_data = country_data[country_data['source'] == 'AI']
-    who_data = country_data[country_data['source'] == 'WHO'] 
-    jhu_data = country_data[country_data['source'] == 'JHU']
-    
-    # Find continuous blocks for each source
-    ai_blocks = find_data_blocks(ai_data)
-    who_blocks = find_data_blocks(who_data)
-    jhu_blocks = find_data_blocks(jhu_data)
-    
-    # Handle countries with no data by creating empty plot
-    if not ai_blocks and not who_blocks and not jhu_blocks:
-        print(f"    Creating empty plot for {country_name} - no data found")
-        # Continue to create empty plot instead of returning
-    
-    # Set up the plot
-    fig, ax = plt.subplots(figsize=(16, 5))
-    
-    # Define y-positions and colors for each source - Analogous cool palette
-    sources = {
-        'AI': {'y': 3, 'color': '#2ECC71', 'label': 'AI'},           # Emerald green (top)
-        'WHO': {'y': 2, 'color': '#0167af', 'label': 'WHO'},        # Dashboard blue (middle)
-        'JHU': {'y': 1, 'color': '#9B59B6', 'label': 'JHU'}         # Purple (bottom)
-    }
-    
-    # Plot AI blocks (emerald green, top)
-    for start_date, end_date in ai_blocks:
-        width = (end_date - start_date).days + 7  # Add a week for visibility
-        rect = patches.Rectangle(
-            (start_date, sources['AI']['y'] - 0.35), 
-            pd.Timedelta(days=width), 0.7,
-            linewidth=0, facecolor=sources['AI']['color'], alpha=0.8
-        )
-        ax.add_patch(rect)
-    
-    # Plot WHO blocks (dashboard blue, middle)
-    for start_date, end_date in who_blocks:
-        width = (end_date - start_date).days + 7
-        rect = patches.Rectangle(
-            (start_date, sources['WHO']['y'] - 0.35), 
-            pd.Timedelta(days=width), 0.7,
-            linewidth=0, facecolor=sources['WHO']['color'], alpha=0.8
-        )
-        ax.add_patch(rect)
-    
-    # Plot JHU blocks (purple, bottom)
-    for start_date, end_date in jhu_blocks:
-        width = (end_date - start_date).days + 7
-        rect = patches.Rectangle(
-            (start_date, sources['JHU']['y'] - 0.35), 
-            pd.Timedelta(days=width), 0.7,
-            linewidth=0, facecolor=sources['JHU']['color'], alpha=0.8
-        )
-        ax.add_patch(rect)
-    
-    # Set up axes
-    ax.set_ylim(0.5, 3.8)
-    ax.set_yticks([1, 2, 3])
-    ax.set_yticklabels(['JHU', 'WHO', 'AI'], fontsize=14)
-    
-    # Format x-axis to show years using global date range
-    # Set x-axis limits - small buffer on left, padding on right
-    ax.set_xlim(global_min_date - pd.Timedelta(days=180), global_max_date + pd.Timedelta(days=365))
-    
-    # Generate year ticks based on global range
-    year_range = range(global_min_date.year, global_max_date.year + 2)
-    year_ticks = [datetime(year, 1, 1) for year in year_range if year % 2 == 0]  # Every 2 years
-    ax.set_xticks(year_ticks)
-    ax.set_xticklabels([str(year) for year in year_range if year % 2 == 0], rotation=45, fontsize=12)
-    
-    # Add title and formatting
-    plt.title(f'{country_name} ({iso_code})', 
-              fontsize=16, fontweight='bold', pad=20)
-    
-    # Add grid for better readability
-    ax.grid(True, alpha=0.3, axis='x')
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    
-    # Add legend - horizontal, no box, positioned under x-axis
-    legend_elements = [
-        patches.Patch(color=sources['AI']['color'], alpha=0.8, label='AI Enhanced Data'),
-        patches.Patch(color=sources['WHO']['color'], alpha=0.8, label='WHO Surveillance'),
-        patches.Patch(color=sources['JHU']['color'], alpha=0.8, label='JHU Database')
-    ]
-    ax.legend(handles=legend_elements, loc='upper center', frameon=False, 
-              bbox_to_anchor=(0.5, -0.3), ncol=3, fontsize=12)
-    
-    # Add data summary text - moved to right top margin, no box
-    ai_weeks = len(ai_data)
-    who_weeks = len(who_data) 
-    jhu_weeks = len(jhu_data)
-    
-    summary_text = f"AI: {ai_weeks} weeks | WHO: {who_weeks} weeks | JHU: {jhu_weeks} weeks"
-    ax.text(0.98, 1.05, summary_text, transform=ax.transAxes, fontsize=12, 
-            verticalalignment='bottom', horizontalalignment='right')
-    
-    # Save plot
-    plt.tight_layout()
-    output_file = output_dir / f"{iso_code}_{country_name.replace(' ', '_')}_3sources_timeline.png"
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    # Crop the top 1cm to remove title and week counts
-    crop_timeline_plot(output_file, crop_cm=1.0)
-    
-    print(f"  ✅ Timeline plot: {output_file.name}")
+# DEPRECATED AND REMOVED: The create_3source_timeline_plot function has been removed.
+# The dashboard now uses dual_timeline plots generated by generate_dual_timeline_plots.py
+# This function was never called and created unused *_3sources_timeline.png files.
 
-def count_weeks_by_source(country_data: pd.DataFrame) -> tuple:
-    """Count unique weeks for each source"""
-    
-    if country_data.empty or 'source' not in country_data.columns:
-        return 0, 0, 0
-    
-    ai_weeks = len(country_data[country_data['source'] == 'AI'])
-    who_weeks = len(country_data[country_data['source'] == 'WHO'])
-    jhu_weeks = len(country_data[country_data['source'] == 'JHU'])
-    
-    return ai_weeks, who_weeks, jhu_weeks
 
 # ============================================================================
 # MAIN UNIFIED UPDATE FUNCTION
 # ============================================================================
 
-def update_dashboard_html(base_path: Path, updated_data: List[Dict], week_counts_data: List[Dict]):
+def update_dashboard_html(base_path: Path, updated_data: List[Dict]):
     """Update the dashboard HTML with embedded CSV data"""
     dashboard_file = base_path / "dashboard" / "dashboard.html"
     
@@ -761,7 +705,7 @@ def update_dashboard_html(base_path: Path, updated_data: List[Dict], week_counts
     
     # Generate completion checklist CSV string
     checklist_fieldnames = ['country', 'iso', 'status', 'datetime', 'sources', 'observations', 
-                           'date_range', 'priority', 'execution_time', 'queries', 'yield_pct', 'notes']
+                           'date_range', 'priority', 'execution_time', 'queries', 'yield_pct']
     
     checklist_csv_lines = [','.join(checklist_fieldnames)]
     for row in updated_data:
@@ -776,14 +720,59 @@ def update_dashboard_html(base_path: Path, updated_data: List[Dict], week_counts
     
     checklist_csv_data = '\n'.join(checklist_csv_lines)
     
-    # Generate week counts CSV string
-    week_counts_fieldnames = ['country', 'iso_code', 'ai_weeks', 'who_weeks', 'jhu_weeks']
-    week_counts_csv_lines = [','.join(week_counts_fieldnames)]
-    for row in week_counts_data:
-        csv_row = [str(row.get(field, '')) for field in week_counts_fieldnames]
-        week_counts_csv_lines.append(','.join(csv_row))
+    # Load metadata and cholera data for all available countries
+    metadata_dict = {}
+    cholera_data_dict = {}
+    data_dir = base_path / "data"
     
-    week_counts_csv_data = '\n'.join(week_counts_csv_lines)
+    # Find all countries with metadata_ai.csv and cholera_data_ai.csv files
+    for country_dir in data_dir.iterdir():
+        if country_dir.is_dir():
+            iso_code = country_dir.name
+            
+            # Load metadata_ai.csv
+            metadata_file = country_dir / "metadata_ai.csv"
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        metadata_content = f.read()
+                    # Escape backticks and backslashes in the metadata content
+                    metadata_content = metadata_content.replace('\\', '\\\\').replace('`', '\\`')
+                    metadata_dict[iso_code] = metadata_content
+                    print(f"  📚 Loaded metadata for {iso_code}: {len(metadata_content.splitlines())-1} sources")
+                except Exception as e:
+                    print(f"  Warning: Could not load metadata for {country_dir.name}: {e}")
+            
+            # Load cholera_data_ai.csv
+            cholera_file = country_dir / "cholera_data_ai.csv"
+            if cholera_file.exists():
+                try:
+                    with open(cholera_file, 'r', encoding='utf-8') as f:
+                        cholera_content = f.read()
+                    # Escape backticks and backslashes in the cholera data content
+                    cholera_content = cholera_content.replace('\\', '\\\\').replace('`', '\\`')
+                    cholera_data_dict[iso_code] = cholera_content
+                    print(f"  📊 Loaded cholera data for {iso_code}: {len(cholera_content.splitlines())-1} observations")
+                except Exception as e:
+                    print(f"  Warning: Could not load cholera data for {country_dir.name}: {e}")
+    
+    # Build the embedded metadata JavaScript object
+    metadata_js_lines = ["        const embeddedMetadata = {"]
+    for i, (iso, content) in enumerate(metadata_dict.items()):
+        # Add comma for all but the last item
+        comma = "," if i < len(metadata_dict) - 1 else ""
+        metadata_js_lines.append(f"            '{iso}': `{content}`{comma}")
+    metadata_js_lines.append("        };")
+    metadata_js_content = '\n'.join(metadata_js_lines)
+    
+    # Build the embedded cholera data JavaScript object
+    cholera_js_lines = ["        const embeddedCholeraData = {"]
+    for i, (iso, content) in enumerate(cholera_data_dict.items()):
+        # Add comma for all but the last item
+        comma = "," if i < len(cholera_data_dict) - 1 else ""
+        cholera_js_lines.append(f"            '{iso}': `{content}`{comma}")
+    cholera_js_lines.append("        };")
+    cholera_js_content = '\n'.join(cholera_js_lines)
     
     try:
         # Read current HTML
@@ -793,21 +782,123 @@ def update_dashboard_html(base_path: Path, updated_data: List[Dict], week_counts
         # Find and replace the embedded CSV data
         import re
         
-        # Update completion checklist data
-        checklist_pattern = r'const csvData = `[^`]*`;'
-        checklist_replacement = f'const csvData = `{checklist_csv_data}`;'
+        # Update completion checklist data - using the correct variable name
+        checklist_pattern = r'const completionChecklistCSV = `[^`]*`;'
+        checklist_replacement = f'const completionChecklistCSV = `{checklist_csv_data}`;'
         html_content = re.sub(checklist_pattern, checklist_replacement, html_content, flags=re.DOTALL)
         
-        # Update week counts data
-        week_counts_pattern = r'const weekCountsCSV = `[^`]*`;'
-        week_counts_replacement = f'const weekCountsCSV = `{week_counts_csv_data}`;'
-        html_content = re.sub(week_counts_pattern, week_counts_replacement, html_content, flags=re.DOTALL)
+        # Also try the old pattern in case it exists
+        old_pattern = r'const csvData = `[^`]*`;'
+        if re.search(old_pattern, html_content):
+            html_content = re.sub(old_pattern, f'const csvData = `{checklist_csv_data}`;', html_content, flags=re.DOTALL)
+        
+        # Update embedded metadata - use a more robust pattern
+        # First, find the start of the embeddedMetadata object
+        metadata_start_pattern = r'const embeddedMetadata = \{'
+        metadata_start_match = re.search(metadata_start_pattern, html_content)
+        
+        if metadata_start_match:
+            # Find the matching closing brace
+            start_pos = metadata_start_match.start()
+            brace_count = 0
+            in_backticks = False
+            i = metadata_start_match.end()
+            
+            while i < len(html_content):
+                if html_content[i] == '`':
+                    in_backticks = not in_backticks
+                elif not in_backticks:
+                    if html_content[i] == '{':
+                        brace_count += 1
+                    elif html_content[i] == '}':
+                        if brace_count == 0:
+                            # Found the closing brace
+                            end_pos = i + 1
+                            # Also find the closing semicolon
+                            if i + 1 < len(html_content) and html_content[i + 1] == ';':
+                                end_pos = i + 2
+                            break
+                        else:
+                            brace_count -= 1
+                i += 1
+            
+            # Replace the entire embeddedMetadata object
+            if 'end_pos' in locals():
+                # Find any comment before the const declaration
+                comment_pattern = r'(        // [^\n]*\n)?        const embeddedMetadata = \{'
+                comment_match = re.search(comment_pattern, html_content[:start_pos + 50])
+                if comment_match:
+                    start_pos = comment_match.start()
+                
+                metadata_replacement = f'        // Embedded metadata from CSV files\n{metadata_js_content}'
+                html_content = html_content[:start_pos] + metadata_replacement + html_content[end_pos:]
+            else:
+                print("  Warning: Could not find embeddedMetadata closing brace, skipping metadata update")
+        else:
+            print("  Warning: Could not find embeddedMetadata pattern, skipping metadata update")
+        
+        # Update embedded cholera data - similar pattern to metadata
+        # First, find the start of the embeddedCholeraData object (or where it should be)
+        cholera_data_pattern = r'const embeddedCholeraData = \{'
+        cholera_data_match = re.search(cholera_data_pattern, html_content)
+        
+        if cholera_data_match:
+            # Find the matching closing brace (similar to metadata logic)
+            start_pos = cholera_data_match.start()
+            depth = 0
+            i = start_pos
+            end_pos = None
+            
+            while i < len(html_content):
+                if html_content[i] == '{':
+                    depth += 1
+                elif html_content[i] == '}':
+                    depth -= 1
+                    if depth == 0:
+                        end_pos = i + 1
+                        if i + 1 < len(html_content) and html_content[i + 1] == ';':
+                            end_pos = i + 2
+                        break
+                i += 1
+            
+            # Replace the entire embeddedCholeraData object
+            if end_pos:
+                # Find any comment before the const declaration
+                comment_pattern = r'(        // [^\n]*\n)?        const embeddedCholeraData = \{'
+                comment_match = re.search(comment_pattern, html_content[:start_pos + 50])
+                if comment_match:
+                    start_pos = comment_match.start()
+                
+                cholera_replacement = f'        // Embedded cholera data from CSV files\n{cholera_js_content}'
+                html_content = html_content[:start_pos] + cholera_replacement + html_content[end_pos:]
+            else:
+                print("  Warning: Could not find embeddedCholeraData closing brace, adding new cholera data object")
+                # Add the embeddedCholeraData after embeddedMetadata
+                metadata_end = re.search(r'const embeddedMetadata = \{[^}]*\};', html_content)
+                if metadata_end:
+                    insert_pos = metadata_end.end()
+                    cholera_insertion = f'\n\n        // Embedded cholera data from CSV files\n{cholera_js_content}'
+                    html_content = html_content[:insert_pos] + cholera_insertion + html_content[insert_pos:]
+        else:
+            # embeddedCholeraData doesn't exist, add it after embeddedMetadata
+            print("  Adding new embeddedCholeraData object...")
+            metadata_end = re.search(r'const embeddedMetadata = \{[^}]*\};', html_content)
+            if metadata_end:
+                insert_pos = metadata_end.end()
+                cholera_insertion = f'\n\n        // Embedded cholera data from CSV files\n{cholera_js_content}'
+                html_content = html_content[:insert_pos] + cholera_insertion + html_content[insert_pos:]
+            else:
+                print("  Warning: Could not find proper location to insert embeddedCholeraData")
         
         # Write updated HTML
         with open(dashboard_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
         print(f"📊 Dashboard HTML updated: {dashboard_file}")
+        if metadata_dict:
+            print(f"  ✅ Embedded metadata for {len(metadata_dict)} countries: {', '.join(metadata_dict.keys())}")
+        if cholera_data_dict:
+            print(f"  ✅ Embedded cholera data for {len(cholera_data_dict)} countries: {', '.join(cholera_data_dict.keys())}")
         
     except Exception as e:
         print(f"Warning: Could not update dashboard HTML: {e}")
@@ -853,25 +944,7 @@ def update_all_dashboard_data(base_path: Path):
         # Get current state from file analysis
         current_state = analyze_country_directory(country_dir, iso_code)
         
-        # Preserve manual notes from existing data
-        existing_row = existing_data.get(iso_code, {})
-        manual_notes = existing_row.get('notes', '').strip()
-        
-        # Combine auto notes with manual notes (avoid duplication)
-        auto_notes = current_state['auto_notes']
-        if manual_notes and not manual_notes.startswith(auto_notes):
-            # Only add manual notes if they're different and not already included
-            if '| Manual:' in manual_notes:
-                # Extract just the manual part to avoid nested Manual: prefixes
-                manual_part = manual_notes.split('| Manual:')[-1].strip()
-                if manual_part != auto_notes:
-                    combined_notes = f"{auto_notes} | Manual: {manual_part}"
-                else:
-                    combined_notes = auto_notes
-            else:
-                combined_notes = f"{auto_notes} | Manual: {manual_notes}"
-        else:
-            combined_notes = auto_notes
+        # Notes column has been removed from dashboard
         
         # Create updated row
         updated_row = {
@@ -885,8 +958,7 @@ def update_all_dashboard_data(base_path: Path):
             'priority': current_state['priority'],
             'execution_time': current_state['execution_time'],
             'queries': current_state['queries'],
-            'yield_pct': current_state['yield_pct'],
-            'notes': combined_notes
+            'yield_pct': current_state['yield_pct']
         }
         
         updated_data.append(updated_row)
@@ -896,7 +968,7 @@ def update_all_dashboard_data(base_path: Path):
     
     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
         fieldnames = ['country', 'iso', 'status', 'datetime', 'sources', 'observations', 
-                     'date_range', 'priority', 'execution_time', 'queries', 'yield_pct', 'notes']
+                     'date_range', 'priority', 'execution_time', 'queries', 'yield_pct']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(updated_data)
@@ -904,124 +976,39 @@ def update_all_dashboard_data(base_path: Path):
     print(f"✅ Completion checklist updated: {csv_file}")
     
     # ========================================================================
-    # 2. GENERATE TIMELINE PLOTS
+    # 2. GENERATE DUAL TIMELINE PLOTS (via separate script)
     # ========================================================================
-    print("\n📊 STEP 2: Generating 3-source timeline coverage plots...")
+    print("\n📊 STEP 2: Generating dual timeline coverage plots...")
     
-    # Load surveillance data
-    surveillance_df = load_separated_surveillance_data(base_path)
+    # Call the dual timeline plots script
+    import subprocess
+    result = subprocess.run(['python', 'py/generate_dual_timeline_plots.py'], 
+                          capture_output=True, text=True, cwd=base_path)
     
-    # Find global date range across all countries
-    global_min_date, global_max_date = find_global_date_range(base_path, mosaic_countries)
+    if result.returncode == 0:
+        print("✅ Dual timeline plots generated successfully")
+    else:
+        print(f"❌ Error generating dual timeline plots: {result.stderr}")
+        # Continue anyway - don't fail the entire dashboard update
     
-    # Create output directory
-    output_dir = base_path / "dashboard" / "timeline_plots"
-    output_dir.mkdir(exist_ok=True)
-    
-    print(f"Using consistent date range: {global_min_date.strftime('%Y-%m-%d')} to {global_max_date.strftime('%Y-%m-%d')}")
-    
-    countries_with_data = 0
-    
-    for iso_code, country_info in mosaic_countries.items():
-        country_name = country_info.get('name', iso_code)
-        print(f"  Processing {country_name} ({iso_code})...")
-        
-        # Get surveillance data for this country
-        if not surveillance_df.empty and 'iso_code' in surveillance_df.columns:
-            country_surveillance = surveillance_df[surveillance_df['iso_code'] == iso_code]
-        else:
-            country_surveillance = pd.DataFrame()
-        
-        # Get AI data for this country
-        country_ai = load_ai_enhanced_data(base_path, iso_code)
-        
-        # Combine all data
-        country_data = pd.concat([country_surveillance, country_ai], ignore_index=True)
-        
-        if country_data.empty:
-            print(f"    No data found for {country_name}")
-            # Still create an empty plot for countries without data
-            # Create empty dataframe with required columns for plotting
-            country_data = pd.DataFrame(columns=['source', 'week_start'])
-        
-        # Create timeline plot
-        try:
-            create_3source_timeline_plot(country_data, country_name, iso_code, output_dir, global_min_date, global_max_date)
-            countries_with_data += 1
-        except Exception as e:
-            print(f"    Error creating plot for {country_name}: {e}")
-    
-    print(f"✅ Timeline plots generated for {countries_with_data} countries")
+    # Count countries with plots for summary
+    timeline_dir = base_path / "dashboard" / "timeline_plots_dual"
+    if timeline_dir.exists():
+        plot_files = list(timeline_dir.glob("*_dual_timeline.png"))
+        countries_with_data = len(plot_files)
+        print(f"📊 Dual timeline plots: {countries_with_data} countries processed")
+    else:
+        countries_with_data = 0
     
     # ========================================================================
-    # 3. GENERATE WEEK COUNTS DATA
+    # 3. UPDATE DASHBOARD HTML
     # ========================================================================
-    print("\n📈 STEP 3: Generating timeline week counts data...")
+    print("\n📱 STEP 3: Updating dashboard HTML with embedded data...")
     
-    # Get countries with timeline plots
-    countries_with_plots = []
-    for plot_file in output_dir.glob("*_3sources_timeline.png"):
-        # Extract ISO code from filename (format: ISO_Country_Name_3sources_timeline.png)
-        iso_code = plot_file.name.split('_')[0]
-        countries_with_plots.append(iso_code)
-    
-    # Filter to countries that have timeline plots
-    plot_countries = {iso: mosaic_countries[iso] for iso in countries_with_plots if iso in mosaic_countries}
-    
-    # Prepare week counts results
-    week_counts_results = []
-    
-    for iso_code, country_info in sorted(plot_countries.items()):
-        country_name = country_info.get('name', iso_code)
-        print(f"  Processing {country_name} ({iso_code})...")
-        
-        # Get surveillance data for this country
-        if not surveillance_df.empty and 'iso_code' in surveillance_df.columns:
-            country_surveillance = surveillance_df[surveillance_df['iso_code'] == iso_code]
-        else:
-            country_surveillance = pd.DataFrame()
-        
-        # Get AI data for this country
-        country_ai = load_ai_enhanced_data(base_path, iso_code)
-        
-        # Combine all data
-        country_data = pd.concat([country_surveillance, country_ai], ignore_index=True)
-        
-        # Count weeks by source
-        ai_weeks, who_weeks, jhu_weeks = count_weeks_by_source(country_data)
-        
-        week_counts_results.append({
-            'country': country_name,
-            'iso_code': iso_code,
-            'ai_weeks': ai_weeks,
-            'who_weeks': who_weeks,
-            'jhu_weeks': jhu_weeks
-        })
-        
-        print(f"    AI: {ai_weeks} weeks | WHO: {who_weeks} weeks | JHU: {jhu_weeks} weeks")
-    
-    # Create output CSV
-    week_counts_file = base_path / "dashboard" / "timeline_week_counts.csv"
-    
-    with open(week_counts_file, 'w', newline='', encoding='utf-8') as f:
-        fieldnames = ['country', 'iso_code', 'ai_weeks', 'who_weeks', 'jhu_weeks']
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        
-        writer.writeheader()
-        for result in week_counts_results:
-            writer.writerow(result)
-    
-    print(f"✅ Timeline week counts CSV created: {week_counts_file}")
+    update_dashboard_html(base_path, updated_data)
     
     # ========================================================================
-    # 4. UPDATE DASHBOARD HTML
-    # ========================================================================
-    print("\n📱 STEP 4: Updating dashboard HTML with embedded data...")
-    
-    update_dashboard_html(base_path, updated_data, week_counts_results)
-    
-    # ========================================================================
-    # 5. GENERATE SUMMARY STATISTICS
+    # 4. GENERATE SUMMARY STATISTICS
     # ========================================================================
     print("\n" + "=" * 80)
     print("✅ ALL DASHBOARD DATA UPDATED SUCCESSFULLY!")
@@ -1040,27 +1027,15 @@ def update_all_dashboard_data(base_path: Path):
     print(f"📈 Progress: {completed/len(updated_data)*100:.1f}% complete")
     
     # Timeline plots summary
-    print(f"\n📊 Timeline Plots: {output_dir}")
+    timeline_dir = base_path / "dashboard" / "timeline_plots_dual"
+    print(f"\n📊 Dual Timeline Plots: {timeline_dir}")
     print(f"🎨 Countries with plots: {countries_with_data}")
     
-    # Week counts summary
-    total_ai_weeks = sum(r['ai_weeks'] for r in week_counts_results)
-    total_who_weeks = sum(r['who_weeks'] for r in week_counts_results)
-    total_jhu_weeks = sum(r['jhu_weeks'] for r in week_counts_results)
-    
-    print(f"\n📈 Week Counts Data: {week_counts_file}")
-    print(f"  Total AI weeks: {total_ai_weeks:,}")
-    print(f"  Total WHO weeks: {total_who_weeks:,}")
-    print(f"  Total JHU weeks: {total_jhu_weeks:,}")
-    print(f"  Countries with AI data: {sum(1 for r in week_counts_results if r['ai_weeks'] > 0)}")
-    print(f"  Countries with WHO data: {sum(1 for r in week_counts_results if r['who_weeks'] > 0)}")
-    print(f"  Countries with JHU data: {sum(1 for r in week_counts_results if r['jhu_weeks'] > 0)}")
     
     print(f"\n🔄 DASHBOARD UPDATED:")
     print(f"📱 Real-time status based on file analysis")
     print(f"📊 Automatic metrics calculation")
     print(f"🎨 Timeline plots with synchronized date ranges")
-    print(f"📈 Week counts data embedded")
     print(f"💾 All data automatically synchronized")
     print("=" * 80)
 

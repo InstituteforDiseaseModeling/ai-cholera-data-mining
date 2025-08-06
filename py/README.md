@@ -22,20 +22,13 @@ This directory contains the essential Python scripts for the MOSAIC AI Cholera D
 - **When to run**: After agent completions, for dashboard refresh
 - **Replaces**: Multiple previous scripts (timeline plots, week counts, checklist updates)
 
-### **3. update_completion_checklist.py** 📈
-**Purpose**: Automatically analyzes file system and updates project completion status
-- **Usage**: `python py/update_completion_checklist.py`
-- **Output**: `dashboard/completion_checklist.csv` with real-time status
-- **When to run**: Integrated into unified dashboard updater (normally don't run standalone)
-- **Features**: Real-time status detection, progress calculation, automatic notes
-
-### **4. initialize_country.py** 🚀
+### **3. initialize_country.py** 🚀
 **Purpose**: Automated country initialization for Agent 1 workflow start
 - **Usage**: `python py/initialize_country.py {ISO_CODE}`
 - **What it does**:
   - Creates initial Agent 1 log file
-  - Updates dashboard to show PENDING status
-  - Provides workflow confirmation
+  - Prepares country for workflow execution
+  - Provides initialization confirmation
 - **When to run**: When starting work on a new country
 
 ## 📚 **REFERENCE DATA GENERATORS**
@@ -56,14 +49,7 @@ This directory contains the essential Python scripts for the MOSAIC AI Cholera D
 
 ## 🔬 **SPECIALIZED DATA ANALYSIS**
 
-### **7. generate_weekly_surveillance_longform.py** 📋
-**Purpose**: Creates comprehensive weekly longform dataset combining MOSAIC and AI data
-- **Usage**: `python py/generate_weekly_surveillance_longform.py`
-- **Output**: Detailed weekly surveillance CSV for analysis
-- **When to run**: For specialized data export and analysis needs
-- **Use case**: Research analysis, data validation, external reporting
-
-### **8. generate_monthly_surveillance_matrix_v2.py** 📅
+### **7. generate_monthly_surveillance_matrix_v2.py** 📅
 **Purpose**: Creates comprehensive monthly surveillance matrix using full MOSAIC data
 - **Usage**: `python py/generate_monthly_surveillance_matrix_v2.py`
 - **Output**: Monthly matrix format for surveillance analysis
@@ -101,7 +87,7 @@ python py/get_surveillance_gaps.py
 ### **Data Analysis**
 ```bash
 # Specialized exports (as needed)
-python py/generate_weekly_surveillance_longform.py
+# python py/generate_weekly_surveillance_longform.py  # REMOVED - no longer needed
 python py/generate_monthly_surveillance_matrix_v2.py
 ```
 
@@ -116,7 +102,7 @@ python py/update_workflow_dashboard_commands.py
 ### **Removed (Deprecated)**
 - `generate_timeline_plots.py` → Replaced by 3-source version
 - `generate_monthly_surveillance_matrix.py` → Replaced by v2
-- `generate_timeline_plots_3sources.py` → Integrated into unified dashboard updater
+- `generate_timeline_plots_3sources.py` → REMOVED (deprecated, replaced by dual_timeline plots)
 - `generate_timeline_week_counts.py` → Integrated into unified dashboard updater
 - `generate_timeline_data.py` → Replaced by PNG plot system
 

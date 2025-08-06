@@ -11,7 +11,6 @@ Usage:
 Outputs:
     - reference/iso_codes_all.txt: All 54 African countries
     - reference/iso_codes_mosaic.txt: 40 MOSAIC framework countries  
-    - reference/iso_codes_high_priority.txt: Countries prioritized for cholera work
     - reference/country_mapping.json: Complete mapping for Claude instances
 """
 
@@ -113,7 +112,6 @@ This directory contains ISO country codes and mapping data for the MOSAIC choler
 ## Files Generated
 - `iso_codes_all.txt`: All 54 African countries (complete coverage)
 - `iso_codes_mosaic.txt`: 40 MOSAIC framework countries (core modeling countries)
-- `iso_codes_high_priority.txt`: High-priority countries for cholera data enhancement
 - `country_mapping.json`: Complete country metadata and groupings
 
 ## Usage for Claude Instances
@@ -192,13 +190,6 @@ def main():
         "40 MOSAIC Framework Countries - Core Modeling Countries"
     )
     
-    # High priority cholera countries (WHO AFRO + high burden)
-    high_priority = df[df['who_afro'] == True]
-    high_priority_countries = write_iso_list(
-        high_priority,
-        "iso_codes_high_priority.txt",
-        "47 WHO AFRO Countries - High Priority for Cholera Surveillance"
-    )
     
     # Create comprehensive mapping
     print("\nGenerating comprehensive country mapping...")
@@ -220,7 +211,6 @@ def main():
     print("="*60)
     print(f"Total African countries: {len(all_countries)}")
     print(f"MOSAIC framework countries: {len(mosaic_countries)}")
-    print(f"WHO AFRO countries: {len(high_priority_countries)}")
     print("\nRegional breakdown:")
     
     for subregion in df['subregion'].unique():
@@ -231,7 +221,6 @@ def main():
     print(f"\nFiles generated in ./reference/:")
     print("  - iso_codes_all.txt")
     print("  - iso_codes_mosaic.txt") 
-    print("  - iso_codes_high_priority.txt")
     print("  - country_mapping.json")
     print("  - iso_codes_usage.md")
     

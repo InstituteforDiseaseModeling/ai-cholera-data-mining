@@ -752,35 +752,25 @@ def main():
         create_country_directories(base_path)
         print()
         
-        # Step 2: Create customized 8-phase search prompt files
-        create_country_prompts(base_path)
-        print()
-        
-        # Step 3: Create comprehensive country information key
+        # Step 2: Create comprehensive country information key
         create_country_info_key(base_path)
         print()
         
-        # Step 4: Create customized agentic workflow files
-        create_country_workflows(base_path)
-        print()
-        
-        # Step 5: Create execution checklist
+        # Step 3: Create execution checklist
         create_execution_checklist(base_path)
         print()
         
         print("=" * 80)
-        print("✅ 8-PHASE SEARCH SETUP COMPLETED SUCCESSFULLY!")
+        print("✅ COUNTRY CONFIGURATION COMPLETED SUCCESSFULLY!")
         print("=" * 80)
         print(f"📁 Created {len(MOSAIC_COUNTRIES)} country directories")
-        print(f"📄 Created {len(MOSAIC_COUNTRIES)} search protocol files")
-        print(f"🤖 Created {len(MOSAIC_COUNTRIES)} 6-agent workflow files")
         print(f"🔑 Created comprehensive country information key")
         print(f"📋 Created execution checklist template")
         
         print("\n🚀 IMPLEMENTATION READY:")
-        print("1. 📚 Follow CLAUDE.md for complete 8-phase methodology")
-        print("2. 🎯 Use search_protocol_{ISO_CODE}.txt files for Agent 1 (baseline search)")
-        print("3. 🤖 Use agentic_workflow_{ISO_CODE}.txt for complete 6-agent workflow")
+        print("1. 📚 Follow CLAUDE.md for complete methodology")
+        print("2. 🤖 Use workflow_orchestrator_{ISO_CODE}.txt for subagent coordination")
+        print("3. 📋 Check reference/country_info_key.json for country-specific parameters")
         print("4. 📋 Track progress using dashboard/completion_checklist.csv (CSV format for dashboard)")
         print("5. 🔍 Reference country_info_key.json for detailed country information")
         

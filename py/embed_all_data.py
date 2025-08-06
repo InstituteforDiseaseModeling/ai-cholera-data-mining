@@ -67,8 +67,8 @@ def get_all_countries():
 def process_who_data():
     """Process WHO data from embedded reference directory."""
     who_data = {}
-    # Use embedded surveillance data from reference directory
-    reference_data_path = Path("reference/cholera_surveillance_weekly_combined.csv")
+    # Use original surveillance data from MOSAIC-data directory
+    reference_data_path = Path("../MOSAIC-data/processed/cholera/weekly/cholera_surveillance_weekly_combined.csv")
     
     if not reference_data_path.exists():
         print(f"⚠️  Reference surveillance data file not found at {reference_data_path}")
@@ -102,8 +102,8 @@ def process_who_data():
 def process_jhu_data():
     """Process JHU data from embedded reference directory."""
     jhu_data = {}
-    # Use embedded surveillance data from reference directory
-    reference_data_path = Path("reference/cholera_surveillance_weekly_combined.csv")
+    # Use original surveillance data from MOSAIC-data directory
+    reference_data_path = Path("../MOSAIC-data/processed/cholera/weekly/cholera_surveillance_weekly_combined.csv")
     
     if not reference_data_path.exists():
         print(f"⚠️  Reference surveillance data file not found at {reference_data_path}")
@@ -179,8 +179,8 @@ def embed_all_data():
     for iso in completed_countries:
         data_dir = Path(f'data/{iso}')
         
-        # Read metadata.csv
-        metadata_file = data_dir / 'metadata.csv'
+        # Read metadata_ai.csv (changed from metadata.csv)
+        metadata_file = data_dir / 'metadata_ai.csv'
         if metadata_file.exists():
             metadata_content = read_csv_safe(metadata_file)
             if metadata_content:
@@ -188,14 +188,23 @@ def embed_all_data():
                 lines = len(metadata_content.split('\n')) - 1
                 print(f"✅ Loaded AI metadata for {iso} ({lines} sources)")
         
-        # Read cholera_data.csv
-        cholera_file = data_dir / 'cholera_data.csv'
-        if cholera_file.exists():
-            cholera_content = read_csv_safe(cholera_file)
+        # Read cholera_data_ai.csv (prioritize AI-specific file)
+        cholera_ai_file = data_dir / 'cholera_data_ai.csv'
+        if cholera_ai_file.exists():
+            cholera_content = read_csv_safe(cholera_ai_file)
             if cholera_content:
                 ai_data['cholera_data'][iso] = escape_for_javascript(cholera_content)
                 lines = len(cholera_content.split('\n')) - 1
                 print(f"✅ Loaded AI cholera data for {iso} ({lines} observations)")
+        else:
+            # Fallback to unified cholera_data.csv if AI-specific file doesn't exist
+            cholera_file = data_dir / 'cholera_data.csv'
+            if cholera_file.exists():
+                cholera_content = read_csv_safe(cholera_file)
+                if cholera_content:
+                    ai_data['cholera_data'][iso] = escape_for_javascript(cholera_content)
+                    lines = len(cholera_content.split('\n')) - 1
+                    print(f"✅ Loaded fallback cholera data for {iso} ({lines} observations)")
     
     # Generate JavaScript code for embedding AI-mined data only
     metadata_js = "{\n"
@@ -229,17 +238,31 @@ def embed_all_data():
     
     # Find and replace existing embedded data section
     embed_start_marker = "        // Embedded CSV data - updated automatically by py/"
-    embed_end_marker = "        // Embedded week counts data"
+    # Try multiple possible end markers
+    embed_end_markers = [
+        "        // Load and display timeline data with PNG plots",
+        "        // Function to parse CSV row",
+        "        // Function to format",
+        "        // Function to"
+    ]
     
     embed_start = html_content.find(embed_start_marker)
     if embed_start != -1:
         print("🔄 Replacing existing embedded data...")
         # Find the end of the embedded data section
         search_start = embed_start
-        embed_end = html_content.find(embed_end_marker, search_start)
+        embed_end = -1
+        
+        # Try each possible end marker
+        for marker in embed_end_markers:
+            embed_end = html_content.find(marker, search_start)
+            if embed_end != -1:
+                print(f"✅ Found end marker: {marker[:30]}...")
+                break
         
         if embed_end == -1:
             print("❌ Could not find end of embedded data section")
+            print("   Tried markers:", embed_end_markers)
             return False
             
         new_content = (
@@ -249,10 +272,24 @@ def embed_all_data():
         )
     else:
         # No existing embedded data, find insertion point
-        csvdata_marker = "        const weekCountsCSV = `"
-        csvdata_pos = html_content.find(csvdata_marker)
+        # Try multiple possible markers
+        markers = [
+            "        const weekCountsCSV = `",
+            "        const completionChecklistCSV = `",
+            "        // Embedded completion checklist CSV",
+            "        // Load the country table when the page loads"
+        ]
+        
+        csvdata_pos = -1
+        for marker in markers:
+            csvdata_pos = html_content.find(marker)
+            if csvdata_pos != -1:
+                print(f"✅ Found insertion point using marker: {marker[:30]}...")
+                break
+        
         if csvdata_pos == -1:
             print("❌ Could not find insertion point in dashboard HTML")
+            print("   Tried markers:", markers)
             return False
         
         new_content = (
