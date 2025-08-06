@@ -3006,24 +3006,48 @@
             const result = [];
             let current = '';
             let inQuotes = false;
+            let i = 0;
             
-            for (let i = 0; i < row.length; i++) {
+            while (i < row.length) {
                 const char = row[i];
                 
-                if (char === '"' && (i === 0 || row[i-1] === ',')) {
+                // Check for quote at start of field
+                if (char === '"' && current.length === 0) {
                     inQuotes = true;
-                } else if (char === '"' && inQuotes) {
-                    inQuotes = false;
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
+                    i++;
+                    continue;
                 }
+                
+                // Check for closing quote
+                if (char === '"' && inQuotes) {
+                    // Check if it's an escaped quote (doubled)
+                    if (i + 1 < row.length && row[i + 1] === '"') {
+                        current += '"';
+                        i += 2;
+                        continue;
+                    } else {
+                        inQuotes = false;
+                        i++;
+                        continue;
+                    }
+                }
+                
+                // Check for field separator
+                if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                    i++;
+                    continue;
+                }
+                
+                // Add character to current field
+                current += char;
+                i++;
             }
             
-            if (current) {
-                result.push(current.trim());
+            // Add the last field
+            if (current.length > 0 || row[row.length - 1] === ',') {
+                result.push(current);
             }
             
             return result;
