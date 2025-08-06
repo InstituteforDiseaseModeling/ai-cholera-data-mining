@@ -1710,6 +1710,197 @@
             });
         }
 
+        // Populate data dropdowns for metadata and cholera data tabs
+        function populateDataDropdowns() {
+            const metadataSelect = document.getElementById('metadata-country-select');
+            const choleraSelect = document.getElementById('cholera-country-select');
+            
+            if (!metadataSelect || !choleraSelect) return;
+            
+            // Clear existing options except the first placeholder
+            metadataSelect.innerHTML = '<option value="">Select a country...</option>';
+            choleraSelect.innerHTML = '<option value="">Select a country...</option>';
+            
+            // Get available countries from embeddedMetadata and embeddedCholeraData
+            const metadataCountries = Object.keys(embeddedMetadata || {});
+            const choleraCountries = Object.keys(embeddedCholeraData || {});
+            
+            // Combine and get unique countries
+            const allDataCountries = [...new Set([...metadataCountries, ...choleraCountries])];
+            
+            // Sort countries alphabetically
+            allDataCountries.sort();
+            
+            // Find country names from countryData
+            const countryMap = {};
+            countryData.forEach(country => {
+                countryMap[country.iso] = country.country;
+            });
+            
+            // Add options to both dropdowns
+            allDataCountries.forEach(iso => {
+                const countryName = countryMap[iso] || iso;
+                
+                // Add to metadata dropdown if data exists
+                if (metadataCountries.includes(iso)) {
+                    const option = document.createElement('option');
+                    option.value = iso;
+                    option.textContent = `${countryName} (${iso})`;
+                    metadataSelect.appendChild(option);
+                }
+                
+                // Add to cholera data dropdown if data exists
+                if (choleraCountries.includes(iso)) {
+                    const option = document.createElement('option');
+                    option.value = iso;
+                    option.textContent = `${countryName} (${iso})`;
+                    choleraSelect.appendChild(option);
+                }
+            });
+        }
+        
+        // Load metadata for selected country
+        function loadMetadataForCountry() {
+            const select = document.getElementById('metadata-country-select');
+            const selectedISO = select.value;
+            
+            const placeholder = document.getElementById('metadata-placeholder');
+            const tableWrapper = document.getElementById('metadata-table-wrapper');
+            const tableBody = document.getElementById('metadata-table-body');
+            const countSpan = document.getElementById('metadata-count');
+            
+            if (!selectedISO) {
+                placeholder.style.display = 'flex';
+                tableWrapper.style.display = 'none';
+                countSpan.textContent = '0 sources';
+                return;
+            }
+            
+            // Get the metadata for the selected country
+            const metadataCSV = embeddedMetadata[selectedISO];
+            
+            if (!metadataCSV) {
+                placeholder.style.display = 'flex';
+                tableWrapper.style.display = 'none';
+                countSpan.textContent = '0 sources';
+                return;
+            }
+            
+            // Parse CSV data
+            const lines = metadataCSV.trim().split('\\n');
+            const headers = lines[0].split(',');
+            
+            // Clear table body
+            tableBody.innerHTML = '';
+            
+            // Process each data row
+            let rowCount = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const row = parseCSVRow(lines[i]);
+                if (row.length < headers.length) continue;
+                
+                rowCount++;
+                const tr = document.createElement('tr');
+                
+                // Build table row with specific columns
+                const indexCol = row[0]; // Index
+                const sourceCol = row[1]; // Source
+                const urlCol = row[2]; // URL
+                const dateRangeCol = row[4]; // Date_Range
+                const reliabilityCol = row[7]; // Reliability_Level
+                
+                tr.innerHTML = `
+                    <td>${indexCol}</td>
+                    <td>${sourceCol}</td>
+                    <td><a href="${urlCol}" target="_blank" class="data-link">
+                        <i class="fas fa-external-link-alt"></i> View
+                    </a></td>
+                    <td>${dateRangeCol}</td>
+                    <td><span class="reliability-badge ${reliabilityCol.toLowerCase().replace(' ', '-')}">${reliabilityCol}</span></td>
+                `;
+                
+                tableBody.appendChild(tr);
+            }
+            
+            // Update display
+            placeholder.style.display = 'none';
+            tableWrapper.style.display = 'block';
+            countSpan.textContent = `${rowCount} sources`;
+        }
+        
+        // Load cholera data for selected country
+        function loadCholeraDataForCountry() {
+            const select = document.getElementById('cholera-country-select');
+            const selectedISO = select.value;
+            
+            const placeholder = document.getElementById('cholera-data-placeholder');
+            const tableWrapper = document.getElementById('cholera-data-table-wrapper');
+            const tableBody = document.getElementById('cholera-data-table-body');
+            const countSpan = document.getElementById('cholera-data-count');
+            
+            if (!selectedISO) {
+                placeholder.style.display = 'flex';
+                tableWrapper.style.display = 'none';
+                countSpan.textContent = '0 observations';
+                return;
+            }
+            
+            // Get the cholera data for the selected country
+            const choleraCSV = embeddedCholeraData[selectedISO];
+            
+            if (!choleraCSV) {
+                placeholder.style.display = 'flex';
+                tableWrapper.style.display = 'none';
+                countSpan.textContent = '0 observations';
+                return;
+            }
+            
+            // Parse CSV data
+            const lines = choleraCSV.trim().split('\\n');
+            const headers = lines[0].split(',');
+            
+            // Clear table body
+            tableBody.innerHTML = '';
+            
+            // Process each data row
+            let rowCount = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const row = parseCSVRow(lines[i]);
+                if (row.length < headers.length) continue;
+                
+                rowCount++;
+                const tr = document.createElement('tr');
+                
+                // Build table row with specific columns
+                const locationCol = row[1]; // Location
+                const startDateCol = row[2]; // TL
+                const endDateCol = row[3]; // TR
+                const deathsCol = row[4] || '-'; // deaths
+                const suspectedCol = row[5] || '-'; // sCh
+                const confirmedCol = row[6] || '-'; // cCh
+                const cfrCol = row[7] || '-'; // CFR
+                const sourceCol = row[10]; // source
+                
+                tr.innerHTML = `
+                    <td>${locationCol}</td>
+                    <td>${startDateCol}</td>
+                    <td>${endDateCol}</td>
+                    <td>${suspectedCol}</td>
+                    <td>${confirmedCol}</td>
+                    <td>${deathsCol}</td>
+                    <td>${cfrCol}</td>
+                    <td class="source-cell" title="${sourceCol}">${sourceCol}</td>
+                `;
+                
+                tableBody.appendChild(tr);
+            }
+            
+            // Update display
+            placeholder.style.display = 'none';
+            tableWrapper.style.display = 'block';
+            countSpan.textContent = `${rowCount} observations`;
+        }
+        
         // Sort table function
         function sortTable(columnIndex) {
             const table = document.getElementById('countryTable');
@@ -1764,6 +1955,7 @@
             updateLastUpdated();
             loadTimelinePlots();
             populateCountryTable();
+            populateDataDropdowns();
         });
         
         // Load timeline plots dynamically
