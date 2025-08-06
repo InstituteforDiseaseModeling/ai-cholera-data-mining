@@ -1800,9 +1800,21 @@
             }
             
             // Sort filtered data by status (COMPLETED first, then PENDING, then NOT_STARTED)
+            // Within each status group, sort by date (most recent first)
             filteredData.sort((a, b) => {
                 const statusOrder = {'COMPLETED': 0, 'PENDING': 1, 'NOT_STARTED': 2};
-                return (statusOrder[a.status] || 2) - (statusOrder[b.status] || 2);
+                const statusDiff = (statusOrder[a.status] || 2) - (statusOrder[b.status] || 2);
+                
+                // If status is the same, sort by date (most recent first)
+                if (statusDiff === 0) {
+                    // Handle empty dates
+                    const aDate = a.datetime || '0000-00-00';
+                    const bDate = b.datetime || '0000-00-00';
+                    // Sort descending (most recent first)
+                    return bDate.localeCompare(aDate);
+                }
+                
+                return statusDiff;
             });
             
             // Update country count
@@ -2455,11 +2467,17 @@
             populateCountryTable();
             populateDataDropdowns();
             
-            // Set default sort indicator on Status column (since we sort by status by default)
+            // Set default sort indicators on Status and Date columns (since we sort by status then date by default)
             setTimeout(() => {
                 const statusHeader = document.querySelector('#countryTable th:nth-child(4)');
+                const dateHeader = document.querySelector('#countryTable th:nth-child(3)');
                 if (statusHeader) {
                     statusHeader.classList.add('sort-asc');
+                }
+                // Show secondary sort on date column with a subtle indicator
+                if (dateHeader) {
+                    dateHeader.style.fontStyle = 'italic';
+                    dateHeader.title = 'Secondary sort: Most recent first';
                 }
             }, 100);
             
@@ -2605,7 +2623,7 @@ Guinea,GIN,NOT_STARTED,,0,0,,,0,0,
 Gambia,GMB,NOT_STARTED,,0,0,,,0,0,
 Guinea-Bissau,GNB,NOT_STARTED,,0,0,,,0,0,
 Equatorial Guinea,GNQ,NOT_STARTED,,0,0,,,0,0,
-Kenya,KEN,PENDING,2025-08-06 13:41:15,14,14,1971-2030,HIGH,0,0,
+Kenya,KEN,PENDING,2025-08-06 13:42:54,14,14,1971-2030,HIGH,0,0,
 Liberia,LBR,NOT_STARTED,,0,0,,,0,0,
 Mali,MLI,NOT_STARTED,,0,0,,,0,0,
 Mozambique,MOZ,NOT_STARTED,,0,0,,,0,0,
