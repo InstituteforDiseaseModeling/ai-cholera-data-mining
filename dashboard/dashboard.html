@@ -2067,14 +2067,30 @@
                 return;
             }
             
-            // Get the cholera data for the selected country
+            // Get the cholera data and metadata for the selected country
             const choleraCSV = embeddedCholeraData[selectedISO];
+            const metadataCSV = embeddedMetadata[selectedISO];
             
             if (!choleraCSV) {
                 placeholder.style.display = 'flex';
                 tableWrapper.style.display = 'none';
                 countSpan.textContent = '0 observations';
                 return;
+            }
+            
+            // Parse metadata CSV to create source URL lookup
+            const sourceUrlMap = {};
+            if (metadataCSV) {
+                const metaLines = metadataCSV.trim().split('\n');
+                for (let i = 1; i < metaLines.length; i++) {
+                    const metaRow = parseCSVRow(metaLines[i]);
+                    if (metaRow.length >= 3) {
+                        const index = metaRow[0];
+                        const sourceName = metaRow[1];
+                        const url = metaRow[2];
+                        sourceUrlMap[index] = { name: sourceName, url: url };
+                    }
+                }
             }
             
             // Parse CSV data
@@ -2099,13 +2115,35 @@
                 // 8=reporting_date, 9=source_index, 10=source, 11=confidence_weight, 
                 // 12=processing_notes, 13=source_database
                 const locationCol = row[1] || '-'; // Location
-                const startDateCol = row[2] || '-'; // TL
-                const endDateCol = row[3] || '-'; // TR
+                const startDateCol = row[2] || '-'; // TL (Date Start)
+                const endDateCol = row[3] || '-'; // TR (Date Stop)
                 const deathsCol = row[4] || '-'; // deaths
                 const suspectedCol = row[5] || '-'; // sCh
                 const cfrCol = row[7] || '-'; // CFR
                 const sourceCol = row[10] || '-'; // source
-                const confidenceCol = row[11] || '-'; // confidence_weight
+                const sourceIndex = row[9] || ''; // source_index for URL lookup
+                const confidenceCol = parseFloat(row[11]) || 0; // confidence_weight
+                
+                // Create source link if URL exists in metadata
+                let sourceLink = sourceCol;
+                if (sourceIndex && sourceUrlMap[sourceIndex]) {
+                    const sourceData = sourceUrlMap[sourceIndex];
+                    sourceLink = `<a href="${sourceData.url}" target="_blank" class="data-link" title="${sourceCol}">${sourceCol}</a>`;
+                }
+                
+                // Create confidence badge based on value
+                let confidenceBadge = '';
+                if (confidenceCol >= 0.9) {
+                    confidenceBadge = `<span class="level-badge level-1">${confidenceCol.toFixed(2)}</span>`;
+                } else if (confidenceCol >= 0.7) {
+                    confidenceBadge = `<span class="level-badge level-2">${confidenceCol.toFixed(2)}</span>`;
+                } else if (confidenceCol >= 0.3) {
+                    confidenceBadge = `<span class="level-badge level-3">${confidenceCol.toFixed(2)}</span>`;
+                } else if (confidenceCol > 0) {
+                    confidenceBadge = `<span class="level-badge level-4">${confidenceCol.toFixed(2)}</span>`;
+                } else {
+                    confidenceBadge = '-';
+                }
                 
                 tr.innerHTML = `
                     <td>${locationCol}</td>
@@ -2114,8 +2152,8 @@
                     <td>${suspectedCol}</td>
                     <td>${deathsCol}</td>
                     <td>${cfrCol}</td>
-                    <td class="source-cell" title="${sourceCol}">${sourceCol}</td>
-                    <td>${confidenceCol}</td>
+                    <td class="source-cell">${sourceLink}</td>
+                    <td style="text-align: center;">${confidenceBadge}</td>
                 `;
                 
                 tableBody.appendChild(tr);
