@@ -2188,6 +2188,122 @@
             countSpan.textContent = `${rowCount} observations`;
         }
         
+        // Sort metadata table function
+        function sortMetadataTable(columnIndex) {
+            const table = document.getElementById('metadata-table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const th = table.querySelectorAll('th')[columnIndex];
+            
+            // Determine current sort direction
+            const isAscending = !th.classList.contains('sort-asc');
+            
+            // Remove sort classes from all headers
+            table.querySelectorAll('th').forEach(header => {
+                header.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            // Add appropriate sort class to current header
+            th.classList.add(isAscending ? 'sort-asc' : 'sort-desc');
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aValue = a.cells[columnIndex].textContent.trim();
+                let bValue = b.cells[columnIndex].textContent.trim();
+                
+                // Handle numeric sorting for Index column
+                if (columnIndex === 0) {
+                    aValue = parseInt(aValue) || 0;
+                    bValue = parseInt(bValue) || 0;
+                    return isAscending ? aValue - bValue : bValue - aValue;
+                }
+                
+                // Handle date sorting
+                if (columnIndex === 3 || columnIndex === 4) { // Date columns
+                    aValue = aValue === '-' ? '0000-00-00' : aValue;
+                    bValue = bValue === '-' ? '0000-00-00' : bValue;
+                }
+                
+                // Handle Agent column (extract number)
+                if (columnIndex === 6) {
+                    const aMatch = aValue.match(/A(\d+)/);
+                    const bMatch = bValue.match(/A(\d+)/);
+                    aValue = aMatch ? parseInt(aMatch[1]) : 999;
+                    bValue = bMatch ? parseInt(bMatch[1]) : 999;
+                    return isAscending ? aValue - bValue : bValue - aValue;
+                }
+                
+                // String comparison for other columns
+                if (isAscending) {
+                    return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+                } else {
+                    return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+                }
+            });
+            
+            // Clear tbody and re-append sorted rows
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+        
+        // Sort cholera data table function
+        function sortCholeraTable(columnIndex) {
+            const table = document.getElementById('cholera-data-table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const th = table.querySelectorAll('th')[columnIndex];
+            
+            // Determine current sort direction
+            const isAscending = !th.classList.contains('sort-asc');
+            
+            // Remove sort classes from all headers
+            table.querySelectorAll('th').forEach(header => {
+                header.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            // Add appropriate sort class to current header
+            th.classList.add(isAscending ? 'sort-asc' : 'sort-desc');
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aValue = a.cells[columnIndex].textContent.trim();
+                let bValue = b.cells[columnIndex].textContent.trim();
+                
+                // Handle date sorting
+                if (columnIndex === 1 || columnIndex === 2) { // Date columns
+                    aValue = aValue === '-' ? '0000-00-00' : aValue;
+                    bValue = bValue === '-' ? '0000-00-00' : bValue;
+                }
+                
+                // Handle numeric sorting for cases, deaths, CFR
+                if (columnIndex === 3 || columnIndex === 4 || columnIndex === 5) {
+                    aValue = parseFloat(aValue.replace(',', '')) || 0;
+                    bValue = parseFloat(bValue.replace(',', '')) || 0;
+                    return isAscending ? aValue - bValue : bValue - aValue;
+                }
+                
+                // Handle confidence column (extract number from badge)
+                if (columnIndex === 7) {
+                    const aMatch = aValue.match(/[\d.]+/);
+                    const bMatch = bValue.match(/[\d.]+/);
+                    aValue = aMatch ? parseFloat(aMatch[0]) : 0;
+                    bValue = bMatch ? parseFloat(bMatch[0]) : 0;
+                    return isAscending ? aValue - bValue : bValue - aValue;
+                }
+                
+                // String comparison for other columns
+                if (isAscending) {
+                    return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+                } else {
+                    return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+                }
+            });
+            
+            // Clear tbody and re-append sorted rows
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+        
         // Sort table function
         function sortTable(columnIndex) {
             const table = document.getElementById('countryTable');
