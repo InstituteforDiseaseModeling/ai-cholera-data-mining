@@ -1535,21 +1535,22 @@
 
         <!-- Country Status Tab -->
         <div id="country-status" class="tab-content active">
-            <div class="table-container">
-                <div class="table-header">
-                    <div class="table-title">
-                        <i class="fas fa-table"></i>
-                        <span>Country Status</span>
-                    </div>
-                    <div class="country-status-filter">
-                        <select id="status-filter" class="form-select" style="min-width: 200px; padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; font-size: 0.95rem;">
-                            <option value="all">All Countries</option>
-                            <option value="completed">Completed</option>
-                            <option value="pending">Pending</option>
-                            <option value="not_started">Not Started</option>
-                        </select>
+            <div class="academic-section">
+                <h2>Country Status Dashboard</h2>
+                <p>Real-time tracking of the 7-agent AI workflow progress across 40 MOSAIC framework countries, showing data collection status and completeness metrics.</p>
+                
+                <div class="metadata-controls" style="margin: 1.5rem 0; display: flex; gap: 1rem; align-items: center;">
+                    <select id="status-filter" class="form-select" style="padding: 0.5rem; border-radius: 4px; border: 1px solid #dee2e6;">
+                        <option value="all">All Countries</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending">Pending</option>
+                        <option value="not_started">Not Started</option>
+                    </select>
+                    <div class="metadata-stats">
+                        <span id="country-count" style="font-weight: 600; color: #495057;">40 countries</span>
                     </div>
                 </div>
+                
                 <div class="table-wrapper">
                     <table id="countryTable">
                         <thead>
@@ -1797,7 +1798,25 @@
                 });
             }
             
-            // Populate table with filtered data
+            // Sort filtered data by status (COMPLETED first, then PENDING, then NOT_STARTED)
+            filteredData.sort((a, b) => {
+                const statusOrder = {'COMPLETED': 0, 'PENDING': 1, 'NOT_STARTED': 2};
+                return (statusOrder[a.status] || 2) - (statusOrder[b.status] || 2);
+            });
+            
+            // Update country count
+            const countSpan = document.getElementById('country-count');
+            if (countSpan) {
+                const completedCount = filteredData.filter(c => c.status === 'COMPLETED').length;
+                const totalCount = filteredData.length;
+                if (filterStatus === 'all') {
+                    countSpan.textContent = `${totalCount} countries (${completedCount} completed)`;
+                } else {
+                    countSpan.textContent = `${totalCount} ${filterStatus.replace('_', ' ')} countries`;
+                }
+            }
+            
+            // Populate table with filtered and sorted data
             filteredData.forEach(country => {
                 const row = document.createElement('tr');
                 
@@ -1831,10 +1850,20 @@
                     dataSummary = 'No data collected yet';
                 }
                 
-                // Format datetime with PST timezone
+                // Format datetime with AM/PM and PST timezone
                 let datetime = country.datetime || '-';
                 if (datetime !== '-') {
-                    datetime = datetime + ' PST';
+                    // Parse the datetime string (format: YYYY-MM-DD HH:MM:SS)
+                    const [datePart, timePart] = datetime.split(' ');
+                    if (timePart) {
+                        const [hours, minutes, seconds] = timePart.split(':');
+                        let hour = parseInt(hours);
+                        const ampm = hour >= 12 ? 'PM' : 'AM';
+                        hour = hour % 12 || 12; // Convert to 12-hour format
+                        datetime = `${datePart} ${hour}:${minutes}:${seconds} ${ampm} PST`;
+                    } else {
+                        datetime = datetime + ' PST';
+                    }
                 }
                 
                 row.className = statusClass;
