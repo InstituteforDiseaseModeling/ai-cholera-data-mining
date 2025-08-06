@@ -22,20 +22,13 @@ This directory contains the essential Python scripts for the MOSAIC AI Cholera D
 - **When to run**: After agent completions, for dashboard refresh
 - **Replaces**: Multiple previous scripts (timeline plots, week counts, checklist updates)
 
-### **3. update_completion_checklist.py** 📈
-**Purpose**: Automatically analyzes file system and updates project completion status
-- **Usage**: `python py/update_completion_checklist.py`
-- **Output**: `dashboard/completion_checklist.csv` with real-time status
-- **When to run**: Integrated into unified dashboard updater (normally don't run standalone)
-- **Features**: Real-time status detection, progress calculation, automatic notes
-
-### **4. initialize_country.py** 🚀
+### **3. initialize_country.py** 🚀
 **Purpose**: Automated country initialization for Agent 1 workflow start
 - **Usage**: `python py/initialize_country.py {ISO_CODE}`
 - **What it does**:
   - Creates initial Agent 1 log file
-  - Updates dashboard to show PENDING status
-  - Provides workflow confirmation
+  - Prepares country for workflow execution
+  - Provides initialization confirmation
 - **When to run**: When starting work on a new country
 
 ## 📚 **REFERENCE DATA GENERATORS**
@@ -109,7 +102,7 @@ python py/update_workflow_dashboard_commands.py
 ### **Removed (Deprecated)**
 - `generate_timeline_plots.py` → Replaced by 3-source version
 - `generate_monthly_surveillance_matrix.py` → Replaced by v2
-- `generate_timeline_plots_3sources.py` → Integrated into unified dashboard updater
+- `generate_timeline_plots_3sources.py` → REMOVED (deprecated, replaced by dual_timeline plots)
 - `generate_timeline_week_counts.py` → Integrated into unified dashboard updater
 - `generate_timeline_data.py` → Replaced by PNG plot system
 

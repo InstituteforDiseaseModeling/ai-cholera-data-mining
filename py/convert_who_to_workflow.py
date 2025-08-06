@@ -20,8 +20,13 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Configuration - Updated path to match current OneDrive structure  
-WHO_DATA_PATH = "/Users/johngiles/Library/CloudStorage/OneDrive-Bill&MelindaGatesFoundation/Projects/MOSAIC/ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv"
+# Configuration - Use relative paths or environment variables
+import os
+
+# Allow environment variable override, otherwise use relative path
+WHO_DATA_PATH = os.environ.get('WHO_DATA_PATH',
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                 'ees-cholera-mapping', 'data', 'cholera', 'who', 'awd', 'cholera_country_weekly.csv'))
 DATA_PATH = "./data"
 COUNTRY_MAPPING_PATH = "./reference/country_mapping.json"
 

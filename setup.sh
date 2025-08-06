@@ -137,8 +137,8 @@ if [ "$SKIP_GAP_ANALYSIS" = true ]; then
     echo "   ⚠️  Skipping gap analysis (surveillance data not available)"
     echo "   Agents will use existing reference files if available"
 else
-    python py/analyze_integrated_coverage_gaps.py || {
-        echo "❌ Integrated gap analysis failed. Check that baseline data exists and is properly formatted."
+    python py/analyze_baseline_gaps_optimized.py || {
+        echo "❌ Baseline gap analysis failed. Check that baseline data exists and is properly formatted."
         exit 1
     }
     echo "   ✅ Generated: ./reference/agent_quick_reference.csv"

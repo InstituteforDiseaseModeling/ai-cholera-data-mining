@@ -4,6 +4,8 @@
 
 **Strategy**: Gap-targeted systematic internet searches to discover unreported transmission events and validate zero-transmission periods, building on integrated JHU historical database and WHO dashboard baseline data.
 
+**Important Note: While this project is open source, it remains an experimental pilot study and the AI-generated data have not yet been fully validated by human experts. Data posted here may change over time as we refine methods. All data should be independently verified before use.**
+
 **CRITICAL SCOPE RESTRICTION**: AI cholera data collection is **RESTRICTED TO THE 40 MOSAIC FRAMEWORK COUNTRIES ONLY**. Do not process any countries outside the MOSAIC framework. The analysis scope is limited to these 40 core modeling countries.
 
 ## Data Sources & Hierarchy
@@ -18,81 +20,73 @@
 
 ## Core Methodology
 
-**Workflow**: Integrated baseline analysis → Gap identification (≥7 days) → AI systematic enhancement → Data validation  
+**Workflow**: Integrated baseline analysis → Gap identification → AI systematic enhancement → Data validation  
 **Output Format**: Enhanced cholera_data_ai.csv with AI discoveries using dual-reference indexing, separate from JHU/WHO baseline files  
 **Deliverables**: search_report.txt, enhanced metadata_ai.csv, enhanced cholera_data_ai.csv, individual search_log_agent_X.txt files
 **Progress Tracking**: dashboard/completion_checklist.csv (automatically updated from file system analysis)
-**Gap Analysis**: `py/analyze_integrated_coverage_gaps.py` generates reference files from actual baseline data
+**Gap Analysis**: `py/analyze_baseline_gaps_optimized.py` generates baseline surveillance gap files from JHU/WHO data
 
 ## Orchestrator-Based Workflow Architecture
 
 **NEW WORKFLOW EXECUTION MODEL**: The system now uses a **workflow orchestrator** pattern for systematic country-specific data enhancement.
 
+**ORCHESTRATOR DASHBOARD MANAGEMENT**: The workflow orchestrator (Agent 0) handles all dashboard updates automatically. Individual agents (1-7) focus solely on data collection without dashboard update responsibilities.
+
 ### Country-Specific Orchestrator Files
 
-**Location**: `./data/{ISO_CODE}/workflow_orchestrator_{ISO_CODE}.txt`
-**Purpose**: Pre-configured, country-specific instructions for complete 6-agent workflow execution
-**Generation**: Use `python py/generate_country_orchestrator.py {ISO_CODE}` to create orchestrator files
-
-**Orchestrator Benefits**:
-- **Country-Specific Parameters**: Gap periods, neighboring countries, major cities, languages, administrative levels
-- **Complete Workflow Instructions**: All 6 agents with specialized subagent configurations
-- **Performance Standards**: Batch requirements, stopping criteria, and success metrics tailored to country priority
-- **Quality Specifications**: Country-specific validation requirements and deliverable standards
+**Location**: `./data/{ISO_CODE}`
+**Purpose**: Pre-configured, country-specific instructions for complete 7-agent workflow execution
+**Generation**: Use `python py/generate_country_prompt.py {ISO_CODE}` to create the prompt file that initiates the workflow-orchestrator
 
 ### Specialized Subagent Architecture
 
-**Location**: `./subagents/agent_X_*.md` - Individual agent configurations and system prompts
-**Access Method**: Use Task tool with specific subagent_type parameters:
+**Location**: `.claude/agents` - Individual agent configurations and system prompts
+**Access Method**: Use the `Task()` tool with specific subagent_type parameters:
 - `cholera-baseline-collector` (Agent 1)
 - `geographic-expansion-specialist` (Agent 2)  
 - `zero-transmission-validator` (Agent 3)
 - `obscure-source-explorer` (Agent 4)
 - `cross-reference-integrator` (Agent 5)
-- `cholera-quality-auditor` (Agent 6)
+- `gap-context-investigator` (Agent 6)
+- `cholera-quality-auditor` (Agent 7)
 
 ### Workflow Execution Protocol
 
-**NEW EXECUTION METHOD**: Use orchestrator files with Task tool for country-specific workflow execution.
+Use orchestrator files with `Task()` tool for country-specific workflow execution.
 
-#### Step 1: Generate/Load Orchestrator File
+#### Step 1: Generate/Load Prompt File
 ```bash
-# Generate country-specific orchestrator (if not exists)
-python py/generate_country_orchestrator.py {ISO_CODE}
+# Generate country-specific prompt (if not exists)
+python py/generate_country_prompt.py {ISO_CODE}
 
 # Example: Generate for Ethiopia
-python py/generate_country_orchestrator.py ETH
+python py/generate_country_prompt.py ETH
 ```
 
 #### Step 2: Execute Orchestrator-Based Workflow
 ```python
-# Load and execute country-specific workflow instructions
-orchestrator_file = f"./data/{ISO_CODE}/workflow_orchestrator_{ISO_CODE}.txt"
+# The prompt file contains a Task command to initiate the workflow-orchestrator
+# Example content of prompt_AGO.txt:
+Task(description="Angola cholera workflow", prompt="AGO", subagent_type="workflow-orchestrator")
 
-# Read orchestrator instructions and execute via Task tool
-# Each agent uses specialized subagent types:
-Task(description="Agent 1 Baseline Collection", 
-     prompt=orchestrator_instructions_agent_1, 
-     subagent_type="cholera-baseline-collector")
-
-Task(description="Agent 2 Geographic Expansion", 
-     prompt=orchestrator_instructions_agent_2, 
-     subagent_type="geographic-expansion-specialist")
-
-# Continue for all 6 agents...
+# The workflow-orchestrator then manages all 7 agents automatically:
+# - Agent 1: Baseline Collection (cholera-baseline-collector)
+# - Agent 2: Geographic Expansion (geographic-expansion-specialist)
+# - Agent 3: Zero-Transmission Validation (zero-transmission-validator)
+# - Agent 4: Obscure Source Exploration (obscure-source-explorer)
+# - Agent 5: Cross-Reference Integration (cross-reference-integrator)
+# - Agent 6: Gap Context Investigation (gap-context-investigator)
+# - Agent 7: Quality Audit (cholera-quality-auditor)
 ```
 
-#### Step 3: Monitor Progress via Dashboard
-```bash
-# Update dashboard after each agent completion
-bash update_dashboard.sh
-```
+#### Step 3: Monitor Progress
+The dashboard is automatically updated at workflow initialization and final completion only. Individual agents do not need to update the dashboard.
 
 ## Dashboard Management
 
 ### **AUTOMATED DASHBOARD SYSTEM** (Agents: READ-ONLY Awareness)
 
-**CRITICAL FOR AGENTS**: The dashboard completion tracking is **FULLY AUTOMATED**. Agents should **FOCUS ONLY ON DATA COLLECTION** - the dashboard updates automatically based on file system analysis.
+Dashboard updates now occur only at workflow initialization and completion.
 
 **Automated Update System**:
 ```bash
@@ -100,58 +94,35 @@ bash update_dashboard.sh
 bash update_dashboard.sh
 ```
 
-### **AGENT RESPONSIBILITIES** (What Agents Should Do):
+### **AGENT RESPONSIBILITIES**:
 
 **✅ FOCUS ON DATA COLLECTION:**
 - Create/update cholera_data_ai.csv and metadata_ai.csv files (all agents)
-- Complete individual agent search logs (Agents 1-6: search_log_agent_X.txt)
-- Generate quality audit and brief search_report.txt (Agent 6 only)
+- Complete individual agent search logs (see Agent Operations Framework)
+- Generate quality audit and brief search_report.txt (Agent 7 only)
 - Document all work in proper file formats
 
 **❌ DO NOT MANUALLY UPDATE DASHBOARD:**
-- ~~Dashboard CSV editing~~ (Auto-updated by Python script)
-- ~~Status tracking~~ (Detected from file analysis) 
-- ~~Progress calculations~~ (Auto-calculated from actual data)
-- ~~Completion timestamps~~ (Based on file modification times)
+Only orchestrator does this at initialization and completion.
 
-### **HOW THE AUTOMATED SYSTEM WORKS:**
-
-**Status Detection Logic**:
-- **COMPLETED**: 6 agent logs + data files + (quality audit OR substantial data)
-- **PENDING**: Some agent work started, files present
-- **NOT_STARTED**: No significant activity detected
-
-**Automatic Metrics**:
-- **Sources**: Count from metadata.csv
-- **Observations**: Count from cholera_data_ai.csv rows
-- **Date Range**: Calculated from TL/TR columns
-- **Execution Time**: Estimated from query counts
-- **Progress**: Real-time based on file system state
-
-**Key Benefits**:
-- **Agents Focus on Core Mission**: No dashboard maintenance distractions
-- **Real-Time Accuracy**: Dashboard reflects actual file system state
-- **No Manual Errors**: Eliminates human tracking mistakes
-- **Automatic Updates**: Dashboard refreshes when Python script runs
 
 ## MANDATORY GAP-TARGETED SEARCH PROTOCOL
 
-**CRITICAL**: Before beginning any search, agents MUST consult integrated coverage analysis files to target missing periods in baseline data.
+**CRITICAL**: Before beginning any search, agents MUST consult the baseline surveillance gap analysis files to target missing periods in baseline data.
 
 ### Pre-Search Requirements (MANDATORY)
 
-1. **Load Reference Files**: Read `./reference/agent_quick_reference.csv` for country-specific gaps (generated from integrated baseline analysis)
-2. **Load Agent-Specific Gap Files**: Each agent must load their specialized gap targeting file:
-   - **Agent 1**: `./reference/agent_1_priority_gaps.csv` (50 CRITICAL/HIGH priority national/provincial gaps ≥30 days)
-   - **Agent 2**: `./reference/agent_2_geographic_gaps.csv` (40 district/municipal level gaps for geographic expansion)
-   - **Agent 3**: `./reference/agent_3_validation_gaps.csv` (60 gaps 7 days-1 year for zero-transmission validation)
-   - **Agent 4**: `./reference/agent_4_historical_gaps.csv` (30 historical/obscure gaps >5 years old or ≥3 years duration)
-   - **Agent 5**: Use comprehensive inventory `./reference/comprehensive_gaps_inventory.csv` for cross-reference integration
-   - **Agent 6**: Quality audit using all gap files for validation completeness
-3. **Identify Priority Periods**: Focus searches on specific missing date ranges (≥7 days gaps) identified from actual baseline data
-4. **Apply Enhanced Context**: Use seasonal_context, outbreak_scale, and geographic_level data for targeted query generation
-5. **Prioritize High-Gap Countries**: Begin with HIGH priority countries (<70% coverage) based on meaningful observations in baseline data
-
+1. **Load Baseline Gap Analysis Files**: Read baseline gap analysis files generated from JHU/WHO integrated baseline data
+2. **All Agents Must Load**:
+   - `./reference/baseline_surveillance_gaps_annual.csv` - Years with ≥6 months missing data
+   - `./reference/baseline_surveillance_gaps_detailed.csv` - Consolidated gap periods with exact dates
+   - `./reference/baseline_surveillance_gaps_coverage.csv` - Country-level coverage summary
+3. **Identify Target Periods**: Focus searches on specific date ranges identified in baseline gaps
+4. **Apply Exhaustive Search Strategy**: Target ALL surveillance gaps equally with comprehensive searches
+   - No coverage-based allocation - all gaps receive equal search effort
+   - Systematic coverage of every identified gap period
+   - Comprehensive searches regardless of baseline coverage percentage
+5. **Document Gap Targeting**: Record which gaps were searched and results obtained
 ### Enhanced Gap-Targeted Query Strategy
 
 **MANDATORY QUERY MODIFICATION**: All searches must include temporal constraints targeting missing periods with enhanced contextual targeting using the comprehensive gap analysis data.
@@ -177,46 +148,23 @@ bash update_dashboard.sh
 - `"{Country} cholera surveillance after {outbreak_magnitude} epidemic {gap_dates}"`
 - `"{Country} cholera cases between {preceding_location} {following_location} outbreaks"`
 
-#### **Priority-Based Query Generation:**
-
-**For CRITICAL Priority Gaps (Score 85-100)**:
-```
-"{Country} {geographic_level} cholera {seasonal_context} {gap_start_year}-{gap_end_year} {preceding_outbreak_scale} outbreak surveillance WHO UNICEF government"
-```
-
-**For HIGH Priority Gaps (Score 70-84)**:
-```
-"{Country} cholera {gap_period} {seasonal_context} surveillance {geographic_level}"
-```
-
-**For MEDIUM Priority Gaps (Score 50-69)**:
-```
-"{Country} cholera cases {gap_years} {seasonal_context}"
-```
 
 ### Reference File Usage Protocol
 
-**agent_quick_reference.csv Usage** (Generated from Integrated Baseline Analysis):
-```
-FOR EACH COUNTRY:
-1. Check search_priority (HIGH/MEDIUM/LOW) based on baseline coverage
-2. Read missing_recent_years for temporal targeting (gaps in JHU/WHO data)
-3. Use priority_periods for exact date range focus (≥7 day gaps identified)
-4. Apply coverage_pct for effort allocation (meaningful observations/total span)
-```
+**baseline_surveillance_gaps_annual.csv Usage**:
+- Long format: country, iso_code, gap_year, months_missing
+- Lists all years with ≥6 months of missing baseline data
+- Use for year-specific gap targeting
 
-**Example for Ethiopia (24.5% coverage, HIGH priority)**:
-- **Baseline Data**: JHU + WHO integrated in `./data/ETH/cholera_data.csv`
-- **Priority Gap**: 2024-12-15 to 2024-12-23 (8-day gap identified)
-- **Coverage**: 649 meaningful observations from 1970-2025 span
-- **Search Focus**: Target recent gaps + historical extension based on actual baseline analysis
+**baseline_surveillance_gaps_detailed.csv Usage**:
+- Consolidated periods: country, iso_code, gap_start, gap_end, days, months, years
+- Provides exact date ranges for all gaps ≥7 days
+- Use for precise temporal targeting
 
-### Temporal Search Allocation (MANDATORY)
-
-**HIGH Priority Countries** (<70% coverage): 80% of searches target priority gaps, 20% historical extension
-**MEDIUM Priority Countries** (70-90%): 60% gap-filling, 40% historical extension  
-**LOW Priority Countries** (>90%): 40% gap-filling, 60% historical/future extension
-
+**baseline_surveillance_gaps_coverage.csv Usage**:
+- Summary: country, iso_code, total_months, months_with_data, months_missing, percent_coverage, data_years, missing_years
+- Provides country-level overview for search allocation
+- Use to determine search effort distribution
 ### Gap Validation Requirements
 
 **MANDATORY**: For each identified gap period, agents must:
@@ -231,86 +179,15 @@ FOR EACH COUNTRY:
 **Secondary Goal**: Extend historical coverage before earliest observed data
 **Tertiary Goal**: Validate recent surveillance completeness
 
-### Practical Gap-Targeting Example
-
-**ETHIOPIA (ETH) - 59.1% coverage, HIGH priority**:
-- **Priority Gap**: 2018-12-10 to 2023-01-01 (4+ year gap)
-- **Missing Historical**: 2000-2014 
-- **Current Data**: 2015-2018, 2023-2025
-
-**Mandatory Search Allocation**:
-1. **80% effort on Priority Gap (2019-2022)**:
-   - "Ethiopia cholera 2019 surveillance WHO"
-   - "Ethiopia cholera outbreak 2020 2021 UNICEF" 
-   - "Ethiopia cholera epidemic 2022 MSF"
-   - "Ethiopia cholera cases 2019-2022 government"
-
-2. **20% effort on Historical Extension (pre-2015)**:
-   - "Ethiopia cholera 2010-2014 surveillance"
-   - "Ethiopia cholera 2000s decade outbreak"
-   - "Ethiopia cholera historical 1990s 2000s"
-
 **Gap Validation Searches**:
 - "Ethiopia cholera-free 2019 2020 2021" (confirm no disease)
 - "Ethiopia surveillance system 2019-2022" (check reporting gaps)
 - "Ethiopia neighboring countries cholera 2019-2022" (regional context)
 
-**RESULT EXPECTATION**: Either fill identified gaps with data OR confirm no cholera transmission with evidence
+**CRITICAL RESULT EXPECTATION**: Either fill identified gaps with data OR confirm no cholera transmission with evidence
 
-## COMPREHENSIVE GAP ANALYSIS WORKFLOW INTEGRATION
 
-**CRITICAL UPDATE**: The gap analysis system now provides comprehensive enumeration of ALL gaps ≥7 days with sophisticated prioritization. Agents must follow this enhanced workflow.
-
-### **Step 1: Pre-Work Gap Analysis Loading (ALL AGENTS)**
-
-**MANDATORY before any searches**:
-```python
-# Load your agent-specific gap targeting file
-agent_gaps_df = pd.read_csv(f'./reference/agent{AGENT_NUMBER}_{AGENT_TYPE}_gaps.csv')
-
-# Example for Agent 1:
-agent1_gaps = pd.read_csv('./reference/agent_1_priority_gaps.csv')
-
-# Sort by priority score (highest first)
-target_gaps = agent1_gaps.sort_values('priority_score', ascending=False)
-
-# Focus on top-priority gaps first
-critical_gaps = target_gaps[target_gaps['priority_tier'] == 'CRITICAL']
-high_gaps = target_gaps[target_gaps['priority_tier'] == 'HIGH']
-```
-
-### **Step 2: Context-Enhanced Query Generation**
-
-**Use gap context data for targeted queries**:
-```python
-for _, gap in target_gaps.iterrows():
-    country = gap['country']
-    iso_code = gap['iso_code']
-    gap_start = gap['gap_start']
-    gap_end = gap['gap_end']
-    seasonal_context = gap['seasonal_context']
-    geographic_level = gap['geographic_level']
-    preceding_scale = gap['preceding_outbreak_scale']
-    following_scale = gap['following_outbreak_scale']
-    
-    # Generate context-enhanced queries
-    query = f"{country} {geographic_level} cholera {seasonal_context} {gap_start}-{gap_end} surveillance following {preceding_scale} outbreak"
-    
-    # Execute WebSearch with enhanced query
-    WebSearch(query)
-```
-
-### **Step 3: Priority-Based Search Allocation**
-
-**Agent-Specific Priority Targeting**:
-
-**Agent 1**: Start with priority_score ≥ 90 (CRITICAL), then 85-89 (HIGH), focus on national/provincial only
-**Agent 2**: Target provincial/district gaps with geographic expansion potential (geographic_level != 'national')
-**Agent 3**: Focus on gaps 7-365 days for absence validation, start with recent gaps (gap_end >= 2020)
-**Agent 4**: Target historical gaps (gap_end < 2018) or very long gaps (gap_days >= 1095)
-**Agent 5**: Use comprehensive inventory for cross-reference validation across all priority levels
-
-### **Step 4: Gap-Specific Search Strategies**
+### **Gap-Specific Search Strategies**
 
 **Seasonal Context Targeting**:
 - **dry_season gaps**: Target water scarcity, drought monitoring, health system reports
@@ -340,8 +217,8 @@ for _, gap in target_gaps.iterrows():
 **Search Log Template Enhancement**:
 ```
 === GAP-TARGETED SEARCH BATCH X ===
-Target Gap: {country} {gap_start} to {gap_end} ({gap_days} days, {priority_score} score)
-Context: {seasonal_context}, {geographic_level}, following {preceding_outbreak_scale} outbreak
+Target Gap: {country} {gap_start} to {gap_end} ({gap_days} days)
+Context: Year with {months_missing} months missing baseline data
 Queries Executed: [list enhanced queries with context]
 Results: [data found/zero-transmission validated/gap remains]
 CSV Updates: [specific rows added to cholera_data_ai.csv]
@@ -350,7 +227,7 @@ Gap Status: FILLED/VALIDATED/REMAINING
 
 ## INTEGRATED BASELINE DATA ANALYSIS
 
-**FOUNDATION**: All countries start with separate baseline data files for systematic gap-targeted enhancement
+**FOUNDATION**: All countries start with separate baseline data for systematic gap-targeted enhancement
 
 ### Baseline Data Structure
 - **JHU Historical Database**: `./data/{ISO}/cholera_data_jhu.csv` - Comprehensive 1970-2020+ cholera surveillance data (source_database: 'JHU')
@@ -359,21 +236,11 @@ Gap Status: FILLED/VALIDATED/REMAINING
 
 **AGENT WORKFLOW**: Agents work exclusively with `cholera_data_ai.csv` to add new discoveries while baseline files remain separate for integration
 
-### Coverage Analysis System
-```bash
-# Generate integrated coverage analysis and agent reference files
-python py/analyze_integrated_coverage_gaps.py
-```
-
-**Output Files Generated from Baseline Analysis**:
-- `./reference/agent_quick_reference.csv` - Country priorities with gap analysis from baseline data
-- `./reference/observed_time_periods.csv` - Detailed temporal coverage with gap identification  
-- `./reference/priority_data_gaps.csv` - Priority gaps ranked by duration (8 days to 18 years)
 
 ### Coverage Metrics Calculation
-- **Coverage Percentage**: Meaningful observations (cases/deaths >0) as percentage of weekly grid coverage
+- **Coverage Percentage**: Months with ≥50% days covered by observations / total months in surveillance period
 - **Gap Detection**: Periods ≥7 days without meaningful cholera data in baseline
-- **Priority Classification**: HIGH (<70%), MEDIUM (70-90%), LOW (>90%) based on actual baseline coverage
+- **Exhaustive Search Strategy**: All gaps treated equally with comprehensive, exhaustive searches regardless of coverage percentage
 - **Meaningful Observations**: Data rows with sCh>0 OR deaths>0 OR cCh>0 (excluding administrative records)
 
 ### Visual Coverage Analysis
@@ -411,16 +278,11 @@ python py/generate_coverage_heatmap.py
 **Source Chain Following**: Citation networks, reference tracing, report versions  
 **Institutional Deep Dives**: Ministry archives, university repositories, regional organizations
 
-**Temporal Focus Periods**:  
-- 1970s-1990s: Historical/colonial records  
-- 1990s-2010: Early surveillance development  
-- **2010-2020**: Primary gap-filling target  
-- 2020-present: COVID impact assessment
 
 ## Data Standards
 
 **Directory**: `data/{ISO_CODE}/`  
-**Files**: search_report.txt, metadata_ai.csv, cholera_data_ai.csv, search_log_agent_1.txt, search_log_agent_2.txt, search_log_agent_3.txt, search_log_agent_4.txt, search_log_agent_5.txt, search_log_agent_6.txt, workflow_orchestrator_{ISO_CODE}.txt
+**Files**: See Agent Operations Framework for complete file outputs
 **Baseline Files**: cholera_data_jhu.csv, cholera_data_who.csv (separate baseline data, read-only for agents)
 
 ### DUAL-REFERENCE INDEXING SYSTEM
@@ -431,15 +293,60 @@ python py/generate_coverage_heatmap.py
 **Benefit**: Automated processing + human readability + error prevention  
 **Format**: metadata_ai.csv Index column ↔ cholera_data_ai.csv source_index column
 
-### File Specifications
+## FILE FORMAT SPECIFICATIONS
 
-**search_report.txt**: Brief summary created by Agent 6 only - key outcomes, data collected, sources found, and gap-filling results. Should include: total sources discovered, total data observations added, key gaps filled, overall data quality assessment, and remaining limitations.
+### Required Files and Structure
 
-**metadata_ai.csv** (15 columns): Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth, Cross_References, Discovery_Method, source_database
+**Directory**: `data/{ISO_CODE}/`
 
-**cholera_data_ai.csv** (14 columns): Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes, source_database
+#### Core Data Files
 
-**CRITICAL**: Agents work exclusively with cholera_data_ai.csv and metadata_ai.csv files. Baseline files (cholera_data_jhu.csv, cholera_data_who.csv) are read-only references for gap analysis.
+**cholera_data_ai.csv** (14 columns):
+- Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date, source_index, source, confidence_weight, processing_notes, source_database
+- **Dual-Reference System**: source_index (integer) ↔ metadata Index column + source (exact name match)
+- **Date Format**: YYYY-MM-DD for all date fields
+- **Location Format**: AFR::{ISO} location codes
+
+**metadata_ai.csv** (15 columns):
+- Index, Source, URL, Description, Date_Range, Data_Type, Status, Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth, Cross_References, Discovery_Method, source_database
+- **Index Column**: Sequential integers (1, 2, 3...) - MANDATORY for dual-reference system
+- **Consistent Naming**: Source names must be used exactly in cholera_data_ai.csv
+
+#### Supporting Files
+
+**search_report.txt**:
+- Brief summary created by Agent 7 only
+- Include: total sources discovered, total data observations added, key gaps filled, overall data quality assessment, remaining limitations
+
+**search_log_agent_X.txt**:
+- Individual logs for each agent (see Agent Operations Framework)
+- Document search batches, queries, results, and CSV updates
+
+**Baseline Files** (read-only):
+- cholera_data_jhu.csv - JHU historical database (1970-2020+)
+- cholera_data_who.csv - WHO dashboard data (2023-2025)
+
+### MANDATORY Format Requirements
+
+1. **Index System Integrity**:
+   - Metadata CSV MUST have Index column with sequential integers
+   - Data CSV MUST have source_index column matching metadata indices
+   - Data CSV source names MUST exactly match metadata Source column
+   - All data rows MUST have both source_index AND source columns populated
+   - No index numbers can be duplicated or missing in metadata
+
+2. **Data Type Standards**:
+   - Dates: YYYY-MM-DD format only
+   - Integers: deaths, sCh, cCh must be positive integers or empty
+   - Decimals: CFR (0-100), confidence_weight (0.1-1.0)
+   - Text: UTF-8 encoding for all text fields
+
+3. **Quality Assurance**:
+   - All files must pass format validation before submission
+   - Maintain consistent column order as specified
+   - No additional columns without prior approval
+
+**CRITICAL**: Agents work exclusively with cholera_data_ai.csv and metadata_ai.csv files. Baseline files are read-only references for gap analysis.
 
 ## COMPREHENSIVE COLUMN DEFINITIONS
 
@@ -535,23 +442,134 @@ python py/generate_coverage_heatmap.py
 - **System Capacity**: `AFR::{ISO}::Laboratory_*`, `AFR::{ISO}::Surveillance_*`
 - **Population Data**: Population denominators, coverage percentages, capacity figures
 
-### DATA EXTRACTION VALIDATION CHECKLIST:
-```
-BEFORE ADDING ANY ROW:
+## DATA EXTRACTION AND DOCUMENTATION REQUIREMENTS
+
+**MANDATORY**: Comprehensive documentation and validation for ALL data extraction decisions
+
+### Pre-Extraction Validation Checklist
+
+**BEFORE ADDING ANY ROW to cholera_data_ai.csv:**
 □ Location is geographic administrative unit (not program/demographic category)
 □ sCh or cCh contains actual cholera case numbers (not vaccination/population/capacity)
 □ Source explicitly mentions cholera cases/deaths (not just cholera programs)
 □ Numbers represent disease incidence (not prevention/demographics/training)
 □ Processing notes include exact source quote supporting interpretation
-```
+□ Number explicitly described as cholera "cases" (not vaccinated, population, density)
+□ Source context indicates disease incidence (not prevention/demographics)
+□ Validate units are case counts, not rates/coverage/capacity
+
+### Critical Field Validations
+
+#### sCh/cCh Column Quality Control
+**High-Risk Context Flags - EXTRA VALIDATION REQUIRED:**
+- Vaccination reports → likely vaccinated count, not cases
+- Demographics → likely population, not cases  
+- WASH assessments → likely coverage, not cases
+
+**ACCEPT**: "cases", "infections", "ill", "hospitalized", "patients", "affected individuals"
+**REJECT**: "affected", "targeted", "covered", "population", "beneficiaries", "doses"
+
+#### Mandatory Extended Thinking Requirement
+**USE EXTENDED ULTRATHINK WHEN:**
+□ Synthesizing data from multiple sources
+□ Interpreting ambiguous numbers or context
+□ Performing any cross-validation between sources
+□ Resolving conflicts between different reports
+□ Determining if numbers represent cases vs. other metrics
+
+**THINK THROUGH**: Context clues, source credibility, temporal alignment, epidemiological plausibility, alternative interpretations
+
+### Documentation Standards
+
+#### 1. Original Format Preservation
+- Screenshot or copy original data presentation
+- Record exact text, numbers, dates as presented
+- Note table/figure numbers, page numbers, section locations
+- Save PDF copies when possible
+- Document access date and URL status
+
+#### 2. Extraction Decision Documentation
+- Record every interpretive decision made
+- Document ambiguous data handling
+- Note assumptions about missing information
+- Explain unit conversions step-by-step
+- Record alternative interpretations considered
+
+#### 3. Traceability Requirements
+- Direct quotes for key data points
+- Page/section references for all extracted data
+- Author contact information when available
+- Publication DOI/URL for all sources
+- Version information for updated reports
+
+#### 4. Processing Notes Format
+**MANDATORY**: processing_notes MUST include: "Source states: '[exact quote]' - interpreted as [sCh/cCh] cases"
+
+**Example**: "Source states: 'A total of 1,234 cholera patients were admitted to treatment centers' - interpreted as 1234 sCh cases"
+
+### Quality Assurance During Extraction
+
+**MANDATORY CHECKS:**
+1. **Double-entry verification**: Re-extract key data points to check consistency
+2. **Mathematical validation**: Verify calculated fields (CFR, attack rates)
+3. **Unit consistency**: Ensure all conversions are correct
+4. **Date logic**: Verify temporal relationships make sense
+5. **Geographic accuracy**: Confirm location codes and names
+
+### Uncertainty Quantification
+
+**REQUIREMENT: Flag and quantify all uncertainties**
+1. **High Certainty**: Direct, unambiguous data extraction
+2. **Medium Certainty**: Minor interpretation or conversion required
+3. **Low Certainty**: Significant assumptions or ambiguous source
+4. **Provisional**: Major uncertainties, requires verification
+
+### Tiered Cross-Validation Framework
+
+**TIER 1: High-Value Cases (>1000 cases)**
+- REQUIRE: 2+ independent sources for major outbreaks
+- USE ULTRATHINK: Compare sources, resolve discrepancies
+
+**TIER 2: Moderate Cases (100-1000 cases)**  
+- ENCOURAGE: Seek secondary confirmation when possible
+- ACCEPT: Single high-quality source (Level 1-2)
+- FLAG: Note single-source status
+
+**TIER 3: Small Cases (<100 cases)**
+- ACCEPT: Single source with appropriate confidence weighting
+
+**CROSS-VALIDATION TRIGGERS (REQUIRE 2+ SOURCES):**
+□ Cases >1000 (major outbreak)
+□ First outbreak in new geographic area
+□ Dates conflict with regional patterns
+
+### Data Inclusion Rules Summary
+
+**MANDATORY Requirements for cholera_data_ai.csv Entry:**
+1. **Geographic Location**: Must be actual administrative unit (country/province/district)
+2. **Quantitative Data**: Must have specific numbers for cases, deaths, or CFR
+3. **Cholera-Specific**: Must be cholera cases/deaths, not vaccination/training/capacity data
+4. **Source Attribution**: Must have matching metadata entry with working source
+
+**PROHIBITED Entries (DO NOT ADD):**
+- **Vaccination Data**: `AFR::{ISO}::Vaccination`, `AFR::{ISO}::OCV_Campaign`
+- **Training Data**: `AFR::{ISO}::Training`, `AFR::{ISO}::Health_Workers`
+- **Demographics Without Location**: `AFR::{ISO}::Demographics_*`, `AFR::{ISO}::Age_*`
+- **System Capacity**: `AFR::{ISO}::Laboratory_*`, `AFR::{ISO}::Surveillance_*`
+- **Population Data**: Population denominators, coverage percentages, capacity figures
+
+### Integration with Validation Framework
+
+All extracted data must pass through the complete 4-stage validation protocol outlined in the Data Quality and Validation Framework before final inclusion in cholera_data_ai.csv.
 
 **MANDATORY DATA INCLUSION REQUIREMENT**: Agents are **PROHIBITED** from adding any data observations (rows) to cholera_data_ai.csv unless they can identify at least one cholera case value (sCh or cCh) **OR** can document a confirmed zero-transmission period. Sources that only mention cholera outbreaks without providing quantitative case counts **MUST NOT** be included in the data file. Only sources with identifiable case numbers, death counts, calculable epidemiological metrics, or validated absence periods qualify for data extraction.
 
-**MANDATORY ZERO-TRANSMISSION DOCUMENTATION PROTOCOL**:
+## MANDATORY ZERO-TRANSMISSION DOCUMENTATION PROTOCOL
 
-**CRITICAL REQUIREMENT**: All validated cholera-free periods MUST be documented as data observations in cholera_data_ai.csv with the following specifications:
+**CRITICAL REQUIREMENT**: All validated cholera-free periods MUST be documented as data observations in cholera_data_ai.csv. This is not optional - absence periods are as epidemiologically important as outbreak periods for MOSAIC modeling.
 
-**Zero-Transmission Data Entry Format**:
+### Zero-Transmission Data Entry Format
+
 ```
 Location: AFR::{ISO} (national level for absence periods)
 TL: YYYY-01-01 (start of absence period)  
@@ -565,100 +583,73 @@ source_index: [metadata reference]
 source: [WHO surveillance confirmation or academic validation]
 confidence_weight: 0.8-1.0 (based on surveillance system quality)
 processing_notes: "Source confirms zero cholera transmission during [period] - validated absence via [surveillance system/WHO reporting]"
+source_database: AI
 ```
 
-**Mandatory Zero-Transmission Entry Triggers**:
+### Mandatory Zero-Transmission Entry Triggers
+
 1. **Gap Periods Validated**: Any period >1 year between documented outbreaks where surveillance confirms no cases
 2. **WHO "Zero Reporting"**: Official surveillance data showing no cholera cases for specific years
 3. **Academic Documentation**: Peer-reviewed studies confirming absence periods (e.g., "decade-long absence 1997-2006")
 4. **Surveillance System Validation**: Evidence of functioning disease surveillance during cholera-free periods
 5. **Regional Context**: Confirmed absence during periods when neighboring countries had outbreaks
 
-**Source Requirements for Zero-Transmission Entries**:
+### Examples of Required Zero-Transmission Entries
+
+- WHO surveillance reports: "no cholera cases reported in [Country] during [Year]" → MANDATORY cholera_data_ai.csv entry
+- Academic studies: "decade-long absence 1997-2006" → MANDATORY cholera_data_ai.csv entries for each year or period
+- Government reports: "cholera-free period following end of civil war" → MANDATORY cholera_data_ai.csv entry
+- Regional analysis: "Country X remained cholera-free while neighbors experienced outbreaks" → MANDATORY cholera_data_ai.csv entry
+
+### Source Requirements for Zero-Transmission Entries
+
 - WHO surveillance reports explicitly stating "no cases reported"
 - Academic literature documenting absence periods with epidemiological evidence
 - Government health ministry annual reports confirming zero cholera cases
 - Regional surveillance networks documenting cholera-free status
 - Cross-border analysis confirming absence despite regional transmission
 
-**Quality Standards for Absence Documentation**:
+### Quality Standards for Absence Documentation
+
 - **Level 1 (1.0 weight)**: WHO official surveillance confirming zero cases
 - **Level 1 (0.9 weight)**: Academic studies with epidemiological evidence of absence
 - **Level 2 (0.8 weight)**: Government reports confirming cholera-free periods
 - **Level 3 (0.7 weight)**: Inferred absence from regional surveillance patterns
 
-**MANDATORY VALIDATION for Zero-Transmission Entries**:
+### Mandatory Validation Requirements
+
 1. **Surveillance System Functioning**: Evidence that disease surveillance was operational during absence period
 2. **Regional Consistency**: Cross-check with neighboring countries' outbreak patterns
 3. **Historical Continuity**: Validate absence periods fit within known outbreak cycles
 4. **Duration Plausibility**: Confirm absence duration is epidemiologically reasonable (typically 1-10 years)
 5. **Documentation Quality**: Ensure source explicitly confirms absence rather than just lack of reporting
 
-**ENHANCED QUALITY CONTROL FOR sCh/cCh COLUMNS**:
+### Quality Impact of Zero-Transmission Documentation
 
-**Mandatory Pre-Entry Validation**
-```
-BEFORE ADDING TO cholera_data_ai.csv:
-□ Number explicitly described as cholera "cases" (not vaccinated, population, density)
-□ Source context indicates disease incidence (not prevention/demographics)
-□ Quote exact source text supporting case interpretation
-□ Validate units are case counts, not rates/coverage/capacity
-```
+Zero-transmission documentation is essential for:
+1. **Complete time series**: MOSAIC models require knowledge of both presence AND absence of disease
+2. **Accurate transmission modeling**: Understanding when/why cholera is absent informs transmission parameters
+3. **Public health planning**: Documented cholera-free periods guide resource allocation and preparedness
+4. **Regional analysis**: Cross-border transmission patterns depend on accurate absence documentation
+5. **Intervention effectiveness**: Measuring success requires documenting sustained absence periods
 
-**High-Risk Context Flags**
-```
-EXTRA VALIDATION REQUIRED FOR:
-- Vaccination reports → likely vaccinated count, not cases
-- Demographics → likely population, not cases  
-- WASH assessments → likely coverage, not cases
+### Agent Responsibilities for Zero-Transmission
 
-ACCEPT: "cases", "infections", "ill", "hospitalized"
-REJECT: "affected", "targeted", "covered", "population"
-```
+- **Agent 1**: Document any zero-transmission periods discovered during baseline searches
+- **Agent 2**: Document provincial-level absence periods where surveillance confirms zero cases
+- **Agent 3**: PRIMARY RESPONSIBILITY - systematically validate and document ALL cholera-free periods
+- **All Agents**: If absence periods are identified, MANDATORY documentation in cholera_data_ai.csv
 
-**Mandatory Documentation**
-```
-processing_notes MUST include: "Source states: '[exact quote]' - interpreted as [sCh/cCh] cases"
-```
+### Validation Standards
 
-**MANDATORY EXTENDED THINKING REQUIREMENT**
-```
-USE EXTENDED ULTRATHINK WHEN:
-□ Synthesizing data from multiple sources
-□ Interpreting ambiguous numbers or context
-□ Performing any cross-validation between sources
-□ Resolving conflicts between different reports
-□ Determining if numbers represent cases vs. other metrics
+Zero-transmission entries require the same validation rigor as outbreak data - appropriate confidence weighting, source documentation, and cross-reference validation. All zero-transmission entries must pass through the complete 4-stage validation protocol outlined in the Data Quality and Validation Framework.
 
-THINK THROUGH: Context clues, source credibility, temporal alignment, 
-epidemiological plausibility, alternative interpretations
-```
-
-**Tiered Cross-Validation Framework**
-```
-TIER 1: High-Value Cases (>1000 cases)
-- REQUIRE: 2+ independent sources for major outbreaks
-- USE ULTRATHINK: Compare sources, resolve discrepancies
-
-TIER 2: Moderate Cases (100-1000 cases)  
-- ENCOURAGE: Seek secondary confirmation when possible
-- ACCEPT: Single high-quality source (Level 1-2)
-- FLAG: Note single-source status
-
-TIER 3: Small Cases (<100 cases)
-- ACCEPT: Single source with appropriate confidence weighting
-
-CROSS-VALIDATION TRIGGERS (REQUIRE 2+ SOURCES):
-□ Cases >1000 (major outbreak)
-□ First outbreak in new geographic area
-□ Dates conflict with regional patterns
-```
 
 **Requirements**: Dual-reference system (source_index ↔ Index), exact name matching, YYYY-MM-DD dates, AFR::{ISO} location codes
 
-## DATA QUALITY FRAMEWORK
+## DATA QUALITY AND VALIDATION FRAMEWORK
 
-**CRITICAL**: Mandatory 4-stage validation for ALL sources
+**CRITICAL**: Mandatory 4-stage validation for ALL sources and data points
 
 ### Source Reliability Levels
 
@@ -667,19 +658,126 @@ CROSS-VALIDATION TRIGGERS (REQUIRE 2+ SOURCES):
 **Level 3 (0.3-0.6)**: Reputable news, local government, preliminary academic reports  
 **Level 4 (0.1-0.3)**: Local media, social media, unofficial reports (extreme caution)
 
-### Validation Protocol (4 Stages)
+### Comprehensive Validation Protocol (4 Stages)
 
-**Stage 1 - Authentication**: URL verification, author credentials, domain validation  
-**Stage 2 - Data Quality**: CFR 0.1-15%, attack rates 0.01-10%, duration 2 weeks-2 years  
-**Stage 3 - Cross-Reference**: Multi-source confirmation (>1000 cases), historical consistency  
-**Stage 4 - Duplication**: Exact/partial detection, resolution protocol, documentation
+#### Stage 1: Authentication and Source Verification
+- **URL Validation**: Test all links, use archived versions if current links fail
+- **Author Credentials**: Verify institutional affiliations and expertise
+- **Domain Validation**: Confirm official government/organization websites
+- **Publication Verification**: Confirm journal indexing, peer review status
+- **Archive Search**: Use Internet Archive for broken or moved content
 
-### Quality Control
+#### Stage 2: Data Quality and Epidemiological Validation
+**Epidemiological Range Validation**:
+- CFR between 0.1% and 15% (flag outliers for manual review)
+- Case numbers > 0 and < population of affected area
+- Outbreak duration between 1 week and 104 weeks (2 years)
+- Attack rates between 0.01% and 10% of population
+- Deaths ≤ suspected cases (mathematical consistency)
 
-**Quantitative Rules**: Statistical outlier detection, trend analysis, demographic consistency  
-**Qualitative Criteria**: Methodological soundness, reporting quality, institutional credibility  
-**Documentation**: URL, validation status, quality score, confidence weight, limitations, cross-references  
-**Conflict Resolution**: Source hierarchy, uncertainty ranges, sensitivity analysis flags
+**Temporal Logic Validation**:
+- Start date < End date
+- Reporting date ≥ End date
+- No dates in the future beyond data collection
+- Seasonal patterns consistent with regional cholera epidemiology
+- Multi-year trends follow epidemiologically plausible patterns
+
+**Geographic Validation**:
+- Location codes match ISO/WHO standards
+- Administrative hierarchy consistency (Country→Province→District)
+- Coordinates within correct administrative boundaries
+- Population denominators match latest census data
+- Cross-border patterns epidemiologically plausible
+
+#### Stage 3: Cross-Reference and Expert Validation
+**Multi-Source Confirmation Requirements**:
+- Outbreaks >1000 cases: Require ≥2 independent sources
+- CFR >5%: Require clinical confirmation sources
+- New geographic areas: Cross-check with neighboring regions
+- Historical data: Verify against WHO annual summaries
+
+**Mathematical and Pattern Consistency**:
+- CFR calculations accurate to ±0.1%
+- Cumulative totals match sub-period sums
+- Attack rates consistent with population denominators
+- Case progression follows epidemic curve logic
+- Seasonal trends match known cholera epidemiology
+- Geographic spread follows transmission pathways
+- Outbreak magnitude consistent with preparedness capacity
+- Recovery rates align with treatment availability
+
+**Expert Review Requirements**:
+- Epidemiological plausibility assessment
+- Historical context validation
+- Source credibility evaluation
+- Methodology transparency and soundness
+- Data collection standards documented
+
+#### Stage 4: Final Integration and Duplication Checks
+**Duplication Prevention**:
+- No identical records from different sources
+- Overlapping periods resolved using best available data
+- Updated reports supersede preliminary versions
+- Aggregated data doesn't double-count sub-national data
+
+**Integration Validation**:
+- New data compatible with existing JHU database
+- All required fields populated or explicitly marked missing
+- Geographic coding complete and standardized
+- Source attribution clear and traceable
+- No systematic biases introduced
+- Coverage gaps appropriately filled
+- Confidence weights appropriately assigned
+
+### Quality Control Documentation Requirements
+
+**MANDATORY for each data point:**
+1. **Validation Status**: Pass/Fail for each validation stage
+2. **Flag Reasons**: Specific issues identified during validation
+3. **Resolution Actions**: How validation issues were addressed
+4. **Final Quality Score**: Numerical rating (1-10) based on validation
+5. **Reviewer Notes**: Human expert assessment comments
+6. **Uncertainty Quantification**: Confidence intervals where applicable
+
+### Rejection and Review Criteria
+
+**Automatically reject data if:**
+- CFR > 100% without exceptional circumstances documentation
+- Case numbers exceed 100% of population (implausible attack rates)
+- Dates are logically inconsistent (end before start, future dates)
+- Source cannot be verified or authenticated
+- Geographic codes don't match any known administrative units
+- Mathematical inconsistencies cannot be resolved
+- Multiple validation stages failed without adequate explanation
+
+**Flag for manual review if:**
+- CFR outside 0.5-10% range
+- Attack rates outside 0.1-5% range
+- Outbreak duration <2 weeks or >1 year
+- Single source for major outbreaks (>500 cases)
+- Significant discrepancies between sources
+- Unusual seasonal patterns requiring explanation
+
+### Quality Assurance Metrics
+
+**Track and report:**
+1. **Validation Pass Rates**: Percentage passing each validation stage
+2. **Source Distribution**: Breakdown by reliability level
+3. **Geographic Coverage**: Administrative levels represented
+4. **Temporal Coverage**: Years and periods covered
+5. **Data Density**: Records per year/region
+6. **Quality Scores**: Distribution of final quality ratings
+7. **Rejection Rates**: Reasons for data exclusion
+8. **Uncertainty Levels**: Distribution of confidence weights
+
+### Quality Improvement Feedback Loop
+
+**MANDATORY: Continuously improve process**
+1. **Pattern Recognition**: Identify common validation failures
+2. **Search Optimization**: Adjust queries based on success rates
+3. **Source Prioritization**: Focus on highest-yield source types
+4. **Validation Refinement**: Update validation rules based on experience
+5. **Documentation Enhancement**: Improve guidance based on lessons learned
 
 **Quality Flags**: HIGH/MEDIUM/LOW/PROVISIONAL based on validation results
 
@@ -692,58 +790,16 @@ CROSS-VALIDATION TRIGGERS (REQUIRE 2+ SOURCES):
 
 **REQUIREMENTS: These practices are mandatory. Non-compliance compromises MOSAIC modeling effectiveness.**
 
-### Gap-Targeted Search Initialization (MANDATORY)
 
-**STEP 1: Load Reference Data (BEFORE ANY SEARCHES)**
-```python
-# REQUIRED: Read reference files before starting
-import pandas as pd
-agent_ref = pd.read_csv('./reference/agent_quick_reference.csv')
-target_country = agent_ref[agent_ref['iso_code'] == 'ETH'].iloc[0]  # Example: Ethiopia
-priority_periods = target_country['priority_periods']  # "2018-12-10 to 2023-01-01"
-missing_years = target_country['missing_recent_years']  # "2000, 2001, 2002..."
-search_priority = target_country['search_priority']  # "HIGH"
-```
+## MANDATORY SEARCH STRATEGY AND PARALLEL PROCESSING
 
-**STEP 2: Parse Target Periods**
-```python
-# Extract specific years and periods for targeted searching
-if 'to' in priority_periods:
-    gap_start, gap_end = priority_periods.split(' to ')
-    gap_years = list(range(int(gap_start[:4]), int(gap_end[:4]) + 1))
-else:
-    gap_years = []
+**CRITICAL**: This section defines the authoritative search methodology. Failure to implement parallel execution will result in incomplete data collection and methodology non-compliance.
 
-missing_years_list = [int(y.strip()) for y in missing_years.split(',') if y.strip() != 'None']
-```
+### Parallel Processing Requirements
 
-**STEP 3: Generate Gap-Targeted Queries**
-```python
-# MANDATORY: Include temporal constraints in ALL queries
-base_queries = [
-    f"{country} cholera outbreak",
-    f"{country} cholera surveillance", 
-    f"{country} cholera epidemic"
-]
+#### Fundamental Parallel Processing Mandate
 
-# Add temporal targeting
-targeted_queries = []
-for query in base_queries:
-    for year in gap_years:
-        targeted_queries.append(f"{query} {year}")
-    for year in missing_years_list[:5]:  # Focus on first 5 missing years
-        targeted_queries.append(f"{query} {year}")
-```
-
-### Systematic Search Strategy (MANDATORY)
-
-#### **MANDATORY PARALLEL SEARCH METHODOLOGY**
-
-**CRITICAL**: This section overrides all other search guidance. Failure to implement parallel execution will result in incomplete data collection and methodology non-compliance.
-
-##### **A. Fundamental Parallel Processing Mandate**
-
-**PROHIBITED BEHAVIOR**: Sequential query execution
+**PROHIBITED**: Sequential query execution
 ```python
 # NEVER DO THIS - Sequential Processing
 WebSearch("Angola cholera WHO 2024")     # Wait
@@ -751,9 +807,9 @@ WebSearch("Angola cholera UNICEF 2024")  # Wait
 WebSearch("Angola cholera MSF 2024")     # Wait
 ```
 
-**MANDATORY BEHAVIOR**: Parallel batch execution
+**MANDATORY**: Parallel batch execution
 ```python
-# REQUIRED - Parallel Batch Processing: batches of 25 queries
+# REQUIRED - Parallel Batch Processing: batches of 20-25 queries
 [
   WebSearch("Angola cholera WHO 2024"),
   WebSearch("Angola cholera UNICEF 2024"),
@@ -762,40 +818,105 @@ WebSearch("Angola cholera MSF 2024")     # Wait
   WebSearch("Angola cholera government 2024"),
   WebSearch("Angola cholera academic 2024"),
   WebSearch("Angola cholera surveillance 2024"),
-  WebSearch("Angola cholera cases 2002")
-  WebSearch("Angola cholera deaths 2006")
+  WebSearch("Angola cholera cases 2002"),
+  WebSearch("Angola cholera deaths 2006"),
   WebSearch("Angola oral cholera vaccine 2018")
+  # ... up to 20-25 queries per batch
 ]
 ```
 
-**MANDATORY BEHAVIOR**: Complete ALL stated queries without shortcuts
+**CRITICAL REQUIREMENTS**:
+- Execute 20-25 queries per batch in parallel
+- Complete ALL stated queries without shortcuts
+- Maintain minimum performance standards (>50% of required rate)
+- Document batch completion times and query rates
 
-#### **Multi-Phase Search Protocol (Using Parallel Execution)**
-**PHASE 1: Broad Discovery (REQUIRED)**
-1. **Start with systematic queries**: Execute ALL query categories using parallel batch processing from section above
-2. **Multiple search engines**: Use parallel WebSearch calls across Google, Google Scholar, PubMed, WHO databases, ReliefWeb, government sites
-3. **Language diversity**: Execute multi-language query batches simultaneously (English, French, Portuguese, Arabic, local languages)
-4. **Temporal comprehensiveness**: Batch decade-specific searches in parallel (1970s, 1980s, etc.)
-5. **Geographic completeness**: Parallel execution across administrative levels (national, provincial, district)
+### Three-Phase Search Protocol
 
-**PHASE 2: Targeted Gap Filling (REQUIRED)**
-1. **Identify specific gaps**: Missing years, regions, outbreak periods from Phase 1 results
-2. **Focused searches**: Execute gap-specific queries in parallel batches using accelerated methodology
-3. **Cross-reference validation**: Use parallel WebFetch to verify gaps across multiple sources simultaneously
-4. **Regional contextualization**: Batch cross-border searches for neighboring countries (execute in parallel)
-5. **Alternative terminology**: Create synonym/local term query batches for parallel execution
+#### PHASE 1: Broad Discovery (REQUIRED)
+Comprehensive initial coverage using parallel execution:
 
-**PHASE 3: Deep Validation (REQUIRED)**
-1. **Source chain following**: Execute reference/citation searches in parallel batches
-2. **Institution deep dives**: Use parallel WebSearch across multiple organization websites simultaneously
-3. **Archive exploration**: Batch Internet Archive searches using parallel processing
-4. **Expert consultation**: Contact authors/institutions when possible (maintain parallel processing for other searches)
-5. **Peer verification**: Execute cross-checking across multiple sources using parallel WebFetch
+1. **Systematic Query Categories**: Execute ALL mandatory categories in parallel batches
+   - WHO/Official surveillance sources
+   - Academic/peer-reviewed literature
+   - Humanitarian/NGO reports
+   - Regional/cross-border sources
+   - Historical/archival records
+   - Technical/laboratory reports
+   - Linguistic/local language sources
 
-#### **Search Completeness Verification**
+2. **Multi-Engine Coverage**: Parallel searches across:
+   - Google, Google Scholar, PubMed
+   - WHO databases, ReliefWeb
+   - Government sites, institutional repositories
+   - Regional databases, news archives
+
+3. **Temporal Comprehensiveness**: Parallel decade-specific searches
+   - Batch searches by decade (1970s, 1980s, 1990s, 2000s, 2010s, 2020s)
+   - Execute all decades simultaneously
+
+4. **Geographic Completeness**: Parallel administrative levels
+   - National, provincial, district searches in same batch
+   - Cross-border regional searches
+
+5. **Language Diversity**: Simultaneous multi-language batches
+   - English, French, Portuguese, Arabic, local languages
+   - Execute language variants in parallel
+
+#### PHASE 2: Targeted Gap Filling (REQUIRED)
+Focused searches based on Phase 1 discoveries:
+
+1. **Gap Identification**: Analyze Phase 1 results for:
+   - Missing years, regions, outbreak periods
+   - Incomplete geographic coverage
+   - Partial temporal coverage
+
+2. **Focused Batch Searches**: Create targeted query batches for:
+   - Specific gap periods identified
+   - Under-represented geographic areas
+   - Missing source types
+
+3. **Cross-Reference Validation**: Parallel WebFetch for:
+   - Multi-source verification of major outbreaks
+   - Regional pattern confirmation
+   - Temporal consistency checks
+
+4. **Alternative Terminology**: Parallel searches using:
+   - Synonyms and local disease terms
+   - Historical terminology variations
+   - Regional naming conventions
+
+#### PHASE 3: Deep Validation (REQUIRED)
+Comprehensive validation and source expansion:
+
+1. **Source Chain Following**: Parallel batch searches for:
+   - Citation networks from discovered sources
+   - Reference lists from key publications
+   - Related publications by same authors
+
+2. **Institutional Deep Dives**: Simultaneous searches of:
+   - Organization websites and repositories
+   - Ministry of Health archives
+   - University databases
+   - NGO publication libraries
+
+3. **Archive Exploration**: Parallel searches in:
+   - Internet Archive/Wayback Machine
+   - Digital library collections
+   - Historical newspaper archives
+   - Government document repositories
+
+4. **Quality Verification**: Parallel validation of:
+   - Source authenticity
+   - Data consistency
+   - Cross-source agreement
+   - Temporal alignment
+
+### Search Completeness Verification
+
 **MANDATORY CHECKLIST before concluding search:**
-- [ ] All query categories completed for target country
-- [ ] All major search engines and databases checked
+- [ ] All 7 query categories completed with parallel execution
+- [ ] All major search engines/databases checked (15+ minimum)
 - [ ] Local language searches conducted where applicable
 - [ ] All decades searched systematically (1970s-2020s)
 - [ ] All administrative levels searched (national, provincial, district)
@@ -805,98 +926,31 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 - [ ] Cross-border and regional sources checked
 - [ ] Preliminary vs final report versions verified
 
-### RIGOROUS Data Extraction Protocol (MANDATORY)
+### Performance Standards
 
-#### **Documentation Standards**
-**REQUIREMENT: Document EVERYTHING**
-1. **Original Format Preservation**:
-   - Screenshot or copy original data presentation
-   - Record exact text, numbers, dates as presented
-   - Note table/figure numbers, page numbers, section locations
-   - Save PDF copies when possible
-   - Document access date and URL status
+- **Minimum Batch Size**: 20 queries (maximum 25)
+- **Query Execution Rate**: >50% of maximum for >90% of time
+- **Batch Completion**: Document time and yield for each batch
+- **Total Coverage**: 200+ queries per agent (except Agent 7)
+- **Stopping Criteria**: Per Agent Operations Framework
 
-2. **Extraction Decision Documentation**:
-   - Record every interpretive decision made
-   - Document ambiguous data handling
-   - Note assumptions about missing information
-   - Explain unit conversions step-by-step
-   - Record alternative interpretations considered
+### Integration with Agent Framework
 
-3. **Traceability Requirements**:
-   - Direct quotes for key data points
-   - Page/section references for all extracted data
-   - Author contact information when available
-   - Publication DOI/URL for all sources
-   - Version information for updated reports
+Each agent applies this three-phase protocol with agent-specific focus:
+- **Agent 1**: Emphasize Phase 1 broad discovery
+- **Agent 2**: Focus on geographic variants in all phases
+- **Agent 3**: Prioritize absence validation searches
+- **Agent 4**: Emphasize Phase 3 deep archival searches
+- **Agent 5**: Focus on Phase 2 cross-reference validation
+- **Agent 6**: Emphasize context and system functionality searches
 
-#### **Quality Assurance During Extraction**
-**MANDATORY CHECKS:**
-1. **Double-entry verification**: Re-extract key data points to check consistency
-2. **Mathematical validation**: Verify calculated fields (CFR, attack rates)
-3. **Unit consistency**: Ensure all conversions are correct
-4. **Date logic**: Verify temporal relationships make sense
-5. **Geographic accuracy**: Confirm location codes and names
 
-#### **Uncertainty Quantification**
-**REQUIREMENT: Flag and quantify all uncertainties**
-1. **High Certainty**: Direct, unambiguous data extraction
-2. **Medium Certainty**: Minor interpretation or conversion required
-3. **Low Certainty**: Significant assumptions or ambiguous source
-4. **Provisional**: Major uncertainties, requires verification
-
-### COMPREHENSIVE Validation Protocol (MANDATORY)
-
-#### **Multi-Stage Validation Process**
-**STAGE 1: Automated Validation (REQUIRED)**
-- Run ALL validation checks from quality control framework
-- Document all validation failures and warnings
-- Resolve validation issues before proceeding
-- Generate validation report for each data source
-
-**STAGE 2: Cross-Reference Validation (REQUIRED)**
-- Compare with JHU database for overlapping periods
-- Cross-check with WHO annual surveillance summaries
-- Verify against neighboring country outbreak patterns
-- Validate seasonal trends against climate data
-
-**STAGE 3: Expert Review (REQUIRED)**
-- Epidemiological plausibility assessment
-- Historical context validation
-- Source credibility evaluation
-- Uncertainty quantification review
-
-#### **Validation Documentation Requirements**
-**MANDATORY for each validation stage:**
-- Validation checklist completion status
-- Specific issues identified and resolution actions
-- Quality scores and confidence weights assigned
-- Reviewer comments and recommendations
-- Final inclusion/exclusion decisions with justification
-
-### SYSTEMATIC Quality Control Integration (MANDATORY)
-
-#### **Real-Time Quality Monitoring**
-**REQUIREMENT: Monitor quality throughout process**
-1. **Validation Pass Rates**: Track percentage passing each validation stage
-2. **Source Quality Distribution**: Monitor reliability level breakdown
-3. **Geographic Coverage**: Ensure comprehensive regional coverage
-4. **Temporal Coverage**: Track gap-filling effectiveness
-5. **Duplication Detection**: Monitor and resolve duplicate entries
-
-#### **Quality Improvement Feedback Loop**
-**MANDATORY: Continuously improve process**
-1. **Pattern Recognition**: Identify common validation failures
-2. **Search Optimization**: Adjust queries based on success rates
-3. **Source Prioritization**: Focus on highest-yield source types
-4. **Validation Refinement**: Update validation rules based on experience
-5. **Documentation Enhancement**: Improve guidance based on lessons learned
 
 ### FINAL DELIVERABLE STANDARDS (MANDATORY)
 
 #### **Completeness Requirements**
 **ALL deliverables must include:**
-- Search report (created by Agent 6 only) with brief outcome summary
+- Search report (created by Agent 7 only) with brief outcome summary
 - Metadata_ai.csv with enhanced indexing system (Index column + all required fields)
 - cholera_data_ai.csv in standardized JHU format with dual-reference system (source_index + source columns)
 - Quality assessment documentation
@@ -904,17 +958,6 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 - Uncertainty quantification for all data points
 - Recommendations for future data collection
 
-#### **Enhanced Format Requirements (MANDATORY)**
-**Metadata_ai.csv Format:**
-- MUST include Index column with sequential integers (1, 2, 3...)
-- MUST include all 15 required columns in exact order
-- MUST have consistent Source names for data file referencing
-
-**cholera_data_ai.csv Format:**
-- MUST include source_index column referencing metadata_ai.csv Index numbers
-- MUST include source column with exact Source name from metadata_ai.csv
-- MUST include confidence_weight column with quality-based weights
-- MUST include source_database column with 'AI' value for all agent discoveries
 
 #### **Quality Assurance Checklist**
 **MANDATORY verification before submission:**
@@ -933,157 +976,13 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 - [ ] **INDEX SYSTEM: All data rows have both source_index AND source columns populated**
 - [ ] **INDEX SYSTEM: No index numbers are duplicated or missing in metadata**
 - [ ] **PARALLEL EXECUTION: All searches conducted using parallel batch methodology**
-- [ ] **PERFORMANCE STANDARDS: Agent 1 minimum 8 batches/200 queries with stopping criteria, Agent 4 exactly 200 queries**
+- [ ] **PERFORMANCE STANDARDS: Agents 1-6 continue until 3 consecutive batches <5% yield OR 10 total batches maximum**
 - [ ] **SYSTEMATIC COVERAGE: Priority sources parsed and systematically searched**
 - [ ] **BATCH LOGGING: Query rates and performance metrics documented**
 
-**CRITICAL: This data enhancement directly impacts MOSAIC model accuracy and public health decisions. Thoroughness, accuracy, and efficient parallel execution are mandatory.**
+**CRITICAL: This data enhancement directly impacts MOSAIC model accuracy and public health decisions. All searches must follow the Mandatory Search Strategy and Parallel Processing protocol.**
 
-## MANDATORY ZERO-TRANSMISSION DOCUMENTATION SUMMARY
 
-**CRITICAL REQUIREMENT FOR ALL AGENTS**: Every validated cholera-free period MUST be documented as a data observation in cholera_data_ai.csv. This is not optional.
-
-**Examples of Required Zero-Transmission Entries**:
-- WHO surveillance reports: "no cholera cases reported in [Country] during [Year]" → MANDATORY cholera_data_ai.csv entry
-- Academic studies: "decade-long absence 1997-2006" → MANDATORY cholera_data_ai.csv entries for each year or period
-- Government reports: "cholera-free period following end of civil war" → MANDATORY cholera_data_ai.csv entry
-- Regional analysis: "Country X remained cholera-free while neighbors experienced outbreaks" → MANDATORY cholera_data_ai.csv entry
-
-**Quality Impact**: Zero-transmission documentation is essential for:
-1. **Complete time series**: MOSAIC models require knowledge of both presence AND absence of disease
-2. **Accurate transmission modeling**: Understanding when/why cholera is absent informs transmission parameters
-3. **Public health planning**: Documented cholera-free periods guide resource allocation and preparedness
-4. **Regional analysis**: Cross-border transmission patterns depend on accurate absence documentation
-5. **Intervention effectiveness**: Measuring success requires documenting sustained absence periods
-
-**Agent Responsibilities**:
-- **Agent 1**: Document any zero-transmission periods discovered during baseline searches
-- **Agent 2**: Document provincial-level absence periods where surveillance confirms zero cases
-- **Agent 3**: PRIMARY RESPONSIBILITY - systematically validate and document ALL cholera-free periods
-- **All Agents**: If absence periods are identified, MANDATORY documentation in cholera_data_ai.csv
-
-**Validation Standard**: Zero-transmission entries require the same validation rigor as outbreak data - appropriate confidence weighting, source documentation, and cross-reference validation.
-
-### Quality Control Protocol
-
-**MANDATORY: Every data point must pass ALL quality control stages**
-
-#### **Stage 1: Automated Validation Checks**
-1. **Epidemiological Range Validation**:
-   - CFR between 0.1% and 15% (flag outliers for manual review)
-   - Case numbers > 0 and < population of affected area
-   - Outbreak duration between 1 week and 104 weeks (2 years)
-   - Attack rates between 0.01% and 10% of population
-   - Deaths ≤ suspected cases (mathematical consistency)
-
-2. **Temporal Logic Validation**:
-   - Start date < End date
-   - Reporting date ≥ End date
-   - No dates in the future beyond data collection
-   - Seasonal patterns consistent with regional cholera epidemiology
-   - Multi-year trends follow epidemiologically plausible patterns
-
-3. **Geographic Validation**:
-   - Location codes match ISO/WHO standards
-   - Administrative hierarchy consistency (Country→Province→District)
-   - Coordinates within correct administrative boundaries
-   - Population denominators match latest census data
-   - Cross-border patterns epidemiologically plausible
-
-#### **Stage 2: Cross-Reference Validation**
-1. **Multi-Source Confirmation**:
-   - Outbreaks >1000 cases: Require ≥2 independent sources
-   - CFR >5%: Require clinical confirmation sources
-   - New geographic areas: Cross-check with neighboring regions
-   - Historical data: Verify against WHO annual summaries
-
-2. **Mathematical Consistency**:
-   - CFR calculations accurate to ±0.1%
-   - Cumulative totals match sub-period sums
-   - Attack rates consistent with population denominators
-   - Case progression follows epidemic curve logic
-
-3. **Pattern Recognition**:
-   - Seasonal trends match known cholera epidemiology
-   - Geographic spread follows transmission pathways
-   - Outbreak magnitude consistent with preparedness capacity
-   - Recovery rates align with treatment availability
-
-#### **Stage 3: Expert Validation**
-1. **Epidemiological Plausibility Review**:
-   - Outbreak size appropriate for population/context
-   - Case fatality rates consistent with healthcare capacity
-   - Transmission patterns align with WASH conditions
-   - Seasonal timing consistent with climate patterns
-
-2. **Historical Context Validation**:
-   - New data consistent with known historical patterns
-   - Unusual patterns have documented explanations
-   - Regional synchrony follows known epidemic waves
-   - Long-term trends epidemiologically coherent
-
-3. **Source Credibility Assessment**:
-   - Author/institution expertise verified
-   - Methodology transparency and soundness
-   - Potential bias or conflicts of interest identified
-   - Data collection standards documented
-
-#### **Stage 4: Final Integration Checks**
-1. **Duplication Prevention**:
-   - No identical records from different sources
-   - Overlapping periods resolved using best available data
-   - Updated reports supersede preliminary versions
-   - Aggregated data doesn't double-count sub-national data
-
-2. **Completeness Assessment**:
-   - All required fields populated or explicitly marked missing
-   - Geographic coding complete and standardized
-   - Source attribution clear and traceable
-   - Quality scores assigned based on validation results
-
-3. **Integration Validation**:
-   - New data compatible with existing JHU database
-   - No systematic biases introduced
-   - Coverage gaps appropriately filled
-   - Confidence weights appropriately assigned
-
-#### **Quality Control Documentation Requirements**
-**MANDATORY for each data point:**
-1. **Validation Status**: Pass/Fail for each validation stage
-2. **Flag Reasons**: Specific issues identified during validation
-3. **Resolution Actions**: How validation issues were addressed
-4. **Final Quality Score**: Numerical rating (1-10) based on validation
-5. **Reviewer Notes**: Human expert assessment comments
-6. **Uncertainty Quantification**: Confidence intervals where applicable
-
-#### **Rejection Criteria (DO NOT INCLUDE)**
-**Automatically reject data if:**
-- CFR > 20% without exceptional circumstances documentation
-- Case numbers exceed 20% of population (implausible attack rates)
-- Dates are logically inconsistent (end before start, future dates)
-- Source cannot be verified or authenticated
-- Geographic codes don't match any known administrative units
-- Mathematical inconsistencies cannot be resolved
-- Multiple validation stages failed without adequate explanation
-
-**Flag for manual review if:**
-- CFR outside 0.5-10% range
-- Attack rates outside 0.1-5% range
-- Outbreak duration <2 weeks or >1 year
-- Single source for major outbreaks (>500 cases)
-- Significant discrepancies between sources
-- Unusual seasonal patterns requiring explanation
-
-#### **Quality Assurance Metrics**
-**Track and report:**
-1. **Validation Pass Rates**: Percentage passing each validation stage
-2. **Source Distribution**: Breakdown by reliability level
-3. **Geographic Coverage**: Administrative levels represented
-4. **Temporal Coverage**: Years and periods covered
-5. **Data Density**: Records per year/region
-6. **Quality Scores**: Distribution of final quality ratings
-7. **Rejection Rates**: Reasons for data exclusion
-8. **Uncertainty Levels**: Distribution of confidence weights
 
 ## Common Pitfalls and Solutions
 
@@ -1091,129 +990,110 @@ WebSearch("Angola cholera MSF 2024")     # Wait
 - **Problem**: Limited results for specific countries/time periods
 - **Solution**: Broaden search to regional reports, neighboring countries
 
-### Enhanced Data Quality Issue Resolution
+## DATA STANDARDIZATION AND CONFLICT RESOLUTION
 
-#### **Conflicting Information Protocol**
-**Problem**: Different sources report conflicting case numbers, dates, or other key data
+### Comprehensive Standardization Protocol
 
-**MANDATORY Resolution Steps:**
-1. **Document All Conflicts**: Record exact values from each source with timestamps
-2. **Apply Source Hierarchy**: Use reliability levels to prioritize sources
-3. **Investigate Discrepancies**: Research reasons for differences (different case definitions, reporting periods, geographic coverage)
-4. **Calculate Uncertainty Ranges**: Provide minimum-maximum ranges based on source variation
-5. **Weight Appropriately**: Reduce confidence weights for conflicting data points
-6. **Flag for Sensitivity Analysis**: Mark high-uncertainty data for model testing
-7. **Provide Multiple Scenarios**: When conflicts are major, include alternative data scenarios
+#### Date Standardization
+**Problem**: Multiple date formats across sources
 
-**Specific Conflict Resolution Rules:**
-- **WHO vs Local Sources**: Prefer WHO for standardized case definitions
-- **Preliminary vs Final Reports**: Always use final/updated versions
-- **Different Time Periods**: Ensure exact temporal alignment before comparing
-- **Different Geographic Scales**: Use most specific level, verify aggregation
-- **Academic vs Operational**: Consider purpose and methodology differences
-
-#### **Data Completeness Issues**
-**Problem**: Missing essential data fields or incomplete reporting
-
-**Resolution Protocol:**
-1. **Required Fields**: Location, dates, case/death counts must be present
-2. **Acceptable Gaps**: CFR can be calculated if cases and deaths available
-3. **Geographic Coding**: Standardize to AFR::ISO::Province::District format
-4. **Temporal Alignment**: Convert all date formats to YYYY-MM-DD
-5. **Imputation Rules**: Only interpolate obvious transcription errors
-6. **Missing Value Codes**: Use standardized codes (NA, missing, not reported)
-
-#### **Source Authentication Issues**
-**Problem**: Difficulty verifying source credibility or accessing data
-
-**Verification Steps:**
-1. **URL Validation**: Test all links, use archived versions if current links fail
-2. **Author Credentials**: Verify institutional affiliations and expertise
-3. **Publication Verification**: Confirm journal indexing, peer review status
-4. **Institution Validation**: Check official government/organization websites
-5. **Archive Search**: Use Internet Archive for broken or moved content
-6. **Alternative Access**: Contact authors/institutions directly if needed
-
-**Authentication Documentation:**
-- Record all verification attempts and results
-- Note any concerns about source credibility
-- Document alternative access methods used
-- Flag sources that couldn't be fully authenticated
-
-### Comprehensive Format and Unit Standardization
-
-#### **Date Format Standardization**
-**Problem**: Multiple date formats across sources (DD/MM/YYYY, MM-DD-YY, etc.)
-
-**MANDATORY Conversion Rules:**
+**MANDATORY Conversion Rules**:
 - **Standard Format**: YYYY-MM-DD for all dates
-- **Ambiguous Dates**: When format unclear, document assumption made
-- **Date Ranges**: Use TL (time left) and TR (time right) for start/end dates
-- **Incomplete Dates**: "2006-01-01" to "2006-12-31" for year-only data
-- **Seasonal Data**: Assign to appropriate months (rainy season = May-October for most African countries)
+- **Ambiguous Dates**: Document assumption (e.g., 01/02/2020 → specify if DD/MM or MM/DD)
+- **Date Ranges**: Use TL (start) and TR (end) fields
+- **Incomplete Dates**: 
+  - Year only: "2006-01-01" to "2006-12-31"
+  - Month-Year: Use first and last day of month
+- **Seasonal Data**: Map to appropriate months based on country climate patterns
 
-#### **Case Count Standardization**
-**Problem**: Different case definitions, units, or reporting standards
+#### Geographic Standardization
+**Problem**: Inconsistent naming and administrative levels
 
-**Conversion Protocol:**
+**MANDATORY Standards**:
+- **Country**: AFR::{ISO_CODE} (e.g., AFR::AGO)
+- **Province**: AFR::{ISO}::{PROVINCE} (e.g., AFR::AGO::Luanda)
+- **District**: AFR::{ISO}::{PROVINCE}::{DISTRICT}
+- **Municipal**: AFR::{ISO}::{PROVINCE}::{DISTRICT}::{MUNICIPALITY}
+
+**Naming Rules**:
+- Use official English administrative names
+- Cross-reference with ISO 3166-2 codes
+- Document alternative spellings/local names
+- Handle temporal name changes appropriately
+
+#### Case Count Standardization
+**Problem**: Different definitions and reporting standards
+
+**Conversion Protocol**:
 1. **Suspected Cases (sCh)**: Primary metric, includes clinical diagnoses
 2. **Confirmed Cases (cCh)**: Laboratory-confirmed only
-3. **Combined Reporting**: When only "total cases" given, assign to sCh field
-4. **Rate Conversions**: Convert incidence rates to absolute numbers using population denominators
-5. **Cumulative vs Period**: Clearly distinguish and convert appropriately
+3. **"Total Cases"**: Assign to sCh unless specifically laboratory-confirmed
+4. **Rate Conversions**: Convert to absolute numbers using documented population
+5. **Cumulative vs Period**: Clearly distinguish and document
 
-**Documentation Requirements:**
-- Record original format and conversion method
-- Note any assumptions about case definitions
-- Flag conversions with high uncertainty
-- Provide population denominators used for rate conversions
+#### Unit Conversions
+**Standard Requirements**:
+- **CFR**: Express as percentage (0-100%), not decimal
+- **Attack Rates**: Percentage of affected population
+- **Duration**: Convert to days for calculations
+- **Population**: Use absolute numbers, not rates
 
-#### **Geographic Standardization**
-**Problem**: Inconsistent geographic naming, coding, or administrative levels
+### Conflict Resolution Framework
 
-**MANDATORY Standards:**
-- **Country Level**: AFR::{ISO_CODE} (e.g., AFR::AGO for Angola)
-- **Province Level**: AFR::{ISO}::{PROVINCE} (e.g., AFR::AGO::Luanda)
-- **District Level**: AFR::{ISO}::{PROVINCE}::{DISTRICT}
-- **Municipal Level**: AFR::{ISO}::{PROVINCE}::{DISTRICT}::{MUNICIPALITY}
+#### Conflicting Information Protocol
+When sources report different values:
 
-**Name Standardization Rules:**
-- Use official administrative names in English
-- Cross-reference with ISO 3166-2 subdivision codes
-- Handle name changes over time with date-appropriate coding
-- Document alternative spellings and local names
+1. **Document All Values**: Record exact values from each source with timestamps
+2. **Apply Source Hierarchy**:
+   - Level 1: WHO, Government official statistics
+   - Level 2: UN agencies, established NGOs
+   - Level 3: Academic sources, news media
+   - Level 4: Local/unofficial sources
 
-#### **Unit and Scale Conversions**
-**Problem**: Different measurement units, population scales, time periods
+3. **Resolution Rules**:
+   - **WHO vs Local**: Prefer WHO for standardized definitions
+   - **Final vs Preliminary**: Always use updated/final reports
+   - **Different Periods**: Ensure temporal alignment before comparing
+   - **Different Scales**: Use most specific geographic level
 
-**Conversion Standards:**
-1. **Population Denominators**: Always use absolute numbers, not rates
-2. **Time Periods**: Standardize to weekly where possible
-3. **Case Fatality Rate**: Always express as percentage (0-100%)
-4. **Attack Rates**: Express as percentage of affected population
-5. **Duration**: Express in days or weeks, not months/years
+4. **Documentation Requirements**:
+   - Record all conflicts in processing_notes
+   - Provide uncertainty ranges when applicable
+   - Reduce confidence_weight for conflicting data
+   - Flag for sensitivity analysis
 
-**Quality Assurance for Conversions:**
-- Double-check all mathematical conversions
-- Verify population denominators against census data
-- Cross-validate converted values against other sources
-- Document conversion factors and sources used
-- Flag high-uncertainty conversions for sensitivity analysis
-**Conversion Documentation Requirements:**
-- **Original Values**: Preserve exact original data in metadata
-- **Conversion Method**: Document step-by-step conversion process
-- **Assumptions Made**: Record any interpretive decisions
-- **Uncertainty Assessment**: Quantify conversion-related uncertainty
-- **Validation Checks**: Cross-verify converted values
-- **Alternative Interpretations**: Note other possible conversions
-- **Source Contact**: Record attempts to clarify with original authors
+#### Missing Data Protocol
+**Resolution Steps**:
+1. **Required Fields**: Location, dates, and at least one metric (cases/deaths/CFR)
+2. **Acceptable Gaps**: Can calculate CFR if cases and deaths available
+3. **Imputation**: Only for obvious errors (e.g., typos)
+4. **Documentation**: Use standard codes (NA, missing, not reported)
 
-**Quality Flags for Conversions:**
-- **DIRECT**: No conversion needed, data in standard format
-- **SIMPLE**: Straightforward conversion (dates, percentages)
-- **COMPLEX**: Multiple conversions or assumptions required
-- **UNCERTAIN**: Significant ambiguity in conversion process
-- **ESTIMATED**: Conversion required estimation or interpolation
+#### Source Authentication Issues
+**Verification Protocol**:
+1. **URL Validation**: Test links, use archived versions for broken URLs
+2. **Author Verification**: Confirm credentials and affiliations
+3. **Publication Status**: Verify peer review, official status
+4. **Alternative Access**: Document all access attempts
+
+### Documentation Requirements
+
+#### Conversion Documentation
+For every standardization:
+- **Original Values**: Preserve in metadata or processing_notes
+- **Conversion Method**: Document step-by-step process
+- **Assumptions**: Record all interpretive decisions
+- **Uncertainty**: Quantify conversion-related uncertainty
+- **Validation**: Cross-verify converted values
+
+#### Quality Flags
+- **DIRECT**: No conversion needed
+- **SIMPLE**: Straightforward conversion
+- **COMPLEX**: Multiple conversions required
+- **UNCERTAIN**: Significant ambiguity
+- **ESTIMATED**: Required estimation/interpolation
+
+All standardizations must maintain full traceability from original source to final data entry.
 
 ### Temporal Alignment
 - **Problem**: Different reporting periods (weekly vs monthly vs annual)
@@ -1291,11 +1171,13 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 
 #### **Updated Search Requirements (Using Parallel Methodology)**
 - **PARALLEL EXECUTION MANDATORY**: All queries must use batch processing (20 parallel queries per batch)
-- **Minimum Performance Standards**: Agent 1 minimum 5 batches/100 queries with data observation yield stopping criteria, Agent 4 conditional batching based on data discovery
+- **Minimum Performance Standards**: Agent 1-6 continue until 3 consecutive batches <5% data observation yield OR 10 total batches maximum
 - **Systematic Coverage Required**: Agent 1 uses focused 45 highest-priority sources (200 queries from reference/priority_sources.txt)
 - **Multi-language Parallel Batches**: Execute simultaneous searches in English, Portuguese, French, Arabic, and local languages
 - **Cross-border Parallel Validation**: Batch searches across neighboring countries simultaneously
 - **Accelerated Temporal Coverage**: Parallel decade-specific searches (1970s-2020s executed simultaneously)
+
+**CRITICAL**: Agents must NOT stop early if stopping criteria are not met! Searches to fill surveillance gaps must be thorough. Be persistent, follow links, be exhaustive.
 
 #### **Quality Control Minimums (Enhanced)**
 - **100% validation** of all extracted data points using parallel validation techniques
@@ -1369,31 +1251,27 @@ This comprehensive access authorization enables thorough, systematic cholera sur
 #### **Protocol Structure**
 ```
 Given batches of 20 queries:
-1. Run minimum X batches for baseline coverage (Agent-specific)
-2. After X batches, stop when Y=2 consecutive batches achieve <Z% data observation yield (Agent-specific)
-3. Exception: If source quality remains high (>0.8 average reliability), continue for 2 additional batches before applying stopping criteria
+1. All agents (1-6) continue searching until ONE of these conditions is met:
+   a) 3 consecutive batches achieve <5% data observation yield, OR
+   b) 10 total batches have been executed (200 queries maximum)
+2. No exceptions - these are hard stopping criteria for consistency
 ```
 
 #### **Parameter Specifications**
 
-**Agent-Specific Parameters**:
+**Unified Parameters for Agents 1-6**:
 
-**Agent 1**: X=5 batches minimum (100 queries), Y=2 consecutive batches, Z=10% threshold
-- Ensures adequate systematic coverage of priority sources
-- Establishes baseline performance patterns before applying stopping criteria
-- Prevents premature termination during initial high-yield discovery phases
-
-**Agents 2,3,4,5**: X=2 batches minimum (40 queries), Y=2 consecutive batches, Z=5% threshold  
-- Accounts for natural variability in discovery process
-- Prevents stopping due to temporary methodology shifts or access issues
-- Balances thoroughness with efficiency requirements
-
-**Agent 4**: Obscure source expansion continues until 2 consecutive batches <4% yield (minimum 2 batches/40 queries) - **MAXIMUM 240 queries (12 batches)**
+**All Agents (1-6)**: 
+- Stop when 3 consecutive batches achieve <5% data observation yield
+- OR stop after 10 total batches (200 queries maximum)
+- No minimum batch requirements - agents may stop earlier if 3 consecutive low-yield batches occur
+- No exceptions or quality overrides - consistent application across all agents
 
 **Threshold Rationale**:
-- 8% threshold (Agent 1): Set below typical declining trend, establishes strong baseline
-- 4% threshold (Agents 2,3,5): Optimized for specialized discovery phases
-- Above observed noise floor, accounts for continued discovery of sparse institutional sources
+- 5% threshold: Balances thoroughness with efficiency across all agent types
+- 3 consecutive batches: Ensures genuine saturation rather than temporary fluctuations
+- 10 batch maximum: Prevents excessive searching while allowing thorough coverage
+- Unified criteria: Simplifies implementation and ensures consistency
 
 #### **Data Observation Yield = Successful Queries Only**
 ```
@@ -1417,10 +1295,10 @@ Where "Successful Queries" are those that produce:
 ```
 
 #### **Quality Exception Protocol**
-- **High-Quality Source Exception**: If average source reliability >0.8 in low-yield batches, continue for 2 additional batches
-- **Rationale**: High-reliability institutional sources (WHO, government ministries, peer-reviewed literature) may have sparse but extremely valuable data that justifies continued searching
-- **Implementation**: Calculate weighted average reliability using confidence weights from 4-tier classification system
-- **Documentation**: Record quality exception application and additional findings
+- **NO EXCEPTIONS**: The stopping criteria are applied uniformly without quality-based exceptions
+- **Rationale**: Consistent stopping criteria ensure reproducibility and prevent subjective decision-making
+- **Implementation**: Track data observation yield for each batch and stop when criteria are met
+- **Documentation**: Record exact batch counts and yields that triggered stopping
 
 #### **Implementation Requirements**
 
@@ -1433,53 +1311,86 @@ Where "Successful Queries" are those that produce:
 □ Data observation yield calculated: ___% (successful queries / 20)
 □ Search log updated with actual CSV additions count
 
-**BATCH IS NOT COMPLETE UNTIL ALL CSV UPDATES ARE FINISHED**
 
-1. **Real-Time Success Tracking**: Document which queries successfully added new rows to cholera_data.csv per batch
-2. **Successful Query Calculation**: (Successful Queries/25) × 100% for each 25-query batch  
-3. **Consecutive Performance Monitoring**: Track sequence of low-yield batches with batch identification
-4. **Quality Assessment**: Calculate average source reliability when approaching threshold using confidence weighting
-5. **Decision Documentation**: Record rationale for search termination including yield history and quality assessment
-6. **Legacy Integration**: Apply alongside existing completion criteria (temporal coverage, institutional module completion)
-
-#### **Validation Evidence**
-
-**Angola Pilot Results** (optimized for 20-query batches):
-- **Yield Range**: 5% to 50% (average 25% with smaller batches)
-- **Declining Trend**: Later batches averaged 20% vs early batches 25%
-- **Variability Pattern**: 2-batch consecutive requirement balances efficiency with thoroughness
-- **Quality Correlation**: High-yield batches (>35%) corresponded with WebFetch intensive methods and institutional source discovery
-- **Threshold Validation**: 8% threshold (Agent 1) and 4% threshold (Agents 2,3,5) optimized for smaller batch sizes
-
-**Expected Benefits**:
-- **Prevents Premature Stopping**: Accounts for natural variation in search productivity
-- **Ensures Thorough Coverage**: Minimum 100-query baseline (Agent 1) ensures systematic priority source coverage
-- **Quality Preservation**: Exception protocol prevents loss of high-reliability institutional sources
-- **Efficiency Optimization**: Systematic stopping criteria prevents over-searching with minimal additional yield
-- **Reproducible Results**: Empirically-validated parameters ensure consistent application across countries
 
 #### **Integration with Agent Framework**
 
-**Agent-Specific Application with Enhanced Gap Targeting and Maximum Query Safeguards**:
+See Agent Operations Framework section for detailed agent requirements and responsibilities.
 
-- **Agent 1 (Baseline Collector)**: **MANDATORY INITIALIZATION**: Create search_log_agent_1.txt and run `python py/update_completion_checklist.py` immediately to mark country as "PENDING". **LOAD agent_1_priority_gaps.csv** and target 50 CRITICAL/HIGH priority national/provincial gaps ≥30 days. Focus on substantial baseline establishment using priority score ≥85 gaps first. Proceed with data observation yield stopping criteria (minimum 5 batches/100 queries, stop when 2 consecutive batches <10% yield) - **MAXIMUM 200 queries (10 batches)**
+**Total Maximum Workflow Limit**: 1,200 queries for Agents 1-6 (6 agents × 200 queries max), unlimited validation queries for Agent 7
 
-- **Agent 2 (Geographic Expansion Specialist)**: **MANDATORY**: Create search_log_agent_2.txt with comprehensive batch documentation. **LOAD agent_2_geographic_gaps.csv** and target 40 district/municipal level gaps plus high-scoring provincial gaps (≥60 priority score). Focus on geographic expansion within gap periods using location-specific queries. Geographic expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+## AGENT OPERATIONS FRAMEWORK
 
-- **Agent 3 (Zero-Transmission Validator)**: **MANDATORY**: Create search_log_agent_3.txt with zero-transmission validation documentation. **LOAD agent_3_validation_gaps.csv** and target 60 medium-duration gaps (7 days-1 year) with priority score ≥40 for systematic absence validation. **MANDATORY: Document ALL validated absence periods as data observations in cholera_data_ai.csv using zero-transmission protocol**. Zero-transmission validation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+### Common Requirements for All Agents
 
-- **Agent 4 (Obscure Source Explorer)**: **MANDATORY**: Create search_log_agent_4.txt with obscure source exploration documentation. **LOAD agent_4_historical_gaps.csv** and target 30 historical/obscure gaps (>5 years old or ≥3 years duration) requiring specialized source mining. Focus on gaps ending before 2018 or with duration ≥1095 days. Obscure source expansion continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+#### Search Log Creation (MANDATORY)
+All agents MUST create and maintain individual search logs:
+- **File Format**: `search_log_agent_X.txt` where X is the agent number (1-7)
+- **Location**: `./data/{ISO_CODE}/search_log_agent_X.txt`
+- **Initialization**: Create log file immediately upon agent start
+- **Content**: Document all search batches, queries executed, results found, and CSV updates
 
-- **Agent 5 (Cross-Reference Integrator)**: **MANDATORY**: Create search_log_agent_5.txt with source permutation and adjacent data mining documentation. **LOAD comprehensive_gaps_inventory.csv** and perform exhaustive source permutation across ALL priority tiers, focusing on cross-validation and conflict resolution between gap periods. Source permutation continues until 2 consecutive batches <5% yield (minimum 2 batches/40 queries) - **MAXIMUM 100 queries (5 batches)**
+**Agent 1 Special Initialization**:
+```bash
+echo "=== AGENT 1 INITIALIZATION ===" > ./data/{ISO_CODE}/search_log_agent_1.txt
+echo "Country: {COUNTRY_NAME} ({ISO_CODE})" >> ./data/{ISO_CODE}/search_log_agent_1.txt  
+echo "Start Time: $(date '+%Y-%m-%d %H:%M:%S')" >> ./data/{ISO_CODE}/search_log_agent_1.txt
+echo "Agent 1 Status: INITIALIZED" >> ./data/{ISO_CODE}/search_log_agent_1.txt
+echo "" >> ./data/{ISO_CODE}/search_log_agent_1.txt
+```
+Note: Agent 1 initialization triggers workflow orchestrator dashboard update to mark country as "PENDING"
 
-- **Agent 6 (Quality Auditor)**: Quality audit using ALL gap analysis files (agent1-4 + comprehensive inventory) for validation completeness, dataset finalization, and creation of brief search_report.txt summarizing key outcomes including **quantitative gap-filling impact analysis** comparing pre-workflow vs post-workflow surveillance coverage using reference data, with specific documentation of gaps filled and remaining priority periods requiring future attention.
+#### Gap Analysis File Loading (Agents 1-6)
+All data collection agents (1-6) MUST load the baseline gap analysis file:
+- **File**: `./reference/baseline_surveillance_gaps_detailed.csv`
+- **Purpose**: Target specific temporal gaps identified in baseline data
+- **Usage**: Focus searches on gap periods based on agent-specific strategies
 
-**Three-Tier Stopping System with Hard Limits**:
-- **Agent 1** (Baseline): X=5, Y=2, Z=10% (comprehensive foundation requiring thorough systematic coverage) - Hard stop at 200 queries
-- **Agents 2,3,4,5** (Expansion): X=2, Y=2, Z=5% (specialized expansion with faster saturation detection) - Hard stop at 100 queries each
-- **Agent 6** (Quality): Complete validation until all quality objectives achieved (no query limit)
+#### Stopping Criteria (Agents 1-6)
+All data collection agents use identical stopping criteria:
+- **Continue searching until ONE of these conditions is met:**
+  - 3 consecutive batches achieve <5% data observation yield, OR
+  - 10 total batches have been executed (200 queries maximum)
+- **No exceptions**: Apply criteria uniformly across all data collection agents
 
-**Total Maximum Workflow Limit: 600 queries for Agents 1-5, unlimited validation queries for Agent 6**
+### Agent-Specific Responsibilities
+
+#### Agent 1 - Baseline Collector
+- **Primary Focus**: Substantial baseline establishment using longest duration gaps first
+- **Coverage Strategy**: EXHAUSTIVE - Target ALL gaps equally with comprehensive searches
+
+#### Agent 2 - Geographic Expansion Specialist  
+- **Primary Focus**: Geographic expansion at provincial and district levels
+- **Coverage Strategy**: Expand coverage within gap periods using location-specific queries
+
+#### Agent 3 - Zero-Transmission Validator
+- **Primary Focus**: Validate gaps suitable for zero-transmission (7 days-2 years duration)
+- **Special Requirement**: MANDATORY documentation of ALL validated absence periods as data observations in cholera_data_ai.csv
+
+#### Agent 4 - Obscure Source Explorer
+- **Primary Focus**: Historical gaps (>5 years old or ≥3 years duration)
+- **Coverage Strategy**: Target gaps ending before 2018 or with duration ≥1095 days
+
+#### Agent 5 - Cross-Reference Integrator
+- **Primary Focus**: Exhaustive source permutation across all gaps
+- **Coverage Strategy**: Cross-validation and conflict resolution
+
+#### Agent 6 - Gap Context Investigator
+- **Primary Focus**: Investigate remaining temporal gaps ≥6 months
+- **Coverage Strategy**: Distinguish between non-reporting periods and true zero-transmission
+
+#### Agent 7 - Quality Auditor
+- **Primary Focus**: Quality audit and dataset finalization
+- **Deliverables**: Create brief search_report.txt with quantitative gap-filling impact analysis
+- **Note**: No stopping criteria - unlimited validation queries allowed
+
+### Agent File Outputs
+All agents produce standardized outputs in `./data/{ISO_CODE}/`:
+- `search_log_agent_X.txt` - Individual agent search logs (All agents)
+- `cholera_data_ai.csv` - Enhanced surveillance data (Agents 1-6)
+- `metadata_ai.csv` - Source documentation (Agents 1-6)
+- `search_report.txt` - Summary report (Agent 7 only)
+- `workflow_orchestrator_{ISO_CODE}.txt` - Orchestrator configuration file
 
 ## UNIFIED DASHBOARD UPDATE SYSTEM
 
@@ -1505,36 +1416,21 @@ python py/update_dashboard_data.py
 
 ### **AGENT INITIALIZATION PROTOCOL**
 
-**CRITICAL**: Agent 1 should run the dashboard update command immediately after creating their first search log to mark the country as "PENDING":
+**CRITICAL**: The workflow orchestrator automatically runs the dashboard update command after Agent 1 creates its first search log to mark the country as "PENDING":
 
 **Step 1: Create Initial Log File**
-```bash
-echo "=== AGENT 1 INITIALIZATION ===" > ./data/{ISO_CODE}/search_log_agent_1.txt
-echo "Country: {COUNTRY_NAME} ({ISO_CODE})" >> ./data/{ISO_CODE}/search_log_agent_1.txt  
-echo "Start Time: $(date '+%Y-%m-%d %H:%M:%S')" >> ./data/{ISO_CODE}/search_log_agent_1.txt
-echo "Agent 1 Status: INITIALIZED" >> ./data/{ISO_CODE}/search_log_agent_1.txt
-echo "" >> ./data/{ISO_CODE}/search_log_agent_1.txt
-```
+See Agent Operations Framework section for Agent 1 initialization protocol.
 
-**Step 2: Update All Dashboard Data**  
-```bash
-bash update_dashboard.sh
-```
+**Step 2: Begin Search Protocol**
+Proceed with systematic search methodology. The workflow orchestrator handles the dashboard update automatically.
 
-**Step 3: Begin Search Protocol**
-Proceed with systematic search methodology.
+### **DASHBOARD UPDATE SCHEDULE (MEMORY-OPTIMIZED)**
 
-### **MANDATORY DASHBOARD UPDATE POINTS**
+**Dashboard updates occur at only TWO points to reduce memory usage**:
+1. **Workflow Initialization**: Automatically after Agent 1 creates its first log file (marks country as "PENDING")
+2. **Workflow Completion**: Automatically after Agent 7 completes quality audit (marks country as "COMPLETED")
 
-**Agent Completion Updates**:
-- **Agent 1**: MANDATORY after completing baseline establishment
-- **Agent 2-5**: MANDATORY after each agent completion
-- **Agent 6**: MANDATORY after quality audit completion
-
-**Dashboard Update Commands (All Agents)**:
-```bash
-bash update_dashboard.sh
-```
+**CRITICAL CHANGE**: Individual agents (1-7) do NOT update the dashboard during execution. This reduces memory usage by approximately 75% (from ~2.4GB to ~0.6GB for dashboard operations).
 
 **Benefits of Unified System**:
 - **Single Command**: No need to run multiple scripts
@@ -1585,26 +1481,6 @@ This enhanced protocol ensures systematic, thorough data collection while preven
 - Uncertainty quantification is missing
 - **Performance metrics not logged** (batch times and query rates undocumented)
 
-### SUCCESS METRICS (MINIMUM ACCEPTABLE STANDARDS)
-
-**Search Completeness:**
-- ≥90% of specified query categories completed
-- ≥15 distinct search engines/databases used
-- ≥50% of sources found through systematic (not opportunistic) searching
-- Local language searches conducted for non-English countries
-
-**Data Quality:**
-- ≥95% of extracted data passes automated validation
-- ≥90% of major outbreaks confirmed by multiple sources
-- ≥80% of sources at reliability Level 2 or higher
-- Zero unresolved duplications in final dataset
-
-**Documentation Standards:**
-- 100% of sources have working URLs or archived copies
-- 100% of data points have clear source attribution
-- 100% of conversions and interpretations documented
-- 100% of quality assessments completed
-
 ### Automatic Context Management (MANDATORY)
 
 **REQUIREMENT: Proactive context compression when approaching limits**
@@ -1653,48 +1529,16 @@ Task(description="Compact context", prompt="/compact")
 - Enables accurate epidemiological modeling across the WHO African Region
 - Serves as a model for AI-enhanced surveillance data collection
 
-**MANDATORY AGENT 6 ENHANCED GAP ASSESSMENT**: Every country completion must include comprehensive quantitative gap-filling impact analysis using the enhanced gap analysis system:
+**MANDATORY AGENT 7 BASELINE GAP ASSESSMENT**: Every country completion must include comprehensive quantitative gap-filling impact analysis using the baseline gap analysis system:
 
-1. **Load Comprehensive Gap Inventory**: Use `./reference/comprehensive_gaps_inventory.csv` to assess total targetable gaps
-2. **Calculate Gap-Filling Success Rate**: Document how many CRITICAL/HIGH priority gaps were successfully filled or validated
-3. **Priority Score Impact**: Calculate the total priority score points addressed (sum of filled gaps' priority scores)
-4. **Geographic Coverage Enhancement**: Document coverage improvements by geographic level (national/provincial/district)
-5. **Seasonal Pattern Validation**: Assess whether seasonal gaps were appropriately targeted and filled
-6. **Remaining Critical Gaps**: Identify unfilled CRITICAL priority gaps (score ≥85) requiring future attention
-7. **Cross-Agent Performance Analysis**: Evaluate which agent types were most effective for different gap categories
-8. **Enhanced Surveillance Timeline**: Generate before/after timeline showing gap-filling impact using comprehensive inventory
-
-**Mandatory Gap Assessment Output Template**:
-```
-COMPREHENSIVE GAP-FILLING ASSESSMENT REPORT
-
-Pre-Workflow Gap Analysis:
-• Total gaps ≥7 days identified: {count}
-• CRITICAL priority gaps (≥85): {count}
-• HIGH priority gaps (70-84): {count}
-• Total priority score potential: {sum}
-
-Post-Workflow Results:
-• Gaps successfully filled: {count} ({percentage}%)
-• Gaps validated as zero-transmission: {count} ({percentage}%)
-• Priority score achieved: {sum} of {total} ({percentage}%)
-• Geographic levels enhanced: National: {count}, Provincial: {count}, District: {count}
-
-Remaining Priority Gaps:
-• CRITICAL gaps unfilled: {count} (requires immediate future attention)
-• HIGH gaps unfilled: {count}
-• Recommended next steps for remaining gaps
-
-Agent Performance Analysis:
-• Agent 1 success rate: {percentage}% on {count} targeted gaps
-• Agent 2 geographic expansion: {count} sub-national gaps filled
-• Agent 3 zero-transmission validation: {count} absence periods confirmed
-• Agent 4 historical gap mining: {count} historical gaps filled
-
-Overall Impact: Enhanced surveillance coverage by {percentage} percentage points through systematic gap-targeted methodology.
-```
-
-**This work directly impacts global cholera control efforts. Excellence is required, not requested.**
+1. **Load Baseline Gap Files**: Use all three baseline gap files to assess coverage improvement
+2. **Calculate Gap-Filling Success Rate**: Document how many gap periods were successfully filled or validated
+3. **Coverage Enhancement**: Calculate improvement in percent_coverage from baseline analysis
+4. **Temporal Distribution**: Document which years and periods were successfully addressed
+5. **Geographic Coverage**: Document improvements by administrative level
+6. **Remaining Gaps**: Identify unfilled gap periods requiring future attention
+7. **Cross-Agent Performance**: Evaluate which agent types were most effective
+8. **Enhanced Surveillance Timeline**: Generate before/after timeline showing gap-filling impact
 
 ---
 

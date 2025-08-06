@@ -17,8 +17,13 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Configuration - Updated path to match current OneDrive structure
-JHU_DATA_PATH = "/Users/johngiles/Library/CloudStorage/OneDrive-Bill&MelindaGatesFoundation/Projects/MOSAIC/jhu_cholera_data/data"
+# Configuration - Use relative paths or environment variables
+import os
+
+# Allow environment variable override, otherwise use relative path
+JHU_DATA_PATH = os.environ.get('JHU_DATA_PATH', 
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+                 'jhu_cholera_data', 'data'))
 OUTPUT_DATA_PATH = "./data"
 REFERENCE_PATH = "./reference"
 

@@ -55,7 +55,7 @@ Use each `.md` file to create specialized subagents:
 ```bash
 # From main project directory
 # Step 2a: Generate comprehensive gap analysis (creates agent-specific gap files)
-python py/analyze_integrated_coverage_gaps.py
+python py/analyze_baseline_gaps_optimized.py
 
 # Step 2b: Generate country-specific orchestrator files  
 python py/generate_country_orchestrator.py ETH        # Single country
@@ -131,15 +131,11 @@ Master Orchestrator
 - **Generation Script**: `../py/generate_country_orchestrator.py` 
 - **Template File**: `../templates/template_workflow_orchestrator.txt`
 - **Generated Orchestrators**: `../data/{ISO}/workflow_orchestrator_{ISO}.txt`
-- **Comprehensive Gap Analysis**: `../py/analyze_integrated_coverage_gaps.py`
+- **Comprehensive Gap Analysis**: `../py/analyze_baseline_gaps_optimized.py`
 - **Reference Data**: 
-  - `../reference/agent_quick_reference.csv` (country priorities)
-  - `../reference/comprehensive_gaps_inventory.csv` (1,277 total gaps)
-  - **Agent-Specific Gap Files**:
-    - `../reference/agent_1_priority_gaps.csv` (50 CRITICAL/HIGH priority gaps)
-    - `../reference/agent_2_geographic_gaps.csv` (40 geographic expansion gaps)
-    - `../reference/agent_3_validation_gaps.csv` (60 zero-transmission validation gaps)
-    - `../reference/agent_4_historical_gaps.csv` (30 historical/obscure gaps)
+  - `../reference/baseline_surveillance_gaps_detailed.csv` (consolidated gap periods)
+  - `../reference/baseline_surveillance_gaps_annual.csv` (annual gaps)
+  - `../reference/baseline_surveillance_gaps_coverage.csv` (country coverage summary)
 
 ## Integration with MOSAIC Framework
 

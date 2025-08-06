@@ -179,8 +179,8 @@ def embed_all_data():
     for iso in completed_countries:
         data_dir = Path(f'data/{iso}')
         
-        # Read metadata.csv
-        metadata_file = data_dir / 'metadata.csv'
+        # Read metadata_ai.csv (changed from metadata.csv)
+        metadata_file = data_dir / 'metadata_ai.csv'
         if metadata_file.exists():
             metadata_content = read_csv_safe(metadata_file)
             if metadata_content:
@@ -238,17 +238,31 @@ def embed_all_data():
     
     # Find and replace existing embedded data section
     embed_start_marker = "        // Embedded CSV data - updated automatically by py/"
-    embed_end_marker = "        // Load and display timeline data with PNG plots"
+    # Try multiple possible end markers
+    embed_end_markers = [
+        "        // Load and display timeline data with PNG plots",
+        "        // Function to parse CSV row",
+        "        // Function to format",
+        "        // Function to"
+    ]
     
     embed_start = html_content.find(embed_start_marker)
     if embed_start != -1:
         print("🔄 Replacing existing embedded data...")
         # Find the end of the embedded data section
         search_start = embed_start
-        embed_end = html_content.find(embed_end_marker, search_start)
+        embed_end = -1
+        
+        # Try each possible end marker
+        for marker in embed_end_markers:
+            embed_end = html_content.find(marker, search_start)
+            if embed_end != -1:
+                print(f"✅ Found end marker: {marker[:30]}...")
+                break
         
         if embed_end == -1:
             print("❌ Could not find end of embedded data section")
+            print("   Tried markers:", embed_end_markers)
             return False
             
         new_content = (
@@ -258,10 +272,24 @@ def embed_all_data():
         )
     else:
         # No existing embedded data, find insertion point
-        csvdata_marker = "        const weekCountsCSV = `"
-        csvdata_pos = html_content.find(csvdata_marker)
+        # Try multiple possible markers
+        markers = [
+            "        const weekCountsCSV = `",
+            "        const completionChecklistCSV = `",
+            "        // Embedded completion checklist CSV",
+            "        // Load the country table when the page loads"
+        ]
+        
+        csvdata_pos = -1
+        for marker in markers:
+            csvdata_pos = html_content.find(marker)
+            if csvdata_pos != -1:
+                print(f"✅ Found insertion point using marker: {marker[:30]}...")
+                break
+        
         if csvdata_pos == -1:
             print("❌ Could not find insertion point in dashboard HTML")
+            print("   Tried markers:", markers)
             return False
         
         new_content = (

@@ -6,7 +6,6 @@ This directory contains ISO country codes and mapping data for the MOSAIC choler
 ## Files Generated
 - `iso_codes_all.txt`: All 54 African countries (complete coverage)
 - `iso_codes_mosaic.txt`: 40 MOSAIC framework countries (core modeling countries)
-- `iso_codes_high_priority.txt`: High-priority countries for cholera data enhancement
 - `country_mapping.json`: Complete country metadata and groupings
 
 ## Usage for Claude Instances
