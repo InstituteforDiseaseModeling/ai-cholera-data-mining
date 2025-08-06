@@ -1806,6 +1806,67 @@
             });
         }
         
+        // Map Discovery_Method to Agent number
+        function getAgentFromDiscoveryMethod(discoveryMethod) {
+            const method = discoveryMethod.toLowerCase();
+            
+            // Agent 1 - Baseline Collector
+            if (method.includes('systematic search') || 
+                method.includes('academic literature') ||
+                method.includes('baseline')) {
+                return { number: 1, name: 'Baseline' };
+            }
+            
+            // Agent 2 - Geographic Expansion
+            if (method.includes('geographic') || 
+                method.includes('provincial') || 
+                method.includes('district') ||
+                method.includes('regional') ||
+                method.includes('subnational')) {
+                return { number: 2, name: 'Geographic' };
+            }
+            
+            // Agent 3 - Zero-Transmission Validator
+            if (method.includes('zero-transmission') || 
+                method.includes('absence') ||
+                method.includes('cholera-free')) {
+                return { number: 3, name: 'Zero-Trans' };
+            }
+            
+            // Agent 4 - Obscure Sources
+            if (method.includes('historical') || 
+                method.includes('archive') ||
+                method.includes('obscure') ||
+                method.includes('colonial')) {
+                return { number: 4, name: 'Obscure' };
+            }
+            
+            // Agent 5 - Cross-Reference
+            if (method.includes('cross-reference') || 
+                method.includes('cross reference') ||
+                method.includes('triangulation') ||
+                method.includes('validation')) {
+                return { number: 5, name: 'Cross-Ref' };
+            }
+            
+            // Agent 6 - Gap Context
+            if (method.includes('gap context') || 
+                method.includes('gap investigation') ||
+                method.includes('context')) {
+                return { number: 6, name: 'Gap Context' };
+            }
+            
+            // Agent 7 - Quality Audit
+            if (method.includes('quality') || 
+                method.includes('audit') ||
+                method.includes('final validation')) {
+                return { number: 7, name: 'Quality' };
+            }
+            
+            // Default - Unknown agent
+            return { number: 0, name: 'Unknown' };
+        }
+        
         // Load metadata for selected country
         function loadMetadataForCountry() {
             const select = document.getElementById('metadata-country-select');
@@ -1858,13 +1919,20 @@
                 const dataTypeCol = row[5]; // Data_Type
                 const statusCol = row[6]; // Status
                 const reliabilityCol = row[7]; // Reliability_Level
+                const discoveryMethodCol = row[13]; // Discovery_Method
+                
+                // Get agent info from discovery method
+                const agentInfo = getAgentFromDiscoveryMethod(discoveryMethodCol);
+                const agentBadge = agentInfo.number > 0 
+                    ? `<span class="agent-badge agent-${agentInfo.number}" title="Agent ${agentInfo.number}: ${agentInfo.name}">A${agentInfo.number}</span>` 
+                    : '';
                 
                 tr.innerHTML = `
                     <td>${indexCol}</td>
                     <td><a href="${urlCol}" target="_blank" class="data-link" title="${sourceCol}">${sourceCol}</a></td>
                     <td title="${descriptionCol}">${descriptionCol.length > 100 ? descriptionCol.substring(0, 100) + '...' : descriptionCol}</td>
                     <td>${dateRangeCol}</td>
-                    <td>${dataTypeCol}</td>
+                    <td>${dataTypeCol} ${agentBadge}</td>
                     <td>${statusCol}</td>
                     <td><span class="reliability-badge ${reliabilityCol.toLowerCase().replace(' ', '-')}">${reliabilityCol}</span></td>
                 `;
