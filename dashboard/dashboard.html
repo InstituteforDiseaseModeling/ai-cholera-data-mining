@@ -2397,9 +2397,23 @@
             rows.forEach(row => tbody.appendChild(row));
         }
 
+        // Function to update statistics cards
+        function updateStatistics() {
+            const completed = countryData.filter(c => c.status === 'COMPLETED').length;
+            const pending = countryData.filter(c => c.status === 'PENDING').length;
+            const notStarted = countryData.filter(c => c.status === 'NOT_STARTED').length;
+            const total = countryData.length;
+            
+            document.getElementById('completed-count').textContent = completed;
+            document.getElementById('pending-count').textContent = pending;
+            document.getElementById('not-started-count').textContent = notStarted;
+            document.getElementById('total-count').textContent = total;
+        }
+        
         // Update on page load
         document.addEventListener('DOMContentLoaded', function() {
             updateLastUpdated();
+            updateStatistics();
             loadTimelinePlots();
             populateCountryTable();
             populateDataDropdowns();
@@ -2576,6 +2590,38 @@ Uganda,UGA,NOT_STARTED,,0,0,,,0,0,
 South Africa,ZAF,NOT_STARTED,,0,0,,,0,0,
 Zambia,ZMB,NOT_STARTED,,0,0,,,0,0,
 Zimbabwe,ZWE,NOT_STARTED,,0,0,,,0,0,`;
+        
+        // Parse completion checklist CSV to build countryData array
+        function parseChecklistToCountryData() {
+            const lines = completionChecklistCSV.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVRow(lines[i]);
+                if (values.length >= headers.length) {
+                    data.push({
+                        "country": values[0],
+                        "iso": values[1],
+                        "status": values[2] || 'NOT_STARTED',
+                        "datetime": values[3] || '',
+                        "sources": parseInt(values[4]) || 0,
+                        "observations": parseInt(values[5]) || 0,
+                        "date_range": values[6] || '',
+                        "priority": values[7] || '',
+                        "execution_time": parseInt(values[8]) || 0,
+                        "queries": parseInt(values[9]) || 0,
+                        "yield_pct": parseFloat(values[10]) || 0,
+                        "notes": ""
+                    });
+                }
+            }
+            
+            return data;
+        }
+        
+        // Initialize countryData by parsing the completion checklist
+        const countryData = parseChecklistToCountryData();
         
         // Embedded metadata from CSV files
         const embeddedMetadata = {
