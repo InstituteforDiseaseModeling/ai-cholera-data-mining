@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 DATA_PATH = "./data"
 REFERENCE_PATH = "./reference"
-OUTPUT_PATH = "./dashboard/heatmaps"
+OUTPUT_PATH = "./figures/dashboard/heatmaps"
 
 def load_country_mapping():
     """Load country name to ISO code mapping."""

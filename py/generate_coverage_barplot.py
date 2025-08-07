@@ -293,18 +293,11 @@ def create_coverage_barplot():
     plt.tight_layout()
     
     # Save the plot with very high resolution
-    output_dir = Path('figures')
-    output_dir.mkdir(exist_ok=True)
+    output_dir = Path('figures/dashboard/plots')
+    output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / 'cholera_coverage_barplot.png'
     plt.savefig(output_file, dpi=600, bbox_inches='tight')
     print(f"\n✅ Bar plot saved to: {output_file}")
-    
-    # Also save to dashboard directory
-    dashboard_dir = Path('dashboard/plots')
-    dashboard_dir.mkdir(exist_ok=True)
-    dashboard_file = dashboard_dir / 'cholera_coverage_barplot.png'
-    plt.savefig(dashboard_file, dpi=600, bbox_inches='tight')
-    print(f"✅ Bar plot saved to: {dashboard_file}")
     
     # Print summary statistics
     print("\n" + "=" * 80)

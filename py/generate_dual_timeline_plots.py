@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 DATA_PATH = "./data"
 REFERENCE_PATH = "./reference"
-OUTPUT_PATH = "./dashboard/timeline_plots_dual"
+OUTPUT_PATH = "./figures/dashboard/timelines"
 GLOBAL_START_DATE = pd.Timestamp('1970-01-01')
 GLOBAL_END_DATE = pd.Timestamp('2025-12-31')
 
