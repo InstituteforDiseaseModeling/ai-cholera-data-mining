@@ -242,7 +242,7 @@ def create_coverage_barplot():
     ax.set_yticks(y_pos)
     ax.set_yticklabels(coverage_df['Country'], fontsize=14)  # Increased from 11
     ax.set_xlabel('Percentage of Months with Observations (1970-Present)', 
-                  fontsize=18, fontweight='bold', labelpad=20)  # Increased from 14
+                  fontsize=18, fontweight='bold', labelpad=25)  # Increased spacing
     ax.set_title('Cholera Surveillance Data Coverage by Source\nMOSAIC Framework Countries', 
                  fontsize=22, fontweight='bold', pad=25)  # Increased from 16
     
@@ -259,8 +259,8 @@ def create_coverage_barplot():
     ax.axvline(x=100, color='gray', linestyle='--', alpha=0.5, linewidth=1)
     
     # Add legend horizontally below the plot, without border
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.04), 
-              ncol=3, frameon=False, fontsize=16)  # Much larger font
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.08), 
+              ncol=3, frameon=False, fontsize=16)  # Increased distance from axis
     
     # Add value labels on bars with much larger font
     for i, (idx, row) in enumerate(coverage_df.iterrows()):
