@@ -135,10 +135,17 @@ def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_
         time_periods = years
         time_labels = [str(y) if y % 5 == 0 else "" for y in years]
     
-    # Get unique countries sorted alphabetically by country name
-    country_counts = data_df.groupby(['country_iso', 'country_name']).size().reset_index(name='count')
-    country_counts = country_counts.sort_values('country_name', ascending=True)  # Sort alphabetically by name
-    countries = [(row['country_iso'], row['country_name']) for _, row in country_counts.iterrows()]
+    # Load all MOSAIC countries from country mapping
+    country_mapping = load_country_mapping()
+    all_mosaic_countries = []
+    for iso, info in sorted(country_mapping.items()):
+        all_mosaic_countries.append((iso, info['name']))
+    
+    # Sort alphabetically by country name
+    all_mosaic_countries.sort(key=lambda x: x[1])
+    
+    # Use all MOSAIC countries (including those without data)
+    countries = all_mosaic_countries
     
     # Create coverage matrix
     coverage_matrix = np.zeros((len(countries), len(time_periods)), dtype=int)
@@ -153,8 +160,12 @@ def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_
     }
     
     for i, (country_iso, country_name) in enumerate(countries):
-        country_data = data_df[data_df['country_iso'] == country_iso]
+        country_data = data_df[data_df['country_iso'] == country_iso] if 'country_iso' in data_df.columns else pd.DataFrame()
         
+        # Skip if no data for this country
+        if len(country_data) == 0:
+            continue
+            
         for j, time_period in enumerate(time_periods):
             if monthly:
                 # Check if data overlaps with this month
