@@ -205,7 +205,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     """Create and save the coverage heatmap."""
     
     # Create figure with wider aspect ratio for better readability
-    fig, ax = plt.subplots(figsize=(36, 18))  # Larger figure for better text readability
+    fig, ax = plt.subplots(figsize=(40, 22))  # Even larger figure for better text readability with higher DPI
     
     # Create custom colormap with complementary color scheme
     colors = ['white', '#0167af', '#E74C3C', '#2ECC71', '#9B59B6']  # white, JHU blue, WHO red, AI green, mixed purple
@@ -218,13 +218,13 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     # Set country labels (Y-axis) with larger font
     country_labels = [f"{iso} - {name}" for iso, name in countries]
     ax.set_yticks(range(len(countries)))
-    ax.set_yticklabels(country_labels, fontsize=22)  # Increased text size for better readability
+    ax.set_yticklabels(country_labels, fontsize=26)  # Further increased text size for 600 DPI
     
     # Set year labels (X-axis) - show every 5 years with larger font
     year_indices = [i for i, period in enumerate(time_periods) if period % 5 == 0]
     year_labels = [str(time_periods[i]) for i in year_indices]
     ax.set_xticks(year_indices)
-    ax.set_xticklabels(year_labels, rotation=45, fontsize=22)  # Increased text size for better readability
+    ax.set_xticklabels(year_labels, rotation=45, fontsize=26)  # Further increased text size for 600 DPI
     
     # Add minor ticks for all years
     ax.set_xticks(range(len(time_periods)), minor=True)
@@ -236,7 +236,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     else:
         title = 'Cholera Surveillance Data Coverage - National Level'
     
-    ax.set_title(title, fontsize=32, fontweight='bold', pad=35)
+    ax.set_title(title, fontsize=36, fontweight='bold', pad=40)
     
     # Create legend with larger font
     legend_elements = [
@@ -249,7 +249,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     
     # Place legend below heatmap in 1 horizontal row
     ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.10), 
-             fontsize=22, ncol=5, frameon=False, columnspacing=1.2)  # Increased text size for better readability
+             fontsize=26, ncol=5, frameon=False, columnspacing=1.2)  # Further increased text size for 600 DPI
     
     # Add grid
     ax.grid(True, which='major', alpha=0.3, linewidth=0.5)
@@ -262,7 +262,7 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     os.makedirs(OUTPUT_PATH, exist_ok=True)
     file_suffix = "national" if data_type == "National" else "subnational"
     output_file = f"{OUTPUT_PATH}/cholera_coverage_heatmap_{file_suffix}.png"
-    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig(output_file, dpi=600, bbox_inches='tight', facecolor='white')
     logger.info(f"✅ {data_type} heatmap saved: {output_file}")
     
     # Close the figure to free memory

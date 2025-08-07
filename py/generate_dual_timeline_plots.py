@@ -237,7 +237,7 @@ def create_dual_timeline_plot(country_iso, country_name, national_data, subnatio
     # Save plot
     os.makedirs(OUTPUT_PATH, exist_ok=True)
     output_file = f"{OUTPUT_PATH}/{country_iso}_{country_name.replace(' ', '_')}_dual_timeline.png"
-    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig(output_file, dpi=600, bbox_inches='tight', facecolor='white')
     plt.close()
     
     return output_file

@@ -5,6 +5,7 @@
 # This script provides a simple command for agents to update all dashboard data:
 # - Completion checklist (based on file analysis)
 # - 3-source timeline coverage plots (with synchronized date ranges)
+# - Coverage barplot (percentage of months with observations by source)
 # - Coverage heatmaps (national and sub-national data visualization)
 # - Timeline week counts data (embedded in dashboard)
 # - All data source embedding (AI-mined, WHO, and JHU data)
@@ -65,8 +66,9 @@ echo "✅ All Python dependencies available"
 # Ensure required directories exist
 echo "📁 Validating directory structure..."
 ensure_directory "dashboard"
-ensure_directory "dashboard/timeline_plots_dual"
-ensure_directory "dashboard/heatmaps"
+ensure_directory "figures/dashboard/plots"
+ensure_directory "figures/dashboard/heatmaps"
+ensure_directory "figures/dashboard/timelines"
 ensure_directory "py"
 
 # Run the unified dashboard data update script with error handling
@@ -76,6 +78,15 @@ if ! python py/update_dashboard_data.py; then
     exit 1
 fi
 echo "✅ Dashboard data update completed"
+
+# Generate coverage barplot with error handling
+echo ""
+echo "📊 Generating coverage barplot..."
+if ! python py/generate_coverage_barplot.py; then
+    echo "❌ ERROR: Coverage barplot generation failed"
+    exit 1
+fi
+echo "✅ Coverage barplot generated"
 
 # Generate coverage heatmaps with error handling
 echo ""
@@ -103,10 +114,9 @@ echo "🔄 Committing dashboard updates to GitHub..."
 
 # Safely add dashboard files to git (only if they exist)
 safe_git_add "dashboard/completion_checklist.csv"
-# timeline_week_counts.csv removed - no longer generated
-safe_git_add "dashboard/timeline_plots_dual/"
-safe_git_add "dashboard/heatmaps/"
 safe_git_add "dashboard/dashboard.html"
+# Figures are now in ./figures/dashboard/ and tracked separately
+safe_git_add "figures/dashboard/"
 
 # Check if there are changes to commit
 if git diff --staged --quiet; then
