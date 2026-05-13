@@ -108,6 +108,8 @@ Only orchestrator does this at initialization and completion.
 
 ## MANDATORY GAP-TARGETED SEARCH PROTOCOL
 
+**Note on search protocol sections**: This document contains three search protocol sections (Gap-Targeted Protocol, Ultra Deep Search Methodology, and Three-Phase Search Protocol in the Batch Processing section). These are complementary, not competing — they describe the same workflow from different angles. **Priority order**: (1) Always load gap files and target identified gaps first. (2) Apply ultra-deep multi-source coverage within each batch. (3) Follow the three-phase structure across the agent's full search run.
+
 **CRITICAL**: Before beginning any search, agents MUST consult the baseline surveillance gap analysis files to target missing periods in baseline data.
 
 ### Pre-Search Requirements (MANDATORY)
@@ -358,6 +360,7 @@ python py/generate_coverage_heatmap.py
 - **ACCEPTABLE**: `AFR::AGO`, `AFR::AGO::Luanda`, `AFR::AGO::Luanda::Belas`, `AFR::AGO::Multi_Provincial`
 - **PROHIBITED**: Any non-geographic categories (Vaccination, Training, Demographics_*, Age_Group_*, Laboratory_*, Surveillance_*)
 - **Rule**: Must represent a physical location where people contracted cholera
+- **Double-counting warning**: When both national (AFR::ISO) and provincial rows exist for the same date range, document in `processing_notes` which level is intended as the primary count for MOSAIC aggregation (e.g., "National total — includes provinces not individually listed" or "Provincial subset — do not sum with national row"). This prevents double-counting in likelihood calculations.
 
 **TL** (Time Left - Start Date):
 - **Purpose**: Outbreak/reporting period start date
@@ -389,7 +392,7 @@ python py/generate_coverage_heatmap.py
 - **Purpose**: Percentage of cases resulting in death
 - **Format**: 0-100 (percentage, not decimal)
 - **Calculation**: (deaths/sCh) × 100
-- **Validation**: Must be 0.1-15% for most outbreaks (flag outliers)
+- **Validation**: Must be 0.1-15% for most outbreaks (flag outliers). Humanitarian/conflict settings may reach ~20% — document context. Multi-year aggregated CFR entries should receive confidence_weight ≤0.7.
 
 **reporting_date** (Date):
 - **Purpose**: Date when data was reported/published
@@ -423,7 +426,7 @@ python py/generate_coverage_heatmap.py
 - **Values**: 
   - 'JHU': Data from JHU cholera database baseline integration (historical coverage)
   - 'WHO': Data from WHO surveillance dashboards and emergency reports (2023-2025 coverage)
-  - 'AI': Data discovered through AI agent systematic searches (gap-filling enhancement)
+  - 'AI': Data extracted by AI agents during systematic searches. This field tracks collection method, not source originality — use 'AI' even if the underlying source was WHO or JHU, as long as the row was discovered/extracted by an agent (not pre-loaded from the baseline files). Agent confirmation of a baseline-source entry also uses 'AI'.
 - **Required**: All data rows must have source_database classification
 - **Baseline Integration**: Countries now begin with dual-source baseline combining JHU historical data with WHO recent surveillance
 
@@ -582,7 +585,7 @@ reporting_date: End date + 1 day
 source_index: [metadata reference]
 source: [WHO surveillance confirmation or academic validation]
 confidence_weight: 0.8-1.0 (based on surveillance system quality)
-processing_notes: "Source confirms zero cholera transmission during [period] - validated absence via [surveillance system/WHO reporting]"
+processing_notes: "Source confirms zero cholera transmission during [period] - validated absence via [surveillance system/WHO reporting]. Surveillance system status during absence: [operational/disrupted/unknown]. Evidence type: [Documented_Absence from WHO report / Inferred_Absence from gap analysis / Surveillance_Gap with no positive evidence]."
 source_database: AI
 ```
 
@@ -669,7 +672,7 @@ Zero-transmission entries require the same validation rigor as outbreak data - a
 
 #### Stage 2: Data Quality and Epidemiological Validation
 **Epidemiological Range Validation**:
-- CFR between 0.1% and 15% (flag outliers for manual review)
+- CFR between 0.1% and 15% for most outbreaks (flag outliers for manual review). Note: humanitarian/conflict settings may legitimately exceed 5% (up to ~20%) due to treatment access collapse — do not auto-reject these; document context in processing_notes. CFRs derived from multi-year aggregated data (>2 years) should use confidence_weight ≤0.7 regardless of source quality.
 - Case numbers > 0 and < population of affected area
 - Outbreak duration between 1 week and 104 weeks (2 years)
 - Attack rates between 0.01% and 10% of population
@@ -791,23 +794,25 @@ Zero-transmission entries require the same validation rigor as outbreak data - a
 **REQUIREMENTS: These practices are mandatory. Non-compliance compromises MOSAIC modeling effectiveness.**
 
 
-## MANDATORY SEARCH STRATEGY AND PARALLEL PROCESSING
+## MANDATORY SEARCH STRATEGY AND BATCH PROCESSING
 
-**CRITICAL**: This section defines the authoritative search methodology. Failure to implement parallel execution will result in incomplete data collection and methodology non-compliance.
+**CRITICAL**: This section defines the authoritative search methodology. Searches must be organized into logical batches of 20-25 queries covering diverse sources and time periods. Stopping criteria are evaluated after each batch.
 
-### Parallel Processing Requirements
+**Execution model**: Queries within a batch execute sequentially (one WebSearch at a time); stopping criteria are evaluated between batches, not within them. The term "parallel" in earlier sections means organizing queries into coordinated batches, not simultaneous execution.
 
-#### Fundamental Parallel Processing Mandate
+### Batch Processing Requirements
 
-**PROHIBITED**: Sequential query execution
+#### Batch Organization Mandate
+
+**AVOID**: Unstructured, ad-hoc individual queries without batch organization
 ```python
-# NEVER DO THIS - Sequential Processing
-WebSearch("Angola cholera WHO 2024")     # Wait
-WebSearch("Angola cholera UNICEF 2024")  # Wait  
-WebSearch("Angola cholera MSF 2024")     # Wait
+# POOR PRACTICE - Unstructured queries
+WebSearch("Angola cholera WHO 2024")
+# stop, evaluate, decide next step
+WebSearch("Angola cholera UNICEF 2024")
 ```
 
-**MANDATORY**: Parallel batch execution
+**REQUIRED**: Organized batch execution
 ```python
 # REQUIRED - Parallel Batch Processing: batches of 20-25 queries
 [
@@ -950,7 +955,7 @@ Each agent applies this three-phase protocol with agent-specific focus:
 
 #### **Completeness Requirements**
 **ALL deliverables must include:**
-- Search report (created by Agent 7 only) with brief outcome summary
+- Search report (`search_report.txt`, created by Agent 7 only): concise executive summary (1-2 pages) covering total sources, observations added, gaps filled, data quality assessment, and remaining limitations. Detailed metrics (validation pass rates, source distribution, geographic/temporal coverage) documented as a structured appendix within the same file.
 - Metadata_ai.csv with enhanced indexing system (Index column + all required fields)
 - cholera_data_ai.csv in standardized JHU format with dual-reference system (source_index + source columns)
 - Quality assessment documentation
@@ -1187,7 +1192,7 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 - **Expert review** of all high-uncertainty data points while maintaining search momentum
 - **Performance Monitoring**: Real-time tracking of query rates and batch completion times
 
-This methodology validates that **systematic parallel execution** can complete comprehensive searches (1,000-1,320 queries) in 10-15 minutes while maintaining the highest quality standards for MOSAIC epidemiological modeling.
+This methodology enables systematic, batch-organized search coverage (up to 1,000-1,320 queries across Agents 1-6) while maintaining the highest quality standards for MOSAIC epidemiological modeling. Queries execute sequentially within each logical batch; stopping criteria are evaluated after each batch completes.
 
 ## MOSAIC FRAMEWORK COUNTRY PRIORITIZATION
 
@@ -1448,7 +1453,7 @@ Proceed with systematic search methodology. The workflow orchestrator handles th
 
 **Performance Monitoring**:
 - Track yield trends across all continuing agents
-- Document quality exception applications
+- Document stopping criteria achievement (batch number and yield that triggered stop)
 - Report stopping criteria achievement in search logs
 - Validate stopping decisions meet minimum coverage requirements
 
@@ -1483,32 +1488,39 @@ This enhanced protocol ensures systematic, thorough data collection while preven
 
 ### Automatic Context Management (MANDATORY)
 
-**REQUIREMENT: Proactive context compression when approaching limits**
+**REQUIREMENT: Proactive state serialization when approaching context limits**
 
-**WHEN TO COMPACT:**
+**WHEN TO SAVE STATE:**
 - After completing each agent (before starting next agent)
-- When search logs exceed 500 lines
-- When approaching context window limits during batch execution
+- After each search batch when context is growing large
 - Before major phase transitions in the workflow
 
-**HOW TO COMPACT:**
-Use the Task tool with "/compact" as the entire prompt to compress context while preserving:
-- Current agent progress and batch counts
-- Data observation yield calculations
-- Critical search findings and CSV updates
-- Next steps and stopping criteria status
+**HOW TO SAVE STATE:**
+Write a `workflow_state.json` to `./data/{ISO_CODE}/` capturing:
+- Current agent number and batch count
+- Data observation yield per batch (list)
+- Total rows added and sources discovered so far
+- Stopping criteria status (met/not met, reason)
+- Next action for the subsequent agent
 
-**EXAMPLE USAGE:**
-```python
-# After completing Agent 1, before starting Agent 2
-Task(description="Compact context", prompt="/compact")
+**EXAMPLE:**
+```json
+{
+  "agent": 1,
+  "iso_code": "ETH",
+  "batches_completed": 7,
+  "batch_yields": [0.25, 0.15, 0.08, 0.04, 0.03, 0.02, 0.01],
+  "stopping_criteria_met": true,
+  "reason_stopped": "3 consecutive batches below 5% yield",
+  "rows_added": 34,
+  "sources_discovered": 22
+}
 ```
 
 **MANDATORY TRIGGERS:**
-□ Agent completion (mark todo complete, then compact)
-□ Mid-agent if search logs become unwieldy
-□ Before quality audit phases
-□ When context impacts performance
+□ Agent completion — write state before handing off to next agent
+□ Mid-agent every 5 batches if context is large
+□ Before quality audit phase
 
 ### KNOWLEDGE TRANSFER REQUIREMENTS
 
