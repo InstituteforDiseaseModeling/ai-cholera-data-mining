@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
 MOSAIC AI Cholera Data Collection - Completion Checklist Auto-Updater
-Automatically scans ./data directory and updates completion_checklist.csv based on actual file presence and content.
+Scans ./data directory and updates completion_checklist.csv based on actual file presence.
 
-USAGE: Run from project root directory:
-    python py/update_completion_checklist.py
-
-This script:
-1. Scans all country directories in ./data/
-2. Analyzes file presence and content to determine completion status
-3. Updates dashboard/completion_checklist.csv with current state
-4. Preserves manual notes while updating automatic fields
+Implementation notes:
+1. Checks search_report.txt (not legacy quality_audit files)
+2. Agent log analysis detects actual completion vs initialization
+3. Check for correct workflow file names
+4. Validate that agents produced meaningful outputs
+5. Better priority determination based on gap analysis
 """
 
 import os
@@ -48,28 +46,41 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
             'auto_notes': f'Directory not found: {country_dir}'
         }
     
-    # Check for key files
+    # Check for key files (FIXED: check for correct file names)
     files_present = {
-        'cholera_data': (country_dir / 'cholera_data.csv').exists(),
-        'metadata': (country_dir / 'metadata.csv').exists(),
-        'search_protocol': (country_dir / f'search_protocol_{iso_code}.txt').exists(),
-        'agentic_workflow': (country_dir / f'agentic_workflow_{iso_code}.txt').exists(),
+        # Baseline files
+        'cholera_data_jhu': (country_dir / 'cholera_data_jhu.csv').exists(),
+        'cholera_data_who': (country_dir / 'cholera_data_who.csv').exists(),
+        # AI-enhanced files
+        'cholera_data_ai': (country_dir / 'cholera_data_ai.csv').exists(),
+        'metadata_ai': (country_dir / 'metadata_ai.csv').exists(),
+        # Workflow files (FIXED: check for correct names)
+        'workflow_orchestrator': (country_dir / f'workflow_orchestrator_{iso_code}.txt').exists(),
+        'prompt': (country_dir / f'prompt_{iso_code}.txt').exists(),
+        # Output files (FIXED: check for search_report.txt)
+        'search_report': (country_dir / 'search_report.txt').exists(),
     }
     
-    # Analyze agent log files
+    # Analyze agent log files with better detection
     agent_logs = list(country_dir.glob('search_log_agent_*.txt'))
-    agent_analysis = analyze_agent_logs(agent_logs)
-    num_agents = len(agent_logs)
+    agent_analysis = analyze_agent_logs_improved(agent_logs)
     
-    # Check for quality audit
-    quality_audit = (country_dir / 'quality_audit_report_agent_6.txt').exists()
+    # Count only truly completed agents
+    completed_agents = [num for num, status in agent_analysis.items() 
+                       if status in ['completed', 'completed_with_data']]
+    num_completed_agents = len(completed_agents)
     
-    # Analyze cholera_data.csv if it exists
-    cholera_data_info = analyze_cholera_data(country_dir / 'cholera_data.csv')
-    metadata_info = analyze_metadata(country_dir / 'metadata.csv')
+    # Analyze data files
+    cholera_data_info = analyze_cholera_data(country_dir / 'cholera_data_ai.csv')
+    metadata_info = analyze_metadata(country_dir / 'metadata_ai.csv')
     
-    # Determine completion status
-    status = determine_status(files_present, num_agents, quality_audit, cholera_data_info)
+    # FIXED: Better completion status determination
+    status = determine_status_improved(
+        files_present, 
+        agent_analysis, 
+        cholera_data_info,
+        metadata_info
+    )
     
     # Get latest modification time
     latest_time = get_latest_modification_time(country_dir)
@@ -77,18 +88,189 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
     # Calculate execution metrics
     execution_metrics = calculate_execution_metrics(agent_logs)
     
+    # FIXED: Better priority determination
+    priority = determine_priority_improved(
+        cholera_data_info, 
+        files_present,
+        status
+    )
+    
     return {
         'status': status,
         'datetime': latest_time,
         'sources': str(metadata_info.get('source_count', '')),
         'observations': str(cholera_data_info.get('row_count', '')),
         'date_range': cholera_data_info.get('date_range', ''),
-        'priority': determine_priority(cholera_data_info),
+        'priority': priority,
         'execution_time': str(execution_metrics.get('total_time', '')),
         'queries': str(execution_metrics.get('total_queries', '')),
         'yield_pct': f"{execution_metrics.get('yield_pct', ''):.1f}" if execution_metrics.get('yield_pct') else '',
-        'auto_notes': generate_auto_notes(files_present, num_agents, quality_audit, cholera_data_info, agent_analysis)
+        'auto_notes': generate_auto_notes_improved(
+            files_present, 
+            agent_analysis, 
+            cholera_data_info,
+            metadata_info
+        )
     }
+
+def analyze_agent_logs_improved(agent_logs: List[Path]) -> Dict:
+    """Improved agent log analysis with better completion detection"""
+    agent_status = {}
+    
+    for log_file in agent_logs:
+        # Extract agent number from filename
+        agent_match = re.search(r'agent_(\d+)', log_file.name)
+        if not agent_match:
+            continue
+            
+        agent_num = int(agent_match.group(1))
+        
+        try:
+            with open(log_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Analyze content to determine actual status
+            lines = content.strip().split('\n')
+            
+            # Check if this is just initialization
+            if len(lines) <= 10 and "INITIALIZATION" in content:
+                agent_status[agent_num] = 'initialized'
+            # Check for errors or failures
+            elif any(error_term in content.upper() for error_term in 
+                    ['ERROR', 'FAILED', 'EXCEPTION', 'TRACEBACK']):
+                agent_status[agent_num] = 'error'
+            # Check if agent actually found and added data
+            elif 'cholera_data_ai.csv' in content and any(term in content for term in 
+                    ['added', 'new row', 'CSV Updates:', 'observations added']):
+                agent_status[agent_num] = 'completed_with_data'
+            # Check if agent completed but found no data
+            elif any(term in content for term in 
+                    ['no data found', 'zero observations', 'no new data']):
+                agent_status[agent_num] = 'completed_no_data'
+            # Default to completed if log has substantial content
+            elif len(lines) > 50:
+                agent_status[agent_num] = 'completed'
+            else:
+                agent_status[agent_num] = 'partial'
+                
+        except Exception as e:
+            print(f"Warning: Could not analyze agent log {log_file}: {e}")
+            agent_status[agent_num] = 'unknown'
+    
+    return agent_status
+
+def determine_status_improved(files_present: Dict, agent_analysis: Dict, 
+                            cholera_data_info: Dict, metadata_info: Dict) -> str:
+    """Improved status determination with better accuracy"""
+    
+    # Check for ideal completion: search_report.txt exists with AI data
+    if (files_present['search_report'] and 
+        files_present['cholera_data_ai'] and 
+        files_present['metadata_ai'] and
+        cholera_data_info.get('row_count', 0) > 0):
+        return 'COMPLETED'
+    
+    # Check if all 6 agents completed successfully with data
+    completed_agents = [num for num, status in agent_analysis.items() 
+                       if status in ['completed', 'completed_with_data']]
+    
+    if (len(completed_agents) >= 6 and 
+        files_present['cholera_data_ai'] and 
+        files_present['metadata_ai'] and
+        cholera_data_info.get('row_count', 0) > 0):
+        return 'COMPLETED'
+    
+    # Check if work is in progress
+    if (any(agent_analysis.values()) or 
+        files_present['cholera_data_ai'] or 
+        files_present['metadata_ai']):
+        # Distinguish between active work and stalled work
+        if any(status in ['error', 'partial'] for status in agent_analysis.values()):
+            return 'PENDING_ISSUES'
+        else:
+            return 'PENDING'
+    
+    # Check if setup exists but no work started
+    if files_present['workflow_orchestrator'] or files_present['prompt']:
+        return 'SETUP_READY'
+    
+    return 'NOT_STARTED'
+
+def determine_priority_improved(cholera_data_info: Dict, files_present: Dict, 
+                              status: str) -> str:
+    """Improved priority determination considering multiple factors"""
+    
+    # If completed, priority is based on data quality/quantity
+    if status == 'COMPLETED':
+        row_count = cholera_data_info.get('row_count', 0)
+        if row_count < 20:
+            return 'MEDIUM'  # Completed but limited data
+        else:
+            return 'LOW'     # Well covered
+    
+    # If pending with issues, high priority
+    elif status == 'PENDING_ISSUES':
+        return 'HIGH'
+    
+    # If work started but not completed
+    elif status == 'PENDING':
+        return 'MEDIUM'
+    
+    # If setup ready but not started
+    elif status == 'SETUP_READY':
+        return 'HIGH'
+    
+    # Not started at all
+    else:
+        return 'CRITICAL'
+
+def generate_auto_notes_improved(files_present: Dict, agent_analysis: Dict,
+                               cholera_data_info: Dict, metadata_info: Dict) -> str:
+    """Improved note generation with more accurate status descriptions"""
+    notes = []
+    
+    # Report on agent completion status
+    if files_present['search_report']:
+        notes.append("Search report completed")
+    
+    # Analyze agent statuses
+    completed_with_data = [n for n, s in agent_analysis.items() if s == 'completed_with_data']
+    completed_no_data = [n for n, s in agent_analysis.items() if s == 'completed_no_data']
+    errors = [n for n, s in agent_analysis.items() if s == 'error']
+    partial = [n for n, s in agent_analysis.items() if s == 'partial']
+    
+    if len(agent_analysis) >= 6:
+        if errors:
+            notes.append(f"Agents with errors: {','.join(map(str, errors))}")
+        elif partial:
+            notes.append(f"Agents incomplete: {','.join(map(str, partial))}")
+        else:
+            notes.append("All 6 agents completed")
+    elif agent_analysis:
+        max_agent = max(agent_analysis.keys())
+        status = agent_analysis[max_agent]
+        if status == 'completed_with_data':
+            notes.append(f"Agent {max_agent} completed with data")
+        elif status == 'completed_no_data':
+            notes.append(f"Agent {max_agent} completed (no new data)")
+        elif status == 'error':
+            notes.append(f"Agent {max_agent} encountered errors")
+        elif status == 'partial':
+            notes.append(f"Agent {max_agent} partially complete")
+        else:
+            notes.append(f"Agent {max_agent} status: {status}")
+    
+    # Report on data collected
+    if files_present['cholera_data_ai'] and cholera_data_info.get('row_count', 0) > 0:
+        notes.append(f"{cholera_data_info['row_count']} AI observations")
+        if metadata_info.get('source_count', 0) > 0:
+            notes.append(f"{metadata_info['source_count']} sources")
+    
+    # Report on setup status
+    if not files_present['workflow_orchestrator']:
+        notes.append("Workflow not initialized")
+    
+    return "; ".join(notes) if notes else "No activity detected"
 
 def analyze_cholera_data(csv_file: Path) -> Dict:
     """Analyze cholera_data.csv for metrics"""
@@ -137,39 +319,6 @@ def analyze_cholera_data(csv_file: Path) -> Dict:
         print(f"Warning: Could not analyze {csv_file}: {e}")
         return {'row_count': 0, 'date_range': '', 'earliest_date': None, 'latest_date': None}
 
-def analyze_agent_logs(agent_logs: List[Path]) -> Dict:
-    """Analyze agent log files to determine their status"""
-    agent_status = {}
-    
-    for log_file in agent_logs:
-        # Extract agent number from filename
-        agent_match = re.search(r'agent_(\d+)', log_file.name)
-        if not agent_match:
-            continue
-            
-        agent_num = int(agent_match.group(1))
-        
-        try:
-            with open(log_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
-            # Determine if agent is initialized vs completed
-            if "=== AGENT 1 INITIALIZATION ===" in content and "Agent 1 Status: INITIALIZED" in content:
-                # This is just an initialization - agent hasn't actually started work yet
-                if len(content.strip().split('\n')) <= 10:  # Very short file = just initialization
-                    agent_status[agent_num] = 'initialized'
-                else:
-                    agent_status[agent_num] = 'completed'
-            else:
-                # Regular agent log with actual work
-                agent_status[agent_num] = 'completed'
-                
-        except Exception as e:
-            print(f"Warning: Could not analyze agent log {log_file}: {e}")
-            agent_status[agent_num] = 'unknown'
-    
-    return agent_status
-
 def analyze_metadata(csv_file: Path) -> Dict:
     """Analyze metadata.csv for source count"""
     if not csv_file.exists():
@@ -186,51 +335,18 @@ def analyze_metadata(csv_file: Path) -> Dict:
         print(f"Warning: Could not analyze {csv_file}: {e}")
         return {'source_count': 0}
 
-def determine_status(files_present: Dict, num_agents: int, quality_audit: bool, cholera_data_info: Dict) -> str:
-    """Determine completion status based on file analysis"""
-    
-    # Check if workflow has been completed
-    # Option 1: Agent 6 quality audit exists (ideal completion)
-    if quality_audit and files_present['cholera_data'] and files_present['metadata']:
-        return 'COMPLETED'
-    
-    # Option 2: All 6 agents completed with data files (workflow complete without formal audit)
-    if (num_agents >= 6 and files_present['cholera_data'] and files_present['metadata'] 
-        and cholera_data_info.get('row_count', 0) > 0):
-        return 'COMPLETED'
-    
-    # Check if work is in progress (some agent logs exist or data files present)
-    if num_agents > 0 or files_present['cholera_data']:
-        return 'PENDING'
-    
-    # Check if setup files exist but no work started
-    if files_present['search_protocol'] or files_present['agentic_workflow']:
-        return 'NOT_STARTED'
-    
-    return 'NOT_STARTED'
-
-def determine_priority(cholera_data_info: Dict) -> str:
-    """Determine priority based on data coverage"""
-    row_count = cholera_data_info.get('row_count', 0)
-    
-    if row_count == 0:
-        return ''
-    elif row_count < 15:
-        return 'HIGH'  # Limited data suggests gaps
-    elif row_count < 30:
-        return 'MEDIUM'
-    else:
-        return 'LOW'  # Good coverage
-
 def get_latest_modification_time(country_dir: Path) -> str:
     """Get the latest modification time of key files in the directory"""
-    key_files = ['cholera_data.csv', 'metadata.csv', 'quality_audit_report_agent_6.txt']
-    key_files.extend([f'search_log_agent_{i}.txt' for i in range(1, 7)])
+    key_files = [
+        'cholera_data_ai.csv', 'metadata_ai.csv', 'search_report.txt',
+        'search_log_agent_1.txt', 'search_log_agent_2.txt', 'search_log_agent_3.txt',
+        'search_log_agent_4.txt', 'search_log_agent_5.txt', 'search_log_agent_6.txt'
+    ]
     
     latest_time = None
     
-    for file_pattern in key_files:
-        file_path = country_dir / file_pattern
+    for file_name in key_files:
+        file_path = country_dir / file_name
         if file_path.exists():
             mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
             if latest_time is None or mtime > latest_time:
@@ -256,8 +372,8 @@ def calculate_execution_metrics(agent_logs: List[Path]) -> Dict:
             queries_in_log = len(re.findall(r'(WebSearch|WebFetch)', content, re.IGNORECASE))
             total_queries += queries_in_log
             
-            # Look for data observations added (lines mentioning "cholera_data.csv" additions)
-            data_adds = len(re.findall(r'(added|new.*row|cholera_data\.csv)', content, re.IGNORECASE))
+            # Look for data observations added
+            data_adds = len(re.findall(r'(added.*row|CSV Updates:.*\d+|observations added)', content, re.IGNORECASE))
             data_observations += data_adds
             
         except Exception as e:
@@ -276,34 +392,6 @@ def calculate_execution_metrics(agent_logs: List[Path]) -> Dict:
         'yield_pct': yield_pct,
         'data_observations': data_observations
     }
-
-def generate_auto_notes(files_present: Dict, num_agents: int, quality_audit: bool, cholera_data_info: Dict, agent_analysis: Dict) -> str:
-    """Generate automatic notes describing current state"""
-    notes = []
-    
-    if quality_audit:
-        notes.append("Quality audit completed")
-    elif num_agents >= 6:
-        notes.append("All agents executed")
-    elif num_agents > 0:
-        # Check if we have any completed agents or just initialized
-        completed_agents = [num for num, status in agent_analysis.items() if status == 'completed']
-        initialized_agents = [num for num, status in agent_analysis.items() if status == 'initialized']
-        
-        if completed_agents:
-            max_completed = max(completed_agents)
-            notes.append(f"Agent {max_completed} completed")
-        elif initialized_agents:
-            # Only initialized agents, no completed work yet
-            notes.append("Agent 1 initialized - starting work")
-    
-    if files_present['cholera_data'] and cholera_data_info.get('row_count', 0) > 0:
-        notes.append(f"{cholera_data_info['row_count']} data observations")
-    
-    if not files_present['search_protocol']:
-        notes.append("Setup incomplete")
-    
-    return "; ".join(notes) if notes else "No activity detected"
 
 def load_existing_csv(csv_file: Path) -> Dict[str, Dict]:
     """Load existing CSV file and preserve manual notes"""
@@ -373,7 +461,7 @@ def update_dashboard_html(base_path: Path, updated_data: List[Dict]):
 def update_completion_checklist(base_path: Path):
     """Main function to update the completion checklist"""
     print("=" * 80)
-    print("MOSAIC AI CHOLERA DATA COLLECTION - COMPLETION CHECKLIST AUTO-UPDATER")
+    print("MOSAIC AI CHOLERA DATA COLLECTION - COMPLETION CHECKLIST AUTO-UPDATER (FIXED)")
     print("=" * 80)
     
     # Load country mapping
@@ -410,19 +498,14 @@ def update_completion_checklist(base_path: Path):
         existing_row = existing_data.get(iso_code, {})
         manual_notes = existing_row.get('notes', '').strip()
         
-        # Combine auto notes with manual notes (avoid duplication)
+        # Combine auto notes with manual notes
         auto_notes = current_state['auto_notes']
-        if manual_notes and not manual_notes.startswith(auto_notes):
-            # Only add manual notes if they're different and not already included
-            if '| Manual:' in manual_notes:
-                # Extract just the manual part to avoid nested Manual: prefixes
-                manual_part = manual_notes.split('| Manual:')[-1].strip()
-                if manual_part != auto_notes:
-                    combined_notes = f"{auto_notes} | Manual: {manual_part}"
-                else:
-                    combined_notes = auto_notes
-            else:
-                combined_notes = f"{auto_notes} | Manual: {manual_notes}"
+        if manual_notes and '| Manual:' in manual_notes:
+            # Extract just the manual part
+            manual_part = manual_notes.split('| Manual:')[-1].strip()
+            combined_notes = f"{auto_notes} | Manual: {manual_part}"
+        elif manual_notes and manual_notes != auto_notes:
+            combined_notes = f"{auto_notes} | Manual: {manual_notes}"
         else:
             combined_notes = auto_notes
         
@@ -457,27 +540,33 @@ def update_completion_checklist(base_path: Path):
     # Update dashboard HTML with embedded data
     update_dashboard_html(base_path, updated_data)
     
-    # Generate summary statistics
-    completed = sum(1 for row in updated_data if row['status'] == 'COMPLETED')
-    pending = sum(1 for row in updated_data if row['status'] == 'PENDING')
-    not_started = sum(1 for row in updated_data if row['status'] == 'NOT_STARTED')
+    # Generate summary statistics with new statuses
+    status_counts = {}
+    for row in updated_data:
+        status = row['status']
+        status_counts[status] = status_counts.get(status, 0) + 1
     
     print("\n" + "=" * 80)
     print("✅ COMPLETION CHECKLIST UPDATED SUCCESSFULLY!")
     print("=" * 80)
     print(f"📁 Updated: {csv_file}")
     print(f"📊 Total Countries: {len(updated_data)}")
-    print(f"✅ Completed: {completed}")
-    print(f"⏳ Pending: {pending}")
-    print(f"⭕ Not Started: {not_started}")
-    print(f"📈 Progress: {completed/len(updated_data)*100:.1f}% complete")
     
-    print("\n🔄 DASHBOARD WILL AUTO-REFRESH:")
-    print("- Real-time status based on file analysis")
-    print("- Automatic metrics calculation") 
-    print("- Preserved manual notes")
-    print("- Dashboard HTML auto-updated with latest data")
-    print("- No manual intervention required")
+    # Print status breakdown
+    for status, count in sorted(status_counts.items()):
+        print(f"   {status}: {count}")
+    
+    completed = status_counts.get('COMPLETED', 0)
+    progress = completed / len(updated_data) * 100 if updated_data else 0
+    print(f"📈 Progress: {progress:.1f}% complete")
+    
+    print("\n🔄 IMPROVEMENTS IN THIS VERSION:")
+    print("- Checks for search_report.txt (Agent 6 output)")
+    print("- Better agent log analysis (detects errors, partial completion)")
+    print("- Correct workflow file names (workflow_orchestrator_*.txt)")
+    print("- New status: PENDING_ISSUES for workflows with errors")
+    print("- New status: SETUP_READY when files prepared but work not started")
+    print("- Priority based on actual completion and data quality")
     print("=" * 80)
 
 def main():
