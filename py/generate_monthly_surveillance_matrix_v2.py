@@ -149,38 +149,37 @@ def load_reference_surveillance_data(base_path: Path) -> Dict[str, Set[Tuple[int
     return surveillance_months
 
 def get_ai_enhanced_months(base_path: Path, iso_code: str) -> Set[Tuple[int, int]]:
-    """Get AI-enhanced data months for a specific country"""
-    
-    cholera_file = base_path / "data" / iso_code / "cholera_data.csv"
+    """Get AI-enhanced data months for a specific country from all three source files."""
     ai_months = set()
-    
-    if not cholera_file.exists():
-        return ai_months
-    
-    try:
-        with open(cholera_file, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                tl = row.get('TL', '').strip()
-                tr = row.get('TR', '').strip()
-                
-                if tl:
-                    try:
-                        start_date = datetime.strptime(tl, '%Y-%m-%d')
-                        end_date = datetime.strptime(tr, '%Y-%m-%d') if tr else start_date
-                        
-                        # Generate all months in the range
-                        current_date = start_date.replace(day=1)
-                        while current_date <= end_date:
-                            ai_months.add((current_date.year, current_date.month))
-                            current_date += relativedelta(months=1)
-                            
-                    except ValueError:
-                        print(f"Warning: Could not parse dates '{tl}' to '{tr}' for {iso_code}")
-    
-    except Exception as e:
-        print(f"Warning: Could not read {cholera_file}: {e}")
-    
+    country_dir = base_path / "data" / iso_code
+    source_files = [
+        country_dir / "cholera_data_jhu.csv",
+        country_dir / "cholera_data_who.csv",
+        country_dir / "cholera_data_ai.csv",
+    ]
+
+    for cholera_file in source_files:
+        if not cholera_file.exists():
+            continue
+        try:
+            with open(cholera_file, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    tl = row.get('TL', '').strip()
+                    tr = row.get('TR', '').strip()
+                    if tl:
+                        try:
+                            start_date = datetime.strptime(tl, '%Y-%m-%d')
+                            end_date = datetime.strptime(tr, '%Y-%m-%d') if tr else start_date
+                            current_date = start_date.replace(day=1)
+                            while current_date <= end_date:
+                                ai_months.add((current_date.year, current_date.month))
+                                current_date += relativedelta(months=1)
+                        except ValueError:
+                            print(f"Warning: Could not parse dates '{tl}' to '{tr}' for {iso_code}")
+        except Exception as e:
+            print(f"Warning: Could not read {cholera_file}: {e}")
+
     return ai_months
 
 def generate_monthly_matrix(base_path: Path) -> List[Dict]:
