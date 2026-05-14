@@ -31,21 +31,22 @@ DATA_PATH = "./data"
 COUNTRY_MAPPING_PATH = "./reference/country_mapping.json"
 
 # WHO country names to ISO code mapping (MOSAIC framework countries only)
+# Keys must match the exact uppercase country names in cholera_country_weekly.csv.
+# Ghana, Kenya, Togo, Uganda removed — not present in WHO source data.
+# Congo (COG) and Rwanda (RWA) added — present in WHO source data and MOSAIC framework.
 WHO_TO_ISO_MAPPING = {
     "ANGOLA": "AGO",
-    "BURUNDI": "BDI", 
+    "BURUNDI": "BDI",
+    "CONGO": "COG",  # Republic of the Congo (WHO uses 'CONGO', not 'REPUBLIC OF THE CONGO')
     "DEMOCRATIC REPUBLIC OF THE CONGO": "COD",
     "ETHIOPIA": "ETH",
-    "GHANA": "GHA",
-    "KENYA": "KEN",
     "MALAWI": "MWI",
     "MOZAMBIQUE": "MOZ",
     "NAMIBIA": "NAM",
     "NIGERIA": "NGA",
+    "RWANDA": "RWA",
     "SOMALIA": "SOM",
     "SOUTH SUDAN": "SSD",
-    "TOGO": "TGO",
-    "UGANDA": "UGA",
     "UNITED REPUBLIC OF TANZANIA": "TZA",
     "ZAMBIA": "ZMB",
     "ZIMBABWE": "ZWE"
@@ -280,7 +281,7 @@ def main():
     mosaic_countries = {iso: info for iso, info in country_mapping.items() 
                        if info.get('mosaic_framework', False)}
     
-    logger.info(f"🎯 Processing {len(WHO_TO_ISO_MAPPING)} WHO countries that match MOSAIC framework")
+    logger.info(f"🎯 Processing {len(WHO_TO_ISO_MAPPING)} MOSAIC countries present in WHO source data")
     logger.info("")
     
     # Track conversion statistics
@@ -336,7 +337,7 @@ def main():
     logger.info("• Recent surveillance data (2023-2025) from official WHO dashboard")
     logger.info("• Weekly granularity for enhanced temporal resolution")
     logger.info("• High reliability Level 1 sources with confidence weight 0.9")
-    logger.info("• Comprehensive coverage across 17 MOSAIC framework countries")
+    logger.info(f"• Coverage across {len(WHO_TO_ISO_MAPPING)} MOSAIC framework countries present in WHO data")
     logger.info("• Seamless integration with existing JHU baseline data")
     logger.info("")
     logger.info("✅ WHO dashboard integration completed successfully")

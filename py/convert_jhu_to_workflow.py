@@ -39,6 +39,7 @@ COUNTRY_ISO_MAPPING = {
     'Chad': 'TCD',
     'Cote d\'Ivoire': 'CIV',  
     'Democratic Republic of the Congo': 'COD',
+    'Republic of the Congo': 'COG',
     'Equatorial Guinea': 'GNQ',
     'Eritrea': 'ERI',
     'Ethiopia': 'ETH',
@@ -49,6 +50,7 @@ COUNTRY_ISO_MAPPING = {
     'Guinea-Bissau': 'GNB',
     'Kenya': 'KEN',
     'Liberia': 'LBR',
+    'Malawi': 'MWI',
     'Mali': 'MLI',
     'Mauritania': 'MRT',
     'Mozambique': 'MOZ',
@@ -61,7 +63,7 @@ COUNTRY_ISO_MAPPING = {
     'Somalia': 'SOM',
     'South Africa': 'ZAF',
     'South Sudan': 'SSD',
-    'Eswatini': 'SWZ',  # Note: JHU might use 'Swaziland'
+    'Swaziland': 'SWZ',  # JHU uses 'Swaziland'; official name is now Eswatini
     'Tanzania': 'TZA',
     'Togo': 'TGO',
     'Uganda': 'UGA',
