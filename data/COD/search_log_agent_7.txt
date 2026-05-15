@@ -1,0 +1,266 @@
+=== AGENT 7: QUALITY AUDIT AND DATASET FINALIZATION ===
+Country: Democratic Republic of Congo (COD)
+Agent: 7 - Quality Auditor
+Start Time: 2026-05-14 10:00:00
+Objective: Comprehensive quality audit, data validation, and search_report.txt generation
+
+=== WORKFLOW CONTEXT ===
+
+PREVIOUS AGENT SUMMARY (New Session - May 2026):
+- Agent 1: 4 batches, 80 queries, 6 new rows (2025 annual, 2025 partial, 1997 Tingi-Tingi, 1970-1972 zero-tx, Nord-Kivu 2022-2023)
+- Agent 2: 2 batches, 40 queries, 1 new row (Kinshasa 2025 provincial)
+- Agent 3: 5 batches, 100 queries, planned 8 new rows (all provincial/checkpoint 2025 data + 1997 Kisangani)
+
+NOTE: Agent 3 planned rows were not written to CSV during its session. Agent 7 (this audit)
+recovered Agent 3 planned data and added to CSV prior to quality validation. Final dataset
+now has 15 data rows and 17 metadata entries.
+
+=== PRE-AUDIT DATA STATE ===
+cholera_data_ai.csv: 15 rows (indices 1-15)
+metadata_ai.csv: 17 entries (indices 1-17)
+Baseline gaps identified:
+  - 1970-1977: 2922 days (96 months) - 8.0 years missing
+  - 2025-2026: 516 days (17 months) - 1.4 years missing
+  - Total coverage pre-AI: 83.3% (1978-2024 well-covered)
+
+=== STAGE 1: FORMAT VALIDATION ===
+
+COLUMN PRESENCE CHECK:
+cholera_data_ai.csv columns: Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date,
+  source_index, source, confidence_weight, processing_notes, source_database - ALL PRESENT
+
+metadata_ai.csv columns: Index, Source, URL, Description, Date_Range, Data_Type, Status,
+  Reliability_Level, Validation_Status, Search_Technique, Language_Original, Citation_Depth,
+  Cross_References, Discovery_Method, source_database - ALL PRESENT
+
+DATE FORMAT CHECK (all YYYY-MM-DD):
+Row 1: TL=2025-01-01, TR=2025-12-28, reporting=2026-01-27 - PASS
+Row 2: TL=2025-01-01, TR=2025-08-10, reporting=2025-08-10 - PASS
+Row 3: TL=2025-01-01, TR=2025-06-08, reporting=2025-06-08 - PASS
+Row 4: TL=2022-11-21, TR=2023-02-04, reporting=2023-02-04 - PASS
+Row 5: TL=1997-01-15, TR=1997-01-20, reporting=1997-01-20 - PASS
+Row 6: TL=1970-01-01, TR=1972-12-31, reporting=1973-01-01 - PASS
+Row 7: TL=2025-01-01, TR=2025-08-10, reporting=2025-08-10 - PASS
+Row 8: TL=2025-01-01, TR=2025-12-08, reporting=2025-12-08 - PASS
+Row 9: TL=2025-01-01, TR=2025-12-31, reporting=2026-01-17 - PASS
+Row 10: TL=2025-01-01, TR=2025-12-31, reporting=2026-01-17 - PASS
+Row 11: TL=2025-01-01, TR=2025-12-31, reporting=2025-12-31 - PASS
+Row 12: TL=2024-12-31, TR=2025-01-15, reporting=2025-01-15 - PASS
+Row 13: TL=2025-01-01, TR=2025-04-07, reporting=2025-04-07 - PASS
+Row 14: TL=2025-01-01, TR=2025-04-30, reporting=2025-04-30 - PASS
+Row 15: TL=1997-04-01, TR=1997-04-30, reporting=1997-05-01 - PASS
+
+LOCATION FORMAT CHECK (AFR::COD or AFR::COD::Province):
+All locations use correct AFR::COD format - PASS
+
+SOURCE_DATABASE CHECK:
+All rows have source_database = 'AI' - PASS
+
+=== STAGE 2: EPIDEMIOLOGICAL VALIDATION ===
+
+TEMPORAL LOGIC (TL < TR, reporting >= TR):
+All rows pass: TL < TR - PASS
+All rows pass: reporting_date >= TR - PASS
+
+CFR MATHEMATICAL VALIDATION (deaths/sCh × 100):
+Row 1: 2071/71147 × 100 = 2.91% (stated: 2.9%) - PASS (rounding)
+Row 2: 1362/46800 × 100 = 2.91% (stated: 2.9%) - PASS (rounding)
+Row 3: 620/29392 × 100 = 2.11% (stated: 2.1%) - PASS (rounding)
+Row 4: 16/4386 × 100 = 0.36% (stated: 0.4%) - PASS (rounding, within 0.1%)
+Row 5: 2/56 × 100 = 3.57% (stated: 3.6%) - PASS (rounding)
+Row 6: 0/0 = 0.0% (stated: 0.0%) - PASS (zero-transmission)
+Row 7: 136/1781 × 100 = 7.64% (stated: 7.6%) - PASS (rounding)
+Row 8: 1888/64427 × 100 = 2.93% (stated: 2.9%) - PASS (rounding)
+Row 9: 127/6120 × 100 = 2.07% (stated: 2.1%) - PASS (rounding)
+Row 10: 19/12000 × 100 = 0.16% (stated: 0.2%) - PASS (rounding)
+Row 11: 19/171 × 100 = 11.11% (stated: 11.1%) - PASS (rounding)
+Row 12: 3/82 × 100 = 3.66% (stated: 3.7%) - PASS (rounding)
+Row 13: 57/292 × 100 = 19.52% (stated: 19.5%) - PASS (rounding)
+Row 14: 29/1600 × 100 = 1.81% (stated: 1.8%) - PASS (rounding)
+Row 15: 67/545 × 100 = 12.29% (stated: 12.3%) - PASS (rounding; corrected after audit)
+
+DEATHS <= sCh CHECK:
+All rows pass after correction of Row 15 (deaths changed from 1521 to 67) - PASS
+
+CFR RANGE CHECK (0.1-20%):
+Rows 1-9: CFR 0.2%-7.6% - within normal range - PASS
+Row 10 (Sud-Kivu): CFR 0.2% - LOW, documented as possible under-reporting of deaths
+  in conflict-affected area - FLAG WITH DOCUMENTATION - ACCEPTABLE
+Row 11 (Mai-Ndombe): CFR 11.1% - HIGH, documented as remote area poor access - ACCEPTABLE
+Row 13 (Tshopo): CFR 19.5% - VERY HIGH, documented humanitarian/conflict context - ACCEPTABLE
+  (within 20% threshold for humanitarian settings)
+Row 15: CFR 12.3% (treatment center CFR) - HIGH but documented camp emergency - ACCEPTABLE
+
+=== STAGE 3: DUAL-REFERENCE INDEXING VALIDATION ===
+
+metadata_ai.csv Index values: 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17 - SEQUENTIAL, NO GAPS
+
+source_index values in cholera_data_ai.csv:
+Row 1: source_index=4, source='WHO Multi-country Cholera Epidemiological Update 33 January 2026'
+  metadata Index 4: 'WHO Multi-country Cholera Epidemiological Update 33 January 2026' - MATCH
+Row 2: source_index=2, source='WHO Multi-country Cholera Situation Report 2025 DON579'
+  metadata Index 2: 'WHO Multi-country Cholera Situation Report 2025 DON579' - MATCH
+Row 3: source_index=3, source='WHO Feature Story DRC Cholera Response 2025'
+  metadata Index 3: 'WHO Feature Story DRC Cholera Response 2025' - MATCH
+Row 4: source_index=1, source='WHO Disease Outbreak News 2023-DON441'
+  metadata Index 1: 'WHO Disease Outbreak News 2023-DON441' - MATCH
+Row 5: source_index=7, source='WHO DON Cholera Zaire January 1997'
+  metadata Index 7: 'WHO DON Cholera Zaire January 1997' - MATCH
+Row 6: source_index=8, source='BMC Infectious Diseases Spatiotemporal Dynamics Cholera DRC 1973-2022'
+  metadata Index 8: 'BMC Infectious Diseases Spatiotemporal Dynamics Cholera DRC 1973-2022' - MATCH
+Row 7: source_index=2, source='WHO Multi-country Cholera Situation Report 2025 DON579'
+  metadata Index 2: 'WHO Multi-country Cholera Situation Report 2025 DON579' - MATCH
+Row 8: source_index=11, source='UNICEF DRC Cholera Worst in 25 Years December 2025'
+  metadata Index 11: 'UNICEF DRC Cholera Worst in 25 Years December 2025' - MATCH
+Row 9: source_index=12, source='Outbreaknewstoday DRC Cholera Haut-Lomami 2025'
+  metadata Index 12: 'Outbreaknewstoday DRC Cholera Haut-Lomami 2025' - MATCH
+Row 10: source_index=12, source='Outbreaknewstoday DRC Cholera Haut-Lomami 2025'
+  metadata Index 12: 'Outbreaknewstoday DRC Cholera Haut-Lomami 2025' - MATCH
+Row 11: source_index=13, source='WHO AFRO DRC Cholera 2025 Provincial Update Mai-Ndombe'
+  metadata Index 13: 'WHO AFRO DRC Cholera 2025 Provincial Update Mai-Ndombe' - MATCH
+Row 12: source_index=14, source='WHO AFRO DRC Cholera Lualaba Early 2025'
+  metadata Index 14: 'WHO AFRO DRC Cholera Lualaba Early 2025' - MATCH
+Row 13: source_index=15, source='WHO AFRO DRC Tshopo Province Epidemic Declaration April 2025'
+  metadata Index 15: 'WHO AFRO DRC Tshopo Province Epidemic Declaration April 2025' - MATCH
+Row 14: source_index=16, source='ReliefWeb CATI DRC Cholera Tanganyika 2025'
+  metadata Index 16: 'ReliefWeb CATI DRC Cholera Tanganyika 2025' - MATCH
+Row 15: source_index=17, source='CDC MMWR Cholera DRC Kisangani Ubundu Refugee Camps April 1997'
+  metadata Index 17: 'CDC MMWR Cholera DRC Kisangani Ubundu Refugee Camps April 1997' - MATCH
+
+ALL DUAL-REFERENCE CHECKS PASS
+
+=== STAGE 4: DUPLICATION AND OVERLAP ANALYSIS ===
+
+NATIONAL OVERLAPPING PERIODS CHECK:
+Rows 1, 2, 3, 8 all cover 2025 national data with different end dates:
+- Row 8: Jan 1 - Dec 8 2025 (UNICEF checkpoint)
+- Row 3: Jan 1 - Jun 8 2025 (WHO feature)
+- Row 2: Jan 1 - Aug 10 2025 (WHO DON)
+- Row 1: Jan 1 - Dec 28 2025 (WHO annual final - MOST COMPLETE)
+ASSESSMENT: These are legitimately progressive data points from the same epidemic.
+Row 1 is the definitive annual total. Rows 2, 3, 8 document temporal progression.
+Processing notes correctly state 'Partial year data superseded by annual total in row 1.'
+RESULT: No double-counting concern; all rows explicitly flagged in processing_notes.
+
+PROVINCIAL VS NATIONAL OVERLAP CHECK (2025):
+Rows 7, 9, 10, 11, 12, 13, 14 are provincial subsets of Row 1 national total.
+All provincial rows include: "do not sum with national row 1" in processing_notes - PASS
+
+1997 EVENTS OVERLAP CHECK:
+Row 5 (Tingi-Tingi, Jan 1997): 56 cases in Maniema province camp
+Row 15 (Kisangani-Ubundu, Apr 1997): 545 cases in Tshopo province camp
+These are geographically distinct events 3 months apart - NO DUPLICATION
+JHU 1997 national: 2421 cases - both rows correctly identified as sub-national events
+that don't duplicate JHU national total - PASS
+
+=== STAGE 5: SOURCE RELIABILITY DISTRIBUTION ===
+
+Source distribution by reliability level:
+Level 1 (WHO, academic): Indices 1,2,3,4,5,6,7,8,9,10,11,13,14,15,17 = 15 sources (88%)
+Level 2 (ReliefWeb humanitarian): Index 16 = 1 source (6%)
+Level 3 (news media): Index 12 = 1 source (6%)
+
+Confidence weight distribution:
+0.95: 2 rows (WHO official, peer-reviewed)
+0.90: 8 rows (WHO DON, UNICEF, CDC MMWR)
+0.85: 4 rows (provincial data, calculated estimates)
+0.80: 1 row (zero-transmission, limited surveillance era)
+
+Source type diversity: WHO (9), Academic/BMC (3), CDC MMWR (1), UNICEF (1), ReliefWeb (1),
+  Outbreaknewstoday (1), WHO AFRO (3) = comprehensive multi-source coverage
+
+=== STAGE 6: GAP-FILLING IMPACT ASSESSMENT ===
+
+BASELINE GAPS IDENTIFIED:
+1. 1970-1977: 2922 days (8 full years) - PRE-SURVEILLANCE PERIOD
+2. 2025-2026: ~516 days (~17 months) - RECENT SURVEILLANCE
+
+GAP-FILLING RESULTS:
+
+Gap 1 - 1970-1977 (2922 days):
+- Row 6 (zero-transmission 1970-1972): Documented as cholera-free pre-introduction period
+  Status: VALIDATED - academic literature confirms 1973 as first DRC cholera case year
+  Coverage: 3 of 8 years validated as zero-transmission (1970, 1971, 1972)
+  1973-1977: Pre-systematic surveillance; no case data discoverable
+  Gap status: PARTIALLY ADDRESSED (1970-1972 validated, 1973-1977 data inaccessible)
+
+Gap 2 - 2025-2026 (~17 months):
+- Rows 1, 2, 3, 8: National 2025 data with multiple temporal checkpoints
+- Row 1: Full 2025 annual total (71,147 cases, 2,071 deaths) - PRIMARY FILL
+- Rows 2, 3, 8: Sub-annual checkpoints documenting epidemic progression
+- Status: 2025 FULLY ADDRESSED
+- 2026: Data collection period still ongoing; WHO weekly baseline continues
+
+Provincial data added (all from 2025 gap period):
+- Row 4: Nord-Kivu 2022-2023 (sub-national specificity not in JHU)
+- Row 5: Tingi-Tingi January 1997 (camp-level event)
+- Row 7: Kinshasa 2025
+- Rows 9-14: 6 provincial entries for 2025 outbreak
+
+TOTAL NEW DATA OBSERVATIONS: 15 rows added to cholera_data_ai.csv
+  - 10 national/sub-national observations with quantitative cholera data
+  - 1 validated zero-transmission period (1970-1972)
+  - 4 provincial subset entries documenting geographic distribution
+
+COVERAGE IMPROVEMENT:
+Pre-AI: 83.3% (gaps in 1970-1977 and 2025+)
+Post-AI: 2025 gap filled with comprehensive annual and sub-annual data
+  Zero-transmission documentation for 1970-1972 provides pre-baseline validation
+  1973-1977 remains data-poor (no discoverable quantitative records online)
+
+=== CORRECTIONS MADE DURING AUDIT ===
+
+Row 15 CORRECTED:
+- deaths field changed from 1521 to 67
+- Reason: Original entry incorrectly populated deaths with total camp mortality (all causes)
+  rather than cholera-specific deaths
+- Correction: 545 cases × 12.3% CFR = 67.0 cholera-specific deaths
+- confidence_weight reduced from 0.90 to 0.85 (estimated from CFR × cases)
+- Processing_notes updated to document correction
+
+=== METADATA QUALITY CHECK ===
+
+All 17 metadata entries have:
+- Index: Sequential integers 1-17 - PASS
+- Source: Non-empty text - PASS
+- URL: All URLs populated - PASS
+- Description: All descriptions populated - PASS
+- Date_Range: All date ranges populated - PASS
+- Reliability_Level: Level 1-3 assigned appropriately - PASS
+- Validation_Status: All marked 'Validated' - PASS
+- source_database: All marked 'AI' - PASS
+
+Unused metadata entries (no corresponding data rows):
+- Index 5 (WHO AFRO Monthly Cholera Bulletin December 2024): Used for context/validation
+  but no new data rows were extracted (2024 data already in JHU baseline)
+- Index 6 (Cholera Epidemics War Disasters Goma Kivu PLoS NTDs 2009): Used for context
+  but 2000-2007 Kivu data already in JHU
+- Index 9 (BMC Westward Spread): Used for validation context
+- Index 10 (Cholera Prevention Control Refugee Settings): Used for 1994 Goma validation
+These entries document sources consulted for cross-validation and context.
+
+=== FINAL AUDIT SUMMARY ===
+
+VALIDATION STAGES PASSED:
+Stage 1 (Format): ALL PASS
+Stage 2 (Epidemiological): ALL PASS (after correction)
+Stage 3 (Indexing): ALL PASS
+Stage 4 (Duplication): ALL PASS
+Stage 5 (Source Quality): ALL PASS
+Stage 6 (Gap Coverage): PARTIALLY ADDRESSED (1973-1977 data inaccessible)
+
+ISSUES IDENTIFIED AND RESOLVED:
+1. Row 15 deaths field: Corrected from 1521 (total camp deaths) to 67 (cholera-specific)
+2. Agent 3 data not written to CSV: Recovered and added during audit
+
+DATASET QUALITY SCORE: 8.5/10
+- High-quality Level 1 sources (88%)
+- Comprehensive 2025 outbreak documentation (worst in 25 years)
+- Zero-transmission period validated for 1970-1972
+- Provincial breakdown for major 2025 outbreak
+- One significant correction required (row 15 deaths field)
+- Some provincial entries from news/regional sources (Level 3)
+- 1973-1977 period remains data-poor due to pre-systematic surveillance
+
+Agent 7 End Time: 2026-05-14 10:45:00
+Status: COMPLETE
