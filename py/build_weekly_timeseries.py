@@ -4,9 +4,9 @@ Build national-level weekly cholera time series for all 40 MOSAIC countries.
 
 Method:
   - National rows only: Location == "AFR::{ISO}"
-  - Seasonal template: Fourier K selected per country by BIC (K=1..8)
-      fitted to year-normalised weekly medians
-      * Built from ALL weekly observations (national + sub-national) to maximise signal
+  - Seasonal template: Fourier K selected per country by BIC (K=1..floor(n_yrs/3))
+      fitted to case-weighted mean of year-normalised weekly fractions
+      * Built from national-level weekly observations only (sub-national used as fallback)
       * Regional pooled fallback for countries with < MIN_YEARS outbreak-years of weekly data
   - Disaggregation rules:
       * sCh == 0 over any interval  → zero-fill every covered ISO week
@@ -22,6 +22,7 @@ Outputs per country:
 
 import csv
 import json
+import re
 import warnings
 import numpy as np
 import matplotlib
@@ -88,13 +89,10 @@ def weeks_in_range(tl, tr):
     Return list of (iso_year, iso_week) tuples whose Monday falls within [tl, tr].
     Starts from the Monday of the week containing tl.
     """
-    result, seen = [], set()
+    result = []
     monday = week_monday(tl)
     while monday <= tr:
-        key = monday.isocalendar()[:2]  # (year, week)
-        if key not in seen:
-            seen.add(key)
-            result.append(key)
+        result.append(monday.isocalendar()[:2])
         monday += timedelta(weeks=1)
     return result
 
@@ -155,13 +153,21 @@ def fit_fourier_bic(median_fracs, k_max=K_MAX):
 
 def build_template_from_data(data_rows):
     """
-    data_rows: list of (tl, tr, sch) tuples — any geographic level, sCh > 0, weekly only.
+    data_rows: list of (tl, tr, sch) tuples — sCh > 0, weekly only.
     Returns (template_52, valid_years, best_k).
+
+    Fixes applied vs naive approach:
+      - Week 53 folded into week 52 (prevents silent denominator inflation)
+      - Case-weighted mean replaces unweighted median (sparse years no longer
+        dominate when their fractions are atypical)
+      - K_MAX capped at floor(valid_years / 3) to prevent overfitting when
+        only a few outbreak-years of data are available
     """
     cases_by_year_week = defaultdict(float)
     for tl, tr, sch in data_rows:
         if (tr - tl).days <= 7 and sch > 0:
             y, w = tl.isocalendar()[:2]
+            w = min(w, 52)          # fold week 53 into week 52
             cases_by_year_week[(y, w)] += sch
 
     if not cases_by_year_week:
@@ -171,7 +177,8 @@ def build_template_from_data(data_rows):
     for (y, w), c in cases_by_year_week.items():
         by_year[y][w] = c
 
-    fracs_by_week = defaultdict(list)
+    # Store (fraction, year_total) so we can compute a case-weighted mean
+    fracs_by_week = defaultdict(list)   # week → [(frac, ytot), ...]
     valid_years   = 0
     for y, wk_cases in by_year.items():
         ytot = sum(wk_cases.values())
@@ -179,23 +186,30 @@ def build_template_from_data(data_rows):
             continue
         valid_years += 1
         for w, c in wk_cases.items():
-            fracs_by_week[w].append(c / ytot)
+            fracs_by_week[w].append((c / ytot, ytot))
 
-    median_fracs = np.zeros(52)
+    # Case-weighted mean: years with more cases exert proportionally more influence
+    weighted_fracs = np.zeros(52)
     for w in range(1, 53):
-        vals = fracs_by_week.get(w, [])
-        if vals:
-            median_fracs[w - 1] = float(np.median(vals))
+        entries = fracs_by_week.get(w, [])
+        if entries:
+            fracs = np.array([f for f, _ in entries])
+            wts   = np.array([wt for _, wt in entries])
+            weighted_fracs[w - 1] = float(np.average(fracs, weights=wts))
 
-    weights, best_k = fit_fourier_bic(median_fracs)
+    # Cap K at floor(valid_years / 3) to prevent overfitting on sparse data
+    k_cap = max(1, valid_years // 3)
+    weights, best_k = fit_fourier_bic(weighted_fracs, k_max=min(K_MAX, k_cap))
     return weights, valid_years, best_k
 
 
-def load_all_weekly_rows(iso, data_dir):
+def load_all_weekly_rows(iso, data_dir, national_only=False):
     """
-    Load all weekly (≤7 day) non-zero rows (any geographic level) from JHU + WHO
-    for template building.
+    Load weekly (≤7 day) non-zero rows from JHU + WHO for template building.
+    national_only=True: restrict to AFR::{iso} rows (avoids sub-national bias).
+    national_only=False: include all geographic levels (used for regional/continental pools).
     """
+    national_code = f"AFR::{iso}"
     rows = []
     for src in ("jhu", "who"):
         f = data_dir / f"cholera_data_{src}.csv"
@@ -203,6 +217,8 @@ def load_all_weekly_rows(iso, data_dir):
             continue
         with open(f, newline="", encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
+                if national_only and row.get("Location", "").strip() != national_code:
+                    continue
                 tl = parse_date(row.get("TL", ""))
                 tr = parse_date(row.get("TR", ""))
                 if not tl or not tr:
@@ -222,14 +238,18 @@ def build_all_templates(country_map):
     Returns dict: {iso: (template_52, method_str)}
       method_str encodes both scope and K, e.g. "country_k4", "regional_West Africa_k3"
     """
-    # Per-country templates
+    # Per-country templates — national rows preferred; sub-national as fallback
     per_country = {}
     for iso in sorted(country_map):
         d = DATA_DIR / iso
         if not d.is_dir():
             continue
-        rows = load_all_weekly_rows(iso, d)
+        rows = load_all_weekly_rows(iso, d, national_only=True)
         tmpl, n_yrs, k = build_template_from_data(rows)
+        if n_yrs < MIN_YEARS:
+            # Not enough national-only data; include sub-national rows as fallback
+            rows = load_all_weekly_rows(iso, d, national_only=False)
+            tmpl, n_yrs, k = build_template_from_data(rows)
         per_country[iso] = (tmpl, n_yrs, k, country_map[iso].get("subregion", "Africa"))
 
     # Regional pooled templates (for fallback)
@@ -286,13 +306,13 @@ def load_national_rows(iso, src, data_dir):
             tr = parse_date(row.get("TR", ""))
             if not tl or not tr:
                 continue
-            try:
-                sch    = float(row.get("sCh", "") or 0)
-                deaths_raw = row.get("deaths", "").strip()
-                deaths = float(deaths_raw) if deaths_raw else None
-                conf   = float(row.get("confidence_weight", "") or 1.0)
-            except ValueError:
-                sch, deaths, conf = 0.0, None, 0.9
+            try:    sch = float(row.get("sCh", "") or 0)
+            except: sch = 0.0
+            deaths_raw = row.get("deaths", "").strip()
+            try:    deaths = float(deaths_raw) if deaths_raw else None
+            except: deaths = None
+            try:    conf = float(row.get("confidence_weight", "") or 0.9)
+            except: conf = 0.9
             rows.append({"tl": tl, "tr": tr, "sch": sch,
                          "deaths": deaths, "conf": conf})
     return rows
@@ -373,9 +393,13 @@ def process_country(iso, template_info):
                     if covered_frac >= COVERAGE_THRESHOLD:
                         continue
 
-                # Fourier disaggregation — only fill weeks not already observed
+                # Fourier disaggregation — only fill weeks not already observed,
+                # and only weeks whose Monday falls within the row's date span
+                # (prevents year-boundary spillover of Jan 1 rows into Dec of
+                # the preceding ISO year).
                 eligible = [k for k in weeks
-                            if not (src_label == "JHU" and k in weekly_covered)]
+                            if not (src_label == "JHU" and k in weekly_covered)
+                            and isoweek_bounds(*k)[0] >= r["tl"]]
                 if not eligible:
                     continue
 
@@ -387,13 +411,25 @@ def process_country(iso, template_info):
                 else:
                     weights = weights / wt_sum
 
+                # Confidence scales with disaggregation window length:
+                # longer windows = more uncertainty in weekly distribution
+                n_elig = len(eligible)
+                if n_elig <= 4:
+                    conf_factor = 0.9    # monthly or shorter
+                elif n_elig <= 13:
+                    conf_factor = 0.8    # quarterly
+                elif n_elig <= 26:
+                    conf_factor = 0.7    # half-year
+                else:
+                    conf_factor = 0.5    # annual or multi-year
+
                 for key, wt in zip(eligible, weights):
                     mon, sun = isoweek_bounds(*key)
                     try_insert(key, {
                         "sch":    r["sch"] * float(wt),
                         "deaths": r["deaths"] * float(wt) if r["deaths"] is not None else None,
                         "source": src_label,
-                        "confidence": r["conf"] * 0.7,
+                        "confidence": r["conf"] * conf_factor,
                         "method": f"fourier_{tmpl_method}",
                         "monday": mon,
                         "sunday": sun,
@@ -545,13 +581,12 @@ def plot_weekly_series(iso, series, country_name, template_method):
     src_parts  = [f"{s}: {n} wks" for s, n in src_counts.items() if n > 0]
 
     # Parse "scope_k{K}" or "regional_{subregion}_k{K}"
-    import re as _re
-    _km = _re.search(r'_k(\d+)$', template_method)
+    _km = re.search(r'_k(\d+)$', template_method)
     _k_str = f"K={_km.group(1)}" if _km else ""
     if template_method.startswith("country"):
         tmpl_label = f"country-specific seasonal template ({_k_str})"
     elif template_method.startswith("regional_"):
-        region = _re.sub(r'_k\d+$', '', template_method).replace("regional_", "")
+        region = re.sub(r'_k\d+$', '', template_method).replace("regional_", "")
         tmpl_label = f"regional seasonal template — {region} ({_k_str})"
     else:
         tmpl_label = f"continental seasonal template ({_k_str})"
@@ -571,7 +606,7 @@ def plot_weekly_series(iso, series, country_name, template_method):
     # Legend — one entry per (source, method) combination actually present
     obs_srcs   = {e["source"] for e in series.values() if e["method"] == "observed"}
     disagg_srcs = {e["source"] for e in series.values()
-                   if e["method"] not in ("observed", "zero_fill")}
+                   if e["method"] not in ("observed", "documented_zero", "assumed_zero")}
 
     legend_items = []
     for src_label in ("JHU", "WHO", "AI"):
