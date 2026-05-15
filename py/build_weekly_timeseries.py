@@ -521,58 +521,97 @@ plt.rcParams.update({
 })
 
 
-def plot_weekly_series(iso, series, country_name, template_method):
-    if not series:
-        return
-
-    # Sort and build arrays
-    items  = sorted(series.items())
-    mondys = [e["monday"] for _, e in items]
-    schs   = [e["sch"]    for _, e in items]
-    srcs   = [e["source"] for _, e in items]
-    meths  = [e["method"] for _, e in items]
-
-    # Convert to matplotlib date numbers
-    x = mdates.date2num(mondys)
-    any_nonzero = any(v > 0 for v in schs)
-
-    fig, ax = plt.subplots(figsize=(22, 4.5))
-    fig.patch.set_facecolor("white")
-
-    bar_width = 5.5   # days (slight gap between weeks)
-
-    for xi, yi, src, meth in zip(x, schs, srcs, meths):
-        # assumed_zero has no source and sCh=0 — invisible bar, skip drawing
-        if meth == "assumed_zero":
+def _draw_bars(ax, x, vals, srcs, meths, bar_width=5.5):
+    """Draw coloured bars on ax, skipping assumed_zero (always sCh=0)."""
+    for xi, yi, src, meth in zip(x, vals, srcs, meths):
+        if meth == "assumed_zero" or yi is None:
             continue
-        is_observed = meth == "observed"
-        alpha  = 0.85 if is_observed else 0.45
-        color  = COLORS[src]
-        ax.bar(xi, yi, width=bar_width, color=color, alpha=alpha,
+        alpha = 0.85 if meth == "observed" else 0.45
+        ax.bar(xi, yi, width=bar_width, color=COLORS[src], alpha=alpha,
                linewidth=0, align="edge")
 
-    # X-axis: one minor tick per year, major every 5 years
+
+def _style_xaxis(ax):
     ax.xaxis.set_major_locator(mdates.YearLocator(5))
     ax.xaxis.set_minor_locator(mdates.YearLocator(1))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
     ax.tick_params(axis="x", which="minor", length=2, color="#aaa")
     ax.tick_params(axis="x", which="major", length=5)
 
-    # Y-axis
+
+def _fmt_yaxis(ax):
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(
         lambda v, _: f"{int(v):,}" if v >= 1 else ("0" if v == 0 else f"{v:.1f}")))
-    ax.set_ylabel("Suspected cases / week", fontsize=10)
 
-    if any_nonzero:
-        max_val = max(schs)
-        ax.set_ylim(0, max_val * 1.12)
 
-    # Set x limits tightly
-    x_min = mdates.date2num(SERIES_START)
-    x_max = mdates.date2num((mondys[-1] + timedelta(weeks=4)) if mondys else SERIES_START)
-    ax.set_xlim(x_min, x_max)
+def plot_weekly_series(iso, series, country_name, template_method):
+    if not series:
+        return
 
-    # Subtitle line (placed first so title sits above it)
+    # Sort and build arrays
+    items   = sorted(series.items())
+    mondys  = [e["monday"]           for _, e in items]
+    schs    = [e["sch"]              for _, e in items]
+    deaths  = [e.get("deaths")       for _, e in items]   # may be None
+    srcs    = [e["source"]           for _, e in items]
+    meths   = [e["method"]           for _, e in items]
+
+    x         = mdates.date2num(mondys)
+    bar_width = 5.5
+    x_min     = mdates.date2num(SERIES_START)
+    x_max     = mdates.date2num((mondys[-1] + timedelta(weeks=4)) if mondys else SERIES_START)
+
+    has_deaths = any(d is not None and d > 0 for d in deaths)
+
+    # ── Figure: two panels if deaths data exists, one panel otherwise ──────
+    if has_deaths:
+        fig, (ax_top, ax_bot) = plt.subplots(
+            2, 1, figsize=(22, 7.5), sharex=True,
+            gridspec_kw={"height_ratios": [3, 1.5], "hspace": 0.08},
+        )
+    else:
+        fig, ax_top = plt.subplots(figsize=(22, 4.5))
+        ax_bot = None
+    fig.patch.set_facecolor("white")
+
+    # ── Top panel: suspected cases ─────────────────────────────────────────
+    _draw_bars(ax_top, x, schs, srcs, meths, bar_width)
+    _style_xaxis(ax_top)
+    _fmt_yaxis(ax_top)
+    ax_top.set_ylabel("Suspected cases / week", fontsize=10)
+    ax_top.set_xlim(x_min, x_max)
+    if any(v > 0 for v in schs):
+        ax_top.set_ylim(0, max(schs) * 1.12)
+
+    # ── Bottom panel: reported deaths ──────────────────────────────────────
+    if ax_bot is not None:
+        _draw_bars(ax_bot, x, deaths, srcs, meths, bar_width)
+        _style_xaxis(ax_bot)
+        _fmt_yaxis(ax_bot)
+        ax_bot.set_ylabel("Deaths / week", fontsize=10)
+        ax_bot.set_xlim(x_min, x_max)
+        nonnull = [d for d in deaths if d is not None]
+        if nonnull and max(nonnull) > 0:
+            ax_bot.set_ylim(0, max(nonnull) * 1.15)
+        ax_bot.set_xlabel("")
+
+    # ── Legend — shared, drawn on top panel ───────────────────────────────
+    obs_srcs    = {e["source"] for e in series.values() if e["method"] == "observed"}
+    disagg_srcs = {e["source"] for e in series.values()
+                   if e["method"] not in ("observed", "documented_zero", "assumed_zero")}
+    legend_items = []
+    for src_label in ("JHU", "WHO", "AI"):
+        color = COLORS[src_label]
+        if src_label in obs_srcs:
+            legend_items.append(mpatches.Patch(
+                facecolor=color, alpha=0.85, label=f"{src_label} (observed)"))
+        if src_label in disagg_srcs:
+            legend_items.append(mpatches.Patch(
+                facecolor=color, alpha=0.45, label=f"{src_label} (Fourier disaggregated)"))
+    ax_top.legend(handles=legend_items, loc="upper right", fontsize=9,
+                  frameon=False, ncol=len(legend_items))
+
+    # ── Subtitle & title on top panel ─────────────────────────────────────
     n_obs      = sum(1 for m in meths if m == "observed")
     n_disagg   = sum(1 for m in meths if m.startswith("fourier"))
     n_doc_zero = sum(1 for m in meths if m == "documented_zero")
@@ -580,7 +619,6 @@ def plot_weekly_series(iso, series, country_name, template_method):
     src_counts = {s: sum(1 for ss in srcs if ss == s) for s in ("JHU", "WHO", "AI")}
     src_parts  = [f"{s}: {n} wks" for s, n in src_counts.items() if n > 0]
 
-    # Parse "scope_k{K}" or "regional_{subregion}_k{K}"
     _km = re.search(r'_k(\d+)$', template_method)
     _k_str = f"K={_km.group(1)}" if _km else ""
     if template_method.startswith("country"):
@@ -594,34 +632,12 @@ def plot_weekly_series(iso, series, country_name, template_method):
     sub = (f"Observed: {n_obs}  |  Fourier disaggregated: {n_disagg}  |  "
            f"Documented zero: {n_doc_zero}  |  Assumed zero: {n_assumed}  |  "
            f"{tmpl_label}  |  " + "  ".join(src_parts))
-    ax.text(0.0, 1.01, sub, transform=ax.transAxes,
-            fontsize=8, color="#888", va="bottom", ha="left")
-
-    # Main title — pad pushes it above the subtitle line
-    ax.set_title(
-        f"{country_name}  ({iso})  —  Weekly Cholera Cases",
+    ax_top.text(0.0, 1.01, sub, transform=ax_top.transAxes,
+                fontsize=8, color="#888", va="bottom", ha="left")
+    ax_top.set_title(
+        f"{country_name}  ({iso})  —  Weekly Cholera Surveillance",
         fontsize=13, fontweight="bold", color="#222", pad=22, loc="left",
     )
-
-    # Legend — one entry per (source, method) combination actually present
-    obs_srcs   = {e["source"] for e in series.values() if e["method"] == "observed"}
-    disagg_srcs = {e["source"] for e in series.values()
-                   if e["method"] not in ("observed", "documented_zero", "assumed_zero")}
-
-    legend_items = []
-    for src_label in ("JHU", "WHO", "AI"):
-        color = COLORS[src_label]
-        if src_label in obs_srcs:
-            legend_items.append(
-                mpatches.Patch(facecolor=color, alpha=0.85,
-                               label=f"{src_label} (observed)"))
-        if src_label in disagg_srcs:
-            legend_items.append(
-                mpatches.Patch(facecolor=color, alpha=0.45,
-                               label=f"{src_label} (Fourier disaggregated)"))
-
-    ax.legend(handles=legend_items, loc="upper right", fontsize=9,
-              frameon=False, ncol=len(legend_items))
 
     fig.tight_layout()
     out = FIG_DIR / f"cholera_timeseries_{iso}.png"
