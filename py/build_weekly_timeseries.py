@@ -55,6 +55,9 @@ SOURCE_PRIORITY = {"WHO": 3, "JHU": 2, "AI": 1}
 MIN_YEARS = 3   # minimum outbreak-years of weekly data for country-specific template
 K_MAX     = 8   # maximum harmonics considered during BIC selection
 
+# All time series start from this date regardless of when source data begins.
+SERIES_START = date(1970, 1, 1)
+
 # Gap-filling: weeks with no source data between existing observations are labelled
 # assumed_zero only for periods this many weeks before the most recent observation.
 # Weeks more recent than this are left as NA (could be delayed reporting).
@@ -379,15 +382,20 @@ def process_country(iso, template_info):
                         "sunday": sun,
                     })
 
+    # ── Clip to SERIES_START (drop any pre-1970 entries) ──────────────────
+    series_start_monday = week_monday(SERIES_START)
+    merged = {k: v for k, v in merged.items()
+              if v["monday"] >= series_start_monday}
+
     # ── Assumed-zero gap fill ──────────────────────────────────────────────
-    # For historical periods: any ISO week that lies between the earliest and
-    # latest sourced observation but has NO source entry is labelled
-    # assumed_zero (confidence 0.5).  Weeks within ASSUMED_ZERO_LAG_WEEKS of
-    # the most recent observation are left as NA to avoid masking delayed
-    # reporting.
+    # For historical periods: any ISO week that lies between the series start
+    # (or earliest sourced observation, whichever is later) and the cutoff but
+    # has NO source entry is labelled assumed_zero (confidence 0.5).
+    # Weeks within ASSUMED_ZERO_LAG_WEEKS of the most recent observation are
+    # left as NA to avoid masking delayed reporting.
     if merged:
         mondays     = [e["monday"] for e in merged.values()]
-        earliest    = min(mondays)
+        earliest    = max(min(mondays), series_start_monday)
         latest      = max(mondays)
         cutoff      = latest - timedelta(weeks=ASSUMED_ZERO_LAG_WEEKS)
 
@@ -507,10 +515,9 @@ def plot_weekly_series(iso, series, country_name, template_method):
         ax.set_ylim(0, max_val * 1.12)
 
     # Set x limits tightly
-    if mondys:
-        x_min = mdates.date2num(mondys[0]  - timedelta(weeks=2))
-        x_max = mdates.date2num(mondys[-1] + timedelta(weeks=2))
-        ax.set_xlim(x_min, x_max)
+    x_min = mdates.date2num(SERIES_START)
+    x_max = mdates.date2num((mondys[-1] + timedelta(weeks=4)) if mondys else SERIES_START)
+    ax.set_xlim(x_min, x_max)
 
     # Subtitle line (placed first so title sits above it)
     n_obs      = sum(1 for m in meths if m == "observed")
