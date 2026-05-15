@@ -55,6 +55,11 @@ SOURCE_PRIORITY = {"WHO": 3, "JHU": 2, "AI": 1}
 MIN_YEARS = 3   # minimum outbreak-years of weekly data for country-specific template
 K_MAX     = 8   # maximum harmonics considered during BIC selection
 
+# Gap-filling: weeks with no source data between existing observations are labelled
+# assumed_zero only for periods this many weeks before the most recent observation.
+# Weeks more recent than this are left as NA (could be delayed reporting).
+ASSUMED_ZERO_LAG_WEEKS = 52
+
 # ---------------------------------------------------------------------------
 # Date / ISO-week utilities
 # ---------------------------------------------------------------------------
@@ -343,7 +348,7 @@ def process_country(iso, template_info):
                         "deaths": 0.0,
                         "source": src_label,
                         "confidence": r["conf"],
-                        "method": "zero_fill",
+                        "method": "documented_zero",
                         "monday": mon,
                         "sunday": sun,
                     })
@@ -373,6 +378,34 @@ def process_country(iso, template_info):
                         "monday": mon,
                         "sunday": sun,
                     })
+
+    # ── Assumed-zero gap fill ──────────────────────────────────────────────
+    # For historical periods: any ISO week that lies between the earliest and
+    # latest sourced observation but has NO source entry is labelled
+    # assumed_zero (confidence 0.5).  Weeks within ASSUMED_ZERO_LAG_WEEKS of
+    # the most recent observation are left as NA to avoid masking delayed
+    # reporting.
+    if merged:
+        mondays     = [e["monday"] for e in merged.values()]
+        earliest    = min(mondays)
+        latest      = max(mondays)
+        cutoff      = latest - timedelta(weeks=ASSUMED_ZERO_LAG_WEEKS)
+
+        current = earliest
+        while current <= cutoff:
+            key = current.isocalendar()[:2]
+            if key not in merged:
+                mon, sun = isoweek_bounds(*key)
+                merged[key] = {
+                    "sch":        0.0,
+                    "deaths":     0.0,
+                    "source":     "none",
+                    "confidence": 0.5,
+                    "method":     "assumed_zero",
+                    "monday":     mon,
+                    "sunday":     sun,
+                }
+            current += timedelta(weeks=1)
 
     return merged
 
@@ -448,6 +481,9 @@ def plot_weekly_series(iso, series, country_name, template_method):
     bar_width = 5.5   # days (slight gap between weeks)
 
     for xi, yi, src, meth in zip(x, schs, srcs, meths):
+        # assumed_zero has no source and sCh=0 — invisible bar, skip drawing
+        if meth == "assumed_zero":
+            continue
         is_observed = meth == "observed"
         alpha  = 0.85 if is_observed else 0.45
         color  = COLORS[src]
@@ -477,9 +513,10 @@ def plot_weekly_series(iso, series, country_name, template_method):
         ax.set_xlim(x_min, x_max)
 
     # Subtitle line (placed first so title sits above it)
-    n_obs    = sum(1 for m in meths if m == "observed")
-    n_disagg = sum(1 for m in meths if m != "observed" and m != "zero_fill")
-    n_zero   = sum(1 for m in meths if m == "zero_fill")
+    n_obs      = sum(1 for m in meths if m == "observed")
+    n_disagg   = sum(1 for m in meths if m.startswith("fourier"))
+    n_doc_zero = sum(1 for m in meths if m == "documented_zero")
+    n_assumed  = sum(1 for m in meths if m == "assumed_zero")
     src_counts = {s: sum(1 for ss in srcs if ss == s) for s in ("JHU", "WHO", "AI")}
     src_parts  = [f"{s}: {n} wks" for s, n in src_counts.items() if n > 0]
 
@@ -496,8 +533,8 @@ def plot_weekly_series(iso, series, country_name, template_method):
         tmpl_label = f"continental seasonal template ({_k_str})"
 
     sub = (f"Observed: {n_obs}  |  Fourier disaggregated: {n_disagg}  |  "
-           f"Zero-fill: {n_zero}  |  {tmpl_label}  |  "
-           + "  ".join(src_parts))
+           f"Documented zero: {n_doc_zero}  |  Assumed zero: {n_assumed}  |  "
+           f"{tmpl_label}  |  " + "  ".join(src_parts))
     ax.text(0.0, 1.01, sub, transform=ax.transAxes,
             fontsize=8, color="#888", va="bottom", ha="left")
 
