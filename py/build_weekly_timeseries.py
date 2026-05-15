@@ -468,18 +468,23 @@ def plot_weekly_series(iso, series, country_name, template_method):
     ax.text(0.01, 1.01, sub, transform=ax.transAxes,
             fontsize=8, color="#666", va="bottom")
 
-    # Legend
+    # Legend — one entry per (source, method) combination actually present
+    obs_srcs   = {e["source"] for e in series.values() if e["method"] == "observed"}
+    disagg_srcs = {e["source"] for e in series.values()
+                   if e["method"] not in ("observed", "zero_fill")}
+
     legend_items = []
-    for src_label, color in COLORS.items():
-        if src_counts.get(src_label, 0) > 0:
+    for src_label in ("JHU", "WHO", "AI"):
+        color = COLORS[src_label]
+        if src_label in obs_srcs:
             legend_items.append(
                 mpatches.Patch(facecolor=color, alpha=0.85,
                                label=f"{src_label} (observed)"))
-            # Only add disaggregated patch if AI data exists and was disaggregated
-            if src_label == "AI" and n_disagg > 0:
-                legend_items.append(
-                    mpatches.Patch(facecolor=color, alpha=0.4,
-                                   label="AI (Fourier disaggregated)"))
+        if src_label in disagg_srcs:
+            legend_items.append(
+                mpatches.Patch(facecolor=color, alpha=0.45,
+                               label=f"{src_label} (Fourier disaggregated)"))
+
     ax.legend(handles=legend_items, loc="upper right", fontsize=9,
               frameon=True, framealpha=0.9, edgecolor="#ddd",
               ncol=len(legend_items))
