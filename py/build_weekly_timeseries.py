@@ -450,23 +450,23 @@ def plot_weekly_series(iso, series, country_name, template_method):
         x_max = mdates.date2num(mondys[-1] + timedelta(weeks=2))
         ax.set_xlim(x_min, x_max)
 
-    # Title
-    ax.set_title(
-        f"{country_name}  ({iso})  —  Weekly Cholera Cases",
-        fontsize=13, fontweight="bold", color="#222", pad=10, loc="left",
-    )
-
-    # Subtitle: data summary
-    n_obs   = sum(1 for m in meths if m == "observed")
+    # Subtitle line (placed first so title sits above it)
+    n_obs    = sum(1 for m in meths if m == "observed")
     n_disagg = sum(1 for m in meths if m != "observed" and m != "zero_fill")
-    n_zero  = sum(1 for m in meths if m == "zero_fill")
-    src_counts = {s: sum(1 for ss in srcs if ss == s) for s in ("JHU","WHO","AI")}
+    n_zero   = sum(1 for m in meths if m == "zero_fill")
+    src_counts = {s: sum(1 for ss in srcs if ss == s) for s in ("JHU", "WHO", "AI")}
     src_parts  = [f"{s}: {n} wks" for s, n in src_counts.items() if n > 0]
     sub = (f"Observed: {n_obs}  |  Fourier disaggregated: {n_disagg}  |  "
            f"Zero-fill: {n_zero}  |  Template: {template_method}  |  "
            + "  ".join(src_parts))
-    ax.text(0.01, 1.01, sub, transform=ax.transAxes,
-            fontsize=8, color="#666", va="bottom")
+    ax.text(0.0, 1.01, sub, transform=ax.transAxes,
+            fontsize=8, color="#888", va="bottom", ha="left")
+
+    # Main title — pad pushes it above the subtitle line
+    ax.set_title(
+        f"{country_name}  ({iso})  —  Weekly Cholera Cases",
+        fontsize=13, fontweight="bold", color="#222", pad=22, loc="left",
+    )
 
     # Legend — one entry per (source, method) combination actually present
     obs_srcs   = {e["source"] for e in series.values() if e["method"] == "observed"}
@@ -486,8 +486,7 @@ def plot_weekly_series(iso, series, country_name, template_method):
                                label=f"{src_label} (Fourier disaggregated)"))
 
     ax.legend(handles=legend_items, loc="upper right", fontsize=9,
-              frameon=True, framealpha=0.9, edgecolor="#ddd",
-              ncol=len(legend_items))
+              frameon=False, ncol=len(legend_items))
 
     fig.tight_layout()
     out = FIG_DIR / f"cholera_timeseries_{iso}.png"
