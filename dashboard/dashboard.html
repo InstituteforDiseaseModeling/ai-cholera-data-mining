@@ -1289,6 +1289,9 @@
             <button class="tab-button" onclick="showTab('data-timelines')">
                 Data Timelines
             </button>
+            <button class="tab-button" onclick="showTab('weekly-timeseries')">
+                <i class="fas fa-chart-bar"></i> Weekly Time Series
+            </button>
             <button class="tab-button" onclick="showTab('source-metadata')">
                 <i class="fas fa-database"></i> Source Metadata
             </button>
@@ -1738,6 +1741,77 @@
                 <div class="timeline-grid" id="timeline-grid">
                     <!-- Timeline plots will be loaded here dynamically -->
                 </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- Weekly Time Series Tab                                         -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <div id="weekly-timeseries" class="tab-content">
+            <div class="academic-section">
+                <h2>Composite Weekly Cholera Time Series</h2>
+
+                <!-- Methods description -->
+                <div style="background: #f8f9fa; border-left: 4px solid #0167af; padding: 1.25rem 1.5rem; border-radius: 0 6px 6px 0; margin-bottom: 2rem;">
+                    <h3 style="margin: 0 0 0.75rem; font-size: 1.1rem; color: #0167af;">Reconstruction Methods</h3>
+                    <p style="margin: 0 0 0.75rem; font-size: 0.9rem; line-height: 1.7; color: #333;">
+                        Each panel shows a national-level ISO-week (Monday–Sunday) time series composited from three sources in priority order:
+                        <strong style="color: #E74C3C;">WHO Dashboard</strong> (2023–present, weekly) &gt;
+                        <strong style="color: #0167af;">JHU Cholera Taxonomy</strong> (1970–2020+, mostly weekly) &gt;
+                        <strong style="color: #2ECC71;">AI-enhanced discoveries</strong> (gap-filling and absence validation).
+                        Upper panel shows suspected cases per week; lower panel shows reported deaths per week where available.
+                    </p>
+                    <p style="margin: 0 0 0.75rem; font-size: 0.9rem; line-height: 1.7; color: #333;">
+                        <strong>Temporal disaggregation.</strong> Non-weekly source rows (annual or quarterly aggregates) with non-zero case counts are disaggregated to weekly resolution using a
+                        Fourier seasonal template fitted to year-normalised weekly fractions from observed data. The harmonic order <em>K</em> is selected per country by BIC
+                        (K = 1–8, capped at ⌊outbreak-years / 3⌋ to prevent overfitting), using case-weighted mean fractions so high-burden years drive the seasonal shape.
+                        Templates are built from national-level rows only, falling back to a regional pooled template for countries with fewer than 3 outbreak-years of weekly data.
+                        A 50% coverage threshold prevents annual summaries from being applied when ≥50% of their span is already covered by directly observed weekly records — the two
+                        reporting streams cannot be reliably reconciled and the aggregate would inflate totals.
+                    </p>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.7; color: #333;">
+                        <strong>Method labels (shown in subtitle).</strong>
+                        <em>Observed</em> — direct weekly surveillance record (full opacity).
+                        <em>Fourier disaggregated</em> — annual/quarterly aggregate distributed by seasonal template (half opacity); confidence scaled 0.5–0.9 by window length.
+                        <em>Documented zero</em> — source explicitly states zero cases (not drawn; shown in subtitle count).
+                        <em>Assumed zero</em> — no source found; historical gap between observations, more than 52 weeks before the most recent data point (not drawn; recent gaps left as missing data to avoid masking delayed reporting).
+                    </p>
+                </div>
+
+                <!-- Color legend -->
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.5rem; font-size: 0.875rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 18px; height: 18px; background: #0167af; border-radius: 3px; opacity: 0.9;"></div>
+                        <span>JHU (observed)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 18px; height: 18px; background: #0167af; border-radius: 3px; opacity: 0.45;"></div>
+                        <span>JHU (Fourier disaggregated)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 18px; height: 18px; background: #E74C3C; border-radius: 3px; opacity: 0.9;"></div>
+                        <span>WHO (observed)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 18px; height: 18px; background: #2ECC71; border-radius: 3px; opacity: 0.9;"></div>
+                        <span>AI (observed)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 18px; height: 18px; background: #2ECC71; border-radius: 3px; opacity: 0.45;"></div>
+                        <span>AI (Fourier disaggregated)</span>
+                    </div>
+                </div>
+
+                <!-- Country filter + count -->
+                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+                    <select id="wts-country-filter" style="padding: 0.5rem; border-radius: 4px; border: 1px solid #dee2e6; font-size: 0.9rem;">
+                        <option value="all">All Countries</option>
+                    </select>
+                    <span id="wts-count" style="font-weight: 600; color: #495057; font-size: 0.9rem;">0 plots</span>
+                </div>
+
+                <!-- Plot grid -->
+                <div id="wts-grid" class="timeline-grid"></div>
             </div>
         </div>
 
@@ -2547,11 +2621,70 @@
             }
         }
         
+        // ── Weekly Time Series tab ─────────────────────────────────────────
+        function loadWeeklyTimeseriesPlots() {
+            const grid    = document.getElementById('wts-grid');
+            const filter  = document.getElementById('wts-country-filter');
+            const countEl = document.getElementById('wts-count');
+            if (!grid) return;
+
+            const countries = parseCompletionChecklist();
+
+            // Populate dropdown
+            filter.innerHTML = '<option value="all">All Countries</option>';
+            countries.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.iso;
+                opt.textContent = `${c.name} (${c.iso})`;
+                filter.appendChild(opt);
+            });
+            filter.addEventListener('change', function() {
+                document.querySelectorAll('.wts-card').forEach(card => {
+                    card.style.display =
+                        (this.value === 'all' || card.dataset.iso === this.value)
+                        ? 'block' : 'none';
+                });
+                const vis = document.querySelectorAll('.wts-card:not([style*="display: none"])').length;
+                countEl.textContent = `${vis} plot${vis !== 1 ? 's' : ''}`;
+            });
+
+            // Build cards
+            let html = '';
+            countries.forEach(c => {
+                const plotPath = `../figures/dashboard/timeseries/cholera_timeseries_${c.iso}.png`;
+                html += `
+                <div class="timeline-card wts-card" data-iso="${c.iso}" data-country="${c.name}">
+                    <div class="timeline-card-header">
+                        <div class="timeline-card-title">${c.name} (${c.iso})</div>
+                    </div>
+                    <div class="timeline-card-body">
+                        <div class="timeline-chart-container">
+                            <img src="${plotPath}"
+                                 alt="Weekly time series for ${c.name}"
+                                 loading="lazy"
+                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                            <div style="display:none;align-items:center;justify-content:center;height:120px;
+                                        color:#666;font-style:italic;background:#f8f9fa;
+                                        border:1px solid #dee2e6;border-radius:5px;">
+                                <i class="fas fa-chart-bar" style="margin-right:0.5rem;"></i>
+                                Plot not yet available
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            grid.innerHTML = html;
+            const n = countries.length;
+            countEl.textContent = `${n} plot${n !== 1 ? 's' : ''}`;
+        }
+
         // Update on page load
         document.addEventListener('DOMContentLoaded', function() {
             updateLastUpdated();
             updateStatistics();
             loadTimelinePlots();
+            loadWeeklyTimeseriesPlots();
             populateCountryTable();
             populateDataDropdowns();
             
@@ -2723,7 +2856,7 @@ Ghana,GHA,COMPLETED,2026-05-15 16:57:46,26,35,1986-2025,LOW,0,1,2400.0
 Guinea,GIN,COMPLETED,2026-05-14 20:25:03,10,11,1986-2025,HIGH,0,0,
 Gambia,GMB,COMPLETED,2026-05-14 20:51:13,6,3,1869-2024,HIGH,0,0,
 Guinea-Bissau,GNB,COMPLETED,2026-05-15 16:57:46,17,22,1986-2025,MEDIUM,1,6,100.0
-Equatorial Guinea,GNQ,COMPLETED,2026-05-15 16:57:46,5,6,1980-2025,HIGH,0,1,1900.0
+Equatorial Guinea,GNQ,COMPLETED,2026-05-15 17:58:35,5,6,1980-2025,HIGH,0,1,1900.0
 Kenya,KEN,COMPLETED,2026-05-15 16:57:46,23,45,1971-2030,LOW,1,5,1140.0
 Liberia,LBR,COMPLETED,2026-05-15 16:57:46,8,11,2002-2011,HIGH,0,0,
 Mali,MLI,COMPLETED,2026-05-15 10:48:18,12,30,1984-2025,LOW,0,0,
@@ -2791,7 +2924,7 @@ Zimbabwe,ZWE,COMPLETED,2026-05-14 13:59:21,12,30,1973-2025,LOW,0,0,`;
 `,
             'GNQ': `Index,Source,URL,Description,Date_Range,Data_Type,Status,Reliability_Level,Validation_Status,Search_Technique,Language_Original,Citation_Depth,Cross_References,Discovery_Method,source_database
 1,The New Humanitarian 2005 Equatorial Guinea Cholera Report,https://www.thenewhumanitarian.org/report/55468/equatorial-guinea-cholera-kills-15,Humanitarian report documenting the 2005 Malabo cholera epidemic: 946 cases and 15 deaths; laboratory confirmation from Pasteur Institute Yaounde Cameroon,2005-01-01 to 2005-12-31,Outbreak Report,Active,Level 2,Validated,Web Search,English,Primary,WHO AFRO 2005,Web Search,AI
-2,BMC Public Health Cameroon Cholera Study,https://bmcpublichealth.biomedcentral.com/articles/10.1186/s12889-025-23007-5,BMC Public Health peer-reviewed study (Trends of cholera epidemics and associated mortality factors in Cameroon 2018-2023) confirming Equatorial Guinea last reported cholera in 2005; regional comparison analysis for Central African countries. Original URL doi:10.1186/s12889-024-17760-0 returned 404; replaced with verified article doi:10.1186/s12889-025-23007-5,2005-01-01 to 2024-12-31,Academic Study,URL-Updated,Level 1,Validated,Web Search,English,Primary,WHO AFRO,Web Search,AI
+2,WHO Annual Cholera Cases and Deaths Surveillance,https://www.who.int/emergencies/surveillance/cholera-cases-and-deaths,WHO multi-decade annual cholera surveillance database showing Equatorial Guinea reported cases in 2005 (946 suspected cases and 15 deaths) and zero cases in all preceding and subsequent years in the database. Authoritative primary source for GNQ absence periods.,1949-01-01 to 2024-12-31,Annual Surveillance,Active,Level 1,Validated,Web Search,English,Primary,WHO WER Annual Cholera Reports,Web Search,AI
 3,WHO AFRO Cholera Surveillance 2024,https://www.afro.who.int/health-topics/cholera,WHO AFRO official surveillance confirming GNQ is NOT among the 14 cholera-affected countries in the African region as of 2024,2024-01-01 to 2024-12-31,Surveillance Report,Active,Level 1,Validated,Web Search,English,Primary,WHO Global,Web Search,AI
 4,Lancet Global Health Cholera Seasonality Study,https://www.thelancet.com/journals/langlo/article/PIIS2214-109X(19)30087-4/fulltext,Lancet Global Health study on cholera seasonality excluding GNQ due to absence of or insufficient sub-yearly data since cholera-free status,2010-01-01 to 2016-12-31,Academic Study,Restricted,Level 1,Validated,Web Search,English,Primary,WHO AFRO,Web Search,AI
 5,American Journal Tropical Medicine EM-DAT Cholera Study,https://www.ajtmh.org/view/journals/tpmd/106/4/article-p1071.xml,AJTM study using EM-DAT data confirming GNQ historical cholera burden limited to single 2005 outbreak,1970-01-01 to 2020-12-31,Academic Study,Restricted,Level 1,Validated,Web Search,English,Primary,EM-DAT,Web Search,AI
@@ -3461,10 +3594,10 @@ Zimbabwe,ZWE,COMPLETED,2026-05-14 13:59:21,12,30,1973-2025,LOW,0,0,`;
 3,AFR::GMB,2008-01-01,2024-12-31,0,0,,0.0,2025-01-01,2,Dynamics of Cholera Epidemics from Benin to Mauritania PMC5908202,0.9,"Source explicitly states: 'The Gambia has not reported a single suspected cholera case since 2008' and 'the lack of cholera during a lull period is not due to inadequate surveillance or laboratory incompetence but simply due to the absence of cholera cases in the country.' WHO AFRO surveillance bulletins 2009-2024 consistently exclude Gambia from affected countries lists. Gambia excluded from multiple major cholera analyses (2011-2020 period) confirming zero reported cases. IDSR system functional (adopted 2003, third edition 2022). 2024: 14 affected countries in AFRO not including Gambia. 2025: top 5 affected countries do not include Gambia. Cholera-free status maintained 2008-2024 based on convergent multi-source surveillance evidence. Surveillance system assessment 2025 shows operational disease reporting capacity. NOTE: JHU baseline records 3 suspected cases in 2021 (sourced from WHO Annual Cholera Report); this zero-transmission entry represents the predominant absence status with the possible exception of those 3 cases in 2021 which could not be independently confirmed via AI searches.",AI
 `,
             'GNQ': `Index,Location,TL,TR,deaths,sCh,cCh,CFR,reporting_date,source_index,source,confidence_weight,processing_notes,source_database
-1,AFR::GNQ,1980-01-01,2004-12-31,0,0,,0.0,2005-01-01,2,BMC Public Health Cameroon Cholera Study,0.8,"Source states: 'Equatorial Guinea last reported cholera in 2005' - implies no transmission 1980-2004. Evidence type: Documented_Absence. Surveillance status: limited but operational.",AI
+1,AFR::GNQ,1980-01-01,2004-12-31,0,0,,0.0,2005-01-01,2,WHO Annual Cholera Cases and Deaths Surveillance,0.85,"WHO annual cholera surveillance database shows zero cases reported for GNQ in all years prior to 2005. The 2005 epidemic (946 cases, 15 deaths) is the sole recorded event. Evidence type: Documented_Absence from WHO primary surveillance record. Note: BMC Public Health Cameroon study (doi:10.1186/s12889-025-23007-5) independently states 'Equatorial Guinea last reported in 2005' as a contextual aside, corroborating this absence.",AI
 2,AFR::GNQ,2005-01-01,2005-12-31,15,946,,1.6,2006-01-01,1,The New Humanitarian 2005 Equatorial Guinea Cholera Report,0.85,"Source states: '946 cases and 15 deaths' in Malabo 2005 epidemic; laboratory confirmation from Pasteur Institute Yaounde Cameroon. CFR 1.6% within expected range. Only documented cholera outbreak in GNQ history.",AI
 3,AFR::GNQ,2006-01-01,2010-12-31,0,0,,0.0,2011-01-01,3,WHO AFRO Cholera Surveillance 2024,0.9,"Source states: WHO AFRO consistently excludes GNQ from cholera-affected countries list. Evidence type: Documented_Absence confirmed by WHO exclusion and Lancet Global Health exclusion due to absence of sub-yearly data. Surveillance: operational IDSR framework.",AI
-4,AFR::GNQ,2011-01-01,2015-12-31,0,0,,0.0,2016-01-01,3,WHO AFRO Cholera Surveillance 2024,0.9,"Source states: WHO AFRO confirms GNQ not among cholera-affected countries 2011-2015. Evidence type: Documented_Absence from WHO AFRO bulletins. Cross-validated by BMC Public Health regional comparison study.",AI
+4,AFR::GNQ,2011-01-01,2015-12-31,0,0,,0.0,2016-01-01,3,WHO AFRO Cholera Surveillance 2024,0.9,"Source states: WHO AFRO confirms GNQ not among cholera-affected countries 2011-2015. Evidence type: Documented_Absence from WHO AFRO bulletins. Cross-validated by BMC Public Health Cameroon study (doi:10.1186/s12889-025-23007-5) which explicitly states 'Equatorial Guinea last reported in 2005'.",AI
 5,AFR::GNQ,2016-01-01,2020-12-31,0,0,,0.0,2021-01-01,3,WHO AFRO Cholera Surveillance 2024,0.9,"Source states: WHO AFRO confirms GNQ cholera-free 2016-2020; maintained absence during global cholera resurgence. Evidence type: Documented_Absence. Cross-validated: 4/6 neighboring countries also cholera-free.",AI
 6,AFR::GNQ,2021-01-01,2025-05-14,0,0,,0.0,2025-05-14,3,WHO AFRO Cholera Surveillance 2024,0.9,"Source states: WHO AFRO confirms GNQ NOT among 14 cholera-affected countries as of 2024. Evidence type: Documented_Absence. GNQ maintained cholera-free status through 2020-2023 global cholera surge.",AI
 `,
