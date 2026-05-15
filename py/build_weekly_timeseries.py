@@ -515,7 +515,7 @@ plt.rcParams.update({
     "grid.alpha":         0.25,
     "grid.linewidth":     0.6,
     "figure.facecolor":   "white",
-    "axes.facecolor":     "#f8f9fa",
+    "axes.facecolor":     "white",
     "xtick.major.size":   4,
     "ytick.major.size":   3,
 })
