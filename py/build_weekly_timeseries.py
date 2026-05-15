@@ -456,8 +456,17 @@ def plot_weekly_series(iso, series, country_name, template_method):
     n_zero   = sum(1 for m in meths if m == "zero_fill")
     src_counts = {s: sum(1 for ss in srcs if ss == s) for s in ("JHU", "WHO", "AI")}
     src_parts  = [f"{s}: {n} wks" for s, n in src_counts.items() if n > 0]
+
+    if template_method == "country":
+        tmpl_label = "country-specific seasonal template"
+    elif template_method.startswith("regional_"):
+        region = template_method.replace("regional_", "")
+        tmpl_label = f"regional seasonal template ({region})"
+    else:
+        tmpl_label = "continental seasonal template"
+
     sub = (f"Observed: {n_obs}  |  Fourier disaggregated: {n_disagg}  |  "
-           f"Zero-fill: {n_zero}  |  Template: {template_method}  |  "
+           f"Zero-fill: {n_zero}  |  {tmpl_label}  |  "
            + "  ".join(src_parts))
     ax.text(0.0, 1.01, sub, transform=ax.transAxes,
             fontsize=8, color="#888", va="bottom", ha="left")
