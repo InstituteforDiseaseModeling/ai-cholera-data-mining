@@ -4,7 +4,8 @@ Build national-level weekly cholera time series for all 40 MOSAIC countries.
 
 Method:
   - National rows only: Location == "AFR::{ISO}"
-  - Seasonal template: Fourier K=2 fitted to year-normalised weekly medians
+  - Seasonal template: Fourier K selected per country by BIC (K=1..8)
+      fitted to year-normalised weekly medians
       * Built from ALL weekly observations (national + sub-national) to maximise signal
       * Regional pooled fallback for countries with < MIN_YEARS outbreak-years of weekly data
   - Disaggregation rules:
@@ -52,6 +53,7 @@ COLORS = {
 SOURCE_PRIORITY = {"WHO": 3, "JHU": 2, "AI": 1}
 
 MIN_YEARS = 3   # minimum outbreak-years of weekly data for country-specific template
+K_MAX     = 8   # maximum harmonics considered during BIC selection
 
 # ---------------------------------------------------------------------------
 # Date / ISO-week utilities
@@ -90,34 +92,56 @@ def isoweek_bounds(year, week):
     return monday, monday + timedelta(days=6)
 
 # ---------------------------------------------------------------------------
-# Fourier K=2 template
+# Fourier template — BIC-selected K
 # ---------------------------------------------------------------------------
 
-def fit_fourier_k2(median_fracs):
-    """
-    Fit a K=2 Fourier series to a 52-element array of median weekly fractions.
-    Returns a normalised weight array of length 52 (index 0 = week 1).
-    """
+def _fourier_design(k):
+    """Design matrix for K-harmonic Fourier series over 52 weeks."""
     weeks = np.arange(1, 53, dtype=float)
-    X = np.column_stack([
-        np.ones(52),
-        np.cos(2 * np.pi * weeks / 52),
-        np.sin(2 * np.pi * weeks / 52),
-        np.cos(4 * np.pi * weeks / 52),
-        np.sin(4 * np.pi * weeks / 52),
-    ])
+    cols  = [np.ones(52)]
+    for i in range(1, k + 1):
+        cols.append(np.cos(2 * np.pi * i * weeks / 52))
+        cols.append(np.sin(2 * np.pi * i * weeks / 52))
+    return np.column_stack(cols)   # shape (52, 2k+1)
+
+
+def _fit_one_k(median_fracs, k):
+    """Fit a single K, return (fitted_52, bic)."""
+    n = 52
+    X = _fourier_design(k)
+    p = X.shape[1]
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         coeffs, _, _, _ = np.linalg.lstsq(X, median_fracs, rcond=None)
-    fitted = np.maximum(X @ coeffs, 0.0)
-    total  = fitted.sum()
-    return fitted / total if total > 0 else np.full(52, 1 / 52)
+    fitted = X @ coeffs
+    rss    = float(np.sum((median_fracs - fitted) ** 2))
+    sigma2 = rss / n
+    ll     = (-0.5 * n * np.log(2 * np.pi * sigma2) - rss / (2 * sigma2)
+              if sigma2 > 0 else 0.0)
+    bic    = p * np.log(n) - 2 * ll
+    return fitted, bic
+
+
+def fit_fourier_bic(median_fracs, k_max=K_MAX):
+    """
+    Fit K=1..k_max Fourier series, select by BIC.
+    Returns (normalised_weights_52, best_k).
+    """
+    best_k, best_bic, best_fitted = 1, np.inf, None
+    for k in range(1, k_max + 1):
+        fitted, bic = _fit_one_k(median_fracs, k)
+        if bic < best_bic:
+            best_bic, best_k, best_fitted = bic, k, fitted
+    fitted_pos = np.maximum(best_fitted, 0.0)
+    total = fitted_pos.sum()
+    weights = fitted_pos / total if total > 0 else np.full(52, 1 / 52)
+    return weights, best_k
 
 
 def build_template_from_data(data_rows):
     """
     data_rows: list of (tl, tr, sch) tuples — any geographic level, sCh > 0, weekly only.
-    Returns (template_52, valid_years).
+    Returns (template_52, valid_years, best_k).
     """
     cases_by_year_week = defaultdict(float)
     for tl, tr, sch in data_rows:
@@ -126,9 +150,8 @@ def build_template_from_data(data_rows):
             cases_by_year_week[(y, w)] += sch
 
     if not cases_by_year_week:
-        return np.full(52, 1 / 52), 0
+        return np.full(52, 1 / 52), 0, 1
 
-    # Group by year
     by_year = defaultdict(dict)
     for (y, w), c in cases_by_year_week.items():
         by_year[y][w] = c
@@ -149,7 +172,8 @@ def build_template_from_data(data_rows):
         if vals:
             median_fracs[w - 1] = float(np.median(vals))
 
-    return fit_fourier_k2(median_fracs), valid_years
+    weights, best_k = fit_fourier_bic(median_fracs)
+    return weights, valid_years, best_k
 
 
 def load_all_weekly_rows(iso, data_dir):
@@ -178,9 +202,10 @@ def load_all_weekly_rows(iso, data_dir):
 
 def build_all_templates(country_map):
     """
-    Build Fourier K=2 templates for all MOSAIC countries.
+    Build BIC-selected Fourier templates for all MOSAIC countries.
     Falls back to regional pooled template for countries with < MIN_YEARS.
     Returns dict: {iso: (template_52, method_str)}
+      method_str encodes both scope and K, e.g. "country_k4", "regional_West Africa_k3"
     """
     # Per-country templates
     per_country = {}
@@ -189,12 +214,12 @@ def build_all_templates(country_map):
         if not d.is_dir():
             continue
         rows = load_all_weekly_rows(iso, d)
-        tmpl, n_yrs = build_template_from_data(rows)
-        per_country[iso] = (tmpl, n_yrs, country_map[iso].get("subregion", "Africa"))
+        tmpl, n_yrs, k = build_template_from_data(rows)
+        per_country[iso] = (tmpl, n_yrs, k, country_map[iso].get("subregion", "Africa"))
 
     # Regional pooled templates (for fallback)
     regional_rows = defaultdict(list)
-    for iso, (_, n_yrs, subregion) in per_country.items():
+    for iso, (_, n_yrs, _k, subregion) in per_country.items():
         if n_yrs >= MIN_YEARS:
             regional_rows[subregion].extend(
                 load_all_weekly_rows(iso, DATA_DIR / iso)
@@ -202,24 +227,25 @@ def build_all_templates(country_map):
 
     regional_templates = {}
     for subregion, rows in regional_rows.items():
-        tmpl, _ = build_template_from_data(rows)
-        regional_templates[subregion] = tmpl
+        tmpl, _, k = build_template_from_data(rows)
+        regional_templates[subregion] = (tmpl, k)
 
     # Continental fallback
     all_rows = []
     for iso in per_country:
         all_rows.extend(load_all_weekly_rows(iso, DATA_DIR / iso))
-    continental, _ = build_template_from_data(all_rows)
+    continental, _, k_cont = build_template_from_data(all_rows)
 
     # Assign final templates
     templates = {}
-    for iso, (tmpl, n_yrs, subregion) in per_country.items():
+    for iso, (tmpl, n_yrs, k, subregion) in per_country.items():
         if n_yrs >= MIN_YEARS:
-            templates[iso] = (tmpl, "country")
+            templates[iso] = (tmpl, f"country_k{k}")
         elif subregion in regional_templates:
-            templates[iso] = (regional_templates[subregion], f"regional_{subregion}")
+            reg_tmpl, reg_k = regional_templates[subregion]
+            templates[iso] = (reg_tmpl, f"regional_{subregion}_k{reg_k}")
         else:
-            templates[iso] = (continental, "continental")
+            templates[iso] = (continental, f"continental_k{k_cont}")
 
     return templates
 
@@ -457,13 +483,17 @@ def plot_weekly_series(iso, series, country_name, template_method):
     src_counts = {s: sum(1 for ss in srcs if ss == s) for s in ("JHU", "WHO", "AI")}
     src_parts  = [f"{s}: {n} wks" for s, n in src_counts.items() if n > 0]
 
-    if template_method == "country":
-        tmpl_label = "country-specific seasonal template"
+    # Parse "scope_k{K}" or "regional_{subregion}_k{K}"
+    import re as _re
+    _km = _re.search(r'_k(\d+)$', template_method)
+    _k_str = f"K={_km.group(1)}" if _km else ""
+    if template_method.startswith("country"):
+        tmpl_label = f"country-specific seasonal template ({_k_str})"
     elif template_method.startswith("regional_"):
-        region = template_method.replace("regional_", "")
-        tmpl_label = f"regional seasonal template ({region})"
+        region = _re.sub(r'_k\d+$', '', template_method).replace("regional_", "")
+        tmpl_label = f"regional seasonal template — {region} ({_k_str})"
     else:
-        tmpl_label = "continental seasonal template"
+        tmpl_label = f"continental seasonal template ({_k_str})"
 
     sub = (f"Observed: {n_obs}  |  Fourier disaggregated: {n_disagg}  |  "
            f"Zero-fill: {n_zero}  |  {tmpl_label}  |  "
@@ -526,9 +556,9 @@ def main():
     print(f"Building seasonal templates for {len(country_map)} countries…")
     templates = build_all_templates(country_map)
 
-    n_country  = sum(1 for _, (_, m) in templates.items() if m == "country")
+    n_country  = sum(1 for _, (_, m) in templates.items() if m.startswith("country"))
     n_regional = sum(1 for _, (_, m) in templates.items() if m.startswith("regional"))
-    n_cont     = sum(1 for _, (_, m) in templates.items() if m == "continental")
+    n_cont     = sum(1 for _, (_, m) in templates.items() if m.startswith("continental"))
     print(f"  Country-specific: {n_country}  |  Regional: {n_regional}  "
           f"|  Continental fallback: {n_cont}")
 
