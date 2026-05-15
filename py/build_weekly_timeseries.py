@@ -58,6 +58,13 @@ K_MAX     = 8   # maximum harmonics considered during BIC selection
 # All time series start from this date regardless of when source data begins.
 SERIES_START = date(1970, 1, 1)
 
+# Aggregate-row skip threshold: if this fraction of weeks in a non-weekly row's
+# span are already covered by JHU observed weekly data, skip the aggregate row
+# entirely. Weekly data and annual summaries in JHU come from different reporting
+# streams and cannot be reliably reconciled by subtraction; when weekly coverage
+# is sufficient, the aggregate row adds noise rather than signal.
+COVERAGE_THRESHOLD = 0.50
+
 # Gap-filling: weeks with no source data between existing observations are labelled
 # assumed_zero only for periods this many weeks before the most recent observation.
 # Weeks more recent than this are left as NA (could be delayed reporting).
@@ -356,7 +363,17 @@ def process_country(iso, template_info):
                         "sunday": sun,
                     })
             else:
-                # Fourier disaggregation — skip weeks already covered by observed weekly
+                # Coverage threshold: if ≥50% of this row's span is already
+                # covered by observed weekly data, skip the aggregate entirely.
+                # JHU weekly and annual rows come from different reporting
+                # streams and cannot be reconciled by subtraction; when weekly
+                # coverage is sufficient the aggregate adds noise not signal.
+                if weeks:
+                    covered_frac = sum(1 for k in weeks if k in weekly_covered) / len(weeks)
+                    if covered_frac >= COVERAGE_THRESHOLD:
+                        continue
+
+                # Fourier disaggregation — only fill weeks not already observed
                 eligible = [k for k in weeks
                             if not (src_label == "JHU" and k in weekly_covered)]
                 if not eligible:
