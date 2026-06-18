@@ -793,6 +793,18 @@ Zero-transmission entries require the same validation rigor as outbreak data - a
 
 **REQUIREMENTS: These practices are mandatory. Non-compliance compromises MOSAIC modeling effectiveness.**
 
+### Always State Explicit File Locations When Referencing Files
+
+**MANDATORY**: Whenever you mention, read, write, or reference a file — in chat responses, search logs, processing notes, reports, or commit messages — state its **explicit path**, not just the bare filename. This prevents ambiguity (e.g., `cholera_data_ai.csv` exists in 40 country directories) and lets the reader locate the file immediately.
+
+**Rules**:
+- Use the full repo-relative path (or absolute path) rather than a bare filename:
+  - ✅ `./data/MOZ/cholera_data_ai.csv`, `./reference/baseline_surveillance_gaps_detailed.csv`, `py/update_dashboard_data.py`
+  - ❌ `cholera_data_ai.csv`, `the gaps file`, `the dashboard script`
+- When using a path template, define the placeholder and give a concrete example: `./data/{ISO}/metadata_ai.csv` (e.g., `./data/MOZ/metadata_ai.csv`).
+- When reporting that data was added or changed, name the exact file path and the specific rows/indices affected (e.g., "added rows 38–44 to `./data/MOZ/cholera_data_ai.csv`").
+- When a referenced file lives outside the current working directory (another repo, a temp/cache location), say so explicitly with the full path.
+
 
 ## MANDATORY SEARCH STRATEGY AND BATCH PROCESSING
 
