@@ -311,15 +311,27 @@ def load_national_rows(iso, src, data_dir):
             tr = parse_date(row.get("TR", ""))
             if not tl or not tr:
                 continue
-            try:    sch = float(row.get("sCh", "") or 0)
-            except: sch = 0.0
+            # Distinguish a blank sCh (no count reported → no information) from an
+            # explicit 0 (a reported/documented zero). A blank must NOT be treated
+            # as a zero observation.
+            raw_sch = (row.get("sCh", "") or "").strip()
+            has_count = raw_sch != ""
+            try:    sch = float(raw_sch) if has_count else 0.0
+            except: sch, has_count = 0.0, False
             deaths_raw = row.get("deaths", "").strip()
             try:    deaths = float(deaths_raw) if deaths_raw else None
             except: deaths = None
             try:    conf = float(row.get("confidence_weight", "") or 0.9)
             except: conf = 0.9
-            rows.append({"tl": tl, "tr": tr, "sch": sch,
-                         "deaths": deaths, "conf": conf})
+            # Evidence type for zero-rows, parsed from processing_notes. Only a
+            # source-confirmed absence may be labelled documented_zero.
+            note = (row.get("processing_notes", "") or "").lower()
+            if   "documented_absence" in note: evidence = "documented"
+            elif "inferred_absence"   in note: evidence = "inferred"
+            elif "surveillance_gap"   in note: evidence = "gap"
+            else:                              evidence = "none"
+            rows.append({"tl": tl, "tr": tr, "sch": sch, "has_count": has_count,
+                         "evidence": evidence, "deaths": deaths, "conf": conf})
     return rows
 
 
@@ -340,9 +352,17 @@ def process_country(iso, template_info):
             return
         if SOURCE_PRIORITY[entry["source"]] > SOURCE_PRIORITY[existing["source"]]:
             merged[key] = entry
-        # Same source: prefer observed over disaggregated; else higher sCh
+        # Same source: prefer by method quality, then higher sCh.
+        # Rank: observed > documented_zero > fourier(positive) > inferred_zero.
         elif SOURCE_PRIORITY[entry["source"]] == SOURCE_PRIORITY[existing["source"]]:
-            if entry["method"] == "observed" and existing["method"] != "observed":
+            def _mrank(m):
+                if m == "observed":         return 4
+                if m == "documented_zero":  return 3
+                if m.startswith("fourier"): return 2
+                if m == "inferred_zero":    return 1
+                return 0
+            re_, rx_ = _mrank(entry["method"]), _mrank(existing["method"])
+            if re_ > rx_ or (re_ == rx_ and entry["sch"] > existing["sch"]):
                 merged[key] = entry
 
     # Process sources lowest→highest priority so higher-priority writes last
@@ -356,6 +376,8 @@ def process_country(iso, template_info):
         # 1. Assign weekly rows directly
         weekly_covered = set()
         for r in weekly:
+            if not r["has_count"]:
+                continue   # blank sCh = no count reported; not an observation
             key = r["tl"].isocalendar()[:2]
             weekly_covered.add(key)
             mon, sun = isoweek_bounds(*key)
@@ -371,9 +393,15 @@ def process_country(iso, template_info):
 
         # 2. Disaggregate non-weekly rows
         for r in non_weekly:
+            if not r["has_count"]:
+                continue   # blank sCh = no count = no information; do NOT emit a zero
             weeks = weeks_in_range(r["tl"], r["tr"])
 
             if r["sch"] == 0:
+                # Only a source-confirmed absence is a documented_zero; an explicit 0
+                # without such evidence (inferred/surveillance-gap/untagged, incl. JHU
+                # annual zeros) is a weaker inferred_zero.
+                zero_method = "documented_zero" if r["evidence"] == "documented" else "inferred_zero"
                 for key in weeks:
                     if src_label == "JHU" and key in weekly_covered:
                         continue   # don't let annual zeros overwrite weekly observed
@@ -383,7 +411,7 @@ def process_country(iso, template_info):
                         "deaths": 0.0,
                         "source": src_label,
                         "confidence": r["conf"],
-                        "method": "documented_zero",
+                        "method": zero_method,
                         "monday": mon,
                         "sunday": sun,
                     })
