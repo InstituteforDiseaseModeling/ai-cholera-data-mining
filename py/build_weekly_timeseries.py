@@ -63,6 +63,10 @@ SERIES_START = date(1970, 1, 1)
 # aspirational TR dates (e.g. multi-year "elimination strategy" targets) leaking
 # future observed/zero/fourier weeks into the series.
 SERIES_END = date.today()
+# Confidence ceiling for inferred_zero (explicit 0 without a source-documented absence,
+# incl. JHU annual zeros). Keeps the ordering documented_zero (>=0.8) > inferred_zero
+# (<=0.6) > assumed_zero (0.5), regardless of the source row's stated weight.
+INFERRED_ZERO_MAX = 0.6
 
 # Aggregate-row skip threshold: if this fraction of weeks in a non-weekly row's
 # span are already covered by JHU observed weekly data, skip the aggregate row
@@ -401,7 +405,10 @@ def process_country(iso, template_info):
                 # Only a source-confirmed absence is a documented_zero; an explicit 0
                 # without such evidence (inferred/surveillance-gap/untagged, incl. JHU
                 # annual zeros) is a weaker inferred_zero.
-                zero_method = "documented_zero" if r["evidence"] == "documented" else "inferred_zero"
+                if r["evidence"] == "documented":
+                    zero_method, zero_conf = "documented_zero", r["conf"]
+                else:
+                    zero_method, zero_conf = "inferred_zero", min(r["conf"], INFERRED_ZERO_MAX)
                 for key in weeks:
                     if src_label == "JHU" and key in weekly_covered:
                         continue   # don't let annual zeros overwrite weekly observed
@@ -410,7 +417,7 @@ def process_country(iso, template_info):
                         "sch":    0.0,
                         "deaths": 0.0,
                         "source": src_label,
-                        "confidence": r["conf"],
+                        "confidence": zero_conf,
                         "method": zero_method,
                         "monday": mon,
                         "sunday": sun,
