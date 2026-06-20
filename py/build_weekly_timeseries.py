@@ -58,6 +58,11 @@ K_MAX     = 8   # maximum harmonics considered during BIC selection
 
 # All time series start from this date regardless of when source data begins.
 SERIES_START = date(1970, 1, 1)
+# Upper clip: never emit weeks beyond the current date. Observed surveillance data
+# cannot exist for the future; this guards against source rows with future/typo/
+# aspirational TR dates (e.g. multi-year "elimination strategy" targets) leaking
+# future observed/zero/fourier weeks into the series.
+SERIES_END = date.today()
 
 # Aggregate-row skip threshold: if this fraction of weeks in a non-weekly row's
 # span are already covered by JHU observed weekly data, skip the aggregate row
@@ -435,10 +440,11 @@ def process_country(iso, template_info):
                         "sunday": sun,
                     })
 
-    # ── Clip to SERIES_START (drop any pre-1970 entries) ──────────────────
+    # ── Clip to [SERIES_START, SERIES_END] (drop pre-1970 and future weeks) ──
     series_start_monday = week_monday(SERIES_START)
+    series_end_monday   = week_monday(SERIES_END)
     merged = {k: v for k, v in merged.items()
-              if v["monday"] >= series_start_monday}
+              if series_start_monday <= v["monday"] <= series_end_monday}
 
     # ── Assumed-zero gap fill ──────────────────────────────────────────────
     # For historical periods: any ISO week that lies between the series start
