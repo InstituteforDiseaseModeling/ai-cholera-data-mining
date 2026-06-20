@@ -1331,7 +1331,7 @@
                 <h3>1. Gap Analysis and Baseline Integration</h3>
                 <p>
                     The workflow initiates with systematic integration of two foundational databases: the JHU Cholera Taxonomy Repository (1970-2020+ historical coverage) 
-                    and the WHO AWD Dashboard (2023-2025 recent surveillance). These baselines are analyzed using automated gap detection algorithms that identify 
+                    and the WHO AWD Dashboard (2023-present recent surveillance). These baselines are analyzed using automated gap detection algorithms that identify 
                     missing surveillance periods at monthly resolution. The analysis revealed 47.5% missing data across 40 MOSAIC framework countries, with gaps 
                     ranging from complete absence (5 countries with 0% coverage) to partial surveillance interruptions during conflict periods or health system disruptions.
                 </p>
@@ -1425,7 +1425,7 @@
                     For each ISO week, the highest-priority available source is retained.
                 </p>
                 <p>
-                    Annual or quarterly aggregate rows are disaggregated to weekly resolution using a country-specific Fourier seasonal template fitted to
+                    Multi-week aggregate rows (monthly, quarterly, annual, or multi-year) are disaggregated to weekly resolution using a country-specific Fourier seasonal template fitted to
                     case-weighted mean year-normalised fractions from observed weekly data. The harmonic order <em>K</em> is selected per country by BIC
                     (K = 1–8, capped at ⌊outbreak-years / 3⌋ to prevent overfitting on sparse data). Countries with fewer than three outbreak-years of
                     weekly observations fall back to a regional pooled template (UN subregion). Aggregate rows are skipped when ≥50% of their date span
@@ -1434,9 +1434,17 @@
                     Confidence weights scale from 0.9 (monthly disaggregation) to 0.5 (annual or multi-year).
                 </p>
                 <p>
-                    Four observation types are encoded in the output CSV: <em>observed</em> (direct weekly record), <em>fourier_disaggregated</em> (seasonal template applied to an aggregate),
-                    <em>documented_zero</em> (source explicitly states zero cases), and <em>assumed_zero</em> (historical gap with no source, at least 52 weeks before the most recent observation —
-                    recent gaps remain as missing data to avoid masking delayed reporting).
+                    Five observation types are encoded in the output CSV:
+                    <em>observed</em> (a source reported a count for that week, including an explicit zero);
+                    <em>fourier_*</em> (seasonal template applied to a multi-week aggregate &mdash; the CSV records the specific template used, e.g. <code>fourier_country_k2</code>);
+                    <em>documented_zero</em> (a source explicitly documented <em>absence</em> of transmission for the period &mdash; confidence &ge; 0.8);
+                    <em>inferred_zero</em> (an explicit zero count <em>without</em> a source-documented absence &mdash; e.g. annual zero summaries or inferred/regional absence &mdash; confidence capped at 0.6); and
+                    <em>assumed_zero</em> (a historical gap with no source at all, at least 52 weeks before the most recent observation &mdash; confidence 0.5; recent gaps remain as missing data to avoid masking delayed reporting).
+                </p>
+                <p>
+                    Zero observations are confidence-ordered to reflect evidence strength: <em>documented_zero</em> (&ge; 0.8) &gt; <em>inferred_zero</em> (0.6) &gt; <em>assumed_zero</em> (0.5).
+                    A blank case count is treated as <strong>missing information, never as a zero</strong> &mdash; such rows contribute no observation. The series is also clipped to the
+                    current date: no observed, zero, or disaggregated values are emitted for future weeks, guarding against source rows with future or aspirational end dates.
                 </p>
             </div>
         </div>
