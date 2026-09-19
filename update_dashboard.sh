@@ -118,6 +118,32 @@ echo "✅ Weekly time series built"
 # echo "✅ Data embedding completed"
 
 echo ""
+
+# Publishing is OPT-IN.
+#
+# This script is the one CLAUDE.md tells every agent to run, and it used to
+# commit and `git push` unconditionally - publishing to the public GitHub Pages
+# dashboard as a side effect of a routine data refresh. During an unattended
+# 40-country run that means dozens of automatic publications, and because the
+# staged set is only dashboard/, figures/dashboard/ and cholera_weekly_*.csv, it
+# would push derived outputs while the source CSVs they were built from stayed
+# uncommitted - an externally visible, internally inconsistent state.
+#
+# Local regeneration is always safe and always runs. To publish:
+#     bash update_dashboard.sh --publish
+PUBLISH=0
+for arg in "$@"; do
+    case "$arg" in
+        --publish) PUBLISH=1 ;;
+    esac
+done
+
+if [[ "$PUBLISH" -ne 1 ]]; then
+    echo "✅ Dashboard regenerated locally."
+    echo "   Not committed or pushed. Re-run with --publish to publish to GitHub Pages."
+    exit 0
+fi
+
 echo "🔄 Committing dashboard updates to GitHub..."
 
 # Safely add dashboard files to git (only if they exist)

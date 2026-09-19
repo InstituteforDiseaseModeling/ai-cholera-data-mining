@@ -49,12 +49,14 @@ def load_country_mapping():
 
 def load_country_data(country_iso):
     """Load cholera data for a specific country from separate files."""
-    # Try separate files first, then unified file as fallback
+    # The three per-source files are canonical. cholera_data.csv is their union
+    # (py/combine_all_sources.py); including it here double-counted every
+    # observation, because the loop below reads every path that exists rather
+    # than falling back to the union only when the per-source files are missing.
     data_paths = [
         f"{DATA_PATH}/{country_iso}/cholera_data_jhu.csv",
-        f"{DATA_PATH}/{country_iso}/cholera_data_who.csv", 
+        f"{DATA_PATH}/{country_iso}/cholera_data_who.csv",
         f"{DATA_PATH}/{country_iso}/cholera_data_ai.csv",
-        f"{DATA_PATH}/{country_iso}/cholera_data.csv"  # Fallback unified file
     ]
     
     all_data = []

@@ -67,7 +67,7 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
     }
     
     # Analyze agent log files
-    agent_logs = list(country_dir.glob('search_log_agent_*.txt'))
+    agent_logs = sorted(country_dir.glob('search_log_agent_*.txt'))
     agent_analysis = analyze_agent_logs(agent_logs)
     num_agents = len(agent_logs)
     
@@ -101,9 +101,15 @@ def analyze_country_directory(country_dir: Path, iso_code: str) -> Dict:
         'observations': str(cholera_data_info.get('row_count', '')),
         'date_range': cholera_data_info.get('date_range', ''),
         'priority': determine_priority(cholera_data_info),
-        'execution_time': str(execution_metrics.get('total_time', '')),
-        'queries': str(execution_metrics.get('total_queries', '')),
-        'yield_pct': f"{execution_metrics.get('yield_pct', ''):.1f}" if execution_metrics.get('yield_pct') else ''
+        # str(None) would render the literal text "None" in the dashboard.
+        'execution_time': ('' if execution_metrics.get('total_time') is None
+                           else str(execution_metrics['total_time'])),
+        'queries': ('' if execution_metrics.get('total_queries') is None
+                    else str(execution_metrics['total_queries'])),
+        # None means "could not be determined from the logs" and renders blank;
+        # 0.0 is a real measured yield and must not be blanked by a truthiness test.
+        'yield_pct': ('' if execution_metrics.get('yield_pct') is None
+                      else f"{execution_metrics['yield_pct']:.1f}")
     }
 
 def analyze_cholera_data(csv_file: Path) -> Dict:
@@ -254,40 +260,71 @@ def get_latest_modification_time(country_dir: Path) -> str:
     else:
         return ''
 
+# Structured batch-log fields emitted by templates/template_search_protocol.txt.
+_RE_SUCCESSFUL = re.compile(r'Successful queries\s*:\s*(\d+)\s*/\s*(\d+)', re.I)
+_RE_QUERIES = re.compile(r'^\s*Queries\s*:\s*(\d+)\s*$', re.I | re.M)
+_RE_ROWS = re.compile(r'^\s*Rows added\s*:\s*(\d+)', re.I | re.M)
+
+
 def calculate_execution_metrics(agent_logs: List[Path]) -> Dict:
-    """Calculate execution metrics from agent log files"""
+    """Calculate execution metrics from agent log files.
+
+    Yield is defined in CLAUDE.md as the fraction of QUERIES that produced at
+    least one new row - a value that cannot exceed 100%.
+
+    The previous implementation divided a regex count of the words
+    "added|new row|cholera_data.csv" by a regex count of "WebSearch|WebFetch",
+    which are unrelated quantities. It reported yields up to 2400% and was the
+    reason the "3 consecutive batches below 5%" stopping rule never actually
+    gated anything.
+
+    We now read the structured `Successful queries: k/20` fields that the search
+    protocol requires. When a log predates that format and the value cannot be
+    determined honestly, yield is returned as None and rendered blank, rather
+    than fabricating a number.
+    """
     total_queries = 0
-    total_time = 0
-    data_observations = 0
-    
+    successful_queries = 0
+    rows_added = 0
+    have_structured = False
+
     for log_file in agent_logs:
         try:
-            with open(log_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
-            # Count queries (lines with "WebSearch" or "WebFetch")
-            queries_in_log = len(re.findall(r'(WebSearch|WebFetch)', content, re.IGNORECASE))
-            total_queries += queries_in_log
-            
-            # Look for data observations added (lines mentioning "cholera_data.csv" additions)
-            data_adds = len(re.findall(r'(added|new.*row|cholera_data\.csv)', content, re.IGNORECASE))
-            data_observations += data_adds
-            
+            content = log_file.read_text(encoding='utf-8', errors='replace')
         except Exception as e:
             print(f"Warning: Could not analyze log file {log_file}: {e}")
             continue
-    
-    # Calculate yield percentage
-    yield_pct = (data_observations / total_queries * 100) if total_queries > 0 else 0
-    
-    # Estimate execution time (rough estimate based on query count)
-    estimated_minutes = total_queries * 0.3  # ~18 seconds per query average
-    
+
+        for k, n in _RE_SUCCESSFUL.findall(content):
+            k, n = int(k), int(n)
+            if n <= 0 or k > n:
+                continue  # malformed batch record; ignore rather than propagate
+            successful_queries += k
+            total_queries += n
+            have_structured = True
+
+        if not have_structured:
+            # Fall back to counting explicit per-batch query totals only.
+            for n in _RE_QUERIES.findall(content):
+                total_queries += int(n)
+
+        for n in _RE_ROWS.findall(content):
+            rows_added += int(n)
+
+    yield_pct = None
+    if have_structured and total_queries > 0:
+        yield_pct = min(100.0, successful_queries / total_queries * 100)
+
+    estimated_minutes = int(total_queries * 0.3)  # ~18s per query
+
+    # None, not 0, when nothing could be parsed. A dashboard cell reading "0
+    # queries" claims the agent did no work; blank correctly says the log did
+    # not record it. Legacy free-text logs predate the structured batch format.
     return {
-        'total_queries': total_queries,
-        'total_time': int(estimated_minutes),
+        'total_queries': total_queries if total_queries else None,
+        'total_time': estimated_minutes if total_queries else None,
         'yield_pct': yield_pct,
-        'data_observations': data_observations
+        'data_observations': rows_added,
     }
 
 def calculate_coverage_after_ai(country_dir: Path, iso_code: str, baseline_coverage: float) -> str:

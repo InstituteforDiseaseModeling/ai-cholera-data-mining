@@ -24,7 +24,43 @@
 **Output Format**: Enhanced cholera_data_ai.csv with AI discoveries using dual-reference indexing, separate from JHU/WHO baseline files  
 **Deliverables**: search_report.txt, enhanced metadata_ai.csv, enhanced cholera_data_ai.csv, individual search_log_agent_X.txt files
 **Progress Tracking**: dashboard/completion_checklist.csv (automatically updated from file system analysis)
-**Gap Analysis**: `py/analyze_baseline_gaps_optimized.py` generates baseline surveillance gap files from JHU/WHO data
+**Gap Analysis**: `py/analyze_effective_gaps.py` (all layers — use this for targeting); `py/analyze_baseline_gaps_optimized.py` (JHU/WHO only — use only to measure what AI added)
+
+## PIPELINE TOOLING — USE THESE, DO NOT HAND-EDIT
+
+These exist so that the rules in this document are enforced by code rather than
+by an agent remembering them. Hand-editing the CSVs is how the dataset
+accumulated 51 mismatched citations, 41 rows with no case value, duplicate rows
+and reversed dates.
+
+| Command | Purpose |
+|---|---|
+| `python py/add_observation.py register-source {ISO} ...` | Register a source; allocates the next metadata `Index` atomically, reuses on duplicate URL |
+| `python py/add_observation.py add {ISO} ...` | Add an observation. Writes `source` **from** metadata so the dual-reference pair cannot drift; computes CFR; rejects rule violations before they land |
+| `python py/add_observation.py add-zero {ISO} ...` | Add a validated zero-transmission period with a mandatory evidence label and surveillance status |
+| `python py/validate_quality.py [ISO...]` | Run the full rule set as executable checks. Exits non-zero on any ERROR. **The completion gate.** |
+| `python py/repair_data_integrity.py --dry-run\|--apply` | Mechanically repair known defect classes; withholds anything needing judgement to `attribution_review.csv` |
+| `python py/analyze_effective_gaps.py` | Gap analysis across JHU+WHO+AI — what actually still needs filling |
+| `python py/build_country_profiles.py` | Rebuild `reference/country_profiles.json` |
+
+**Reference data**:
+- `./reference/country_profiles.json` — per-country provinces (596 ADM1 units),
+  major cities, land neighbours, search languages, localized disease terms,
+  health-ministry domains, cholera seasonality. **Use this instead of recalling
+  country parameters from memory.**
+- `./reference/effective_surveillance_gaps_*.csv` — gaps remaining after all
+  layers. Target these.
+- `./reference/baseline_surveillance_gaps_*.csv` — JHU/WHO only. These list gaps
+  the AI layer has already filled; targeting them wastes query budget.
+- `./templates/template_search_protocol.txt` — the canonical search methodology.
+
+**Auxiliary data files** (created by the repair tool, maintained by agents):
+- `./data/{ISO}/cholera_presence_ai.csv` — cholera confirmed present but no
+  count available. Real evidence for gap classification; must NOT sit in
+  `cholera_data_ai.csv`, where the weekly builder would zero-fill it into a
+  false negative.
+- `./data/{ISO}/attribution_review.csv` — rows whose citation could not be
+  verified mechanically. Resolve against the source; do not relabel to silence.
 
 ## Orchestrator-Based Workflow Architecture
 
@@ -41,7 +77,7 @@
 ### Specialized Subagent Architecture
 
 **Location**: `.claude/agents` - Individual agent configurations and system prompts
-**Access Method**: Use the `Task()` tool with specific subagent_type parameters:
+**Access Method**: Use the `Agent` tool with specific subagent_type parameters (the tool was formerly named `Task()`; that name no longer resolves):
 - `cholera-baseline-collector` (Agent 1)
 - `geographic-expansion-specialist` (Agent 2)  
 - `zero-transmission-validator` (Agent 3)
@@ -52,7 +88,7 @@
 
 ### Workflow Execution Protocol
 
-Use orchestrator files with `Task()` tool for country-specific workflow execution.
+Use orchestrator files with the `Agent` tool for country-specific workflow execution.
 
 #### Step 1: Generate/Load Prompt File
 ```bash
@@ -67,7 +103,9 @@ python py/generate_country_prompt.py ETH
 ```python
 # The prompt file contains a Task command to initiate the workflow-orchestrator
 # Example content of prompt_AGO.txt:
-Task(description="Angola cholera workflow", prompt="AGO", subagent_type="workflow-orchestrator")
+Agent(description="Angola cholera workflow", prompt="AGO", subagent_type="workflow-orchestrator")
+# Note: the subagent tool is named `Agent` in current Claude Code. Older
+# revisions of this file called it `Task()`; that name no longer resolves.
 
 # The workflow-orchestrator then manages all 7 agents automatically:
 # - Agent 1: Baseline Collection (cholera-baseline-collector)
@@ -110,16 +148,21 @@ Only orchestrator does this at initialization and completion.
 
 **Note on search protocol sections**: This document contains three search protocol sections (Gap-Targeted Protocol, Ultra Deep Search Methodology, and Three-Phase Search Protocol in the Batch Processing section). These are complementary, not competing — they describe the same workflow from different angles. **Priority order**: (1) Always load gap files and target identified gaps first. (2) Apply ultra-deep multi-source coverage within each batch. (3) Follow the three-phase structure across the agent's full search run.
 
-**CRITICAL**: Before beginning any search, agents MUST consult the baseline surveillance gap analysis files to target missing periods in baseline data.
+**CRITICAL**: Before beginning any search, agents MUST regenerate and consult the EFFECTIVE surveillance gap analysis files, which account for data already collected across JHU + WHO + AI.
 
 ### Pre-Search Requirements (MANDATORY)
 
-1. **Load Baseline Gap Analysis Files**: Read baseline gap analysis files generated from JHU/WHO integrated baseline data
+1. **Refresh and load the EFFECTIVE gap analysis**: run `python py/analyze_effective_gaps.py`
+   first. It computes gaps across JHU + WHO + AI, so it reflects what is still
+   genuinely missing. The `baseline_*` files describe JHU/WHO only and will send
+   agents to re-search gaps the AI layer already closed.
 2. **All Agents Must Load**:
-   - `./reference/baseline_surveillance_gaps_annual.csv` - Years with ≥6 months missing data
-   - `./reference/baseline_surveillance_gaps_detailed.csv` - Consolidated gap periods with exact dates
-   - `./reference/baseline_surveillance_gaps_coverage.csv` - Country-level coverage summary
-3. **Identify Target Periods**: Focus searches on specific date ranges identified in baseline gaps
+   - `./reference/effective_surveillance_gaps_detailed.csv` - Consolidated gap periods with exact dates and era classification
+   - `./reference/effective_surveillance_gaps_annual.csv` - Years with ≥6 months missing data
+   - `./reference/effective_surveillance_gaps_coverage.csv` - Country-level coverage summary with per-layer attribution
+   - `./reference/effective_surveillance_recency.csv` - How stale each country is
+   - `./reference/country_profiles.json` - Provinces, cities, neighbours, languages, ministry domains, seasonality
+3. **Identify Target Periods**: Focus searches on specific date ranges identified in the effective gap files
 4. **Apply Exhaustive Search Strategy**: Target ALL surveillance gaps equally with comprehensive searches
    - No coverage-based allocation - all gaps receive equal search effort
    - Systematic coverage of every identified gap period
@@ -153,20 +196,42 @@ Only orchestrator does this at initialization and completion.
 
 ### Reference File Usage Protocol
 
-**baseline_surveillance_gaps_annual.csv Usage**:
-- Long format: country, iso_code, gap_year, months_missing
-- Lists all years with ≥6 months of missing baseline data
-- Use for year-specific gap targeting
+Regenerate first: `python py/analyze_effective_gaps.py`
 
-**baseline_surveillance_gaps_detailed.csv Usage**:
-- Consolidated periods: country, iso_code, gap_start, gap_end, days, months, years
-- Provides exact date ranges for all gaps ≥7 days
-- Use for precise temporal targeting
+**effective_surveillance_gaps_detailed.csv** — the primary targeting file:
+- Columns: `country, iso_code, gap_start, gap_end, days, months, years, era`
+- One row per consolidated gap period that remains after JHU + WHO + AI
+- `era` is `historical` (ends before 2000), `modern`, or `recent` (ends within
+  the last two years). Agent 4 owns `historical`; recency work owns `recent`.
+- Use for precise temporal targeting. Sort by `days` descending to work the
+  longest gaps first.
 
-**baseline_surveillance_gaps_coverage.csv Usage**:
-- Summary: country, iso_code, total_months, months_with_data, months_missing, percent_coverage, data_years, missing_years
-- Provides country-level overview for search allocation
-- Use to determine search effort distribution
+**effective_surveillance_gaps_annual.csv**:
+- Columns: `country, iso_code, gap_year, months_missing, months_in_year`
+- Years with ≥6 months missing. Use for year-specific gap targeting.
+
+**effective_surveillance_gaps_coverage.csv**:
+- Columns: `country, iso_code, total_months, months_with_data, months_missing,
+  percent_coverage, months_jhu, months_who, months_ai, months_ai_only,
+  months_with_positive_cases, gap_periods`
+- `months_ai_only` counts months where the AI layer is the sole source.
+- **Read `percent_coverage` with care.** A month counts as covered when >50% of
+  its days fall inside any observation, so a single multi-year absence row can
+  credit hundreds of months. High coverage driven by a handful of long rows is
+  weaker evidence than the same number built from many short observations —
+  check `months_ai_only` against the country's row count before concluding a
+  country is well covered.
+
+**effective_surveillance_recency.csv**:
+- Columns: `country, iso_code, latest_observation, days_stale,
+  latest_positive_observation, observations`
+- `latest_observation` can be the end of an AI-asserted absence period rather
+  than a real surveillance report. Compare it against
+  `latest_positive_observation` before judging how current a country is.
+
+**baseline_surveillance_gaps_*.csv** (JHU/WHO only) — do NOT use these for
+targeting; they list gaps the AI layer has already filled. Their sole legitimate
+use is Agent 7 measuring how much the AI layer added.
 ### Gap Validation Requirements
 
 **MANDATORY**: For each identified gap period, agents must:
@@ -250,7 +315,7 @@ Gap Status: FILLED/VALIDATED/REMAINING
 # Generate coverage heatmap showing temporal patterns by data source
 python py/generate_coverage_heatmap.py
 ```
-**Output**: `./figures/cholera_coverage_heatmap.png` - Countries×Years heatmap colored by JHU/WHO/AI sources
+**Output**: `./figures/dashboard/heatmaps/cholera_coverage_heatmap_national.png` and `..._subnational.png` - Countries×Years heatmaps colored by JHU/WHO/AI sources
 
 ## ULTRA DEEP SEARCH METHODOLOGY
 
@@ -258,8 +323,8 @@ python py/generate_coverage_heatmap.py
 
 ### Search Strategy
 **Multi-Engine Protocol**: 15+ search engines/databases per country  
-**Query Framework**: 7 mandatory categories, 50+ unique queries minimum  
-**Source Coverage**: 486 tiered domains in reference/priority_sources.txt + expansion
+**Query Framework**: 7 mandatory categories, 60 queries minimum (3 batches), 240 maximum (12 batches)  
+**Source Coverage**: 406 tiered domains in reference/priority_sources.txt + expansion
 
 ### Query Categories (Mandatory)
 
@@ -271,7 +336,7 @@ python py/generate_coverage_heatmap.py
 6. **Technical**: Laboratory networks, diagnostic evaluation, environmental monitoring
 7. **Linguistic**: Local language searches, vernacular terms, regional media
 
-**Query Templates**: See template_search_protocol.txt for complete query lists
+**Query Templates**: See `./templates/template_search_protocol.txt` for the canonical search methodology and query templates
 
 ### Advanced Techniques
 
@@ -585,8 +650,16 @@ reporting_date: End date + 1 day
 source_index: [metadata reference]
 source: [WHO surveillance confirmation or academic validation]
 confidence_weight: 0.8-1.0 (based on surveillance system quality)
-processing_notes: "Source confirms zero cholera transmission during [period] - validated absence via [surveillance system/WHO reporting]. Surveillance system status during absence: [operational/disrupted/unknown]. Evidence type: [Documented_Absence from WHO report / Inferred_Absence from gap analysis / Surveillance_Gap with no positive evidence]."
+processing_notes: "Source confirms zero cholera transmission during [period] - validated absence via [surveillance system/WHO reporting]. Surveillance system status during absence: [operational/disrupted/unknown]. Evidence type: [Documented_Absence from WHO report / Inferred_Absence from gap analysis]."
 source_database: AI
+
+**Surveillance_Gap is NOT a valid label for a zero row.** A surveillance gap
+means nobody was looking, which is missing data, not absence of disease.
+`py/build_weekly_timeseries.py` renders any non-documented zero as sCh=0, so a
+Surveillance_Gap row would assert "no cholera" for a period with no surveillance
+at all. `py/add_observation.py add-zero` rejects it. Record such periods in
+`./data/{ISO}/cholera_presence_ai.csv` and in the search log, and leave the
+period genuinely empty.
 ```
 
 ### Mandatory Zero-Transmission Entry Triggers
@@ -799,7 +872,7 @@ Zero-transmission entries require the same validation rigor as outbreak data - a
 
 **Rules**:
 - Use the full repo-relative path (or absolute path) rather than a bare filename:
-  - ✅ `./data/MOZ/cholera_data_ai.csv`, `./reference/baseline_surveillance_gaps_detailed.csv`, `py/update_dashboard_data.py`
+  - ✅ `./data/MOZ/cholera_data_ai.csv`, `./reference/effective_surveillance_gaps_detailed.csv`, `py/update_dashboard_data.py`
   - ❌ `cholera_data_ai.csv`, `the gaps file`, `the dashboard script`
 - When using a path template, define the placeholder and give a concrete example: `./data/{ISO}/metadata_ai.csv` (e.g., `./data/MOZ/metadata_ai.csv`).
 - When reporting that data was added or changed, name the exact file path and the specific rows/indices affected (e.g., "added rows 38–44 to `./data/MOZ/cholera_data_ai.csv`").
@@ -808,7 +881,7 @@ Zero-transmission entries require the same validation rigor as outbreak data - a
 
 ## MANDATORY SEARCH STRATEGY AND BATCH PROCESSING
 
-**CRITICAL**: This section defines the authoritative search methodology. Searches must be organized into logical batches of 20-25 queries covering diverse sources and time periods. Stopping criteria are evaluated after each batch.
+**CRITICAL**: This section defines the authoritative search methodology. Searches must be organized into logical batches of exactly 20 queries covering diverse sources and time periods. Stopping criteria are evaluated after each batch.
 
 **Execution model**: Queries within a batch execute sequentially (one WebSearch at a time); stopping criteria are evaluated between batches, not within them. The term "parallel" in earlier sections means organizing queries into coordinated batches, not simultaneous execution.
 
@@ -826,7 +899,7 @@ WebSearch("Angola cholera UNICEF 2024")
 
 **REQUIRED**: Organized batch execution
 ```python
-# REQUIRED - Parallel Batch Processing: batches of 20-25 queries
+# REQUIRED - Batch Processing: batches of exactly 20 queries
 [
   WebSearch("Angola cholera WHO 2024"),
   WebSearch("Angola cholera UNICEF 2024"),
@@ -838,12 +911,12 @@ WebSearch("Angola cholera UNICEF 2024")
   WebSearch("Angola cholera cases 2002"),
   WebSearch("Angola cholera deaths 2006"),
   WebSearch("Angola oral cholera vaccine 2018")
-  # ... up to 20-25 queries per batch
+  # ... 20 queries per batch
 ]
 ```
 
 **CRITICAL REQUIREMENTS**:
-- Execute 20-25 queries per batch in parallel
+- Execute exactly 20 queries per batch
 - Complete ALL stated queries without shortcuts
 - Maintain minimum performance standards (>50% of required rate)
 - Document batch completion times and query rates
@@ -945,10 +1018,10 @@ Comprehensive validation and source expansion:
 
 ### Performance Standards
 
-- **Minimum Batch Size**: 20 queries (maximum 25)
+- **Batch Size**: exactly 20 queries. The yield denominator is fixed at 20 throughout this document; a variable batch size makes yields non-comparable and shifts the 5% stopping threshold.
 - **Query Execution Rate**: >50% of maximum for >90% of time
 - **Batch Completion**: Document time and yield for each batch
-- **Total Coverage**: 200+ queries per agent (except Agent 7)
+- **Total Coverage**: 60 queries per agent minimum, 240 maximum (except Agent 7, which is unlimited)
 - **Stopping Criteria**: Per Agent Operations Framework
 
 ### Integration with Agent Framework
@@ -993,7 +1066,7 @@ Each agent applies this three-phase protocol with agent-specific focus:
 - [ ] **INDEX SYSTEM: All data rows have both source_index AND source columns populated**
 - [ ] **INDEX SYSTEM: No index numbers are duplicated or missing in metadata**
 - [ ] **PARALLEL EXECUTION: All searches conducted using parallel batch methodology**
-- [ ] **PERFORMANCE STANDARDS: Agents 1-6 continue until 3 consecutive batches <5% yield OR 10 total batches maximum**
+- [ ] **PERFORMANCE STANDARDS: Agents 1-6 executed >=3 batches minimum, then continued until 3 consecutive batches <5% yield OR 12 total batches maximum**
 - [ ] **SYSTEMATIC COVERAGE: Priority sources parsed and systematically searched**
 - [ ] **BATCH LOGGING: Query rates and performance metrics documented**
 
@@ -1188,8 +1261,8 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 
 #### **Updated Search Requirements (Using Parallel Methodology)**
 - **PARALLEL EXECUTION MANDATORY**: All queries must use batch processing (20 parallel queries per batch)
-- **Minimum Performance Standards**: Agent 1-6 continue until 3 consecutive batches <5% data observation yield OR 10 total batches maximum
-- **Systematic Coverage Required**: Agent 1 uses focused 45 highest-priority sources (200 queries from reference/priority_sources.txt)
+- **Minimum Performance Standards**: Agent 1-6 execute >=3 batches minimum, then continue until 3 consecutive batches <5% data observation yield OR 12 total batches maximum
+- **Systematic Coverage Required**: Agent 1 works the highest-priority tiers of reference/priority_sources.txt within its 240-query ceiling
 - **Multi-language Parallel Batches**: Execute simultaneous searches in English, Portuguese, French, Arabic, and local languages
 - **Cross-border Parallel Validation**: Batch searches across neighboring countries simultaneously
 - **Accelerated Temporal Coverage**: Parallel decade-specific searches (1970s-2020s executed simultaneously)
@@ -1204,7 +1277,7 @@ The Angola pilot successfully demonstrated this ULTRA-thorough methodology:
 - **Expert review** of all high-uncertainty data points while maintaining search momentum
 - **Performance Monitoring**: Real-time tracking of query rates and batch completion times
 
-This methodology enables systematic, batch-organized search coverage (up to 1,000-1,320 queries across Agents 1-6) while maintaining the highest quality standards for MOSAIC epidemiological modeling. Queries execute sequentially within each logical batch; stopping criteria are evaluated after each batch completes.
+This methodology enables systematic, batch-organized search coverage (up to 1,440 queries across Agents 1-6) while maintaining the highest quality standards for MOSAIC epidemiological modeling. Queries execute sequentially within each logical batch; stopping criteria are evaluated after each batch completes.
 
 ## MOSAIC FRAMEWORK COUNTRY PRIORITIZATION
 
@@ -1224,16 +1297,16 @@ This methodology enables systematic, batch-organized search coverage (up to 1,00
 
 **EXPLICIT AUTHORIZATION**: All AI instances working on cholera surveillance data collection have **UNRESTRICTED AND IMMEDIATE ACCESS** to all domains, websites, databases, and platforms listed in `./reference/priority_sources.txt`.
 
-**PRE-APPROVED DOMAIN ACCESS**: The reference/priority_sources.txt file contains **486 pre-authorized domains** organized into 4 priority tiers:
+**PRE-APPROVED DOMAIN ACCESS**: The reference/priority_sources.txt file contains **406 pre-authorized domains** organized into 4 priority tiers:
 
-- **TIER 1 (105 sources)**: WHO Official, Government Health Ministries, Major Academic Medical Centers
-- **TIER 2 (138 sources)**: UN Agencies, Major Universities, Established NGOs, Major Journals  
-- **TIER 3 (141 sources)**: Regional Organizations, News Media, Surveillance Networks, WASH Organizations
-- **TIER 4 (102 sources)**: Archives, Specialized Databases, Secondary Sources
+- **TIER 1 (95 sources)**: WHO Official, Government Health Ministries, Major Academic Medical Centers
+- **TIER 2 (113 sources)**: UN Agencies, Major Universities, Established NGOs, Major Journals  
+- **TIER 3 (130 sources)**: Regional Organizations, News Media, Surveillance Networks, WASH Organizations
+- **TIER 4 (68 sources)**: Archives, Specialized Databases, Secondary Sources
 
 **ACCESS PROTOCOL**: 
 1. **No Permission Required**: Proceed immediately with WebFetch(), WebSearch(), and data extraction from any domain in reference/priority_sources.txt
-2. **Systematic Coverage Mandatory**: Execute the required queries per tier (30/15/8/4 queries respectively) 
+2. **Systematic Coverage**: Weight query effort toward higher tiers, within the agent's 240-query ceiling 
 3. **Documentation Required**: Log all access attempts and results in search logs
 4. **Quality Standards**: Apply appropriate reliability ratings based on tier classifications
 
@@ -1268,27 +1341,40 @@ This comprehensive access authorization enables thorough, systematic cholera sur
 #### **Protocol Structure**
 ```
 Given batches of 20 queries:
-1. All agents (1-6) continue searching until ONE of these conditions is met:
+1. All agents (1-6) must execute a MINIMUM of 3 batches (60 queries),
+   regardless of yield.
+2. Beyond that floor, continue until ONE of these is met:
    a) 3 consecutive batches achieve <5% data observation yield, OR
-   b) 10 total batches have been executed (200 queries maximum)
-2. No exceptions - these are hard stopping criteria for consistency
+   b) 12 total batches have been executed (240 queries maximum)
 ```
 
 #### **Parameter Specifications**
 
 **Unified Parameters for Agents 1-6**:
 
-**All Agents (1-6)**: 
-- Stop when 3 consecutive batches achieve <5% data observation yield
-- OR stop after 10 total batches (200 queries maximum)
-- No minimum batch requirements - agents may stop earlier if 3 consecutive low-yield batches occur
-- No exceptions or quality overrides - consistent application across all agents
+- **Minimum 3 batches (60 queries), always.** A country whose first batch
+  returns nothing is usually a country with hard-to-find data, not a country
+  with no data. Stopping at batch 1 is the pipeline's dominant under-collection
+  failure mode.
+- Then stop when 3 consecutive batches achieve <5% data observation yield
+- OR stop after 12 total batches (240 queries maximum)
+- Budget allocation across phases is defined in
+  `./templates/template_search_protocol.txt`
 
 **Threshold Rationale**:
 - 5% threshold: Balances thoroughness with efficiency across all agent types
 - 3 consecutive batches: Ensures genuine saturation rather than temporary fluctuations
-- 10 batch maximum: Prevents excessive searching while allowing thorough coverage
-- Unified criteria: Simplifies implementation and ensures consistency
+- 3 batch minimum: Prevents premature termination on slow-starting countries
+- 12 batch maximum: Prevents excessive searching while allowing thorough coverage
+
+**Budget coherence note.** Earlier revisions of this document specified per-phase
+query counts (165 in Phase 1, 200 in Phase 2, "25 per gap" in Phase 5) that
+summed well past the stated 200-query ceiling. Because the protocol could not be
+followed as written, each agent improvised its own budget and actual execution
+diverged wildly (observed batch counts ranged from 1 to 26 for the same agent
+role across countries). The authoritative, internally consistent budget now
+lives in `./templates/template_search_protocol.txt`; per-phase allocations there
+sum to the 12-batch ceiling.
 
 #### **Data Observation Yield = Successful Queries Only**
 ```
@@ -1334,7 +1420,7 @@ Where "Successful Queries" are those that produce:
 
 See Agent Operations Framework section for detailed agent requirements and responsibilities.
 
-**Total Maximum Workflow Limit**: 1,200 queries for Agents 1-6 (6 agents × 200 queries max), unlimited validation queries for Agent 7
+**Total Maximum Workflow Limit**: 1,440 queries for Agents 1-6 (6 agents × 240 queries max), unlimited validation queries for Agent 7
 
 ## AGENT OPERATIONS FRAMEWORK
 
@@ -1358,17 +1444,23 @@ echo "" >> ./data/{ISO_CODE}/search_log_agent_1.txt
 Note: Agent 1 initialization triggers workflow orchestrator dashboard update to mark country as "PENDING"
 
 #### Gap Analysis File Loading (Agents 1-6)
-All data collection agents (1-6) MUST load the baseline gap analysis file:
-- **File**: `./reference/baseline_surveillance_gaps_detailed.csv`
-- **Purpose**: Target specific temporal gaps identified in baseline data
+All data collection agents (1-6) MUST load the EFFECTIVE gap analysis file:
+- **File**: `./reference/effective_surveillance_gaps_detailed.csv`
+  (regenerate first with `python py/analyze_effective_gaps.py`)
+- **Purpose**: Target the gaps that actually remain across JHU + WHO + AI.
+  The `baseline_*` files describe JHU/WHO only and list gaps the AI layer has
+  already filled; targeting those wastes query budget.
 - **Usage**: Focus searches on gap periods based on agent-specific strategies
 
 #### Stopping Criteria (Agents 1-6)
 All data collection agents use identical stopping criteria:
-- **Continue searching until ONE of these conditions is met:**
+- **Execute a MINIMUM of 3 batches (60 queries) before stopping**, whatever the yield.
+- **Then continue until ONE of these conditions is met:**
   - 3 consecutive batches achieve <5% data observation yield, OR
-  - 10 total batches have been executed (200 queries maximum)
-- **No exceptions**: Apply criteria uniformly across all data collection agents
+  - 12 total batches have been executed (240 queries maximum)
+- Apply uniformly across all data collection agents. The 3-batch floor is part
+  of the criteria, not an exception to them: a country whose first batch returns
+  nothing is usually a country with hard-to-find data, not a country without data.
 
 ### Agent-Specific Responsibilities
 

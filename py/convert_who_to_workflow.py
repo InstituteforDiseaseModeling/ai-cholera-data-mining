@@ -153,9 +153,16 @@ def convert_who_data_to_workflow(who_data, country_iso, country_name):
             # Calculate CFR
             cfr = calculate_cfr(cases, deaths)
             
-            # Clean numeric values
-            sch = int(cases) if not pd.isna(cases) and cases > 0 else None
-            deaths_clean = int(deaths) if not pd.isna(deaths) and deaths > 0 else None
+            # Clean numeric values.
+            #
+            # A reported zero is DATA, not a missing value. Writing None for
+            # `cases == 0` made a WHO week that explicitly reported no cholera
+            # indistinguishable from a week WHO never covered, which silently
+            # deleted 622 documented-zero weeks from the coverage analysis and
+            # manufactured phantom surveillance gaps in 2025-2026 - the highest
+            # search-priority period. Only a genuine NaN is missing.
+            sch = None if pd.isna(cases) else int(cases)
+            deaths_clean = None if pd.isna(deaths) else int(deaths)
             
             cholera_data_entry = {
                 'Location': f'AFR::{country_iso}',

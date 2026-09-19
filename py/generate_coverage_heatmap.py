@@ -46,14 +46,21 @@ def load_all_country_data():
     all_data = []
     
     for country_iso, country_info in country_mapping.items():
-        # Try separate files first, then unified file as fallback
+        # The three per-source files are canonical.
+        #
+        # cholera_data.csv (written by py/combine_all_sources.py) is the UNION of
+        # those three. It used to be appended to this same list with the comment
+        # "fallback unified file", but there was no fallback branch - the loop
+        # read all four unconditionally, counting every observation twice.
+        # Measured: 1,019,401 rows loaded against 509,700 real ones, exactly 100%
+        # inflation in every heatmap and timeline. It only ever looked correct
+        # because cholera_data.csv is usually absent.
         country_data_paths = [
             f"{DATA_PATH}/{country_iso}/cholera_data_jhu.csv",
-            f"{DATA_PATH}/{country_iso}/cholera_data_who.csv", 
+            f"{DATA_PATH}/{country_iso}/cholera_data_who.csv",
             f"{DATA_PATH}/{country_iso}/cholera_data_ai.csv",
-            f"{DATA_PATH}/{country_iso}/cholera_data.csv"  # Fallback unified file
         ]
-        
+
         country_data_combined = []
         for data_path in country_data_paths:
             if os.path.exists(data_path):

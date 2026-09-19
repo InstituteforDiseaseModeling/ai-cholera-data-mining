@@ -1,0 +1,211 @@
+================================================================================
+MOSAIC AI CHOLERA DATA MINING - CANONICAL SEARCH PROTOCOL
+================================================================================
+Referenced by every data-collection agent (1-6). Until now this file was cited
+by the Agent 1 definition but did not exist, so each agent improvised its own
+methodology. This is the single source of truth for HOW to search. Agent
+definitions specify WHAT each agent targets; they do not restate this.
+
+--------------------------------------------------------------------------------
+0. BEFORE YOUR FIRST QUERY
+--------------------------------------------------------------------------------
+Run these. Do not search until you have.
+
+  # What still needs filling, accounting for data already collected.
+  # Use the EFFECTIVE gap files, not the baseline ones: the baseline files
+  # describe JHU+WHO only and will send you to gaps the AI layer already filled.
+  python py/analyze_effective_gaps.py
+
+  Then read, filtered to your country:
+    ./reference/effective_surveillance_gaps_detailed.csv   gap periods + era
+    ./reference/effective_surveillance_gaps_annual.csv     years >=6 months missing
+    ./reference/effective_surveillance_recency.csv         how stale the country is
+    ./reference/country_profiles.json                      provinces, cities,
+                                                           neighbours, languages,
+                                                           ministry domains, season
+    ./reference/effective_surveillance_gaps_coverage.csv   per-layer coverage summary
+    ./reference/priority_sources.txt                       406 pre-authorised domains
+
+  # What earlier agents already did, so you do not repeat their work.
+  python -c "import sys; sys.path.insert(0,'py'); from workflow_state import read_workflow_state; \
+             import json; print(json.dumps(read_workflow_state('{ISO}'), indent=2))"
+
+  # Existing rows, so you do not re-add what is there.
+  cat ./data/{ISO}/cholera_data_ai.csv
+
+Open your log immediately: ./data/{ISO}/search_log_agent_{N}.txt
+
+--------------------------------------------------------------------------------
+1. QUERY BUDGET - THE NUMBERS THAT ACTUALLY ADD UP
+--------------------------------------------------------------------------------
+The previous protocol demanded ~365 queries inside a 200-query ceiling, so it
+could not be followed as written and each agent silently invented its own
+budget. The real budget:
+
+  Batch            = 20 queries
+  Maximum          = 12 batches = 240 queries per agent
+  Minimum          = 3 batches = 60 queries, ALWAYS, even if yield is 0
+  Stop when        = 3 consecutive batches below 5% yield, OR 12 batches done
+
+The minimum matters. A country whose first batch returns nothing is usually a
+country with hard-to-find data, not a country with no data. Stopping at batch 1
+is the single most common way this pipeline under-collects.
+
+Allocate the 12 batches across phases:
+
+  Phase 1  Broad discovery          batches 1-4   (WHO/official, academic,
+                                                   humanitarian, national)
+  Phase 2  Targeted gap filling     batches 5-8   (specific gap periods, provinces,
+                                                   alternate languages)
+  Phase 3  Deep validation          batches 9-12  (citation chains, archives,
+                                                   cross-border, corroboration)
+
+Move to the next phase when the current one saturates; do not skip Phase 3 just
+because Phase 1 went well. Phase 3 is where the non-obvious sources live.
+
+--------------------------------------------------------------------------------
+2. YIELD - DEFINED CORRECTLY
+--------------------------------------------------------------------------------
+  Batch yield = (queries that produced >=1 NEW ROW committed to
+                 cholera_data_ai.csv) / 20 * 100
+
+Count QUERIES, not rows. One query that adds 8 rows counts once. Yield can
+never exceed 100%; if your arithmetic produces a number above 100 you have
+counted rows, which is the error that made the old dashboard report yields of
+2400%.
+
+A query counts ONLY if a row was actually committed. It does not count for:
+finding a promising source, finding a source with no numbers, confirming
+something already recorded, or intending to add a row later.
+
+Log every batch in this shape:
+
+  === BATCH {n} | PHASE {p} | {ISO} ===
+  Gap targeted : {gap_start}..{gap_end} ({days}d, {era})
+  Queries      : 20 (list them)
+  Sources found: {n}    Registered: index {a},{b},{c}
+  Rows added   : {n}    Indices: {list}
+  Successful queries: {k}/20
+  Yield        : {k/20*100:.0f}%   (percent, 0-100 - record batch_yields in
+                                    PERCENT units, not fractions, so that the
+                                    >100 tripwire for row-counting errors works)
+  Consecutive sub-5% batches: {n}
+  Decision     : CONTINUE / STOP ({reason})
+
+--------------------------------------------------------------------------------
+3. THE SEVEN QUERY CATEGORIES
+--------------------------------------------------------------------------------
+Every batch mixes at least three. Across your whole run, cover all seven.
+
+  1 WHO / official      WHO AFRO bulletins, Disease Outbreak News, WER, GHO,
+                        Africa CDC, national ministry and NPHI sites
+                        (see health_domains in country_profiles.json)
+  2 Academic            PubMed, Google Scholar, medRxiv, journal sites.
+                        Retrospective and multi-year review papers are the
+                        highest-yield historical source there is - one paper can
+                        close a decade of gaps.
+  3 Humanitarian        ReliefWeb, OCHA, UNICEF, MSF, IFRC, WHO EMRO/AFRO sitreps
+  4 Regional            Neighbouring-country reports (use `neighbors`), cross-border
+                        transmission studies, Lake Chad / Great Lakes / Sahel
+                        surveillance networks
+  5 Historical          WER archives by decade, colonial and missionary records,
+                        national archives, Internet Archive for dead links
+  6 Technical           Laboratory and genomic studies, V. cholerae typing papers,
+                        environmental surveillance, GTFCC documents
+  7 Linguistic          Use `search_languages` and `disease_terms` from the
+                        country profile. For lusophone, francophone, hispanophone
+                        and arabophone countries, English-only searching misses
+                        most national reporting.
+
+--------------------------------------------------------------------------------
+4. QUERY CONSTRUCTION
+--------------------------------------------------------------------------------
+Always bind a query to a gap period and a place. Bare "{country} cholera" is
+wasted budget.
+
+  "{country} cholera cases deaths {gap_year}"
+  "{country} {province} cholera outbreak {gap_start_year}-{gap_end_year}"
+  "{country} cholera {season_phrase} {gap_year}"          (see `season`)
+  "{disease_term} {country_local_name} {gap_year}"        (see `disease_terms`)
+  "site:{ministry_domain} cholera {gap_year}"             (see `health_domains`)
+  "{country} cholera surveillance annual report {gap_year}"
+  "{neighbour} {country} cross-border cholera {gap_year}"
+  "{country} cholera retrospective 1970..2000 review"
+  "WHO Weekly Epidemiological Record cholera {gap_year} Africa"
+
+For absence, search for the positive claim of absence, not the lack of results:
+  "{country} cholera-free {year}"
+  "{country} no cholera cases reported {year}"
+  "WHO {country} zero cholera {year}"
+An empty search result is NOT evidence of absence. It is evidence of nothing.
+
+--------------------------------------------------------------------------------
+5. EXTRACTION - HOW A FINDING BECOMES A ROW
+--------------------------------------------------------------------------------
+Never hand-edit the CSVs. Use the writer; it allocates indices, copies the
+source name from metadata so the two cannot disagree, and refuses rows that
+break a mandatory rule.
+
+  python py/add_observation.py register-source {ISO} \
+      --name "..." --url "..." --reliability {1-4} \
+      --date-range "..." --discovery "the query that found it"
+
+  python py/add_observation.py add {ISO} --source-index {n} \
+      --location "AFR::{ISO}[::Province[::District]]" \
+      --tl YYYY-MM-DD --tr YYYY-MM-DD \
+      --sch N --deaths N --reporting-date YYYY-MM-DD \
+      --confidence 0.X --quote "exact words from the source"
+
+  python py/add_observation.py add-zero {ISO} --source-index {n} \
+      --tl YYYY-MM-DD --tr YYYY-MM-DD \
+      --evidence Documented_Absence|Inferred_Absence|Surveillance_Gap \
+      --surveillance operational|partial|disrupted|unknown \
+      --confidence 0.X --quote "exact words from the source"
+
+Rules the writer enforces, so you do not have to remember them:
+  - at least one of sCh / cCh / deaths, always
+  - TR not in the future; reporting_date >= TR; TL <= TR
+  - deaths <= sCh; cCh <= sCh; CFR computed, never typed
+  - confidence inside the band for the source's reliability level
+  - multi-year aggregates and >15% CFR capped at confidence 0.7
+  - location is geographic, inside the right country, not a programme category
+  - no duplicate (location, period, counts)
+
+A source that confirms cholera occurred but gives NO numbers does not become a
+row. Record it in ./data/{ISO}/cholera_presence_ai.csv - it is real evidence for
+gap classification, but as a row in cholera_data_ai.csv it is prohibited by
+CLAUDE.md and is discarded by coverage analysis as non-informative, so it would
+look like data while contributing none.
+
+--------------------------------------------------------------------------------
+6. CORROBORATION
+--------------------------------------------------------------------------------
+  >1000 cases        find a second independent source before committing
+  100-1000 cases     seek a second source; single Level 1-2 source acceptable,
+                     note the single-source status
+  <100 cases         single source acceptable, weight accordingly
+  first outbreak in a new area, or dates that contradict the regional pattern:
+                     second source required regardless of size
+
+When two sources disagree, prefer WHO/government over local, final over
+preliminary, and the more specific geography. Record BOTH numbers in
+processing_notes and lower the confidence. Never average them.
+
+--------------------------------------------------------------------------------
+7. BEFORE YOU DECLARE DONE
+--------------------------------------------------------------------------------
+  python py/validate_quality.py {ISO}
+
+Must exit 0. If it reports ERRORs, fix them - they are your rows. Then record
+your state so the next agent does not redo your work:
+
+  python -c "import sys; sys.path.insert(0,'py'); from workflow_state import write_agent_state; \
+             write_agent_state('{ISO}', agent_num={N}, batches_completed={B}, \
+             batch_yields={YIELDS}, rows_added={R}, sources_discovered={S}, \
+             stopping_reason='{WHY}', gaps_filled={FILLED}, gaps_remaining={LEFT})"
+
+Report honestly. An agent that searched hard and found nothing has produced a
+useful result: it tells the next agent, and the modellers, that the data is not
+publicly available. An agent that pads its log with sources it did not extract
+from has produced a harmful one.
+================================================================================
