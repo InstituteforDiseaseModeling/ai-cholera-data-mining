@@ -113,13 +113,27 @@ srccount () { local f="data/$1/metadata_ai.csv";   [[ -f "$f" ]] && echo $(( $(w
 
 refresh_dashboard () {   # $1 = "light" | "full"
   if [[ "$1" == "full" ]]; then
+    # Heavy: weekly series for all 40, heatmaps, barplot, then commit+push.
     if [[ $PUBLISH -eq 1 ]]; then
       bash update_dashboard.sh --publish >> "$LOGDIR/_dashboard.log" 2>&1
     else
       bash update_dashboard.sh >> "$LOGDIR/_dashboard.log" 2>&1
     fi
   else
+    # Light: just the progress view (checklist + embedded data). Published too,
+    # so the live dashboard reflects every completed country rather than only
+    # every DASH_EVERY-th one - the run is unattended and this is the only way
+    # to watch it from elsewhere.
     python3 py/update_dashboard_data.py >> "$LOGDIR/_dashboard.log" 2>&1
+    if [[ $PUBLISH -eq 1 ]]; then
+      {
+        git add -A dashboard/ reference/run_manifest.csv 2>/dev/null
+        git diff --staged --quiet || {
+          git commit -q -m "Run progress: ${2:-country} complete - $(date '+%Y-%m-%d %H:%M:%S')"
+          git push -q origin "$(git branch --show-current)"
+        }
+      } >> "$LOGDIR/_dashboard.log" 2>&1
+    fi
   fi
 }
 
@@ -201,7 +215,7 @@ for iso in "${QUEUE[@]}"; do
   # Progress is monitored through the dashboard, so refresh it every country.
   # The full rebuild (weekly series, heatmaps, barplot) is heavier, so it runs
   # on a cadence rather than every time.
-  if (( n % DASH_EVERY == 0 )); then refresh_dashboard full; else refresh_dashboard light; fi
+  if (( n % DASH_EVERY == 0 )); then refresh_dashboard full "$iso"; else refresh_dashboard light "$iso"; fi
   echo "    dashboard refreshed ($( (( n % DASH_EVERY == 0 )) && echo full || echo light))"
 done
 
