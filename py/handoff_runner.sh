@@ -28,6 +28,12 @@ LOG="logs/handoff_$(date +%Y%m%d-%H%M%S).log"
   fi
   rm -f STOP
 
+  # Countries that really did run all seven agents were scored 0/7 by the old
+  # broken gate and are sitting in the manifest as incomplete. Promote them
+  # before the queue is rebuilt, or the relaunch re-runs work that is already
+  # finished - four hours per country.
+  python3 py/reconcile_manifest.py --apply || true
+
   # Refuse to relaunch if anything is already running. The previous handoff
   # produced two runners one second apart; they worked ERI and TGO
   # simultaneously and left two conflicting national rows behind. The runner now

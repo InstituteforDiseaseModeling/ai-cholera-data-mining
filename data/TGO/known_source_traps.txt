@@ -92,3 +92,448 @@ Agent 3 could not apply the fix: py/add_observation.py has no edit
 subcommand. The caveat is registered as metadata source 219 so it travels
 with the data. ACTION FOR AGENT 7 / a future repair pass: relabel Index 25
 to Inferred_Absence and consider lowering its confidence_weight.
+
+==========================================================================
+ADDED 2026-09-19 BY AGENT 4 (obscure-source-explorer)
+==========================================================================
+
+TRAP 1 - NOW PROVEN FROM WHO'S OWN CATALOGUE, not inferred
+--------------------------------------------------------------------------
+The WHO Disease Outbreak News back-end returns the COMPLETE list of Togo
+DONs. Query:
+  https://www.who.int/api/news/diseaseoutbreaknews?sf_provider=dynamicProvider372
+  &sf_culture=en&$select=Title,PublicationDateAndTime,ItemDefaultUrl
+  &$filter=contains(Title,'Togo')&$format=json&$top=50
+It returns 15 items. The three January-February 1997 items are titled, by WHO:
+  1997-01-24  "1997 - Meningitis outbreak in Togo"
+  1997-01-27  "1997 - Meningitis outbreak in Togo - Update"
+  1997-02-07  "1997 - Meningitis outbreak in Togo - Update 2"
+The 739 cases / 121 deaths in Dapaong are MENINGITIS. Settled, in one call.
+The same list shows WHO has published EXACTLY ONE cholera DON for Togo ever:
+4 January 2021, on the 2020 Golfe outbreak. There is no cholera DON for 1991,
+1998 or 2001, so that route to the pre-2003 sub-national void is closed.
+CAVEAT: the title filter misses multi-country items. WHO DON "2001 - Cholera in
+West Africa" (17 Sep 2001, item 2001_09_17a-en) does mention Togo - but only to
+say the outbreaks "began in April 2001"; it gives numbers for Burkina Faso,
+Cote d'Ivoire and Niger and NONE for Togo.
+
+TRAP 5 - TOGOLESE ANNUAIRES CONTAIN TWO INCOMPATIBLE CHOLERA STREAMS
+--------------------------------------------------------------------------
+Every edition of the Annuaire des Statistiques Sanitaires / Principaux
+Indicateurs de Sante has BOTH:
+  (a) the IDSR notification table, "Repartition des cas, des deces et de la
+      letalite des maladies a potentiel epidemique par district", sourced to
+      "Division de la surveillance integree des urgences et riposte" (or
+      "Division de l'Epidemiologie"); and
+  (b) routine HMIS "Cas de consultation" and "Causes d'hospitalisation" tables
+      by region and age/sex, which also carry a "Cholera" line.
+In PIS 2016 these read, for the SAME year:
+  (a) Ensemble pays = 2 cases, 0 deaths
+  (b) Lome Commune 279 + Plateaux 194 + Kara 117 + Savanes 35 + Centrale 24 +
+      Maritime 5 = 654 consultations, plus hospitalisation lines (Lome 7,
+      Savanes 17).
+654 against 2, in one document, for one year. Stream (b) is a diagnostic code
+in the consultation register dominated by acute watery diarrhoea. An agent that
+greps a Togolese annuaire for "cholera" hits stream (b) FIRST.
+RULE: in any Togolese annuaire, extract ONLY from the table whose source line
+names the Division de la surveillance integree / Division de l'Epidemiologie.
+Never from "Cas de consultation" or "Causes d'hospitalisation".
+
+TRAP 6 - MARITIME REGION 2021 REPORT CONFLATES COVID-19 WITH CHOLERA
+--------------------------------------------------------------------------
+Rapport annuel de performance de la Region sanitaire Maritime 2021 (metadata
+170) states: "Les evenements de sante publique qui ont marque l'annee a ete
+l'epidemie de la maladie a Coronavirus et le cholera dans les Lacs ... (nombre
+de cas confirmes 2076 avec 47 deces)". THE 2076 / 47 IS COVID-19. Lacs district
+cholera in 2021 was of the order of 37 cases (Annuaire 2021). The sentence names
+two epidemics and then gives one pair of numbers. Do not attribute it to cholera.
+
+TRAP 7 - SEARCH-RESULT SUMMARIES INVENT TOGO CHOLERA NUMBERS
+--------------------------------------------------------------------------
+Two separate fabrications were served during one agent's run and both were
+caught only by fetching the underlying document:
+  * "The worst outbreak in recent years was in 1998 when 239 people died and
+    3,669 cases were reported." The 3 669 is real (MoH PNDS, row 301) but NO
+    retrievable document states 239 deaths. Both sources the summary cited were
+    fetched: the WHO DON "Cholera - Togo" is dated 4 Jan 2021 and is about the
+    2020 outbreak; the AJOL/JRSUL paper is Patassi et al 2010 on 2003-04. Neither
+    mentions 1998. TREAT 239 AS UNATTESTED.
+  * "34 strains of Vibrio cholerae were isolated" at CHU Sylvanus Olympio /
+    INH Lome over 2001-2011. The underlying paper ("Agents bacteriens isoles
+    lors de coprocultures ... 2001 a 2011") actually reports 2 262 stool
+    cultures of which 1.5% were REQUESTED for suspected cholera; 1.5% x 2262
+    = 33.9. The "34" is 34 TEST REQUESTS, not 34 isolates.
+RULE for Togo: never enter a figure that exists only in a search-result summary.
+
+NOT A TRAP - A CORRECTION TO A PREVIOUS LEAD
+--------------------------------------------------------------------------
+The UNICEF WCARO figures "Lome 65%, Maritime 19.5%, Plateaux 13.3%" are NOT a
+decomposition of the 2001 epidemic, as a search summary implies. The factsheet
+says they describe 2006-2013 (and a later edition reuses them for 2004-2016).
+They are the percentage form of rows 231-240 (source 151): Lome D1-D5 sum 1253,
+Maritime 375, Plateaux 256, of a regional total of 1919 - which gives exactly
+65.3 / 19.5 / 13.3. They add no new information and must NOT be multiplied
+against a national total (doing so against 2142 would give Lome 1392 instead of
+the true 1253).
+
+==========================================================================
+ADDED 2026-09-19 BY AGENT 5 (cross-reference-integrator)
+STATUS CHANGES TO THE OPEN ITEMS ABOVE, PLUS THREE NEW ROUTE FACTS
+==========================================================================
+
+*** ROUTE FACT 1 - THE TOGOLESE MINISTRY OF HEALTH IS NOT DEAD. ***
+--------------------------------------------------------------------------
+Three runs and six agents recorded sante.gouv.tg (and its successor
+sante-assurances.gouv.tg) as unreachable because both serve an identical
+~17.6 KB React shell for EVERY path, including for a known-good control.
+That is true of the FRONT END ONLY. The response carries a
+Content-Security-Policy header whose connect-src directive names the host
+the SPA fetches from:
+    connect-src 'self' https://bk.sante.gouv.tg ...
+bk.sante.gouv.tg is a live WordPress instance with an open REST API:
+    https://bk.sante.gouv.tg/wp-json/wp/v2/media?search=<term>&per_page=100
+    https://bk.sante.gouv.tg/wp-json/wp/v2/documentation?per_page=100
+    https://bk.sante.gouv.tg/wp-content/uploads/<yyyy>/<mm>/<file>.pdf
+It both LISTS and SERVES the PDFs. Verified by retrieving, as real %PDF
+files, the Rapport annuel de performance 2024 (1.97 MB - the document Agent
+1 named the top unretrieved item for the 2024 outbreak, proven by Agent 4
+to be absent from Common Crawl and present in the Wayback Machine only as a
+5.3 KB post-breakage shell), the Rapport general de la Revue nationale
+conjointe 2024, the Bulletin National SNIS T1/2026 and the PNDS mid-term
+evaluation of May 2026.
+COMPLETE INVENTORY TAKEN so nobody re-hunts: 113 PDFs, 88 documentation
+items. NOT THERE: any Annuaire for 2024; any Rapport annuel de performance
+for 2025; any BNTIS issue other than T1/2024 and T1/2026 (no T2, T3 or T4
+of any year); any DSIUR weekly bulletin.
+GENERALISE THIS: when a government site serves an SPA shell, read its CSP
+connect-src header for the back-end host.
+
+*** ROUTE FACT 2 - THE INTERNET ARCHIVE IS BACK. ***
+--------------------------------------------------------------------------
+It was offline for the whole of Agent 3's and Agent 4's runs and both
+recorded that as a hard blocker. web.archive.org and the CDX API respond
+normally as of 2026-09-19 (the /wayback/available JSON endpoint still
+rate-limits with 429; use CDX). reference/url_check_broken.csv is usable
+again. This run used it to recover the Togo MoH "Principaux indicateurs de
+sante 2015" and "Principaux Indicateurs de Sante 2014", neither of which is
+served anywhere live, via the archived pre-2018 Drupal landing pages at
+sante.gouv.tg/fr/content/...
+
+*** ROUTE FACT 3 - A CORRECTION TO AGENT 4 ON THE WER INFECTED-AREAS SERIES.
+--------------------------------------------------------------------------
+Agent 4 concluded from an IRIS item histogram that the "Infected areas as
+at" series "does not extend past 2001". The separately CATALOGUED items stop
+there; THE LISTS THEMSELVES DO NOT. WER 2002;77(02), 77(10) and 77(19) - the
+lists of 10 January, 7 March and 9 May 2002 - each carry "Togo: Golfe,
+Kloto, Kozah, Lacs, Ogou, Sotouboua, Vo and Yoto Districts". To find them,
+download the FULL ISSUES from IRIS, not the catalogued list items.
+
+--------------------------------------------------------------------------
+RESOLVED - "the 209 question" (was OPEN CONFLICT)
+--------------------------------------------------------------------------
+STATUS: THE SYSTEMATIC QUESTION IS RESOLVED; A RESIDUAL REMAINS, AND THE
+DOCUMENT THAT WILL SETTLE IT IS NAMED.
+The premise on which three runs rejected the 209 was that it required 44
+unreported cases after the outbreak was declared over. IT DOES NOT.
+Togo's OWN notifiable-disease return - BNTIS No 01/T1/2026, Tableau XIX,
+previous-year column, source DHIS2, recovered from bk.sante.gouv.tg - gives
+183 suspected cholera cases for ISO weeks 1-13 of 2025 against WHO's 164-165
+for essentially the same window. The Togolese series was ALREADY 18 cases
+above WHO's before the disputed period begins, so the residual is 26 cases
+over twelve weeks, about two a week - the same order as the 12 cases over 13
+weeks the SAME instrument records for Q1 2026.
+The UNICEF release also calibrates itself: against WHO sitrep #28 of 24 July
+2025 it runs Cote d'Ivoire at x3.2, Nigeria at x1.8 and Ghana at x0.25.
+TOGO'S x1.27 IS THE SMALLEST DIVERGENCE IN THE RELEASE.
+And the two systems are not chronically offset - for 2024 the Ministry's
+Rapport annuel de performance (281 suspected / 87 confirmed / 17 deaths /
+6,04%) and WER 2025;100(36) (281 / 17 / 6.0, 87 confirmed) agree TO THE UNIT.
+ACTIONS: AI row 348 created (209/5, 2025-01-01..2025-06-22, confidence 0.5);
+AI row 23 downgraded Documented_Absence -> Inferred_Absence and 0.95 -> 0.4;
+AI row 24 downgraded Documented_Absence -> Inferred_Absence and 0.9 -> 0.6.
+Neither retracted - the 26 residual cases are a subtraction, not a source
+statement.
+=> WHAT WILL SETTLE IT: the Togo MoH RAPPORT ANNUEL DE PERFORMANCE 2025,
+   expected on bk.sante.gouv.tg around mid-2026. DSIUR semaine 25/2025 itself
+   is NOT recoverable: not in the ministry back-end (enumerated in full), not
+   in the Wayback Machine under any Togolese/WHO/humanitarian host, not on
+   plateformecholera.info, and divprosante.tg has no bulletin tree. The WHO
+   AFRO Monthly Regional Cholera Bulletin series, which would have carried a
+   mid-2025 cumulative, STOPPED at the June 2025 edition.
+
+--------------------------------------------------------------------------
+RESOLVED - the 2011 conflict (was OPEN CONFLICT, "ministry disagrees with itself")
+--------------------------------------------------------------------------
+DETERMINED: 33 cases / 1 death. AI row 126 is PRIMARY (0.85 -> 0.9). WHO's
+4/0 is a FAILED ANNUAL RETURN, not a lower estimate.
+SIX instruments give 33-35 with one death, against ONE WHO return counted
+twice (the UNICEF 2007-2013 total of 983 is not independent - it reproduces
+the JHU annual sum exactly). The two that were new this run:
+  * BETTOGO n6, MoH Division de l'Epidemiologie, DECEMBER 2011 - the only
+    CONTEMPORANEOUS instrument - Tableau I: 33 cases, 1 death, letalite 3.0.
+  * Moore et al, PLoS NTD 2015 (new metadata 226, AI row 349): Togo's
+    National Institute of Hygiene supplied TEN 2011 CLINICAL ISOLATES. Ten
+    laboratory-confirmed patients cannot fit inside a notified annual of 4.
+Decisive supporting facts: AI row 339 puts 29 cases and 1 death in ZIO
+district in September 2011 ALONE; WHO's return carries ZERO deaths while
+every Togolese instrument carries ONE, named to Tsevie; and BETTOGO Tableau
+III reports 2011 weekly-report completeness 99% and promptness 97% across
+all 35 districts, so the system was reporting.
+Q4 2011 IS NOT A ZERO - IT IS ONE CASE (new AI row 347). Agent 3 was right
+not to write the zero; the bulletin's self-contradiction resolves in favour
+of Tableau I, whose cholera line satisfies its own CFR (1/33 = 3.03 = the
+printed 3.0), while the narrative sentence means "no cholera OUTBREAK in Q4".
+
+--------------------------------------------------------------------------
+RESOLVED - the 2015 conflict (was OPEN CONFLICT)
+--------------------------------------------------------------------------
+DETERMINED: 35 cases / 1 death. AI row 300 is PRIMARY (0.85 -> 0.9); AI row
+331 (58/2) is retained, marked NON-PRIMARY, cut 0.8 -> 0.6.
+DECIDING EVIDENCE: Togo MoH "Principaux indicateurs de sante 2015" Tableau
+XVI (new metadata 225, recovered from the reopened Internet Archive) prints
+"Letalite due au cholera 2,9". 1/35 = 2.857 -> 2,9. 2/58 = 3.448 -> 3,4,
+which is what the GTFCC deck itself prints beside its own 58/2.
+WARNING ABOUT THE GTFCC DECK (metadata 208), which is worth carrying forward:
+it reproduces the PNDS 2017-2022 Tableau I exactly for 2010, 2012 and 2013
+and WHO exactly for 2016 and 2020-2023, and departs ONLY in 2011 (35 v 33),
+2014 (343 v 262) and 2015 (58 v 35) - ALWAYS UPWARD. Its 2014 value is
+refutable outright: PIS 2014 Tableau XXXVII (Division de l'Epidemiologie)
+gives 113/2 + 113/6 + 36/3 + 0 + 0 + 0 = 262/11, summing exactly. Treat the
+deck as reliable where it agrees and as an upper outlier where it does not.
+No reconciliation for 343 or 58 was found; a year shift, an outbreak
+re-partition and a confirmed-case reading were each tested and rejected.
+
+--------------------------------------------------------------------------
+RESOLVED - the 2001 / 1998 national series (was ALSO DISPUTED / UNDETERMINED)
+--------------------------------------------------------------------------
+2001 IS DETERMINED. 2 551 is the sum of the seven in-year WER notifications,
+which stop on 14 OCTOBER 2001; it is what WHO's GHO database and the JHU
+baseline carry. WHO'S OWN PUBLISHED ANNUAL REVIEW gives 2 696 / 132 (WER
+2002;77(31) Table 1, AI row 342) and is the figure of record. The Ministry's
+2 740 (AI row 302, raised 0.7 -> 0.8) is then only 1.6 PER CENT ABOVE WHO'S
+OWN NUMBER, not 7.4 per cent above it. THE CONFLICT LARGELY DISSOLVES.
+Proof that no residual notification exists: all 51 issues of WER volume 77
+were downloaded and searched, and the volume's own annual index lists exactly
+one Togo cholera page reference for the whole of 2002 - the 1.I-25.VIII 2002
+notification.
+1998 IS STILL UNDETERMINED (MoH 3 669/239 v WHO 3 217/221, a 14% gap), but
+note the same mechanism is available: only 2 687 of WHO's 3 217 can be traced
+to dated notifications and those cover 20 Feb - 17 Nov only.
+=> WHAT WOULD SETTLE 1998: Landoh et al (JID 2013) Table 1, closed on ten
+   routes by Agent 4; or a Togolese 1998 annual return.
+
+--------------------------------------------------------------------------
+RESOLVED - row Index 25 (was OPEN REPAIR)
+--------------------------------------------------------------------------
+ESCALATED FROM RELABEL TO RETRACTION. Agent 3 asked for Documented_Absence ->
+Inferred_Absence. The row is not mislabelled, IT IS FALSE. BNTIS No
+01/T1/2026, Tableau XIX, prints Cholera for 2026: week 13 = 1 suspected case
+/ 0 deaths, cumulative weeks 1-13 = 12 SUSPECTED CASES / 1 DEATH. ISO week 13
+of 2026 ends 29 March 2026 and the bulletin says so in prose - the identical
+window row 25 asserted as zero. ROW 25 RETRACTED (tombstone in
+retracted_rows_ai.csv), REPLACED BY AI ROW 344.
+
+--------------------------------------------------------------------------
+RESOLVED - metadata 45 mis-attribution (raised by Agents 2 and 4)
+--------------------------------------------------------------------------
+Confirmed and REPAIRED, not just flagged. iris.who.int/handle/10665/231442
+resolves to "Infected areas as at 1 March 2001", not WER 1998;73(23). The
+correct item is iris.who.int/handle/10665/230485; its TEXT bitstream was
+downloaded and the line read in the source ("Notifications received from 29
+May to 4 June 1998 ... Togo 20.II-30.IV ... 200 10", running head "No. 23,
+5 JUNE 1998"). Registered as metadata 228; row 36 retracted and re-issued
+UNCHANGED as row 352; metadata 45 set to Status 'Superseded' with an
+explanation. NOTE THE ORDER: revise_observation.py refuses to supersede a
+metadata entry any live row still cites, so move the row first.
+
+--------------------------------------------------------------------------
+NOT A DEFECT - metadata 131 (Agent 4's flag WITHDRAWN)
+--------------------------------------------------------------------------
+iris.who.int/handle/10665/232414 resolves to "Weekly Epidemiological Record,
+2004, vol. 79, 09 [full issue]" and its IHR section reads "Notifications of
+diseases received from 20 to 26 February 2004 ... Togo ...
+3.XI.2003-12.II.2004  593  18" - exactly AI row 182. Agent 4 was comparing
+against the separately catalogued OUTBREAK NEWS extract for the same issue
+(10665/232410), which omits Togo. The entry is sound; do not re-flag it.
+
+--------------------------------------------------------------------------
+TRAP 5 REPRODUCED IN A NEW DOCUMENT, AND WORSE THAN THE PIS 2016 EXAMPLE
+--------------------------------------------------------------------------
+The ANNUAIRE 2019's regional "Cas de consultation" tables - broken down by
+<5 years / 5+ years and listing "Nb cas cancer du poumon", "Tentative suici"
+and "Tabagisme" alongside "Nb cas cholera" - give Lome Commune 0, Plateaux 6,
+KARA 36 and SAVANES 10, about 52 "cholera cases", FOR A YEAR IN WHICH WHO,
+the JHU baseline, the Rapport annuel de performance 2018 and the Ministry's
+own DSIUSR laboratory table ALL RECORD ZERO. Stream (b) again. The 2019
+edition has NO IDSR maladies-a-potentiel-epidemique district table at all,
+so there is nothing legitimate to extract from it.
+
+--------------------------------------------------------------------------
+STILL UNDETERMINED, with the document that would settle each
+--------------------------------------------------------------------------
+ * 1993: WHO 19 cases / 2 deaths v the Togolese archive's ~274. All 51 issues
+   of WER volume 68 are now downloaded and scanned space-insensitively (the
+   1993 OCR inserts spaces inside country names) and carry EXACTLY ONE Togo
+   cholera notification: 1.III-12.IV 1993, 14 cases and 2 DEATHS (AI row 170).
+   The DEATHS MATCH WHO's annual EXACTLY and only 5 cases separate the
+   notification from it, so unlike 2001 WHO's 1993 figure is consolidated, not
+   truncated. Against that, the Plan Strategique Fig.2 chart that carries the
+   274 prints ZERO deaths for every year 1990-1993 and non-zero deaths from
+   1994 on, so its pre-1994 deaths series is absent rather than zero.
+   => SETTLED BY: the Togolese national surveillance archive for 1993.
+ * 1998: see above. => SETTLED BY: Landoh et al (JID 2013) Table 1.
+ * 2020, the SUSPECTED-case count: 55/2 (Annuaire 2020 Tableau CXVI, the only
+   value that DECOMPOSES - Golfe 53 + Oti 2, every other district zero, new AI
+   row 346) against 67/2 (WHO/JHU) and 68 suspected/18 confirmed/2 deaths
+   (RAP 2020, AI row 341). ALL FOUR AGREE ON 2 DEATHS. Read as final-versus-
+   preliminary: the DON of 4 Jan 2021 was compiled during outbreak close-out,
+   the Annuaire is the cleaned statistic published 18 months later. NOTE THE
+   ARITHMETIC IMPOSSIBILITY THIS EXPOSES: AI row 49 puts 67 cases in Golfe in
+   SEVEN WEEKS against the same district's full-year total of 53. Row 49 cut
+   0.9 -> 0.8 and annotated, NOT retracted (it is the only source of the 17
+   laboratory confirmations).
+   => SETTLED BY: the DSIUR annual report for 2020 read alongside the Annuaire.
+ * THE 2024 AND JAN-MAR 2025 OUTBREAKS STILL HAVE NO DISTRICT CASE COUNTS, and
+   the last routes are now closed: the Rapport annuel de performance 2024 is
+   readable and has NO by-district table (its cholera content is one narrative
+   paragraph); there is NO Annuaire 2024; and the IFRC GO register holds TEN
+   Togo operations in total, ending at MDRTG010 in 2023, so THERE IS NO IFRC
+   OPERATION FOR THE 2024-25 OUTBREAK and no DREF to mine. A ministry-internal
+   discrepancy is worth carrying: the PNDS mid-term evaluation names FIVE 2024
+   districts (Vo, Agoe-Nyive, Golfe, Bas-Mono, Lacs) and the RAP 2024 names
+   FOUR (Vo omitted). The five-district list is the correct one - Vo's single
+   case is independently attested.
+   => SETTLED BY: the Annuaire des Statistiques Sanitaires 2024, if it is ever
+      published, or a DSIUR annual report for 2024/2025.
+
+==========================================================================
+ADDED 2026-09-19 BY AGENT 6 (gap-context-investigator)
+ONE NEW TRAP, ONE GENERAL TEST, TWO ROUTE FACTS, AND A CORRECTION I MADE
+==========================================================================
+
+*** THE DECISIVE TEST FOR ANY WHO-SOURCED TOGOLESE ZERO ***
+--------------------------------------------------------------------------
+Do NOT ask "is Togo absent from the WER cholera table". Ask "IS TOGO IN THE
+ZERO-REPORTING LIST". WHO's cholera annuals carry an explicit list of the
+countries that "reported 0 cases and deaths ... fulfilling the vital public
+health surveillance service of 'zero reporting'". Being IN it is a printed
+nil return. Being merely absent from the case table is not a zero - WHO's
+own footnote says so, and Togo proves it.
+RESULT OF RUNNING THAT TEST ON EVERY WER CHOLERA ANNUAL 2013-2024:
+  Togo IN the zero-reporting list  : 2018, 2019, 2022  (and only these)
+  Togo REPORTED CASES              : 2013, 2014, 2015, 2020, 2021, 2023, 2024
+  Togo ABSENT FROM BOTH            : *** 2016 AND 2017 ***
+2016 and 2017 are TWO CONSECUTIVE FAILED ANNUAL RETURNS. The string "Togo"
+occurs ZERO times in WER 2018;93(38) "Cholera, 2017". That is why WER
+Cholera-2020's "Togo reported its first cases since 2015" exists - WHO had no
+2016 or 2017 Togolese return to contradict it with - and it is why that
+sentence is WRONG for 2016, where Togo's own Annuaire records 2 cases.
+The 1980s CANNOT pass this test at all: WER "Cholera in 1985", "1987" and
+"1989" were read in full and contain NO zero-reporting instrument. The
+footnote is a later WHO innovation. So no 1980s Togolese zero can ever be
+Documented_Absence; Inferred_Absence is the ceiling the evidence allows.
+
+--------------------------------------------------------------------------
+TRAP 8 - AI ROW 26's HEADLINE QUOTE IS ABOUT MEASLES
+--------------------------------------------------------------------------
+Row 26 (AFR::TGO, 2026-03-30..2026-08-16, sCh=0) carries
+  Source states: 'As of 19 July 2026, all previously affected health
+  districts in Togo were no longer in the MEASLES epidemic phase.'
+This is DELIBERATE and Agent 1 explains it in the body of the note - the
+sentence is offered as proof that WHO AFRO was still receiving district-level
+Togolese outbreak data, not as a statement about cholera, and the row is
+correctly labelled Inferred_Absence. But on the one country whose TRAP 1 is
+"a Togo MENINGITIS outbreak repeatedly ingested as cholera by five agents",
+a cholera zero row whose headline quote is about a third disease is a trap
+for the next agent who greps the CSV. Do not read it as a cholera statement
+and do not propagate it.
+ALSO: row 26 is largely REDUNDANT. Rows 335-338 cover 2026-03-30..2026-07-26
+at monthly resolution on WHO's canonical global cholera product. The only
+period row 26 uniquely carries is 2026-07-27..2026-08-16.
+
+--------------------------------------------------------------------------
+TRAP 9 - WHO'S OWN ZERO-REPORTING FOOTNOTE IS DATED A YEAR WRONG IN ENGLISH
+--------------------------------------------------------------------------
+WER 2020;95(37):441-448 "Cholera 2019", footnote (a) to Table 1:
+  ENGLISH: "The following countries reported 0 cases and deaths in 2018 ..."
+  FRENCH : "Les pays suivants ont signale 0 cas et deces en 2019 ..."
+SAME FOOTNOTE, SAME PAGE, DIFFERENT YEAR. It is the Cholera-2019 report, so
+the English year is WHO's copy-paste error from the previous edition. The two
+language lists also differ in membership (English carries Guinea and
+Indonesia; French carries Sri Lanka). TOGO IS IN BOTH. Anyone citing this for
+Togo's 2019 nil return must quote the FRENCH, or they will appear to hold two
+2018 sources and none for 2019.
+
+--------------------------------------------------------------------------
+A ZERO ROW CONTRADICTED BY TOGO'S OWN RETURN, SECOND INSTANCE - ROW 108
+--------------------------------------------------------------------------
+Agent 5 caught Index 25 (2026 Q1). THERE WAS A SECOND, MILDER ONE AND IT
+SURVIVED FIVE AGENTS. Row 108 asserted a national zero for
+2024-01-01..2024-06-30 at Documented_Absence 0.90 while AI row 334 - from
+Togo's own BNTIS No 01/T1/2024, DHIS2 - records 1 suspected cholera case in
+ISO weeks 1-13 of 2024. Agent 1 wrote the contradiction into row 334's notes
+and left row 108 alone.
+WHY NO CHECK CAUGHT IT: py/validate_quality.py's same_period_conflict fires
+only on IDENTICAL location AND period. A positive row NESTED INSIDE a longer
+zero row is invisible to it. THE SWEEP THAT DOES CATCH IT, worth re-running on
+any country: every zero row x every positive row, testing location containment
+(same node or descendant) x period overlap, RANKED BY overlap divided by the
+POSITIVE row's own length - which pushes multi-year aggregates, the benign
+majority, to the bottom. On TGO it returned 56 overlaps of which exactly one
+was real.
+ACTION TAKEN: row 108 narrowed to 2024-04-01, relabelled Inferred_Absence,
+0.90 -> 0.55. Not retracted; the counter-argument (the AFRO monthly increments
+sum to exactly the 281 annual) is recorded on the row.
+
+--------------------------------------------------------------------------
+"NOT NAMED AMONG THE AFFECTED DISTRICTS" HAS TWICE FAILED TO MEAN ZERO IN TOGO
+--------------------------------------------------------------------------
+ 1. RAP 2024 (metadata 222) names FOUR 2024 districts - Agoe-Nyive, Golfe,
+    Bas-Mono, Lacs - and OMITS VO, whose case is attested by AI rows 102 and
+    333 and which the PNDS mid-term evaluation does name.
+ 2. The 2020 epidemic was described as confined to commune Golfe 4, yet the
+    Annuaire 2020 records 2 cases in OTI, Savanes (AI row 58).
+CONSEQUENCE: rows 117-120 (2024 H2 regional zeros, built on WHO AFRO's
+enumeration of affected districts) were relabelled Documented -> Inferred.
+Rows 112-115 were NOT, because the March 2025 AFRO choropleth assigns every
+labelled district to the explicit legend class "Non affected districts",
+which is an affirmative per-district statement rather than a non-listing.
+That is the line: an explicit "0" or "non affected" class = Documented; not
+appearing in a list of the affected = Inferred.
+
+--------------------------------------------------------------------------
+ROUTE FACTS
+--------------------------------------------------------------------------
+ * bk.sante.gouv.tg HOLDS NOTHING EARLIER THAN THE ANNUAIRE 2019. Searches for
+   surveillance / SIMR / epidemio / annuaire / performance / bulletin return
+   only: STEPS 2021; Annuaires 2019-2023; performance reports 2020-2024 plus
+   Maritime 2021 and Kara 2024; BNTIS T1/2024 and T1/2026. CONFIRMED AS OF
+   2026-09-19: THE RAPPORT ANNUEL DE PERFORMANCE 2025 IS STILL NOT PUBLISHED,
+   so Agent 5's docket item A4 cannot be closed yet. Re-check search=performance.
+ * THE WER "YELLOW FEVER IN <year>" ANNUALS ARE AN UNDER-USED INSTRUMENT FOR
+   THE 1970s-80s. Yellow fever was, like cholera, notifiable under IHR(1969),
+   so a Togo entry in a yellow-fever notification table proves the SAME
+   channel that would have carried cholera was open. WER "Yellow fever in
+   1984" (IRIS 10665/225554, now metadata 231) records Togo notifying a fatal,
+   twice-laboratory-confirmed case in November 1984 in the Central Region,
+   with a WHO-supported 300 000-person vaccination response - inside the
+   cholera-free run and in one of its two demanding years.
+ * THE WHO GHO "NUMBER OF REPORTED CASES" SERIES IS A MACHINE-READABLE
+   REPORTING HEARTBEAT. ghoapi.azureedge.net/api/WHS3_{41,43,46,47,49,50,53,
+   55,56,57,62}?$filter=SpatialDim eq 'TGO'. Togo filed a return in EVERY year
+   1974-2025 with no missing year, including explicit zeros for diphtheria
+   throughout the 1970s and 1980s. Cheaper and more complete than the WER
+   date-of-last-report trick, and it generalises to any country.
+   NOTE: WHS3_40 (cholera) is EMPTY for Togo; the cholera series lives under
+   CHOLERA_0000000001 and only holds 2012 onward.
+
+--------------------------------------------------------------------------
+A MISTAKE I MADE, RECORDED SO IT IS NOT REPEATED
+--------------------------------------------------------------------------
+I tried to register WER "Yellow fever in 1984" against IRIS handle
+10665/226718, carried over from an adjacent search result WITHOUT VERIFYING
+IT. add_observation.py rejected it as a duplicate URL: 10665/226718 is already
+metadata 22 and is WER "Cholera in 1987". The correct handle is 10665/225554.
+This is the exact mis-citation class that left metadata 45 wrong for three
+runs. ALWAYS resolve the handle before registering it; the duplicate-URL guard
+happened to catch me, and it will not always.
