@@ -140,3 +140,546 @@ Yield          : 0%
 Consecutive sub-5% batches: 1
 Decision       : CONTINUE (3-batch floor; and Batch 1 produced two live leads:
                  togo.unfpa.org pub-pdf, and the PIS regional-table structure)
+
+================================================================================
+=== BATCH 2 | PHASE 1->2 | TGO ===
+Target gap : T1 2007-2012 (via the MoH statistical-yearbook series) + T2 1974-2003
+Category mix: national/official, academic, historical, linguistic (fr)
+Operations:
+   1  curl probe set: togo.unfpa.org/sites/default/files/pub-pdf/ x 32 filename permutations
+      for PRINCIPAUX INDICATEURS DE SANTE / ANNUAIRE 2008-2016 -> ALL 404 except the
+      already-known 2014. afro.who.int/sites/default/files/{2016-05,2017-06,2017-10,2018-01}/
+      "Principaux indicateurs de sante {2010..2015}.pdf" -> ALL 404. Only 2016 exists.
+   2  WebSearch: "principaux indicateurs de sante" Togo 2010/2011/2012 "maladies a potentiel epidemique"
+   3  curl + pdftotext: afro.who.int PIS 2016 (6.5 MB, 11 663 lines)
+   4  curl + pdftotext: faolex.fao.org/docs/pdf/tog200021.pdf = PNDS 2012-2015 (3.2 MB).
+      NEW WORKING MIRROR of a document previously only reachable via extranet.who.int.
+      Cholera content is qualitative only (letalite cumulee 0,6% target <1%); no series.
+   5  structural pass over PIS 2016: located 8 separate "Cholera" lines
+   6  read of PIS 2016 Tableau XCVIII (MPE par district, Togo, 2016)
+   7  WebSearch: Togo annuaire statistiques sanitaires 2013/2014/2015 "par district"
+   8  curl probe set: extranet.who.int/countryplanningcycles planning_cycle_repository/togo/
+      (pnds_togo.pdf 200 - that is metadata 195; annuaire/pnds_2009_2013 404;
+      the repository's own HTML index page is 404, so there is no listing to crawl)
+   9  curl probe set: sante.gouv.tg RE-TESTED with a full Safari User-Agent and an
+      application/pdf Accept header -> still 17 513 / 17 525 byte text/html.
+      NOT an anti-bot block.
+  10  r.jina.ai text-extraction proxy against the same sante.gouv.tg PDF -> returns the
+      SAME shell, and renders its content as: "Annuaire 2019_final_V2.pdf / Cette page
+      est e[n construction]". CONCLUSION, stronger than previous runs': sante.gouv.tg is
+      not blocking us, its document tree is simply NOT SERVED. No proxy, UA, or header
+      will fix it. Stop trying.
+  11  WebSearch: cholera Togo Lome 1991 Bull Soc Pathol Exot / Med Afr Noire
+  12  probe set: horizon.documentation.ird.fr (ORSTOM/IRD) fulltext endpoint returns an
+      88-byte stub; plateformecholera.info CONFIRMED LAPSED (200 but redirects to
+      www.geoffroy-guichard.com, a commercial site);
+      africhol.org is 200 but is now a SQUATTED domain (serves "regional-field-desk" /
+      "muniu-client" marketing pages, no Africhol content); aamp.org does not resolve.
+  13  africhol.org link crawl (confirms squat); documentation.ehesp.fr memoire -> HTTP 500
+  14  AJOL site search "cholera Togo" (20 article hits, none Togo-cholera-specific
+      except the known JRSUL one); EHESP retry over http -> 500 again
+  15  PubMed MCP: "cholera AND Togo" -> 23 records TOTAL, all-time. Read all 23 titles.
+  16  PubMed MCP: full metadata pull on the 10 oldest/most promising PMIDs
+  17  curl probe set: inseed.tg (200 root, /annuaire-statistique/ 404);
+      togo.opendataforafrica.org 403; univ-lome.tg and biblio.univ-lome.tg DO NOT RESOLVE
+      (curl exit 6, DNS failure) - Togo's university repository is off the public internet
+  18  WebSearch: ProMED-mail Togo cholera Lome 1998/2001
+  19  WebFetch: who.int/emergencies/disease-outbreak-news/item/cholera-togo
+  20  WebFetch: ajol.info JRSUL 11(2) Patassi et al 2010 (the 2003-04 Lome paper)
+
+FINDINGS
+
+ F4  *** A NEW TRAP - CAUGHT BEFORE IT BECAME A ROW. ***
+     Togo's Principaux Indicateurs de Sante / Annuaire des Statistiques Sanitaires
+     contains TWO INCOMPATIBLE cholera streams, and an agent grepping the PDF for
+     "cholera" will hit the wrong one first:
+       (a) the IDSR / DSIUR notification table ("Repartition des cas, des deces et de la
+           letalite des maladies a potentiel epidemique par district") - PIS 2016
+           Tableau XCVIII - which gives Togo 2016 = 2 cases, 0 deaths, nationally;
+       (b) the routine HMIS "Cas de consultation" and "Causes d'hospitalisation" tables,
+           broken down by region and age/sex, which in the SAME 2016 document give a
+           "Cholera" line of Lome Commune 279, Plateaux 194, Kara 117, Savanes 35,
+           Centrale 24, Maritime 5 = 654 consultations, plus hospitalisation lines
+           (Lome Commune 7, Savanes 17).
+     654 vs 2 in one document for one year. Stream (b) is a diagnostic code in the
+     consultation register, not a notified cholera case; it is dominated by acute watery
+     diarrhoea coded to the cholera line. ENTERING STREAM (b) WOULD FABRICATE ~650 CASES
+     IN A YEAR BOTH WHO AND THE TOGOLESE MINISTRY PUT AT 2.
+     Rule for run N+1: in any Togolese annuaire, use ONLY the table whose source line
+     reads "Division de la surveillance integree des urgences et riposte" (or
+     "Division de l'Epidemiologie"). Never the "Cas de consultation" tables.
+     This trap is appended to data/TGO/known_source_traps.txt.
+
+ F5  PIS 2016 Tableau XCVIII IS ALREADY FULLY MINED as metadata source 118
+     (rows 163-169, 297, 298). No duplication attempted. Checked row by row.
+
+ F6  THE BLACK-HOLE YEARBOOK ROUTE IS CLOSED, and I can now say why rather than just
+     that it failed. The PIS/Annuaire series is the right document type - it carries
+     exactly the per-district MPE table the 2007-2012 gap needs - but NO edition before
+     2014 is served anywhere on the public internet. Checked: togo.unfpa.org (2014 only),
+     afro.who.int (2016 only), sante.gouv.tg (whole tree unserved), files.aho.afro
+     (now 404 even for its own control), extranet.who.int CPC (PNDS only),
+     ghdx.healthdata.org (403), medbox.org (2016 only), Internet Archive (offline).
+     The 2010-2015 NATIONAL annual numbers survive only because PNDS 2017-2022 reprinted
+     them as its Tableau I (already rows 125-127, 300); the per-district detail behind
+     them was never republished.
+
+ F7  1970-1973 IS SATURATED, verified row by row, and needs no further work: 29 AI rows
+     including WER weekly district series for Lome, Lacs, Yoto, Zio, Kloto, Ogou, Haho,
+     Kozah and Tchaoudjo, Bockemuhl's 561 bacteriologically confirmed cases (row 198),
+     and Amedome et al's 1971 "Les 40 premiers cas" from CHU Lome (row 212, source 148).
+     PubMed holds only 23 Togo-cholera records in total and every pre-2005 one is either
+     already a source here or is a Vibrio parahaemolyticus / phage-typing paper with no
+     cholera case count. The pre-1970 colonial-archive angle in the generic Agent 4 brief
+     has essentially ZERO prior for Togo: the seventh pandemic did not reach West Africa
+     until 1970, so ANOM / TNA CO 96 / German Togoland / UN Trusteeship records cannot
+     contain cholera notifications. I did not spend budget there and recommend run N+1
+     does not either.
+
+ F8  NEAR-MISS, DELIBERATELY NOT ENTERED. A search-result summary asserted "Regarding
+     the 1998 epidemic specifically, 239 people died from the disease and 3,669 cases
+     were reported." The 3 669 matches the MoH PNDS figure (row 301, which has NO death
+     count), so a 239-death companion would have been a real prize for T3. I fetched both
+     candidate sources behind that summary: the WHO DON "Cholera - Togo" is dated
+     4 January 2021 and is about the 2020 Golfe outbreak (67 suspected / 2 deaths /
+     17 of 41 stools positive) - nothing about 1998; and the AJOL/JRSUL paper is
+     Patassi et al 2010 on the 2003-04 Lome epidemic (983 patients, CFR 3.25%,
+     1 Nov 2003 - 30 Apr 2004) - also nothing about 1998.
+     => "239 deaths in 1998" is NOT attested by either cited source. NOT ENTERED.
+     Verification continues in Batch 3.
+
+Sources found  : 0 registered
+Rows added     : 0
+Successful queries: 0/20
+Yield          : 0%
+Consecutive sub-5% batches: 2
+Decision       : CONTINUE (3-batch floor not yet reached)
+
+================================================================================
+=== BATCH 3 | PHASE 2 | TGO ===
+Target gap : T3 (1998/2001 national-series adjudication) + T1 2007-2012
+Category mix: WHO/official, historical/archival, humanitarian
+Operations:
+   1  WebSearch: Togo cholera 1998 "3669" / "239 deces" - verification of the Batch 2 near-miss
+   2  IRIS discover x3: "Cholera in 1998", "Cholera in 2001", "Cholera in 2002"
+   3  WebFetch: thenewhumanitarian.org/node/216553 -> 403
+   4  IRIS item->bundle->bitstream resolution for handles 10665/230876, /231929, /230608
+   5  curl + pdftotext on all three WER PDFs
+   6  read of the Togo table line and surrounding narrative in WER Cholera-1998 and -2001
+   7  IRIS lookup of "CORRIGENDUM TO No 31, 2002 : Cholera, 2001" (10665/231948)
+   8  curl + pdftotext + full read of that corrigendum
+   9  SYSTEMATIC SWEEP: automated IRIS lookup + download + Togo-line extraction for the
+      WER annual cholera review of 1994,1995,1996,1997,1999,2000,2002,2003,2004,2005,2006
+  10  same sweep for 2007,2009,2010,2011,2012,2013,2014,2015 + independent verification of
+      the 2001 figure against WHO's OWN .txt OCR bitstream
+  11  IRIS search for the missing "Cholera, 2008" article + read of the WER-2013 Togo narrative
+  12  grep of every Togo mention (table AND narrative) in the 2007,2009,2010,2011,2012,2014 reviews
+  13  ReliefWeb API v1 retry WITH appname -> 410 decommissioned; promedmail.org root + legacy ajax
+  14  ReliefWeb API v2 -> ALSO returns "version v1 has been decommissioned, use v2" (the v2
+      endpoint is mislabelled/broken, so ReliefWeb's API is closed on BOTH versions);
+      ProMED Next.js API route probes
+  15  inspection of https://www.promedmail.org/api/posts (200, 37 KB JSON, but it is the
+      website's BLOG collection and ignores ?search=)
+  16  probe of 6 further ProMED API collection names (promed-posts, alerts, archive,
+      archives, posts-promed, promedposts) -> all 404
+  17  WebSearch: promedmail archive Togo cholera 2001 "Archive Number"
+  18  IRIS search WER8431 + two alternate phrasings -> located the 2008 review, which is
+      titled "Cholera: GLOBAL SURVEILLANCE SUMMARY, 2008", not "Cholera, 2008", which is
+      why the sweep missed it
+  19  fetch + extract of WER 2009;84(31):309-323 -> Togo 397 / 3 / 0.76
+  20  register-source + add (row 342)
+
+FINDINGS
+
+ F9  *** THE ONE REAL DISCOVERY OF THIS RUN - ROW 342. ***
+     I pulled Togo's line out of EVERY WER annual cholera review held in IRIS for
+     1998-2014 and compared each against the JHU baseline:
+        1998 3217/221   1999  667/31   2000  338/23   2002  257/14   2003  384/28
+        2004 1080/33    2005 1320/15   2006 1159/25   2007   65/1    2008  397/3
+        2009  218/1     2010   72/3    2011    4/0    2012   61/1    2013  166/4
+        2014  262/11
+     Fifteen of the sixteen match the JHU "WHO Annual Cholera Report (UID 340)" series
+     TO THE UNIT. ONE DOES NOT:
+        WER 2002;77(31):257-265, Table 1  ->  Togo 2 696 cases, 132 deaths, CFR 4.90%
+        JHU / WHO annual database          ->  Togo 2 551 cases, 130 deaths
+     Both are internally consistent (132/2696 = 4.896%; 130/2551 = 5.096%), so this is not
+     an OCR artefact; I re-checked it against WHO's own OCR .txt bitstream as well as my
+     own pdftotext -layout pass, and I read the published corrigendum to that issue, which
+     touches only a sentence about the Americas.
+     WHY IT MATTERS, and this is the part Agent 5 should act on: row 302's note already
+     records that AI rows 173-179 - the 2001 WER WEEKLY notifications - sum to EXACTLY
+     2551 cases and 130 deaths. Those weeklies STOP AT 14 OCTOBER 2001 (row 179). So the
+     2551 in the WHO annual database is numerically identical to the mid-October
+     cumulative and looks like a TRUNCATED year, while 2696/132 is the full twelve months
+     as WHO itself printed it in its review of record.
+     On that reading the 2001 WHO-versus-Ministry gap collapses from 189 cases to 44
+     (2696 vs the MoH's 2740), and 145 cases belong to 15 Oct - 31 Dec 2001. I did NOT
+     write that 145-case residual as its own row: the subtraction would be mine, not the
+     source's.
+     NOTE FOR T3 SYMMETRY: the same test on 1998 does NOT produce a discrepancy. WER
+     Cholera-1998 prints Togo 3 217 / 221, identical to JHU, and the 1998 weeklies
+     (rows 36, 37, 38, 282 = 2 687 cases to 17 November) are well short of it. So the
+     1998 dispute (3217 vs the Ministry's 3669) is a genuine source disagreement, whereas
+     the 2001 dispute is substantially an artefact of a truncated WHO database entry.
+     That asymmetry is new information and it was not available to Agent 5 before now.
+
+ F10 NO SUB-NATIONAL NARRATIVE EXISTS IN THE WER REVIEWS FOR THE BLACK HOLE. I read every
+     Togo mention, table and prose, in the 2007-2014 reviews. For 2007, 2008, 2009, 2010,
+     2011, 2012 and 2014 Togo appears ONLY as a number in a West Africa list, with no
+     place named. The single exception is 2013: "In Togo, 166 cases including 4 deaths
+     (CFR, 2.41%) were reported from August to December in 2 areas: Lome and Sokode."
+     I did not write a row from it - the JHU baseline already carries seventeen WEEKLY
+     2013 rows covering 27 Aug - 23 Dec summing to 168, so an Aug-Dec national row would
+     be strictly coarser than what is already there. The useful residue is the NAMING of
+     SOKODE (Tchaoudjo district, Centrale region) as one of the two 2013 foci, which
+     corroborates the JHU district row for Tchaoudjo on 2013-10-14.
+
+ F11 ROUTE INTELLIGENCE, all newly established this run:
+     WORKING  - iris.who.int/server/api/... (NOT /rest/..., which now 403s). Full recipe:
+                /server/api/discover/search/objects?query=... -> indexableObject.uuid ->
+                /server/api/core/items/{uuid}/bundles -> bundle._links.bitstreams ->
+                bitstream._links.content.href. Script kept at /tmp/iris_get.py during the
+                run; the recipe is written out here so it survives.
+     WORKING  - togo.unfpa.org/sites/default/files/pub-pdf/ (hosts Togolese MoH documents)
+     WORKING  - faolex.fao.org/docs/pdf/ (mirror of PNDS 2012-2015 as tog200021.pdf)
+     GOTCHA   - the 2008 WER review is titled "Cholera: global surveillance summary, 2008",
+                breaking the "Cholera, {year}" pattern of every other year. Any future
+                automated sweep must search for both.
+     CLOSED   - RELIEFWEB'S API IS NOW DEAD ON BOTH VERSIONS: v1 returns 410 "decommissioned,
+                use v2", and v2 returns the SAME v1-decommissioned message, i.e. the v2
+                endpoint is misrouted. Only reliefweb.int/attachments/ direct paths work.
+     CLOSED   - PROMED. The site is now a Next.js app; /api/posts is live and returns JSON
+                but serves the marketing BLOG collection and ignores ?search=. Six other
+                collection names 404. The alert archive is behind the new subscription
+                product, which is paywalled and therefore out of scope.
+     CLOSED   - thenewhumanitarian.org 403s to WebFetch (it is metadata source 73's host,
+                so that existing citation is no longer independently re-verifiable).
+     UNRESOLVED - "1998: 3 669 cases and 239 deaths" is asserted by search-result summaries
+                but I could not find a single retrievable document that states it. Both
+                candidate sources were fetched and neither mentions 1998. NOT ENTERED.
+                If run N+1 meets this figure, treat it as unattested until a document is
+                produced.
+
+Sources found  : 1    Registered: index 220
+Rows added     : 1    Indices: 342
+Successful queries: 1/20
+Yield          : 5%
+Consecutive sub-5% batches: 0  (reset - 5% is not BELOW 5%)
+Decision       : CONTINUE (3-batch floor now cleared, but the stopping criterion is
+                 not met and the WER sweep proved the archive still has yield)
+
+================================================================================
+=== BATCH 4 | PHASE 2 | TGO ===
+Target gap : T2 - the 1974-2003 SUB-NATIONAL void (1991, 1998, 2001 epidemics)
+Category mix: WHO/official, humanitarian, regional, archival
+Operations:
+   1  curl probe set: who.int/emergencies/disease-outbreak-news/year/{1998,1999,2001} -> all 404
+   2  WHO DON back-end API (who.int/api/news/diseaseoutbreaknews with an OData $filter on
+      Title) -> THE COMPLETE LIST OF EVERY TOGO DON EVER PUBLISHED, 15 items
+   3  metadata URL lookup for the 14 existing WER 1998-2001 sources
+   4  IRIS fetch + pdftotext of WER 1998;73(23) via metadata 45's own handle
+   5  IRIS fetch + pdftotext of WER 1998;73(51-52) full issue
+   6  IRIS fetch + pdftotext of WER 2001;76(41) full issue
+   7  IRIS fetch + pdftotext of WER 2001;76(48) full issue
+   8  full Togo-context read of all four
+   9  IFRC GO API v2: country lookup (Togo = country id 170)
+  10  IFRC GO API v2: complete appeal list for Togo, 1962-2023
+  11  IFRC GO appeal_document endpoint x4 (filter silently ignored - it returns the global
+      50 most recent documents whatever you ask for; a real trap for anyone scripting it)
+  12  cross-check of IFRC operation codes against data/TGO/metadata_ai.csv
+  13  WebSearch: WHO African Health Observatory "Comprehensive Analytical Profile" Togo cholera
+  14  WebSearch: reliefweb Togo cholera 2001 Lome OCHA sitrep by prefecture
+  15  full read of the PNDS 2012-2015 cholera passage (from the FAOLEX mirror)
+  16  WebSearch: Togo cholera 2001 Lome 65% / Maritime 19,5% / Plateaux 13,3%
+  17  curl: plateformecholera.info/togo + WHO DON item 2001_09_17a-en, with body extraction
+  18  curl probe set: 3 candidate live mirrors of the WCARO Togo factsheet / Togo cholera
+      strategic plan; timetravel.mementoweb.org Memento aggregator (connection failed);
+      arquivo.pt Portuguese web archive (404)
+  19  COMMON CRAWL index API: collinfo.json + 21 crawl indexes 2022-2024 searched for
+      plateformecholera.info
+  20  full re-read of the GTFCC Togo country presentation (metadata 208, live host)
+
+FINDINGS
+
+ F12 *** TRAP 1 IS NOW PROVEN FROM WHO'S OWN INDEX, not inferred. ***
+     The WHO DON back-end returns the complete Togo DON list. Every Togo DON ever
+     published, with its own title:
+       1997-01-24  1997 - Meningitis outbreak in Togo
+       1997-01-27  1997 - Meningitis outbreak in Togo - Update
+       1997-02-07  1997 - Meningitis outbreak in Togo - Update 2
+       2003-10-09  Poliomyelitis in West Africa: Togo, Burkina Faso and Ghana
+       2006-12-19  Yellow fever in Togo        2007-01-11  Yellow fever in Togo - update
+       2007-01-29  ... update 2                2007-02-12  ... update 3
+       2016-03-23  Lassa Fever - Togo          2017-02-23  Meningococcal disease - Togo
+       2017-03-10  Lassa Fever - Benin, Togo and Burkina Faso
+       2020-06-05  Yellow fever - Togo         2021-01-04  Cholera - Togo
+       2022-03-24  Lassa Fever - Togo          2023-04-11  Pneumococcal meningitis - Togo
+     Two conclusions, both useful:
+     (a) The 27 January 1997 item is titled, by WHO, "1997 - Meningitis outbreak in Togo
+         - Update". Its 739 cases / 121 deaths in Dapaong are MENINGITIS. Trap 1 in
+         known_source_traps.txt is now confirmed against WHO's own catalogue rather than
+         by one agent's reading. Any future agent can settle it in one API call.
+     (b) WHO HAS PUBLISHED EXACTLY ONE CHOLERA DON FOR TOGO IN ITS ENTIRE HISTORY -
+         4 January 2021, on the 2020 Golfe outbreak. There is NO cholera DON for 1991,
+         1998 or 2001. The DON route to T2 is closed, definitively and checkably.
+     Useful API, worth reusing: who.int/api/news/diseaseoutbreaknews?sf_provider=
+     dynamicProvider372&sf_culture=en&$select=Title,PublicationDateAndTime,ItemDefaultUrl
+     &$filter=contains(Title,'<COUNTRY>')&$format=json&$top=50
+     Caveat found the hard way: title-filtering misses multi-country items. The
+     17 September 2001 DON "Cholera in West Africa" does mention Togo, and I retrieved and
+     read it in full - it gives numbers for Burkina Faso (55/3, Ourgaye), Cote d'Ivoire
+     (897/47, Abidjan) and Niger (13/3, Fillingue) but NONE for Togo, only the dating
+     statement "the cholera outbreaks which began in April 2001 in nearby countries:
+     Ghana, Togo and Benin". No row.
+
+ F13 THE WER WEEKLIES CARRY NO SUB-NATIONAL TOGO DATA FOR 1998 OR 2001. I read all four
+     issues end to end. The 1998 and 2001 "Cholera, cases and deaths notified to WHO"
+     tables give one national line and a date range and nothing else -
+       WER 1998;73(51-52): "Togo  ...-17.XI  2 024  155"
+       WER 2001;76(41)   : "Togo  17.VII-30.IX  1 226  53"
+       WER 2001;76(48)   : "Togo  1-14.X  428  15"
+     The ONLY sub-national content WER ever published on Togo cholera in this window is
+     the "Infected areas as at" district lists, which Agent 2 has already mined in full as
+     presence rows. T2 IS CLOSED VIA WER. Nobody should spend budget on it again.
+     INCIDENTAL CONFIRMATION OF AGENT 2'S CITATION FLAG: I fetched metadata 45's own URL
+     (iris.who.int/handle/10665/231442) and IRIS resolves it to "Infected areas as at
+     1 March 2001", NOT to "WER 1998;73(23)" as the source is named. Row 36 therefore
+     cites a document that cannot contain it. Independently confirmed for Agent 7.
+
+ F14 IFRC IS EXHAUSTED. The GO API gives Togo's complete appeal history 1962-2023
+     (17 operations). Exactly three are cholera - M04ME001 (2004), MDRTG002 (2009),
+     MDRTG004 (2013) - and ALL THREE are already registered in data/TGO/metadata_ai.csv.
+     There was never an IFRC operation for the 1991, 1998 or 2001 epidemics.
+     TRAP for scripters: goadmin.ifrc.org/api/v2/appeal_document/?appeal__code=X SILENTLY
+     IGNORES the filter and returns the global 50 most recent documents. I nearly
+     attributed a Republic of Congo cholera DREF to Togo. Use ?appeal=<numeric id>.
+
+ F15 A LEAD FOUND AND THEN LOST, recorded so the next run can finish it. Search summaries
+     surface, from plateformecholera.info/togo, the sentence that Togo's main 2001
+     epidemics were "recorded in the capital Lome (65%) and in the regions of Maritime
+     (19.5%) and Plateaux (13.3%)". THIS IS EXACTLY THE T2 TARGET - a regional
+     decomposition of the 2001 epidemic, which has no sub-national row of any kind.
+     I could not retrieve the underlying document on any route:
+       plateformecholera.info - every path, including /togo, 302s to a commercial site
+       metadata 69 (the WCARO Cholera Factsheet Togo 2017, which almost certainly
+         contains it) exists only as a web.archive.org URL, and IA is offline
+       unicef.org/wca media path 403; gtfcc.org and humanitarianresponse.info mirrors absent
+       timetravel.mementoweb.org connection failed; arquivo.pt 404
+       COMMON CRAWL has plateformecholera.info but only robots.txt and the factsheet INDEX
+         page, not the Togo factsheet PDF and not /togo
+     DELIBERATELY NOT ENTERED even as derived numbers. Applying 65 / 19.5 / 13.3 percent
+     to a 2001 national total would be my arithmetic on top of a total that is itself
+     disputed three ways (2551 / 2696 / 2740), giving Lome anywhere from 1 658 to 1 781.
+     That is a fabricated precision. FOR RUN N+1: the single highest-value retrieval left
+     in Togo is metadata 69's PDF, and it becomes gettable the moment the Internet Archive
+     comes back up.
+
+ F16 *** NEW GENERAL-PURPOSE ROUTE FOR THE WHOLE PIPELINE: COMMON CRAWL. ***
+     With the Internet Archive down, every agent in this repo has lost its fallback for
+     dead links (reference/url_check_broken.csv is currently unusable). Common Crawl is an
+     INDEPENDENT, working, free web archive and its index API responds normally:
+        https://index.commoncrawl.org/collinfo.json            -> 128 crawls, 2013-2026
+        https://index.commoncrawl.org/{CRAWL_ID}-index?url=<urlencoded>&output=json&limit=N
+        content by HTTP Range request against
+        https://data.commoncrawl.org/{filename} using the offset and length fields
+     Caveats measured here: coverage is far thinner than IA (it found only 3 Togo-relevant
+     URLs on plateformecholera.info across 21 crawls, and not the PDF I wanted), and some
+     index shards return 502 intermittently, so retry. It is a partial substitute, not a
+     replacement - but it is the only one currently available and it is worth adding to
+     the standing toolkit.
+
+ F17 GTFCC Togo country presentation (metadata 208) re-read in full: 134 lines, and its
+     only geographic statement is "Endemic epidemic areas: Grand Lome and Maritime
+     regions". No regional case decomposition. Fully mined by Agent 1; nothing left.
+
+Sources found  : 0 registered
+Rows added     : 0
+Successful queries: 0/20
+Yield          : 0%
+Consecutive sub-5% batches: 1
+Decision       : CONTINUE
+
+================================================================================
+=== BATCH 5 | PHASE 3 | TGO ===
+Target gap : T1 2007-2012 + T3, via a NEW archival route (Common Crawl) opened because
+             the Internet Archive is down for the whole of this run
+Category mix: national/official, historical/archival, humanitarian, linguistic (fr)
+Operations:
+   1  COMMON CRAWL index sweep, 26 shards, of sante.gouv.tg/wp-content/uploads/*
+   2  WARC byte-range fetch of Rapport_Annuel_Performance_2020_DRSGL (Grand Lome region)
+   3  WARC byte-range fetch of RAPPORT_PERFORMANCE_REGION_MARITIME_2021
+   4  WARC byte-range fetch of Rapport-annuel-de-performance-Region-de-la-Kara_04_2024
+   5  pdftotext + cholera grep over all three
+   6  full read of the Maritime-2021 cholera passage + MPE-table search in all three
+   7  audit of data/TGO/metadata_ai.csv for annuaires / performance reports already used
+   8  CC targeted re-query, 40 shards, for the two MoH 2024 documents Agent 1 flagged
+   9  CC sweep of divprosante.tg, inh.tg, stat-togo.org and sante.gouv.tg/uploads/2025/*
+  10  CC sweep of plateformecholera.info across all 63 crawls of 2016-2021
+  11  WARC byte-range fetch of the Togo-Benin cross-border meeting report
+  12  pdftotext + cholera grep
+  13  full read of its context section (pp. 3-4)
+  14  full read of its epidemiological-situation section
+  15  audit of every existing 2013 sub-national row (AI + JHU + presence) before extracting
+  16  register-source 221
+  17  add row 343
+  18  CC sweep of afro.who.int/sites/default/files/pdf/* for BETTOGO
+  19  WebSearch: Togo cholera 1998 francophone press archives / PANA
+  20  CC sweep of reliefweb.int/report/togo/* and unicef.org for Togo cholera
+
+FINDINGS
+
+ F18 *** THE TOGOLESE MINISTRY DOCUMENT TREE IS RECOVERABLE AFTER ALL - VIA COMMON CRAWL. ***
+     Three runs have now recorded sante.gouv.tg as dead because it serves a 17.5 KB HTML
+     shell for every path. It is dead LIVE, but Common Crawl holds 79 distinct
+     sante.gouv.tg PDF URLs, most captured in April-November 2025, BEFORE the site broke,
+     with mime-detected = application/pdf and full WARC payloads. I fetched three of them
+     by HTTP Range request and all three verified as real PDFs (%PDF-1.4/1.5/1.7).
+     Recovered and read this run:
+       Rapport_Annuel_Performance_2020_DRSGL_14_04_2021_VF.pdf   (Grand Lome region, 1.78 MB)
+       RAPPORT_PERFORMANCE_REGION_MARITIME_2021_VF.pdf           (Maritime region, 1.87 MB)
+       Rapport-annuel-de-performance-de-la-Region-de-la-Kara_04_2024.pdf (Kara, 1.62 MB)
+     Also confirmed present in CC as real PDFs, though all already mined by earlier agents:
+     Annuaire 2019, 2020, 2021, 2022, 2023; RAP 2021, 2022, 2023; DSNISI Bulletin T1 2024.
+     THE TWO DOCUMENTS AGENT 1 WANTED MOST ARE NOT RECOVERABLE. Rapport-annuel-de-
+     performance-2024_MSHP and Rapport_general_Revue_nationale_conjointe_2024 appear in CC
+     ONLY as 5.3 KB text/html captures taken 2026-04-15, i.e. after the breakage. Forty
+     index shards checked. They were never crawled while they were still being served.
+     CHOLERA CONTENT OF THE THREE NEW REGIONAL REPORTS: essentially none, honestly reported.
+     Kara 2024 has NO cholera mention at all. DRSGL 2020 mentions cholera once, in a
+     boilerplate objective about epidemic preparedness. Maritime 2021 mentions it once:
+     "Les evenements de sante publique qui ont marque l'annee a ete l'epidemie de la
+     maladie a Coronavirus et le cholera dans les Lacs ... (nombre de cas confirmes 2076
+     avec 47 deces)". THAT 2076/47 IS COVID-19, NOT CHOLERA - Lacs district cholera in
+     2021 was of the order of 37 cases. The sentence conflates two epidemics and a
+     careless reader would enter 2 076 cholera cases for Lacs. NOT ENTERED; added to the
+     trap file.
+
+ F19 *** ROW 343 - A DOCUMENT NOBODY HAS HAD, RECOVERED FROM A DEAD DOMAIN. ***
+     "Reunion transfrontaliere de lutte contre le cholera entre le Togo et le Benin",
+     Tsevie, 22-23 July 2014, a joint MoH-Togo / MoH-Benin / UNICEF-WCARO meeting report.
+     Lives only at plateformecholera.info, which has lapsed to a commercial domain, and
+     the Internet Archive is offline. Recovered from the Common Crawl capture of
+     2020-10-24 by WARC Range request; 918 670 bytes, %PDF verified; now metadata 221.
+     Extracted: "Entre 2002 et 2013, le Togo a enregistre 5 182 cas et 131 deces."
+     The WHO/JHU annual series sums to 5 183 / 128 over exactly that window - AGREEMENT
+     TO ONE CASE over twelve years. That is a real contribution to T3: it shows there is
+     no systematic Ministry-runs-higher-than-WHO offset, so the 1998 and 2001 divergences
+     are specific to those two epidemics rather than a property of the two systems.
+     NOT ENTERED FROM THE SAME DOCUMENT, and why: its page-4 statement "De 2004 a 2013, le
+     Togo a enregistre 4975 cas ... avec 95 deces" is irreconcilable with its own
+     2002-2013 figure (it would leave 207 cases for 2002+2003, which both series put at
+     641). One of the two is wrong; the corroborated one was written.
+     Also extracted and NOT written because fully covered already: the 2013 epidemic is
+     bounded to weeks 29-52 (a third distinct start date - WHO's annual review says
+     "August to December", the JHU weeklies start at week 35), and the affected districts
+     are Lome DDS1-4, Lacs, Golfe, Bas-Mono, Vo, Tchaoudjo, Tchamba, Anie, every one of
+     which already has a 2013 row from source 165, source 204 or JHU.
+
+ F20 BETTOGO n1-n5 ARE NOW CLOSED ON EVERY AVAILABLE ROUTE. Common Crawl holds ZERO
+     captures of afro.who.int/sites/default/files/pdf/ containing "bettogo" or "togo",
+     across 20 crawl shards. Combined with Agent 3's 84 filename probes, my 28 further
+     permutations, the AFRO Togo publications index (which ends at page 13 and does not
+     list them), IRIS (0 hits for "bettogo"), and the Internet Archive being offline,
+     there is no remaining public route. And per Finding F1 the series is QUARTERLY with
+     n6 = December 2011, so n1 would only reach back to about mid-2010 - the expected
+     value of finding them was always much lower than the brief assumed.
+
+Sources found  : 1    Registered: index 221
+Rows added     : 1    Indices: 343
+Successful queries: 1/20
+Yield          : 5%
+Consecutive sub-5% batches: 0 (reset)
+Decision       : CONTINUE - Common Crawl is producing; work it further
+
+================================================================================
+=== BATCH 6 | PHASE 3 | TGO ===
+Target gap : T2 (the 2001 regional decomposition lead from Batch 4) + T1
+Category mix: historical/archival, humanitarian, academic, technical, linguistic (fr)
+Operations:
+   1  Common Crawl WARC recovery + text extraction of
+      plateformecholera.info .../328-cholera-togo-zones-a-haut-risque-hotspot
+   2  CC wildcard sweep for attachments of articles 328 / 237 / 451 (timed out, no result)
+   3  CC WARC recovery + text extraction of .../237-togo-cholera-factsheet
+   4  cross-check of the recovered percentages against rows 231-240 (source 151)
+   5  CC exact-URL sweep, 34 shards x 7 candidate URLs, for the Togo hotspot and
+      factsheet PDFs (timed out, no result)
+   6  CC WARC recovery of .../bonus-page-2/national-strategies-plans/togo
+   7  fetch + grep: afro.who.int RAPPORT ANNUEL OMS TOGO 2024 (10.7 MB)
+   8  fetch + grep: afro.who.int BULLETIN D'INFORMATIONS OMS TOGO (5.2 MB)
+   9  fetch + grep: afro.who.int ccsbrief_togo_fr.pdf
+  10  theses.fr API: cholera Togo -> 0 theses
+  11  HAL (archives-ouvertes) API: cholera AND Togo -> 8 records, all already sources or
+      non-Togo-specific genomic papers
+  12  targeted CC lookup, 8 crawls, for attachments/article/328/Togo.pdf -> the Common
+      Crawl index API began refusing connections (URLError on all 8); I had made roughly
+      120 index queries by this point, so treat ~100 queries as the practical session
+      budget and pace accordingly
+  13-17  WebSearch: Togo cholera 2008/2009 districts OMS-UNICEF; Institut National
+      d'Hygiene Lome cholera isolates 2007-2010; coprocultures CHU Sylvanus Olympio
+      2001-2011; OpenAlex lookup of the same
+  18-20  follow-up verification of the "34 V. cholerae strains" claim (see F22)
+
+FINDINGS
+
+ F21 *** F15 IS SOLVED, AND MY BATCH-4 HYPOTHESIS WAS WRONG. ***
+     I recovered the UNICEF WCARO Togo cholera factsheet ARTICLE PAGE from Common Crawl
+     (capture 2018-10-16) and it states, verbatim:
+       "Between 2006 and 2013, epidemiological surveillance reported 2,142 cases with
+        38 fatalities (case fatality rate = 1.8%). The main outbreaks were reported in
+        the capital Lome (65%), with the remaining outbreaks predominantly reported in
+        the regions of Maritime (19.5%) and Plateaux (13.3%) (Tab. I)."
+     THE PERCENTAGES ARE NOT A 2001 DECOMPOSITION. They describe 2006-2013. The
+     search-engine summary that attributed them to the 2001 epidemic was simply wrong,
+     and Batch 4 recorded them as a 2001 lead on that basis. Correcting it here.
+     I then checked them against what is already in the file, and they are ALREADY THERE
+     AS ABSOLUTE NUMBERS: source 151's 2006-2013 regional rows are Lome D1-D5
+     75+325+403+156+294 = 1253, Maritime 375, Plateaux 256, Centrale 33, Kara 2,
+     Savanes 0, summing to 1919 - and 1253/1919 = 65.3%, 375/1919 = 19.5%,
+     256/1919 = 13.3%. Exact match on all three. The factsheet percentages are a
+     restatement of rows 231-240.
+     THIS VINDICATES THE DECISION NOT TO DERIVE. Had I applied the percentages to the
+     national total of 2142 as Batch 4 contemplated, I would have written Lome = 1392
+     when the true figure is 1253 - an 11% fabrication, on the wrong year.
+     The later edition of the same page (capture 2019-12-10) carries the identical
+     percentages against a DIFFERENT window - "Entre 2004 et 2016 ... 4 923 cas et
+     99 deces" - which is already row 200. So the percentages are boilerplate reused
+     across editions and are not year-specific at all.
+     NOT WRITTEN: the factsheet's national 2006-2013 figure of 2 142 cases / 38 deaths.
+     The JHU annual series sums to EXACTLY 2142 and EXACTLY 38 over that window, so the
+     row would add a second overlapping multi-year aggregate carrying no new number. It
+     is pure corroboration of the baseline and is recorded here instead.
+     Also recovered from the hotspot page, qualitative only, no counts, and consistent
+     with what is already held: Togo's high-risk areas are the Ghana border (Golfe, Lome
+     D4, D5), the Benin border (Lacs), and the informal fishing camps of Lome D2 and D3.
+
+ F22 A SECOND SEARCH-SUMMARY FABRICATION CAUGHT. A summary reported that "34 strains of
+     Vibrio cholerae were isolated" at Lome's Institut National d'Hygiene / CHU Sylvanus
+     Olympio over 2001-2011 - which would have been laboratory-confirmed cases inside the
+     black hole. Chasing the underlying paper ("Agents bacteriens isoles lors de
+     coprocultures realises de 2001 a 2011 au CHU Sylvanus Olympio de Lome") shows the
+     real figure: 2 262 stool cultures were analysed and 1.5% of them were REQUESTED for
+     suspected cholera. 1.5% of 2262 = 33.9. The "34" is 34 TEST REQUESTS, not 34
+     isolates. NOT ENTERED. Two such fabrications in one run (this and the 1998 "239
+     deaths") is a rate worth flagging: on this country, search-result summaries invent
+     plausible cholera numbers often enough that no figure should be entered without the
+     underlying document in hand.
+
+ F23 WHO Togo country-office products carry NO cholera counts. Fetched and grepped in
+     full: RAPPORT ANNUEL OMS TOGO 2024 (10.7 MB, 7 cholera mentions, all programmatic -
+     kit dotations, SURGE deployment, guideline drafting), BULLETIN D'INFORMATIONS OMS
+     TOGO July 2025 (1 mention, programmatic), and ccsbrief_togo_fr.pdf (zero mentions).
+     These are activity reports, not surveillance products. Do not re-fetch.
+
+ F24 FRENCH ACADEMIC REPOSITORIES ARE EMPTY FOR TOGO CHOLERA. theses.fr returns zero
+     theses for "cholera Togo". HAL returns 8 records, of which the only Togo-relevant
+     ones are Moore et al 2015 (already source 192/81) and de Magny et al 2007 (already
+     assessed by Agent 3 and rejected as 59.5% interpolated). Combined with PubMed's
+     23 all-time records (Batch 2) and univ-lome.tg not resolving in DNS, the francophone
+     academic route for Togo is exhausted - there is no hidden thesis literature.
+
+Sources found  : 0 registered
+Rows added     : 0
+Successful queries: 0/20
+Yield          : 0%
+Consecutive sub-5% batches: 1
+Decision       : CONTINUE

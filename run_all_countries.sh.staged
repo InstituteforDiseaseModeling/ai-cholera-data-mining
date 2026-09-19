@@ -157,13 +157,12 @@ refresh_dashboard () {   # $1 = "light" | "full"
     # to watch it from elsewhere.
     python3 py/update_dashboard_data.py >> "$LOGDIR/_dashboard.log" 2>&1
     if [[ $PUBLISH -eq 1 ]]; then
-      {
-        git add -A dashboard/ reference/run_manifest.csv 2>/dev/null
-        git diff --staged --quiet || {
-          git commit -q -m "Run progress: ${2:-country} complete - $(date '+%Y-%m-%d %H:%M:%S')"
-          git push -q origin "$(git branch --show-current)"
-        }
-      } >> "$LOGDIR/_dashboard.log" 2>&1
+      # Serialised through py/publish.py so it cannot race the heartbeat,
+      # whose push would otherwise leave this one rejected as non-fast-forward
+      # with the error going only to this log.
+      python3 py/publish.py dashboard/ reference/run_manifest.csv \
+        -m "Run progress: ${2:-country} complete - $(date '+%Y-%m-%d %H:%M:%S')" \
+        >> "$LOGDIR/_dashboard.log" 2>&1
     fi
   fi
 }
@@ -196,6 +195,19 @@ echo "  manifest         : $MANIFEST   (touch STOP to halt gracefully)"
 
 [[ ${#QUEUE[@]} -eq 0 ]] && { echo "nothing to do"; exit 0; }
 [[ $DRY -eq 1 ]] && { echo ""; echo "(dry run - nothing executed)"; exit 0; }
+
+# ------------------------------------------------------------------ heartbeat --
+# A country takes about four hours, and the dashboard is only rebuilt when one
+# finishes, so between completions the published site is frozen and the run is
+# indistinguishable from a dead one to anyone watching remotely. The heartbeat
+# publishes dashboard/run_status.html every few minutes instead.
+HEARTBEAT_PID=""
+if [[ $PUBLISH -eq 1 ]]; then
+  HEARTBEAT_PUBLISH=1 nohup bash py/run_heartbeat.sh 600 >/dev/null 2>&1 &
+  HEARTBEAT_PID=$!
+  echo "  heartbeat       : pid $HEARTBEAT_PID -> dashboard/run_status.html (every 10 min)"
+fi
+trap '[[ -n "$HEARTBEAT_PID" ]] && kill "$HEARTBEAT_PID" 2>/dev/null; rm -f "$RUNLOCK"' EXIT
 
 # -------------------------------------------------------------------- execute --
 run_start=$(date +%s); n=0
