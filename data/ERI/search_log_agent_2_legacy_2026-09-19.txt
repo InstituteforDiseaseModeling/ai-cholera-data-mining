@@ -1,0 +1,811 @@
+================================================================================
+AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - ERITREA (ERI)
+================================================================================
+Start: 2026-09-18
+Working dir: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Log file:    /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/ERI/search_log_agent_2.txt
+
+STATE INHERITED FROM AGENT 1 (12 batches / 240 queries)
+  ./data/ERI/cholera_data_ai.csv      4 rows
+  ./data/ERI/metadata_ai.csv          20 sources
+  ./data/ERI/cholera_presence_ai.csv  3 records
+  JHU baseline: 16 annual national rows 2005-2023. Coverage 30.2%.
+
+EFFECTIVE GAPS (refreshed via py/analyze_effective_gaps.py, 2026-09-18)
+  1970-01-01..1970-10-31    304d  historical
+  1971-06-01..2000-05-31  10593d  modern      <-- the big one
+  2001-01-01..2004-12-31   1461d  modern
+  2009-01-01..2010-12-31    730d  modern
+  2022-01-01..2022-12-31    365d  modern
+  2024-01-01..2026-09-18    992d  recent
+
+AGENT 2 TARGETING PLAN (sub-national / zoba / sub-zoba)
+  T1 Corroborate the Sept-Oct 2016 Gash-Barka outbreak magnitude
+     (Plaut: "1342 patients ... 13 deaths ... in one makeshift clinic alone",
+      Upper Gash). Chase Barentu / Tesseney / Goluj / Om Hajer / Mai Dima /
+      Maimine / Molqi / Ala, Ethiopian refugee flows, MSF/ICRC/UNHCR camp health,
+      Tigrinya + Arabic diaspora outlets.
+  T2 WHO Eritrea IDSR zoba bulletins beyond the Q1-2015 issue (264 facilities,
+     6 zobas) - the only source type giving per-zoba Eritrean surveillance.
+  T3 Massawa and Assab as Red Sea cholera entry ports across 1970-2004,
+     including the Ethiopian-province era (Eritrea was an Ethiopian province
+     to 1991; Red Sea / Eritrea province returns went to WHO via Addis).
+  T4 Refugee/IDP camp health reporting with zoba attribution: Umkulu (Massawa),
+     the 2000 IDP camps in Debub / Gash-Barka / Northern Red Sea, Sudanese and
+     Ethiopian cross-border camp populations.
+  T5 Sub-zoba (district) detail inside whichever zoba carried the largest counts.
+
+TOOLING NOTE (inherited, verified): WebFetch gets HTTP 403 from iris.who.int,
+reliefweb.int and web.archive.org; plain `curl` from Bash works on all three.
+Helpers: /tmp/iris_search.py, /tmp/iris_text.py (WHO IRIS DSpace-7 REST API).
+
+DATA-FABRICATION TRAP (inherited): WER 1970-76 lines reading
+"Eritrea (excl. Asmara (A), Assab (PA) & Massawa (P)) 45 0" are SMALLPOX, not
+cholera - pdftotext -layout mis-associates them with a "CHOLERA (contd.)" header
+because of the 3-column page layout. Verify visually before mining.
+
+================================================================================
+
+=== BATCH 1 | PHASE 1 (broad discovery: corroborate the 2016 Gash-Barka outbreak) | ERI ===
+Gap targeted : not a listed gap - 2016 is the single period where Eritrea has a
+               real, multiply-reported sub-national outbreak and only a 22-case
+               row. Magnitude resolution here is worth more than any other target.
+Queries (20):
+  Q1  WebSearch "Eritrea cholera outbreak 2016 Gash-Barka Tesseney Goluj Om Hajer cases deaths"
+  Q2  WebSearch "Eritrea 'Upper Gash' cholera 1342 patients Mereb river 2016"
+  Q3  WebSearch "Eritrea cholera 2016 Barentu Referral Hospital Mai Dima Maimine Molqi deaths"
+  Q4  WebSearch "Arbi Harnet Freedom Friday Eritrea cholera outbreak 2016 report cases"
+  Q5  WebSearch "Radio Erena Eritrea cholera Gash Barka 2016 outbreak"
+  Q6  WebSearch "Awate Eritrea cholera outbreak Gash Barka Barentu 2016 government cover up"
+  Q7  WebSearch "UNHCR Umkulu refugee camp Massawa Eritrea acute watery diarrhoea cholera cases"
+  Q8  WebSearch "Eritrea cholera 2016 UNICEF WHO 'three of the country's six regions' outbreak"
+  Q9  WebSearch (Tigrinya) "ኮሌራ ኤርትራ ጋሽ ባርካ 2016 ሕማም"
+  Q10 WebSearch (Arabic) "الكوليرا إريتريا غاش بركة 2016 حالات وفيات"
+  Q11 WebSearch "assenna Eritrea cholera epidemic Dembelas Quahayn Gash-Barka spreading"
+  Q12 Wayback CDX sweep assenna.com/*cholera* + curl id_ replay of the 30 Sep 2016 article
+  Q13 WebSearch site:shabait.com cholera / acute watery diarrhoea (govt Ministry of Information)
+  Q14 WebSearch "ProMED-mail Eritrea cholera 2016 undiagnosed illness Gash Barka"
+  Q15 WebSearch "Eritrea 2016 cholera epidemic Eri-TV / Ministry of Health announcement"
+  Q16 WebSearch "Shimelba Hitsats Mai Aini Adi Harush refugee camp cholera AWD 2016 Tigray"
+  Q17 WebFetch sitata.com serious-outbreak-of-cholera-in-eritrea (alert text + counts)
+  Q18 curl madote.com full text of the 26 Sep 2016 '22 cases' article (origin check)
+  Q19 IRIS discover "Integrated Disease Surveillance Quarterly Bulletin cholera zero cases"
+  Q20 IRIS full-text extract of the 1st-semester-2016 IDSR bulletin, Eritrea + cholera greps
+
+FINDINGS
+  * FOURTH INDEPENDENT OUTLET FOUND for the Sept 2016 outbreak: Assenna.com,
+    30 September 2016 10:44, recovered from the Wayback Machine
+    (20180121021304id_). Politically opposed to Madote/Geeska; editorially
+    separate from Asmarino. It materially EXPANDS the geography:
+      "The epidemic seems to have started in the Dembelas and Qwohayn areas
+       and is sweeping through the Gash Barka region"
+      "All movements into and from the area have been barred, Aqurdet being
+       the outpost of the limited zone, coming from Keren"
+    Confirms the transport cordon independently of the Geeska/Madote 'CDE'
+    text. Gives NO case or death count -> presence record, not a data row.
+  * ORIGIN CHECK CLOSED: madote.com carries the Geeska text verbatim under the
+    same 'CDE' byline (full text pulled and compared). They are ONE origin.
+    The '22 cases' figure therefore still has exactly one origin.
+  * Sitata travel-health alert is a verbatim relay of Asmarino 4778. Not
+    independent; no counts. (Its displayed date, 13 Dec 2020, is a re-publication
+    artefact - the quoted text is the Sept 2016 Asmarino text.)
+  * The 1342-patient / 13-death figure remains SINGLE-ORIGIN (Arbi Harnet ->
+    Plaut; asmarino.com/news/4822 is a reprint of the same Plaut post, not an
+    independent report). NOT committable at >1000 cases on one Level 4 origin.
+  * WHO AFRO Integrated Disease Surveillance Quarterly Bulletin, 1st semester
+    2016 (IRIS 10665/251728, publ. 29 Nov 2016) full text extracted. Eritrea IS
+    an active reporter in it - ILI 455 cases, malaria trend curve discussed,
+    IDSR adaptation table "Eritrea 2012 Yes 40 2014 58 58 100 540". But this
+    issue carries NO cholera country table and NO zero-reporting country list,
+    so it cannot support either a 2016 zero or a 2016 count. (It also covers
+    only Jan-26 Jun 2016, i.e. it ends before the September outbreak.)
+  * shabait.com (govt): no cholera/AWD outbreak reporting located at all.
+  * Tigrinya and Arabic searches returned nothing on Eritrean cholera.
+Sources found: 1 new (Assenna 30 Sep 2016) -> registered as metadata index 21
+Rows added   : 0 (1 presence record, which does not count toward yield)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch minimum; Phase 1 not saturated)
+
+=== BATCH 2 | PHASE 1 (institutional + academic sub-national sources) | ERI ===
+Gaps targeted: 1971-06-01..2000-05-31 (10593d), 2001-01-01..2004-12-31 (1461d),
+               2009-01-01..2010-12-31 (730d); plus zoba breakdown of the 2007
+               JHU national row (119 cases / 9 deaths)
+Queries (20):
+  Q1  WebSearch "Eritrea 2007 cholera outbreak region zoba cases deaths WHO report"
+  Q2  WebSearch "Eritrea MoH annual health service activity report zoba morbidity cholera HMIS"
+  Q3  WebSearch "Massawa cholera epidemic port quarantine Eritrea history cases"
+  Q4  WebSearch "Assab Red Sea port cholera outbreak Ethiopia 1970s 1980s quarantine"
+  Q5  WebSearch "Eritrean refugees Sudan cholera 1985 Wad Sherife Kassala camp cases deaths"
+  Q6  WebSearch "'Continuing communicable disease burden in Eritrea' HMIS retrospective cholera"
+  Q7  WebSearch "EPLF Eritrean Relief Association health department cholera liberated areas 1980s"
+  Q8  WebFetch sciencedirect S1201971224005071 "Cholera case trends in Eastern Africa 2007-2024" (HTTP 403)
+  Q9  WebSearch "Eritrea cholera 2009 2010 AWD outbreak Gash-Barka Anseba Northern Red Sea"
+  Q10 WebSearch "Eritrea 1998 2000 war displaced camps cholera dysentery Debub Gash-Barka WHO"
+  Q11 ReliefWeb API v1 + v2 country=eri query=cholera  (v1 HTTP 410 decommissioned;
+      v2 HTTP 403 - requires an approved appname. NOTE FOR LATER AGENTS: the
+      ReliefWeb REST API is no longer usable without registration; use the HTML
+      site search at reliefweb.int/updates?advanced-search=(C77)&search=... )
+  Q12 ReliefWeb HTML site search, Eritrea(C77) + cholera, page 1
+  Q13 ReliefWeb HTML site search pages 1-5 (backgrounded; returned no additional
+      Eritrea-specific cholera documents)
+  Q14 PubMed  Eritrea[TIAB] AND (cholera OR Vibrio cholerae OR acute watery diarrhoea)
+  Q15 PMC full text PMC2691726 "Economic burden of cholera in the WHO African region"
+  Q16 WebSearch same paper, looking for a per-country table
+  Q17 PubMed broad: (Eritrea|Eritrean|Asmara|Massawa|Gash-Barka|Zoba)[Title] AND outbreak/surveillance
+  Q18 ReliefWeb sort=date:asc attempt (parameter ignored by the new UI)
+  Q19 PubMed metadata for the three Eritrea+cholera hits
+  Q20 curl afro.who.int/countries/eritrea/publications pages 1-3, link harvest
+
+FINDINGS
+  * PubMed contains exactly THREE records matching Eritrea + cholera, and none
+    of the three is an Eritrean surveillance study:
+      - Lessler/Moore/Azman, Lancet 2018, "Mapping the burden of cholera in
+        sub-Saharan Africa": the analysis is explicitly "sub-Saharan Africa
+        (EXCLUDING Djibouti and Eritrea)". The definitive continental cholera
+        mapping effort deliberately dropped Eritrea for want of data.
+      - Ilic & Ilic, Trop Med Infect Dis 2023, "Global Patterns of Trends in
+        Cholera Mortality": ranks Eritrea 3rd in the world for 2019 cholera
+        mortality, ASR 17.62/100,000. This is a GBD-MODELLED age-standardised
+        rate, not a surveillance count, and it is deaths-only; converting it to
+        a case or death count would be fabrication. NOT committed. It is,
+        however, a striking statement of the mismatch between modelled Eritrean
+        cholera burden and zero Eritrean cholera reporting.
+      - Norris/Kelly-Hope, BMJ Open 2025, Greater Horn of Africa hazards from
+        EM-DAT: Eritrea is in the study area but contributes no epidemic record.
+  * Massawa cholera history located but ALL pre-window: October 1865 epidemic at
+    the port ("about 300 persons" died) and an 1889-July 1890 epidemic in the
+    Italian colony. Both predate the 1970 start of the surveillance window and
+    cannot produce rows.
+  * The 1985 eastern-Sudan cholera epidemic in ERITREAN REFUGEE camps is well
+    documented (Wad Sherife, 1793 admissions, CFR 1.8%, May-Nov 1985; a second
+    camp 541 cases / 12 deaths, 7 May - 19 Jul 1985). Those cases occurred on
+    SUDANESE territory in Kassala State, so they are not Eritrean observations
+    and Sudan is not a MOSAIC country - no rows. Recorded here because it is
+    strong regional evidence that cholera was circulating in the Eritrean
+    population immediately across the border during the 1971-2000 gap.
+  * afro.who.int Eritrea country publications: only 5 country-specific items
+    exist (annual reports 2020, 2022, biennium 2020-21, RMNCAH 2022-26, plus the
+    2015 IDSR bulletin Agent 1 already has). No further IDSR quarterly bulletins.
+  * ReliefWeb REST API is now closed without registration - documented above so
+    the next agent does not lose queries rediscovering it.
+Sources found: 0 new registerable sources with counts
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE (3-batch minimum not yet reached; Phase 2 targets
+               identified: WHO Communicable Disease Profile for Ethiopia/Eritrea
+               2000, UN/OCHA Eritrea humanitarian sitreps 2000-2005 health
+               sections, Journal of the Eritrean Medical Association, and a
+               systematic WER 1971-1975 scan of the CHOLERA infected-area lists
+               for Massawa / Assab / Asmara / Eritrea province)
+
+=== BATCH 3 | PHASE 2 (WHO emergency profiles, UN sitreps, Eritrean journals, WER tables) | ERI ===
+Gaps targeted: 1971-06-01..2000-05-31, 2001-01-01..2004-12-31
+Queries (20):
+  Q1  IRIS discover "communicable disease profile Eritrea Ethiopia emergency"
+  Q2  IRIS discover "Eritrea cholera epidemic zoba region outbreak cases"
+  Q3  WebSearch WHO "communicable disease profile" Ethiopia Eritrea 2000 CDS
+  Q4  IRIS full-text extract 10665/84474, Eritrea country section
+  Q5  cholera x Eritrea co-occurrence scan of the same 680,808-character document
+  Q6  ReliefWeb HTML search with date[start]/date[end] filters (params ignored by
+      the new UI - the listing is unfiltered; documented so it is not retried)
+  Q7  WebSearch site:reliefweb.int Eritrea cholera outbreak cases health sector
+  Q8  WebSearch "Journal of the Eritrean Medical Association" JEMA cholera zoba
+  Q9  WebSearch Eritrea UN Country Team humanitarian situation report 2002/2003 health
+  Q10 WebSearch Orotta School of Medicine / Vibrio cholerae isolate Asmara hospital
+  Q11 WebSearch MSF Eritrea activity report cholera treatment centre Gash Barka Debub
+  Q12 curl + cholera grep of 4 ReliefWeb Eritrea humanitarian updates (2001-2003)
+  Q13-Q17 IRIS "Massawa Assab cholera Ethiopia provinces" filtered f.dateIssued=
+      1971 / 1972 / 1973 / 1974 / 1975
+  Q18 IRIS full-text extract of WER 46(04) p.32 (item titled "Cholera = Choléra")
+  Q19 pdftoppm render + VISUAL read of that page
+  Q20 IRIS "cholera Ethiopia Harar Shoa Wollo Tigre Eritrea provinces notifications"
+      f.dateIssued=1971 (72 items) and 1972 (36 items) - scoping the WER scan
+
+FINDINGS
+  * WHO/CDS/NTD/DCE/2007.1 "Communicable disease epidemiological profile: Horn of
+    Africa, emergency-affected countries 2007" has a 7-page ERITREA country
+    section written jointly by WHO AFRO, WHO EMRO and the WHO Eritrea country
+    office. Under "History of communicable diseases outbreaks" it says, in full:
+        "No major outbreaks have been officially reported to WHO."
+    and lists Eritrea's priority communicable diseases as diarrhoeal diseases,
+    ARI, malaria, HIV, leishmaniasis, polio and TB - cholera is not among them.
+    This is WHO stating, as of 2007, that Eritrea's outbreak record with WHO is
+    empty. It is a NON-REPORTING statement, not an absence statement ("reported
+    to WHO", not "did not occur"), so under CLAUDE.md it cannot become a zero
+    row. Registered for gap classification. The document's cholera chapter is
+    generic and contains no Eritrean figures.
+  * VISUAL VERIFICATION of the WER smallpox/cholera trap, independently redone.
+    WER 46(04) p.32 rendered at 170 dpi and read as an image: the left column is
+    "CHOLERA (contd.) - Asia (continued)" carrying India and Pakistan only; the
+    Ethiopian block "Addis Ababa (A) 2 0 / 8 0 ; Massawa (P) 0 0 / 5 0" sits
+    under "SMALLPOX - VARIOLE / Africa"; and the middle column's "ETHIOPIA
+    (continued) / Provinces / Eritrea (excl Asmara (A), Assab (PA) & Massawa
+    (P)) 0 0 26 0 / Kaffa 0 0 11 0 / Sidamo 1 2 0 0" is the continuation of that
+    SMALLPOX block. Africa's cholera entries on this page are Somalia (Belet Uen,
+    removed from the infected-area list) and Upper Volta (Dori, 9 cases 4 deaths).
+    Eritrea, Asmara, Assab and Massawa are NOT cholera-infected in January 1971.
+    Agent 1's warning is confirmed, and the 26 is smallpox.
+  * IRIS full-text index returns ZERO documents for Massawa/Assab + cholera +
+    Ethiopia for 1973, 1974 and 1975 - the Eritrean localities drop out of WER
+    entirely after 1972, consistent with them having only ever been smallpox
+    entries.
+  * ReliefWeb Eritrea humanitarian updates of 2001-2003 (UNCT/ICC series) and the
+    IRIN Horn of Africa updates contain no Eritrean cholera. The only cholera in
+    the IRIN sweep is Somalia (Lower Shabelle, May 2001).
+  * No Journal of the Eritrean Medical Association cholera paper exists in any
+    index reachable from here. No MSF Eritrea cholera reporting. No Orotta /
+    Asmara V. cholerae isolate study.
+Sources found: 1 registerable (Horn of Africa 2007 CD profile) -> metadata index 22
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 3
+Decision     : CONTINUE. The formal stopping criterion (3 consecutive batches
+               <5% after the 3-batch floor) is now satisfied, but I am NOT
+               stopping here. Agent 1's four rows landed in batches 6, 7, 8 and
+               11 of its run - on this country, evidence surfaces late - and I
+               still hold three untried, specific leads: (a) a systematic scan of
+               the WER 1971-1972 weekly CHOLERA tables for Ethiopian provinces,
+               which is the only way to settle whether Eritrea province ever
+               notified cholera during the seventh-pandemic wave; (b) the
+               Eritrean diaspora archive layer (awate.com, Radio Erena,
+               Tigrinya-language sites, Wayback CDX sweeps) for the 2016
+               Gash-Barka counts; (c) the 2007 JHU national row's zoba
+               breakdown. Stopping at the floor with those untried would be the
+               under-collection failure mode this protocol exists to prevent.
+
+=== BATCH 4 | PHASE 3 (systematic WER 1971-1975 cholera-table scan) | ERI ===
+Gap targeted : 1971-06-01..2000-05-31 (10593d, the country's largest gap)
+Method       : Eritrea was an Ethiopian province until 1991, so any Eritrean
+               cholera notification of that era reached WHO under Ethiopia and
+               would appear as an Ethiopian PROVINCE line in a WER cholera
+               table. Agent 1 spot-checked four issues; this batch scanned the
+               whole of 1971-1972 exhaustively and then tested the inference
+               against WHO's consolidated country series.
+Queries (20):
+  Q1  IRIS discover title:"Cholera" f.dateIssued=1971,equals  -> 22 cholera-titled page items
+  Q2  IRIS discover title:"Cholera" f.dateIssued=1972,equals  -> 17 cholera-titled page items
+  Q3  Bulk download + pdftotext of all 39 items; regex scan for Eritrean
+      localities (Eritrea|Entrea|Asmara|Massawa|Massaua|Assab|Aseb|Keren|Cheren|
+      Agordat|Akordat|Barentu|Tesseney|Decamere|Adi Ugri|Adi Caie)
+  Q4  pdftoppm 170 dpi render + VISUAL read of WER 46(30) p.324 (the 1971 hit)
+  Q5  Ethiopia-line extraction from CHOLERA IN 1970 / 1971 / 1972
+  Q6  Africa country-table extraction, CHOLERA IN 1971 and the 1972 interim note
+  Q7  Inspection of the two 1972 cholera pages that mention Ethiopia (10665/218885, /219152)
+  Q8  IRIS discover "CHOLERA IN 1972" f.dateIssued=1973 -> full-year review 10665/219467
+  Q9  Full-text + Africa table extraction of the full-year 1972 review
+  Q10-Q13 IRIS annual reviews CHOLERA IN 1973 / 1974 / 1975 / 1976
+  Q14 Cross-check against the JHU Ethiopia baseline ./data/ETH/cholera_data_jhu.csv
+  Q15 WHO GHO OData CHOLERA_0000000001 SpatialDim eq 'ETH' (cases)
+  Q16 WHO GHO OData CHOLERA_0000000002 SpatialDim eq 'ETH' (deaths)
+  Q17 pdftoppm render of CHOLERA IN 1971 (3 pages)
+  Q18 VISUAL read of p.283, Table 1 "Cases of Cholera Notified in 1971"
+  Q19 VISUAL read of p.282 (narrative: 42 countries affected in 1971)
+  Q20 CHOLERA IN 1973 four-year Africa table (1970-1973), Ethiopia check
+
+FINDING 1 - THE SCAN ITSELF (clean negative, systematically established)
+  Across ALL 39 WER cholera-titled page items of 1971 and 1972, an Eritrean
+  locality appears on exactly TWO pages, and both were rendered and read as
+  images rather than trusted to pdftotext:
+    * WER 46(04) p.32  - "Eritrea (excl Asmara (A), Assab (PA) & Massawa (P))
+      0 0 26 0" sits under SMALLPOX - VARIOLE / Africa / ETHIOPIA / Provinces.
+      The CHOLERA (contd.) block on that page is Asia only (India, Pakistan).
+    * WER 46(30) p.324 - "Eritrea (excl. Asmara (A), Assab (PA) & Massawa (P))
+      17" sits under SMALLPOX - VARIOLE / Africa / ETHIOPIA / Provinces, in a
+      list reading Bale 5, Begemdir 173, Eritrea 17, Harar 21, Ilubabor 14,
+      Kaffa 117, Shoa (excl Addis Ababa) 63, Sidamo 282, Tigre 7, Wollo 2.
+      The CHOLERA (contd.) block on that page is again Asia only.
+  No Eritrean locality appears in any WER CHOLERA table in 1971 or 1972.
+  Agent 1's smallpox-trap warning is independently re-confirmed twice over.
+
+FINDING 2 - THE INFERENCE THAT LOOKED RIGHT AND IS WRONG. READ THIS.
+  I committed two Inferred_Absence rows on the strength of Finding 1 plus the
+  WER annual reviews (CHOLERA IN 1971 Table 1 lists 22 African countries and
+  omits Ethiopia; CHOLERA IN 1972 likewise; CHOLERA IN 1973's four-year table
+  omits Ethiopia for all of 1970-1973). I then cross-checked against the JHU
+  Ethiopia baseline and WHO's own consolidated series, and both say:
+        ETHIOPIA 1971 = 2187 cholera cases, 124 deaths.
+  (WHO GHO CHOLERA_0000000001/2, SpatialDim 'ETH'; JHU ./data/ETH/cholera_data_jhu.csv
+   row 216.) Ethiopia's 1971 epidemic was more than twice its 1970 one and is
+  INVISIBLE in the entire contemporaneous WER record - absent from Table 1 of
+  the 1971 annual review, absent from the 1972 and 1973 reviews' retrospective
+  columns, and absent from the infected-area lists of 18 Feb and 3 Jun 1971.
+  CONSEQUENCE: absence of a country from a WER cholera table is NOT evidence
+  that the country reported zero. For Ethiopia after 1970 it is demonstrably
+  evidence of nothing at all. Both of my rows were therefore WITHDRAWN the same
+  session, before validation:
+      1971-06-04..1971-12-31 (was Index 5, conf 0.60) - WITHDRAWN
+      1972-01-01..1972-12-31 (was Index 6, conf 0.55) - WITHDRAWN
+  Backup of the file as it stood with them in: /tmp/eri_before_agent2_withdrawal.csv
+
+FINDING 3 - THE SAME EVIDENCE CORRECTS AN INHERITED ROW
+  Agent 1's row 3 asserted zero transmission 1970-11-06..1971-06-03. Its
+  Jan-Jun 1971 half rests on the same falsified premise: it cites Ethiopia's
+  absence from WER cholera lists in Feb and Jun 1971, during a year in which
+  Ethiopia in fact recorded 2187 cases whose provincial distribution is
+  unknown. Eritrea cannot be inferred cholera-free for that half-year. The row
+  was withdrawn and re-issued TRUNCATED to 1970-11-06..1970-12-31 (now Index 5,
+  conf 0.60, same source_index 18), because the 1970 portion is not merely
+  unfalsified but arithmetically exact: Harar 270/22 + Shoa 433/44 + Wollo
+  147/6 = 850 cases / 72 deaths, matching WHO GHO's Ethiopia 1970 total of
+  850 cases / 72 deaths on BOTH counts, leaving no residual caseload that could
+  have been Eritrean. Net effect: 155 days of unsupported hard zero removed
+  from Eritrea's weekly series, and the surviving 56 days are now corroborated
+  by two independent WHO products instead of one.
+
+FINDING 4 - THE 1970s ARE NON-REPORTING, DEFINITIVELY
+  WHO GHO's complete Ethiopia cholera series is three records: 1970 = 850/72,
+  1971 = 2187/124, 1982 = 0/0 (plus a 1979 deaths=0 record). There is no
+  Ethiopian return for 1972-1981. Combined with Finding 2, no zero row is
+  defensible for Eritrea anywhere in 1971-1991 on WER or GHO evidence. That
+  closes this line of attack on the 10593-day gap: it is NON-REPORTING.
+Sources found: 3 registered - index 23 (CHOLERA IN 1971), 24 (CHOLERA IN 1972),
+               25 (WHO GHO Ethiopia historical series, the decisive check)
+Rows added   : 0 net new. 2 committed then withdrawn; 1 inherited row corrected.
+Successful queries: 0/20  (a withdrawn row is not a row; a corrected row is not new data)
+Yield        : 0%
+Consecutive sub-5% batches: 4
+Decision     : CONTINUE to batch 5. The historical line is now closed with a
+               definite answer, which frees the remaining budget for the 2016
+               outbreak magnitude and the 2005-2008 zoba breakdown.
+
+=== BATCH 5 | PHASE 3 (2005-2008 zoba breakdown; diaspora archive sweep) | ERI ===
+Gaps targeted: 2001-2004 and 2009-2010 by extension; sub-national resolution of
+               the JHU 2007 national row (119 cases / 9 deaths); 2016 magnitude
+Queries (20):
+  Q1  Wayback CDX sweep, 10 Eritrean domains, filter urlkey:.*(cholera|kolera).*
+  Q2  WebSearch Eritrea cholera outbreak 2007 119 cases 9 deaths WHO region
+  Q3  WebSearch WER "Cholera, 2007" annual review Eritrea first notification
+  Q4  WebSearch UNHCR Eritrea fact sheet Umkulu camp Somali refugees diarrhoea
+  Q5  WebSearch Eritrea 2005/2006/2008 cholera AWD Asmara Keren Massawa
+  Q6  WebFetch iddynamics.jhsph.edu "Cholera data and maps for Eritrea" (HTTP 403)
+  Q7  curl same URL (HTTP 404 - the JHU IDD Eritrea page is dead; the underlying
+      data is the JHU baseline already loaded)
+  Q8  Wayback CDX sweep, 9 Eritrean domains, filter urlkey:.*cholera.*
+  Q9  PMC full text PMC10991303, Ethiopia spatiotemporal cholera 2015-2021
+  Q10-Q11 IRIS discover + full-text "Cholera, 2007" (10665/241184)
+  Q12-Q13 IRIS discover + full-text "Cholera: global surveillance summary, 2008"
+      (10665/241394)
+  Q14 WebSearch (Tigrinya) ኤርትራ ኮሌራ ሕማም ተምላስን ውጽኣትን ዞባ ጋሽ ባርካ
+  Q15 WebSearch (Arabic) إريتريا وباء الكوليرا إسهال مائي حاد بارنتو أغردات تسني
+  Q16 WebSearch ProMED-mail Eritrea cholera archive 2007/2016
+  Q17 WebSearch Eritrea 2007 first outbreak "remote areas" WHO AFRO Gash Barka
+  Q18-Q20 follow-through on the Eritrea/Southern-region/Gash-Barka hits surfaced
+      by Q17 (all already held)
+
+FINDINGS
+  * WER 83(31), "Cholera, 2007", located and full-text searched. It gives
+    Eritrea 119 cases / 9 deaths / CFR 7.56 - identical to JHU and WHO GHO, so
+    NO new row - but it adds two statements of real interpretive weight:
+      "For the first time ever, Eritrea reported an outbreak that caused 119
+       cases including 9 deaths."
+      "The high CFRs for Djibouti (6.7%) and Eritrea (7.6%) reflect the
+       difficulty in accessing vulnerable groups living in remote areas."
+    The first is WHO stating that 2007 was Eritrea's FIRST EVER reported cholera
+    outbreak, which bears directly on the whole 1993-2006 stretch of the big gap
+    (it is a reporting statement, not an absence statement, so still no zero row).
+    The second is the closest thing to a geographic attribution WHO ever
+    published for Eritrean cholera - "remote areas" - and it is not a zoba.
+    Registered as metadata index 26.
+  * WER "Cholera: global surveillance summary, 2008" gives Eritrea 1 case /
+    0 deaths - again identical to the baseline.
+  * NO SUB-NATIONAL BREAKDOWN OF THE 2007 OUTBREAK EXISTS IN ANY REACHABLE
+    SOURCE. This was my single best remaining chance at a zoba-level row with a
+    real case count, and it is not published.
+  * REGIONAL CORROBORATION OF THE 2016 OUTBREAK (no counts, but it matters).
+    Sci Rep 2024 (PMC10991303) reconstructs Ethiopian cholera at woreda level
+    2015-2021 from EPHI line lists: the second half of 2016 was a nationwide
+    Ethiopian epidemic of 30,713 cases, and TIGRAY REGION - which faces Eritrea's
+    Debub and Gash-Barka across the Mereb/Gash - had outbreaks in late
+    July-early September in 2016, 2017 AND 2018. That is the right pathogen in
+    the right place at the right time for a September 2016 Gash-Barka outbreak
+    seeded by Ethiopian refugees crossing the Mereb, exactly as the Eritrean
+    diaspora reports describe. It raises the prior on the Eritrean outbreak
+    being real and substantial; it supplies no Eritrean number.
+  * Wayback CDX across assenna.com, awate.com, tesfanews.net, madote.com,
+    meskerem.net, erena.org, shabait.com, harnnet.org, togoruba.org, eritrea
+    digest and capitaleritrea returned cholera URLs for asmarino.com only (the
+    two articles already held, plus a martinplaut image mirror). The Eritrean
+    web simply does not contain more cholera reporting than Agent 1 found.
+  * Tigrinya and Arabic searches: nil, for the second batch running.
+Sources found: 1 registered (index 26, WER Cholera 2007)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 5
+Decision     : CONTINUE to a sixth and final batch, then stop.
+
+=== BATCH 6 | PHASE 3 (national health-sector documents; AFRO bulletins; closing) | ERI ===
+Gaps targeted: 2009-2010, 2022, 2024-2026; final attempt at any zoba-level count
+Queries (20):
+  Q1  curl + pdftotext + cholera grep: NAPHS Eritrea 2017 (extranet.who.int, 123,314 chars)
+  Q2  curl + grep: Eritrea National Health Policy 2010 (87,245 chars)
+  Q3  curl + grep: World Bank Eritrea National Health-Care Waste Management Plan (415,260 chars)
+  Q4  IRIS discover "Eritrea cholera outbreak cases deaths region zoba Gash Barka
+      Anseba Debub Maekel" - the entire IRIS corpus returns 13 items
+  Q5  WebSearch WHO AFRO "Weekly Bulletin on Outbreaks and Other Emergencies" Eritrea cholera
+  Q6  IRIS full-text WHO Country Cooperation Strategy 2014-2016: Eritrea (10665/148539)
+  Q7-Q11 Attempted PDF retrieval + Eritrea grep of five WHO AFRO Outbreaks and
+      Emergencies Bulletins (2017 wk24, 2018/19 wk01, 2019 wk25, 2022 wk24, 2023
+      wk40). The afro.who.int publication pages did not yield an extractable PDF
+      link by this route - recorded as a tooling failure, not a negative result.
+  Q12-Q13 Wayback CDX, shabait.com Aug-Dec 2016 health/disease/water URLs and
+      tesfanews.net cholera - both timed out; the CDX endpoint rate-limits after
+      the earlier multi-domain sweeps.
+  Q14 WebSearch Eritrea 2024/2025/2026 cholera AWD MoH zoba
+  Q15 WebSearch Eritrea 2022 outbreak surveillance annual report zoba
+  Q16 WebSearch Eritrea cholera treatment centre admissions Barentu/Agordat/Tesseney
+  Q17 WebSearch Eritrea MoH cholera preparedness plan / GTFCC country support
+  Q18 WebSearch Eritrea sub-zoba "Dembelas" Habero Anseba
+  Q19 WebSearch Eritrea "Kohain"/"Qohain"/"Quahayn" sub-zoba Debub
+  Q20 Cross-check of the two names against the ADM1/sub-zoba lists
+
+FINDINGS
+  * NAPHS Eritrea 2017 and the Eritrea National Health Policy 2010 contain ZERO
+    occurrences of "cholera" or "watery diarrhoea". The country's own health
+    planning documents do not treat cholera as a named hazard, even though the
+    WHO CCS 2023-2027 ranks it first of ten prioritized hazards.
+  * WHO CCS 2014-2016: Eritrea - no cholera. Says only that Eritrea "has managed
+    to sustain a strong surveillance system using IDSR, which has managed to
+    detect timely and respond adequately to all outbreaks", and names dengue as
+    the emerging threat. Covers the 2009-2010 gap period and adds nothing to it.
+  * IRIS - the whole WHO institutional repository - returns THIRTEEN items for a
+    query combining Eritrea, cholera and all four main zoba names, and every one
+    of the relevant items was already held by Agent 1 or registered in this run.
+  * "Dembelas" and "Qwohayn", the two origin localities named by Assenna,
+    CANNOT be resolved to a modern zoba with confidence from any source reachable
+    here. Dembelas is plausibly the historic Dembelas awraja now inside Anseba
+    (Habero/Hagaz area) and Qwohayn/Kohain is plausibly a historic district of
+    Seraye in Debub, but neither appears in the current 58-sub-zoba list. I have
+    therefore NOT assigned either to a zoba; the Assenna presence record is held
+    at AFR::ERI::Gash-Barka, which is what the article itself asserts ("sweeping
+    through the Gash Barka region"). Flagged here so a later agent with better
+    gazetteer access can refine it rather than guess.
+Sources found: 0 new
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 6
+Decision     : STOP.
+
+================================================================================
+AGENT 2 CLOSING RECORD - ERITREA
+================================================================================
+Batches: 6 (120 queries). Per-batch yield, in percent: [0, 0, 0, 0, 0, 0].
+Stopping criterion: six consecutive batches below 5% yield, against a floor of
+three. The criterion was first satisfied at batch 3; I deliberately ran three
+more because Agent 1's four rows had all landed in its batches 6, 7, 8 and 11,
+so on this country evidence surfaces late. Those three extra batches produced no
+rows either, but they produced the definitive negative results and the data
+correction recorded above, which is why they were worth running. I am NOT
+continuing to the 12-batch ceiling: all seven query categories are covered,
+every named lead in my handover has been run down, and the marginal query here
+has been returning nothing for 120 consecutive attempts.
+
+NET EFFECT ON ./data/ERI/cholera_data_ai.csv
+  Before: 4 rows (indices 1,2,3,4). After: 4 rows (indices 1,2,4,5).
+  * Row 3 (1970-11-06..1971-06-03, zero, conf 0.60) WITHDRAWN and re-issued as
+    row 5 (1970-11-06..1970-12-31, zero, conf 0.60). 155 days of unsupported
+    hard zero removed; the surviving 56 days are now corroborated by two
+    independent WHO products (WER provincial notification + WHO GHO annual).
+  * Two rows I created (1971 and 1972 absence) were WITHDRAWN before validation
+    when WHO GHO falsified the inference they rested on.
+  * ZERO new case-count rows. No sub-national Eritrean cholera case count exists
+    in any publicly reachable source beyond the single 22-case Gash-Barka figure
+    Agent 1 already holds.
+  ./data/ERI/cholera_presence_ai.csv: 3 records -> 4 (Assenna, 30 Sep 2016).
+  ./data/ERI/metadata_ai.csv: 20 sources -> 26 (new: 21 Assenna; 22 WHO Horn of
+  Africa CD profile 2007; 23 WER CHOLERA IN 1971; 24 WER CHOLERA IN 1972;
+  25 WHO GHO Ethiopia historical series; 26 WER Cholera, 2007).
+
+WAS THE 2016 GASH-BARKA OUTBREAK CORROBORATED, AND AT WHAT MAGNITUDE?
+  EXISTENCE: yes, more strongly than before. A fourth independent outlet
+  (Assenna, 30 Sep 2016, politically opposed to Madote/Geeska and editorially
+  separate from Asmarino) confirms the epidemic, the government transport
+  cordon, the market closures and the Agordat/Keren control line. Regional
+  plausibility is now also established: Ethiopian EPHI woreda-level data show
+  Tigray Region - directly across the Mereb from Gash-Barka and Debub - had
+  cholera outbreaks in late July-early September of 2016, 2017 and 2018, inside
+  a nationwide Ethiopian epidemic of 30,713 cases in the second half of 2016.
+  MAGNITUDE: NOT corroborated, and I do not believe it can be from open sources.
+  The 22-case figure still has exactly one origin (byline "CDE"; Geeska and
+  Madote carry identical text - verified by pulling both in full). The
+  1342-patient / 13-death figure still has exactly one origin (Arbi Harnet ->
+  Martin Plaut; asmarino.com/news/4822 is a reprint of the same post, not an
+  independent report). The two differ by two orders of magnitude and neither
+  meets the corroboration bar for a >1000-case claim. The existing 22-case row
+  at confidence 0.25 remains the correct treatment.
+
+GAPS REMAINING AFTER AGENT 2
+  1971-01-01..2000-05-31 and 2001-01-01..2004-12-31  OPEN, and now CLOSED AS A
+      LINE OF INQUIRY. Ethiopia notified 2187 cholera cases in 1971 that appear
+      nowhere in the contemporaneous WER record, so no WER-based absence
+      inference is safe for the Ethiopian-province era, and WHO GHO holds no
+      Ethiopian return at all for 1972-1981. WER "Cholera, 2007" states that
+      2007 was the FIRST outbreak Eritrea ever reported, which covers the
+      independence era 1993-2006 as non-reporting rather than absence. This
+      whole stretch is NON-REPORTING; no zero row is defensible anywhere in it.
+  2009-01-01..2010-12-31  OPEN. No evidence either way; the CCS 2014-2016, which
+      covers the period, does not mention cholera at all.
+  2022-01-01..2022-12-31  OPEN. Unchanged from Agent 1.
+  2024-01-01..2026-09-18  OPEN. Unchanged from Agent 1.
+  SUB-NATIONAL COVERAGE: Eritrea has exactly ONE sub-national row in the entire
+      AI layer (AFR::ERI::Gash-Barka, Sept 2016, 22 cases) and four presence
+      records. No zoba-level Eritrean cholera count has ever been published.
+
+RECOMMENDATION TO AGENTS 3-7 AND TO THE MODELLERS
+  Further web search for Eritrean cholera data is not a good use of budget.
+  Between Agent 1 (240 queries) and Agent 2 (120), the following have been
+  exhausted: WHO IRIS in full, WHO GHO, all 18+ WER annual cholera reviews plus
+  an exhaustive page-level scan of the 1971-1972 weekly cholera tables, WHO AFRO
+  country and regional products, PubMed (3 records exist for Eritrea + cholera,
+  none of them Eritrean surveillance), ReliefWeb, UNHCR, MSF, OCHA, the Eritrean
+  government press, five diaspora outlets with Wayback CDX sweeps, and Tigrinya
+  and Arabic searching. The binding constraint is not discoverability, it is
+  that the data has never been released. Agent 1's conclusion stands and is
+  reinforced: Eritrea's MoH has run an HMIS since 1998 and has published
+  retrospective analyses from it for dengue (2005-2015) and measles (18 years),
+  but never for cholera. Closing Eritrea's gaps is a data request to WHO Eritrea
+  and the Eritrean MoH, not a search problem.
+  ONE METHODOLOGICAL WARNING FOR EVERY OTHER COUNTRY: absence of a country from
+  a WER annual cholera table does NOT mean the country reported zero. Ethiopia
+  1971 is a worked counterexample - 2187 cases in WHO's own consolidated series,
+  invisible in every contemporaneous WER table. Any zero row anywhere in this
+  dataset that rests on "country X is not in the WER list" should be re-checked
+  against WHO GHO before it is trusted.
+================================================================================
+
+=== ORCHESTRATOR REDEPLOYMENT NOTICE ===
+Timestamp: 2026-09-18 21:49:27
+Reason: Agent 2 returned 0 new rows after 6 batches while sub-national gaps remain open
+        in its speciality (2007 outbreak zoba breakdown; 2009-2010; 2022; 2024-2026 recent era).
+Action: redeployed once, same agent context, with the specific skipped gap periods.
+Per orchestrator gate rule: an empty result is not silently accepted.
+
+
+################################################################################
+AGENT 2 REDEPLOYMENT BY ORCHESTRATOR - BATCHES 7-9
+Directed targets: (1) 2007 zoba breakdown, (2) 2009-2010 gap, (3) 2022 gap,
+(4) 2024-2026 recent gap. Explicitly NOT revisiting 1970-2004 or 2016.
+################################################################################
+
+=== BATCH 7 | REDEPLOY | target: 2007 zoba breakdown of the 119-case outbreak ===
+Queries (20):
+  Q1  Wayback CDX afro.who.int/sites/default/files* filtered *quarter*bulletin* (empty)
+  Q2  Wayback CDX afro.who.int/sites/default/files* filtered *eritrea* (empty)
+  Q3-Q11  Nine direct URL probes for further issues of the WHO Eritrea IDSR
+      Quarterly Epidemiological Bulletin series, extending Agent 1's four:
+      2017-06/{2nd,3rd,4th}-quarterly-bulletin.pdf, 2017-06/1st-quarterly-
+      bulletin-2015.pdf, 2017-06/quarterly-bulletin.pdf, 2017-06/eritrea-idsr-
+      bulletin.pdf, 2017-06/2nd-quarter-bulletin.pdf, 2017-05/1st-quarterly-
+      bulletin.pdf, 2017-07/2nd-quarterly-bulletin.pdf. ALL HTTP 404.
+  Q12 afro.who.int site search "Eritrea quarterly epidemiological bulletin"
+  Q13 Re-download and full scan of the Q1-2015 bulletin (18,538 chars) for
+      cholera / "2007" / zoba / AWD
+  Q14 WebSearch UNICEF Eritrea situation report 2007-2008 cholera AWD zoba
+  Q15 WebSearch Eritrea 2007 flood Gash Barka Debub emergency health outbreak
+  Q16 WebSearch WHO Eritrea country office annual report 2007/2008 IDSR
+  Q17 WebSearch site:reliefweb.int Eritrea 2007 health epidemic diarrhoea
+  Q18 curl + cholera/AWD grep of four UNCT Eritrea humanitarian updates spanning
+      the outbreak window: Aug-Sep 2006, Dec 2006-Jan 2007, Feb 2007, and the
+      Assessment Trip to Zoba Anseba and Gash-Barka
+  Q19 Six further URL probes for monthly Eritrea humanitarian updates Mar-Dec
+      2007 (all HTTP 404 - the UNCT series stops in early 2007)
+  Q20 WHO AFRO EPR-Cholera briefing (afro.who.int/sites/default/files/2017-06/
+      EPR-Cholera.pdf), full text
+
+FINDINGS
+  * The WHO Eritrea IDSR Quarterly Epidemiological Bulletin series consists of
+    ONE published issue. Nine URL-pattern probes on top of Agent 1's twelve
+    return 404, and neither the afro.who.int site search nor Wayback CDX shows
+    any other issue. The series did not run long enough to reach back to 2007.
+  * The Q1-2015 issue itself mentions cholera exactly once, in the list of
+    weekly-notifiable epidemic-prone diseases. It contains no reference to 2007
+    and no historical outbreak table. It carries zoba-level tables, but for
+    timeliness/completeness and for malaria, dysentery, measles and dengue -
+    not cholera.
+  * The four UNCT Eritrea humanitarian updates covering Aug 2006 - Feb 2007,
+    including a dedicated assessment mission to Zoba Anseba and Gash-Barka,
+    contain ZERO occurrences of cholera, "watery diarrhoea" or AWD. The monthly
+    series then stops: Mar-Dec 2007 updates do not exist on ReliefWeb.
+  * WHO AFRO's EPR-Cholera briefing gives 2007 regional totals (106,141 cases /
+    2,172 deaths from 30 countries) and does not name Eritrea.
+  * CONCLUSION ON TARGET 1: the 119 cases / 9 deaths WHO published for Eritrea
+    in 2007 were never disaggregated in any public document. WER's "vulnerable
+    groups living in remote areas" is the only locational statement WHO ever
+    made about them, and it names no zoba. The UN humanitarian reporting stream
+    that would normally have carried it had stopped by then, and the national
+    IDSR bulletin series did not yet exist.
+Rows added   : 0        Successful queries: 0/20        Yield: 0%
+
+=== BATCH 8 | REDEPLOY | targets: 2009-2010 gap and 2022 gap ===
+Queries (20):
+  Q1-Q4  IRIS discover + full-text + Eritrea/zero-language grep of the WER annual
+         cholera reviews for 2009, 2010, 2021 and 2022
+  Q5-Q7  Same for 2023, 2024 and 2025
+  Q8     Wide-context extraction of the Eritrea hit in "Cholera, 2023"
+  Q9     Inspection of the JHU Eritrea baseline ./data/ERI/cholera_data_jhu.csv
+  Q10    WebSearch UNHCR Eritrea operational update 2022 Tigray refugees Gash-Barka
+  Q11    WebSearch Tigray 2022 AWD/cholera at the Eritrean border (Irob,
+         Gulomekeda, Zalambessa, Rama)
+  Q12    WebSearch Eritrea 2009-2010 Horn of Africa drought health emergency
+         diarrhoea Gash-Barka / Northern Red Sea
+  Q13    WebSearch IOM DTM Eritrea 2022-2023 Sudanese arrivals health screening
+  Q14-Q17 Registration of the four WER reviews as metadata indices 27-30
+  Q18-Q20 Follow-through on the Tigray 2022 cholera paper, the UNHCR Tigray
+         briefing notes and the Sudan RRP Eritrea contingency line
+
+THE DECISIVE FINDING OF THIS BATCH - WHO CLASSIFIES ERITREA EXPLICITLY
+  Since 2021 the WER annual cholera review has separated, in print, the countries
+  that filed a zero return from the countries that filed nothing. Eritrea appears
+  by name in one list or the other in four consecutive years:
+
+    Cholera, 2021 (WER 97(38)): "The following countries considered by the Global
+      Task Force on Cholera Control to be at risk for cholera DID NOT REPORT
+      cholera data to WHO for 2021: Eritrea, Guinea, India."
+    Cholera, 2022 (WER 98(38)): "...DID NOT REPORT cholera data to WHO for 2022:
+      Angola, Cote d'Ivoire, Dominican Republic, ERITREA, Haiti, Malaysia,
+      Namibia, Niger, Papua New Guinea, Sudan, United Republic of Tanzania, Yemen."
+    Cholera, 2023 (WER 99(36)), Table 2, "Countries reported 0 cases and deaths
+      in 2023, FULFILLING the public health surveillance service of 'zero
+      reporting'", Africa (28): "Algeria, Botswana, Burkina Faso, Cabo Verde,
+      Central African Republic, Chad, Comoros, Cote d'Ivoire, Djibouti, ERITREA,
+      Gambia, Ghana, Guinea, Guinea-Bissau, Lesotho, Libya, Madagascar, Mali,
+      Mauritania, Mauritius, Morocco, Namibia, Niger, Senegal, Seychelles,
+      Sierra Leone, Sao Tome and Principe, Tunisia."
+    Cholera, 2024: "...DID NOT REPORT cholera data to WHO for 2024: Afghanistan
+      and Eritrea."
+    Cholera, 2025: not yet published.
+
+  WHAT THIS SETTLES
+  * 2022 GAP (365d) - RESOLVED AS DEFINITIVELY NON-REPORTING, on WHO's own
+    explicit classification rather than on inference from a missing table row.
+    No zero row is permissible and the gap must stay empty. This is the strongest
+    possible form of the answer the orchestrator asked for: not "we could not
+    find anything" but "WHO states Eritrea filed nothing".
+  * 2024-2026 GAP - the 2024 portion is likewise DEFINITIVELY NON-REPORTING.
+    (2025 and 2026 addressed in batch 9.)
+  * 2023 is a genuine WHO-DOCUMENTED ZERO, Eritrea having fulfilled zero
+    reporting. NO ROW ADDED: the JHU baseline already carries 2023 = 0 cases /
+    0 deaths at confidence 1.0 from the same WHO annual report, explicitly marked
+    "Phantom: False". An identical AI row would be a duplicate record from a
+    second source, which CLAUDE.md's duplication-prevention rule forbids, and it
+    would add no coverage. Recorded here and in metadata index 28 so that Agent 7
+    can upgrade the JHU row's provenance rather than duplicate it.
+  * 2009 and 2010: the WER reviews of those years contain ZERO occurrences of
+    Eritrea and predate the zero-reporting/did-not-report split entirely, so they
+    cannot classify the 2009-2010 gap either way. It remains genuinely ambiguous.
+
+  BASELINE DEFECT FOR AGENT 7 - PLEASE ACT ON THIS
+    ./data/ERI/cholera_data_jhu.csv row 11 carries 2021 = 0 cases for Eritrea.
+    WER "Cholera, 2021" states in terms that Eritrea DID NOT REPORT cholera data
+    to WHO for 2021. The JHU 2021 zero is therefore non-reporting coded as zero -
+    a false negative sitting in the baseline at confidence 1.0. The same reading
+    should be applied to JHU's other blank-deaths Eritrea zeros (2011-2019, 2021),
+    which have sCh=0 with an EMPTY deaths field, the signature of an absent return
+    rather than a nil return; note JHU's 2016 zero is already known to be
+    contradicted by a documented outbreak (AI row 1). Eritrea's only JHU zeros
+    that WHO evidence actually supports are 2005, 2006, 2020 and 2023.
+
+OTHER RESULTS
+  * No UNHCR, IOM DTM or OCHA product reports cholera or AWD inside Eritrea for
+    2022. The Tigray-side 2022 cholera outbreak is real and quantified on the
+    Ethiopian side (841 cases, CFR 3.13%, conflict-affected Central and
+    Northwestern Tigray), but no source carries it across the border into Debub
+    or Gash-Barka, and I will not infer a transfer that no source asserts.
+  * 2009-2010: the humanitarian record for those years is about drought and acute
+    malnutrition in Anseba and Gash-Barka (admission rates to therapeutic feeding
+    2-6x 2008 levels), with diarrhoea named only as a generic driver of under-5
+    mortality. No cholera, no AWD outbreak, no counts.
+Sources found: 4 registered (indices 27, 28, 29, 30)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+
+=== BATCH 9 | REDEPLOY | target: 2024-01-01..2026-09-18 recent gap (992d) ===
+Queries (20):
+  Q1  WebSearch Sudan cholera 2024/2025 Kassala + Gedaref, border with Eritrea
+  Q2  WebSearch Africa CDC event-based surveillance 2025/2026 Eritrea cholera signal
+  Q3  WebSearch Eritrea 2025/2026 Sudanese refugees Gash-Barka/Tesseney health response
+  Q4  WebSearch GTFCC Eritrea national cholera plan / at-risk country status
+  Q5  WHO Multi-country outbreak of cholera, epidemiological update #38 (30 Jun
+      2026), full text: 22,798 chars, ERITREA = 0 occurrences, and no
+      zero-reporting or did-not-report annex naming it
+  Q6-Q7 Africa CDC Epidemic Intelligence Weekly Report, July 2026: index page
+      harvested and the 5.1 MB PDF downloaded, but it is image-only (15
+      extractable characters). Recorded as a tooling limit, not a result.
+  Q8  ECDC "Cholera worldwide overview" monthly page: ZERO occurrences of Eritrea
+  Q9-Q11 Three URL probes for WHO Eritrea country office annual reports 2023/2024
+      (all HTTP 404 - the series stops at the 2022 report Agent 1 already holds)
+  Q12 WHO GHO OData re-query for ERI: the series is STILL four records only,
+      2005=0, 2006=0, 2007=119, 2008=1. Nothing has been backfilled.
+  Q13 WHO "Sudan conflict and refugee crisis" multi-country external situation
+      report 10 (27 May 2025), 67,221 chars: ERITREA = 0 occurrences. Eritrea is
+      not even enumerated as a Sudan-refugee-receiving country in WHO's health
+      emergency reporting, although it hosts Sudanese arrivals in Gash-Barka.
+  Q14 WebSearch (Tigrinya) ኤርትራ ኮሌራ 2025 2026 ተላባዒ ሕማም ሚኒስትሪ ጥዕና
+  Q15 reliefweb.int/country/eri country page: ZERO cholera mentions
+  Q16-Q17 Wikipedia "2025 in Eritrea" and "2026 in Eritrea": no outbreak, epidemic,
+      cholera or diarrhoea line in either
+  Q18-Q20 Follow-through on the Sudan RRP Eritrea contingency line, the UNHCR
+      Eritrean-refugees-in-Sudan dashboards, and the WHO Sudan 2025 health appeal
+
+FINDINGS
+  * The recent gap is governed by the same explicit WHO classification found in
+    batch 8: WER "Cholera, 2024" names Eritrea among the countries that DID NOT
+    REPORT cholera data to WHO for 2024. 2024 is therefore definitively
+    NON-REPORTING and no zero row is permissible. The 2025 annual review is not
+    yet published, and 2026 is in progress, so 2025-2026 cannot be classified
+    either way from the annual series.
+  * Eritrea is absent from every live product of the current global cholera
+    emergency: WHO's multi-country epidemiological updates, the ECDC monthly
+    worldwide overview, and WHO's Sudan regional emergency situation reports.
+    This is absence-from-a-list, which by my own batch-4 finding is evidence of
+    nothing, and it is NOT used here to support any row.
+  * The cross-border picture is stark and worth recording for the modellers even
+    though it yields no Eritrean row. Kassala State, which borders Gash-Barka
+    directly, reported 7,364 cholera cases by 16 December 2024 inside a Sudanese
+    epidemic of 57,100+ cases and 1,500+ deaths by March 2025; Al Qadarif
+    (Gedaref), also on the Eritrean border, reported 9,745. Eritrea sits between
+    that epidemic and Ethiopia's, receives Sudanese arrivals into Gash-Barka, and
+    reports nothing. Its recent-era blank is a reporting artefact, not a
+    plausible epidemiological state.
+Sources found: 0 new registerable sources with counts
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+
+================================================================================
+AGENT 2 REDEPLOYMENT CLOSING RECORD (BATCHES 7-9)
+================================================================================
+Cumulative: 9 batches, 180 queries. Yields: [0,0,0,0,0,0,0,0,0]%.
+Rows added across batches 7-9: ZERO. Sources registered: 5 (indices 26-30).
+
+ANSWER TO EACH DIRECTED TARGET
+ 1. 2007 ZOBA BREAKDOWN - DOES NOT EXIST PUBLICLY. The WHO Eritrea IDSR
+    Quarterly Bulletin series is one issue long and postdates the outbreak by
+    eight years; twenty-one URL-pattern probes across two agents find no other
+    issue. The UNCT Eritrea humanitarian update series, including a dedicated
+    Zoba Anseba / Gash-Barka assessment mission, covers Aug 2006 - Feb 2007 with
+    zero cholera or AWD mentions and then stops before the outbreak. WHO AFRO's
+    EPR-Cholera briefing does not name Eritrea. WER's "vulnerable groups living
+    in remote areas" remains the only locational statement WHO ever made about
+    Eritrea's 119 cases, and it names no zoba. UNFILLABLE.
+ 2. 2009-2010 (730d) - REMAINS GENUINELY AMBIGUOUS. The WER reviews for 2009 and
+    2010 contain zero occurrences of Eritrea and predate the zero-reporting /
+    did-not-report split, so they cannot classify the period. WHO CCS 2014-2016,
+    which covers it, does not mention cholera. The humanitarian record for those
+    years is about drought and acute malnutrition in Anseba and Gash-Barka, with
+    diarrhoea named only as a generic driver of under-5 mortality. No counts, no
+    classification, no row.
+ 3. 2022 (365d) - RESOLVED, AS NON-REPORTING, ON WHO'S OWN EXPLICIT WORDING.
+    WER "Cholera, 2022" names Eritrea in the list of GTFCC at-risk countries that
+    "did not report cholera data to WHO for 2022". The gap is real and must stay
+    empty; no zero row is permissible. This is a better answer than "we found
+    nothing" and it is the strongest available resolution of this gap.
+ 4. 2024-2026 (992d) - 2024 RESOLVED AS NON-REPORTING by the same WHO wording in
+    WER "Cholera, 2024" ("Afghanistan and Eritrea"). 2025-2026 unclassifiable
+    until the 2025 annual review publishes. Eritrea is absent from every live
+    emergency product while Kassala (7,364 cases) and Al Qadarif (9,745) burn on
+    its Sudanese border.
+
+WHAT THE REDEPLOYMENT ADDED THAT THE FIRST SIX BATCHES DID NOT
+  A four-year run of EXPLICIT WHO classifications of Eritrea, 2021-2024, which
+  converts two of the four open gaps from "unknown" into "documented
+  non-reporting", and which incidentally exposes a baseline defect: JHU carries
+  Eritrea 2021 = 0 cases while WHO states Eritrea filed no 2021 return at all.
+  Registered as metadata indices 27-30 so every claim above is citable.
+
+HONEST BOTTOM LINE ON THE SUB-NATIONAL LAYER
+  Eritrea's sub-national cholera layer is genuinely unfillable from open sources.
+  Across 360 queries by Agent 1 and 180 by Agent 2, exactly ONE sub-national
+  Eritrean cholera case count has ever surfaced anywhere: the 22 cases reported
+  for Gash-Barka in September 2016 by a single news origin. WHO has published
+  exactly one Eritrean cholera event (2007, 119 cases / 9 deaths) and never
+  disaggregated it. No zoba-level Eritrean cholera figure exists in the public
+  record. The orchestrator may record this as settled.
+================================================================================

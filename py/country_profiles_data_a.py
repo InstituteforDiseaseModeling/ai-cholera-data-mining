@@ -191,7 +191,14 @@ PROFILES_A = {
         "major_cities": ["Asmara", "Keren", "Massawa", "Assab", "Mendefera", "Barentu"],
         "neighbors": ["DJI", "ETH", "SDN"],
         "search_languages": ["en", "ar", "ti"],
+        # NOTE: \u1238\u122e\u12bd (sherokh) is the Tigrinya word Eritreans
+        # actually use for cholera; the transliteration \u12ae\u120c\u122b
+        # appears 0 times across 337 Eritrean newspaper issues while
+        # \u1238\u122e\u12bd appears 10, and Haddas Ertra glosses its own term
+        # "* \u1238\u122e\u12bd (Cholera)". Every Tigrinya search run against
+        # this profile before 2026-09-19 queried a word Eritreans do not use.
         "disease_terms": ["cholera", "acute watery diarrhoea", "kolera",
+                          "\u1238\u122e\u12bd",
                           "\u12ae\u120c\u122b",
                           "\u0627\u0644\u0643\u0648\u0644\u064a\u0631\u0627"],
         # NOTE: shabait.com is the Ministry of INFORMATION / state media, not a

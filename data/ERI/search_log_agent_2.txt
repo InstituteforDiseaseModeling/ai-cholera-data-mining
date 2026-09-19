@@ -1,109 +1,1101 @@
-================================================================================
-AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - ERITREA (ERI)
-================================================================================
-Start: 2026-09-18
-Working dir: /Users/johngiles/MOSAIC/ai-cholera-data-mining
-Log file:    /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/ERI/search_log_agent_2.txt
 
-STATE INHERITED FROM AGENT 1 (12 batches / 240 queries)
-  ./data/ERI/cholera_data_ai.csv      4 rows
-  ./data/ERI/metadata_ai.csv          20 sources
-  ./data/ERI/cholera_presence_ai.csv  3 records
-  JHU baseline: 16 annual national rows 2005-2023. Coverage 30.2%.
+################################################################################
+SESSION-D2 | AGENT 2 (GEOGRAPHIC EXPANSION SPECIALIST) | ERITREA | RUN 3
+Start: 2026-09-19 (session-D2). Appended with >> to the existing log.
+Concurrency: a session-37 agent may be working ERI at the same time. This block
+is labelled SESSION-D2 throughout. workflow_state.json will be re-read and
+MERGED at completion, not overwritten.
+################################################################################
 
-EFFECTIVE GAPS (refreshed via py/analyze_effective_gaps.py, 2026-09-18)
-  1970-01-01..1970-10-31    304d  historical
-  1971-06-01..2000-05-31  10593d  modern      <-- the big one
-  2001-01-01..2004-12-31   1461d  modern
-  2009-01-01..2010-12-31    730d  modern
-  2022-01-01..2022-12-31    365d  modern
-  2024-01-01..2026-09-18    992d  recent
+MANDATE AND STARTING POSITION
+  Speciality: zoba (ADM1) and sub-zoba (ADM2) resolution for Eritrea.
+  Six zobas: Anseba, Debub, Debubawi Keyih Bahri (Southern Red Sea),
+  Gash-Barka, Maekel, Semenawi Keyih Bahri (Northern Red Sea).
+  Prior Agent 2 (run 2, 2026-09-19 04:59Z): 9 batches / 180 queries, ALL 0%
+  yield, concluded the sub-national layer is unfillable. I am NOT repeating that
+  sweep. My brief redirects me onto one specific overturned premise (below) and
+  onto surfaces that sweep never touched.
 
-AGENT 2 TARGETING PLAN (sub-national / zoba / sub-zoba)
-  T1 Corroborate the Sept-Oct 2016 Gash-Barka outbreak magnitude
-     (Plaut: "1342 patients ... 13 deaths ... in one makeshift clinic alone",
-      Upper Gash). Chase Barentu / Tesseney / Goluj / Om Hajer / Mai Dima /
-      Maimine / Molqi / Ala, Ethiopian refugee flows, MSF/ICRC/UNHCR camp health,
-      Tigrinya + Arabic diaspora outlets.
-  T2 WHO Eritrea IDSR zoba bulletins beyond the Q1-2015 issue (264 facilities,
-     6 zobas) - the only source type giving per-zoba Eritrean surveillance.
-  T3 Massawa and Assab as Red Sea cholera entry ports across 1970-2004,
-     including the Ethiopian-province era (Eritrea was an Ethiopian province
-     to 1991; Red Sea / Eritrea province returns went to WHO via Addis).
-  T4 Refugee/IDP camp health reporting with zoba attribution: Umkulu (Massawa),
-     the 2000 IDP camps in Debub / Gash-Barka / Northern Red Sea, Sudanese and
-     Ethiopian cross-border camp populations.
-  T5 Sub-zoba (district) detail inside whichever zoba carried the largest counts.
+  Sub-national rows in ./data/ERI/cholera_data_ai.csv at start: ONE
+    row 10  AFR::ERI::Gash-Barka  2016-09-01..2016-09-26  sCh=22  conf 0.15
+  Presence-only records in ./data/ERI/cholera_presence_ai.csv at start: FOUR
+    (all 2016 Gash-Barka, diaspora media, no usable count).
 
-TOOLING NOTE (inherited, verified): WebFetch gets HTTP 403 from iris.who.int,
-reliefweb.int and web.archive.org; plain `curl` from Bash works on all three.
-Helpers: /tmp/iris_search.py, /tmp/iris_text.py (WHO IRIS DSpace-7 REST API).
-
-DATA-FABRICATION TRAP (inherited): WER 1970-76 lines reading
-"Eritrea (excl. Asmara (A), Assab (PA) & Massawa (P)) 45 0" are SMALLPOX, not
-cholera - pdftotext -layout mis-associates them with a "CHOLERA (contd.)" header
-because of the 3-column page layout. Verify visually before mining.
-
-================================================================================
-
-=== BATCH 1 | PHASE 1 (broad discovery: corroborate the 2016 Gash-Barka outbreak) | ERI ===
-Gap targeted : not a listed gap - 2016 is the single period where Eritrea has a
-               real, multiply-reported sub-national outbreak and only a 22-case
-               row. Magnitude resolution here is worth more than any other target.
+=== SESSION-D2 BATCH 1 | AFRO/WHO institutional file trees at zoba resolution ===
+Target gaps: none of the five directly. Target was GEOGRAPHIC RESOLUTION - the
+brief's primary lead (enumerate the WHO Eritrea Quarterly Epidemiological
+Bulletin series) plus any WHO URL space never walked by a prior ERI agent.
 Queries (20):
-  Q1  WebSearch "Eritrea cholera outbreak 2016 Gash-Barka Tesseney Goluj Om Hajer cases deaths"
-  Q2  WebSearch "Eritrea 'Upper Gash' cholera 1342 patients Mereb river 2016"
-  Q3  WebSearch "Eritrea cholera 2016 Barentu Referral Hospital Mai Dima Maimine Molqi deaths"
-  Q4  WebSearch "Arbi Harnet Freedom Friday Eritrea cholera outbreak 2016 report cases"
-  Q5  WebSearch "Radio Erena Eritrea cholera Gash Barka 2016 outbreak"
-  Q6  WebSearch "Awate Eritrea cholera outbreak Gash Barka Barentu 2016 government cover up"
-  Q7  WebSearch "UNHCR Umkulu refugee camp Massawa Eritrea acute watery diarrhoea cholera cases"
-  Q8  WebSearch "Eritrea cholera 2016 UNICEF WHO 'three of the country's six regions' outbreak"
-  Q9  WebSearch (Tigrinya) "ኮሌራ ኤርትራ ጋሽ ባርካ 2016 ሕማም"
-  Q10 WebSearch (Arabic) "الكوليرا إريتريا غاش بركة 2016 حالات وفيات"
-  Q11 WebSearch "assenna Eritrea cholera epidemic Dembelas Quahayn Gash-Barka spreading"
-  Q12 Wayback CDX sweep assenna.com/*cholera* + curl id_ replay of the 30 Sep 2016 article
-  Q13 WebSearch site:shabait.com cholera / acute watery diarrhoea (govt Ministry of Information)
-  Q14 WebSearch "ProMED-mail Eritrea cholera 2016 undiagnosed illness Gash Barka"
-  Q15 WebSearch "Eritrea 2016 cholera epidemic Eri-TV / Ministry of Health announcement"
-  Q16 WebSearch "Shimelba Hitsats Mai Aini Adi Harush refugee camp cholera AWD 2016 Tigray"
-  Q17 WebFetch sitata.com serious-outbreak-of-cholera-in-eritrea (alert text + counts)
-  Q18 curl madote.com full text of the 26 Sep 2016 '22 cases' article (origin check)
-  Q19 IRIS discover "Integrated Disease Surveillance Quarterly Bulletin cholera zero cases"
-  Q20 IRIS full-text extract of the 1st-semester-2016 IDSR bulletin, Eritrea + cholera greps
+  Q1  Wayback CDX afro.who.int/sites/default/files/* filter urlkey ~ quarter
+  Q2  Wayback CDX same tree, filter urlkey ~ bulletin
+  Q3  Wayback CDX who.int/hac/crises/eri*            <- NEW URL SPACE
+  Q4  Wayback CDX aho.afro.who.int matchType=domain filter ~ eritrea
+  Q5  curl + pdftotext -layout of the Q3 2014 bulletin; Table 3 read directly
+  Q6  curl + pdftotext -layout of the Q1 2015 bulletin; searched for a cholera table
+  Q7  curl + pdftotext of /2017-06/ids_bulletin_2nd-quarter-2015.pdf (Q1 hit)
+  Q8  Bulk Wayback id_ retrieval of all 49 archived PDFs under who.int/hac/crises/eri*
+  Q9  Retry pass with backoff for the 34 that hit the Wayback rate limiter
+  Q10 cholera / "acute watery diarrhoea" / AWD grep across all 34 retrieved docs
+  Q11 AHO Eritrea "Analytical summary - Epidemic and pandemic-prone diseases"
+  Q12 AHO Eritrea Communicable diseases / Index / Health system outcomes pages
+  Q13 WebSearch: Eritrea cholera outbreak 2007 119 cases 9 deaths region zoba WHO
+  Q14 WebSearch: ProMED-mail Eritrea cholera archive post outbreak
+  Q15 promedmail.org wp-json probes x4 (search, posts, ?s=, promed/v1)
+  Q16 promedmail.org /api/<collection> probes x10 (alerts, promed-posts, ...)
+  Q17 promedmail.org homepage route extraction, then /search
+  Q18 html.duckduckgo.com promedmail Eritrea cholera
+  Q19 Full read of eritrea_health_bulletin_no2_6.pdf (the one cholera hit)
+  Q20 Wayback CDX who.int/hac/* filter ~ (eritrea|eri_), excluding crises/eri/
 
 FINDINGS
-  * FOURTH INDEPENDENT OUTLET FOUND for the Sept 2016 outbreak: Assenna.com,
-    30 September 2016 10:44, recovered from the Wayback Machine
-    (20180121021304id_). Politically opposed to Madote/Geeska; editorially
-    separate from Asmarino. It materially EXPANDS the geography:
-      "The epidemic seems to have started in the Dembelas and Qwohayn areas
-       and is sweeping through the Gash Barka region"
-      "All movements into and from the area have been barred, Aqurdet being
-       the outpost of the limited zone, coming from Keren"
-    Confirms the transport cordon independently of the Geeska/Madote 'CDE'
-    text. Gives NO case or death count -> presence record, not a data row.
-  * ORIGIN CHECK CLOSED: madote.com carries the Geeska text verbatim under the
-    same 'CDE' byline (full text pulled and compared). They are ONE origin.
-    The '22 cases' figure therefore still has exactly one origin.
-  * Sitata travel-health alert is a verbatim relay of Asmarino 4778. Not
-    independent; no counts. (Its displayed date, 13 Dec 2020, is a re-publication
-    artefact - the quoted text is the Sept 2016 Asmarino text.)
-  * The 1342-patient / 13-death figure remains SINGLE-ORIGIN (Arbi Harnet ->
-    Plaut; asmarino.com/news/4822 is a reprint of the same Plaut post, not an
-    independent report). NOT committable at >1000 cases on one Level 4 origin.
-  * WHO AFRO Integrated Disease Surveillance Quarterly Bulletin, 1st semester
-    2016 (IRIS 10665/251728, publ. 29 Nov 2016) full text extracted. Eritrea IS
-    an active reporter in it - ILI 455 cases, malaria trend curve discussed,
-    IDSR adaptation table "Eritrea 2012 Yes 40 2014 58 58 100 540". But this
-    issue carries NO cholera country table and NO zero-reporting country list,
-    so it cannot support either a 2016 zero or a 2016 count. (It also covers
-    only Jan-26 Jun 2016, i.e. it ends before the September outbreak.)
-  * shabait.com (govt): no cholera/AWD outbreak reporting located at all.
-  * Tigrinya and Arabic searches returned nothing on Eritrean cholera.
-Sources found: 1 new (Assenna 30 Sep 2016) -> registered as metadata index 21
-Rows added   : 0 (1 presence record, which does not count toward yield)
+
+1. THE QUARTERLY BULLETIN SERIES QUESTION IS CLOSED, INDEPENDENTLY. Q1 returned
+   exactly three PDFs in the whole afro.who.int file tree matching "quarter"
+   that could be Eritrean: /2017-06/1st-quarterly-bulletin.pdf (= metadata 7,
+   Q1 2015), /2017-06/quarterly-epidemiological-bulletin_2014.pdf (= metadata
+   56, Q3 2014) and /2017-06/ids_bulletin_2nd-quarter-2015.pdf. I downloaded
+   the third: it is the AFRO REGIONAL Integrated Disease Surveillance Quarterly
+   Bulletin, 2nd quarter 2015, i.e. metadata 19, already held, and it contains
+   zero occurrences of any Eritrean zoba name. Q2's "bulletin" filter over the
+   same tree returned 7 unique files, none Eritrean and new. This agrees with
+   session-37's three-method enumeration. THE SERIES IS TWO ISSUES LONG. The
+   coordinator's mid-task instruction to stop hunting it arrived while Q1/Q2
+   were already in flight; no further budget was spent on it.
+2. BOTH KNOWN ISSUES MINED FOR ZOBA ROWS, WHICH IS WHAT THE LANE WAS WORTH.
+   Q3 2014 Table 3 verified by me from the PDF, not taken on trust:
+     "Weekly reported Diseases | Anseba | Debub | G/Barka | Halibet hospital |
+      Maekel | NRS | Orrota Pediatrics Hospital | SRS | Total"
+     "Cholera           0   0   0   0   0   0   0   0   0"
+   in the same table as "Bloody diarrhea 3472 3625 3611 287 4551 3240 388 213
+   19387" and "Malaria 1348 2987 5251 34 314 429 156 41 10560". The per-zoba
+   structure is PRINTED; nothing was disaggregated by assumption. SIX zoba rows
+   written (indices 13-18). Halibet and Orrota Pediatrics Hospital were NOT
+   given rows - they are Asmara referral hospitals reporting as IDSR sentinel
+   sites, not administrative units.
+   Q1 2015 bulletin: NEGATIVE and now verified at source. Its tables are
+   Table 1 timeliness/completeness by zoba, Table 2 measles by zoba, Table 4
+   AFP/polio by zoba. There is NO epidemic-prone-disease count table and the
+   single occurrence of "cholera" in the whole 18,596-character document is the
+   prose list of notifiable diseases. No zoba row is available from it.
+3. ** THE BATCH'S REAL RESULT: A WHOLE WHO CORPUS NO ERI AGENT HAD TOUCHED. **
+   who.int/hac/crises/eri* - the WHO Health Action in Crises country page for
+   Eritrea - holds 49 archived PDFs, 34 of them retrievable. It is the WHO
+   Eritrea country office "Eritrea Health Update" / "EHA Weekly Bulletin"
+   series, roughly weekly-to-biweekly across 2005-2008, plus zoba assessment
+   reports (Southern Red Sea; Weqiro and Shieb; Foro sub-zone) and the CERF
+   interim report. These bulletins carry ZOBA-RESOLVED IDSR content as a matter
+   of routine - reporting completeness by zoba, bloody-diarrhoea incidence by
+   zoba, measles and AFP by zoba - which is exactly the document class this
+   country file has been missing. Prior agents searched who.int/countries/eri*
+   and afro.who.int but never who.int/hac/*.
+4. ** AND INSIDE IT, A LABORATORY-CONFIRMED ERITREAN CHOLERA OUTBREAK THAT IS
+   NOT IN ANY DATABASE. ** Eritrea Health Update Issue 2 No.6, 16-29 April
+   2007, section "Cholera out break in Tessenei": onset 18/09/06 in Tigtig
+   village, reported 20/09/06 by the Tessenei sub-Zoba administrator of Gash
+   Barka Zoba, investigated 21/09/06, "Stool samples were taken to Asmara
+   Central Laboratory and the results were positive for Vibrio cholerae",
+   traced to a broken water pipe, "a total of 60 cases and 3 deaths",
+   controlled at week 44. WHO GHO and ./data/ERI/cholera_data_jhu.csv both
+   carry Eritrea 2006 = 0, and WER 83(31) 2008 says Eritrea reported an
+   outbreak to WHO "for the first time ever" in 2007. So WHO's own country
+   office published a culture-confirmed 60-case outbreak that WHO's global
+   series records as nothing. Written as row Index 19,
+   AFR::ERI::Gash-Barka::Tessenei, the FIRST ADM2 cholera row for Eritrea.
+   Metadata 68 registered.
+5. NEGATIVES CLOSED. aho.afro.who.int: the Eritrea "Epidemic and pandemic-prone
+   diseases" profile page returns wgArticleId=0 / wgCurRevisionId=0, i.e. it is
+   a redlink - the page was never written. Three further Eritrea AHO pages
+   returned 0 bytes. The African Health Observatory has no Eritrean
+   epidemic-disease profile to mine; recorded so nobody tries again.
+   ProMED: promedmail.org is now a Next.js/Vercel app. /api/posts returns 200
+   but is the CMS BLOG collection (totalDocs=0 for cholera); ten other
+   Payload collection names 404; /search and /promed-post 429 under any
+   sustained access. The alert archive is not exposed through any discoverable
+   public API. This is a sharper diagnosis than "promedmail.org is dead" but
+   the operational conclusion is the same.
+6. Q20 found 8 more Eritrea documents elsewhere in the HAC tree (donorinfo
+   country pages 2004 and 2005, the Foro sub-zone assessment May 2006, the
+   Eritrea CERF evaluation report, and four global-health-cluster form/aide
+   memoire files). Carried into batch 2.
+Sources found : 1 registered (index 68)
+Rows added    : 7   Indices 13,14,15,16,17,18 (zoba zeros) and 19 (Tessenei)
+Successful queries: 2/20  (Q5 -> six rows; Q19 -> one row)
+Yield         : 10%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE. A productive new corpus is open and only partly read.
+
+=== SESSION-D2 BATCH 2 | Exhausting the WHO Eritrea bulletin corpus; 2007 outbreak ===
+Target: the 2007 outbreak (119 cases / 9 deaths nationally, zoba split never
+found) and any further issues of the WHO Eritrea "Health Update" series.
+Queries (21):
+  Q1  Inventory of which HAC PDFs failed retrieval; re-scan of all retrieved
+  Q2  ReliefWeb API v1 -> HTTP 410, "decommissioned, use v2"
+  Q3  Wayback retry pass on the 2 missing bulletins (0 bytes, rate limiter)
+  Q4  ReliefWeb API v2 -> HTTP 403 "not using an approved appname"
+  Q5  Wayback CDX timestamp+length for the 2 missing bulletins (both 200, real)
+  Q6  reliefweb.int/updates?search=eritrea cholera  (HTML, scrapeable)
+  Q7  reliefweb.int/updates?search="Eritrea health update"
+  Q8-Q9 ReliefWeb result-link structure discovery
+  Q10 Fetch + cholera scan of all 7 ReliefWeb "Eritrea health update" reports
+  Q11 ReliefWeb RSS: Eritrea EHA weekly bulletin
+  Q12 ReliefWeb RSS: "Eritrea" cholera outbreak 2007
+  Q13 ReliefWeb RSS: Eritrea health bulletin WHO
+  Q14 ReliefWeb RSS: Eritrea Tessenei cholera
+  Q15 ReliefWeb node page structure (body is inline, taxonomy term 85 = Eritrea)
+  Q16 ReliefWeb advanced-search syntax discovery: (PC85) works, (C85) does not
+  Q17 PC85 + cholera            -> 20 Eritrea-primary reports
+  Q18 PC85 + acute watery diarrhoea / Q19 PC85 + diarrhoea outbreak + Vibrio
+  Q20 Fetch + scan of 16 of those reports
+  Q21 Sentence-level scan of every cholera occurrence in 10 IRIN/Eritrea items
+  (+ recovery and full read of Issue 2 No.20; whole-corpus locality grep;
+     WebSearch for further issues; docplayer mirror probe)
+
+FINDINGS
+
+1. THE 2006-2008 WHO ERITREA BULLETIN SERIES IS NOW FULLY CHARACTERISED.
+   Issue 1 = "EHA Weekly Bulletin", weekly, 2006. Issue 2 = "Eritrea Health
+   Update", biweekly, No.1 (5-18 Feb 2007) through No.20 (11 Nov - 31 Dec
+   2007). Issue 3 = 2008, at least to No.9 (30 Jun - 6 Jul 2008). I hold 36
+   issues. Across ALL of them the word "cholera" occurs in only FOUR
+   documents, and only ONE carries a count: Issue 2 No.6, the Tessenei outbreak
+   already written as row 19.
+2. THE 2007 OUTBREAK: BEST GEOGRAPHIC LEAD EVER FOUND, BUT DELIBERATELY NOT
+   WRITTEN AS A ROW OR AS A PRESENCE RECORD. Issue 2 No.20 (11 Nov - 31 Dec
+   2007), the year-end review, states verbatim: "There were also major
+   outbreaks of acute diarrhoeal disease in Asseb and Tio in Southern Red Sea
+   Zoba and as presented in Figure 6, there was another outbreak in Bada,
+   Gelalo sub Zoba of Northern Red Sea." WHO's global return for Eritrea 2007
+   is 119 cases / 9 deaths and WER's only locational phrase for it is
+   "vulnerable groups living in remote areas". Assab and Tio (Southern Red Sea,
+   total zoba population 63,197, Afar pastoralists) and Bada/Gelalo (Northern
+   Red Sea) are precisely that. Same country, same calendar year, WHO's own
+   country office. WHY NO ROW: the bulletin says "acute diarrhoeal disease",
+   never cholera; it gives NO case or death counts; and in this same document
+   the weekly-monitored series is BLOODY diarrhoea (suspected shigellosis),
+   which the bulletin is careful to distinguish from watery diarrhoea. Calling
+   these cholera would be inference dressed as evidence, and even the presence
+   file requires cholera presence rather than diarrhoea presence. RECORDED HERE
+   AS A HYPOTHESIS FOR AGENTS 6 AND 7: if the 2007 Eritrean cholera cases have
+   a geography, it is Southern Red Sea (Assab, Tio) and Northern Red Sea
+   (Bada, Gelalo sub-zoba) - not Gash-Barka. Figures 2-6 of that issue are
+   chart images with no extractable values.
+   Follow-through also negative: Issue 3 No.3 (10-16 Mar 2008) carries a photo
+   captioned "A tent erected to manage diarrhea cases in Tio" inside a Southern
+   Red Sea assessment, confirming the Tio outbreak ran into 2008, but the
+   assessment reports population denominators only and no case counts.
+3. RELIEFWEB IS OPEN AGAIN, BY A ROUTE THAT WORKS. Both APIs are shut (v1 410,
+   v2 403 without an approved appname - this is what defeated Agent 4), but the
+   WEBSITE is plain HTML and fully scrapeable, report bodies are inline rather
+   than PDF-only, and the advanced-search facet (PC85) filters to Eritrea as
+   primary country. TOOLING NOTE FOR LATER AGENTS AND OTHER COUNTRIES: use
+   https://reliefweb.int/updates?advanced-search=%28PC<termid>%29&search=<term>
+   and https://reliefweb.int/updates/rss.xml?search=<term>. Eritrea = term 85.
+4. THE RELIEFWEB ERITREA-PRIMARY CHOLERA SET IS 20 REPORTS AND EVERY ONE IS A
+   FALSE POSITIVE. I read every cholera occurrence in all of them. The IRIN
+   Horn of Africa updates and weekly rounds (2000-2003) are regional digests
+   tagged to Eritrea because they contain an Eritrea item; their cholera items
+   are SOMALIA (Lower Shabelle, Qoryoley, Marka, Adale, Bosaso - 881 cases /
+   71 deaths to mid-April 2002, 32 deaths in Bosaso, 65 cases / 3 deaths in
+   Adale) and never Eritrea. The remaining hits are an emergency-kit
+   specification ("manage 200 cases of diarrhoea including cholera") repeated
+   in the May 2006 humanitarian update and the 22-28 May 2006 EHA bulletin, a
+   generic rainy-season warning, and a FEWS flood advisory. This closes the
+   ReliefWeb/IRIN channel for Eritrean cholera in 2000-2003, i.e. across the
+   end of G1 and the whole of G2.
+5. ONE MORE DOCUMENTED NON-EVENT, LOGGED NOT ROWED. EHA Weekly Bulletin
+   29 May - 4 Jun 2006: "The cases of bloody diarrhea reported in 2006 at
+   national level reached critical levels between weeks 1 to 5 of the year.
+   This is due to outbreaks reported from communities in Southern Red Sea
+   zone... No cholera or other diarrhoeal diseases outbreak was reported."
+   Aetiology-resolved and therefore stronger than silence - but it says no
+   cholera OUTBREAK was REPORTED, not that zero cases occurred, and the same
+   year turned out to contain the Tessenei outbreak from week 37. Under the
+   ERI rule (absence = non-reporting unless positively documented) this is NOT
+   a zero row, and the 2006 counter-example is now on the record as to why.
+Sources found : 0 new registered
+Rows added    : 0
+Successful queries: 0/20
+Yield         : 0%
+Consecutive sub-5% batches: 1
+Decision      : CONTINUE to batch 3 (2016 Gash-Barka sub-zoba resolution and
+                district-level targets), floor of 3 batches not yet reached.
+
+=== SESSION-D2 BATCH 3 | Sub-zoba gazetteer resolution of the 2016 episode ===
+Target: the Gash-Barka 2016 episode at ADM2, and district-level detail for
+Massawa, Assab, Keren, Barentu, Mendefera, Asmara.
+Queries (20):
+  Q1  geoBoundaries API: gbOpen/ERI/ADM2 metadata
+  Q2  Download ERI ADM2 simplified geojson -> 58 official sub-zoba names
+  Q3  Download ERI ADM1 geojson; ray-casting point-in-polygon of each ADM2
+      centroid against the 6 zoba polygons -> authoritative parent mapping
+  Q4  Re-read metadata entries 11,12,13,14,21 (the five 2016 sources)
+  Q5  WebSearch: Eritrea cholera Barentu Tesseney Agordat Gash Barka 2016 quarantine
+  Q6  Full-text retrieval of asmarino.com/news/4794 (the "Cholera Updates" post)
+  Q7  Wayback CDX archive.assenna.com matchType=domain filter ~ cholera   <- NEW HOST
+  Q8  Wayback CDX awate.com  (zero cholera URLs)
+  Q9  Wayback CDX tesfanews.net filter ~ cholera
+  Q10 Wayback CDX erimedia.net (zero)
+  Q11 Retrieval and VISUAL inspection of assenna's 2016 "eritrea_map-CHOLERA-1.jpg"
+  Q12 Wayback CDX over the whole who.int archive for eritrea*(update|bulletin|
+      sitrep) filenames  -> 504 Gateway Timeout, not retried
+  Q13 tesfanews.net/tag/cholera-epidemic/  Q14 /tag/cholera-outbreak/
+  Q15 WebSearch Tigrinya: ኤርትራ ኮሌራ ወረርሽኝ ጋሽ ባርካ
+  Q16 WebSearch: Eritrea cholera Massawa Assab port outbreak hospital admissions
+  Q17 WebSearch: Eritrea cholera by zoba / IDSR annual report surveillance table
+  Q18 WebSearch Arabic: الكوليرا إريتريا تفشي وباء غاش بركة حالات وفيات
+  Q19 WebSearch: Tigray 2016 cholera, Eritrea border, Mereb, cross-border
+  Q20 validate_quality.py ERI
+
+FINDINGS
+
+1. ** THE 2016 OUTBREAK CROSSED A ZOBA BOUNDARY, AND NOBODY HAD NOTICED. **
+   Prior Agent 2 wrote that the 2016 locality names "CANNOT be resolved to a
+   modern zoba with confidence from any source reachable here". They can - the
+   obstacle was tooling, not evidence. Against the geoBoundaries gbOpen ERI
+   ADM2 layer (58 sub-zobas), MAIMINE and MOLQI are both OFFICIAL sub-zoba
+   names, and centroid-in-polygon against the ADM1 layer gives:
+       Maimine  38.477E 14.570N -> DEBUB          (17 deaths)
+       Molqi    38.359E 14.979N -> GASH-BARKA     (3 deaths)
+       Tesseney 36.666E 15.138N -> GASH-BARKA     (confirms row 19)
+   Every 2016 record in this file previously sat in Gash-Barka alone. The
+   largest single disclosed death toll of the episode, 17 at Maimine, is in
+   DEBUB. THREE INDEPENDENT CONFIRMATIONS that this is not a mis-identification:
+   (i) the Asmarino post's own opening line, retrieved in full this batch,
+   reads "following the reported outbreak of cholera in the Gash-Barka AND
+   SOUTHERN REGIONS" - Debub IS the southern region - and later refers to "the
+   referral hospitals in Gash Barka and Southern region"; (ii) source 14
+   (Plaut) attributes transmission to water drawn from pits in the MEREB river,
+   and Maimine and Molqi both sit in the Mereb basin on the Tigray frontier;
+   (iii) the sentence "The death toll in Gash Barka is undisclosed" only parses
+   sensibly if the named localities are not all inside Gash-Barka.
+   Rows 20 and 21 written. The third component, 3 deaths at the Ala military
+   training centre, was NOT rowed: Ala is not in the ADM2 layer and I will not
+   guess its zoba; those 3 deaths stay only inside national row 11
+   (17 + 3 + 3 = 23, which is exactly row 11's figure).
+2. NO NEW MAGNITUDE INFORMATION, AND NONE IS COMING. Full retrieval of
+   asmarino 4794 adds no counts beyond 17/3/3. archive.assenna.com is a NEW
+   host not previously swept, but it carries exactly ONE cholera item - the
+   same Dembelas/Qwohayn article already held as source 21 - plus four size
+   variants of one image. I downloaded and LOOKED AT that image: it is a plain
+   grey outline map of Eritrea captioned "CHOLERA EPIDEMIC IN ERITREA" with no
+   shading, no legend and no locality marks. No geographic content. awate.com
+   and erimedia.net have zero cholera URLs in the entire Wayback record;
+   tesfanews.net's cholera tag pages are about ETHIOPIA.
+3. DISTRICT-LEVEL TARGETS FOR MASSAWA, ASSAB, KEREN, BARENTU, MENDEFERA AND
+   ASMARA: NEGATIVE across English, Tigrinya and Arabic. The Tigrinya query
+   returned Facebook and general-Eritrea pages; the Arabic query returned Chad
+   and global WHO cholera pages. No Eritrean port or city cholera record
+   exists in any of them.
+4. REGIONAL CONTEXT, NO ROW: Ethiopian work confirms "cholera hotspots were
+   located in Tigray Region notably around Mekelle, along the borders with
+   Sudan and Eritrea", with Tigray at 64.61/100,000 in 2016. That is the
+   correct regional frame for rows 10, 11, 20 and 21 but supplies no Eritrean
+   number.
+Sources found : 0 new registered (rows 20-21 reuse metadata 12)
+Rows added    : 2   Indices 20 (AFR::ERI::Debub::Maimine, 17 deaths) and
+                    21 (AFR::ERI::Gash-Barka::Molqi, 3 deaths)
+Successful queries: 2/20  (Q3 gazetteer resolution; Q6 full-text confirmation)
+Yield         : 10%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE to batch 4. Three-batch floor met, but yield is 10%
+                and two WHO URL spaces surfaced in batch 1 are still unread.
+
+=== SESSION-D2 BATCH 4 | Remaining WHO URL spaces; recent period; UNICEF ===
+Queries (20):
+  Q1  Fetch the 4 non-crises HAC Eritrea docs (attempt 1, rate-limited)
+  Q2  ReliefWeb: "Health Action in Crises" + Eritrea + cholera
+  Q3  ReliefWeb PC85 + cholera/AWD sorted date desc (recent-period check)
+  Q4  WebSearch: Eritrea cholera 2025 2026 outbreak cases MoH WHO
+  Q5  HAC retry (shell word-splitting bug under zsh; corrected in Q7-Q9)
+  Q6  WebSearch: UNICEF Humanitarian Action Report 2008 Eritrea AWD zoba
+  Q7  who.int/hac/crises/international/hoafrica/Eritrea_Foro_sub_zone_3_6May2006.pdf
+  Q8  who.int/hac/donorinfo/reports/eritrea_cerf_evaluation_report.pdf (2.1 MB)
+  Q9  who.int/hac/about/donorinfo/eritrea.pdf (2005)
+  Q10-Q12 UNICEF Eritrea 2018 HAC and Dec-2018/Dec-2019 situation reports
+  Q13 IRIS bitstream for the AFRO 2016 epidemic risk mapping report
+  Q14 ReliefWeb PC85 + "health update" OR "health bulletin"
+  Q15 WHO IRIS discover API: Eritrea epidemiological bulletin / health update / IDSR
+  Q16 WebSearch for mirrors of further Eritrea Health Update issues
+  Q17 WebFetch afro.who.int/fr/node/682
+  Q18 Wayback CDX afro.who.int files filter ~ highlight (504, partial result used)
+  Q19 Direct retrieval of eritrea-health-highlights-bulletin-issueno5-july-oct2013.pdf
+  Q20 Wayback CDX afro.who.int/sites/default/files/pdf/* filter ~ eritrea;
+      afro.who.int site search for the Health Highlights series
+
+FINDINGS
+
+1. WHO'S OWN GLOBAL EMERGENCY WEEKLY NEVER REPORTED ERITREAN CHOLERA. The
+   "Health Action in Crises - Highlights" series ran weekly through 2006-2008
+   and is fully indexed on ReliefWeb. Eritrea is the primary country of exactly
+   ONE issue, No.113 (19-25 Jun 2006), which contains zero cholera. Every other
+   Highlights issue returned by a combined Eritrea+cholera query belongs to
+   Afghanistan, Angola, Bangladesh, Belize, CAR, Chad, DRC, Ethiopia, Indonesia
+   or Iraq. So in 2007, the year WHO's own annual return credits Eritrea with
+   119 cases and 9 deaths, WHO's global emergency-health weekly said nothing.
+   That is a third independent demonstration, alongside the WER sweep and the
+   GHO series, that the Eritrean signal never left the country.
+2. THE REST OF THE HAC TREE IS NEGATIVE. The Foro sub-zone assessment (Northern
+   Red Sea, May 2006, 359 KB), the Eritrea CERF evaluation report (2.1 MB) and
+   the 2005 donor information page all contain cholera ZERO times. With batch
+   1's 34 documents this closes the entire WHO Health Action in Crises Eritrea
+   corpus - 38 documents, one cholera outbreak, already extracted as row 19.
+3. A THIRD WHO ERITREA BULLETIN SERIES EXISTS AND IS EPIDEMIOLOGICALLY EMPTY.
+   "Eritrea Health Highlights" - distinct from the Health Update (2006-2008)
+   and from the Quarterly Epidemiological Bulletin (2014-2015), and never
+   mentioned in any prior ERI log. Issue No.5, July-Oct 2013, retrieved at
+   https://www.afro.who.int/sites/default/files/pdf/eritrea-health-highlights-bulletin-issueno5-july-oct2013.pdf
+   (1.9 MB, 23,077 chars): cholera ZERO times. It is a programme newsletter
+   (CCS drafting, district health system in Gash Barka, obstetric care, NTDs),
+   not a surveillance bulletin. NEW TOOLING FACT WORTH KEEPING: AFRO serves a
+   /sites/default/files/pdf/ directory that is NOT the dated
+   /sites/default/files/YYYY-MM/ tree every prior agent probed, and the Wayback
+   Machine has archived almost none of it (CDX returns ONE Eritrea file for the
+   whole directory while the live server serves this one). Any future AFRO
+   enumeration must probe both trees; Wayback alone under-reports the site.
+   No further issues of the series are discoverable: afro.who.int's own search
+   returns "Your search yielded no results" for it.
+4. RECENT PERIOD AND UNICEF: NOTHING. ReliefWeb's Eritrea-primary set sorted by
+   date has no cholera item after 2016. Global WHO multi-country cholera
+   updates #33 (27 Jan 2026) and #34 (21 Feb 2026) and the 2025 annual
+   (614,828 cases, 33 countries; 172,750 in AFR across 23 countries) do not
+   list Eritrea. UNICEF's own domain blocks retrieval (4,543-byte challenge
+   page for all three PDFs tried); Agent 1 already covered the eight Eritrea
+   COARs via the Internet Archive with a zero result, so this is not a gap.
+   IRIS discover for Eritrea bulletins returns only items already held.
+Sources found : 0 registered
+Rows added    : 0
+Successful queries: 0/20
+Yield         : 0%
+Consecutive sub-5% batches: 1
+Decision      : CONTINUE. Stopping criterion needs 3 consecutive sub-5%
+                batches and only 1 has accrued (batch 3 was 10%).
+
+=== SESSION-D2 BATCH 5 | Literature and microbiology: is there ANY Eritrean lab signal? ===
+Rationale: the Tessenei find proved Eritrean V. cholerae WAS cultured (Asmara
+Central Laboratory, 2006). If any Eritrean hospital microbiology or diarrhoea
+study reports isolation rates, it would give a cCh count - a document class no
+prior ERI agent had searched for.
+Queries (20):
+  Q1  EPMC: Eritrea AND (cholerae OR cholera)                     519 hits
+  Q2  EPMC: Eritrea AND (stool OR isolate) AND diarrh*            296 hits
+  Q3  EPMC: Eritrea AND (Barentu|Keren|Massawa|Mendefera|Assab) AND (diarrh*|outbreak)  44
+  Q4  EPMC: Eritrea AND Vibrio                                    121 hits
+  Q5  EPMC: AFF:"Eritrea" AND cholera                             7 hits
+  Q6  EPMC: Eritrea AND "epidemic prone"   Q7 EPMC: Eritrea AND IDSR
+  Q8  WHO GHO CHOLERA_0000000001 (cases) for ERI
+  Q9  WHO GHO CHOLERA_0000000002 (deaths) for ERI
+  Q10 Full read of PMC12619416 (Eritrean under-five diarrhoea management, 2017)
+  Q11 WebSearch: WHO Eritrea CCS 2023-2027 / STAR risk assessment by zoba
+  Q12 WebSearch: GTFCC Eritrea national cholera plan / hotspot mapping
+  Q13 PubMed: Eritrea[Title/Abstract] AND cholera OR Vibrio cholerae OR AWD
+  Q14 ReliefWeb: Kassala cholera Eritrea border
+  Q15 ReliefWeb: Shagarab OR "Wad Sherife" cholera
+  Q16-Q20 Follow-through on the above result sets
+
+FINDINGS
+1. PUBMED HAS EXACTLY THREE ERITREA-CHOLERA PAPERS (PMIDs 41248381, 36977170,
+   29502905) and none reports an Eritrean case - reproducing the prior finding
+   with an explicit PMID list. EPMC's affiliation-scoped query (AFF:"Eritrea"
+   AND cholera) returns SEVEN records, of which the only Eritrean-authored
+   ones are a Sudan piece, a Khartoum parasitology piece, a UHC review and the
+   Somda IDSR cost analysis. THERE IS NO ERITREAN CHOLERA MICROBIOLOGY
+   LITERATURE. The 2006 Asmara Central Laboratory isolate was never published.
+2. THE BEST CANDIDATE DOCUMENT IS NEGATIVE AND WORTH RECORDING. PMC12619416
+   (2025) retrospectively reviews 756 under-five diarrhoea admissions from
+   2017 across FOUR Eritrean referral hospitals - Orotta National Paediatric
+   (Maekel), Mendefera Regional (Debub), Ghindae Regional (Northern Red Sea)
+   and Keren Regional (Anseba) - out of 9,650 treated that year. It is exactly
+   the zoba-spanning hospital series that could have carried a cholera line.
+   Cholera appears ZERO times and it gives no case split by hospital.
+3. WHO GHO RE-QUERIED, AND IT NOW CONTRADICTS WHO'S OWN COUNTRY OFFICE.
+   CHOLERA_0000000002 (deaths) for ERI returns exactly four values:
+   2005=0, 2006=0, 2007=9, 2008=0. The global database records ZERO Eritrean
+   cholera deaths in 2006 while WHO's own Eritrea office published THREE, at
+   Tessenei, with culture confirmation (row 19). That is the cleanest
+   demonstration in this whole country file that Eritrean zeros in the
+   international series are non-reporting rather than non-occurrence - it is
+   the same organisation disagreeing with itself in print.
+4. NO GTFCC NATIONAL CHOLERA PLAN AND NO SUB-NATIONAL HOTSPOT CLASSIFICATION
+   EXISTS FOR ERITREA. Eritrea is absent from GTFCC country-support and
+   hotspot-mapping outputs, so there is no official sub-national cholera
+   geography for this country from that direction either.
+5. CROSS-BORDER: ReliefWeb queries for Kassala/Shagarab/Wad Sherife cholera
+   return Sudanese and West African material only. Nothing places Eritrean
+   cases on the Sudanese side in a way that could be an AFR::ERI row.
+Sources found : 0 registered    Rows added: 0
+Successful queries: 0/20        Yield: 0%
+Consecutive sub-5% batches: 2
+Decision      : ONE MORE BATCH, to close the lane systematically rather than
+                by exhaustion of ideas.
+
+=== SESSION-D2 BATCH 6 | Systematic sub-zoba name sweep (closing the lane) ===
+Rationale: rather than stop on intuition, run the complete geographic
+enumeration - every one of Eritrea's 58 official ADM2 sub-zobas, by name,
+against the two corpora that are still open to me.
+Queries (20 logical; 74 HTTP queries):
+  Q1-Q10  Europe PMC: each of the 58 sub-zoba names AND cholera (58 queries)
+  Q11-Q16 Detailed inspection of the 17 names returning any hit, plus Barentu,
+          Tesseney, Agordat, Akurdet, Assab spelling variants
+  Q17-Q18 ReliefWeb: 16 town/sub-zoba names + cholera + Eritrea
+  Q19-Q20 Full read of the 4 newly surfaced ReliefWeb items (IRIN news briefs
+          7 April and 25 February, Horn of Africa monthly review Feb-Mar 1999,
+          UN CAP Eritrea 2001)
+
+FINDINGS
+1. THE 58-SUB-ZOBA EPMC SWEEP IS ENTIRELY NEGATIVE FOR ERITREA. Seventeen
+   names returned hits and every one is a false positive on a homograph -
+   Dige (98), Sela (217), Keren (245, a surname), Foro (51), Asmat (13) and so
+   on. The only genuinely Eritrean hits are historical and outside the study
+   window: "The history of cholera in Ethiopia" (1968) and a British Army
+   Medical Department Report (1870) naming Senafe, both from the pre-1970 era
+   and neither usable for a row. Barentu, Tesseney, Akurdet and Haykota - the
+   sub-zobas at the centre of both the 2006 and the 2016 outbreaks - return
+   ZERO cholera records in the entire biomedical literature.
+2. THE RELIEFWEB SUB-ZOBA SWEEP ADDS FOUR DOCUMENTS AND ALL FOUR ARE SOMALIA.
+   IRIN news briefs 7 April (Bay region cholera, 113 cases around Dodale,
+   23 deaths, CFR 20.4%) and 25 February (326 cases / 28 deaths in Somalia
+   1 Jan - 18 Feb); the Horn of Africa monthly review Feb-Mar 1999 (Somalia);
+   and the UN CAP Eritrea 2001, whose single cholera mention is the WASH
+   sentence already quoted in batch 2.
+3. LANE CLOSED, AND CLOSED SYSTEMATICALLY RATHER THAN BY EXHAUSTION. Every
+   Eritrean first- and second-level administrative unit has now been searched
+   by name against the biomedical literature and the humanitarian corpus.
+Sources found : 0 registered    Rows added: 0
+Successful queries: 0/20        Yield: 0%
+Consecutive sub-5% batches: 3  -> STOPPING CRITERION MET
+Decision      : STOP at 6 batches / ~120 logical queries. Floor of 3 batches
+                exceeded; batches 4, 5 and 6 all below 5%.
+
+================================================================================
+SESSION-D2 AGENT 2 CLOSING RECORD - ERITREA (run 3)
+================================================================================
+Batches: 6 (~120 logical queries; several hundred HTTP requests).
+Per-batch yield, percent: [10, 0, 10, 0, 0, 0].
+Stopping criterion: batches 4, 5 and 6 all below 5%, three-batch floor long
+passed, twelve-batch ceiling not reached.
+
+NET EFFECT ON ./data/ERI/cholera_data_ai.csv
+  Before: 8 rows, of which ONE was sub-national.
+  After: 17 rows, of which TEN are sub-national.
+  New rows, all written with py/add_observation.py, none hand-edited:
+    13-18  AFR::ERI::{Anseba, Debub, Gash-Barka, Maekel, Semenawi Keyih Bahri,
+           Debubawi Keyih Bahri}  2014-07-01..2014-09-30  sCh=0 deaths=0
+           Documented_Absence conf 0.90  (metadata 56)
+    19     AFR::ERI::Gash-Barka::Tessenei  2006-09-18..2006-11-05
+           sCh=60 deaths=3 CFR 5.0%  conf 0.85  (metadata 68, NEW)
+    20     AFR::ERI::Debub::Maimine        2016-08-27..2016-09-25 deaths=17 conf 0.15
+    21     AFR::ERI::Gash-Barka::Molqi     2016-08-27..2016-09-25 deaths=3  conf 0.15
+  ./data/ERI/metadata_ai.csv: 67 sources -> 68 (new: index 68, WHO Eritrea
+  Health Update Issue 2 No.6).
+  ./data/ERI/cholera_presence_ai.csv: UNCHANGED at 4 records. Nothing this run
+  qualified - the 2007 Assab/Tio/Bada material is diarrhoeal-disease presence,
+  not cholera presence, and I will not launder one into the other.
+  No zero row was written anywhere in 1971-2004, per the standing rule.
+
+THE THREE THINGS A READER SHOULD TAKE FROM THIS RUN
+  1. Eritrea had a laboratory-confirmed cholera outbreak in 2006 - 60 cases,
+     3 deaths, V. cholerae cultured at Asmara Central Laboratory - published by
+     WHO's own Eritrea country office, in a year WHO's global database records
+     as zero cases and zero deaths. The Eritrean zeros are non-reporting. That
+     is no longer an inference.
+  2. The 2016 outbreak reached Debub, not only Gash-Barka, and the largest
+     disclosed death toll of the episode is in Debub. Resolving that took a
+     gazetteer, not another search.
+  3. The sub-national lane is now closed on a complete enumeration - all 58
+     official sub-zobas searched by name - rather than on running out of ideas.
+     The prior Agent 2's conclusion that Eritrea's sub-national layer is
+     unfillable was 80% right and 20% premature: two more whole corpora
+     existed, and between them they held one outbreak and six zoba nil returns.
+
+OPEN ITEM HANDED TO AGENT 7 (not fixable with the current tooling)
+  validate_quality.py ERI = ERROR 0, WARN 1, exit 0. The warning is
+  national_subnational_overlap on 2014-07-01..2014-09-30. My six zoba rows all
+  carry "Provincial subset - do not sum with national row"; the check requires
+  every row in the group to carry an accepted phrase and Agent 1's national row
+  Index 12 does not. add_observation.py has no edit subcommand and hand-editing
+  is forbidden. FIX: append "National total - includes provinces not
+  individually listed" to Index 12's processing_notes. Arithmetic risk is nil -
+  every value in that group is zero.
+================================================================================
+
+################################################################################
+SESSION-E2 | AGENT 2 (GEOGRAPHIC EXPANSION SPECIALIST) | ERITREA | RUN 4
+Start: 2026-09-19. Appended with >> to the existing log (prior run archived to
+./data/ERI/search_log_agent_2_legacy_sessionD2_2026-09-19.txt).
+################################################################################
+
+STARTING POSITION AND WHY THIS RUN IS NOT A REPEAT
+  ./data/ERI/cholera_data_ai.csv holds 17 rows, TEN of them sub-national, but
+  the sub-national layer is only THREE moments: six zoba nil returns for
+  2014-Q3, Tessenei 2006 (60/3), and the disputed Sept-2016 trio
+  (Gash-Barka 22 cases; Debub::Maimine 17 deaths; Gash-Barka::Molqi 3 deaths).
+  ./data/ERI/metadata_ai.csv holds 95 sources. Prior Agent 2 runs: run 2 =
+  9 batches/180 queries at 0%; run 3 (session-D2) = 6 batches, yields
+  [10,0,10,0,0,0]. Agent 1 this session = 5 batches at 0%.
+
+  CLOSED BY PREDECESSORS - I do not re-walk any of these:
+    WHO Eritrea Quarterly Epi Bulletin series (enumerated 3 ways; 2 issues only)
+    WHO Eritrea Health Update / EHA Weekly Bulletin, who.int/hac/crises/eri*
+      (38 documents, all read; cholera in 4, a count in 1)
+    WHO Eritrea Health Highlights (afro /sites/default/files/pdf/ tree)
+    ReliefWeb Eritrea-primary corpus via PC85 and date-sliced RSS
+    Europe PMC swept by ALL 58 official ADM2 sub-zoba names
+    ProMED (no public API), AHO (redlinks), GTFCC (no ERI hotspot mapping)
+    Diaspora media Wayback: assenna, awate, tesfanews, erimedia
+    shabait.com Wayback CDX **2021-2023 ONLY** (Agent 1, G4 test)
+    WHO DON archive, WER annual series, GHO, Ethiopian MoH repository
+
+  MY FOUR UNTRIED SURFACES, chosen because each is geographic by construction:
+    S1 The 2007 outbreak's zoba geography. WHO's global return for ERI 2007 is
+       119 cases / 9 deaths; WHO's own Eritrea office named "major outbreaks of
+       acute diarrhoeal disease in Asseb and Tio in Southern Red Sea Zoba" and
+       "another outbreak in Bada, Gelalo sub Zoba of Northern Red Sea". No
+       predecessor tried to find a SECOND source naming cholera at those places.
+    S2 shabait.com / shaebia.org / Eritrea Profile at FULL time range. Agent 1
+       enumerated 2021-2023 only. 2006 and 2016 - the two years Eritrea
+       demonstrably had cholera - were never enumerated.
+    S3 WHO Eritrea country-office Annual Report series. The file holds 2020 and
+       2022 only. The 2016 and 2017 editions are where a Gash-Barka 2016
+       episode would appear or be denied.
+    S4 Gazetteer resolution of "Ala" military training centre (3 deaths, 2016),
+       which session-D2 left unresolved and inside the national row only.
+
+=== SESSION-E2 BATCH 1 | PHASE 1-2 | ERI ===
+Gap targeted : G3 2009-01-01..2010-12-31 (730d) and the undated sub-national
+               deficit; primary object = the geography of the 2007 outbreak
+               (WHO global return 119 cases / 9 deaths, no locality anywhere).
+Queries (20):
+  Q1  WebSearch Eritrea 2007 cholera Assab Tio Southern Red Sea cases deaths
+  Q2  WebSearch Eritrea SRS Assab/Tio diarrhoea outbreak 2007-2008 WHO UNICEF
+  Q3  LOCAL: /Users/johngiles/MOSAIC/jhu_cholera_data/data/Eritrea/ holdings
+  Q4  WebFetch iddynamics.jhsph.edu/projects/cholera-data-and-maps-eritrea (403)
+  Q5  Nominatim gazetteer resolution of "Ala", Eritrea
+  Q6  WebSearch "Ala" military training centre Eritrea region
+  Q7  Wayback CDX afro.who.int domain-wide filtered on eritrea (timeout, 0 rows)
+  Q8  afro.who.int/countries/eritrea/publications pages 0-2
+  Q9  afro.who.int/countries/eritrea/publications pages 3-8 (series exhausted)
+  Q10 PDF-URL extraction from each ERI publication node
+  Q11 curl + pdftotext of the 5 never-opened AFRO Eritrea PDFs
+  Q12 WebSearch UNICEF Humanitarian Action Report 2008 Eritrea AWD by zoba
+  Q13 unocha.org publications search, Eritrea + cholera (0 rows)
+  Q14 ReliefWeb RSS with date[from]/date[to] slicing, 2006/2007/2008/2009
+  Q15 ReliefWeb API v2 with appname=rwint-user-0 harvested from the site
+  Q16 ReliefWeb river HTML structure discovery (advanced-search=(PC85))
+  Q17 RW PC85 + "diarrhoea OR diarrhea", 3 pages
+  Q18 RW PC85 + Southern region / Northern Red Sea / Gash Barka + disease, 2 pp
+  Q19 RW full-text read: "Instances of various diseases on the decline in
+      Southern region" (Govt. Eritrea, Mendefera, 6 Jan 2014)
+  Q20 Wayback CDX who.int/hac/crises/eri* -> 49 retrievable PDFs; bulk retrieval
+      (20 landed before the rate limiter); pdftotext + cholera/AWD grep on all 20
+
+FINDINGS
+
+1. ** THE AFRO ERITREA PUBLICATION ESTATE IS NOW ENUMERATED TO EXHAUSTION AND
+   INDEPENDENTLY RECONFIRMS THE QUARTERLY-BULLETIN CLOSURE. **
+   afro.who.int/countries/eritrea/publications is FOUR pages and then empty.
+   Eleven unique publications exist. The Quarterly Epidemiological Bulletin
+   appears exactly twice - "september-2014" and "may-2015" - which is a fourth
+   independent method (site-native publication index, as against Wayback CDX,
+   file-tree globbing and IRIS discover) returning the same answer. The series
+   is two issues long. Nobody should spend budget on it again.
+2. FIVE AFRO ERITREA PDFs OPENED FOR THE FIRST TIME IN THIS COUNTRY FILE. All
+   negative for counts, each for a different reason, all now on the record:
+     WHO Eritrea Biennium Report 2020-2021 (12.8 MB, 358,611 chars) - cholera
+       ONCE, in a list: "Epidemic prone diseases (Cholera, Shigellosis, Plague,
+       Viral Hemorrhagic Fevers (VHFs), Yellow ...)". A hazard list, not a count.
+     Eritrea Population and Health Survey 2010 (4.3 MB, 2,791,255 chars) - the
+       single largest zoba-resolved Eritrean health document in existence, sits
+       INSIDE gap G3, and contains cholera exactly ONCE, in a WASH rationale
+       sentence ("potentially fatal diseases including typhoid, cholera, and
+       dysentery are prevalent in unprotected water sources"). It is a household
+       survey, not surveillance: it has no notifiable-disease module at all.
+       This is the definitive answer to the standing "try the EDHS/EPHS" lead.
+     Eritrea Health MDGs Report 2014 (147,543 chars) - cholera ZERO times.
+     2022 RMNCAH Eritrea (15.5 MB, 506,030 chars) - cholera ZERO times.
+     CCS-at-a-glance Eritrea - one qualitative sentence, no number, no place:
+       "Outbreaks such as meningococcal meningitis and cholera occurred but were
+       however detected and managed timely and appropriately. In 2007, more than
+       80% of suspected outbreaks were notified in time".
+3. JHU's OWN ERITREA HOLDING HAS NO SUB-NATIONAL LAYER AT ALL, verified in the
+   local scraper repo rather than inferred: /Users/johngiles/MOSAIC/
+   jhu_cholera_data/data/Eritrea/ contains one metadata row (UID 313, tag
+   WHOannual, 16 observations, 2005-2023) and one collection file, every row of
+   which is AFR::ERI national. There is no ADM1 Eritrean observation anywhere in
+   the JHU corpus. The iddynamics.jhsph.edu "cholera data and maps - Eritrea"
+   page that search surfaces as a lead is 403 and is a front end to exactly
+   this collection.
+4. TOOLING, FOR THIS AND EVERY OTHER COUNTRY. (a) ReliefWeb's API is shut to us
+   in BOTH directions: v2 with the appname "rwint-user-0" harvested from
+   ReliefWeb's own /search/converter link still returns 403 "not using an
+   approved appname". (b) The RSS endpoint ignores date[from]/date[to] - I ran
+   2006, 2007, 2008 and 2009 and got four byte-identical 20-item responses.
+   Agent 1's warning that RSS caps at 20 is correct and the fix is NOT date
+   slicing on that endpoint. (c) What DOES work is the river HTML:
+   https://reliefweb.int/updates?advanced-search=%28PC85%29&search=<terms>&page=<n>
+   is plain server-rendered HTML, 213 pages deep for Eritrea-primary, and report
+   bodies are inline. Scraper written to /tmp/erifetch/rw.sh and rwget.sh.
+5. A CHANNEL NO ERI AGENT HAD NAMED: ReliefWeb syndicates Government of Eritrea
+   (shabait) news, and those items ARE zoba- and sub-zoba-resolved - "Asmat
+   sub-zone", "Molqi sub-zone", "Goluj sub-zone", "Gogne sub-zone", "Health
+   service in Southern region", "vaccination programme underway Southern Red
+   Sea region". I read the most promising one in full. It is qualitative:
+   "instances of various diseases have generally shown visible decline in the
+   course of 2013 ... diseases such as malaria, diarrhea, respiratory infections
+   and ophthalmic diseases" - no numerator for any disease. Carried into batch 2
+   as a channel to sweep rather than a source to cite.
+6. THE 2007 GEOGRAPHY LEAD IS RE-READ AT SOURCE AND STILL WILL NOT CARRY A ROW.
+   I retrieved Eritrea Health Update Issue 2 No.20 myself. It has 18 cholera
+   occurrences - far more than any other issue - but seventeen of them are an
+   instructional feature (differential diagnosis table cholera vs shigella,
+   "Cholera - Some Basic Facts", the WHO case definition). The epidemiological
+   sentence is the one already on record, and its subject is stated as acute
+   DIARRHOEAL disease: "There were also major outbreaks of acute diarrhoeal
+   disease in Asseb and Tio in Southern Red Sea Zoba and as presented in Figure
+   6, there was another outbreak in Bada, Gelalo sub Zoba of Northern Red Sea."
+   Figures 1-6 are bloody-diarrhoea (suspected shigellosis) weekly trend charts
+   against a 3rd-quartile threshold, one per zoba, with no printed values. I
+   endorse the predecessor's refusal. NOTE THE ADJACENCY ANYWAY: WHO Eritrea
+   chose that same year-end issue to run a full cholera-preparedness feature.
+Sources found: 6 new documents opened, 0 registered yet (none carries a number;
+               registration deferred to any that later support a row)
+Rows added   : 0    Indices: none
 Successful queries: 0/20
 Yield        : 0%
 Consecutive sub-5% batches: 1
-Decision     : CONTINUE (3-batch minimum; Phase 1 not saturated)
+Decision     : CONTINUE. Floor is 3 batches and two whole retrievals are still
+               in flight (the 29 rate-limited HAC PDFs; shabait CDX 2001-2026).
+
+=== SESSION-E2 BATCH 2 | PHASE 2-3 | ERI ===
+Gap targeted : G1 (1971-2000) via the EPLF/ERA and World Bank routes; G2
+               (2001-2004) via the WB health-sector series; the 2006 and 2016
+               outbreak windows via the Eritrean national media estate at FULL
+               time range - the surface Agent 1 sampled only for 2021-2023.
+Queries (20):
+  Q1  Wayback CDX shabait.com, year-sliced 2001-2010 -> 18,928 unique URLs
+  Q2  URL-structure diagnostic on that set (the finding that invalidates it)
+  Q3  Wayback CDX shabait.com, year-sliced 2011-2020 -> 111,945 unique URLs
+  Q4  Wayback CDX shaebia.org, full range -> 14,253 URLs
+  Q5  Wayback CDX moh.gov.er, full range
+  Q6  Wayback CDX erinewspapers.com, full range -> 358 URLs / 338 PDFs
+  Q7  WebSearch EPLF health department, liberated areas, cholera, 1970-1991
+  Q8  WebSearch Eritrean Relief Association / ERA, 1985 famine, cholera
+  Q9  Retrieval + full-text grep of Africa Watch "Evil Days" (metadata 61)
+  Q10 World Bank Documents & Reports API v3, countrycode_exact=ER, qterm=cholera
+  Q11 Control queries against the same API (nonsense term; malaria)
+  Q12 Retrieval + pdftotext of the 5 WB Eritrea health documents most likely to
+      carry a notifiable-disease table
+  Q13 WebSearch [Tigrinya] ኤርትራ ኮሌራ ወረርሽኝ ተቕማጥ ዞባ ጋሽ ባርካ ደቡብ ሕሙማት ሞት
+  Q14 WebSearch [Arabic] الكوليرا إريتريا عنسبا القاش بركة مصوع عصب حالات وفيات
+  Q15 Wayback availability probes for Eritrea Health Update issues 14-19,
+      five filename conventions each
+  Q16 ReliefWeb PC85 river, "health update" OR "health bulletin", 4 pages
+  Q17 ReliefWeb inline full text of the 23 Jul - 05 Aug 2007 issue
+  Q18 Wayback CDX of the WHOLE who.int/hac/crises/eri tree, all 140 paths, not
+      only the PDFs
+  Q19 Retrieval of the page Q18 surfaced: the WHO Eritrea EHA weekly bulletin
+      ARCHIVE INDEX, and extraction of its label -> filename mapping
+  Q20 pdftotext + cholera/AWD grep across all 48 HAC documents once the
+      rate-limited retrievals completed
+
+FINDINGS
+
+1. ** THE ERITREAN GOVERNMENT'S OWN WEB ESTATE IS NOW ENUMERATED FOR 2011-2023
+   AND CONTAINS NO CHOLERA CONTENT AT ALL. ** shabait.com 2011-2020 =
+   111,945 unique archived URLs; 'choler' 0, 'kolera' 0, 'diarrh' 0. Positive
+   control: 2,478 of those URLs contain 'health', and 47,856 carry human-readable
+   slugs, so the zero is a true negative and not a URL-format artefact. Added to
+   Agent 1's 2021-2023 sweep (79,914 URLs, zero), the Ministry of Information
+   published nothing on cholera across ~192,000 archived URLs spanning THIRTEEN
+   YEARS - INCLUDING 2016, the year three diaspora outlets say Gash-Barka and
+   Debub were under a cordon sanitaire. That silence is now measured rather than
+   assumed.
+2. A METHOD WARNING THAT MATTERS MORE THAN THE RESULT. The same technique is
+   INVALID before 2011 and I am recording why so nobody reports a false negative
+   from it. shabait.com's pre-2011 URLs are numeric Joomla/artman paths -
+   /articles/publish/article_1577.html, /staging/publish/printer_8879.html -
+   with no slug. Grepping 18,928 such URLs for 'cholera' can only ever return
+   zero, whatever the site said. Only 65 of them contain 'health', against 2,478
+   in the slug era: that ratio IS the artefact. shaebia.org (14,253 URLs, the
+   pre-2011 PFDJ site) has exactly the same numeric /artman/publish/article_NNNN
+   structure and only 12 'health' URLs, so its zero is equally uninformative.
+   THE 2001-2010 ERITREAN MEDIA WINDOW IS NOT CLOSED. It is unopenable by URL
+   enumeration and would need page-by-page retrieval of ~33,000 archived
+   documents.
+3. THE ERITREAN MINISTRY OF HEALTH HAS NO ARCHIVED WEB PRESENCE. moh.gov.er
+   returns THREE URLs in the entire Wayback record - the bare root, favicon.ico
+   and robots.txt. No prior ERI agent had tested the ministry's own domain;
+   ./reference/country_profiles.json lists shabait.com as the health domain and
+   that is now confirmed to be not merely the preferred route but the only one.
+4. ** A NATIONAL-PRESS CORPUS INSIDE THE RECENCY GAP, NEVER TOUCHED BY ANY ERI
+   AGENT. ** erinewspapers.com carries 338 full-issue PDFs of Eritrea's national
+   newspapers - Haddas Ertra (Tigrinya daily, 189 issues), Eritrea Alhaditha
+   (Arabic daily, 103), Eritrea Profile (English, 41) plus AGIZO and Men'esey
+   magazines - spanning roughly September 2025 to September 2026, i.e. squarely
+   inside gap G5 (2024-01-01..2026-09-19). Arabic and Tigrinya text extracts
+   cleanly under pdftotext. Systematic scan launched; result in batch 3.
+5. THE WHO ERITREA BULLETIN SERIES IS NOW CLOSED FROM WHO's OWN INDEX PAGE, AND
+   THE INDEX SAYS SOMETHING THE FILE LIST COULD NOT. Walking the complete
+   who.int/hac/crises/eri path list rather than only its PDFs surfaced
+   /sitreps/health_bulletin_archive/en/index.html - "Eritrea EHA weekly bulletin
+   archive", snapshot 14 April 2008. It enumerates the ENTIRE published series,
+   27 issues, with dates and file links:
+     2008: Nro 3 only.
+     2007: Nros 1,2,3,4,5,6,8,9,10,11,12,13,20. NO Nro 7 AND NO Nros 14-19.
+     2006: weeks 21,22,23,24,25,26,27,28,33,37,41,43,44.
+   Nro 13 is labelled (9-15 July 2007) and Nro 20 (11 November - 31 December
+   2007). ** SO WHO's ERITREA OFFICE PUBLISHED NO BULLETIN COVERING mid-JULY TO
+   10 NOVEMBER 2007 - and 2007 is the one year WHO's global series credits
+   Eritrea with cholera: 119 cases and 9 deaths, reported "for the first time
+   ever". ** The six missing issues are exactly the ones that would have carried
+   it. This is not a retrieval failure on my side; it is what WHO itself posted.
+6. ** AND THE SAME THING HAPPENED IN 2006, WHERE I CAN PROVE IT. ** The Tessenei
+   outbreak (row Index 19) had onset 18 September 2006 = week 38 and was
+   controlled at week 44. The archive holds the weekly bulletins for weeks 37,
+   41, 43 AND 44 of 2006 - four issues spanning the outbreak. I mapped label to
+   filename from the index, retrieved all four and ran pdftotext:
+     Week 37  Eritrea_weekly_health_bulltein18.pdf          cholera 0, Tessenei 0
+     Week 41  Eritrea_Weekly_Health_Bulletin_22nd_issue.pdf cholera 0, Tessenei 0
+     Week 43  Eritrea_weekly_bulltin_23_29Oct2006.pdf       cholera 0, Tessenei 0
+     Week 44  Eritrea_weekly_health_bulltetin_25th_issue.pdf cholera 0, Tessenei 0
+   WHO's Eritrea office was publishing a weekly health bulletin THROUGHOUT a
+   culture-confirmed cholera outbreak in Gash-Barka and never mentioned it. The
+   outbreak first appears in print in Issue 2 No.6 of 16-29 April 2007 - SEVEN
+   MONTHS LATE. For MOSAIC this is a measured reporting-delay parameter for
+   Eritrea, established from one publisher's own consecutive issues, and it is
+   the strongest single argument in this country file against ever reading
+   Eritrean silence as absence.
+7. WHOLE-CORPUS RECOUNT OF THE 48 HAC DOCUMENTS. cholera occurs in six, not
+   four: no2_20 (18, instructional), no2_6 (6, the Tessenei report = row 19),
+   eritrea_appeal_2001 (1), weekly bulletins 22-28 May and 29 May-4 Jun 2006
+   (1 each, the known "No cholera or other diarrhoeal diseases outbreak was
+   reported" sentence and its twin), and no2_8 carries one AWD mention. No new
+   count anywhere. The corpus is exhausted.
+8. TWO WHOLE NEW CORPORA OPENED AND CLOSED IN ONE BATCH. (a) The World Bank
+   Documents & Reports API v3 has never been used by any ERI agent and is fully
+   open: /api/v3/wds?countrycode_exact=ER. It ranks 51 Eritrea documents against
+   'cholera' (control: a nonsense term returns 0, 'malaria' returns 49, so the
+   ranking is real but NOT a strict term match). I retrieved the five that could
+   plausibly carry a notifiable-disease table - Health Sector Note 2003 (275,281
+   chars, inside G2), The Health Sector in Eritrea 2004 (304,990), Health Project
+   1997 (157,624), Health Project 2005 (129,073) and the 2009 PPAR (308,196) -
+   and the word cholera appears ZERO times in all five. (b) The EPLF/ERA
+   liberation-era health literature: the one substantive item is Cambridge,
+   African Studies Review, "Healthcare of the Eritrean People's Liberation Front
+   and its Politicization, 1970-1991", which is about the politics of EPLF
+   healthcare and is paywalled; no epidemic counts surfaced. Africa Watch's
+   "Evil Days" (metadata 61) retrieved in full - 969,187 chars, cholera TWICE,
+   neither Eritrean nor counted (a 1913/14 Tigray epidemic and a generic
+   camp-epidemiology sentence).
+9. Tigrinya and Arabic zoba-bound queries: negative, as for every predecessor.
+   One useful by-product - shabait does publish Ministry of Health disease
+   statements in Tigrinya ("ሓበሬታ ካብ ሚኒስትሪ ጥዕና"), which were COVID-19 case
+   notices. So the channel for an MoH outbreak announcement demonstrably exists
+   and demonstrably was never used for cholera.
+Sources found: 5 new corpora characterised, 0 registered yet (none yields a count)
+Rows added   : 0    Indices: none
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE to batch 3. The 3-batch floor is not yet met and the
+               erinewspapers G5 scan is still running.
+
+=== SESSION-E2 BATCH 3 | PHASE 3 | ERI ===
+Gap targeted : G5 2024-01-01..2026-09-19 (993d, recent) as primary; the 2006
+               Tessenei window and the 2007 national figure as secondary; plus
+               the last unresolved geography in the file ("Ala", 3 deaths, 2016).
+Queries (20):
+  Q1  WHO IRIS discover API: "Integrated Disease Surveillance Bulletin"
+  Q2  WHO IRIS discover API: "integrated disease surveillance quarterly bulletin"
+  Q3  RW inline full text: UNICEF Eritrea donor update, 2 May 2007
+  Q4  RW inline full text: Eritrea humanitarian update Aug-Sep 2006
+  Q5  RW PC85 river: 2007/2008 humanitarian item enumeration
+  Q6  RW inline full text: Eritrea humanitarian update Oct 2006
+  Q7  RW inline full text: Eritrea humanitarian update Oct 2006 (2nd posting)
+  Q8  RW inline full text: Eritrea humanitarian update Nov 2006
+  Q9  RW inline full text: Eritrea humanitarian update Dec 2006 - Jan 2007
+  Q10 RW inline full text: Eritrea humanitarian update Feb 2007
+  Q11 curl + pdftotext WHO AFRO eSURV Monthly Bulletin July 2026
+  Q12 curl + pdftotext WHO AFRO eSURV Regional Monthly Bulletin August 2026
+  Q13 WebSearch UNHCR Eritrea 2024-25, Sudanese arrivals, Umkulu camp, cholera
+  Q14 RW PC85 + cholera/AWD, 3 pages
+  Q15 RW PC85 + health/WASH restricted to 2025-2026 items
+  Q16 RW: UNHCR ERI funding update Mar 2025; FY2025 roadmap; GIEWS brief Sep 2025
+  Q17 Tigrinya TEXT-EXTRACTION CONTROL on Haddas Ertra, 1 January 2026
+  Q18 WebSearch UN CoI / HRW enumeration of Eritrean military training centres
+  Q19 Nominatim (country-scoped to ER), three query forms for "Ala"
+  Q20 WebFetch Wikipedia "Eritrean Defence Forces" for camp locations
+
+FINDINGS
+
+1. ** THE SINGLE MOST USEFUL SENTENCE THIS SESSION, AND IT IS ABOUT GAP G5. **
+   WHO AFRO eSURV/ISS Regional Monthly Bulletin, August 2026 (registered as
+   metadata 97), states verbatim:
+     "However, Algeria does not implement electronic surveillance for active
+      case search and Eritrea & Cabo Verde stopped implementing eSURV/ISS."
+   The July 2026 issue (metadata 34) carries the identical sentence. This is WHO
+   AFRO affirmatively naming Eritrea as having STOPPED its electronic
+   surveillance participation, in the current period. It is the 2024-2026
+   analogue of WER 98(38) footnote b for 2022, and it settles G5 the same way:
+   NON-REPORTING, documented from the reporting system itself. NO ZERO ROW IS
+   PERMISSIBLE ANYWHERE IN 2024-2026 and I did not write one. Any later agent
+   tempted by the emptiness of G5 should read this sentence first.
+2. ** THE 2006 REPORTING FAILURE IS NOW TRIPLE-SOURCED. ** Batch 2 showed WHO's
+   Eritrea weekly bulletins for weeks 37, 41, 43 and 44 of 2006 never mentioned
+   the Tessenei outbreak. This batch adds the SECOND UN publisher covering the
+   identical months: OCHA's Eritrea humanitarian updates for Oct 2006, Nov 2006,
+   Dec 2006-Jan 2007 and Feb 2007, read in full from ReliefWeb's inline bodies -
+   cholera 0, Tessenei/Teseney/Tigtig 0, diarrhoea 0 in every one. And the
+   UNICEF Eritrea donor update of 2 May 2007, which is zoba-resolved (Gash Barka
+   GAM >20%, Southern Red Sea immunisation <50%) and discusses diarrhoea as a
+   leading cause of under-five death, never mentions the outbreak either. Three
+   UN agencies publishing on Eritrea throughout a laboratory-confirmed cholera
+   outbreak, none of whom reported it; the only account is WHO's own retrospective
+   seven months later. For MOSAIC this is the Eritrean reporting-delay parameter
+   in evidence rather than in principle.
+3. AN INCIDENTAL DOCUMENTARY CONFIRMATION OF AN EXISTING ROW'S GEOCODING. OCHA's
+   Eritrea humanitarian update for Oct 2006 places CARE's livelihood project "in
+   Mai Mine sub zone" inside a paragraph whose partners are "the Ministry of
+   Agriculture (MoA) branch office in Debub ... and local administration". Row
+   Index 20 (AFR::ERI::Debub::Maimine, 17 deaths, 2016) was geocoded by a
+   predecessor from a geoBoundaries centroid-in-polygon test. It now has an
+   independent documentary confirmation that Mai Mine is administered from Debub.
+4. THE AFRO INTEGRATED DISEASE SURVEILLANCE QUARTERLY BULLETIN IS TWO ISSUES,
+   CONFIRMED FROM IRIS ITSELF. The discover API returns exactly 10665/204516
+   (2015, = metadata 19) and 10665/251728 (2016, = metadata 40) under that title
+   and nothing else. There is no pre-2015 AFRO surveillance bulletin series on
+   IRIS that could reach gaps G2 or G3. The source type that produced row Index 4
+   - a documented Eritrean nil return inside a regional IDSR bulletin - has no
+   further instances to give.
+5. ** "ALA" STAYS UNRESOLVED, AND NOW FOR A TESTED REASON RATHER THAN AN
+   UNTESTED ONE. ** The 2016 episode's third component (3 deaths at "the military
+   training Centre at Ala", metadata 12) sits only inside national row Index 11.
+   I tried to resolve it. OpenStreetMap/Nominatim, country-scoped to ER, does
+   return a locality ዓላ in ZOBA DEBUB at about 15.109N 39.055E, which would have
+   been enough to write a row. But the UN Commission of Inquiry and HRW
+   enumerations of Eritrean training centres name Sawa (Gash-Barka), Wi'a, Kiloma,
+   Afabet and Mai Serwa and NOT Ala; and the one "Ala" facility that is described
+   in that literature is the Ala Bazit prison, "in a desert next to the Ala
+   mountains" - a lowland Red Sea description that CONTRADICTS the Debub highland
+   match. Two plausible and mutually inconsistent locations, no source that names
+   a zoba. NO ROW. The predecessor's refusal is upheld on evidence.
+6. RECENCY CHANNELS, ALL NEGATIVE. ReliefWeb's Eritrea-primary river has no
+   cholera or AWD item after 2016 (the cholera/AWD result set is the same IRIN
+   Somalia false-positive corpus predecessors documented); its 2025-2026 Eritrea
+   items are desert-locust bulletins, human-rights sessions, a UNHCR funding
+   update, a GIEWS food-security brief and an FY2025 roadmap, none mentioning
+   cholera. UNHCR's Eritrea operation is Umkulu camp near Massawa, roughly 2,100
+   SOMALI refugees, and no Sudanese-arrival cholera reporting places cases in
+   Eritrea.
+7. TIGRINYA EXTRACTION CONTROL PASSED, WHICH IS WHAT MAKES BATCH 4 MEANINGFUL.
+   Haddas Ertra of 1 January 2026 converts to 124,233 characters of which 45,434
+   are Ge'ez. Control terms in that single issue: ጥዕና (health) 10, ሕማም (disease)
+   3. So a zero for ኮሌራ across the national-press corpus will be a TRUE negative,
+   not the URL-slug artefact that invalidated the pre-2011 shabait sweep.
+Sources found: 5 registered   Registered: 96 (WHO Eritrea EHA bulletin archive
+               index), 97 (AFRO eSURV Aug 2026, the G5 sentence), 98 (shabait/
+               shaebia CDX with controls), 99 (moh.gov.er, three URLs),
+               100 (World Bank WDS Eritrea health corpus)
+Rows added   : 0    Indices: none
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 3  -> STOPPING CRITERION FORMALLY MET
+Decision     : CONTINUE to batch 4 anyway. Both conditions are satisfied (3-batch
+               floor reached; three consecutive batches at 0%), but a 338-document
+               national-press corpus inside the recency gap is mid-scan and has
+               passed its extraction control. Stopping with it unread would repeat
+               exactly the error this session corrected in the shabait sweep:
+               declaring a channel closed without testing it.
+
+=== SESSION-E2 BATCH 4 | PHASE 3 | ERI ===
+Gap targeted : G5 2024-01-01..2026-09-19 via Eritrea's own national press; and
+               the 2016 Gash-Barka episode via a Tigrinya channel that opened
+               only after the terminology correction below.
+Queries (20):
+  Q1  Corrected re-scan of the national-press corpus using ሸሮኽ
+  Q2  Context extraction, Haddas Ertra 17 Oct 2025
+  Q3  Context extraction, Haddas Ertra 14 Nov 2025
+  Q4  Context extraction, Haddas Ertra 12 Jul 2026
+  Q5  Per-publication TARGET vs CONTROL audit of all 337 extracted texts
+  Q6  Percent-encoded ሸሮኽ / ተቕማጥ / ወረርሽኝ + controls across shabait 2001-2010,
+      shabait 2011-2020 and shaebia.org
+  Q7  Fresh Wayback CDX shabait.com 2021-2026 (123,508 URLs) + same term set
+  Q8  WebSearch [Tigrinya] ሸሮኽ ኤርትራ ወረርሽኝ ሕማም ሚኒስትሪ ጥዕና ዞባ
+  Q9  WebSearch "ሸሮኽ" + cholera + Gash Barka 2016
+  Q10 Wayback CDX sweep of TEN Eritrean/Tigrinya outlets for ሸሮኽ, with a
+      percent-encoded-Ge'ez control on each
+  Q11 Full Wayback CDX of erena.org (24,972 URLs) + cholera-family extraction
+  Q12-Q16 Retrieval and translation of erena articles 2581, 2585, 2595, 2623, 3150
+  Q17 erena CDX grep for Eritrean place names crossed with diarrhoea terms
+  Q18 Retrieval and Eritrea-scan of 30 further erena Sudan/Africa cholera items
+  Q19 Retrieval + AWD/cholera audit of UNICEF HAC 2017: Eritrea
+  Q20 Same audit of UNICEF HAC 2016, 2018, 2019 and the 2016 and 2017 Eritrea
+      situation reports
+
+FINDINGS
+
+1. ** THE TIGRINYA WORD FOR CHOLERA IS ሸሮኽ (SHEROKH), NOT ኮሌራ. EVERY ERI AGENT
+   INCLUDING ME SEARCHED THE WRONG WORD. ** Found the hard way: Haddas Ertra of
+   17 October 2025 runs a hand-hygiene feature listing preventable diseases, and
+   the entry reads "* ሸሮኽ (Cholera)" - the paper glosses its own Tigrinya term
+   with the English. ./reference/country_profiles.json lists disease_terms for
+   ERI as "cholera, acute watery diarrhoea, kolera, ኮሌራ, الكوليرا". ሸሮኽ IS NOT
+   IN IT. Across 337 Eritrean newspaper issues, ኮሌራ occurs ZERO times and ሸሮኽ
+   occurs 10. RECOMMENDATION: add ሸሮኽ to disease_terms for ERI (and consider it
+   for ETH-Tigray). Every Tigrinya negative recorded in this country file before
+   today was searching a word the Eritrean press does not use.
+2. THE NATIONAL-PRESS CORPUS IS NEGATIVE FOR GAP G5, AND THE NEGATIVE IS
+   PROPERLY CONTROLLED. 336 of 338 PDFs retrieved and converted, ~Sept 2025 to
+   Sept 2026:
+     Haddas Ertra (Tigrinya daily) 152 issues: ሸሮኽ 10, ኮሌራ 0.
+        CONTROLS ጥዕና 2,264 / ዞባ 6,196 / ሆስፒታል 326  -> VALID
+     Eritrea Alhaditha (Arabic daily) 101 issues: كوليرا 0.
+        CONTROLS صحة 849 / وزارة 925 / مستشفى 122   -> VALID
+     Eritrea Profile (English) 41 issues: cholera 0.
+        CONTROLS health 621 / Ministry 322 / hospital 57 -> VALID
+     AGIZO + Men'esey magazines 3 issues: 0, controls present -> VALID
+     eritrea_haddas_* 37 issues: ሸሮኽ 0 BUT ጥዕና 0 and ዞባ 1 across 1,487,590
+        Ge'ez characters -> THE FONT'S GLYPH MAPPING IS CORRUPT. These 37
+        issues are NOT TESTED and I will not claim them.
+   All ten ሸሮኽ occurrences were read: a handwashing-prevention list, a South
+   African Biovac OCV-S vaccine trial news item, and a waterborne-disease
+   explainer. NOT ONE is an Eritrean case, an Eritrean locality or a number.
+   294 of 338 issues genuinely tested and negative.
+3. THE SAME CORRECTION, APPLIED TO THE GOVERNMENT SITE, GIVES THE STRONGEST
+   NEGATIVE THIS COUNTRY FILE HAS. shabait.com 2021-2026 re-enumerated:
+   123,508 URLs, of which 4,269 carry percent-encoded Ge'ez and 1,109 contain
+   ጥዕና (health). ሸሮኽ 0, ኮሌራ 0, ተቕማጥ 0, ወረርሽኝ 0, ASCII cholera 0. 2011-2020:
+   131 Ge'ez URLs, 70 with ጥዕና, ሸሮኽ 0. The Ministry of Information published
+   nothing on cholera in EITHER language across 2011-2026, now tested with the
+   word it would actually have used.
+4. ** AND THE CORRECTION OPENED A CHANNEL: RADIO ERENA. ** Ten Eritrean and
+   Tigrinya outlets were CDX-swept for ሸሮኽ with a Ge'ez control on each.
+   Nine returned zero (eripm.org, harnnet, meskerem, assenna, erisat, tesfanews,
+   setit, radioerena.net, VOA Tigrigna). erena.org - Radio Erena, the
+   Paris-based station - returned 32 ሸሮኽ URLs and 14 ኮሌራ URLs. No prior ERI
+   agent swept this host; predecessors swept asmarino, assenna, awate,
+   tesfanews and erimedia. FOUR of its articles are about ERITREA and all four
+   were retrieved and translated:
+     2585 (30 Sep 2016) "While cholera is reported to be attacking people in
+       several areas of Zoba Gash-Barka, the Ministry of Health, Gash-Barka
+       branch, gave training to the people of Barentu on the prevention of
+       communicable diseases" and "In the areas of Zoba Gash-Barka bordering
+       Ethiopia and Sudan, sources from the country indicate cholera is
+       attacking people, although the Government of Eritrea has so far given no
+       information or warning about this."  -> metadata 101
+     2595 (4 Oct 2016) headline: "'In Eritrea, we have no official report of
+       cholera appearing,' World Health Organization". Body: "A WHO spokesperson,
+       in information sent to Radio France Internationale, was able to confirm
+       that the disease has appeared on the borders of Ethiopia close to
+       Eritrea ... the Eritrean Ministry of Health is making preparations so
+       that the disease does not spread into Eritrea."  -> metadata 102
+     2623 (11 Dec 2016) dates that WHO statement to 29 September 2016 and adds
+       "The free movement of people to and from Eritrea-Sudan, which had been
+       cut off for the past months, returned to normal from last week."
+       -> metadata 103
+     2581 (~late Sep 2016) "Since last month, in Zoba Gash-Barka, people
+       afflicted by a body-weakening illness with unceasing diarrhoea were taken
+       to hospital, and medical professionals confirmed that the illness is
+       sherokh (cholera)"; "In Eritrea too, although health professionals
+       confirm the disease is attacking many people, the Ministry of Health has
+       given no statement or guidance to the public."
+   WHY THIS MATTERS EVEN THOUGH IT CARRIES NO NUMBER: (a) it is a FOURTH
+   independent origin for the September 2016 episode, where the file previously
+   mapped three; (b) 2595 is the only WHO-ATTRIBUTED statement about that
+   episode anywhere in this country file, and what WHO said was "no official
+   report" - non-reporting, which EXPLAINS rather than contradicts the emptiness
+   of WHO GHO and AFRO for Eritrea 2016; (c) 2623 gives the only end-date
+   evidence for the control measures, early December 2016.
+   THREE PRESENCE RECORDS WRITTEN to ./data/ERI/cholera_presence_ai.csv (now 7):
+     AFR::ERI::Gash-Barka 2016-09-01..2016-09-30 (source 101, conf 0.35)
+     AFR::ERI            2016-09-29..2016-10-04 (source 102, conf 0.35)
+     AFR::ERI::Gash-Barka 2016-10-01..2016-12-11 (source 103, conf 0.30)
+   NO DATA ROW: not one of the four carries a case or death count.
+   Article 3150 (2017) reports four Eritreans dead of cholera at Um Gargour and
+   one at Korkora - BOTH ARE OLD ERITREAN REFUGEE CAMPS IN GEDAREF, SUDAN. Under
+   the standing rule (the location is where people contracted the disease) these
+   are Sudanese and get NO AFR::ERI row. Same call as Wad Sherife and Shagarab.
+5. ** A 70,000-CASE FALSE POSITIVE IDENTIFIED AND REFUSED, AND ITS SECOND
+   PROPAGATION PATH DOCUMENTED. ** The 2021 erena article states that "the
+   United Nations Children's Fund, in information it later released, announced
+   that there was also an occurrence of cholera in Eritrea". I retrieved the only
+   document that can refer to - UNICEF Humanitarian Action for Children 2017:
+   Eritrea - and independently re-confirmed what metadata 15 already records:
+   it contains the word cholera ZERO times. What it actually reports, as of
+   31 October 2016, is "70,000 children affected by acute watery diarrhoea
+   received life-saving curative interventions", "20,500 people in regions
+   affected by acute watery diarrhoea" given water-treatment supplies, and a
+   2017 TARGET of "50,000 children affected by acute watery diarrhoea". Those are
+   under-five diarrhoea PROGRAMME indicators for a country of ~3.5 million -
+   UNICEF's own sentence is "UNICEF surpassed its TARGETS for vitamin A and
+   acute watery diarrhoea support" - and CLAUDE.md rejects exactly this
+   construction. Writing 70,000 as Eritrean cholera would make 2016 Eritrea one
+   of the largest cholera epidemics in African history on the strength of a
+   routine child-health indicator. NO ROW AND NO PRESENCE RECORD.
+   The new part: the "UNICEF confirmed cholera in Eritrea" claim now has TWO
+   independent propagation paths - Martin Plaut in English (metadata 15) and
+   Radio Erena in Tigrinya (metadata 104) - and both resolve to the same
+   document, which does not say it. Also audited and cholera-free: UNICEF HAC
+   2016, 2018 and 2019 Eritrea and the UNICEF Eritrea situation reports for 2016
+   and 2017.
+Sources found: 4 registered   Registered: 101, 102, 103 (Radio Erena 2016, the
+               new channel), 104 (Radio Erena 2021, the mis-attribution, filed
+               as a verified negative)
+Presence recs: 3 added to ./data/ERI/cholera_presence_ai.csv (4 -> 7)
+Rows added   : 0    Indices: none
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 4
+Decision     : STOP. Both stopping conditions are satisfied and have been since
+               batch 3: the 3-batch/60-query floor is passed at 4 batches /
+               80 queries, and all four batches returned 0%. The Internet
+               Archive went offline mid-batch, which closes the remaining
+               Wayback-dependent lead (UNICEF's own Eritrea appeal pages c.2017,
+               the possible home of Plaut's "three of the country's six regions"
+               sentence). That is the single highest-value item I am handing on.
+
+################################################################################
+SESSION-E2 AGENT 2 CLOSING RECORD - ERITREA (run 4)
+################################################################################
+Batches: 4 (80 queries). Per-batch yield, percent: [0, 0, 0, 0].
+Stopping criterion: MET at batch 3 and reconfirmed at batch 4.
+
+NET EFFECT
+  ./data/ERI/cholera_data_ai.csv   : 17 rows before, 17 rows after. NO ROW ADDED,
+      none withdrawn, none altered. Nothing found in 80 queries carries an
+      Eritrean cholera case or death count that was not already in the file.
+  ./data/ERI/cholera_presence_ai.csv : 4 records -> 7 (all 2016, Radio Erena).
+  ./data/ERI/metadata_ai.csv       : 95 sources -> 104 (indices 96-104).
+  NO ZERO ROW WRITTEN ANYWHERE. For G5 that refusal is now backed by WHO AFRO's
+      own August 2026 eSURV bulletin naming Eritrea as having STOPPED
+      implementing electronic surveillance.
+
+WHAT A READER SHOULD TAKE FROM THIS RUN
+  1. The Tigrinya for cholera is ሸሮኽ, not ኮሌራ. Every Tigrinya negative in this
+     file that predates today searched a word Eritreans do not use. Correcting
+     it immediately produced a channel nobody had found (Radio Erena) carrying
+     the only WHO-attributed statement about the 2016 episode in existence.
+  2. Eritrean silence is measured now, not assumed. WHO's Eritrea office
+     published weekly bulletins straight through the week-38-to-week-44 2006
+     Tessenei outbreak and never mentioned it; OCHA's monthly Eritrea updates
+     for the same months never mentioned it; WHO's own bulletin index shows NO
+     issue was published between mid-July and 10 November 2007, the window of
+     the only cholera Eritrea has ever reported to WHO. The reporting delay for
+     the one Eritrean outbreak we can date is SEVEN MONTHS.
+  3. The largest available false positive in this country file has been
+     identified, traced to two separate propagation paths, and refused:
+     UNICEF's 70,000 children treated for ACUTE WATERY DIARRHOEA in 2016 is not
+     70,000 cholera cases.
+
+HANDED ON, IN PRIORITY ORDER
+  A. UNICEF's own Eritrea appeal/HAC web pages c.2016-2017 on unicef.org,
+     via Wayback - the probable home of the "cholera outbreak across three of
+     the country's six regions" sentence that Martin Plaut attributes to UNICEF
+     and that is NOT in the published HAC PDF. If it exists it is a Level-2 UN
+     statement naming THREE ZOBAS. The Internet Archive went offline before I
+     could test it.
+  B. Eritrean media 2001-2010 remains genuinely unopened, not closed: shabait
+     and shaebia used numeric article IDs then, so URL enumeration cannot see
+     content. It would need page-by-page retrieval of ~33,000 archived documents.
+  C. Add ሸሮኽ to disease_terms for ERI in ./reference/country_profiles.json and
+     re-run the linguistic category for this country.
+################################################################################

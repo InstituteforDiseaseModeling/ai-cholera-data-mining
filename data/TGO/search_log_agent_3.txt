@@ -1,132 +1,662 @@
-=== AGENT 3 INITIALIZATION ===
-Country: Togo (TGO)
-Start Time: 2025-07-25 13:25:30
-Agent 3 Status: INITIALIZED
+================================================================================
+AGENT 3 - ZERO-TRANSMISSION VALIDATOR - TOGO (TGO)
+================================================================================
+Start: 2026-09-19 (run resumed after Agents 1 and 2 of this run)
+Working dir: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Log file   : /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/TGO/search_log_agent_3.txt
 
-=== AGENT 3: ZERO-TRANSMISSION VALIDATION ===
-Target Country: Togo (TGO)
-Focus: Systematic absence documentation, cholera-free period validation, gap analysis
-PRIMARY RESPONSIBILITY: Document ALL validated cholera-free periods as data observations in cholera_data.csv
+PRE-SEARCH STATE (read, not recalled)
+  reference/effective_surveillance_gaps_detailed.csv : ONE TGO row
+      Togo,TGO,2026-09-01,2026-09-19,19 days,era=recent
+  reference/effective_surveillance_gaps_coverage.csv : 681 months, 680 covered,
+      99.9%, months_ai_only=185, months_with_positive_cases=474
+  reference/effective_surveillance_recency.csv       : latest_observation
+      2026-08-26 (an AI absence row), latest_positive_observation 2025-03-23
+  data/TGO/cholera_data_ai.csv   : 307 rows, 77 of them sCh=0
+  data/TGO/metadata_ai.csv       : 212 sources
+  data/TGO/cholera_presence_ai.csv : 79 presence rows
+  data/TGO/workflow_state.json   : Agent 1 (12 batches, 29 rows), Agent 2
+      (7 batches, 2 rows) already complete this run
+  py/validate_quality.py TGO at start: ERROR 0, WARN 44, INFO 118
 
-CURRENT DATA COVERAGE ANALYSIS:
-- 1970-1972: El Tor epidemic (covered)
-- 1973-1995: 22-year gap - REQUIRES VALIDATION
-- 1996-2010: National surveillance data (covered)
-- 2011-2012: 2-year gap - REQUIRES VALIDATION  
-- 2013: Multi-regional outbreak (covered)
-- 2014-2019: 5-year gap - REQUIRES VALIDATION
-- 2020: Maritime/Lomé outbreak (covered)
-- 2021: Lacs district outbreak (covered)
-- 2022-2024: 2-year gap - REQUIRES VALIDATION
-- 2025: Current outbreak (covered)
+TARGETS (priority order, from the Agent 3 brief)
+  T1 Recent gap 2026-08-27..2026-09-19 - extend the absence record ONLY if a
+     source published on/after 2026-09-01 affirms Togo reported zero cholera.
+  T2 1988, 1997, 2009 - resolve as zero / non-zero / non-report.
+  T3 Month-resolution of the coarse 2025-06-30..2026-08-16 absence rows
+     (Indices 24, 25, 26).
+  T4 2007-2012 within-year cholera-free stretches from Togolese MoH annuaires.
 
-TARGET VALIDATION PERIODS:
-1. 1973-1995: Post-El Tor cholera-free period validation
-2. 2011-2012: Inter-outbreak gap validation
-3. 2014-2019: Extended cholera-free period validation 
-4. 2022-2024: Recent gap validation
+CLASSIFICATION RULE APPLIED THROUGHOUT
+  Documented_Absence : a functioning surveillance system looked and found nothing
+  Inferred_Absence   : no positive evidence, regional/historical context makes
+                       absence likely, system known operational
+  Surveillance_Gap   : nobody looked / nobody published -> NOT a zero row; goes
+                       to data/TGO/cholera_presence_ai.csv or is left empty
+================================================================================
 
-VALIDATION OBJECTIVES:
-- Confirm periods as true cholera-free vs. surveillance gaps
-- Document evidence of functioning surveillance during absence periods
-- Cross-validate with regional outbreak patterns
-- Apply zero-transmission documentation protocol for confirmed absence periods
+=== BATCH 1 | PHASE 1 (broad discovery, recent era) | TGO ===
+Gap targeted : 2026-08-27..2026-09-19 (24d, recent) - T1
+Aim          : find any source PUBLISHED ON/AFTER 2026-09-01 that affirms Togo
+               reported zero cholera for any part of 27 Aug - 19 Sep 2026.
+Queries / operations (20):
+   1 WebSearch  "WHO AFRO Weekly Bulletin Outbreaks and other Emergencies Week 36 2026"
+   2 WebSearch  "WHO multi-country outbreak of cholera external situation report September 2026"
+   3 WebSearch  "ECDC cholera worldwide overview September 2026"
+   4 WebSearch  "Africa CDC Epidemic Intelligence Report September 2026 cholera"
+   5 WebSearch  "Togo cholera septembre 2026 cas" (fr)
+   6 WebFetch   afro.who.int/health-topics/disease-outbreaks/outbreaks-and-other-emergencies-updates
+   7 WebSearch  "multi-country outbreak of cholera" "epidemiological update" #39 OR #40 August 2026
+   8 WebSearch  "ECDC communicable disease threats report week 38 2026"
+   9 IRIS API   discover/search sort=dc.date.issued,DESC query="Weekly Bulletin on Outbreaks"
+  10 curl       africacdc.org/download/...-september-2026/ and ...-august-2026/ (HTTP 403 both)
+  11 WebFetch   gtfcc.org/about-cholera/cholera-situation/
+  12 WebFetch   who.int/emergencies/situations/cholera-upsurge
+  13 WebSearch  Togo "cholera" surveillance epidemiologique 2026 ministere sante Lome aucun cas (fr)
+  14 WebFetch   ecdc.europa.eu CDTR 12-18 September 2026 week 38
+  15 WebFetch   ecdc.europa.eu cholera-monthly (worldwide overview)
+  16 WebSearch  WHO Weekly Epidemiological Record cholera monthly situation report August 2026 "101"
+  17 WebSearch  Africa CDC weekly epidemic intelligence report 13 September 2026 cholera West Africa
+  18 WebSearch  "Togo cholera outbreak September 2026 news"
+  19 WebSearch  Togo rougeole OR meningite OR epidemie septembre 2026 riposte ministere sante (fr)
+  20 IRIS API   WER vol.101 latest issues -> found WER 101(36-37) issued 2026-09-18;
+               downloaded (1.2 MB), pdftotext, full-text searched.
 
-STOPPING CRITERIA: Minimum 2 batches (40 queries), stop when 2 consecutive batches <5% data observation yield, maximum 100 queries
+RESULTS - every product's data horizon, verified today 2026-09-19:
+  WHO AFRO Weekly Bulletin      : latest = Week 33, 10-16 Aug 2026 (afro.who.int
+                                  listing AND IRIS both confirm; no W34-W38 exists)
+  WHO multi-country cholera     : latest standalone = epi update #38, 30 Jun 2026;
+                                  the series moved into the WER from Jul 2026
+  ECDC cholera worldwide monthly: "Since 27 July 2026 and as of 26 August 2026" -
+                                  page header still reads "Monthly update as of 26
+                                  August 2026". Togo appears nowhere. Already used
+                                  as row Index 50 (to 2026-08-26). NOT extended.
+  ECDC CDTR week 38 (12-18 Sep, published 18 Sep 2026): NO cholera item at all.
+  Africa CDC EIR               : africacdc.org returns HTTP 403 to all download
+                                  paths; latest indexed edition is July 2026
+  GTFCC cholera situation page : stale, newest reference is sitrep #31 (29 Oct 2025)
+  WER 101(36-37), 18 Sep 2026  : RETRIEVED AND READ. Contains "Highlighted Signals
+                                  and Events" for epi weeks 36-37 (31 Aug-13 Sep
+                                  2026). "Cholera" is listed as an Africa-region
+                                  hazard but with NO country attribution, and the
+                                  issue's own footnote 5 reads: "The absence of
+                                  listed signals indicates that no publicly
+                                  available signals were identified during the
+                                  reporting period and does not imply absence of
+                                  signal activity overall." The only "Togo" string
+                                  in the issue is in the GLOBAL LEPROSY table, not
+                                  cholera. NO cholera zero is derivable from it.
+  Togolese press / MoH / UN Togo: nothing published on cholera after Aug 2026.
 
-=== BATCH 1 START (Queries 1-20) ===
-Focus: Gap period validation - 1973-1995, 2011-2012, 2014-2019, 2022-2024
-Start Time: 2025-07-25 13:25:45
+DECISION ON T1: the 24 days 2026-08-27..2026-09-19 are LEFT GENUINELY EMPTY.
+  No source published on or after 2026-09-01 makes any statement, positive or
+  negative, about cholera in Togo for that window. This is ordinary publication
+  lag, i.e. a SURVEILLANCE_GAP in the reporting stream, not evidence of absence.
+  Extrapolating row Index 50 forward would assert "no cholera" for a period
+  nobody has yet reported on. Not done. Agent 1's identical conclusion is
+  independently confirmed here against the products as they stand on 19 Sep 2026,
+  including one product (WER 101(36-37)) that did not exist when Agent 1 looked.
+Sources found: 1 new document read (WER 101(36-37))   Registered: none
+Rows added   : 0    Indices: none
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch floor not reached; T2/T3/T4 untouched)
+Gap Status   : 2026-08-27..2026-09-19 REMAINING (correctly - not fillable)
 
-BATCH 1 RESULTS:
-[13:26:15] Query 1: "Togo cholera absence 1973-1995 surveillance cholera-free period validation" - CRITICAL: No surveillance data 1973-1996, gap not absence
-[13:26:16] Query 2: "Togo cholera 1980s 1990s historical surveillance no cases reported" - CRITICAL: Surveillance system gap, not validated absence
-[13:26:17] Query 3: "Togo cholera surveillance 2011 2012 zero cases WHO reporting" - PARTIAL: Limited specific data for 2011-2012 period
-[13:26:18] Query 4: "Togo cholera absence 2014-2019 surveillance validation cholera-free period" - PARTIAL: Lower incidence 2015-2017, last outbreak 2016
-[13:26:19] Query 5: "Togo cholera surveillance 2022 2023 2024 zero transmission validation" - PARTIAL: Zero cases 2024, outbreak December 2023
-[13:26:20] Query 6: "Togo cholera surveillance system 1980s 1990s functioning detection absence" - CRITICAL: System non-functional 1980s-1990s
-[13:26:21] Query 7: "Togo cholera surveillance gap 2014 2015 2016 2017 2018 2019 absence" - SUCCESS: Confirmed outbreak 2016, possible absence 2017-2019
-[13:26:22] Query 8: "West Africa cholera 1980s Togo Ghana Benin absence regional patterns" - SUCCESS: Regional synchrony late 1980s, not absence
-[13:26:23] Query 9: "Togo cholera surveillance 2022 2023 zero cases reported COVID impact" - PARTIAL: December 2023 outbreak reported
-[13:26:24] Query 10: "Togo cholera-free period 1973-1995 post-El Tor epidemic absence validation" - CRITICAL: No validation evidence, surveillance gap
-[13:26:25] Query 11: "Togo cholera surveillance 2011 2012 inter-outbreak period absence documentation" - PARTIAL: Limited documentation for inter-outbreak periods
-[13:26:26] Query 12: "WHO surveillance Togo cholera 2014-2019 zero transmission confirmed" - NEGATIVE: No WHO confirmation found
-[13:26:27] Query 13: "Togo cholera surveillance system validation 1970s 1980s 1990s absence periods" - CRITICAL: System absent 1973-1996
-[13:26:28] Query 14: "Togo cholera regional context Benin Ghana absence periods cross-validation" - SUCCESS: Cross-border transmission patterns documented
-[13:26:29] Query 15: "Togo cholera surveillance 2015 2016 2017 2018 confirmed absence zero cases" - SUCCESS: Lower incidence 2015-2017, outbreak 2016
-[13:26:30] Query 16: "Togo cholera surveillance 2022 absence period validation zero transmission" - PARTIAL: 2024 zero cases, 2023 outbreak
-[13:26:31] Query 17: "site:who.int Togo cholera surveillance 2014-2019 absence zero cases reported" - PARTIAL: WHO zero reporting framework described
-[13:26:32] Query 18: "Togo cholera surveillance historical 1980s 1990s absence documentation" - CRITICAL: Documentation gap confirmed
-[13:26:33] Query 19: "Togo cholera surveillance system 2011-2012 gap period validation functioning" - PARTIAL: System functioning post-2010
-[13:26:34] Query 20: "Togo cholera absence 2023 surveillance validation zero transmission confirmed" - NEGATIVE: December 2023 outbreak reported
+================================================================================
+MID-RUN CORRECTIONS RECEIVED FROM THE COORDINATOR (before Batch 2)
+================================================================================
+C1. THE 1997 DAPAONG MENINGITIS TRAP - DO NOT INGEST, EVER.
+    A WHO Disease Outbreak News dated 27 January 1997 reports 739 cases and 121
+    deaths in DAPAONG, Savanes region, Togo. THAT OUTBREAK IS MENINGITIS, NOT
+    CHOLERA. Search engines and AI result summaries routinely mis-label it as
+    cholera; two independent agents in a parallel run have already been caught by
+    it. No cholera row may be created from it at any geography in any file.
+    (Independently, 1997 is not a zero year for Togo in any case - see Batch 2.)
+C2. NO ZERO ROW MAY BE ADDED OR EXTENDED ANYWHERE IN APRIL-DECEMBER 2025.
+    "The 209 question" is open: UNICEF WCARO (30 Jul 2025) puts Togo at 209 cases
+    and 5 deaths as of 22 Jun 2025, traced to Togo's own DSIUR weekly bulletin
+    semaine 25/2025, and it reconciles with no WHO reporting window. If the
+    notifying ministry is right, existing rows 23 and 24 understate 2025 by about
+    44 cases and one death. Rows 23 and 24 are therefore NOT settled ground truth
+    and must not be treated as a validated absence baseline. Conflict adjudication
+    belongs to Agent 5. CONSEQUENCE FOR THIS AGENT: target T3 is narrowed to 2026
+    only (rows 25 and 26). Nothing was added, extended or re-based in 2025.
+C3. WHO'S MULTI-COUNTRY CHOLERA UPDATE MOVED INTO THE WER FROM JULY 2026.
+    The who.int/publications/m/item/ path for the series is dead beyond #38
+    (30 Jun 2026); the monthly update now appears inside WER issues (101(31),
+    101(35), ...). Togo is absent from both 101(31) and 101(35) - already checked
+    upstream. ECDC IS NOT A SUBSTITUTE FOR WHO: it is a separate compiler with its
+    own reliability level, and earlier runs silently swapped one for the other on
+    finding the old path dead. Not repeated here; ECDC is cited as ECDC (row 50).
+RECONFIRMED: 2026-09-01..2026-09-19 is not closeable. Left open. See Batch 1.
+================================================================================
 
-KEY FINDINGS BATCH 1:
-- 1973-1995 Period: SURVEILLANCE GAP, not validated absence (no national surveillance until 1996)
-- 1980s-1990s: Surveillance system non-functional, apparent absence due to lack of detection capacity
-- 2011-2012: Limited evidence, inter-outbreak period documentation sparse
-- 2014-2019: Potential absence 2017-2019 after 2016 outbreak, needs validation
-- 2022-2024: Mixed - December 2023 outbreak, 2024 zero cases reported
-- Critical Discovery: Most apparent "absence periods" are surveillance system gaps, not true cholera-free periods
-- WHO Framework: Zero reporting encouraged but "absence of reporting ≠ reported absence"
+=== BATCH 2 | PHASE 2 (targeted) | TGO ===
+Gaps targeted: T2 (1988, 1997, 2009 unresolved years) and T3 (month-resolution of
+               the coarse 2026 absence rows, Indices 25 and 26)
+Queries / operations (20):
+   1 IRIS API   search "Cholera in 1988"
+   2 IRIS API   search "Cholera in 1997"
+   3 IRIS API   search "Cholera in 2009"
+   4 IRIS fetch WER "CHOLERA IN 1988 = LE CHOLERA EN 1988" -> PDF -> pdftotext
+   5 IRIS fetch WER 1998;73(27) "Cholera in 1997: Summary" -> PDF -> pdftotext
+   6 IRIS fetch WER 2010;85(31) "Cholera, 2009" -> PDF -> pdftotext
+   7 grep pass  WER-1988 Table 2 header/footnote context (imported-case asterisks)
+   8 curl       WHO epi update #37 (20260529 PDF) -> pdftotext
+   9 curl       WHO epi update #38 (20260630 PDF) -> pdftotext
+  10 grep pass  verify Table 1 country rows really extract in #37/#38 (anti-artefact)
+  11 IRIS fetch WER 2026;101(31) full issue -> pdftotext
+  12 IRIS fetch WER 2026;101(34) full issue -> pdftotext
+  13 IRIS fetch WER 2026;101(35) full issue -> pdftotext
+  14 extraction Table 1 country list of WER 101(35) printed in full
+  15 extraction exact quotable sentences + the "Missing data" footnote, all 4 docs
+  16 IRIS API   handle lookup for 101(31) and 101(35)
+  17 WebSearch  "Ghana cholera outbreak 2026 cases Greater Accra surveillance"
+  18 WebSearch  "Benin cholera 2026 cas epidemie" (fr)
+  19 WebSearch  "Burkina Faso cholera 2026 cas notifies" (fr)
+  20 WebFetch   mesvaccins.net 17899 "cas de cholera au Burkina Faso en provenance
+               du Niger" - DATE-CHECKED: published 2021-08-23, describes ONE 2021
+               imported case, NOT a 2026 event. Not used.
 
-VALIDATION ASSESSMENT:
-- 1973-1995: INVALID - surveillance system gap, not cholera-free period
-- 2011-2012: INCONCLUSIVE - insufficient validation evidence
-- 2014-2019: POTENTIAL - 2017-2019 period may be valid absence requiring more validation
-- 2022-2024: INVALID - December 2023 outbreak breaks period
+T2 RESOLVED - AND THE ANSWER IS "NOT A ZERO" IN ALL THREE CASES. No row created,
+which is the correct result, and it is recorded here so no later agent re-opens it:
+  1988: WER 1989;64(19) p.142, Table 2 "Cases of cholera notified to WHO, 1988":
+        "Togo ... 1". One notified case, no imported-case asterisk. NOT a zero
+        year. (JHU baseline Index 7 already carries 1988 = 1 case / 0 deaths.)
+  1997: WER 1998;73(27) "Cholera in 1997: Summary": "Togo ... 42  7" = 42 cases,
+        7 deaths. NOT a zero year. Exactly matches JHU baseline Index 14.
+        *** AND SEE CORRECTION C1: the 27 Jan 1997 WHO DON about 739 cases /
+        121 deaths in Dapaong, Savanes is MENINGITIS. It was not searched for,
+        not fetched, and nothing from it exists in any TGO file. ***
+  2009: WER 2010;85(31) "Cholera, 2009": "Togo 218 1 0.46" and the narrative
+        "...ria (1070) and Togo (218)". 218 cases, 1 death, CFR 0.46%. NOT a zero
+        year. Exactly matches JHU baseline Index 26.
+  => All three years are documented NON-ZERO notifications by Togo to WHO. They
+     were never candidate absence periods; they were simply years the AI layer
+     had not duplicated from JHU. Nothing to add.
 
-DATA OBSERVATIONS ADDED TO CSV: 0 new rows (validation revealed surveillance gaps, not absence periods)
-BATCH 1 DATA OBSERVATION YIELD: 0/20 queries = 0% yield
+T3 PARTLY DELIVERED - 2026 ONLY, per correction C2 (2025 is off-limits while the
+209 question is open). The WHO global monthly cholera product was retrieved for
+four consecutive reporting windows and Togo is absent from every one:
+  #37  (29 May 2026) data as of 26 Apr 2026 - 22 countries, no Togo
+  #38  (30 Jun 2026) data as of 31 May 2026 - 23 countries, no Togo
+  WER 101(31) (7 Aug 2026) data as of 28 Jun 2026 - 26 countries, no Togo
+  WER 101(35) (4 Sep 2026) data as of 26 Jul 2026 - 28 countries, no Togo
+  WER 101(34) (28 Aug 2026) carries NO cholera update - the series is ~5-weekly.
+  Each Table 1 is CUMULATIVE from 1 January 2026, so non-listing implies zero for
+  the whole year to date, not merely for the month. Country rows were verified to
+  extract cleanly from the PDFs, so "no Togo" is a real absence from the table and
+  not a pdftotext artefact.
+  DELIBERATE LABEL CHOICE: Inferred_Absence, not Documented_Absence, because the
+  reports carry the footnote "Missing data in this report do not imply the absence
+  of cholera or AWD cases or deaths in the respective country." WHO itself refuses
+  to let non-listing be read as a listed zero. The inference is carried by the
+  corroboration, not the table: Togo was simultaneously notifying MEASLES to WHO
+  AFRO (1 673 suspected cases, last update 19 Jul 2026), so the channel was live.
+  REGIONAL CROSS-CHECK (mandatory before any absence claim): all three land
+  neighbours - Benin, Burkina Faso, Ghana - are also absent from the same WHO
+  African Region table for 2026. Ghana's Greater Accra epidemic (6 100 cases,
+  51 deaths) ended in early 2025; Benin reported no 2026 epidemic; the only
+  Burkina result was the 2021 imported case above. This is absence during a
+  REGIONALLY QUIET period, the case that does NOT demand an extraordinary source.
+Sources found: 4 documents read   Registered: index 213, 214 (200 and 201 already
+               existed, registered-but-unused by Agent 1; now cited)
+Rows added   : 4    Indices: 335, 336, 337, 338
+   335  AFR::TGO 2026-03-30..2026-04-26  sCh=0 src 213 conf 0.80 Inferred_Absence
+   336  AFR::TGO 2026-04-27..2026-05-31  sCh=0 src 214 conf 0.80 Inferred_Absence
+   337  AFR::TGO 2026-06-01..2026-06-28  sCh=0 src 201 conf 0.80 Inferred_Absence
+   338  AFR::TGO 2026-06-29..2026-07-26  sCh=0 src 200 conf 0.80 Inferred_Absence
+Successful queries: 4/20  (operations 8, 9, 11, 13 each committed one row)
+Yield        : 20%
+Consecutive sub-5% batches: 0 (reset)
+Decision     : CONTINUE
+Gap Status   : 1988/1997/2009 RESOLVED as non-zero (no rows, correctly);
+               2026-03-30..2026-07-26 VALIDATED at month resolution;
+               2026-08-27..2026-09-19 still REMAINING.
 
-BATCH 1 COMPLETION: 13:26:35
+=== BATCH 3 | PHASE 2/3 (targeted + archival) | TGO ===
+Gap targeted : T4 - the 2007-2012 black hole; within-year cholera-free stretches
+               documented in Togolese MoH / national surveillance reports
+Queries / operations (20):
+   1 Wayback CDX plateformecholera.info* (UNICEF WCARO cholera platform)
+   2 Wayback CDX sante.gouv.tg* filtered to .pdf, annuaire/bulletin/rapport - EMPTY
+   3 WebSearch  Landoh Togo cholera national surveillance 1996-2010 full text
+   4 WebSearch  Togo "annuaire des statistiques sanitaires" 2010/2011/2012 cholera PDF
+   5 WebSearch  Togo cholera 2010 2011 2012 "aucun cas" OR "zero cas" district sanitaire
+   6 curl       archived plateformecholera Togo.pdf (article/328 and /470)
+   7 curl retry same via web.archive.org id_ raw - both truncate at exactly 1 048 576
+               bytes and are single-page layered GIS maps; unreadable, abandoned
+   8 WebFetch   afro.who.int/node/5938 ("Surveillance integree des maladies et reponse")
+   9 WebFetch   academic.oup.com JID 208(suppl_1):S115 Landoh et al - abstract only,
+               full text paywalled; no zero-period or monthly statement in abstract
+  10 WebFetch   ghdx.healthdata.org Ministry of Health (Togo) - HTTP 403
+  11 curl       who.insomnation.com (the host AFRO advertises for the PDF) - DEAD
+  12 Wayback CDX for *bettogo* on who.int and on who.insomnation.com - NO CAPTURES
+  13 curl probe afro.who.int/sites/default/files/pdf/Togo-Bettogo-n6-dec2011.pdf - HTTP
+               200, 755 048 bytes, application/pdf  *** LIVE ***
+  14 WebSearch  site:afro.who.int Togo Bettogo bulletin epidemiologique pdf
+  15 download + pdftotext -layout BETTOGO n6 (398 lines of text)
+  16 read       Table I and section "3. Situation du cholera en 2011" in full
+  17 Wayback CDX afro.who.int/sites/default/files/pdf/* filtered Togo - EMPTY
+  18 curl probe sweep: Togo-Bettogo-n{1,2,3,4,5,7,8}-{mar,jun,sep,dec}{2010,2011,2012}
+               .pdf = 84 URLs, ALL 404. Only issue n6 survives at that path.
+  19 WebSearch  Tsevie Zio cholera 2011 epidemie Togo 29 cas
+  20 WebSearch  Togo rapport annuel surveillance integree maladies riposte 2009 2010
+               cholera trimestre
 
-=== BATCH 2 START (Queries 21-40) ===
-Focus: 2017-2019 period validation, cross-border analysis, surveillance system functioning assessment
-Start Time: 2025-07-25 13:27:00
+THE FIND: BETTOGO n6, Bulletin Epidemiologique du Togo, Rapport Annuel 2011,
+Ministere de la Sante with WHO Togo. This is the FIRST DOCUMENT FROM INSIDE THE
+2007-2012 BLACK HOLE that this pipeline has retrieved - the whole six-year span
+previously had one national integer per year from secondary compilations. It
+carries Table I "SITUATION DES MALADIES A POTENTIEL EPIDEMIQUE (MPE) NOTIFIEES:
+ANNEE 2011" with a fourth-quarter column and a full-year column for every
+notifiable disease, plus a narrative cholera section.
 
-BATCH 2 RESULTS:
-[13:27:30] Query 21: "Togo cholera 2017 2018 2019 zero cases WHO annual reporting validation" - NEGATIVE: No specific WHO validation found
-[13:27:31] Query 22: "Togo cholera surveillance 2017 2018 2019 absence confirmed WHO AFRO" - NEGATIVE: No WHO AFRO confirmation found
-[13:27:32] Query 23: "Togo cholera surveillance functioning 2017-2019 zero transmission validation evidence" - NEGATIVE: No validation evidence found
-[13:27:33] Query 24: "WHO global cholera surveillance Togo 2017 2018 2019 zero reporting annual" - PARTIAL: WHO zero reporting framework described
-[13:27:34] Query 25: "Africhol consortium Togo cholera surveillance 2017 2018 2019 absence reporting" - PARTIAL: Africhol participation confirmed
-[13:27:35] Query 26: "Togo cholera surveillance system 2017-2019 inter-outbreak period validation functioning" - NEGATIVE: No specific validation documentation
-[13:27:36] Query 27: "West Africa cholera surveillance 2017-2019 Togo Benin Ghana absence patterns" - SUCCESS: Regional surveillance gaps documented
-[13:27:37] Query 28: "Togo cholera 2024 zero cases confirmed WHO surveillance validation absence" - NEGATIVE: 2024 had outbreak later in year
-[13:27:38] Query 29: "site:who.int Togo cholera 2017 2018 2019 surveillance reports absence" - NEGATIVE: No WHO reports found
-[13:27:39] Query 30: "Togo cholera surveillance 2017 2018 functioning system validation absence detection" - NEGATIVE: No validation documentation
-[13:27:40] Query 31: "Togo cholera inter-outbreak surveillance 2017-2019 absence period validation WHO" - NEGATIVE: No WHO validation found
-[13:27:41] Query 32: "Republic of Togo cholera surveillance 2017 2018 2019 zero cases reported" - NEGATIVE: No zero cases documentation
-[13:27:42] Query 33: "Togo cholera surveillance 2017-2019 regional validation Benin Ghana cross-border" - PARTIAL: Cross-border initiatives found
-[13:27:43] Query 34: "WHO AFRO cholera bulletin Togo 2017 2018 2019 surveillance absence reporting" - NEGATIVE: No specific bulletins found
-[13:27:44] Query 35: "Togo cholera surveillance active 2017 2018 2019 zero transmission confirmed" - NEGATIVE: Annual cases typically reported
-[13:27:45] Query 36: "site:afro.who.int Togo cholera surveillance 2017 2018 2019 absence validation" - NEGATIVE: No AFRO validation found
-[13:27:46] Query 37: "Togo cholera surveillance 2011 2012 absence validation zero transmission WHO" - PARTIAL: Africhol enhanced surveillance 2011-2013
-[13:27:47] Query 38: "Academic literature Togo cholera absence periods 2017-2019 surveillance validation" - NEGATIVE: No academic validation studies
-[13:27:48] Query 39: "Togo cholera surveillance 2024 confirmed zero cases validation WHO reporting" - NEGATIVE: 2024 mixed with later outbreak
-[13:27:49] Query 40: "Togo cholera surveillance system capacity 2017-2019 absence detection validation" - NEGATIVE: No capacity validation found
+WHAT I DID **NOT** WRITE, AND WHY - this is the load-bearing part of this batch.
+  The bulletin's narrative says, verbatim: "Le quatrieme trimestre n'a pas
+  enregistre de cas de cholera." On its face that is a documented quarter-long
+  absence (Oct-Dec 2011) from the notifying ministry itself - exactly the kind of
+  row this agent exists to write. IT WAS NOT WRITTEN, because Table I of the SAME
+  four-page bulletin gives cholera Q4 2011 = 1 case / 0 deaths. The document
+  contradicts itself, and a zero asserted on contested evidence is worse than no
+  row at all: downstream it becomes an assertion that the disease was absent.
+  Recorded here and in the notes of row 339 for Agent 5 to adjudicate.
+WHAT I DID WRITE: the positive observation the same section supports
+  unambiguously - the Zio/Tsevie epidemic, 29 cases and 1 death, third quarter
+  2011, with the bulletin's Figure 4 captioned "Courbe epidemiologique des cas de
+  cholera dans le district de Zio, Septembre 2011". This dates 29 of Zio's 36
+  cases (row 221, 2011-01-01..2014-12-07) and Zio's only death to September 2011,
+  and is the first sub-annual observation of any kind inside 2007-2012.
+CORROBORATION HANDED TO AGENT 5 (not resolved here): BETTOGO gives Togo's
+  full-year 2011 cholera total as 33 cases / 1 death / CFR 3.0%. That matches row
+  126 (PNDS) exactly, against 35/1 in the MoH GTFCC deck (row 329) and 4 cases in
+  WHO/IHR. Agent 1 called 2011 the most discordant year in the record; the
+  country's own contemporaneous quarterly bulletin supports 33.
+SURVEILLANCE STATUS EVIDENCE (the "was anybody looking?" test, 2011): Table I
+  reports explicit ZERO counts for charbon humain, rage and dracunculose in Q4
+  2011 - the system was reporting negatives, not merely positives. Togo's
+  surveillance was operational throughout 2011.
+DEAD ENDS, so nobody re-spends budget: who.insomnation.com (the host AFRO's own
+  page advertises) is dead and has no Wayback captures; BETTOGO n1-n5 and n7-n8
+  are not on afro.who.int under any of 84 probed filename permutations and are
+  not in the Internet Archive; the archived UNICEF WCARO plateformecholera Togo
+  PDFs truncate at 1 MB and are layered maps; GHDx returns 403; Landoh et al is
+  paywalled beyond the abstract and the abstract contains no absence statement.
+Sources found: 1 (major)   Registered: index 215
+Rows added   : 1    Indices: 339
+   339  AFR::TGO::Maritime::Zio 2011-09-01..2011-09-30 sCh=29 d=1 src 215 conf 0.80
+Successful queries: 1/20  (the afro.who.int/node/5938 -> URL-probe -> download chain,
+                           counted ONCE as one successful retrieval chain)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not BELOW 5%)
+Decision     : CONTINUE - 3-batch floor met but the stopping criterion is NOT met,
+               and the BETTOGO find opens a live thread (Togolese MoH documents on
+               files.aho.afro.who.int) that bears directly on T4.
+Gap Status   : 2007-2012 black hole PARTIALLY LIT (2011 Q3 at district-month
+               resolution); Q4-2011 absence DELIBERATELY NOT ASSERTED (contested).
+   *** python py/validate_quality.py TGO after this batch: ERROR 0, WARN 44 -
+       identical to the pre-run WARN count. 312 rows, 215 sources. ***
 
-KEY FINDINGS BATCH 2:
-- 2017-2019 Period: NO EVIDENCE of validated absence or zero transmission confirmation
-- WHO Zero Reporting: Framework exists but no Togo-specific validation found for 2017-2019
-- Literature Review: "Cases of cholera occur every year" in countries like Togo with "relatively low incidence"
-- Regional Context: West African surveillance gaps documented, 54% average coverage with substantial gaps
-- Cross-Border Context: Active cross-border surveillance initiatives but no absence validation
-- Academic Literature: No studies specifically validating absence periods for 2017-2019
-- Surveillance System: Functional but no formal "zero transmission validation" protocols found
-- Critical Finding: Most searches suggest ongoing low-level transmission rather than validated absence
+=== BATCH 4 | PHASE 3 (institutional deep dive) | TGO ===
+Gap targeted : T4 (2007-2012) and the evidence quality of the 2017-2019 zeros
+Queries / operations (20):
+   1 WebSearch  site:files.aho.afro.who.int Togo rapport annuel performance sante
+   2 WebSearch  Togo "rapport annuel de performance" 2012 OR 2013 PDF cholera
+   3 WebSearch  Togo "annuaire des statistiques sanitaires" 2008 2009 MPE cholera
+   4 curl       files.aho.afro.who.int control + Wayback CDX - both fail
+   5 download   togo.unfpa.org PRINCIPAUX INDICATEURS DE SANTE AU TOGO 2014 (1.6 MB)
+   6 extraction Tableau XXXVI "Cas et deces lies aux MPE par region en 2014", read in
+               full with column-alignment cross-checks against five other disease rows
+   7 analysis   compare against existing rows 55-57, 268-270 and metadata source 168
+   8 Wayback CDX sante.gouv.tg/sites/default/files/* - HTTP 504
+   9 Wayback CDX retry, two URL forms - INTERNET ARCHIVE IS TEMPORARILY OFFLINE
+  10 curl       reliefweb.int/attachments/.../Rapport Annuel de Performance 2017 MSPS.pdf
+  11 extraction read section "Surveillance du cholera" and the whole 2017 surveillance
+               chapter
+  12 grep       search the 2017 report for a regional MPE table - none for cholera
+  13 WebSearch  site:reliefweb.int Togo "rapport annuel de performance" ministere sante
+  14 WebSearch  Togo "rapport annuel de performance" 2015 OR 2016 ... surveillance cholera
+  15 analysis   list every existing row overlapping 2018
+  16 WebFetch   afro.who.int publication page for the 2018 performance report
+  17 download   afro.who.int RAPPORT ANNUEL DE PERFORMANCE 2018 DU MSHP.pdf + extract
+  18 analysis   overlap-phrase audit of rows 104 and 111 before writing
+  19 analysis   overlap-phrase audit of rows 189-194
+  20 WebSearch  Togo "rapport annuel de performance" 2019 - does not exist online
 
-VALIDATION CONCLUSION:
-- NO VALIDATED ZERO-TRANSMISSION PERIODS IDENTIFIED for any target periods
-- 1973-1995: Surveillance system gap (non-functional)
-- 2011-2012: Enhanced surveillance but no absence validation
-- 2014-2019: Potential lower incidence but no validated absence
-- 2017-2019: No evidence of zero transmission validation
-- 2022-2024: Mixed with December 2023 outbreak
+A ROUTE THAT PREVIOUS AGENTS RECORDED AS CLOSED IS OPEN: reliefweb.int HTML 403s
+and both API versions are dead, but reliefweb.int/attachments/ serves PDFs
+normally. That is how the 2017 report was retrieved. Recorded for future runs.
 
-CRITICAL INSIGHT: Apparent "absence periods" are surveillance system limitations, not true cholera-free periods requiring zero-transmission documentation
+FINDINGS
+  RAP 2017 (MoH, Aug 2018), section "Surveillance du cholera": "En 2017, aucun cas
+    de cholera n'a ete notifie." NO ROW ADDED - row Index 105 already records
+    Togo 2017 = 0 and an identical row would be a prohibited duplicate. Registered
+    as metadata 216 because it is the NOTIFYING MINISTRY's own affirmative
+    statement, independent of WHO, and because it proves the system was looking:
+    the same chapter reports 31 suspected congenital rubella cases, suspected
+    yellow fever by region (Lome Commune 30, Maritime 51, Plateaux 113, Centrale
+    76, Kara 76, Savanes 98), NINE laboratory-confirmed Lassa cases with six
+    deaths in Oti and Kpendja, MenAfriNet case-based meningitis surveillance,
+    weekly bulletin production and an internal IHR assessment - all in 2017.
+  RAP 2018 (MoH, Sep 2019): "En 2018, aucun cas de cholera n'a ete notifie ; le
+    dernier cas a ete notifie en 2016." ROW ADDED (340). This splits the WER's
+    two-year blanket row 104 (2018-01-01..2019-12-31) so that 2018 stands on the
+    ministry's own affirmative declaration rather than on a WHO compilation, and
+    it is a DOCUMENTED absence (positive assertion of zero notifications) where
+    rows 335-338 are only INFERRED (non-listing). The clause "le dernier cas a
+    ete notifie en 2016" is a second, ministry-side confirmation of the 2017 zero.
+  2014 REGIONAL TABLE INDEPENDENTLY RE-READ. I downloaded source 65 myself and
+    extracted Tableau XXXVI: "Cholera  113 6 | 36 3 | 0 0 | 0 0 | 0 0 | 0 0 |
+    262 11" under headers Lome Commune, Maritime, Plateaux, Centrale, Kara,
+    Savanes, Total pays. Those regions sum to 149, NOT the printed total of 262.
+    Source 168 - the CORRECTED edition of the same publication - reads Lome
+    Commune 113/2, Maritime 113/6, Plateaux 36/3, which sums to 262/11 exactly.
+    The corrected edition is arithmetically consistent and the first is not, so
+    rows 268-270 (from 168) are right and PLATEAUX 2014 IS NOT ZERO. I did not
+    write a Plateaux 2014 zero row, which the uncorrected table would have
+    supported. Rows 55-57 (Centrale, Kara, Savanes 2014 = 0) are safe: both
+    editions agree on those three. Verification, not a new finding, but it closes
+    a trap that the uncorrected table sets for any future zero-validator.
+Sources found: 3 read   Registered: index 216, 217
+Rows added   : 1    Indices: 340
+   340  AFR::TGO 2018-01-01..2018-12-31 sCh=0 src 217 conf 0.90 Documented_Absence
+Successful queries: 1/20  (operation 17)
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+Gap Status   : 2018 UPGRADED to year resolution + ministry source; 2017 VALIDATED
+               by a second institution; 2014 Plateaux trap AVOIDED.
 
-DATA OBSERVATIONS ADDED TO CSV: 0 new rows (no validated absence periods found)
-BATCH 2 DATA OBSERVATION YIELD: 0/20 queries = 0% yield
+=== BATCH 5 | PHASE 3 (institutional deep dive, continued) | TGO ===
+Gap targeted : T4 continued; sub-annual/sub-national absence in documented-zero
+               years; final re-verification of the recent gap
+Queries / operations (20):
+   1 WebFetch   afro.who.int/countries/togo/publications?page=9 (105 items, 2020 only)
+   2 WebSearch  Togo annuaire statistiques sanitaires 2017 OR 2018 sante.gouv.tg
+   3 curl       files.aho RAP 2020 - HTTP 000
+   4 curl       sante.gouv.tg CONTROL (known-good Annuaire 2019 URL) + 12-path probe
+   5 WebFetch   files.aho RAP 2020 - "certificate has expired"
+   6 WebSearch  Annuaire Togo 2017 2018 medbox OR p4h OR unfpa OR afro
+   7 WebSearch  Togo annuaire 2018 "maladies a potentiel epidemique" cholera region
+   8 curl -k    files.aho Annuaire_2017_MS_VF.pdf -> IT IS BENIN'S, NOT TOGO'S
+   9 curl -k    files.aho RAP 2020 and RAP 2021 (both Togo, verified on title page)
+  10 extraction read both "Surveillance du cholera" sections in full
+  11 analysis   list every existing row covering 2020
+  12 analysis   overlap-phrase audit of rows 49, 58, 59-63, 94, 111
+  13 IRIS API   newest items matching "cholera Togo", sorted by date DESC
+  14 IRIS API   newest "Weekly Bulletin on Outbreak" - still Week 33 (16 Aug 2026)
+  15 WebSearch  cholera Togo "September 2026" WHO surveillance zero cases reported
+  16 curl       ECDC CDTR week 9 2026 PDF + full-text read
+  17-20 write/verify operations against the CSVs (register 218, 219; add row 341;
+               re-run validate_quality)
 
-BATCH 2 COMPLETION: 13:27:50
+sante.gouv.tg IS CONFIRMED CLOSED FOR A THIRD TIME, with a control: the host
+  returns a ~17.5 KB text/html shell for EVERY path, including the known-good
+  Annuaire 2019 URL that metadata source 138 cites. Twelve probe URLs for the
+  2017 annuaire all "succeeded" with the identical 17 533-byte shell. A 200 from
+  that host means nothing. And the Internet Archive - the workaround earlier
+  agents used for sources 138, 139 and 168 - went OFFLINE during this run, so
+  that fallback was unavailable.
+files.aho.afro.who.int IS THE WORKING ROUTE, with two catches: its TLS
+  certificate has EXPIRED (WebFetch refuses, plain curl returns nothing, curl -k
+  works), and its filenames are country-agnostic. Annuaire_2017_MS_VF.pdf on that
+  host is BENIN's - I opened it and read "Republique du Benin, Ministere de la
+  Sante" on the title page. Agent 2 warned about exactly this for a different
+  filename; it is now confirmed for a second. ALWAYS OPEN THE PDF.
+
+FINDINGS
+  RAP 2020: "Cette annee 2020, le pays a connu une epidemie de cholera dans la
+    commune Golfe 4 de la DPS Golfe (DRS Grand-Lome). Cette annee, la division a
+    enregistre au total 68 cas suspects de cholera dont 18 confirmes au
+    laboratoire (avec une confirmation post-mortem) et 50 communautaires, avec 02
+    deces soit une letalite de 3%." ROW ADDED (341). Togo had NO national 2020 row
+    in the AI layer at all, and the national CONFIRMED count existed nowhere.
+  A SAVANES 2020 ZERO WAS AVAILABLE AND WAS DELIBERATELY NOT WRITTEN. "The
+    epidemic was in Golfe 4" invites a zero for every other region, and five such
+    rows already exist (59-63). But row 58 records 2 cases in Savanes::Oti in 2020
+    from the Annuaire 2020. A Savanes zero would have contradicted an existing
+    observation. An epidemic confined to one commune does not exclude sporadic
+    cases elsewhere. This is the regional cross-check doing its job.
+  RAP 2021: 39 cases, 27 sampled, 12 laboratory-confirmed as V. cholerae Ogawa, 5
+    deaths, Lacs district, starting at Agoegan and spreading to Melly-djigbe,
+    Seko, Zola, Aziagba-kondji and Aneho-Adjido. No row added - row 195 already
+    carries 39/5 from this same document via a different URL. The files.aho copy
+    is a LIVE alternative route to metadata source 139, which currently cites a
+    web.archive.org wrapper; worth switching to while the Archive is down.
+
+  *** THE MOST IMPORTANT FINDING OF THIS RUN, AND IT IS A CAVEAT, NOT A ROW ***
+  ECDC Communicable Disease Threats Report week 9 of 2026 states verbatim:
+    "Since 28 January 2026, no updates have been reported by Cameroon, Chad,
+     Comoros, Congo, Cote D'Ivoire, Ethiopia, Ghana, Kenya, Rwanda, South Sudan,
+     Togo, Uganda, or the United Republic of Tanzania."
+  "No updates have been reported BY" is an absence of REPORTING, not an absence
+  of disease - the Surveillance_Gap category, which is never a valid basis for a
+  zero row. The list proves its own point: South Sudan, Chad, Congo, Cameroon and
+  Ethiopia all appear in WHO's 2026 cholera tables WITH cases while sitting on
+  that same "no updates" list. Consequences, recorded as metadata source 219 so
+  they are visible in the data and not only in this log:
+    - Row Index 25 (2026-01-01..2026-03-29) is labelled Documented_Absence purely
+      because Togo does not appear in WHO epidemiological update #36. That label
+      is TOO STRONG and should be downgraded to Inferred_Absence by whoever can
+      edit rows. This agent cannot: add_observation.py has no edit subcommand.
+    - Rows 335-338 use Inferred_Absence for precisely this reason.
+    - What actually carries the 2026 Togo absence is NOT non-listing. It is that
+      Togo was concurrently notifying MEASLES to WHO AFRO through 19 July 2026,
+      so the channel was live and Togo was choosing to report other things.
+RECENT GAP RE-VERIFIED AT END OF RUN: IRIS sorted by issue date still shows the
+  newest AFRO weekly bulletin as Week 33 (16 Aug 2026) and the newest cholera-
+  bearing WHO item as WER 101(36-37) of 18 Sep 2026, which carries no country-
+  attributed cholera data. 2026-08-27..2026-09-19 remains genuinely open.
+Sources found: 4 read (2 Togolese, 1 Beninese rejected, 1 ECDC caveat)
+               Registered: index 218, 219
+Rows added   : 1    Indices: 341
+   341  AFR::TGO 2020-01-01..2020-12-31 sCh=68 cCh=18 d=2 src 218 conf 0.85
+Successful queries: 1/20  (operation 9)
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : see final assessment below
+
+=== BATCH 6 | PHASE 3 | TGO ===
+Gap targeted : T4 (2007-2012) via the DSIUSR/Africhol/academic routes; regional
+               cross-check of the 1979-1987 zero run
+Queries / operations (20):
+   1 curl -k    files.aho Rapport_annuel_SSE_2022.pdf -> IT IS MALI'S, NOT TOGO'S
+   2 WebSearch  Togo "DSIUSR" rapport annuel surveillance epidemiologique cholera
+   3 WebFetch   PMC5301166 Africhol consortium meeting Lome 2015 (301 redirect)
+   4 WebSearch  Africhol Togo enhanced surveillance 2011-2013 incidence Lome
+   5 analysis   identify metadata sources 40, 146, 37 -> Africhol ALREADY MINED
+   6 WebSearch  Togo cholera 2007 2008 2009 courbe epidemique districts Lome
+   7 WebSearch  Togo "profil epidemiologique" OR "plan de contingence" 2005-2010
+   8 WebSearch  WHO country cooperation strategy Togo 2009-2013 cholera profile
+   9 WebSearch  UNICEF Togo humanitarian situation report 2009 2010 cholera
+  10 WebFetch   who.int/emergencies/emergency-events/item/cholera-togo (shell only)
+  11 WebSearch  Togo cholera "declared over" OR "fin de l'epidemie" 2024 2025
+  12 IRIS fetch WER "Cholera in 1982", "Cholera in 1984", "Cholera in 1986"
+  13 extraction Africa-block country lists from each
+  14 IRIS fetch WER "Cholera in 1983", "Cholera in 1985", "Cholera in 1987"
+  15 extraction Africa-block country lists from each
+  16 WebSearch  Ghana Benin Burkina cholera 1983 1984 1985 West Africa wave
+  17 WebSearch  "Togo" cholera annees 1980 absence epidemie retrospective (fr)
+  18 IRIS API   "Areas removed from the infected area list" series (1979, 1988...)
+  19 WebFetch   PMC1839095 climate-synchrony study - monthly West African series
+  20 analysis   consolidate the regional cross-check
+
+*** A SECOND COUNTRY-MISATTRIBUTION TRAP, AND THE SEARCH SUMMARY WALKED INTO IT ***
+  files.aho.afro.who.int/.../Rapport_annuel_SSE_2022.pdf is titled "RAPPORT ANNUEL
+  DE LA SURVEILLANCE EPIDEMIOLOGIQUE" and surfaces on Togo DSIUSR searches. The
+  search-engine summary told me, in so many words, that it was "the 2022 annual
+  epidemiological surveillance report from Togo's health authorities" and that it
+  "indicates that no cholera cases were recorded in 2022". I opened it. Its title
+  page reads "MINISTERE DE LA SANTE ET DU DEVELOPPEMENT SOCIAL - REPUBLIQUE DU
+  MALI", and the sentence "Aucun cas de cholera ni aucun cas de dracunculose n'a
+  ete enregistre en 2022" is MALI's, not Togo's. Had I trusted the summary I would
+  have written a Togo 2022 zero row out of a Malian document. Together with
+  Annuaire_2017_MS_VF.pdf (Benin) that is two confirmed misattributions on this
+  one host in one run. ALWAYS OPEN THE PDF AND READ THE TITLE PAGE.
+
+REGIONAL CROSS-CHECK OF THE 1979-1987 ZERO RUN (nine consecutive annual zero rows,
+the longest absence assertion in the Togolese file), read straight out of the WER
+annual tables:
+  1983  Ghana 14 160 - "an upsurge in cases was reported by Ghana"; Togo absent
+  1984  Benin 1, BURKINA FASO 2 191, GHANA 1 015, Nigeria 1 667; Togo absent
+  1985  Burkina Faso 1 149*; Togo absent
+  1986  Nigeria 91 and little else nearby; Togo absent
+  1987  no neighbour in the Africa block; Togo absent
+  => 1983-1985 are absence DURING AN ACTIVE REGIONAL EPIDEMIC - all three Togolese
+     land neighbours reporting, Togo reporting nothing. That is the demanding case
+     and it needs the weakest-possible reading. 1986-1987 are the quiet case.
+     The existing confidences happen to track this (1983 and 1984 at 0.55, 1985 at
+     0.70, 1986 at 0.70, 1987 at 0.80). No change made; recorded so that whoever
+     re-weights these rows knows which years are which.
+I ALSO AUDITED THE EVIDENTIARY BASIS OF THOSE NINE ROWS AND THEY ARE SOUND: each
+  is labelled Inferred_Absence with surveillance "partial", and each note spells
+  out "Togo absent from WER Table 1 Africa block" followed by the full list of
+  countries that did report. Whoever wrote them did the right thing. The only
+  mislabelled zero in the file remains row 25 (2026, Documented_Absence).
+DEAD ENDS: Africhol is already mined (metadata 40 = the PLOS NTD multi-country
+  paper, 146 = the Nadri RDT paper); Landoh et al remains paywalled beyond the
+  abstract, which contains no absence statement; the climate-synchrony study
+  PMC1839095 has a Togo monthly series 1975-2002 but 59.5% of its Togo reports
+  are LINEAR INTERPOLATIONS (25 of 42) and the raw series is not published - any
+  "Togo monthly cholera" figure traced to that paper is a modelled value, not an
+  observation, and must not be entered as data.
+Rows added   : 0     Successful queries: 0/20     Yield: 0%
+Consecutive sub-5% batches: 1     Decision: CONTINUE
+
+=== BATCH 7 | PHASE 3 | TGO ===
+Gap targeted : untried source families - WHO GHO, WAHO/OOAS, Togolese press,
+               cross-border Benin/Ghana, PubMed
+Queries / operations (20):
+   1 GHO API    indicator list matching "cholera" (4 indicators)
+   2 WebSearch  OOAS/WAHO bulletin epidemiologique regional cholera Togo
+   3 GHO API    CHOLERA_0000000001 (reported cases) filtered to TGO
+   4 analysis   audit the evidentiary basis and quotes of rows 12, 16, 17, 19, 21
+   5 curl       WAHO weekly epidemiological bulletin 2022-02-08 - HTTP 404
+   6 curl       WAHO epidemiological newsletter 2019-12-16 - HTTP 404
+   7 WebFetch   wahooas.org/web-ooas/en/programmes - HTTP 404
+   8 WebSearch  republicoftogo OR togofirst OR icilome cholera Togo 2026 aucun cas
+   9 WebSearch  Benin Aneho-Hillacondji frontiere Togo cholera transfrontalier
+  10 WebSearch  Ghana Volta Region cholera 2026 Aflao border Togo
+  11 GHO API    CHOLERA_0000000002 (reported deaths) filtered to TGO
+  12 PubMed MCP search_articles "cholera Togo surveillance epidemiology" (19 PMIDs)
+  13 PubMed MCP get_article_metadata for the 10 unfamiliar PMIDs
+  14 extraction scan every abstract for Togo + absence/zero/last-case language
+  15-20 cross-checks of the returned PMIDs against metadata_ai.csv (all already
+        held: Bockemuhl 31, Landoh 32, Africhol 40, Nadri 146, Moore 192) and
+        Togolese-press follow-ups
+
+*** THE CLEANEST PROOF I FOUND ALL RUN THAT "ABSENT FROM A WHO TABLE" IS NOT A
+    ZERO - AND IT IS ABOUT TOGO ITSELF ***
+  WHO's Global Health Observatory official series for Togo, CHOLERA_0000000001,
+  returns 32 year-values: 1970:75, 1971:335, 1972:16, 1974:58, 1977:132, 1978:6,
+  1988:1, 1991:2396 ... 2015:35. It contains NOT ONE ZERO. Years in which Togo
+  notified nothing are simply ABSENT from the series - and so is 1990, a year in
+  which Togo's own Plan Strategique records 136 CASES (row 252). So for this very
+  country there is a documented year where WHO holds no entry and the true value
+  is 136, not 0. Non-listing in a WHO product is not evidence of zero. This is
+  the empirical backing for labelling rows 335-338 Inferred_Absence and for
+  flagging row 25's Documented_Absence label as too strong.
+  (The deaths series CHOLERA_0000000002 does contain explicit zeros - 1972:0,
+  1988:0, 2011:0 - so zeros are representable; their absence in the case series
+  is meaningful.)
+Rows added   : 0     Successful queries: 0/20     Yield: 0%
+Consecutive sub-5% batches: 2     Decision: CONTINUE
+
+=== BATCH 8 | PHASE 3 (final verification) | TGO ===
+Gap targeted : T1 one last time, from WHO's own dashboard back-end
+Queries / operations (20):
+   1 curl probe afro.who.int weeks 34-38 of 2026, both 2026-08 and 2026-09 upload
+               folders (10 URLs), WITH a control that returns HTTP 200 (Week 28)
+               - every W34-W38 URL 404s while the control succeeds
+   2 WebSearch  WHO global cholera AWD dashboard 2026 country data Togo
+   3 WebFetch   ArcGIS Hub data-download page
+   4 Hub API    search/v1/collections/dataset/items?q=cholera 2026 - 0 features
+   5 ArcGIS     sharing/rest/search "cholera AWD global"
+   6 ArcGIS     sharing/rest/search "cholera owner:maps_WHO" - 28 items, two usable
+   7 ArcGIS     Time_stamp_cholera layer schema + cholera_adm0_week_view schema
+   8 ArcGIS     query cholera_adm0_week_view WHERE iso_3_code='TGO'
+   9 ArcGIS     max(date_wk) across the whole layer
+  10 ArcGIS     query WHERE adm0_name LIKE '%ogo%'; and all countries with data in
+               weeks from 2026-08-10
+  11 WebSearch  Togo situation epidemiologique semaine 37/38 2026 DSIUSR
+  12 WebSearch  khub.africacdc.org epidemic intelligence September 2026 cholera
+  13 WebSearch  Togo cholera 2026 "pas de cas" OR "zero cas" OR "aucun cas notifie"
+  14 WebSearch  "Togo" WHO AFRO situation report September 2026
+  15-20 re-run of validate_quality.py, index-set diffs against the pre-run file,
+        workflow_state write and log assembly
+
+WHO'S OWN DASHBOARD BACK-END SETTLES THE RECENT GAP:
+  layer cholera_adm0_week (services.arcgis.com/5T5nSi527N4F7luB) -
+    max(date_wk) across the ENTIRE global layer = 2026-08-17. The dashboard does
+    not extend past the week beginning 17 August 2026, so no WHO weekly product
+    covers 27 Aug - 19 Sep 2026 for any country.
+    Countries with data in weeks from 2026-08-10: Afghanistan, Angola, Cameroon,
+    Chad, DRC, Mozambique, Nigeria, South Sudan, Sudan, Yemen - ten only.
+    TOGO HAS ZERO ROWS IN THAT LAYER, by ISO code and by name, for any week ever.
+    So Togo's non-appearance there is a data-model artefact (the layer holds only
+    actively-reporting countries) and carries no information about Togo at all.
+    Note for anyone reading data/TGO/cholera_data_who.csv: its 11 Togo weekly rows
+    for Jan-Mar 2025 came from a different WHO extract or vintage; they are NOT
+    reproducible from this layer today.
+  afro.who.int weekly bulletins: weeks 34-38 of 2026 do not exist at any probed
+    path, verified against a control URL that returns 200.
+Rows added   : 0     Successful queries: 0/20     Yield: 0%
+Consecutive sub-5% batches: 3  ->  STOPPING CRITERION MET
+Decision     : STOP at batch 8 of a maximum 12. Batch yields in PERCENT:
+               [0, 20, 5, 5, 5, 0, 0, 0]. The 3-batch floor was cleared at batch 3
+               and the criterion "3 consecutive batches below 5%" was met by
+               batches 6, 7 and 8, all at 0%.
+Gap Status   : 2026-08-27..2026-09-19 REMAINING - and now confirmed unfillable
+               from four independent products' publication horizons.
+
+================================================================================
+AGENT 3 FINAL ASSESSMENT - TOGO
+================================================================================
+Batches: 8 of a maximum 12.  Yields (PERCENT): [0, 20, 5, 5, 5, 0, 0, 0]
+Stopped: 3 consecutive batches below 5% (batches 6, 7, 8, all 0%). The 3-batch
+         floor was cleared at batch 3; the criterion was met at batch 8.
+Operations: ~160, each itemised above.
+
+ROWS ADDED - 7, all in /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/TGO/cholera_data_ai.csv
+  335  AFR::TGO                  2026-03-30..2026-04-26  sCh=0   src 213  0.80  Inferred_Absence
+  336  AFR::TGO                  2026-04-27..2026-05-31  sCh=0   src 214  0.80  Inferred_Absence
+  337  AFR::TGO                  2026-06-01..2026-06-28  sCh=0   src 201  0.80  Inferred_Absence
+  338  AFR::TGO                  2026-06-29..2026-07-26  sCh=0   src 200  0.80  Inferred_Absence
+  339  AFR::TGO::Maritime::Zio   2011-09-01..2011-09-30  sCh=29 d=1 src 215  0.80
+  340  AFR::TGO                  2018-01-01..2018-12-31  sCh=0   src 217  0.90  Documented_Absence
+  341  AFR::TGO                  2020-01-01..2020-12-31  sCh=68 cCh=18 d=2 src 218  0.85
+SOURCES REGISTERED - 7, in .../data/TGO/metadata_ai.csv
+  213 WHO epi update #37 (29 May 2026)        214 WHO epi update #38 (30 Jun 2026)
+  215 BETTOGO n6, Bulletin Epidemiologique du Togo, Rapport Annuel 2011
+  216 Togo MoH Rapport annuel de performance 2017 (corroborates row 105; no row)
+  217 Togo MoH Rapport annuel de performance 2018   218 ... 2020
+  219 ECDC CDTR week 9 2026 - NON-REPORTING CAVEAT, no row, qualifies 25/335-338
+  (sources 200 and 201, registered-but-unused by Agent 1, are now cited by 338/337)
+
+ZEROS I COULD HAVE WRITTEN AND DID NOT - the part of this job that does not show
+up in a row count:
+  1. 2026-08-27..2026-09-19. No source published on or after 1 Sep 2026 says
+     anything about cholera in Togo. Publication lag, not absence.
+  2. Q4 2011. The bulletin's prose says no cases; its own table says 1.
+  3. Savanes 2020. "Epidemic confined to Golfe 4" invites it; row 58 records 2
+     cases in Savanes::Oti that year.
+  4. Plateaux 2014. The uncorrected edition of the Principaux Indicateurs says 0;
+     the corrected edition says 36/3 and is the one that adds up.
+  5. 1988, 1997, 2009. Asked to resolve them; they are documented NON-ZERO years
+     (1, 42 and 218 notified cases) and were never absence candidates.
+  6. Togo 2022 from Rapport_annuel_SSE_2022.pdf, which a search summary told me
+     was Togo's and which is MALI's.
+  7. Any zero derived from Togo's mere non-appearance in a WHO table, beyond the
+     four Inferred_Absence rows that are explicitly labelled and caveated.
+
+THE ONE DEFECT I FOUND AND COULD NOT REPAIR: row 25 is labelled
+Documented_Absence on non-listing evidence. It should be Inferred_Absence.
+add_observation.py has no edit subcommand. Handed to Agent 5/7 and recorded in
+metadata source 219.
+
+VALIDATION: python py/validate_quality.py TGO -> exit 0, ERROR 0, WARN 44,
+INFO 119. 314 data rows, 219 metadata sources. The WARN count is IDENTICAL to the
+44 recorded before this agent started, so no new validator debt was created.
+================================================================================

@@ -1,0 +1,494 @@
+=== AGENT 1 INITIALIZATION ===
+Country: Togo (TGO)
+Start: 2026-09-19 09:51:39
+Status: INITIALIZED
+
+=== PRE-SEARCH RECONNAISSANCE (Agent 1, redeployment 2026-09-19) ===
+Effective gap file: exactly ONE TGO gap row -> 2026-09-01..2026-09-19 (19d, recent).
+Coverage 99.9% (681 months, 680 with data). 270 existing AI rows. 191 metadata sources.
+Full 7-agent workflow already ran (state: A1 41 rows, A2 53, A3 18, A4 67, A5 45, A6 18, A7 -1).
+
+BASELINE AUDIT PERFORMED BEFORE QUERY 1 (this materially re-scopes the brief):
+The JHU baseline (./data/TGO/cholera_data_jhu.csv) already carries WHO Annual
+Cholera Report national totals for EVERY year 1970-2024 except 1973, 1975, 1976,
+1979-1987, 1989, 1990, 2016, 2017 - and those exceptions all already carry AI
+zero/absence rows. Concretely:
+  1988=1/0   1997=42/7   2009=218/1   2015=35/1   2022=0/0
+So orchestrator TARGET 3 ("years with no positive rows") is already closed at the
+national-annual level by the JHU layer; adding WER annual national totals for
+those years to the AI layer would be pure duplication of an existing layer.
+Likewise TARGET 2's nominated "highest-value target" (WER annual "Cholera, 20XX"
+national totals for 2006-2017) is ALREADY IN JHU: 2006=1159/25, 2007=65/1,
+2008=397/3, 2009=218/1, 2010=72/3, 2011=4/0, 2012=61/1, 2013=166/4, 2014=262/11,
+2015=35/1.
+
+RE-SCOPED TARGETS (what is actually still missing):
+  T1 RECENT TAIL - 2026-08-27..2026-09-19; plus the 2-day hole 2025-03-24..25
+     between row 209 (ends 2025-03-23) and row 23 (starts 2025-03-26).
+  T2 SUB-ANNUAL RESOLUTION 2006-2010 and 2015 - the years where a JHU annual
+     total exists but NO within-year breakdown does. 2006 Jul-Dec (441 of 1159
+     cases unattributed), 2007 (65, nothing), 2008 (397), 2009 (218), 2015 (35).
+  T3 SUB-NATIONAL for 2015, 2017 and 2007-2010 - the 2006-2017 12-year provincial
+     aggregate (rows 76-81) is the weak evidence to replace.
+  T4 UNMINED MoH ANNUAIRES - metadata holds Annuaire 2023 and Principaux
+     Indicateurs 2014/2016 only. Annuaires 2015, 2017, 2018, 2019, 2020, 2021,
+     2022 are NOT in metadata and each carries a regional MPE table.
+  T5 WHO GHO cholera dataset, WAHO/OOAS, INSEED Togo, ReliefWeb Togo.
+
+=== BATCH 1 | PHASE 1 | TGO ===
+Gap targeted : T1 2026-08-27..2026-09-19 (24d, recent) + T4 unmined MoH annuaires
+Operations (20; an operation = one WebSearch, WebFetch or curl retrieval):
+  01 WS  WHO AFRO Weekly Bulletin on Outbreaks and other Emergencies September 2026 cholera
+  02 WS  WHO multi-country outbreak of cholera external situation report September 2026
+  03 WS  ECDC communicable disease threats report cholera worldwide September 2026
+  04 WS  Togo cholera septembre 2026 cas [FR]
+  05 WS  Africa CDC Epidemic Intelligence Weekly Report September 2026 cholera Togo
+  06 WF  ecdc.europa.eu CDTR week 38 (12-18 Sep 2026)
+  07 WF  ecdc.europa.eu cholera monthly worldwide overview
+  08 WS  WHO Global Health Observatory cholera Togo number of reported cases
+  09 WS  Togo annuaire des statistiques sanitaires 2021 cholera maladies a potentiel epidemique [FR]
+  10 WS  Togo "annuaire des statistiques sanitaires" 2019 2020 sante.gouv.tg pdf [FR]
+  11 CURL sante.gouv.tg annuaires 2019/2020/2021/2022 direct  -> FAILED, all four return a
+         20 KB SPA shell (text/html), canonical rewritten to transports.gouv.tg. The whole
+         *.gouv.tg estate serves the same JS shell for /wp-content/uploads/*.pdf.
+  12 WS  Togo epidemie cholera 2006 bilan cas deces Lome Maritime [FR]
+  13 CURL sante.gouv.tg retry with browser UA + Referer -> still text/html. Confirms Agent 5.
+  14 WF  ajol.info JRSUL 56921 (Patassi et al, Epidemie de cholera a Lome)
+  15 CURL web.archive.org/web/2024id_/ x4 annuaires -> ALL FOUR RECOVERED as real PDFs
+         (2019 2.19 MB/124 pp, 2020 5.00 MB TRUNCATED, 2021 1.97 MB/211 pp, 2022 4.26 MB/200 pp)
+  16 CURL web.archive.org/web/2023id_/ annuaire 2020 -> 6.60 MB, complete
+  17 WS  Togo "annuaire" statistiques sanitaires 2017 2018 pdf maladies potentiel epidemique [FR]
+  18 WS  Togo annuaire statistiques sanitaires 2015 2016 Ministere de la Sante pdf [FR]
+  19 WS  Togo rapport annuel de performance 2024 cholera surveillance DSIUSR [FR]
+  20 WS  OOAS WAHO bulletin epidemiologique Afrique de l'Ouest cholera Togo [FR]
+
+Sources found: 6 candidate   Registered: NONE
+Rows added   : 0             Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch floor; and batch 1 located four primary PDFs worth mining)
+
+WHY ZERO - every finding duplicate-checked and rejected:
+ * Patassi et al 2010 (JRSUL 11(2)), Lome 1 Nov 2003-30 Apr 2004, 983 patients, CFR 3.25%
+   -> ALREADY row 48 (Grand Lome, 983/32, identical dates). Exact duplicate.
+ * ECDC cholera monthly, period 27 Jul-26 Aug 2026: Togo absent from the country table
+   -> ALREADY row 50 (2026-08-17..2026-08-26 zero, same ECDC product). No extension possible.
+ * WHO multi-country epi update: newest is #38, 30 Jun 2026. No #39. WHO AFRO weekly: newest
+   indexed is Week 33 (10-16 Aug 2026). ECDC CDTR week 38 (12-18 Sep 2026) exists but its
+   topic list carries no cholera item. NOTHING covers 2026-08-27..2026-09-19.
+   T1 TAIL CONFIRMED STILL OPEN - publication lag, independently re-tested. No zero written:
+   publication lag is not evidence of absence.
+ * MoH Annuaires 2019/2020/2021/2022 MPE tables: ALREADY MINED by earlier agents
+   (rows 189-194 for 2019, 58-63 for 2020, 70-75 + 116 for 2021, 64-69 for 2022).
+
+TWO SUBSTANTIVE NEGATIVE FINDINGS FROM THE RECOVERED PDFs, RECORDED SO NO AGENT REPEATS THEM:
+
+ (a) THE SNIS/DSNISI FACILITY MORBIDITY "Nb cas cholera" LINE IS NOT CHOLERA. DO NOT MINE IT.
+     Every annuaire carries, separately from the MPE surveillance table, a facility-based
+     morbidity ranking from the routine SNIS. Its "Cholera" line reads:
+        2019: Lome 0, Maritime 0, Plateaux 6, Centrale 2, Kara 36, Savanes 10 = 54 national
+        2020: 103 national     2021: 100 national
+     The SAME documents' epidemic-surveillance tables (Rapport DSIUR/DSIUSR) give, for the
+     same years, 0 / 55 / 38. WHO independently gives 0 / 67 / 40. The SNIS line is therefore
+     a diagnosis-code artefact (severe AWD coded to the cholera ICD slot in facilities), not
+     cholera incidence: it reports 36 cases in Kara in 2019, a region with zero cholera in
+     every other source, in a year WHO lists Togo as a zero-reporting country. REJECTED under
+     the CLAUDE.md sCh rule (context does not indicate cholera disease incidence).
+
+ (b) THE 2021 MPE TABLE'S LACS ROW IS MIS-EXTRACTED IN EVERY TEXT PASS, AND IS RECONSTRUCTIBLE.
+     pdftotext renders Lacs as "0 16,6 0 0" and Maritime as "0 2,8 0 0" in the 4-column
+     Cholera group, i.e. the case cell is lost. The attack-rate cell survives and inverts
+     exactly: 37/222 901*1e5 = 16.60 (Lacs) and 37/1 323 235*1e5 = 2.80 (Maritime), against a
+     printed national 38 with rate 0.5 (38/7 972 962*1e5 = 0.48) and Golfe 1 with rate 0.1.
+     So the table says Lacs 37, Golfe 1, national 38 - NOT a missing value. No row written:
+     row 29 already carries the same Lacs event at 38/11/4 from AFENET, and row 70 already
+     carries Golfe 1. Recording 37 would double-count one outbreak.
+
+=== BATCH 2 | PHASE 1 | TGO ===
+Gap targeted : T2/T3 2006-2017 sub-annual + sub-national; T4 pre-2019 MoH annuaires
+Operations (20):
+  01 CDX  web.archive.org CDX: all archived sante.gouv.tg PDFs, mimetype filter
+  02 WF   afro.who.int publication page "Annuaire des statistiques sanitaires du Togo 2016"
+  03 CURL principaux_indicateurs_2015.pdf (Wayback) + Principaux indicateurs de sante 2016.pdf
+          (afro.who.int)  -> BOTH RECOVERED
+  04 WS   Togo "Annuaire" statistiques sanitaires "2018" DSNISI [FR]
+  05 WS   Togo cholera 2009 Lome epidemie cas deces janvier 2009 [FR]
+  06 WS   "Annuaire 2017" Togo statistiques sanitaires MPE cholera district [FR]
+  07 WS   Togo rapport annuel de performance 2018 MSHP cholera cas [FR]
+  08 WS   Togo cholera outbreak 2008 2009 Lome cases deaths WHO report
+  09 WS   Togo cholera 2007 2008 epidemie cas deces region Maritime rapport [FR]
+  10 WS   Landoh Togo cholera 2005 2010 national surveillance regions districts
+  11 CURL files.aho.afro.who.int Annuaire_2017_MS_VF.pdf -> 0 bytes; and that file is BENIN,
+          not Togo (title block "REPUBLIQUE DU BENIN"). False lead, do not retry.
+  12 WS   files.aho.afro.who.int Togo Annuaire statistiques sanitaires 2018 pdf
+  13 WF   aho.afro.who.int/ind/tg (WHO AFRO iAHO Togo indicator portal)
+  14 WF   afro.who.int/countries/togo/publications?page=9
+  15 WF   plateformecholera.info/togo
+  16 WS   Togo cholera 2010 epidemie Lome cas deces OCHA rapport situation [FR]
+  17 WS   Togo cholera 2015 cases outbreak Lome Golfe surveillance
+  18 WF   reliefweb.int Togo Rapport annuel de performance 2017
+  19 CDX  web.archive.org CDX full listing, filtered to 2015-2018 / annuaire / performance
+  20 WS   INSEED Togo annuaire statistique national sante cholera cas par region [FR]
+
+Sources found: 3 usable   Registered: none new (source already held index 118)
+Rows added   : 2          Indices: 297, 298
+Successful queries: 1/20   (operation 03)
+Yield        : 5%
+Consecutive sub-5% batches: 1  (batch 2 is AT 5%, not below, so the counter does not advance)
+Decision     : CONTINUE (3-batch floor not yet reached)
+
+WHAT WAS ADDED (rows 297-298 of ./data/TGO/cholera_data_ai.csv)
+  Source: Togo MoH "Principaux indicateurs de sante 2016", Tableau XCVIII, attributed in the
+  document to the Division de la surveillance integree des urgences et riposte. Metadata
+  index 118 - an earlier agent registered this exact document AND this exact table but
+  extracted only its REGION rows (163-169). The DISTRICT rows were left on the table:
+      District_I  (Lome-Commune) pop 29 936  Cholera cas 1, deces 0, taux 3,3
+      District_V  (Lome-Commune) pop 250 790 Cholera cas 1, deces 0, taux 0,4
+      Districts II, III, IV and every district of the other five regions: 0
+      Ensemble pays: 2 cases, 0 deaths
+  -> row 297 AFR::TGO::Grand Lome::Lome D1 2016-01-01..2016-12-31 sCh=1 deaths=0 conf 0.9
+  -> row 298 AFR::TGO::Grand Lome::Lome D5 2016-01-01..2016-12-31 sCh=1 deaths=0 conf 0.9
+  Both carry a DO-NOT-SUM note against rows 163/164. This also RESOLVES, in favour of the
+  positive, Agent 3's open "2016 CONFLICT": WER 2021;96(37) implies Togo was case-free from
+  2016, but the Togolese IDSR table names the two districts and puts one case in each.
+
+NEGATIVE FINDINGS WORTH THE NEXT AGENT'S TIME:
+ * 2015 HAS NO PUBLISHED SUB-NATIONAL DATA. "Principaux indicateurs de sante 2015" was
+   recovered in full (Wayback 20170611045048, 1.14 MB). Its section 4.3 "MALADIES A POTENTIEL
+   EPIDEMIQUE" contains NO district or region case table at all - only Tableau XVI, four SIMR
+   impact indicators, of which the cholera entry is "Letalite due au cholera 2,9" with WHO
+   norm <1%. A CFR with no numerator or denominator is not a row. It does corroborate the JHU
+   annual (1/35 = 2.86%). The 2015 edition simply dropped the MPE case table that the 2016,
+   2019, 2020, 2021 and 2022 editions all carry. 2015 sub-annual/sub-national is not a search
+   failure; the data was not published.
+ * NO TOGO ANNUAIRE EXISTS FOR 2015, 2017 or 2018. Full CDX enumeration of every archived
+   sante.gouv.tg PDF returns annuaires for 2019, 2020, 2021, 2022, 2023 and "principaux
+   indicateurs" for 2014, 2015, 2016 - and nothing between 2016 and 2019. The 2017/2018
+   "Annuaire_2017_MS_VF.pdf" / "Annuaire_2018_MS.pdf" hits on files.aho.afro.who.int are
+   BENIN documents. Stop searching for Togo annuaires 2017/2018.
+ * WHO AFRO iAHO Togo portal (aho.afro.who.int/ind/tg) carries the indicator "New cases of
+   IHR-notifiable diseases - Cholera" and states "Il n'existe actuellement aucune donnee pour
+   cet indicateur". Empty. Do not re-fetch.
+ * plateformecholera.info/togo now 301s to www.world-birds.com. Domain lost, as Agent 6 found.
+ * reliefweb.int returns HTTP 403 to WebFetch.
+ * UNMINED LEADS LOGGED FOR LATER: draft3_rapport_performance_2014_31_juillet15.pdf;
+   Rapport_Annuel_Performance_2020_DRSGL (Grand Lome region);
+   RAPPORT_PERFORMANCE_REGION_MARITIME_2021_VF.pdf; comptes_de_sante_2010.
+
+=== BATCH 3 | PHASE 2 | TGO ===
+Gap targeted : T2 2006-2017 sub-annual/sub-national; T1 recent tail
+Operations (20):
+  01 CURL draft3_rapport_performance_2014 + Rapport_Annuel_Performance_2020_DRSGL +
+          RAPPORT_PERFORMANCE_REGION_MARITIME_2021 (all three via Wayback) -> all recovered
+  02 WS  ProMED-mail cholera Togo Lome 2006 2007 archive number
+  03 WS  "Togo" cholera 2008 2009 "cas" epidemic Golfe district treatment centre IRIN
+  04 WS  Rebaudet 2018 Benin-to-Mauritania Togo supplementary S2 annual cases district
+  05 WS  Togo cholera 2013 epidemie Lome 168 cas bilan riposte ministere sante [FR]
+  06 WF  ajol.info JRSUL 169370 (Wateba et al, riposte cholera Oct-Dec 2013 region Centrale)
+  07 WF  pmc.ncbi.nlm.nih.gov PMC5908202 (Rebaudet 2018 full text)
+  08 WS  Togo cholera 2005 epidemie 841 cas Lome aout novembre bilan [FR]
+  09 WS  "Togo" cholera 2001 2005 2006 annual cases WER country table Africa
+  10 WS  Togo cholera 2024 2025 epidemie bilan final cas deces Golfe Agoe-Nyive [FR]
+  11 WS  Togo cholera outbreak declared over March 2025 WHO AFRO total cases
+  12 WS  Togo cholera 2006 "cas" epidemie juillet aout septembre Lome recrudescence [FR]
+  13 WS  "cholera" Togo 2007 WER "Cholera, 2007" country table cases deaths
+  14 WF  who.int/emergencies/emergency-events/item/cholera-togo
+  15 WF  who.int/emergencies/surveillance/cholera-cases-and-deaths
+  16 WS  Togo cholera 2026 cas Lome alerte surveillance epidemiologique aout [FR]
+  17 WS  WHO AFRO Monthly Regional Cholera Bulletin 2026 Togo country table
+  18 WF  academia.edu 88884825 (Landoh 2013 full text)
+  19 CURL HEAD probes: researchgate 258507604, watermark.silverchair jit244,
+          academic.oup jid article-pdf jit244
+  20 API  api.semanticscholar.org DOI:10.1093/infdis/jit244 openAccessPdf
+
+Sources found: 3 candidate   Registered: NONE
+Rows added   : 0             Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1   (batch 2 sat at exactly 5%, which reset the counter)
+Decision     : CONTINUE (only one consecutive sub-5% batch; 3 needed)
+
+THE DECISIVE FINDING OF THIS BATCH IS NOT A ROW, IT IS A RESOLUTION MAP.
+I profiled what JHU+WHO already hold for TGO year by year (finest temporal resolution,
+national vs sub-national). It re-scopes the whole assignment and should govern batches 4+:
+
+  year  JHU national annual  JHU weekly national  JHU sub-national rows
+  2000-2012      yes                  0                    0        <- ANNUAL ONLY. THE GAP.
+  2013           yes                252                   24
+  2014           yes                  1                    0
+  2015           yes                 53                    0
+  2016           no                  53                    2
+  2017           no                  53                    0
+  2018-2019      yes              52/52                 2080/2080
+  2020-2024      yes              8..27                    0
+  2025-2026      no                   0                    0        (WHO layer: 12 rows 2025)
+
+  => 2015, 2016 and 2017 carry FULL WEEKLY NATIONAL JHU SERIES. Orchestrator target 3's
+     "2015" is not a gap at any resolution the AI layer could improve on, and neither are
+     1988 (JHU 1/0), 1997 (42/7), 2009 (218/1) or 2022 (0/0) at national-annual level.
+  => THE ONE REAL TEMPORAL BLACK HOLE IS 2007-2012: six consecutive years in which the only
+     baseline record of any kind is a single national annual integer, with no week, no month
+     and no district anywhere in JHU or WHO. 2000-2006 sits in the same JHU state but the AI
+     layer has already covered it with WER weekly notifications (rows 172-188, 241, 283-284).
+     Batches 4+ target 2007-2012.
+
+ALSO ESTABLISHED THIS BATCH:
+ * ./py/build_weekly_timeseries.py line 15 sets source priority WHO > JHU > AI and inserts
+   lowest-priority first, so a higher-priority row overwrites. Therefore an AI row that
+   merely restates a JHU national annual figure is silently discarded by the builder. It is
+   not harmful, but it is not data either. This is why I am NOT importing Rebaudet's Togo
+   annual series (2009:218, 2010:72, 2011:33, 2012:61, 2013:194, 2014:262, 2015:35) as
+   national rows - JHU already holds every one of those years and outranks them.
+   NOTE THE ONE DISAGREEMENT FOR A FUTURE AGENT: Rebaudet 2018 gives Togo 194 for 2013,
+   against JHU 166/4 and AI row 6's 168/7. Three values, three sources, unreconciled.
+ * LANDOH ET AL 2013 IS CLOSED. SEVENTH AND EIGHTH INDEPENDENT CONFIRMATIONS, BOTH NEW
+   ROUTES NOT TRIED BY THE FIVE EARLIER AGENTS: academia.edu/88884825 returns HTTP 403, and
+   api.semanticscholar.org for DOI 10.1093/infdis/jit244 returns
+   "openAccessPdf": {"url": "", "status": "CLOSED"}. researchgate 403, OUP article-pdf 403.
+   This paper holds Togo's only published 2008-2010 district breakdown and it is not on the
+   open web. Interlibrary loan or an institutional subscription is the only route. STOP.
+ * Wateba et al, JRSUL 19(4) 2017, "Evaluation de la qualite de la riposte a l'epidemie de
+   cholera d'Octobre a Decembre 2013 dans la region centrale du Togo": abstract recovered,
+   reports a 46% response-quality score and NO case or death counts. Not a data source.
+ * WHO's own two live cholera landing pages are empty of country numbers:
+   /emergencies/emergency-events/item/cholera-togo is a bare template dated 4 Jan 2021, and
+   /emergencies/surveillance/cholera-cases-and-deaths only links two dashboards.
+ * 2007-2012 leads that did NOT pan out: rapport_performance_2014 prints
+   "Taux de letalite du cholera  #DIV/0!" (a broken spreadsheet cell, not a zero);
+   Rapport_Annuel_Performance_2020_DRSGL and RAPPORT_PERFORMANCE_REGION_MARITIME_2021 each
+   mention cholera once, in prose, with no numbers.
+
+=== BATCH 4 | PHASE 2 | TGO ===
+Gap targeted : 2007-2012, the six-year annual-only block identified in batch 3
+Operations (20; five were domain-restricted to force source diversity):
+  01 WS[republicoftogo.com,republiquetogolaise.com,icilome.com,letogolais.com,togoactualite.com]
+        Togo cholera cas deces epidemie Lome [FR]
+  02 WS[reliefweb.int] Togo cholera outbreak cases deaths 2008 2009 2010 2011 2012
+  03 WS[ifrc.org,reliefweb.int] Togo cholera epidemic response DREF emergency appeal
+  04 WS[pmc.ncbi.nlm.nih.gov,ncbi.nlm.nih.gov,journals.plos.org] Togo cholera 2011 2012 Lome
+        cases Vibrio cholerae surveillance Africhol
+  05 WS[afro.who.int,who.int,iris.who.int] Togo cholera 2007 2008 2009 2010 epidemie bulletin [FR]
+  06 WF republicoftogo.com "Situation sous controle a Katanga"
+  07 WF republicoftogo.com "Cholera sous etroite surveillance"
+  08 WF reliefweb.int Togo cholera DREF MDRTG004 update 1  -> HTTP 403
+  09 WF go.ifrc.org/emergencies/1456                        -> JS shell, "IFRC GO loading..."
+  10 WF pmc.ncbi.nlm.nih.gov PMC4482140 (Moore et al MLVA)
+  11 WF journals.plos.org pntd.0003817 - verification read of the "551" sentence
+  12 WS Togo cholera 2008 2009 "302 cas" OR "620 cas" Lome epidemie morts [FR]
+  13 WS MDRTG004 Togo cholera DREF operation 2013 final report cases deaths
+  14 CURL afro.who.int/sites/default/files/2023-08/Togo.pdf
+  15 WS Sadji Adodo Yao Togo cholera surveillance Institut National Hygiene [FR]
+  16 WS Togo "plan strategique" lutte contre le cholera 2014 2018 evolution des cas [FR]
+  17 WS adore.ifrc.org Togo cholera DREF MDRTG004 2013 emergency plan of action
+  18 WS "Togo" cholera 2009 2010 2011 weekly epidemiological bulletin district "IDSR" OR "SIMR"
+  19 WS Togo cholera hotspot GTFCC national cholera plan 2022 2030 historical cases by region
+  20 (extraction + source registration for the above)
+
+Sources found: 1 registered   Registered: index 192
+Rows added   : 1              Indices: 299
+Successful queries: 1/20      (operation 04)
+Yield        : 5%
+Consecutive sub-5% batches: 1  (batch 3 only; batch 4 is AT 5%, not below)
+Decision     : CONTINUE
+
+WHAT WAS ADDED (row 299)
+  NEW SOURCE, metadata index 192: Moore S, Miwanda B, Sadji AY, et al. "Relationship between
+  Distinct African Cholera Epidemics Revealed via MLVA Haplotyping of 337 Vibrio cholerae
+  Isolates", PLoS Negl Trop Dis 2015;9(6):e0003817 (PMC4482140). Not previously registered -
+  metadata index 81 is the DIFFERENT Smith et al PLoS One 2015 isolate paper.
+  Discussion section: "From 2010 to week 48 of 2014, the country only recorded 551 suspected
+  cholera cases." I re-fetched the PLOS HTML specifically to confirm the antecedent of "the
+  country", because the sentence sits in a paragraph that also discusses DRC. It is Togo: the
+  paragraph opens "This phenomenon is distinct from that observed in Togo..." and the three
+  preceding sentences are all about Togo.
+  -> row 299 AFR::TGO 2010-01-01..2014-11-30 sCh=551, no deaths given, confidence 0.7
+     (deliberate Level-1 downgrade; CLAUDE.md caps multi-year aggregates at 0.7).
+  Cross-check recorded in the note: JHU's WHO-notified annuals for 2010-2014 sum to 565 for
+  the full five years vs 551 to week 48 of 2014 - consistent. AI rows 125/126/127 sum to 182
+  for 2010-2012 against JHU's 137 - NOT consistent, a 45-case excess that predates this run.
+
+ISOLATE COUNTS DELIBERATELY NOT CONVERTED TO cCh. Moore et al report 35 Togo isolates
+(2010: 13, 2011: 10, 2012: 12) from the Institut National d'Hygiene. The paper states they
+come from routine confirmatory culture, but it gives no denominator and no district
+attribution, and a typing study's isolate panel is a convenience sample, not a count of
+laboratory-confirmed cases. Agent 4 reached the same conclusion for the companion Smith et al
+panel (42 Togo isolates) and put it in cholera_presence_ai.csv. Same treatment here.
+
+OTHER RESULTS:
+ * republicoftogo "Situation sous controle a Katanga", 30 Nov 2020: 34 cases, 1 death, Katanga
+   village -> EXACT DUPLICATE of row 94. republicoftogo "Cholera sous etroite surveillance",
+   7 Aug 2024: one case, 22-year-old man, Vo prefecture, recovered - a single case with no
+   aggregate; Vo 2024 is already inside the AI layer's 2024 series. Not added.
+ * The "302 cas / trois morts a Lome" snippet the search engine surfaced could not be pinned
+   to a dated article on any of the five Togolese news domains. NOT added - an undated case
+   count is not usable.
+ * afro.who.int/sites/default/files/2023-08/Togo.pdf turned out to be the WHO AFRO "Country
+   Disease Outlook - Togo, August 2023", a 2.25 MB InDesign brochure. It is NOT the
+   plateformecholera hotspot dossier of the same filename that defeated Agents 1, 5 and 6.
+   grep for "holera" over its full text returns ZERO hits. Dead end; record so no one repeats.
+ * reliefweb.int returns 403 to WebFetch and go.ifrc.org is a JS shell - neither is reachable
+   from this environment. IFRC MDRTG004 (the 2013 Togo cholera DREF) remains unread; its
+   headline figures (168 cases, 7 deaths, declared 30 Aug 2013) are already row 6.
+ * NEW LEAD FOR BATCH 5: plateformecholera.info/sites/default/files/2022-11/Plan%20Strategique
+   %20de%20lutte%20contre%20le%20cholera%20Togo%202015-2017_vf.pdf - a THIRD file on the dead
+   platform, distinct from the two Agent 6 proved truncated in Wayback.
+
+=== BATCH 5 | PHASE 3 | TGO ===
+Gap targeted : T1 verification of the 2025-03-24 onward zero block; Cholera Platform dossiers
+Operations (20):
+  01 CDX  web.archive.org CDX: every archived plateformecholera.info URL matching "togo"
+  02 CURL Wayback 20200921094901id_ .../attachments/article/328/Togo.pdf  (hotspot dossier)
+  03 CURL Wayback 20200921095052id_ .../attachments/article/470/Togo.pdf  (hotspot dossier)
+  04 CDX  all captures of article/328/Togo.pdf + HTTP Range probe past 1 MiB
+  05 PY   raw zlib stream recovery from both truncated PDFs
+  06 PY   keyword scan of the recovered text for case tables
+  07 WS  Togo cholera 2025 janvier fevrier mars cas confirmes districts Golfe Agoe Zio Ave [FR]
+  08 WS  Ghana Benin cross-border cholera Togo 2008-2011 imported cases Aflao Lome border
+  09 WS  WHO country cooperation strategy Togo 2009 2013 cholera epidemies cas notifies [FR]
+  10 WS  "Togo" cholera 2026 cases reported Africa weekly outbreak situation August September
+  11 WS  Togo cholera "2012" OR "2011" Lacs Zio Tchaoudjo cas epidemie investigation [FR]
+  12 WF  unicef.org press release 30 Jul 2025 (English)
+  13 WF  unicef.org/wca French version -> HTTP 403
+  14 WS  UNICEF Togo 209 cas cholera cinq deces 22 juin 2025 [FR]
+  15 CURL iris.who.int/bitstream/handle/10665/381794/... -> Angular SPA shell, 755 bytes
+  16 API  iris.who.int DSpace /server/api/discover/search/objects - enumerate the bulletin series
+  17 API+CURL IRIS items -> bundles -> bitstreams -> content, May 2025 bulletin (3.64 MB)
+  18 API+CURL same chain, June 2025 bulletin (3.54 MB)
+  19 GREP Togo row + full country table from both bulletins
+  20 API  IRIS re-query for any Monthly Regional Cholera Bulletin issued after June 2025
+
+Sources found: 3 (2 newly registered)  Registered: index 193, 194 (36 already existed)
+Rows added   : 0                       Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+TARGET 1 IS NOW VERIFIED AGAINST TWO PRIMARY SOURCES NO EARLIER AGENT USED.
+The orchestrator asked me to verify the four long 2025-2026 zero blocks (rows 23, 24, 25, 26,
+50) against primary WHO AFRO bulletins. Done, and they hold. The WHO AFRO Monthly Regional
+Cholera Bulletin for MAY 2025 and for JUNE 2025 - neither of which is in this country's
+metadata - both print an IDENTICAL, FROZEN Togo row:
+      rank 15   Togo   165 cases   4 deaths   CFR 2.4
+                       447 cumulative   21 cumulative deaths   CFR 4.7
+                       outbreak start Jul-24   LAST REPORTED CASE 23-Mar-25
+and the narrative states "Outbreaks have been declared over in Togo". The June bulletin
+repeats the March date three months later, which is the strongest available evidence that
+nothing was reported in April, May or June 2025.
+  Reconciliation against the existing AI rows is EXACT:
+      2025 cases: rows 207+208+209 = 88+72+5 = 165          vs bulletin 165   MATCH
+      2025 deaths: 2+2+0 = 4                                 vs bulletin 4     MATCH
+      outbreak deaths: rows 202-209 = 1+2+9+3+2+2+2+0 = 21    vs bulletin 21    MATCH
+      outbreak cases: rows 202-209 = 446                      vs bulletin 447   off by 1
+                      (rounding in the derived monthly increments; 2024 = 281 in AI and JHU
+                       against 447-165 = 282 in the bulletin)
+  => ROW 23 (2025-03-26..2025-06-29, sCh=0, conf 0.95) IS CORRECT. No new row: rows 207-209
+     already decompose the 165/4 at finer resolution than the bulletin offers, and 447/21
+     is a 99.8%-identical restatement of their sum.
+
+THE UNICEF "209 CASES / 5 DEATHS AS OF 22 JUNE 2025" CLAIM IS REJECTED, NOW ON FOUR SOURCES.
+UNICEF WCARO's 30 July 2025 release (metadata index 36, already registered by the first
+Agent 1 run) says "In Togo, 209 cases of cholera and five deaths have been reported as of
+June 22, 2025", repeated verbatim by UN News and APAnews. If true it would put ~44 cases
+between 24 March and 22 June 2025 and destroy row 23. It is not true: WHO sitrep #28 gives
+164/4 (already logged by the earlier run), WHO epi update #33 gives 164/4, and the two AFRO
+bulletins recovered today give 165/4 with an explicit 23-Mar-25 last-case date. Four WHO
+products against one UNICEF press-release sentence. Rejected; no row.
+
+CHOLERA PLATFORM HOTSPOT DOSSIERS: CLOSED, AND NOW CLOSED FOR A BETTER REASON.
+Agent 6 closed these as unrecoverable (Wayback truncates at exactly 1048576 bytes). I found
+that the OLD Joomla paths - /attachments/article/328/Togo.pdf and /attachments/article/470/
+Togo.pdf, captured 2020-09-21 - are separate objects from the Drupal-era /sites/default/
+files/2022-11/ paths the earlier agents tried, and their CDX lengths (876 972 and 1 043 074)
+are BELOW 1 MiB, which looked like a way in. It is not: Wayback still serves exactly 1048576
+bytes (the CDX figure is the compressed WARC record) and a Range request past that offset
+404s. BUT the truncated bytes are still partly usable - I decompressed the raw Flate streams
+directly and recovered the text layer of both files. THEY CONTAIN NO CASE COUNTS AT ALL.
+article/470 is the "Choléra : Togo - Zones à haut risque / hotspot, 30 novembre 2016" one-page
+map dossier: "5 districts sanitaires ont été identifiés comme zones à haut risque pour le
+choléra au Togo, soit 14% du total des 35 districts sanitaires que compte le pays. 3 sont de
+type 1 et 2 de type 2", plus risk factors (Ghanaian/Togolese migrant fishers at Katanga,
+Lome D2/D3; animist ceremonies in Lacs; Accra-Lagos highway traders). article/328 is the same
+map updated to 2006-2017 and its text layer is legend only. The Tab. I / Tab. II that Agent 1
+hoped for are in the FACTSHEET (article/237), which was already retrieved and mined into rows
+76-81. FOUR AGENTS HAVE NOW SPENT BUDGET ON THESE TWO FILES. THEY HOLD NO NUMBERS. STOP.
+
+=== BATCH 6 | PHASE 3 | TGO ===
+Gap targeted : T4 WHO GHO dataset; T1 2026-08-27..2026-09-19 tail; 2007-2012 via theses
+Operations (20):
+  01 WS  these medecine Universite de Lome cholera epidemie Togo aspects epidemiologiques [FR]
+  02 WS[9 Togolese news domains] Togo cholera septembre 2026 Lome cas deces [FR]
+  03 WS[gtfcc.org,unicef.org,ourworldindata.org,who.int] Togo cholera 2007-2012 annual table
+  04 WS  "cholera" Togo memoire OR these OR "Ecole Nationale" statistiques cas 2008-2010 [FR]
+  05 WS  Togo "bulletin epidemiologique" ministere sante cholera hebdomadaire [FR]
+  06 CURL apps.who.int/gho/athena/data/xmart.csv (legacy GHO) -> SPA shell, 75 KB of HTML
+  07 WS  dicames.online these Togo cholera Faculte de Medecine Lome [FR]
+  08 WF  researchgate 266138464 -> HTTP 403
+  09 API ghoapi.azureedge.net /api/Indicator filter contains 'holera'
+  10 CURL dicames.online/jspui/simple-search -> HTTP 000 (first attempt, connection failed)
+  11 API ghoapi.azureedge.net CHOLERA_0000000001/2/3 filtered SpatialDim eq 'TGO'
+  12 API ghoapi WHS3_40 Togo
+  13 CURL dicames.online retry -> HTTP 200, 31 KB, parsed result list
+  14 WS  Togo cholera 2026 "no cases" WHO African region situation report week 34-37
+  15 WS  WHO multi-country cholera epidemiological update 39 July August 2026 country table
+  16 API iris.who.int DSpace: enumerate Weekly Epidemiological Record 2026 issues
+  17 WS  "Weekly epidemiological record" 2026 cholera monthly update country table Aug Sept
+  18 WF  eventtracker.afro.who.int -> JS shell, title only
+  19 API+CURL IRIS -> WER 2026 vol.101 no.36-37 (18 Sep 2026) full issue PDF, 1.24 MB
+  20 API+CURL IRIS -> WER 2026 vol.101 no.35 (04 Sep 2026) full issue PDF, 3.29 MB
+
+Sources found: 2 reachable   Registered: NONE (both duplicate existing baseline)
+Rows added   : 0             Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2   (batches 5 and 6)
+Decision     : CONTINUE (one more sub-5% batch would meet the stopping criterion)
+
+T4 CLOSED: THE WHO GLOBAL HEALTH OBSERVATORY CHOLERA DATASET IS THE JHU BASELINE.
+The orchestrator listed "WHO Global Health Observatory cholera dataset" as an unmined Level-1
+source. It is not unmined; it is the same series MOSAIC already loads. The legacy Athena
+endpoint (apps.who.int/gho/athena/data/xmart.csv) now returns an Angular shell, but the
+current OData endpoint works:
+    https://ghoapi.azureedge.net/api/CHOLERA_0000000001?$filter=SpatialDim eq 'TGO'
+    https://ghoapi.azureedge.net/api/CHOLERA_0000000002?$filter=SpatialDim eq 'TGO'  (deaths)
+    https://ghoapi.azureedge.net/api/CHOLERA_0000000003?$filter=SpatialDim eq 'TGO'  (CFR)
+32 country-years each, 1970-2015:
+  1970:75/3  1971:335/26  1972:16/0  1974:58/8  1977:132/12  1978:6/6  1988:1/0  1991:2396/81
+  1992:753/53  1993:19/2  1994:47/5  1995:65/4  1996:146/17  1997:42/7  1998:3217/221
+  1999:667/31  2000:338/23  2001:2551/130  2002:257/14  2003:384/28  2004:1080/33
+  2005:1320/15  2006:1159/25  2007:65/1  2008:397/3  2009:218/1  2010:72/3  2011:4/0
+  2012:61/1  2013:166/4  2014:262/11  2015:35/1
+EVERY ONE OF THESE 32 PAIRS IS BYTE-IDENTICAL TO ./data/TGO/cholera_data_jhu.csv's "WHO Annual
+Cholera Report (UID: 340)" rows. GHO is JHU's upstream. Indicator WHS3_40 returns n=0 for
+Togo. NOTHING TO ADD. Do not re-mine GHO for TGO; do not add these as AI rows - the builder
+ranks JHU above AI and would discard them.
+
+T1 TAIL: STILL OPEN AFTER A FIFTH INDEPENDENT TEST, AND NOW WITH THE REASON PINNED DOWN.
+WHO moved the monthly cholera epidemiological update OUT of the standalone sitrep series and
+INTO the Weekly Epidemiological Record from July 2026 - which is why epi update #38 (30 June
+2026) is the last standalone one and no #39 exists. I followed the series into its new home:
+  WER 2026 vol.101 no.35, 4 Sep 2026: carries "Multi-country outbreak of cholera, Data as of
+    26 July 2026", Table 1 by country. The African Region block lists 19 reporting countries.
+    TOGO IS NOT AMONG THEM - grep for "Togo" over the whole issue returns nothing.
+    Table footnote: "Missing data in this report do not imply the absence of cholera or AWD
+    cases or deaths in the respective country." Data cut-off 26 July 2026, which is BEFORE
+    the open window, and rows 25/26 already assert zero to 2026-08-16. No new row.
+  WER 2026 vol.101 no.36-37, 18 Sep 2026 (yesterday, the newest WHO product in existence):
+    NO global cholera country table. Its only cholera item is a one-line Eastern Mediterranean
+    signal-screening entry for 31 Aug-13 Sep 2026. The Togo row in this issue (line 588) is in
+    the vaccine-preventable-disease table, not cholera.
+  => The newest cholera country table anywhere is ECDC's, to 26 Aug 2026 (already row 50).
+     2026-08-27..2026-09-19 is publication lag. NO ZERO ROW WRITTEN. Five agents now agree.
+
+OTHER NEGATIVES:
+ * DICAMES (dicames.online, the CAMES francophone-African thesis repository) is reachable on
+   the second attempt and WAS searched - a genuinely new institutional route no earlier agent
+   tried. Its cholera hits are Cameroon (2), Niger, and modelling/microbiology theses. NO TOGO
+   CHOLERA THESIS. The one Togo medical thesis surfaced (handle 20.500.12177/3097, Universite
+   du Benin Faculte de Medecine Lome, 1995) is not about cholera.
+ * eventtracker.afro.who.int and researchgate are JS shells / 403 from this environment.
+ * "Epidemie de cholera en 2011, aspects epidemiologique, clinique et bacteriologique"
+   (ResearchGate 266138464) could not be opened (403) and its country is unconfirmed - it is
+   NOT established to be Togo. Left as an unverified lead, deliberately not cited.
+

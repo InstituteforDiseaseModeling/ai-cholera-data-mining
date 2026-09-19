@@ -1,0 +1,424 @@
+=== AGENT 7 (QUALITY AUDITOR) - TOGO (TGO) ===
+Run start : 2026-09-19 09:56 PDT / 16:56 UTC
+Run end   : 2026-09-19 10:2x PDT
+Queries   : 0 WebSearch. 11 direct HTTP HEAD/GET verifications of IRIS handles.
+            Agent 7 has no query budget; every open question here was answerable
+            from the files, the source URLs and the pipeline code.
+
+NOTE ON A PRIOR AGENT 7 RUN. data/TGO/workflow_state.json already carried an
+agent_num 7 entry completed 2026-09-19 16:46 UTC, and data/TGO/search_report.txt
+was written at 09:45 PDT by that run. It was NOT stale-from-May as the
+orchestrator briefing stated (the May file is preserved separately as
+data/TGO/search_report_legacy_2026-05-15.txt). It was stale for a different and
+more serious reason: it snapshots 258 rows / 181 sources, while the file held
+270 at the start of this audit and 273 by the end. See CONCURRENCY below.
+
+================================================================================
+0. CONCURRENCY - THE FINDING THAT CONDITIONS EVERY OTHER NUMBER HERE
+================================================================================
+THREE workflow-orchestrator processes have run TGO today. At audit time two were
+still alive:
+    PID 59154  started 08:53 PDT  (the run that produced Agents 1-6 and my brief)
+    PID 52328  started 09:50 PDT  (a SECOND full TGO run, still collecting)
+    PID 95058  started 02:32 PDT  (exited; flagged by the prior Agent 7)
+
+CONFIRMED IRREVERSIBLE HARM. At 09:51:39 the 52328 run executed the Agent 1
+initialisation snippet, which truncates the log:
+    ... > ./data/TGO/search_log_agent_1.txt
+data/TGO/search_log_agent_1.txt now contains the 09:51 run's partial log (4
+batches). The 08:53 run's Agent 1 log - the one documenting the 10 batches and
+41 rows recorded in workflow_state.json - is GONE. It was never committed;
+`git show HEAD:data/TGO/search_log_agent_1.txt` returns only the 17-line May 2026
+stub. That provenance cannot be recovered.
+
+ONGOING CHURN DURING THE AUDIT. cholera_data_ai.csv moved 270 -> 272 -> 273 rows
+and metadata_ai.csv 191 -> 192 while I was auditing. New rows 297, 298 (and a
+later one) were inspected and are sound. Every count in
+data/TGO/search_report.txt is therefore a SNAPSHOT, not a final state.
+
+The CSV writers take file locks, so no row was corrupted. The damage is to
+provenance and to the meaning of a quality gate: a gate cannot certify a file
+that is still being appended to. I did not kill PID 52328 - that is the
+operator's call, not the auditor's - but it should be stopped, and
+run_all_countries.sh should take a per-country lock.
+
+================================================================================
+1. VALIDATOR
+================================================================================
+  python py/validate_quality.py TGO --json /tmp/TGO_audit.json
+  ENTRY : exit 0 | ERROR 0 | WARN 41 | INFO 102   (270 rows, 191 sources)
+  EXIT  : exit 0 | ERROR 0 | WARN 41 | INFO 102   (273 rows, 192 sources)
+
+  WARN  39  multiyear_aggregate          -> all 39 verified, JUSTIFIED (sec. 4)
+  WARN   2  CFR_high_flagged_for_review  -> both verified, JUSTIFIED (sec. 5)
+  INFO  67  metadata_unused              -> registered-but-uncited sources; benign
+  INFO  35  national_subnational_overlap -> INFO, not WARN, because every row in
+                                            every overlap group carries the
+                                            required non-additivity phrase
+
+  python py/repair_data_integrity.py --dry-run TGO  ->  TOTAL: 0 change(s)
+  No data/TGO/attribution_review.csv exists: nothing was withheld for judgement.
+  Everything mechanically repairable had already been repaired by Agents 5/6.
+
+================================================================================
+2. DEFECT 1 - LOME / GOLFE LABEL SPLIT.  REPAIRED.
+================================================================================
+FINDINGS, measured not assumed:
+
+  (a) GOLFE and AGOE-NYIVE were NOT defective. Every AFR::TGO::Maritime::Golfe*
+      row is dated 2011-01-01..2014-11-23 (pre-reform) and every
+      AFR::TGO::Grand Lome::Golfe* row is dated 2020-11-11..2024-10-02
+      (post-reform). The date-in-force convention is already held without a
+      single exception. Same for Agoe-Nyive. NO RELABELLING DONE.
+
+  (b) LOME WAS defective, and the split was WITHIN an era, not across one:
+        AFR::TGO::Maritime::Lome  12 rows, ALL 1970-11-24..1974-04-27
+        AFR::TGO::Grand Lome      13 pre-2020 rows, 1970-11-24..2019-12-31
+      Index 212 (Grand Lome, 1970-11-24..1971-12-31) and Index 131
+      (Maritime::Lome, 1970-11-24..1970-12-03) are the same city in the same
+      month under two labels. That is an error by any convention.
+
+  (c) HARM CONFIRMED, NOT HYPOTHETICAL. Tombstones 274/275/276 in
+      data/TGO/retracted_rows_ai.csv are Agent 6 re-adding rows 131/132/133 with
+      the other label; its own retraction reason reads "The duplicate guard did
+      not fire because the two rows use different location strings for the same
+      place."
+
+  (d) BARE AFR::TGO::Maritime IS LOME-EXCLUSIVE IN EVERY ERA. Verified against
+      the source quotes on all 9 such rows. Index 269 quotes the Ministry's
+      Tableau XXXVII listing "Lome Commune: 113" and "Maritime: 113" as separate
+      lines; Index 236 says "Maritime region excluding Lome Commune"; Index 96
+      is explicitly the 200 non-Lome cases of the 786 total; Index 77 has Lome
+      1476 tabulated separately from Maritime 508. The zero rows (59, 65, 86,
+      165, 190) come from Ministry district tables in which Lome-Commune /
+      Grand Lome is a reporting region peer of Maritime.
+
+CONVENTION ADOPTED AND IMPLEMENTED:
+  * The Lome urban core is ONE STABLE PATCH in every era: AFR::TGO::Grand Lome.
+    Its five arrondissements stay at AFR::TGO::Grand Lome::Lome D1..D5.
+  * Golfe and Agoe-Nyive follow DATE-IN-FORCE, because they genuinely
+    transferred region in 2020 and the regional totals they were extracted from
+    were computed under that era's boundaries.
+  * AFR::TGO::Maritime and its whole subtree NEVER contain Lome.
+  Rationale: a Location is a patch identifier for a metapopulation model, not a
+  record of administrative history. The history belongs in processing_notes,
+  where it now is. Relabelling the other way (Grand Lome -> Maritime::Lome for
+  25 pre-2020 rows) was rejected because it would have contradicted the explicit
+  "Maritime EXCLUDES Lome Commune" quotes on rows 77/96/236/269 and made bare
+  Maritime non-additive with its own children.
+
+ACTIONS (all via py/revise_observation.py; no hand-editing):
+  * 12 rows relabelled AFR::TGO::Maritime::Lome -> AFR::TGO::Grand Lome:
+    Indices 131, 132, 133, 136, 139, 143, 152, 153, 286, 291, 292, 294.
+    Each carries the convention, the administrative history, a non-additivity
+    statement, and the JHU crosswalk.
+  * 9 bare AFR::TGO::Maritime rows annotated with an explicit territory token,
+    tailored pre/post-2020: Indices 77, 96, 165, 190, 236, 269 (pre: Maritime
+    DOES include Golfe/Agoe) and 59, 65, 86 (post: it does NOT).
+  * 17 Golfe / Agoe-Nyive rows annotated with a two-parent crosswalk token
+    ("it is one place, concatenate, never sum"): Indices 28, 49, 63, 70, 75, 84,
+    85, 91, 94, 98, 103, 210, 218, 244, 246, 247, 261.
+
+CROSS-LAYER HAZARD THAT REMAINS AND CANNOT BE REMOVED HERE:
+  JHU nests Lome UNDER Maritime (AFR::TGO::Maritime::Lome, and the districts as
+  AFR::TGO::Maritime::Lome::Lome Commune District I-V). The AI layer does not.
+  AFR::TGO::Maritime therefore denotes DIFFERENT TERRITORY in the two layers.
+  Measured extent of the exposure: JHU's only non-zero TGO sub-national rows are
+  2013 (Maritime::Lome 1, 40, 47, 14) and 2016 (Maritime::Lome 1, 1); its entire
+  2018-2019 sub-national block is 1230 rows all equal to zero. So the arithmetic
+  exposure today is 6 non-zero JHU rows. Documented on every affected AI row.
+
+VERIFICATION AFTER REPAIR: label-insensitive duplicate scan (canonicalising
+Maritime::Lome -> Grand Lome and both Golfe parents to one token) finds ZERO
+duplicate (location, TL, TR) groups and ZERO exact value duplicates.
+
+================================================================================
+3. DEFECT 2 - SUPERSEDED METADATA STILL 'Active'.  REPAIRED.
+================================================================================
+Metadata 176-184 carried Status='Active' with "DO NOT CITE - SUPERSEDED" buried
+in Description.
+
+I did not take the handles on trust. curl -L on the RETIRED handles:
+  176 claims WER 1998;73(51-52) -> 10665/231532 HTTP 200 = "Influenza = Grippe"
+  179 claims WER 2004;79(14)    -> 10665/232617 HTTP 200 = "TYPHUS EXANTHEMATIQUE"
+  180 claims WER 1970;45(50)    -> 10665/226832 HTTP 200 = "THE WHO AIDS SERIES"
+  184 claims WER 1977;52(21)    -> 10665/229900 HTTP 200 = "WER 1996;71(38)"
+They are genuinely wrong. GENERALISABLE LESSON: a fabricated IRIS handle returns
+HTTP 200 pointing at an unrelated document, so py/check_urls.py and any
+liveness-based check CANNOT detect this defect class. Only title resolution can.
+
+curl -L on the REPLACEMENT handles - all HTTP 200, all titles matching exactly:
+  185 -> 10665/230667 "WER, 1998, vol. 73, 51-52 [full issue]"   cited by row 282
+  186 -> 10665/241946 "WER, 2012, vol. 87, 31-32 [full issue]"   cited by none
+  187 -> 10665/231196 "WER, 2000, vol. 75, 25 [full issue]"      cited by row 283
+  188 -> 10665/232447 "WER, 2004, vol. 79, 14 [full issue]"      cited by row 284
+  189 -> 10665/219798 "WER, 1974, vol. 49, 14 [full issue]"      cited by 285-288
+  190 -> 10665/219877 "WER, 1974, vol. 49, 21 [full issue]"      cited by 289-292
+  191 -> 10665/218422 "WER, 1971, vol. 46, 29 [full issue]"      cited by 293-295
+
+ACTION: Status 176-184 set to 'Superseded'. Confirmed afterwards that zero live
+rows cite 176-184.
+
+TOOLING GAP CLOSED. py/revise_observation.py had --set-description but no way to
+change a Status, so the only route was hand-editing, which CLAUDE.md forbids. I
+added --set-status to that tool. It REFUSES if any live row still cites the
+entry - so a bad citation can never be laundered into a clean-looking
+"Superseded" record. Negative test performed on metadata 168 (cited by rows 268,
+269, 270): correctly rejected with exit 1.
+
+================================================================================
+4. DEFECT 3 - 39 multiyear_aggregate WARNs.  JUSTIFIED, NOT SILENCED.
+================================================================================
+All 39 checked individually, not sampled.
+  confidence_weight <= 0.7        : 39 / 39
+  explicit period-total language  : 39 / 39
+  explicit non-additivity phrase  : 39 / 39
+  5 national, 34 sub-national.
+
+Substantive check of the 5 NATIONAL ones against the JHU annual series:
+  Idx 242 (2007-2013)  983   vs JHU 983   -> EXACT to the unit
+  Idx 241 (2000-2006)  7234  vs JHU 7089  -> +2.0%
+  Idx 200 (2004-2016)  4923  vs JHU 4839  -> +1.7%
+  Idx 199 (1996-2010)  12676 vs JHU 11913 -> +6.4%
+  Idx 198 (1970-1973)  561 cCh; the same paper estimates ~1000, WHO was notified
+                       426 (JHU 75+335+16). All three magnitudes recorded, none
+                       averaged.
+Each carries a verbatim period quote ("During the seven-year period from 2000 to
+2006, a total of 7234 suspected cases were reported"; "Entre 2004 et 2016 ...
+4 923 cas et 99 deces"). These are period totals, not mislabelled single years.
+Index 76 shows a 0.605 ratio to the JHU 2006-2017 sum, which is expected: it is
+Grand Lome only, a regional subset, not a national figure.
+
+MATERIALITY: 34 of the 39 are sub-national and py/build_weekly_timeseries.py
+reads Location == "AFR::TGO" exactly, so they never reach MOSAIC's national
+weekly series. These WARNs are "verify this" flags that have now been verified.
+They should REMAIN as WARNs. No threshold was edited.
+
+================================================================================
+5. DEFECT 4 - CFR_high WARNs.  THE BRIEFING WAS WRONG; BOTH REAL ONES CLEARED.
+================================================================================
+CORRECTION TO THE BRIEF. The two CFR_high WARNs are NOT Index 243 and Index 103.
+py/validate_quality.py sets CFR_SMALL_DENOM = 25 and skips the CFR check
+entirely below 25 cases, so Index 243 (5 cases) and Index 103 (11 cases) are
+NOT flagged and never were. The two actual WARNs are:
+
+  Index 42  AFR::TGO 1999-09-01..1999-10-24  9/54 = 16.67%  conf 0.70
+    VERIFIED BY ME against data/TGO/cholera_data_jhu.csv: AI rows 39+40+41+42+171
+    = 168+93+289+54+63 = 667 cases and 4+4+11+9+3 = 31 deaths. JHU 1999 annual =
+    667 / 31. EXACT on both. Numerator and denominator share a period; the 16.7%
+    is a real tail-of-epidemic ratio on n=54. Annual 1999 CFR 4.6%.
+
+  Index 47  AFR::TGO 1996-07-20..1996-09-17  6/34 = 17.65%  conf 0.70
+    AI rows 44+45+46+47 = 138 cases, 17 deaths. JHU 1996 annual = 146 / 17.
+    DEATHS EXACT, cases 138 of 146 (95%). Landoh et al 2013 independently report
+    a Togolese national CFR of 12-17% in 1996-97.
+  Both already at the 0.7 cap. VERDICT: small-denominator artefacts of correctly
+  disaggregated series. JUSTIFIED. Left in place.
+
+THE TWO ROWS THE BRIEF NAMED, ASSESSED ANYWAY:
+  Index 243 Lacs 2014, 5 cases / 2 deaths = 40%, conf 0.80. The source
+    (Rebaudet et al) states it verbatim: "Five suspected cases and two
+    cholera-related deaths were again reported in Lacs during weeks 14-16."
+    Small-denominator artefact, correctly transcribed. NOT a data error. A CFR
+    on n=5 carries no information; use the counts, not the ratio.
+  Index 103 Agoe-Nyive 2024, 4/11 = 36.4%, conf 0.50. THIS ONE IS A GENUINE
+    DENOMINATOR MISMATCH and is already documented as such: the denominator is
+    laboratory-CONFIRMED cases only while the numerator includes community
+    deaths. The counts are faithful to a named prefectural director of health.
+    The CFR FIELD IS NOT USABLE AS A CFR for this row. Already at conf 0.50.
+    Not altered: the values are correct; only the derived ratio is meaningless.
+
+================================================================================
+6. ZERO / ABSENCE ROWS
+================================================================================
+  77 zero rows.  Documented_Absence 63  |  Inferred_Absence 14  |
+  Surveillance_Gap 0  (the illegal label: correctly absent).
+  Surveillance status recorded on all 77: operational 65, partial 12.
+  Confidence: Documented 0.70-0.95, Inferred 0.55-0.85.
+
+RECENT ABSENCE CHAIN, 2025-03-26 .. 2026-08-26 (this is the 17 months between
+latest_positive_observation and latest_observation):
+  Idx 23  2025-03-26..2025-06-29  conf 0.95  Documented  WHO AFRO Apr-2025 bulletin
+  Idx 24  2025-06-30..2025-12-31  conf 0.90  Documented  WHO multi-country update #33
+  Idx 25  2026-01-01..2026-03-29  conf 0.90  Documented  WHO multi-country update #36
+  Idx 26  2026-03-30..2026-08-16  conf 0.80  Inferred    WHO AFRO W33 2026
+  Idx 50  2026-08-17..2026-08-26  conf 0.80  Inferred    ECDC CDTR 26 Aug 2026
+  Contiguity verified: exactly 1-day steps, no overlap, no gap.
+  The two most recent are correctly DOWNGRADED to Inferred_Absence because no
+  source in that window makes an affirmative "no cholera in Togo" statement -
+  only "Togo is absent from the cholera tables while present in the measles
+  table". That is the right call and it is the right label.
+  These are NOT disguised surveillance gaps.
+
+BUILDER EVIDENCE PARSING VERIFIED. py/build_weekly_timeseries.py lines ~330-351
+now read the canonical first "Evidence type: X" token rather than scanning the
+whole note, so rows saying "UPGRADE TO Documented_Absence REJECTED ... stays
+Inferred_Absence" are graded inferred. The prior Agent 7's fix is present and
+working.
+
+================================================================================
+7. PRESENCE FILE - NO LEAK
+================================================================================
+  data/TGO/cholera_presence_ai.csv  57 rows, 1970-11-01..2025-03-23, all
+  source_index values valid.
+  Exact (Location, TL, TR) collisions with cholera_data_ai.csv: 1, and it is
+  benign - ('AFR::TGO','1990-01-01','1990-12-31'). The presence row is
+  presence_confirmed_count_unknown at conf 0.60; the data row (Index 252) is a
+  quantitative 136 cases at conf 0.80 from printed chart labels. No case count
+  is duplicated and the presence file is not read by the weekly builder. The
+  presence row is now redundant but harmless; left in place.
+  Rows in cholera_data_ai.csv with NO case value at all: 0.
+  Rows with blank sCh: 5 (Idx 128, 198, 212, 244, 245), of which one is national
+  (198, cCh=561). VERIFIED the builder does not zero-fill these: lines 318-323,
+  401 and 418 distinguish blank from explicit 0 and emit no observation. The
+  cost is information loss, not a false negative - the national builder reads
+  sCh only, so Index 198's 561 confirmed cases contribute nothing.
+
+================================================================================
+8. DUAL-REFERENCE INTEGRITY - CLEAN
+================================================================================
+  Checked on ALL rows, not spot-checked.
+    rows whose source_index is absent from metadata_ai.csv : 0
+    rows whose `source` text differs from the metadata Source: 0
+    rows with blank source_index or blank source            : 0
+    duplicated metadata Index                               : 0
+    gaps in the metadata Index sequence 1..192              : 0
+  125 of 192 sources are cited; 67 registered-but-uncited (INFO, benign - they
+  are leads recorded for future runs).
+
+MINOR PROVENANCE GAP FOUND: data Indices 7, 8 and 54 exist in neither
+cholera_data_ai.csv nor retracted_rows_ai.csv. They were removed without a
+tombstone (row 54 was Agent 2's disproved Plateaux-2014 zero, deleted by Agent
+3). Every later retraction did leave a tombstone. Not fixable retrospectively;
+flagged so the tombstone discipline is not assumed to be complete.
+
+================================================================================
+9. COVERAGE IMPACT - MEASURED BOTH WAYS
+================================================================================
+  python py/analyze_effective_gaps.py
+  python py/analyze_effective_gaps.py --layers JHU WHO --prefix baselineonly
+
+                              BASELINE (JHU+WHO)   EFFECTIVE (+AI)
+  total_months                        681                681
+  months_with_data                    495                680
+  months_missing                      186                  1
+  percent_coverage                   72.7%              99.9%
+  months_ai / months_ai_only          0 / 0            609 / 185
+  months_with_positive_cases          450                474
+  gap_periods                           5                  1
+  days_stale                          545                 24
+  latest_observation             2025-03-23         2026-08-26
+  latest_positive_observation    2025-03-09         2025-03-23
+  TGO now ranks 1st of 40 on percent_coverage; 8th of 40 on months_ai_only.
+
+  Baseline gap-days closed: 5631 of 5650 (99.7%). Gap-years with >=6 months
+  missing: 16 -> 0.
+
+  THE HONEST DECOMPOSITION OF THE 185 AI-ONLY MONTHS (recomputed from the CSVs
+  using the analyzer's own >50%-of-days rule):
+      172 months (93%)  covered ONLY by a zero / absence row
+       12 months (6%)   have a real dated observation with counts
+        1 month  (1%)   covered only by a multi-year aggregate
+  Every one of the 14 closed gap-years 1973, 1975-76, 1979-87, 1989-90 was
+  closed with ZERO rows, and 12 of those are Inferred_Absence at confidence
+  0.55-0.80. 99.9% coverage means "every month is accounted for", NOT "every
+  month was counted".
+
+================================================================================
+10. SYSTEMIC BUILDER DEFECT - QUANTIFIED, NOT FIXED (NEEDS A HUMAN DECISION)
+================================================================================
+py/build_weekly_timeseries.py evaluates its aggregate-suppression test PER
+SOURCE, so an AI period row is never suppressed by WHO/JHU weekly coverage of
+the same weeks; it is overlaid on top and ADDS.
+
+TGO 2024, traced end to end:
+  AI national rows 202-206 = 5+31+93+86+66 = 281, which is EXACTLY the
+  documented national 2024 total (JHU Index 43, WHO Annual, weight 1.0).
+  The rows are correct. But the 2024 weekly series renders:
+      WHO observed        282.0  (9 weeks)
+      JHU observed+fourier 28.0  (37 weeks)
+      AI  fourier         122.9  (6 weeks)
+      TOTAL               432.9  against a documented 281  (+54%)
+  It is neither the WHO series nor the AI series but a mixture of both.
+
+TGO years affected: 2013 +93%, 2014 +31%, 2020 +103%, 2021 +93%, 2024 +54%,
+2002 +37%, 2015 +43%. 2015 UNDER-reads (-26 cases).
+
+THIS IS NOT TGO-SPECIFIC. Across all 40 countries, 115 of 452 country-years
+with a JHU annual above 20 cases (25%) have a weekly sum exceeding that annual
+by more than 25%. 26 of 40 countries are affected. TGO is among the MILDER
+cases. Worst observed: GNB 2006 (21531 vs 37), KEN 2014 (6292 vs 35), KEN 2024
+(6401 vs 302), GHA 2003 (3829 vs 204).
+
+I did NOT retract rows 202-206 to make the number look right. They are correct
+and they carry within-year timing the WHO dashboard does not. The fix belongs in
+the builder, it changes all 40 countries, and it is a human decision.
+
+================================================================================
+11. AGENT PERFORMANCE
+================================================================================
+ Agent  Batches  Yields (%)                                   Rows  Sources
+   1      10     30,15,20,20,35,25,15,0,0,0                    41      51
+   2      12     5,25,10,15,0,5,5,10,0,5,0,0                   53      20
+   3      12     5,0,20,15,10,10,10,5,15,10,15,5               18      13
+   4      12     15,0,10,10,15,35,20,10,25,25,10,0             67      42
+   5      12     40,40,45,10,55,30,15,10,35,20,25,0            45      14
+   6      12     0,0,5,5,0,5,0,0,10,0,10,0                     18       8
+
+ * All six cleared the 3-batch floor. Agent 1 is the only one that met the
+   stopping criterion (3 consecutive sub-5% batches); the other five ran to the
+   12-batch ceiling. No agent reported a yield above 100%.
+ * CLAIMED vs ACTUAL, reconciled by index range: A1 41/41, A2 53/52, A3 18/18,
+   A4 67/67, A5 45/45, A6 18/18. No agent claimed rows it did not add.
+ * Agent 6 initially stopped at 3 batches and was redeployed by the
+   orchestrator. It also self-corrected its yields from 60/45/25% (counting
+   useful OPERATIONS) to 0/0/5% (counting queries that committed a row) - the
+   exact error CLAUDE.md warns about, caught and fixed by the agent itself.
+ * COMPARABILITY CAVEAT: Agents 2-6 redefined "query" to include Wayback CDX
+   sweeps, IRIS DSpace API calls, PubMed MCP calls and bulk PDF retrieval, not
+   just WebSearch. Defensible, and each is itemised in the logs, but it makes
+   these yields non-comparable with countries whose agents counted WebSearch
+   only, and it shifts the 5% stopping threshold.
+ * search_log_agent_1.txt for this run is LOST (section 0).
+
+================================================================================
+12. DELIVERABLES
+================================================================================
+  data/TGO/search_report.txt        REWRITTEN by this audit
+  data/TGO/search_log_agent_7.txt   this file
+  data/TGO/workflow_state.json      agent_num 7 entry written
+  data/TGO/cholera_weekly_TGO.csv   rebuilt 10:11 PDT after the label repair
+  py/revise_observation.py          --set-status added (with citation guard)
+  FINAL: python py/validate_quality.py TGO -> exit 0, ERROR 0, WARN 41
+
+================================================================================
+13. POST-WRITE ADDENDUM (10:35 PDT) - THE FILE MOVED AGAIN
+================================================================================
+Between drafting the report and the final validator run, the concurrent
+orchestrator (PID 52328) committed:
+  Index 297  Grand Lome::Lome D1  2016  1 case   - district split of the 2 national
+  Index 298  Grand Lome::Lome D5  2016  1 case     2016 cases; non-additive; sound
+  Index 299  AFR::TGO  2010-01-01..2014-11-30  551 cases, conf 0.70, src 192
+             Moore et al, PLoS NTD 2015;9(6):e0003817. Multi-year aggregate;
+             correctly capped at 0.7; explicit period-total quote; explicit
+             DO-NOT-SUM against rows 199, 200, 242, 248. JHU annual sum for
+             2010-2014 is 72+4+61+166+262 = 565 against this 551 (-2.5%). SOUND.
+  metadata   192 -> 194
+
+Consequence: the multiyear_aggregate WARN count rose 39 -> 40 and INFO 102 -> 104
+AFTER my audit of the 39. The 40th was audited to the same standard and passes.
+Rows 297/298 use AFR::TGO::Grand Lome::Lome D*, i.e. they already conform to the
+convention this audit established, which is a good sign but coincidental - that
+run has not read this report.
+
+RE-VERIFIED ON THE FINAL FILE (273 rows, 194 sources):
+  dual-reference mismatches                0
+  source_index absent from metadata        0
+  AFR::TGO::Maritime::Lome rows            0  (none reintroduced)
+  metadata Status='Superseded'             9  (unchanged)
+  live rows citing metadata 176-184        0
+  python py/validate_quality.py TGO      exit 0
+
+THE HEADLINE NUMBERS IN data/TGO/search_report.txt WERE PATCHED TO THIS STATE.
+They will go stale again while PID 52328 runs. That is the finding, not an
+excuse: a quality gate cannot certify a file another process is still writing.

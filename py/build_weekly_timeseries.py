@@ -329,8 +329,25 @@ def load_national_rows(iso, src, data_dir):
             except: conf = 0.9
             # Evidence type for zero-rows, parsed from processing_notes. Only a
             # source-confirmed absence may be labelled documented_zero.
+            #
+            # Read the row's OWN canonical label — the first "Evidence type: X"
+            # sentence, which add_observation.py's add-zero writes at insert
+            # time — in preference to a bare substring scan. A bare scan reads
+            # the whole note, including later agents' adjudication prose, so a
+            # row saying "UPGRADE TO Documented_Absence REJECTED ... stays
+            # Inferred_Absence" was being graded documented_zero: the exact
+            # inverse of the adjudication. That silently discarded deliberate
+            # absence grading (12 rows in TGO, 1 each in ERI and NER, all of
+            # them over-claiming). Rows with no canonical token fall back to the
+            # original substring behaviour.
             note = (row.get("processing_notes", "") or "").lower()
-            if   "documented_absence" in note: evidence = "documented"
+            _canon = re.search(r"evidence type:\s*([a-z_]+)", note)
+            _tok = _canon.group(1) if _canon else note
+            if   "documented_absence" in _tok: evidence = "documented"
+            elif "inferred_absence"   in _tok: evidence = "inferred"
+            elif "surveillance_gap"   in _tok: evidence = "gap"
+            elif _canon:                       evidence = "none"
+            elif "documented_absence" in note: evidence = "documented"
             elif "inferred_absence"   in note: evidence = "inferred"
             elif "surveillance_gap"   in note: evidence = "gap"
             else:                              evidence = "none"

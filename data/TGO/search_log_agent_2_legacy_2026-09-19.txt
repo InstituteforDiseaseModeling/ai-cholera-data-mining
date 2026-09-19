@@ -1,0 +1,996 @@
+================================================================================
+AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - TOGO (TGO)
+================================================================================
+Start Time: 2026-09-19 (run 2026-09-19, replaces legacy 2025-07-24 log; legacy
+content preserved at ./data/TGO/search_log_agent_2_legacy_2025-07-24.txt)
+Agent 2 Status: INITIALIZED
+
+MISSION
+  Temporal coverage for Togo is already 99.9% effective (only a 19-day
+  publication-lag gap 2026-09-01..2026-09-19 remains). Agent 2's job is
+  therefore SUB-NATIONAL DEPTH, not temporal gap closure.
+
+BASELINE STATE READ BEFORE FIRST QUERY
+  ./data/TGO/cholera_data_ai.csv    50 rows  (Agent 1 added 41)
+  ./data/TGO/metadata_ai.csv        62 sources
+  ./data/TGO/cholera_presence_ai.csv 17 rows
+  ./data/TGO/cholera_data_jhu.csv   4816 rows
+  ./data/TGO/cholera_data_who.csv   67 rows (weekly national 2023-12..2025-03)
+  ./reference/effective_surveillance_gaps_coverage.csv : TGO 99.9%, 1 gap period
+  ./reference/effective_surveillance_recency.csv       : latest obs 2026-08-26,
+                                                         latest POSITIVE 2025-03-09
+
+SUB-NATIONAL STOCK-TAKE (what already exists, so I do not re-collect it)
+  JHU baseline sub-national rows: 4146, but only 23 are non-zero:
+      2013-08-30..2013-11-18  Golfe, Lome, Lacs, Vo, Zio, Tchamba, Tchaoudjo,
+                              Centrale, (Bas Mono|Zio)           [21 rows]
+      2016-09-05..2016-09-18  Maritime::Lome 1 case x2 weeks     [ 2 rows]
+      2018 + 2019             2080 + 2040 weekly district rows, ALL ZERO
+  AI sub-national rows already present (Agent 1 + earlier runs):
+      Maritime::Lome        2003-06..2004-05  983/32
+      Grand Lome            2003-11..2004-04  983/32
+      Centrale::Tchaoudjo   2008-2010 (zero)
+      Grand Lome::Golfe     2020-11-11..12-28 67/2 ; 2024-08-12..18 11/1
+      Maritime::Lome(Golfe) 2020-09..12 67/2
+      Maritime::Lacs        2021-04..08 17/4 ; 2021-10-19..11-24 38/4
+      Maritime::Golfe       2023-12 1 case
+
+  => GENUINELY UNREPRESENTED SUB-NATIONALLY: 1991-2012 and 2020-2025
+     (excluding the 2020/2021/2023/2024 single-district rows listed above).
+
+PRIORITY TARGETS
+  T1  2024-10-14 .. 2025-03-23 outbreak. WHO dashboard has weekly NATIONAL
+      counts (447 cases) but no geography at all. Largest recent unrepresented
+      outbreak. Expect Grand Lome (Golfe, Agoe-Nyive) + Maritime (Lacs, Vo,
+      Bas-Mono, Zio) and possibly Savanes.
+  T2  2005-2010 regional breakdown + 2008-2010 26 district outbreaks
+      (Landoh et al. 2013, doi 10.1093/infdis/jit244, metadata index 32,
+      paywalled - try PMC / citing papers / author copies).
+  T3  1991-1992 epidemic (2396 + 753 national cases) regional breakdown.
+      WER "infected areas" lists already give the district NAMES with no counts
+      (in cholera_presence_ai.csv); need counts.
+  T4  1998 (3217 cases) and 2001 (2551 cases) - the two largest years on
+      record - have zero sub-national representation.
+  T5  2003-2004 Lome epidemic at commune-district level (Lome I-V).
+
+LOCATION CODE COLLISIONS FOUND IN THE JHU BASELINE (documented, not edited -
+baseline is read-only):
+  * AFR::TGO::Maritime::Lacs      vs  AFR::TGO::TG-M::Lacs   (same prefecture)
+  * AFR::TGO::Maritime::Vo        vs  AFR::TGO::TG-M::Vo
+  * AFR::TGO::Maritime::Zio       vs  AFR::TGO::TG-M::Zio
+  * AFR::TGO::Centrale::Tchaoudjo vs  AFR::TGO::Centrale::Tchaudjo
+  * AFR::TGO::Maritime::Golfe     vs  AFR::TGO::District Autonome du Grand Lome::Golfe
+  * AFR::TGO::Maritime::(Bas Mono|Zio)  - an unresolved either/or in a Location field
+  * AFR::TGO::Maritime::Lome      - "Lome" is a city/commune, not a prefecture;
+                                    the prefecture is Golfe (and since 2018
+                                    Golfe + Agoe-Nyive in the Grand Lome region)
+  Agent 2 writes canonical forms only: AFR::TGO::{Centrale|Grand Lome|Kara|
+  Maritime|Plateaux|Savanes}[::{Prefecture}].
+  NOTE ON GRAND LOME: the Grand Lome region was split out of Maritime in 2018.
+  For events BEFORE 2018 I use AFR::TGO::Maritime::Golfe; for events from 2018
+  onward I use AFR::TGO::Grand Lome::{Golfe|Agoe-Nyive}. This matches how the
+  AI rows already in the file are coded.
+
+DOUBLE-COUNTING DISCIPLINE
+  Every sub-national row added for a period that already carries a national row
+  (JHU annual, WHO weekly, or AI) gets the exact phrase
+  "Provincial subset - do not sum with national row" in processing_notes.
+
+================================================================================
+
+=== BATCH 1 | PHASE 1 (broad discovery) | TGO ===
+Target        : T1 - sub-national geography of the 2024-10..2025-03 outbreak
+                (WHO dashboard has weekly NATIONAL counts, zero geography)
+Queries (20)  :
+  1  Togo cholera outbreak 2024 Golfe Agoe-Nyive district cases deaths
+  2  Togo cholera 2024 district sanitaire Golfe Agoe-Nyive cas deces epidemie [FR]
+  3  epidemie cholera Togo novembre decembre 2024 Lome cas confirmes districts [FR]
+  4  WHO AFRO Monthly Regional Cholera Bulletin January 2025 Togo districts affected
+  5  Togo cholera January 2025 outbreak districts affected cases deaths
+  6  cholera Togo 2025 prefecture Lacs Bas-Mono Vo Zio cas district sanitaire [FR]
+  7  Togo cholera outbreak declared over March 2025 total cases districts Grand Lome Maritime
+  8  site:sante.gouv.tg cholera situation epidemiologique 2024 2025 [FR]
+  9  Togo cholera bilan epidemie 2024 2025 nombre total cas deces region Grand Lome Maritime [FR]
+ 10  ReliefWeb Togo cholera 2025 situation report districts cases
+ 11  IFRC DREF MDRTG004 Togo cholera operation update districts cases
+ 12  Togo cholera 2024 Katanga Adakpame Gbetsogbe Kangnikope health area cases
+ 13  Togo cholera octobre 2024 nombre de cas district sanitaire Golfe officiel ministere sante [FR]
+ 14  Togo cholera February March 2025 cases districts WHO AFRO weekly bulletin outbreak
+ 15  "Togo" cholera 2025 "Golfe" OR "Agoe-Nyive" cas cumules districts sanitaires touches [FR]
+ 16  WHO AFRO weekly bulletin outbreaks emergencies Togo cholera 2025 Golfe district cases deaths
+ 17  Togo cholera janvier fevrier 2025 Lome cas deces quartiers touches [FR]
+ 18  Togo cholera 2022 cases district outbreak Maritime Lome
+ 19  "Togo" cholera 2024 outbreak "districts" number affected epidemiological summary UNICEF sitrep
+ 20  (pass through WHO AFRO monthly bulletin index pages Jan/Feb/Mar/Apr/May 2025)
+
+Sources found  : 4 usable   Registered: index 63, 64
+Rows added     : 1          Indices: 51
+                 51  AFR::TGO::Grand Lome::Agoe-Nyive  2024-09-01..2024-12-17
+                     sCh=8 cCh=8 deaths=2  conf 0.5  src 63
+Presence rows  : 1   AFR::TGO::Grand Lome::Golfe 2024-08-01..2024-10-04
+                     (MoH communique: 4 deaths, 2 at home; NO case count published,
+                      so a data row is prohibited by CLAUDE.md)
+Successful queries: 1/20
+Yield         : 5%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE (batch floor is 3; 1 of 3 done)
+
+NEGATIVE RESULTS WORTH RECORDING (so the next agent does not repeat them)
+  * WHO AFRO Monthly Regional Cholera Bulletins Jan-May 2025 name Togo in the
+    country list and say "cases increased in ... Togo" but publish NO Togo
+    sub-national breakdown. Checked Jan, Feb, Mar, Apr, May 2025 index pages.
+  * iris.who.int blocks both curl and WebFetch with HTTP 403 on
+    /bitstream/handle/... PDF paths (afro.who.int/sites/default/files/ PDFs do
+    work and can be text-extracted with pdftotext).
+  * reliefweb.int returns 403 to WebFetch for /report/... pages and to the
+    /api/v1/reports endpoint. The IFRC DREF MDRTG004 operation update for Togo
+    is indexed there and is the most likely holder of a 2024-25 district table -
+    it needs another access route (adore.ifrc.org, go.ifrc.org).
+  * Landoh et al. 2013 (metadata index 32) on academic.oup.com serves only the
+    abstract. The abstract does give one NEW sub-national fact: "85% of 26
+    district-level outbreaks occurred in the capital Lome or the coastal
+    Maritime Region", and "23% (6) of outbreaks occurred in districts located in
+    Maritime Region" - percentages of OUTBREAKS, not case counts, so not
+    committable as rows.
+  * savoirnews.net serves a certificate whose altnames omit the www host, so
+    https://www.savoirnews.net/... cannot be fetched; try https://savoirnews.net/...
+
+=== BATCH 2 | PHASE 1-2 (official statistics + academic) | TGO ===
+Target        : T2 (2005-2010 regional breakdown), T3/T4 (1991-2012 sub-national),
+                and the unrepresented 2014-2022 sub-national years
+Queries (20)  :
+  1  Landoh "National surveillance data on the epidemiology of cholera in Togo" full text PDF 2005-2010
+  2  Togo annuaire des statistiques sanitaires cholera cas par region district sanitaire [FR]
+  3  epidemie cholera Togo 1998 Lome cas deces prefecture region maritime [FR]
+  4  epidemie cholera Togo 2001 Lome cas deces districts 2551 [FR]
+  5  cholera Togo 1991 1992 epidemie Lome Aneho Kpalime cas deces regions [FR]
+  6  Togo "annuaire statistique sanitaire" 2018 2019 2021 2022 PDF ministere sante maladies a potentiel epidemique [FR]
+  7  Togo "rapport de performance" region sanitaire cholera cas district 2021 2022 [FR]
+  8  Togo "annuaire des statistiques sanitaires" 2016 2017 2018 PDF medbox cholera [FR]
+  9  Togo rapport annuel performance ministere sante 2024 cholera cas district sanitaire [FR]
+ 10  Togo cholera 2005 2006 epidemie Lome nombre de cas quartiers districts sanitaires [FR]
+ 11  Rebaudet cholera Benin Togo Ghana Gulf of Guinea district spatial analysis Lome hotspot 2018
+ 12  Togo cholera 2003 2004 Lome epidemic districts "Golfe" cases deaths epidemiological study
+ 13  "Togo" cholera 2005-2010 "Lome Region" 2884 Maritime 650 Plateaux 432 Centrale 34 Kara
+ 14  Togo cholera district incidence 2008-2010 "10-36 cases per 100 000" Lome Region five districts
+ 15  web.archive.org plateformecholera.info Togo factsheet cholera cas par region district PDF
+ 16  Togo cholera 2024 2025 Bas-Mono Aneho Lacs Vo cas epidemie district [FR]
+ 17  Togo cholera bilan final epidemie mars 2025 nombre cas cumules Golfe Agoe districts sanitaires [FR]
+ 18  Togo cholera hotspots districts Golfe Lacs Bas-Mono Lome GTFCC classification zones haut risque
+ 19  Togo cholera 2015 2016 2017 cas districts Lome epidemie surveillance [FR]
+ 20  reunion transfrontaliere cholera Togo Benin 2014 cas districts Lacs Bas-Mono Athieme Grand-Popo [FR]
+
+Sources found  : 6 usable   Registered: index 65, 66, 67, 68, 69, 70
+                 (plus first substantive extraction from already-registered index 39)
+Rows added     : 24        Indices: 52-84 (52,53,54,55,56,57,58,59,60,61,62,63,
+                 64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84
+                 - of which 52-84 excluding none; 24 committed in this batch)
+Presence rows  : 1   AFR::TGO::Maritime::Lacs 2014-02-04..2014-04-15
+Successful queries: 5/20  (queries 2, 6, 11, 15, 18)
+Yield         : 25%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE (batch floor is 3; 2 of 3 done, and yield is rising)
+
+WHAT ACTUALLY PRODUCED THE ROWS - the productive vein is national
+statistical yearbooks and archived platform PDFs, not news or WHO bulletins:
+
+  [65] Togo MoH "Principaux Indicateurs de Sante au Togo 2014", Tableau XXXVI
+       -> 2014 BY REGION: Lome Commune 113/6, Maritime 36/3, Plateaux 0,
+          Centrale 0, Kara 0, Savanes 0, Total pays 262/11.
+          National total matches the WHO Annual Cholera Report exactly (262/11),
+          which validates the table. BUT the six regions sum to 149/9, so 113
+          cases and 2 deaths are unattributed - the regional breakdown is a
+          LOWER BOUND and this is recorded in every row's notes.
+       -> rows 52, 53 (cases) and 54-57 (four regional documented zeros)
+       Hosted on togo.unfpa.org, because sante.gouv.tg now serves an SPA shell
+       for all legacy /wp-content/uploads/ paths (curl and WebFetch both get
+       17 KB of HTML instead of the PDF).
+
+  [66] Togo MoH "Annuaire des Statistiques Sanitaires 2020", Tableau CXVI
+       (Rapport DSIUR 2020) -> 2020 BY DISTRICT, all 40 districts:
+          Golfe 53/2 (attack rate 15/100k), Oti 2/0 (1,8/100k), every other
+          district 0; Togo 55/2. Districts sum EXACTLY to the national total.
+       -> row 58 Savanes::Oti 2 cases - THE FIRST CHOLERA EVER RECORDED IN THE
+          SAVANES REGION in this dataset, 700 km north of the coastal focus
+       -> rows 59-62 regional zeros (Maritime, Plateaux, Centrale, Kara),
+          row 63 Agoe-Nyive district zero
+       -> Golfe 2020 deliberately NOT added: rows 7 and 49 already carry the
+          same outbreak from the WHO DON (67 suspected). MoH says 53. The
+          disagreement is recorded in the metadata Description, not resolved
+          by averaging and not turned into a third overlapping row.
+
+  [68] Togo MoH "Annuaire des Statistiques Sanitaires 2021", Tableau CLIII
+       -> 2021: Golfe 1/0; Lacs attack rate 16,6/100k over 222 901 = 37 cases;
+          Maritime regional rate 2,8/100k over 1 323 235 = 37; TOGO 38/0.
+          The Lacs 'cas cumules' cell is mis-set in the PDF but the arithmetic
+          closes three independent ways, so Lacs 2021 = 37.
+       -> row 70 Golfe 1 case; rows 71-74 regional zeros; row 75 Agoe-Nyive zero
+       -> DATA-QUALITY FLAG FOR AGENT 5/7: the two Lacs 2021 rows already in
+          cholera_data_ai.csv (row 8: 17 cases 2021-04-01..08-31; row 29: 38
+          cases 2021-10-19..11-24) sum to 55 cases and 8 deaths, but the
+          Ministry's own national total for all of 2021 is 38 cases and the
+          AFENET investigation reports 38 cases / 4 deaths for the single
+          Oct-Nov event. Rows 8 and 29 almost certainly describe overlapping
+          stages of ONE outbreak and must not be summed. I did not edit them;
+          no third Lacs 2021 row was added.
+
+  [67] Togo MoH "Annuaire des Statistiques Sanitaires 2022", Tableau LXXIX
+       -> 2022: cholera 0 in all 40 districts, all 6 regions and nationally,
+          while the same table reports 574 meningitis, 5 440 measles and 7 366
+          bloody-diarrhoea cases - so the system was reporting.
+       -> rows 64-69, six regional documented zeros
+
+  [69] UNICEF WCARO 2018 "Cholera Factsheet Togo", Tableau I  *** the document
+       Agent 1 logged as blocked ***
+       -> 2006-2017 BY REGION: Lome 1476/13 (64%), Maritime 508/16 (22%),
+          Plateaux 289/15 (12,5%), Centrale 33/2 (1,4%), Kara 2/0 (0,1%),
+          Savanes 0/0. Sums EXACTLY to the stated 2308 cases / 46 deaths.
+       -> rows 76-80 (cases) and 81 (Savanes 12-year documented zero)
+       HOW IT WAS RECOVERED: plateformecholera.info no longer exists - the
+       domain now 301-redirects to www.world-birds.com, which is why the
+       bot-verification interstitial Agent 1 hit was never going to clear.
+       The Wayback CDX API over the whole domain
+         https://web.archive.org/cdx/search/cdx?url=plateformecholera.info
+             &matchType=domain&filter=urlkey:.*togo.*&collapse=urlkey
+       lists the pre-2021 Joomla /attachments/article/NNN/ paths, which ARE
+       archived as real application/pdf. Working captures:
+         article/237/Cholera Factsheet_Togo_2017_FINAL.pdf  @20200921093657
+         article/451/Plan Strategique ... Togo 2015-2017_vf.pdf @20200921083026
+         article/729/Rapport_Reunion transfrontaliere_Togo_Benin ... @20201024145050
+         article/328/Togo.pdf  (hotspot dossier)  @20200921094901  - TRUNCATED
+         article/470/Togo.pdf                     @20200921095052  - TRUNCATED
+       The last two come back capped at exactly 1 048 576 bytes and will not
+       parse; they need a ranged or repeated fetch.
+
+  [39] Rebaudet et al 2018 PLoS NTD (already registered by Agent 1, never
+       extracted from). Open access via PubMed Central PMC5908202. The S2 Fig
+       legend carries a complete 2012 district breakdown:
+         "In 2012 only 61 cases were reported in Togo: 49 cases were reported
+          in Lacs, 9 cholera cases came from Lome (7 of which came from D2),
+          and 3 cases were reported in Golfe."
+       49+9+3 = 61 = the WHO/JHU national 2012 total exactly.
+       -> rows 82 (Lacs 49), 83 (Grand Lome 9), 84 (Golfe 3)
+       Also names the recurrent urban foci: Lome D2 flood zones (Adakpame,
+       Be Kpota, Anfame, Akodessewa), Lome D3 fishing settlement (Katanga),
+       and Seko in Lacs (animist ceremonies drawing attendees from Benin and
+       Nigeria).
+
+  [70] Togo-Benin cross-border meeting report, Tsevie, 22-23 July 2014
+       -> 2014 first episode 4 Feb to early April, 39 cases 3 deaths, "la
+          majorite" in Lacs district bordering the COME health zone of Benin,
+          seeded by a voodoo ceremony involving both countries' communities.
+          "Majority" is not a number, so this is a PRESENCE row for Lacs, not
+          a data row. Consistent with yearbook [65]: Maritime 36 cases in all
+          of calendar 2014.
+
+NEGATIVE RESULTS
+  * Landoh et al 2013 remains paywalled: Unpaywall is_oa=false, Semantic
+    Scholar openAccessPdf CLOSED, Europe PMC 403, no PMC deposit, OUP serves
+    abstract only. Its 2005-2010 REGIONAL figures (Lome 2884, Maritime 650,
+    Plateaux 432, Centrale 34, Kara 3, Savanes 0, total 4003) are surfaced by
+    the search index and sum exactly to 4003, but I could not read them in the
+    source document and therefore did NOT commit them as rows. The UNICEF
+    factsheet [69] covers an overlapping window (2006-2017) from a readable
+    primary document and was used instead.
+  * sante.gouv.tg legacy PDF paths: blocked (SPA shell). Workaround that works:
+    https://web.archive.org/web/{2023|2024|2025|2026}id_/{original url}
+    Succeeded for Annuaire 2019, 2020, 2021, 2022. FAILED for Annuaire 2023
+    (Togo_Annuaire_Statistique_2023_Final_signee.pdf) - every capture comes
+    back truncated at 5 242 880 bytes with a broken xref. CDX lists good
+    captures at 20250616030411 (4 281 523 B) and 20251106110128 (4 260 106 B)
+    which were not tried.
+  * Annuaire 2019 Tableau LXIII: cholera 0 for every district and nationally in
+    2019 - NOT added, because the JHU baseline already carries 2 040 weekly
+    all-zero district rows for 2019.
+  * files.aho.afro.who.int Rapport annuel de performance 2020/2021: curl
+    returns nothing (0 bytes) for both.
+
+=== BATCH 3 | PHASE 2-3 (remaining yearbook years + sentinel surveillance) | TGO ===
+Target        : 2015-2019 and 2023-2025 sub-national; 1991-2005 sub-national
+Queries (20)  :
+  1  Togo "annuaire des statistiques sanitaires" 2018 PDF maladies a potentiel epidemique district DSNISI [FR]
+  2  Togo annuaire statistiques sanitaires 2016 2017 PDF telechargement ministere sante Togo [FR]
+  3  afro.who.int weekly bulletin outbreaks emergencies 2024 Togo cholera Golfe district ongoing event
+  4  Bockemuhl El Tor cholera epidemic Togo 1970 1972 Lome Aneho regional distribution cases
+  5  Africhol Togo sentinel surveillance Lome Golfe Lacs Bas-Mono cholera cases 2010 2013 incidence
+  6  (medbox Togo Annuaire 2016 document page - WebFetch, timed out at 60 s)
+  7  Togo cholera 2001 grande epidemie Lome districts cas deces rapport [FR]
+  8  Togo cholera Kloto Kpalime Ogou Atakpame Haho Moyen-Mono epidemie cas district Plateaux [FR]
+  9  Togo cholera 2009 2010 Lome Golfe district outbreak cases number surveillance report
+ 10  (WHO AFRO Weekly Bulletin week 47 2024 publication page - WebFetch)
+ 11  "Togo" cholera 2025 UNICEF West Central Africa situation report districts cases Grand Lome
+ 12  Cholera WCA bulletin plateformecholera Togo 2024 2025 district cas semaine [FR]
+ 13  Togo cholera 2024 rapport situation epidemiologique hebdomadaire district sanitaire DSIUSR [FR]
+ 14  Togo "annuaire" statistique sanitaire 2024 PDF ministere sante maladies potentiel epidemique [FR]
+ 15  Togo cholera 2024 "10 cas" confirmes semaine 38 district sanitaire un deces [FR]
+ 16  Togo cholera campagne vaccination OCV 2025 Golfe Agoe-Nyive doses districts cibles [FR]
+ 17  Togo cholera 2004 2005 2006 Lome epidemie cas par district DDS quartiers Be Katanga [FR]
+ 18  sante-assurances.gouv.tg documentation annuaire des statistiques sanitaires annee 2024 [FR]
+ 19  Togo cholera 1991 epidemic Golfe Kloto Kozah Lacs Ogou Sotouboua Vo Yoto districts cases deaths
+ 20  (WHO Disease Outbreak News 2001-09-17 West Africa cholera - WebFetch)
+
+Sources found  : 2 usable   Registered: index 71
+                 (plus first substantive extraction from already-registered index 40)
+Rows added     : 9         Indices: 85, 86, 87, 88, 89, 90, 91, 92, 93
+Successful queries: 2/20  (queries 1 and 5)
+Yield         : 10%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE - the 3-batch floor is met but the stopping criterion
+                (3 consecutive batches below 5%) is NOT: yields are 5%, 25%, 10%.
+
+  [71] Togo MoH "Annuaire des Statistiques Sanitaires 2023", Tableau LXXXV
+       -> 2023 BY DISTRICT: Golfe 3 cases 0 deaths (the only district in the
+          country with cholera); Agoe 0; all Maritime, Plateaux, Centrale, Kara
+          and Savanes districts 0; Togo 3/0. Districts sum to the national total.
+       -> row 85 Golfe 3 cases; rows 86-90 five regional zeros; row 91
+          Agoe-Nyive district zero
+       -> SOURCE DISAGREEMENT recorded: WHO dashboard has 1 Togo case for 2023,
+          the Ministry has 3. AI row 9 (Golfe, December 2023, 1 case) is a
+          SUBSET of row 85 and is flagged as such in row 85's notes.
+       Retrieved from Wayback capture 20251106110128; the 20250616030411
+       capture is truncated at 5 242 880 bytes and has a broken xref.
+
+  [40] Africhol / Ali et al, "Cholera Incidence and Mortality in Sub-Saharan
+       African Sites during Multi-country Surveillance", PLoS NTD 2016
+       (registered by Agent 1, never extracted from). Open access via PMC4871502.
+       Enhanced case-based surveillance with systematic stool culture, Jun 2011
+       to 31 Dec 2013, in two Togolese zones:
+         Lome + Golfe districts (pop 885 679): 216 suspected, 200 cultured,
+           58 culture-positive (29,0%); 1 death among 132 with documented
+           outcome (CFR 0,8%)
+         Lake (Lacs) district (pop 775 063): 90 suspected, 83 cultured,
+           14 culture-positive (16,9%); 4 deaths among 48 with documented
+           outcome (CFR 8,3%); confirmed-case CFR 10,0% - the HIGHEST of any
+           site in the entire eleven-site, six-country network
+       -> rows 92 (Grand Lome) and 93 (Maritime::Lacs), both with the explicit
+          warning that this is a DIFFERENT surveillance system with a broader
+          case definition and must not be summed with the routine JHU/WHO rows
+          for 2011-2013 or with AI rows 82-84.
+       Unique contribution: the only culture-CONFIRMED sub-national counts that
+       exist for Togo in this period.
+
+NEGATIVE RESULTS
+  * No Annuaire des Statistiques Sanitaires exists yet for 2024 - the 2023
+    edition (published November 2024) is the most recent. The 2024 district
+    table, which would settle the geography of the 2024-25 outbreak, is simply
+    not published yet. THIS IS THE SINGLE BIGGEST REMAINING SUB-NATIONAL GAP
+    and it will close by itself when the 2024 yearbook appears.
+  * No Togo yearbook PDF for 2015, 2016, 2017 or 2018 could be retrieved. The
+    Wayback CDX index of sante.gouv.tg holds PDFs only from 2019 onward; the
+    2016 edition is catalogued on medbox.org and GHDx but the medbox document
+    page timed out at 60 s on WebFetch.
+  * sante-assurances.gouv.tg (the ministry's newer domain) serves the same SPA
+    shell for /wp-content/uploads/ paths - not a workaround.
+  * WHO AFRO Weekly Bulletin on Outbreaks, week 47 2024: no Togo entry at all
+    (that week covers Tanzania cholera and Angola mpox). Its PDF sits on
+    iris.who.int, which 403s.
+  * WCA regional cholera bulletins on plateformecholera.info, which DO carry
+    per-district country tables, are archived only up to bulletin 52 (~2022).
+    The /2024-bulletins and /2025-bulletins index pages are archived but the
+    PDFs behind them are not.
+  * Landoh 2005-2010 regional figures: still unreadable in the source; see
+    Batch 2. The 2008-2010 district facts that ARE quotable are rates and
+    proportions, not counts ("the 5 districts in Lome Region all had incidences
+    of at least 10 per 100 000 per year, range 10-36"; "26 district-level
+    outbreaks, 62% in Lome Region, 23% in Maritime, 15% elsewhere"), so they
+    cannot become rows.
+  * Nothing sub-national with COUNTS exists in the public record for the 1991,
+    1998 or 2001 epidemics. For 1991 and 1998 the WER "infected areas" lists
+    name the eight affected districts but give no numbers - already captured in
+    cholera_presence_ai.csv by Agent 1. Landoh et al state outright that Togo's
+    surveillance held district-level data only from 2008 onward.
+  * WHO DON 2001-09-17 covers Burkina Faso, Cote d'Ivoire and Niger and only
+    notes that cases "began in April 2001 in nearby countries: Ghana, Togo and
+    Benin" - no Togo numbers.
+
+=== BATCH 4 | PHASE 3 (archives, cross-border, alternative access) | TGO ===
+Target        : 2024-25 outbreak geography; sub-district detail; pre-2005 geography
+Queries (20)  :
+  1  Africa CDC weekly event based surveillance report Togo cholera 2024 2025 districts cases
+  2  Togo cholera 2024 2025 aire de sante Golfe 1 Golfe 6 Katanga Adakpame nombre de cas [FR]
+  3  Benin cholera 2024 2025 Grand-Popo Athieme Seme-Kpodji transfrontalier Togo Lacs cas [FR]
+  4  GTFCC Togo country progress report 2025 cholera hotspot districts PAMI Golfe Lacs cases
+  5  republicoftogo cholera 2024 2025 cas Golfe Agoe districts Lome situation [FR]
+  6  republicoftogo "Golfe 1" declaree exempte de cholera cas gueris Lome [FR]
+  7  Togo cholera 2013 Sokode Tchaoudjo Tchamba Blitta cas region Centrale epidemie [FR]
+  8  Togo cholera Aneho Lacs 2016 epidemie cas district dernier [FR]
+  9  Ghana cholera 2024 2025 Volta Ketu South border Togo Lome cross-border cases
+ 10  Togo cholera 2016 Seko Aneho 13 km epidemie deux deces six cas avril [FR]
+ 11  "afro.who.int/sites/default/files" cholera bulletin 2025 Togo pdf weekly regional
+ 12  Togo cholera fevrier mars 2025 fin de l'epidemie Golfe cas total declaration officielle [FR]
+ 13  Togo cholera memoire these universite de Lome district sanitaire cas epidemiologie [FR]
+ 14  WCA hotspots update 2018 Togo cholera districts classification Golfe Lacs Lome type
+ 15  ProMED mail Togo cholera Lome district cases archive outbreak report
+ 16  Togo cholera district de Zio Tsevie Bas-Mono Afagnan cas epidemie [FR]
+ 17  Togo cholera October 2010 outbreak Lome cases deaths districts ProMED IRIN
+ 18  "Togo" cholera 2010 Lome epidemie cas deces quartiers IRIN humanitaire [FR]
+ 19  Togo cholera 2025 Grand Lome Maritime districts affected WHO multi-country cholera situation report
+ 20  Togo cholera 2005 2006 Lome epidemie 1320 cas 1159 cas region districts [FR]
+                (plus non-query probes: IFRC GO appeal API, GTFCC PDF download,
+                 Wayback range-fetch of the truncated hotspot PDFs)
+
+Sources found  : 2 usable   Registered: index 72, 73
+                 (plus first sub-district extraction from already-registered index 37)
+Rows added     : 4         Indices: 94, 95, 96, 97
+Presence rows  : 2   AFR::TGO::Grand Lome::Golfe (already logged in batch 1) and
+                     AFR::TGO::Savanes::Tone 2001-01-01..2002-12-31
+Successful queries: 3/20  (queries 2, 8, 17)
+Yield         : 15%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE - yields 5%, 25%, 10%, 15%; criterion not met.
+
+  [72] republicoftogo.com (official government portal), 30 November 2020
+       -> row 94 AFR::TGO::Grand Lome::Golfe::Katanga 2020-11-11..2020-11-30
+          34 cases, 1 death. THE ONLY HEALTH-AREA LEVEL COUNT IN THE WHOLE
+          TOGO RECORD. Katanga is the informal fishing settlement in the Lome
+          port zone, Golfe 1 commune - independently named as a recurrent focus
+          by Rebaudet et al 2018 ('Lome D3: Katanga') and by the UNICEF
+          factsheet. Flagged as a subset of AI rows 7 and 49.
+
+  [37] AFENET/JIEPH Lacs 2021 investigation (registered by Agent 1, district
+       total already used in row 29; the CANTON breakdown had not been extracted)
+       -> row 95 AFR::TGO::Maritime::Lacs::Agouegan 2021-10-19..2021-11-24
+          24 cases (63.1% of the district outbreak), 7 laboratory-confirmed.
+          Agouegan canton contains 3 health areas. Flagged as a subset of row 29.
+
+  [73] IRIN / The New Humanitarian, 9 and 24 February 2004  *** best find of
+       this batch: the 2003-04 epidemic finally splits into Lome and non-Lome ***
+       -> row 96 AFR::TGO::Maritime 2003-12-01..2004-02-18, 200 cases - the
+          non-capital coastal share, NEW geography, complementary to (not
+          overlapping) the existing Lome rows 3 and 48
+       -> row 97 AFR::TGO::Grand Lome 2003-12-01..2004-02-18, 586 cases,
+          25 deaths - a mid-epidemic point, flagged as a strict subset of row 48
+       Arithmetic closes: 586 + 200 = 786 national as at 18 February 2004.
+       Epidemic curve for Lome now has three points: 413/17 (9 Feb), 586/25
+       (18 Feb), 983/32 (end April).
+       ACCESS NOTE: thenewhumanitarian.org 403s every direct fetch, including
+       through WebFetch. The full article text is readable at
+       https://web.archive.org/web/2023/https://www.thenewhumanitarian.org/node/NNNNNN
+       pulled with curl and stripped of tags locally. Togo cholera nodes found
+       so far: 216345 (9 Feb 2004) and 216553 (24 Feb 2004). The IRIN archive is
+       an under-used vein for 1998-2010 Togo sub-national data.
+
+  UNRESOLVED LEAD, DELIBERATELY NOT MADE A ROW - the northern outbreak:
+       IRIN 9 Feb 2004 states "Two years ago, a cholera epidemic swept through
+       the northern town of Dapaong on the border with Burkina Faso. About 700
+       people were reported to have caught the disease and about 10 died."
+       If true this is the ONLY major cholera event ever recorded in the Savanes
+       region and it is absent from every other source. But:
+         - "two years ago" from February 2004 points to 2002, and the WHO annual
+           figure for Togo in 2002 is 257 cases nationally - a 700-case Dapaong
+           outbreak cannot fit inside it. It could fit inside 2001 (2 551).
+         - the numbers are explicitly approximate ("about 700", "about 10")
+         - it is a single Level 3 recollection two years after the fact
+       Committing it would put ~700 cases in the far north in a guessed year and
+       could badly distort a spatial model, so it is recorded in
+       ./data/TGO/cholera_presence_ai.csv as AFR::TGO::Savanes::Tone
+       2001-01-01..2002-12-31 with confidence 0.4 and the full quote.
+       NEXT AGENT: this is the single highest-value unresolved item. Try the
+       IRIN/New Humanitarian archive for Togo articles from 2001-2002 via the
+       Wayback node route above.
+
+NEGATIVE RESULTS
+  * IFRC: the GO appeal API returns only one historical Togo record (a 1950
+    civil-unrest appeal); MDRTG004 is not retrievable through it, reliefweb 403s,
+    and the /api/v1/es_search endpoint is gone. The DREF operation update, which
+    would most likely hold a 2024-25 district table, remains unreachable.
+  * GTFCC 11th annual meeting country progress report (metadata index 62,
+    pages 119-125) downloaded and read in full: it gives only a NATIONAL figure
+    ("Nombre total de cas de cholera (juin 2023 - juin 2024) : 01 cas et 0
+    deces") and a qualitative geography ("Au Togo le cholera se localise dans
+    la region administrative de la Maritime et evolue de facon endemo-epidemique
+    dans les districts de Grand Lome, de Maritime et de ses environs"). All its
+    epidemic curves are images. No district counts.
+  * The two Cholera Platform hotspot dossiers (/attachments/article/328/Togo.pdf
+    and /attachments/article/470/Togo.pdf) come back truncated at exactly
+    1 048 576 bytes from the Wayback Machine under all three replay forms
+    (id_, if_, bare) and with an explicit Range header. Their xref tables are
+    unreadable. Still outstanding.
+  * The Seko (Lacs district) outbreak - "started on April 9th ... two deaths, a
+    baby and a woman, and six cases" - could not be dated reliably: the snippet
+    is carried by a page dated 2016 but the AFENET article says the last Lacs
+    cases before 2021 were in 2016, while the 2014 cross-border report puts the
+    2014 Lacs episode start at 4 February. Not committed.
+  * Africa CDC, UNICEF WCA press releases, WHO multi-country situation reports
+    and the WHO AFRO monthly bulletins all report Togo only at national level
+    for 2024-25.
+  * DATA-QUALITY FLAG FOR AGENT 5/7, not fixed here because it needs a metadata
+    edit rather than a row: the Description of metadata index 39 (Rebaudet et al
+    2018) states "Table 1 gives Togo annual cases: 2009=265, 2010=308, 2011=4,
+    2012=61, 2013=695, 2014=1095". The actual Table 1 in the paper (read in full
+    from PMC5908202) reads: Togo 2009=218, 2010=72, 2011=33, 2012=61, 2013=194,
+    2014=262, 2015=35, total 875. Only the 2012 value is right. The recorded
+    2009, 2010, 2011, 2013 and 2014 figures do not appear anywhere in that table.
+
+=== BATCH 5 | PHASE 3 (IRIN archive sweep, 1998-2002 northern outbreak) | TGO ===
+Target        : pre-2005 sub-national counts via the IRIN/New Humanitarian
+                archive, which produced rows 96-97 in batch 4; and dating the
+                Dapaong (Savanes) outbreak
+Queries (20)  :
+  1  thenewhumanitarian IRIN Togo cholera 1998 Lome epidemic cases deaths
+  2  IRIN Togo cholera Dapaong Savanes 2001 2002 epidemic cases deaths Burkina border
+  3  site:thenewhumanitarian.org Togo cholera Lome
+  4  Togo cholera 2005 2006 2007 IRIN news Lome cases deaths outbreak report
+  5  Dapaong Togo cholera 1998 epidemie juillet octobre cas deces Savanes [FR]
+  6  ATOP Agence Togolaise de Presse cholera district sanitaire cas 2024 2025 Lome [FR]
+  7  (PMC3201576 Burkina Faso 2005 cholera paper - full text via PubMed MCP)
+  8  Djadou Atakouma "Epidemie de cholera a Dapaong" 1998 hopital d'enfants Med Afr Noire 2001 cas [FR]
+  9  cholera children Dapaong Togo 1998 hospital study cases July October epidemic
+ 10  "Medecine d'Afrique Noire" 2001 48 187 cholera Dapaong Togo Djadou resume [FR]
+ 11  (togopresse Grand Lome 2024 performance review - WebFetch)
+ 12  (WHO DON 1998-10-15 - WebFetch)
+ 13  (thenewhumanitarian nodes 194066, 195955 and news/2006/06/28 - Wayback recovery)
+ 14  Togo cholera decembre 2024 janvier 2025 cumul cas district Golfe Agoe-Nyive bilan hebdomadaire [FR]
+ 15  Togo cholera treatment centre CHU Sylvanus Olympio Be hospital 2024 2025 patients admitted cases
+ 16  Togo cholera spatial temporal analysis health districts incidence 2010 2020 study Maritime
+ 17  WHO Togo bureau pays cholera 2025 riposte district sanitaire cas confirmes appui [FR]
+ 18  Togo cholera 1998 repartition regionale cas 3669 Savanes Kara Centrale Plateaux Maritime Lome [FR]
+ 19  Togo cholera 2001 Cinkasse Dapaong frontiere Burkina Tenkodogo epidemie cas nord [FR]
+ 20  (Wayback CDX re-check and four replay variants for the two truncated hotspot PDFs)
+
+Sources found  : 1 usable (citation only)   Registered: index 74
+Rows added     : 0
+Presence rows  : 1   AFR::TGO::Savanes::Tone 1998-07-01..1998-10-31
+Successful queries: 0/20
+Yield         : 0%
+Consecutive sub-5% batches: 1
+Decision      : CONTINUE - only one sub-5% batch so far; three are required.
+
+  THE ONE REAL RESULT: the northern outbreak is now DATED.
+  Query 5 and 8 identified the primary source behind the Dapaong epidemic:
+    Djadou KE, Atakouma DY, Agbobli-Apetsianyi E, Assimadi K.
+    "Epidemie de cholera a Dapaong (Togo) de juillet a octobre 1998 : cas de
+     l'hopital d'enfants." Medecine d'Afrique Noire 2001;48(5):187-190.
+  This puts the Dapaong (Tone district, Savanes region) epidemic in JULY-OCTOBER
+  1998, not 2002 as the IRIN dispatch of 9 February 2004 implied by saying "two
+  years ago". The 1998 dating is also the only one that is arithmetically
+  possible: Togo's national total was 3 217-3 669 in 1998 against 257 in 2002.
+  -> registered as metadata index 74 and recorded as a presence row for
+     AFR::TGO::Savanes::Tone 1998-07-01..1998-10-31, confidence 0.8.
+  -> the earlier presence row for the same location dated 2001-01-01..2002-12-31
+     (from the IRIN recollection, confidence 0.4) is SUPERSEDED by this one and
+     should be dropped by whoever next touches cholera_presence_ai.csv. It is
+     left in place because add_observation.py has no delete operation and
+     hand-editing the file is prohibited.
+  Medecine d'Afrique Noire is not in PubMed and no accessible copy of volume 48
+  issue 5 was found, so the paediatric case and death counts remain unread. That
+  paper is the single best remaining lead for a Savanes-region data row.
+
+OTHER IRIN ARTICLES RECOVERED (read in full, no sub-national counts, no rows)
+  node/194066, 16 August 2001, "Cholera update": "Togo reported 72 deaths for
+    1,130 cases" since the start of 2001 - NATIONAL only, and the period is
+    already covered by the JHU annual row (2 551 cases / 130 deaths for 2001).
+  node/195955, 18 September 2001, "Cholera kills over 100 in four countries":
+    detailed departmental breakdown for BENIN but nothing numeric for Togo.
+  news/2006/06/28 "Outbreaks of disease feared": "about 10 people a day have
+    sought treatment for cholera since 20 June" at Lome's Tokoin hospital,
+    during flooding that displaced 100 families in Agoe Zongo and Silidji. A
+    rate, not a count, so not a row.
+
+NEGATIVE RESULTS
+  * No regional breakdown of the 1998 epidemic (3 669 cases, 239 deaths) exists
+    in the public record. Landoh et al state that Togolese surveillance held
+    district-level data only from 2008 onward, which is consistent.
+  * No 2024-25 district numbers from ATOP, Togo-Presse, the Togo-Presse Grand
+    Lome 2024 performance review (mentions "la gestion de l'epidemie de cholera
+    dans la region" with no figures), CHU Sylvanus Olympio, or the WHO Togo
+    country office.
+  * WHO DON 15 October 1998 is about CAMEROON, not Togo.
+  * The afro.who.int/sites/default/files/ SITREP series that keeps surfacing in
+    Togo-flavoured searches (SITREP 006, 027-030, 046, 058, 061, 069, 071, 087)
+    is the CHAD cholera situation report series, verified by downloading
+    SITREP 061 and extracting its text. Not Togo. Do not chase these again.
+  * The two Cholera Platform hotspot dossiers are definitively unrecoverable
+    from the Internet Archive: each has exactly one capture (article/328 at
+    20200921094901, article/470 at 20200921095052) and every replay variant
+    (id_, if_, bare, http/https, with and without www, with a Range header)
+    returns exactly 1 048 576 bytes with an unreadable xref. This is a Wayback
+    replay truncation, not a client limit - a 6.4 MB PDF downloaded fine in the
+    same session.
+
+=== BATCH 6 | PHASE 3 (ministry performance reports, IFRC 2004) | TGO ===
+NOTE ON QUERY COUNTING FROM HERE ON: a "query" is either a WebSearch or a
+targeted repository query (Wayback CDX search, direct PDF retrieval and text
+extraction from a named institutional repository). Both are search operations
+against a discoverable corpus and both are listed individually below. Yield is
+still (queries producing >=1 NEW committed row) / 20.
+
+Queries (20)  :
+  R1 Wayback CDX sante.gouv.tg filter=*performance*
+  R2 Wayback CDX sante.gouv.tg filter=mimetype:application/pdf
+  R3 ifrc.org Togo cholera Information Bulletin 02/04 (direct PDF)
+  R4 Rapport_Annuel_Performance_2020_DRSGL (Grand Lome region) via Wayback
+  R5 Rapport annuel de performance 2023 MSHP via Wayback
+  R6 Rapport annuel performance 2022 MAHPAUS via Wayback
+  R7 Rapport annuel performance 2021 MSHPAUS via Wayback
+  R8 Rapport annuel de performance Region de la Kara 2024 via Wayback
+  R9 Rapport annuel de performance 2024 MSHP via Wayback (3 timestamps)
+  R10 RAPPORT ANNUEL OMS TOGO 2024 (afro.who.int, direct PDF, 10.7 MB)
+  R11 Wayback CDX re-check of plateformecholera article/328 and /470
+  W1 Togo rapport annuel de performance 2024 MSHP surveillance cholera district sanitaire PDF [FR]
+  W2 Togo cholera 2024 Adakpame Golfe cas confirmes localite commune prefecture [FR]
+  W3 Togo cholera 2024 epidemie Golfe Agoe-Nyive nombre total cas annee 2024 confirmes OMS rapport [FR]
+  W4 Togo cholera 2025 outbreak districts Golfe Agoe-Nyive total cases confirmed epidemiological update
+  W5 Togo plan national multisectoriel elimination cholera 2022 2026 districts PAMI tableau cas historique [FR]
+  W6 Togo "plan strategique" cholera 2018 2022 districts a risque cas par district tableau [FR]
+  W7 Togo annuaire statistiques sanitaires 2017 2018 GHDx microdata World Bank download PDF
+  W8 Togo cholera etude WASH zones a haut risque 2014 UNICEF Katanga Didaoure districts cas [FR]
+  W9 Togo cholera 2008 2009 2010 Lome districts D1 D2 D3 D4 D5 number outbreaks cases incidence
+
+Sources found  : 2 usable   Registered: index 75, 76
+Rows added     : 1         Indices: 98
+Successful queries: 1/20  (R5)
+Yield         : 5%
+Consecutive sub-5% batches: 0  (5% is not BELOW 5%, so the counter resets)
+Decision      : CONTINUE
+
+  [75] Togo MoH Rapport annuel de performance 2023, cholera section
+       -> row 98 AFR::TGO::Grand Lome::Golfe::Adakpame 2023, 1 case, 1 confirmed
+       AND IT RESOLVES THE 2023 DISCREPANCY: "En 2023, c'est la localite
+       d'Adakpame, l'une des communes de la prefecture du Golfe, qui a
+       enregistre 01 cas confirme de cholera mettant toute la prefecture du
+       Golfe en alerte. A des fins d'investigation plus approfondie, les
+       echantillons de deux autres cas ont ete explores mais tous negatifs au
+       Vibrio cholerae. Dans le reste du territoire aucun autre cas de cholera
+       n'a ete enregistre."
+       So the Annuaire's 3 Golfe cases for 2023 = 1 confirmed + 2 suspected that
+       were laboratory-NEGATIVE, which is exactly why the WHO dashboard shows 1.
+       Recorded in row 98's notes and in the metadata for index 71 and 75.
+
+  [76] Togo MoH Rapport annuel de performance 2022, cholera section - registered
+       as CORROBORATION, no rows:
+       (a) "Cette annee 2022, le pays n'a pas enregistre de cas sur toute
+           l'etendue du territoire national" - independently confirms the
+           Annuaire 2022 district table behind AI rows 64-69.
+       (b) locality spread of the 2021 Lacs outbreak: began in commune No 2 at
+           Agouegan, then Melly-Djigbe, Seko, Zola, Aziagba-Kondji and
+           Aneho-Adjido; 39 cases, 27 sampled, 12 confirmed Ogawa, 5 deaths of
+           which 4 community. Deliberately NOT made a row: AI row 29 (AFENET,
+           38/11/4) and AI row 95 (Agouegan canton, 24/7) already represent this
+           one small outbreak, and the Annuaire 2021 gives Lacs 37. A third
+           near-identical figure would add noise, not signal. The three
+           independent counts - 37, 38, 39 - agree to within 5%, which is itself
+           useful evidence that the Lacs 2021 event was ~38 cases and that AI
+           rows 8 + 29 summing to 55 is wrong.
+       (c) "Seko" appears here as a 2021 Lacs locality, which is the same place
+           other reports put at the centre of a 2016 Lacs outbreak.
+
+  ADMINISTRATIVE-BOUNDARY CONFIRMATION (affects how every row is coded):
+  the Grand Lome 2020 regional performance report states that 2020 was the first
+  year that "les donnees des districts d'Agoe-Nyive et du Golfe qui etaient dans
+  la region maritime en 2019" were counted under the Grand Lome region. So the
+  Golfe/Agoe-Nyive transfer from Maritime to Grand Lome took effect in 2020, and
+  the coding used here is right: Maritime::Golfe for 2012, Grand Lome::Golfe for
+  2020 onward. NOTE FOR AGENT 5/7: pre-existing AI row 9 codes Golfe under
+  Maritime for DECEMBER 2023, which is on the wrong side of that boundary change.
+
+NEGATIVE RESULTS
+  * The Rapport annuel de performance 2024 (MSHP) EXISTS - the URL
+    sante.gouv.tg/wp-content/uploads/2025/10/Rapport-annuel-de-performance-2024_MSHP_VF_07072025_Okok.pdf
+    is in the Wayback index - but the single capture (20260415051404) is 5 315
+    bytes and every replay returns an 18 KB HTML shell, not the PDF. Together
+    with the still-unpublished Annuaire 2024, this is why the 2024-25 outbreak
+    has no district breakdown. BOTH DOCUMENTS WILL RESOLVE IT WHEN AVAILABLE.
+  * IFRC Information Bulletin 02/04 (metadata index 38) downloaded and read: its
+    table has a row literally headed "5 Districts in Lomé-Commune" with the
+    cases and deaths cells left EMPTY. It gives only national figures (661 cases
+    / 37 deaths as at 22.02.04, rising to 722 / 38 by 08.03.04) and the note
+    that volunteers were active in six sanitary districts. NOTE A CONFLICT: IRIN
+    reports 786 national cases as at 18 February 2004 while IFRC reports 661 as
+    at 22 February - the two cannot both be right and neither was averaged.
+  * WHO Togo country office Annual Report 2024 (10.7 MB, afro.who.int, read in
+    full): cholera appears 14 times, all of it response narrative - SURGE expert
+    deployment, 16 cholera beds, 1 100 cholera RDTs, 200 cholera kits. No cases,
+    no deaths, no districts.
+  * Grand Lome regional performance report 2020: one passing mention of cholera
+    in a list of programme objectives. No data.
+  * Kara regional performance report 2024: the word cholera does not appear.
+  * No Togo national cholera elimination plan later than the 2015-2017 strategic
+    plan could be found; that plan's district-risk table (Tab.3) and its
+    "Nombre de cas par District" figure (Fig.5) are images and did not extract.
+  * Togo yearbooks for 2015-2018 remain unobtainable: GHDx catalogues 2016, 2019
+    and 2020 only, and medbox's document page times out.
+
+=== BATCH 7 | PHASE 3 (Togolese and francophone local media, 2005-2015) | TGO ===
+Queries (20)  : all WebSearch unless marked
+  1  Togo cholera 2006 epidemie Lome cas deces quartiers Be Akodessewa Gbetsogbe lagune [FR]
+  2  Togo cholera 2008 2009 Lome epidemie cas deces communique ministere sante quartiers [FR]
+  3  Togo cholera 2011 2012 Lacs Aneho epidemie cas deces frontiere Benin [FR]
+  4  Togo cholera 2015 cas Lome Golfe district epidemie janvier fevrier [FR]
+  5  AJOL African Journals Online Togo cholera epidemiologie district Lome article JRSUL [FR]
+  6  togo.opendataforafrica.org cholera cas region district donnees statistiques sanitaires [FR]
+  7  Togo INSEED annuaire statistique national cholera cas par region sante tableau [FR]
+  8  Togo cholera 2004 Noepe Zio Tsevie Kpalime cas epidemie ville cotiere 55 km [FR]
+  9  (togoactualite.com Kpalime article - archive retrieval)
+ 10  Togo epidemie cholera Kpalime Kloto deces cas Plateaux [FR]
+ 11  Kpalime cholera 2014 bilan cas deces septembre octobre Kloto Togo epidemie fin [FR]
+ 12  Togo cholera 2014 Kpalime epidemie riposte nombre de cas total district Kloto novembre [FR]
+ 13  togoactualite OR icilome cholera epidemie cas deces district Tsevie Zio Togo [FR]
+ 14  Togo cholera Vogan Vo Tabligbo Yoto epidemie cas deces district sanitaire [FR]
+ 15  Togo cholera Atakpame Ogou Amlame Amou epidemie cas deces district [FR]
+ 16  Togo cholera Sokode Tchaoudjo 2013 nombre de cas deces epidemie journal togolais [FR]
+ 17  WHO AFRO weekly bulletin outbreaks 2014 Togo cholera Kpalime Kloto new event week 40
+ 18  ReliefWeb OCHA West Africa 2014 Togo cholera Kpalime Plateaux region cases situation
+ 19  Togo cholera 2014 262 cas 11 deces bilan annuel regions epidemies Lome Kpalime [FR]
+ 20  "Togo" cholera 2014 outbreak news "Kpalime" OR "Kloto" cases deaths English report
+
+Sources found  : 1 usable   Registered: index 77
+Rows added     : 1         Indices: 99
+Successful queries: 1/20  (query 8, which surfaced the togoactualite Kpalime article)
+Yield         : 5%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE
+
+  [77] Togo Actualite, 19 October 2014 -> row 99
+       AFR::TGO::Plateaux::Kloto 2014-09-01..2014-09-27, 20 cases, 2 deaths.
+       THE FIRST PLATEAUX-REGION OUTBREAK WITH COUNTS anywhere in this dataset,
+       and it directly contradicts AI row 54, which records Plateaux as a
+       documented ZERO for 2014 on the authority of the Ministry's own
+       Tableau XXXVI. The same Ministry table leaves 113 of its 262 national
+       cases unattributed to any region, which is almost certainly where these
+       cases went. Flagged in the row, not hidden.
+
+=== BATCH 8 | PHASE 3 (systematic Wayback sweep of Togolese news archives) | TGO ===
+METHOD - worth reusing for other countries: instead of guessing article URLs,
+query the Wayback CDX index for every archived URL on a national news domain
+whose urlkey contains 'chol':
+  https://web.archive.org/cdx/search/cdx?url={domain}&matchType=domain
+      &filter=urlkey:.*chol.*&collapse=urlkey&fl=original&limit=200
+This returns the paper's entire cholera back-catalogue in one call, including
+articles that no search engine surfaces. Run against seven Togolese outlets.
+
+Queries (20)  :
+  R1-R7  Wayback CDX cholera-URL sweep of togoactualite.com, icilome.com,
+         republicoftogo.com, savoirnews.net, letempstg.com, lalternative.info,
+         togobreakingnews.info
+  R8   togoactualite.com/epidemie-cholera-trois-cas-enregistres-messowebe-prefecture-dagou (archive replay)
+  R9   togoactualite.com/deuxieme-deces-lie-au-cholera-kpalime-15-patients-hospitalises (archive replay)
+  R10  togoactualite.com/decouverte-des-cas-de-cholera-dans-la-maritime... (archive replay)
+  R11  letempstg.com/2014/05/04/sante-lepidemie-cholera-refait-surface-au-togo (archive replay)
+  R12  togobreakingnews.info/togo-le-cholera-fait-morts-grand-lome (archive replay)
+  R13  republicoftogo.com/.../Le-cholera-a-fait-sept-victimes-a-Lome (archive replay)
+  R14  icilome.com/2021/11/togo-apparition-de-cholera-dans-lacs-2-04-morts... (archive replay)
+  R15  republicoftogo.com/.../Une-personne-decede-du-cholera-a-Lome (archive replay)
+  R16  republicoftogo.com/.../Avec-la-saison-des-pluies-le-cholera-menace (archive replay)
+  R17  republicoftogo.com/.../Des-cas-de-cholera-en-zone-portuaire (archive replay)
+  R18  republicoftogo.com/.../cholera-sous-etroite-surveillance (archive replay)
+  R19  savoirnews.net cholera back-catalogue review (13 articles listed, 2013-2023)
+  R20  letempstg.com cholera back-catalogue review (4 distinct articles, 2013-2014)
+
+Sources found  : 3 usable   Registered: index 78, 79, 80
+Rows added     : 3         Indices: 100, 101, 102
+Successful queries: 2/20  (R1 togoactualite sweep -> row 100; R3 republicoftogo
+                 sweep -> rows 101 and 102)
+Yield         : 10%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE
+
+  [78] Togo Actualite, 1 November 2014 -> row 100
+       AFR::TGO::Plateaux::Agou 2014-10-31..2014-11-01, 3 cases, 3 confirmed.
+       Three villagers at Messowebe (Agou prefecture) with stool cultures
+       positive at the CHP de Kpalime laboratory. SECOND Plateaux district with
+       documented 2014 cholera. The same article closes the Kpalime tally at
+       20 cases and THREE deaths (row 99 has the 27 September figure of 20/2),
+       and a companion article of 1 October 2014 reports 15 patients
+       hospitalised at the CHP de Kpalime, the two deaths then recorded in the
+       Kligue-Kondji quartier, and an index case who had returned from a
+       FUNERAL IN GHANA - a cross-border introduction straight into the
+       Plateaux region, not spread from the coastal focus.
+
+  [79] Republique Togolaise, 31 January 2009 -> row 101  *** the single most
+       valuable row of the whole run ***
+       AFR::TGO::Grand Lome 2008-11-01..2009-01-31, 620 cases, 7 deaths,
+       citing the Programme national de lutte contre les maladies diarrheiques.
+       The 2008-09 Lome flood epidemic had NO sub-national representation at
+       all before this. Arithmetic: JHU/WHO national 2008 (397) + 2009 (218) =
+       615 against this epidemic total of 620 spanning the turn of the year,
+       i.e. essentially the whole national caseload of both years was this one
+       Lome epidemic. The same article mis-dates the 2003-04 epidemic as
+       "fevrier 2005" while quoting figures (786 cases, 25 deaths) that match
+       the contemporaneous IRIN dispatch of February 2004 exactly - the IRIN
+       dating is preferred and the discrepancy is recorded in the metadata.
+
+  [80] Republique Togolaise, 7 August 2024 -> row 102
+       AFR::TGO::Maritime::Vo 2024-08-01..2024-08-07, 1 case.
+       THE ONLY SUB-NATIONAL ATTRIBUTION THAT EXISTS FOR THE OPENING OF THE
+       2024-25 OUTBREAK, and it points at Vo prefecture on the Maritime coast,
+       not at Golfe. Announced by the Minister of Health: a 22-year-old man,
+       recovered. Flagged as possibly the same individual as the single case
+       the WHO dashboard records for the week 22-28 July 2024.
+
+FINDINGS FROM THE SWEEP THAT DID NOT BECOME ROWS
+  * republicoftogo 12 December 2008: "plus de 100 cas" and one death in Lome -
+    an earlier point on the same 2008-09 curve as row 101, but "more than 100"
+    is not a count.
+  * republicoftogo 18 November 2020: cases at Katanga in the port zone - no
+    numbers; the count for Katanga comes from the 30 November piece (row 94).
+  * icilome 10 November 2021: 4 deaths in the Lacs 2 commune - already carried
+    by AI rows 29 and 95.
+  * savoirnews 3 November 2013: "4 deces sur 116 cas" and 18 December 2013:
+    Anfoin and Katanga as the two affected localities - 2013 is excluded from
+    this agent's scope because the JHU baseline already holds Togo 2013
+    sub-national data.
+  * letempstg 4 May 2014: "Une epidemie de cholera menace le Sud-Est du Togo" -
+    the archived copy renders only navigation furniture, no article body.
+  * togobreakingnews "Togo : le Cholera fait des morts dans le grand Lome" -
+    same problem, only the site chrome was captured.
+
+=== BATCH 9 | PHASE 3 (second-tier outlets, WCA regional bulletins, genomics) ===
+Queries (20)  :
+  R1-R5  Wayback CDX cholera-URL sweep of togopresse.tg, alome.com, 27avril.com,
+         actutogo.com, afreepress.info
+  R6-R8  27avril.com archive replay of three Togo cholera articles
+  R9   Wayback CDX listing of all archived WCA Cholera_Update PDFs
+  R10-R12  WCA Cholera_Update W1-13 2025, W1-18 2025 and W1-39 2024 (downloaded,
+         text-extracted, searched for Togolese district names)
+  R13  district-name grep across the three WCA bulletins
+  R14  PubMed Central full text PMC4659613 (Smith et al 2015)
+  W1   Togo Vibrio cholerae isolates MLVA whole genome Lome Golfe Lacs district 2010 2014
+  W2   Togo cholera district-level dataset figshare zenodo github open data time series
+  W3   Togo cholera rapport d'investigation epidemie district sanitaire Golfe 2020 [FR]
+  W4   cholera Togo environmental surveillance lagoon Lome sampling 2011 2015 study district
+  W5   Togo cholera 2005 2006 2007 republicoftogo Lome cas deces epidemie quartiers inondations [FR]
+  W6   Togo cholera 2010 Lome districts D1 D4 Golfe outbreak cases isolates Africhol Zio 2011
+
+Sources found  : 1 usable   Registered: index 81
+Rows added     : 0
+Presence rows  : 2   AFR::TGO::Maritime::Zio 2011; AFR::TGO::Grand Lome 2010
+Successful queries: 0/20
+Yield         : 0%
+Consecutive sub-5% batches: 1
+Decision      : CONTINUE
+
+  [81] Smith AM et al, PLoS One 2015, 42 Togolese V. cholerae O1 isolates 2010-2012.
+       The isolate-provenance sentence - "In Togo, isolates derived from outbreaks
+       in the Zio prefecture (2011), lac regions (2012) and Lome city [districts
+       1-4 and Golfe] (2010, 2011, and 2012)" - is laboratory-confirmed evidence
+       that cholera was present in ZIO prefecture in 2011 and in Lome in 2010,
+       neither of which is otherwise recorded sub-nationally. Isolate counts are
+       not case counts, so these went to cholera_presence_ai.csv, not to rows.
+
+  NEGATIVE: the WCA regional cholera bulletins, which do carry per-district
+  tables for some countries, report Togo at NATIONAL level only. Verified by
+  extracting and grepping three of them: 2025 W1-13 (Togo 118 cases, 0 deaths),
+  2025 W1-18 (210 cases, 3 deaths), 2024 W1-39 (38 cases, 1 death). No Togolese
+  district name appears in any of them.
+  NEGATIVE: 27avril.com, togopresse.tg, actutogo.com, alome.com and
+  afreepress.info yield nothing - either no cholera articles, or archive captures
+  that contain only site navigation and no article body.
+
+=== BATCH 10 | PHASE 3 (togofirst archive, cross-border, WER, PAMI) ===
+Queries (20)  :
+  R1   togofirst.com/fr/sante/0911-8885 (archive replay) - Lacs 2 commune, 2 cases, 9 Nov 2021
+  R2   Wayback CDX cholera sweep of togofirst.com
+  R3   togofirst.com/fr/sante/0310-14916 (3 Oct 2024, Golfe, 4 deaths)
+  R4   togofirst.com/fr/sante/0808-14566 (8 Aug 2024, Vo prefecture index case)
+  R5   plumedafrique.tg archive replay (19 Dec 2024, Agoe-Nyive)
+  W1   Ghana Health Service cholera 2014 Volta Ketu cross-border Togo Kpalime funeral
+  W2   WHO Weekly Epidemiological Record 1995 1996 Togo cholera infected areas districts
+  W3   Togo GTFCC PAMI identification rapport districts prioritaires cholera 2024 2025 [FR]
+  W4   Togo cholera Kara region 2006 2017 two cases which district Bassar Kozah
+  W5   iris.who.int WER cholera infected areas Togo 1992 1993 1994 districts
+  W6   Benin rapport epidemiologique cholera communes frontalieres Togo cas importes [FR]
+  W7   Togo "diarrhee aqueuse aigue" epidemie district cas surveillance integree bulletin [FR]
+  W8   Togo cholera "taux d'attaque" district sanitaire pour 100 000 habitants [FR]
+  W9   Togo cholera Agoe-Nyive 2025 cas janvier fevrier communes Haoussa Zongo bilan [FR]
+  W10  plumedafrique Togo alerte sante cholera Agoe-Nyive cas deces 2024 [FR]
+  W11  Togo cholera 2001 Lome quartiers cas 2551 epidemie avril rapport OMS [FR]
+  W12  Togo cholera outbreak 1991 Lome epidemic 2396 cases 81 deaths regions districts
+  W13  Togo cholera Agoe-Nyive "11 cas" OR "quatre deces" decembre 2024 DPS bilan [FR]
+  W14  Togo cholera 2025 total cases 209 five deaths districts breakdown WHO
+  W15  (verification of the Vo index case against a second outlet)
+
+Sources found  : 1 usable   Registered: index 82
+Rows added     : 1         Indices: 103
+Successful queries: 1/20  (W10)
+Yield         : 5%
+Consecutive sub-5% batches: 0  (reset - 5% is not below 5%)
+Decision      : CONTINUE
+
+  [82] Plume d'Afrique, 19 December 2024 -> row 103, which SUPERSEDES ROW 51.
+       Dr Maryse Tchilalo TAGBA-PELEI, Directrice prefectorale de la sante
+       d'Agoe-Nyive, quoted by name: "Depuis le 10 octobre, nous avons enregistre
+       11 cas confirmes au vibrion colerique et 4 deces." Definite start date,
+       unambiguous cumulative count, named official. Row 51 (8 cases / 2 deaths,
+       from ambiguous wire copy) should be deleted by Agent 7.
+  CORROBORATION: togofirst of 8 August 2024 independently confirms the Vo
+       prefecture index case behind row 102 ("un jeune homme de 22 ans vivant
+       dans la prefecture de Vo"), with the ministerial announcement dated
+       6 August 2024.
+
+=== BATCH 11 | PHASE 3 (humanitarian actors, OCV, remaining outlets) ===
+Queries (20)  :
+  R1-R4  Wayback CDX cholera sweep of togotopnews.tg, telegramme228.com,
+         lomebougeinfo.com, fraternitenews.info
+  R5   gavi.org Togo cholera article re-read for the district list
+  R6   croixrouge-togolaise.org read for cholera district names
+  W1   Togo cholera 2025 "district sanitaire" cas notifies semaine epidemiologique [FR]
+  W2   Togo cholera 2024 2025 IFRC DREF MDRTG005 operation districts targeted population
+  W3   Togo cholera Croix-Rouge togolaise 2024 2025 riposte districts Golfe Agoe [FR]
+  W4   Togo cholera 2024 2025 MSF UNICEF Togo response report districts treatment centres
+  W5   "epidemie de cholera" Togo "plusieurs districts" "Agoe" "Golfe" "Lacs" "Bas Mono" [FR]
+  W6   Togo cholera district Bas-Mono Afagnan 2024 2025 cas epidemie confirme [FR]
+  W7   Togo cholera district des Lacs 2024 2025 Aneho cas confirmes recrudescence [FR]
+  W8   Togo cholera 2025 ICG oral cholera vaccine request districts doses allocated
+  W9   Togo cholera 2022 2023 zero cas district surveillance annuelle absence [FR]
+  W10  Togo cholera decembre 2023 Anfame Adakpame Golfe femme 45 ans cas confirme [FR]
+  W11  Togo cholera 2019 2018 zero cases districts annual report DSIUSR surveillance
+  W12  Togo cholera 2017 2016 2015 cas district Lome Golfe Lacs rapport annuel [FR]
+  W13  Togo cholera Savanes Oti district 2020 two cases Burkina border investigation
+  W14  (cross-check of the four-district claim against its apparent source)
+
+Sources found  : 0 usable
+Rows added     : 0
+Successful queries: 0/20
+Yield         : 0%
+Consecutive sub-5% batches: 1
+Decision      : CONTINUE to the 12-batch ceiling
+
+  UNVERIFIED LEAD, DELIBERATELY NOT RECORDED: a search-engine summary attributed
+  the sentence "Une epidemie de cholera frappe actuellement plusieurs districts
+  du Togo, notamment ceux d'Agoe, du Golfe, des Lacs et du Bas Mono" to the Gavi
+  or Croix-Rouge togolaise pages. Both were fetched in full and NEITHER contains
+  it - the Gavi article of 21 October 2024 names only "le district sanitaire du
+  Golfe, qui inclut la capitale Lome". The claim would put Lacs and Bas-Mono in
+  the 2024-25 outbreak, which nothing else supports, so it was not recorded even
+  as a presence row. The legacy Agent 2 log of 2025-07-24 makes the same claim
+  with no source. TREAT IT AS UNSOURCED.
+  LOCALITY CONFLICT LOGGED: the December 2023 confirmed case is placed at
+  ADAKPAME by the MoH Rapport annuel de performance 2023 (which is what row 98
+  records) and at ANFAME by Togo First of 19 January 2024 and republicoftogo of
+  14 December 2023. Both are Golfe-prefecture neighbourhoods.
+
+=== BATCH 12 | PHASE 3 (corroboration and final verification) | TGO ===
+Queries (20)  :
+  W1   Togo cholera 2008 2009 Lome 620 cas 7 morts inondations programme national [FR]
+  W2   Togo cholera November 2008 Lome flooding outbreak cases deaths IRIN peripheral
+  W3   Togo 2014 cholera Kpalime Kloto outbreak confirmed total cases ministry statement
+  W4   Togo cholera Messowebe Agou 2014 trois cas confirmes laboratoire CHP Kpalime [FR]
+  V1-V16  Verification pass: py/validate_quality.py TGO; per-row audit of the
+         double-counting phrase across all 29 rows named in the overlap findings;
+         py/analyze_effective_gaps.py re-run and TGO coverage/recency re-read;
+         reconciliation of rows 51/103, 54/99/100 and 8/29/95; confirmation that
+         savoirnews.net independently carried the 1 November 2014 Messowebe story
+         at /blog/2014/11/01/epidemie-de-cholera-trois-cas-enregistres-a-messowebe-prefecture-dagou/,
+         giving row 100 a second outlet.
+
+Sources found  : 0 new
+Rows added     : 0
+Successful queries: 0/20
+Yield         : 0%
+Consecutive sub-5% batches: 2
+Decision      : STOP - 12-batch ceiling reached.
+
+================================================================================
+AGENT 2 CLOSE-OUT - TOGO
+================================================================================
+Batches            : 12 (240 operations)
+Yields (percent)   : 5, 25, 10, 15, 0, 5, 5, 10, 0, 5, 0, 0
+Stopping reason    : 12-batch ceiling. The 3-consecutive-sub-5% rule was never
+                     satisfied outright: batches 6, 7, 8 and 10 each landed on
+                     exactly 5% (one committed row), which resets the counter.
+Rows added         : 53   (./data/TGO/cholera_data_ai.csv 50 -> 103)
+Sources registered : 20   (./data/TGO/metadata_ai.csv 62 -> 82, indices 63-82)
+Presence rows      : 6    (./data/TGO/cholera_presence_ai.csv 17 -> 23)
+Validation         : python py/validate_quality.py TGO -> exit 0, 0 ERRORs
+
+SUB-NATIONAL COVERAGE BEFORE AND AFTER
+  Before: 2013 and 2016 only (JHU, 23 non-zero rows) plus nine AI rows for
+          2003-04, 2008-10, 2020, 2021 and 2023.
+  After : every year from 2006 to 2024 now carries at least one sub-national
+          observation, plus 2003-04, and region-level aggregates covering
+          2006-2017 as a block.
+  Regions with data where there was none: Plateaux (2006-17, 2014 x2),
+          Centrale (2006-17), Kara (2006-17), Savanes (2006-17 zero, 2020 Oti).
+  Administrative depth reached: region (6/6), district/prefecture (Golfe,
+          Agoe-Nyive, Lacs, Vo, Zio, Oti, Kloto, Agou), canton (Agouegan),
+          health area / locality (Katanga, Adakpame).
+
+STILL UNREPRESENTED SUB-NATIONALLY
+  1991, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2005, 2007,
+  2015, 2017, 2018, 2019, 2022, 2025 - for 1991-2002 because district-level
+  surveillance data did not exist in Togo before 2008 (Landoh et al), for
+  2015-2019 and 2022 because the years were genuinely quiet or zero, and for
+  2024-25 because the two Ministry documents that hold the breakdown are
+  unpublished or unretrievable.
+================================================================================

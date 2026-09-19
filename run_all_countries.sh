@@ -30,7 +30,8 @@ cd "$ROOT"
 MANIFEST="reference/run_manifest.csv"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOGDIR="logs/run_${STAMP}"
-TIMEOUT_SECS=${TIMEOUT_SECS:-14400}        # 4h per country
+TIMEOUT_SECS=${TIMEOUT_SECS:-28800}        # 8h per country
+MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}            # retries before moving on
 PERMISSION_MODE="acceptEdits"
 MAX_TURNS=${MAX_TURNS:-600}
 DASH_EVERY=${DASH_EVERY:-5}                # full dashboard rebuild cadence
@@ -179,23 +180,35 @@ for iso in "${QUEUE[@]}"; do
   echo ""
   echo "--- [$n/${#QUEUE[@]}] $iso  (rows=$rb sources=$sb)  $(date '+%H:%M:%S') ---"
 
-  timeout "$TIMEOUT_SECS" claude -p "$iso" \
-      --agent workflow-orchestrator \
-      --permission-mode "$PERMISSION_MODE" \
-      --max-turns "$MAX_TURNS" \
-      > "$log" 2>&1 </dev/null
-  code=$?
+  # Retry loop. An orchestrator that dies part-way leaves its work on disk and
+  # records it in workflow_state.json, so a retry resumes rather than restarting
+  # from zero. The aim is that every country completes, however many passes it
+  # takes.
+  attempt=0; st="unrun"
+  while (( attempt < MAX_ATTEMPTS )); do
+    attempt=$((attempt+1))
+    [[ $attempt -gt 1 ]] && echo "    retry $attempt/$MAX_ATTEMPTS ($st) $(date '+%H:%M:%S')"
+
+    timeout "$TIMEOUT_SECS" claude -p "$iso" \
+        --agent workflow-orchestrator \
+        --permission-mode "$PERMISSION_MODE" \
+        --max-turns "$MAX_TURNS" \
+        >> "$log" 2>&1 </dev/null
+    code=$?
+
+    case $code in
+      0)   st="done" ;;
+      124) st="timeout" ;;
+      *)   st="failed" ;;
+    esac
+    agents_ran=$(find "data/$iso" -name 'search_log_agent_*.txt' -newermt "@$t0" 2>/dev/null | wc -l | tr -d ' ')
+    [[ "$st" == "done" && "$agents_ran" -ge 7 ]] && break
+    [[ -f STOP ]] && break
+  done
 
   t1=$(date +%s); ra=$(rowcount "$iso"); sa=$(srccount "$iso")
-  case $code in
-    0)   st="done" ;;
-    124) st="timeout" ;;
-    *)   st="failed" ;;
-  esac
-  # A clean exit is not evidence the workflow ran. Count how many of the seven
-  # agent logs were actually written during this country's run window; the pilot
-  # exited 0 having run only Agent 1.
-  agents_ran=$(find "data/$iso" -name 'search_log_agent_*.txt' -newermt "@$t0" 2>/dev/null | wc -l | tr -d ' ')
+  # A clean exit is not evidence the workflow ran. Classify on how many of the
+  # seven agent logs were actually written during this country's run window.
   if [[ "$st" == "done" ]]; then
     if [[ "$agents_ran" -lt 7 ]]; then
       st="incomplete_${agents_ran}of7"
@@ -208,7 +221,7 @@ for iso in "${QUEUE[@]}"; do
     "$iso" "$st" "$started_at" "$(date '+%Y-%m-%d %H:%M:%S')" \
     "$rb" "$ra" "$sb" "$sa" "$code" "$log" >> "$MANIFEST"
 
-  echo "    $st  agents ${agents_ran}/7  rows ${rb}->${ra} (+$((ra-rb)))  sources ${sb}->${sa} (+$((sa-sb)))  $(( (t1-t0)/60 ))min"
+  echo "    $st  attempts ${attempt}  agents ${agents_ran}/7  rows ${rb}->${ra} (+$((ra-rb)))  sources ${sb}->${sa} (+$((sa-sb)))  $(( (t1-t0)/60 ))min"
   python3 py/validate_quality.py "$iso" --quiet >/dev/null 2>&1 \
     || echo "    WARNING: $iso does not pass validation after its run"
 
@@ -228,7 +241,23 @@ echo ""
 echo "--- baseline integrity ---"
 python3 py/protect_baselines.py verify
 echo ""
-awk -F, 'NR>1 {c[$2]++} END {for (k in c) printf "  %-14s %d\n", k, c[k]}' "$MANIFEST"
+awk -F, 'NR>1 {c[$2]++} END {for (k in c) printf "  %-18s %d\n", k, c[k]}' "$MANIFEST"
+echo ""
+python3 - <<'PYEOF'
+import csv, json
+mosaic = {k for k, v in json.load(open('reference/country_mapping.json'))['countries'].items()
+          if v.get('mosaic_framework')}
+last = {}
+for r in csv.DictReader(open('reference/run_manifest.csv')):
+    last[r['iso']] = r['status']
+incomplete = sorted(i for i in mosaic if last.get(i) != 'done')
+if incomplete:
+    print(f"NOT YET COMPLETE ({len(incomplete)}/40): {' '.join(incomplete)}")
+    print("Re-run `bash run_all_countries.sh --unattended --publish-progress` to continue;")
+    print("countries already marked done are skipped.")
+else:
+    print("ALL 40 COUNTRIES COMPLETE.")
+PYEOF
 echo ""
 python3 py/validate_quality.py --quiet 2>&1 | sed -n '2,4p'
 [[ $PUBLISH -eq 1 ]] && echo "" && echo "Dashboard published to GitHub Pages." \

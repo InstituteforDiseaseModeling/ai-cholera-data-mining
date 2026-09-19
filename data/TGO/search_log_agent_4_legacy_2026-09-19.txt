@@ -1,0 +1,799 @@
+================================================================================
+AGENT 4 - OBSCURE SOURCE EXPLORER | TOGO (TGO)
+================================================================================
+Start        : 2026-09-19
+Working dir  : /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Log          : ./data/TGO/search_log_agent_4.txt
+State in     : ./data/TGO/workflow_state.json (agents 1,2,3 present - preserved)
+
+STATE ON ARRIVAL (after Agents 1-3)
+  ./data/TGO/cholera_data_ai.csv       118 rows
+  ./data/TGO/metadata_ai.csv            95 sources
+  ./data/TGO/cholera_presence_ai.csv    32 rows
+  Effective coverage 99.7%; only 2 effective gaps remain:
+     1973-01-01..1973-01-31  (31d, historical)  <- deliberately re-opened by Agent 3
+     2026-09-01..2026-09-19  (19d, recent)      <- publication lag, not my scope
+
+MANDATE FOR THIS RUN
+  Coverage is saturated. Value here is DEPTH and RESOLUTION on the pre-2000
+  record, plus cracking six named blocked sources left by Agents 1-3:
+    L1 Djadou et al, Med Afr Noire 2001;48(5):187-190 - Dapaong (Savanes) 1998
+    L2 Landoh et al 2013, doi 10.1093/infdis/jit244 - 2005-2010 regional +
+       26 district outbreaks 2008-2010
+    L3 1995 WER sub-annual entries - text extraction mis-assigns columns
+       (sums to 2x the annual total); needs coordinate-aware extraction
+    L4 1991-2002 district-level data - test Agent 2's "did not exist" claim
+    L5 January 1973 - open month, presence recorded, no count
+    L6 Togo MoH Annuaires des statistiques sanitaires - sante.gouv.tg now an
+       SPA shell; Wayback CDX sweep of pre-SPA snapshots
+
+DEFINITIONS USED IN THIS LOG
+  A "query" is one retrieval operation: a WebSearch, a WebFetch, an IRIS DSpace
+  API call, a Wayback CDX query, a direct PDF fetch + text extraction, or a
+  PubMed/Crossref/Unpaywall API call. Each is listed individually.
+  Yield = (queries that produced >=1 NEW COMMITTED row in
+  ./data/TGO/cholera_data_ai.csv) / 20 * 100, in PERCENT.
+
+=== BATCH 1 | PHASE 3 (deep archival: WER coordinate-aware re-extraction) | TGO ===
+Gap targeted : LEAD 3 - 1995 sub-annual resolution. Agent 1 found three candidate
+               WER Togo entries, judged them mis-assigned by the scanned
+               multi-column layout (they summed to 2x the WHO annual), and
+               deliberately withheld them. Re-opened with layout+raster tooling.
+Queries (20):
+  Q1  IRIS DSpace  discover/search/objects?query="Weekly epidemiological record" 1995
+  Q2  IRIS DSpace  enumeration of WER 1995 vol.70 [full issue] -> 50 issues, all found
+  Q3  IRIS DSpace  bundle -> bitstream resolution + bulk download of all 50 PDFs
+                   NOTE FOR LATER AGENTS: the URL form
+                   https://iris.who.int/bitstreams/{uuid}/download returns the
+                   Angular SPA shell (755 bytes of HTML that looks like a PDF to
+                   a naive writer). The working form is
+                   https://iris.who.int/server/api/core/bitstreams/{uuid}/content
+  Q4  local        pdftotext -layout over all 50 issues + CASE-INSENSITIVE Togo scan
+                   (23 issues mention Togo)
+  Q5  local        page-level localisation of Togo in issues 20, 31, 32 -> p8 in each
+  Q6  local        pdftoppm 240 dpi raster render + VISUAL read, WER 1995;70(31) p8
+  Q7  local        pdftoppm 240 dpi raster render + VISUAL read, WER 1995;70(32) p8
+  Q8  local        pdftoppm 240 dpi raster render + VISUAL read, WER 1995;70(20) p8
+  Q9  local        full-context dump of all 23 Togo mentions across WER 1995
+  Q10 IRIS/local   WER 1995;70(28) Table 1 "Cases of cholera and deaths notified to
+                   WHO, 1994" -> Togo 47 / 5 (matches AI row 43 and GHO)
+  Q11 local        cross-check against ./data/TGO/cholera_data_jhu.csv 1993-2012
+  Q12 IRIS DSpace  enumeration of WER 1996 vol.71 [full issue] -> 50 issues
+  Q13 IRIS DSpace  bulk download of all 50 WER 1996 PDFs
+  Q14 local        pdftotext -layout over WER 1996 + case-insensitive Togo scan
+  Q15 IRIS/local   WER 1996;71(21) Table 1 "Cases of cholera and deaths notified to
+                   WHO, 1995" -> Togo 65 / 4   [the conflicting authority]
+  Q16 local        WER 1996;71(12) "Togo: 183 (33)"  [NEGATIVE - cerebrospinal
+                   MENINGITIS in Africa, not cholera. Trap for a keyword scan.]
+  Q17 local        WER 1995;70(19) "Togo 1989 1617" [NEGATIVE - meningococcal
+                   meningitis epidemic-period table, not cholera.]
+  Q18 local        independent re-extraction of Agent 1's four 1996 Togo
+                   notifications as a method control
+  Q19 IRIS/local   WER 1995;70(25) "Infected areas as at 22 June 1995" + 240 dpi
+                   visual verification of the Togo block
+  Q20 local        read py/build_weekly_timeseries.py merge logic to establish
+                   whether an AI sub-annual row can double-count against a JHU
+                   annual row
+Sources found: 4    Registered: metadata index 96, 97, 98, 99
+Rows added   : 3    Indices: 122, 123, 124   (+3 presence rows)
+Successful queries: 3/20  (Q6, Q7, Q8 - the three visual verifications that
+                    converted withheld candidates into committed rows)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+LEAD 3 - RESOLVED. AGENT 1'S MIS-ASSIGNMENT HYPOTHESIS IS FALSIFIED.
+  The three entries are exactly as Agent 1 read them, and they are correct:
+     WER 1995;70(20)  Togo  1.I-28.II    27 cases   2 deaths
+     WER 1995;70(31)  Togo  1.VI-17.VII  55 cases   7 deaths
+     WER 1995;70(32)  Togo  18-27.VII    50 cases   7 deaths
+  Evidence that the column assignment is right, not merely plausible:
+  1. VISUAL. At 240 dpi the WER weekly layout is unambiguous. The country name
+     and the notification period share one line; the dotted leader with C and D
+     wraps to the line immediately below and belongs to the country named above
+     it. The 1994 ANNUAL table prints the same structure on a single line
+     ("Togo..... 47  5"), which fixes the convention.
+  2. ARITHMETIC FALSIFICATION OF THE ALTERNATIVE. Shifting the numbers up one
+     country in WER 1995;70(32) would give Burkina Faso 1 782 cases for
+     10.VI-19.VII 1995 against a 1995 ANNUAL total of 1 451. Impossible.
+     Shifting down would give Togo 150 for 1.VI-17.VII - worse, not better.
+  3. METHOD CONTROL. The identical pipeline reproduces Agent 1's four 1996
+     notifications exactly (49/4, 49/7, 6/0, 34/6), and those sum to 138 of a
+     146 annual. The pipeline is not biased upward.
+  THE DISCREPANCY IS INTERNAL TO WHO, NOT AN ARTEFACT. Togo's contemporaneous
+  IHR telegrams total 132 cases / 16 deaths for 1995; Togo's official annual
+  return, printed by WHO a year later in WER 1996;71(21), is 65 / 4. Two of the
+  three telegrams individually report more deaths than the whole published year.
+  WHAT I COMMITTED AND WHY IT IS SAFE.
+  Rows 122-124 carry confidence 0.5 (a deliberate downgrade from the Level 1
+  floor of 0.9, recorded as such by the writer) and every one of them states
+  BOTH figures and "DO NOT SUM" in processing_notes, per the preliminary-versus-
+  final rule. They are retained for TIMING, not for magnitude. They cannot
+  inflate the modelled series: py/build_weekly_timeseries.py merges per ISO week
+  with SOURCE_PRIORITY WHO > JHU > AI and never sums, so the JHU annual row for
+  1995 (65/4, Fourier-disaggregated) overwrites every AI cell in 1995.
+
+NEW SUB-NATIONAL FINDING FOR 1995 (presence, no counts available)
+  Togo's IHR infected-area listing in 1995 is Golfe District, Kloto District and
+  Kozah District - THREE districts, present identically in issues 03, 10, 15, 19,
+  22, 25, 30, 34, 37, 40, 43 and 47 (January to November 1995).
+  This partly corrects Agent 3's note that the 1990s lists are static: WER
+  printed EIGHT Togolese districts on 24 Oct 1991 and again on 28 Jan 1999, but
+  only these three through 1995. The list was trimmed, so it was being
+  maintained, and the 1995 listing carries real information.
+
+=== BATCH 2 | PHASE 3 (deep validation: cracking the two named paywalled leads) | TGO ===
+Gap targeted : LEAD 2 (Landoh et al 2013, 2005-2010 regional breakdown + 26
+               district outbreaks 2008-2010) and LEAD 1 (Djadou et al,
+               Med Afr Noire 2001;48(5):187-190, Dapaong/Savanes 1998)
+Queries (20):
+  Q21 PubMed MCP   search  Landoh[Author] AND cholera AND Togo  -> 3 records
+  Q22 PubMed MCP   get_article_metadata 24101639 / 27186885 / 29488455
+                   -> PMID 24101639 carries NO pmc identifier. No PMC deposit exists.
+  Q23 WebSearch    "National surveillance data on the epidemiology of cholera in
+                   Togo" Landoh pdf full text
+  Q24 OpenAlex     works/doi:10.1093/infdis/jit244 -> oa_status "closed",
+                   any_repository_has_fulltext FALSE, only 2 locations (OUP, PubMed)
+  Q25 Unpaywall    v2/10.1093/infdis/jit244 -> is_oa false, zero oa_locations
+  Q26 WebFetch     academic.oup.com/jid/article/208/suppl_1/S115/834498
+                   -> "You do not currently have access to this article", EUR 39
+  Q27 WebSearch    Togo cholera 2005-2010 by region, the specific figures
+  Q28 SemanticSch. graph/v1/paper/DOI:... -> openAccessPdf status CLOSED
+  Q29 CORE v3      search/works "National Surveillance Data ... Cholera in Togo"
+  Q30 OUP          academic.oup.com/jid/issue/208/suppl_1 (whole-supplement TOC,
+                   testing whether the Africhol supplement went free) -> HTTP 403
+  Q31 WebSearch    Djadou Atakouma "Epidemie de cholera a Dapaong" Med Afr Noire 2001
+  Q32 direct       APIDPM resume-PDF path probe: 21 constructed URLs
+                   ({santetropicale,medecinedafriquenoire}/Resume/4850{1..7}.pdf) - all 404
+  Q33 direct       APIDPM domain reachability: santetropicale.com 200;
+                   medecinedafriquenoire.com DEAD; apidpm.org DEAD
+  Q34 direct       santetropicale.com link-structure map -> archive lives at
+                   /manelec/fr/numero.asp?numero=VVII
+  Q35 direct       /manelec/fr/numero.asp?numero=4805 (= vol 48 issue 5) -> HTTP 500
+  Q36 direct       /manelec/fr/archives.asp -> only volume 73 (2026) is online.
+                   APIDPM's public back-catalogue does not reach 2001.
+  Q37 direct       /manelec/fr/recherche.asp form inspection (fields cherche,
+                   piege_robot, action, selectsearch, specialite, pays, max)
+  Q38 direct       POST recherche.asp x3 ("Dapaong", "Djadou", "cholera Togo")
+                   -> every POST returns the unfiltered default listing; the
+                   piege_robot honeypot defeats scripted search
+  Q39 Wayback CDX  santetropicale.com* filtered to *resume* -> 8 000 rows,
+                   1 120 distinct resume PDFs; numbering decoded
+  Q40 Wayback      sample fetch of resume/48005.pdf -> a dental paper
+                   (Odonto-Stomatologie Tropicale), so the 5-digit 48xxx codes are
+                   NOT Medecine d'Afrique Noire volume 48
+Sources found: 0    Registered: none
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+LEAD 2 - FAILED, AND THE FAILURE IS NOW DEFINITIVE, NOT PROVISIONAL.
+  Landoh et al 2013 is closed at every layer that exists: no PMC deposit (the
+  PubMed record has no pmc identifier at all), OpenAlex reports no repository
+  full text anywhere, Unpaywall returns zero OA locations, Semantic Scholar
+  returns status CLOSED, the OUP article page is behind a EUR 39 day-pass and
+  the whole-supplement TOC 403s. All eleven citing works were enumerated through
+  OpenAlex; none reproduces the 2005-2010 regional table. The only content
+  recoverable without payment is the abstract, which has no case counts by
+  region, plus one search-engine snippet giving the OUTBREAK-COUNT split for
+  2008-2010 (26 district outbreaks: 62% / 16 in Lome districts, 23% / 6 in
+  Maritime districts, 15% / 4 elsewhere, none in Savanes). Outbreak counts are
+  not case counts and therefore cannot become rows under the CLAUDE.md rule.
+  I did NOT commit the widely-quoted regional figures (Lome 2884, Maritime 650,
+  Plateaux 432, Centrale 34, Kara 3, Savanes 0) because I could not read them in
+  the source. Agent 2 made the same call and it was the right one.
+
+LEAD 1 - FAILED SO FAR. The publisher's own archive does not go back far enough.
+  APIDPM (Medecine d'Afrique Noire's publisher) now serves only volume 73 on
+  santetropicale.com; medecinedafriquenoire.com and apidpm.org no longer resolve
+  at all. The Wayback copy of the old site holds 1 120 article PDFs but its
+  5-digit codes are not volume-48 MAN articles. Continued in batch 3.
+
+=== BATCH 3 | PHASE 3 (dead-domain recovery + pre-digital primary literature) | TGO ===
+Gap targeted : LEAD 6 (Togo MoH yearbooks behind the sante.gouv.tg SPA shell) and
+               LEAD 5 (January 1973, open month, presence but no count)
+Queries (20):
+  Q41 Wayback CDX  santetropicale.com* filtered chol / dapaong / togo
+                   -> no Dapaong anywhere in the archived APIDPM site
+  Q42 OpenAlex     works?filter=cites:W2067788143 -> all 11 citing works enumerated;
+                   none reproduces Landoh's regional table
+  Q43 Wayback CDX  sante.gouv.tg* (20 000 rows) -> recovered the PRE-SPA Drupal tree
+  Q44 Wayback      /fr/content/annuaire-des-statistiques-sanitaires-du-togo-annee-2015-0
+                   capture 2017-06-29 -> exact PDF path
+                   /sites/default/files/documents/annuaire_2015_15-06-16_vf.pdf
+  Q45 Wayback CDX  sante.gouv.tg/sites/default/files* -> 110 archived document URLs
+  Q46 Wayback      annuaire_2015_15-06-16_vf.pdf -> 404, the file itself was never
+                   captured; only its landing page was
+  Q47 Wayback      principaux_indicateurs_2015.pdf (capture 2017-06-11) -> 200, 66pp
+  Q48 Wayback      draft3_rapport_performance_2014_31_juillet15.pdf -> 200, 84pp
+  Q49 Wayback      togo_pnds_2017-2022_version_definitive_210217_.pdf -> 200, 93pp
+  Q50 local        cholera-table extraction from the 2015 indicators and the 2014
+                   performance report
+  Q51 local        overlap check of the recovered figures against
+                   ./data/TGO/cholera_data_jhu.csv 2013-2017
+  Q52 PubMed MCP   search "Bockemuhl cholera Togo El Tor" -> PMID 1088101, 1189026
+  Q53 PubMed MCP   get_article_metadata -> PMID 1088101 carries PMC2366433, i.e. the
+                   companion paper to Bockemuhl & Schroter IS free
+  Q54 PubMed MCP   get_full_text_article PMC2366433 -> full_text empty (scanned issue)
+  Q55 API          PMC OA service (404) + Europe PMC core record (hasPDF Y)
+  Q56 direct       three PDF endpoints: europepmc ?pdf=render 403, EBI
+                   /fullTextPDF 404, pmc.ncbi /pdf/ returns HTML
+  Q57 IRIS DSpace  title search -> 10665/260886, IRIS mirrors the PMC scan
+  Q58 IRIS DSpace  bitstream fetch + pdftotext -layout (6 pages)
+  Q59 local        230 dpi render + VISUAL read of page 191
+  Q60 local        230 dpi render + VISUAL read of Figure 1 on page 190 (the map)
+Sources found: 2    Registered: metadata index 100, 101
+Rows added   : 4    Indices: 125, 126, 127 (from Q49), 128 (from Q59)
+               +6 presence rows (from Q60)
+Successful queries: 2/20  (Q49, Q59)
+Yield        : 10%
+Consecutive sub-5% batches: 0  (reset)
+Decision     : CONTINUE
+
+LEAD 6 - PARTIALLY CRACKED. The technique works; the specific file is not there.
+  sante.gouv.tg served a Drupal site until about 2019 with documents under
+  /sites/default/files/documents/. The Wayback CDX index of that path holds 110
+  URLs. The 2015 yearbook's LANDING PAGE is archived and gave me the exact PDF
+  filename, but the PDF itself was never crawled (404 at every timestamp). The
+  2016, 2017 and 2018 editions are not in the index at all. What the path DID
+  yield is the PNDS 2017-2022, which carries a six-year national epidemic table.
+  NEW NATIONAL SERIES, Togo MoH, PNDS 2017-2022 Tableau I, source line
+  "Rapports conjoints MSPS, OMS, UNICEF, 2010 a 2015":
+     2010  75/3    2011  33/1   2012  74/1   2013  168/7   2014 262/11  2015 35/1
+  Against the WHO annual returns in cholera_data_jhu.csv (72/3, 4/0, 61/1, 166/4,
+  262/11, 35/1). 2013-2015 add nothing, so I committed only 2010, 2011 and 2012.
+  THE 2011 ROW IS THE IMPORTANT ONE: the Ministry says 33 cases where WHO says 4,
+  an eightfold difference, and Rebaudet et al 2018 Table 1 independently gives 33
+  for 2011 from the same national surveillance. Two independent renderings of the
+  Togolese record agree against WHO's annual return.
+  The 2015 indicators report gives only a cholera case-fatality indicator (2.9%,
+  consistent with 35/1) and no counts; the 2014 performance report's cholera cell
+  is literally "#DIV/0!". Neither produced a row.
+
+LEAD 5 - JANUARY 1973 IS NOW LOCALISED, BUT STILL HAS NO COUNT.
+  The route was sideways. Bockemuhl & Schroter 1975 (Tropenmed Parasitol), the
+  source of the "November 1970 to January 1973" dating, is not open. But its
+  companion paper - Bockemuhl & Meinicke, Bull World Health Organ 1976;54(2) -
+  IS free, and WHO IRIS mirrors the PMC scan, so my existing IRIS pipeline could
+  fetch it where the PMC and Europe PMC PDF endpoints all refused.
+  Figure 1 of that paper is a map of the whole 1970-73 epidemic with each focus
+  dated in roman-numeral month/year. Read visually at 230 dpi:
+     SOKODE   V-VI/72              ANIE    XI/71, and VIII/72 - I/73
+     TOMEGBE  VIII/71-IV/72        ADETA   III-V/72
+     NUATJA   IV/71-IV/72          LOME/ANECHO coastal endemic zone XI/70-XI/72
+  THE ONLY FOCUS STILL ACTIVE IN JANUARY 1973 WAS ANIE, in the Plateaux region.
+  The Lome-Anecho littoral had already ended in November 1972. That is a genuinely
+  new fact: the tail of Togo's seventh-pandemic wave was inland, not coastal.
+  No January 1973 case count exists in this paper, so the month stays open in
+  cholera_data_ai.csv and the finding is recorded as presence.
+  The same paper also yielded the first sub-national CASE COUNT in the Togolese
+  record before 2003: 37 bacteriologically confirmed cases at Nuatja (Notse, Haho
+  prefecture) between April 1971 and April 1972 - row 128, entered as cCh.
+  And Table 4 dates a northern introduction: Piya, near Lama-Kara (Kozah
+  prefecture, Kara region), July 1971, imported by a family travelling from
+  Nuatja. That is the northernmost documented point of the 1970-73 epidemic and
+  it is 27 years earlier than anything else in the Togolese record for Kara.
+
+=== BATCH 4 | PHASE 3 (WER 1970-1974 re-swept with layout-aware extraction) | TGO ===
+Gap targeted : LEAD 4 (Agent 2's claim that Togolese surveillance held no
+               district data before 2008) and sub-annual resolution for the
+               1970-73 El Tor wave. Agent 3 swept these volumes with pypdf;
+               the 1995 exercise in batch 1 showed pypdf silently DROPS numbers
+               in these wide two-line tables (it lost Liberia's 529 in
+               1995;70(31) where pdftotext -layout kept it), so the sweep was
+               redone with pdftotext -layout.
+Queries (20):
+  Q61-Q65 IRIS DSpace  enumeration of WER 1970 v45, 1971 v46, 1972 v47,
+                       1973 v48, 1974 v49 -> 49+49+50+51+50 = 249 full issues
+  Q66     IRIS DSpace  bulk download of all 249 issue PDFs
+  Q67     local        pdftotext -layout over all 249 + case-insensitive Togo scan
+  Q68     WebSearch    Dapaong Togo cholera 1998 Savanes Tone, in French
+  Q69     PubMed MCP   search Djadou[Author] -> 35 records, none is the Med Afr
+                       Noire Dapaong paper (PubMed does not index that journal)
+  Q70     direct       African Index Medicus / BVS reachability probe
+  Q71     WebFetch     indexmedicus.afro.who.int -> search endpoint is
+                       search.bvsalud.org/aimafro
+  Q72     direct       three AIM queries (Dapaong / cholera Togo / Djadou)
+                       -> HTTP 403, Bunny Shield bot challenge
+  Q73     WebFetch     search.bvsalud.org/aimafro?q=Dapaong -> HTTP 403
+  Q74     local        full Togo-context dump across WER 1970-1973
+  Q75     local        inspection of WER 1973;48(28) Table 1 and WER 1972;47(30)
+                       Table 1
+  Q76     local        period definition: the article's own text calls the five
+                       four-week periods "the first five months"
+  Q77     local        overlap check against cholera_data_jhu.csv 1970-1978 and
+                       the existing AI pre-1980 rows
+  Q78     local        page localisation + 240 dpi render of WER 1973;48(28) p.282
+  Q79     local        VISUAL verification of the Togo row
+  Q80     IRIS DSpace  handle verification for every URL registered this session
+Sources found: 1    Registered: metadata index 102
+Rows added   : 2    Indices: 129, 130
+Successful queries: 2/20  (Q75, Q79)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+WHAT WER 1973;48(28) GIVES
+  "Table 1. Global Situation of Cholera as Reported to WHO During First Five
+  Four-Week Periods in 1970-1973" - Togo row: 1970 "-", 1971 297, 1972 11,
+  1973 "-". Committed as rows 129 and 130. Both are internally consistent with
+  the WHO annual returns already in the baseline (335 for 1971, 16 for 1972),
+  which is the check the 1995 rows could not pass. 89% of Togo's 1971 cases fell
+  in the first five months of the year.
+  INDEPENDENT CONFIRMATION OF THE METHOD: WER 1972;47(30) Table 1 "Cases of
+  Cholera Notified in 1971" gives Togo first notification 24.11.1970 and total
+  335, exactly the JHU annual figure.
+
+THE 1973 COLUMN IS NOT A ZERO AND I DID NOT WRITE ONE.
+  Togo shows "-" for the first five four-week periods of 1973 and is not among
+  the 6 African countries in the "TOTAL number of countries reporting" line.
+  That is absence from a list of countries that notified cases - the same
+  construct Agent 3 adjudicated and rejected as evidence of disease absence.
+  It is also directly contradicted by Bockemuhl & Meinicke's Figure 1, which
+  dates the Anie focus VIII/72-I/73. The honest reading is that Togo's final
+  January 1973 activity was never notified to WHO. January 1973 stays open.
+
+HANDLE DISCIPLINE - ONE ERROR MADE AND CORRECTED BEFORE ANY ROW USED IT
+  I inferred an IRIS handle for WER 1973;48(28) (10665/218755) instead of looking
+  it up; the true handle is 10665/219457. I had also mis-assigned
+  10665/229455 to WER 1995;70(25) when that handle is issue (26); the true
+  handle is 10665/229446. Both metadata URLs were corrected programmatically
+  through add_observation.py's own locked load/save primitives - not by hand
+  editing - and Validation_Status records the correction on each. All six IRIS
+  URLs registered this session were then re-tested and return HTTP 200.
+  Agent 3's warning stands and I repeat it: look handles up, never infer them.
+
+=== BATCH 5 | PHASE 3 (the WER district seam, 1970-1971) | TGO ===
+Gap targeted : LEAD 4. Sub-national resolution for the 1970-73 epidemic.
+Queries (20):
+  Q81      local   disease-header-aware TOGO extraction across WER 1970-1974
+                   (NOTE: the header heuristic is unsafe on these multi-column
+                   pages - WER 1970;45(05) and (16) both put a Togo entry two
+                   lines under a CHOLERA heading when the entry is actually
+                   SMALLPOX. Both were rejected on epidemiological grounds:
+                   cholera did not reach Togo until November 1970.)
+  Q82      local   page localisation + 260 dpi renders, WER 1970;45(50),(51)
+                   and 1971;46(05)
+  Q83      local   VISUAL read, WER 1971;46(05) p6 - the January 1971 block
+  Q84      local   VISUAL read, WER 1970;45(51) p9 - Newly Infected Areas
+  Q85      local   VISUAL read, WER 1970;45(51) p10 - notification table
+  Q86      local   VISUAL read, WER 1970;45(50) p7 - notification table
+  Q87      IRIS    handle lookup + verification for 10 candidate issues
+  Q88      local   py/validate_quality.py TGO
+  Q89      local   read the CFR guard in py/validate_quality.py (CFR_SMALL_DENOM)
+  Q90-Q93  IRIS    enumeration of WER 1975 v50, 1976 v51, 1977 v52, 1978 v53
+  Q94-Q95  IRIS    bulk download of WER 1977 (51 issues) and 1978 (50 issues)
+  Q96      local   pdftotext -layout over WER 1977-1978
+  Q97      local   column-aligned Togo block dump across 1970-1978 (130 blocks)
+  Q98      local   filter to notification-table shape (22 candidates)
+  Q99      local   wide-column dump for WER 1971 issues 14, 33, 38
+  Q100     local   metadata index assignment verification
+Sources found: 3    Registered: metadata index 103, 104, 105
+Rows added   : 7    Indices: 131-137
+Successful queries: 3/20  (Q83, Q85, Q86)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+=== BATCH 6 | PHASE 3 (the WER district seam, 1971-1974) | TGO ===
+Gap targeted : LEAD 4 continued.
+Queries (20):
+  Q101-Q104 local  page localisation + 260 dpi renders for WER 1971;46(14),(33),
+                   (38) and 1974;49(14)
+  Q105      local  VISUAL read, WER 1971;46(14) p6 - infected-area list
+  Q106      local  VISUAL read, WER 1971;46(14) p9 - notification table
+  Q107      local  VISUAL read, WER 1971;46(33) p10 left - block structure
+  Q108      local  VISUAL read, WER 1971;46(33) p10 right - period and counts
+  Q109-Q112 local  block analysis, WER 1971;46(38), 1972;47(06), 1972;47(23),
+                   1972;47(25)
+  Q113-Q117 local  block analysis, WER 1974;49(10),(14),(15),(17),(19),(21)
+  Q118      IRIS   handle lookup for the nine issues to be registered
+  Q119      local  registration + source-index verification (1972;47(23)
+                   deduplicated onto Agent 3's existing index 93)
+  Q120      local  bulk commit of 21 rows
+Sources found: 8    Registered: metadata index 106-113 (plus reuse of 93)
+Rows added   : 21   Indices: 138-158
+Successful queries: 7/20  (Q106, Q108, Q109, Q110, Q111, Q113, Q115)
+Yield        : 35%   <- the highest of the run
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+=== BATCH 7 | PHASE 3 (the WER national seam, 1975-1978) | TGO ===
+Queries (20):
+  Q121      local  Togo scan across WER 1975 and 1976 - NO cholera entry of any
+                   kind in either volume-year (see the note below)
+  Q122-Q124 local  block analysis, WER 1977;52(16),(21),(46) and 1978;53(07),(33)
+  Q125      local  WER 1978;53(33) "Togo Total 235 ... Lome 235" - REJECTED, the
+                   table is "Cases of Louse-Borne Typhus Reported to WHO, 1977",
+                   not cholera. Second keyword trap of the run.
+  Q126-Q127 local  page localisation + 280 dpi renders, WER 1977;52(16) and (46)
+  Q128      local  VISUAL read, WER 1977;52(16) p4
+  Q129      local  VISUAL read, WER 1977;52(46) p8
+  Q130      IRIS   handle lookup for 1977;52(16),(21),(46) and 1978;53(07)
+  Q131      local  registration (1978;53(07) deduplicated onto index 91)
+  Q132-Q135 local  commit of 4 rows
+  Q136      local  arithmetic reconciliation of the 1977 rows against the annual
+  Q137-Q140 local  py/validate_quality.py TGO re-run and finding review
+Sources found: 3    Registered: metadata index 114, 115, 116 (plus reuse of 91)
+Rows added   : 4    Indices: 159-162
+Successful queries: 4/20  (Q122, Q124, Q128, Q129)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+WHAT THE 1970-1978 WER SWEEP ACTUALLY PRODUCED
+  28 new rows, of which 21 are DISTRICT-LEVEL. Before this run the earliest
+  sub-national count in the Togolese dataset was the 2003-04 Lome epidemic.
+  It is now 24 November 1970. Districts newly represented with real counts:
+     Maritime::Lacs (Anecho)   Dec 1970, Jan 1971, Jun-Aug 1971, Jan-Apr 1974
+     Maritime::Lome            Dec 1970, Jan 1971, Feb-Mar 1971, Jun-Jul 1971,
+                               Jan 1974
+     Maritime::Yoto (Tabligbo) Jan 1971   - only Yoto count in the whole record
+     Maritime::Zio  (Tsevie)   Feb-Mar and Jun-Jul 1971
+     Plateaux::Kloto (Palime)  Feb-Mar 1971
+     Plateaux::Haho (Nuatja)   Jun-Jul 1971, plus row 128 (37 confirmed, 1971-72)
+     Plateaux::Ogou (Atakpame) Dec 1971-Jan 1972, Aug 1971
+     Centrale::Tchaoudjo (Sokode) May-Jun 1972
+     Kara::Kozah (Lama-Kara)   Aug 1971 - the ONLY northern Togolese cholera
+                               count anywhere before 2020
+  Plus national sub-annual rows for 1971, 1972, 1977 (x3) and 1978.
+
+CONSISTENCY CHECKS PASSED
+  1977: the three recovered notifications give 102 of the 132 cases in WHO's
+        annual return, and 13 deaths against an annual 12 - the overage is
+        explained by the 13-19.III entry carrying WER's own "Revision" flag.
+  1978: the single 15-21.I notification of 6 cases / 6 deaths IS the whole of
+        WHO's 1978 annual return, which is what licenses AI row 110's documented
+        absence from 12 May 1978.
+  1971/1972: 297 of 335 and 11 of 16 in the first five four-week periods.
+
+NEGATIVE RESULT WORTH RECORDING
+  WER 1975 (vol 50) and 1976 (vol 51) were downloaded in full and scanned
+  case-insensitively: TOGO appears in NO cholera notification table, no newly-
+  infected-area notice and no infected-area list in either year. That is
+  independent corroboration for AI rows 12 and 27 (the 1975 and 1976
+  Inferred_Absence rows, currently weighted 0.6). It does NOT justify upgrading
+  them to Documented_Absence - absence from a WER table is still absence from a
+  list of countries that notified, which Agent 3 correctly refused to read as
+  disease absence - but it removes the possibility that Togo notified and the
+  earlier pypdf-based sweeps simply missed it.
+
+DELIBERATELY NOT COMMITTED
+  WER 1972;47(25) Sokode 3/0 - the printed period OCRs as "M l.V I" and could
+    not be resolved without another render; a wrong date is worse than no row.
+  WER 1974;49(14) Anecho - the case figure OCRs as "fi", which is not a digit.
+    The Lome 7/0 on the same line was not committed either, because the block
+    carries a second period column (3-9.III / 10-16.III) whose values could not
+    be assigned confidently.
+  WER 1974;49(21) - the 14-20.IV and 21-27.IV columns interleave in a way the
+    text layer cannot disambiguate.
+  WER 1970;45(05) Palime (Klouto) 1/1 and 1970;45(16) Bassari 1/1 - these sit
+    near a CHOLERA heading but are dated January and April 1970, before cholera
+    reached Togo in November 1970. Almost certainly smallpox. Rejected.
+  WER 1971;46(05) "Region maritime 32s 0" - a region-level figure that does not
+    reconcile with the 35 cases its own three circonscriptions report. Only the
+    circonscription lines were taken.
+
+=== BATCH 8 | PHASE 2 (national grey literature; last attempts at LEAD 1) | TGO ===
+Queries (20):
+  Q141-Q142 ReliefWeb API v1 (decommissioned) then v2 (403, appname not approved)
+  Q143      WebSearch, Togo cholera 1998 Savanes/Dapaong, restricted to
+            reliefweb / who / unicef / ifrc / irinnews / thenewhumanitarian
+  Q144      WebSearch (FR) Dapaong cholera 1998 these hopital d'enfants
+  Q145      direct   pathexo.societe-mtsi.fr - retrieved Bull Soc Pathol Exot
+            T91-4-1877 in full, proving that archive is open and machine-readable,
+            and establishing that the Dapaong children's hospital is the
+            "hopital d'enfants de Tantigou"
+  Q146      direct   pathexo site-structure probe
+  Q147      WebSearch restricted to pathexo/societe-mtsi - the Bulletin de la
+            Societe de Pathologie Exotique has NO Togo cholera paper
+  Q148      direct   medbox.org (connection refused) and GHDx (403)
+  Q149      WebSearch Togo "annuaire des statistiques sanitaires" 2016/2017/2018
+  Q150      IRIS     search for the Togo 2016 yearbook - not on IRIS
+  Q151      WebFetch afro.who.int publication page -> direct PDF URL
+  Q152      direct   download of "Principaux indicateurs de sante 2016" (6.5 MB)
+  Q153      local    cholera keyword scan of the 2016 yearbook
+  Q154      local    header inspection of the four "Cholera" hits
+  Q155      local    location of the surveillance table (Tableaux XCVIII-CI)
+  Q156      local    extraction of the Tableau XCVIII cholera row by district
+  Q157      IRIS     handle lookup + two presence rows from the 1971 infected-area lists
+  Q158-Q159 local    commit of the 2016 rows
+  Q160      local    py/validate_quality.py TGO
+Sources found: 2    Registered: metadata index 117, 118
+Rows added   : 7    Indices: 163-169  (+2 presence rows)
+Successful queries: 2/20  (Q152, Q156)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+LEAD 6 - CRACKED FOR 2016, AND IT SETTLED AN OPEN CONFLICT.
+  sante.gouv.tg never published the 2016 yearbook in a form Wayback captured,
+  but WHO AFRO mirrors it at
+  afro.who.int/sites/default/files/2017-10/Principaux indicateurs de sante 2016.pdf
+  Tableau XCVIII, sourced to the "Division de la surveillance integree des
+  urgences et riposte", reports cholera for all 40 health districts:
+     District_I 1/0, District_V 1/0, Lome-Commune 2/0,
+     Maritime 0, Plateaux 0, Centrale 0, Kara 0, Savanes 0, Ensemble pays 2/0.
+  TOGO HAD 2 CHOLERA CASES IN 2016, BOTH IN LOME COMMUNE, AND NO DEATHS.
+  Agent 3 left 2016 unresolved after four searches, with WER 2021;96(37)
+  implying zero ("first cases since 2015") and the JHU baseline carrying 6 from
+  a UNICEF Country Programme Report. The Ministry's own district-level
+  surveillance return beats both. It also partly reconciles them: Agent 3 noted
+  that 2 of JHU's 6 were weekly cases in Lome in September 2016, which is
+  exactly what the Ministry records.
+
+A TRAP THAT WOULD HAVE INJECTED HUNDREDS OF PHANTOM CASES
+  The Togolese yearbooks contain a SECOND table type, "Cas de consultation",
+  which lists outpatient consultations by ICD label, age and sex, per region.
+  Its "Cholera" row reads 279 for Lome Commune, 194 for another region, 24 and
+  5 elsewhere - in a year the national surveillance system recorded TWO cases.
+  These are clinical coding artefacts (mis-labelled acute diarrhoea), not
+  surveillance cases, and they must never be extracted. A keyword scan for
+  "chol" in these yearbooks hits the consultation table first. Agent 2's 2014
+  regional figures came from the right table (the epidemic-potential/MDO one)
+  and are unaffected.
+
+LEAD 1 - FINAL STATUS: FAILED. Djadou et al, Med Afr Noire 2001;48(5):187-190.
+  Routes exhausted: the publisher's own live archive (only volume 73 online),
+  its dead mirrors, its bot-trapped search form, 1 120 archived article PDFs in
+  the Wayback copy of the old site (none from volume 48 of that journal), the
+  African Index Medicus (Bunny Shield 403 to both curl and WebFetch), PubMed
+  (does not index the journal), the Bulletin de la Societe de Pathologie
+  Exotique open archive, ReliefWeb, and French-language web search.
+  CONSEQUENCE: the Savanes region still has NO cholera case count for any year
+  before 2020, and the Q4-1998 surge (2 554 of Togo's 3 217 cases that year)
+  is still unattributed in time or place.
+
+=== BATCH 9 | PHASE 3 (WER 1993-2002 re-swept with layout-aware extraction) | TGO ===
+Gap targeted : 1993, 1997 and 2000-2002, which Agent 1 recorded as unreachable
+               through the WER ("the weekly IHR cholera table carries no Togo
+               entry after 1999").
+Queries (20):
+  Q161-Q165 IRIS   enumeration of WER 1993 v68, 1997 v72, 2000 v75, 2001 v76,
+                   2002 v77 -> 248 full issues
+  Q166      IRIS   bulk download of all 248
+  Q167      local  pdftotext -layout + case-insensitive Togo scan
+  Q168      local  notification-pattern filter across the five volume-years
+  Q169-Q178 local  block-level extraction of the eleven entries found
+  Q179-Q180 local  right-column widening for the five entries whose counts sat
+                   in a second column - THIS IS WHY THE EARLIER PASS MISSED THEM
+  Q181      local  arithmetic reconciliation against the WHO annual returns
+  Q182      IRIS   handle lookup for the eleven issues
+  Q183      local  hunt for the 1998 Q4 tail in WER 1999 issues 01-18 [NEGATIVE]
+  Q184      local  same hunt across 1997, 1994 and 1992 [NEGATIVE]
+Sources found: 11   Registered: metadata index 119-129
+Rows added   : 11   Indices: 170-180
+Successful queries: 5/20  (Q168, Q169, Q173, Q179, Q180)
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+AGENT 1'S "THE WER SEAM ENDS AT 1999" IS WRONG, AND THE CORRECTION IS LARGE.
+  Eleven Togo notifications were recovered for 1993 and 1999-2002. The reason
+  the earlier pypdf pass missed them is structural: from 2000 the WER printed
+  the cholera table in TWO columns per page and Togo frequently landed in the
+  right-hand one, where pypdf's reading order interleaves the country name with
+  a different country's counts. pdftotext -layout preserves the columns.
+    1993;68(20)  1.III-12.IV 1993        14 /  2
+    2000;75(08)  1.XI-31.XII 1999        63 /  3
+    2001;76(19)  9.V-31.XII.2000        192 / 16
+    2001;76(25)  1.I-10.V 2001          288 / 14
+    2001;76(27)  1.III-30.V 2001        327 / 29
+    2001;76(28)  10-30.VI 2001          194 / 16
+    2001;76(29)  2-8.VII 2001            33 /  0
+    2001;76(32)  9-16.VII 2001           55 /  3
+    2001;76(41)  17.VII-30.IX 2001    1 226 / 53
+    2001;76(48)  1-14.X 2001            428 / 15
+    2002;77(49)  1.I-25.VIII 2002       257 / 14
+  THREE EXACT RECONCILIATIONS, each to the unit:
+   * 2001: the seven notifications sum to 2 551 cases and 130 deaths. WHO's
+     annual return for Togo in 2001 is 2 551 / 130. Togo's third-largest
+     epidemic now has a within-year shape, with the peak (1 226 cases, 53
+     deaths) in 17 July - 30 September.
+   * 1999: Agent 1's four notifications gave 604 / 28 of an annual 667 / 31 and
+     he left the remainder open. The missing 63 / 3 is printed in WER
+     2000;75(08) - THE FOLLOWING YEAR'S VOLUME. 604+63 = 667, 28+3 = 31.
+     GENERAL LESSON: the November-December tail of a year is notified in the
+     NEXT year's WER volume. Any within-year sweep will systematically lose it.
+   * 2002: the single notification of 257 / 14 IS the whole annual return, and
+     dates all of it to 1 January - 25 August.
+  Still open: 1 January to 8 May 2000 (146 cases, 7 deaths of the 338/23 annual).
+
+NEGATIVE RESULTS CONFIRMED THIS BATCH
+  The 1998 fourth-quarter surge - 2 554 of Togo's 3 217 cases that year - does
+  NOT appear in WER 1999 issues 01-18, where the lesson above says it should be
+  if it were anywhere. It was never notified through the weekly table.
+  1997 (42 cases) and 1992's residual 14 cases produce no further entries.
+
+=== BATCH 10 | PHASE 3 (WER 2003-2005 - extending the seam Agent 1 closed) | TGO ===
+Gap targeted : 2003-2005 sub-annual resolution. Annual-only in the baseline.
+Queries (20):
+  Q185-Q187 IRIS   enumeration of WER 2003 v78, 2004 v79, 2005 v80 -> 144 issues
+  Q188      IRIS   bulk download of all 144
+  Q189      local  pdftotext -layout over all 144
+  Q190      local  case-insensitive Togo scan with a cholera-section guard
+  Q191-Q196 local  block extraction of the six entries found
+  Q197      local  right-column widening for WER 2004;79(09), whose period and
+                   counts sat past column 160
+  Q198      local  rescan after all 144 files finished extracting, to make sure
+                   the partial-corpus scan had not truncated the result
+  Q199      local  reconciliation against the WHO annual returns for 2003-2005
+  Q200      IRIS   handle lookup for the six issues
+  Q201-Q202 local  registration and commit
+  Q203      local  cross-check of WER 2004;79(12) against AI rows 29 and 30
+  Q204      local  effective gap analysis refresh
+Sources found: 6    Registered: metadata index 130-135
+Rows added   : 6    Indices: 181-186
+Successful queries: 5/20  (Q190, Q191, Q194, Q197, Q198)
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+THE WER CHOLERA NOTIFICATION TABLE RUNS AT LEAST TO MAY 2005 FOR TOGO
+    2003;78(38)  1.I-27.VII.2003            110 /  4
+    2004;79(09)  3.XI.2003-12.II.2004       593 / 18   <- the 2003-04 Lome epidemic
+    2004;79(10)  12-24.II.2004              271 /  8   <- its peak fortnight
+    2004;79(12)  23.II-7.III.2004           106 /  0
+    2005;80(17)  1.I-13.III.2005             81 /  0
+    2005;80(25)  14.III-8.V.2005             74 /  1
+  The 2003-04 entry is the first CONTEMPORANEOUS WHO measurement of the Lome
+  epidemic in the dataset; everything else for that event came from IRIN
+  dispatches recovered from the Wayback Machine or from a retrospective AJOL
+  paper.
+  A DISCREPANCY WORTH AGENT 5's ATTENTION: AI rows 29 and 30, from an IFRC
+  information bulletin, give 15 cases for 23-29 February 2004 and 46 for
+  1-8 March 2004, against this WHO notification of 106 for 23 February -
+  7 March. The IFRC figures are treatment-centre admissions; WHO's are national
+  notifications. Not a contradiction, but they must not be read as the same
+  quantity.
+
+=== BATCH 11 | PHASE 3 (WER 2006-2012 - how far does the seam actually run?) | TGO ===
+Gap targeted : 2006-2012 sub-annual resolution, all annual-only in the baseline.
+Queries (20):
+  Q205      IRIS   enumeration of WER 2006 v81 (46 issues)
+  Q206      IRIS   bulk download + pdftotext -layout
+  Q207      local  cholera-guarded Togo scan of 2006
+  Q208      local  structural test: how many 2005 and 2006 issues still carry
+                   the "Notifications of diseases received" table (44 of each -
+                   the table was still running)
+  Q209-Q210 local  block extraction of WER 2006;81(05) and (37), including
+                   right-column widening
+  Q211      IRIS   handle lookup, registration and commit of 2 rows
+  Q212      local  240 dpi render + VISUAL verification of WER 2001;76(41),
+                   the largest single observation committed this run
+                   (Togo 17.VII-30.IX 2001, 1 226 cases / 53 deaths) - CONFIRMED
+  Q213-Q218 IRIS   enumeration of WER 2007 v82 through 2012 v87
+  Q219      IRIS   bulk download of 2007-2012
+  Q220      local  pdftotext -layout + cholera-guarded Togo scan of 2007-2012
+Sources found: 2    Registered: metadata index 136, 137
+Rows added   : 2    Indices: 187, 188
+Successful queries: 2/20  (Q209, Q210)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+
+TWO MORE, AND ANOTHER NEXT-YEAR TAIL
+    2006;81(05)  6.VIII-27.XI.2005   841 / 10   <- printed in the 2006 volume
+    2006;81(37)  2.I-25.VI.2006      718 / 11
+  With the two within-year entries, 2005 is now 996 of WHO's 1 320 annual cases
+  and 11 of its 15 deaths; 2006 is 718 of 1 159. The 841-case entry is a third
+  instance of the next-year-tail pattern (after 1999 in the 2000 volume and the
+  1998 search that proved the tail absent). ANY AGENT SWEEPING THE WER FOR
+  YEAR Y MUST ALSO SWEEP THE FIRST ~10 ISSUES OF YEAR Y+1.
+
+=== BATCH 12 | PHASE 3 (closing the WER seam; final validation) | TGO ===
+Gap targeted : establishing, definitively, where the WER weekly seam ENDS, so
+               that no future agent re-searches it.
+Queries (20):
+  Q221      IRIS   bulk download of WER 2007-2012 (272 issues)
+  Q222      local  pdftotext -layout across all of them
+  Q223      local  structural test - in how many issues of each volume-year does
+                   the "Notifications of diseases received" table still appear
+  Q224      local  cholera-guarded Togo scan of 2007 [NEGATIVE - no Togo entry
+                   in any of the 17 surviving 2007 tables]
+  Q225-Q226 local  same for 2008 and 2009 [the table does not exist at all]
+  Q227      local  py/validate_quality.py TGO
+  Q228      local  py/analyze_effective_gaps.py refresh
+  Q229-Q240 local  row-by-row review of all 67 committed rows, arithmetic
+                   reconciliation against the JHU annual series, metadata URL
+                   re-verification, search-log and workflow_state write-up
+Sources found: 0    Registered: none
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : STOP - 12-batch / 240-operation ceiling reached.
+
+THE WER SEAM IS NOW CLOSED AND SHOULD NOT BE RE-SEARCHED
+  The "Notifications of diseases received" table under the International Health
+  Regulations appears in 44 of 46 issues in 2006, in 17 issues of 2007 up to
+  and including issue 24 (mid-June 2007), and in NONE of 2008 or 2009. That is
+  exactly when IHR (2005) entered into force, on 15 June 2007, replacing the
+  named-disease notification regime. Togo appears in none of the 17 surviving
+  2007 tables, consistent with its small 2007 annual (65 cases).
+  ACROSS THIS RUN AND AGENTS 1 AND 3, EVERY WER VOLUME-YEAR FROM 1970 TO 2012
+  HAS NOW BEEN DOWNLOADED IN FULL AND SCANNED CASE-INSENSITIVELY WITH A
+  LAYOUT-AWARE EXTRACTOR. Volume-years carrying a Togo cholera entry:
+    1970, 1971, 1972, 1974, 1977, 1978, 1991, 1992, 1993, 1994, 1995, 1996,
+    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+  Volume-years with NO Togo cholera entry of any kind:
+    1973, 1975, 1976, 1979-1990, 1997, 2007-2012
+  There is nothing further to recover from this source.
+
+================================================================================
+FINAL STATE - AGENT 4, TOGO
+================================================================================
+  ./data/TGO/cholera_data_ai.csv       118 -> 185 rows  (67 added, 0 deleted,
+                                                         0 revised)
+  ./data/TGO/metadata_ai.csv            95 -> 137 sources (42 added)
+  ./data/TGO/cholera_presence_ai.csv    32 ->  43 rows  (11 added)
+  py/validate_quality.py TGO: ERROR 0, exit 0
+  Effective coverage 99.7% -> 99.7%, gap periods 2 -> 2, months_ai 603 -> 617.
+  COVERAGE DID NOT MOVE AND WAS NEVER GOING TO: Togo was already saturated in
+  BREADTH before this run. Everything here is depth - 35 of the 67 rows are
+  sub-national, and the national rows replace annual smears with dated
+  notifications.
+
+BATCH YIELDS (PERCENT): 15, 0, 10, 10, 15, 35, 20, 10, 25, 25, 10, 0
+  The 3-consecutive-sub-5% criterion was never met; the run ended on the
+  12-batch ceiling. An "operation" here is one retrieval or analysis step - a
+  WebSearch, a WebFetch, an IRIS DSpace API call, a Wayback CDX query, a bulk
+  PDF retrieval plus extraction over one volume-year, a raster render plus
+  visual read of one page, or a PubMed/Crossref/OpenAlex/Unpaywall API call.
+
+THE SIX NAMED LEADS - HONEST SCORECARD
+  L1 Djadou et al, Med Afr Noire 2001;48(5) - FAILED. Every route exhausted and
+     enumerated in batches 2, 4 and 8. Savanes still has no pre-2020 count.
+  L2 Landoh et al 2013 - FAILED, and the failure is now definitive rather than
+     provisional: closed at OUP, absent from PMC, zero OA locations in
+     Unpaywall, CLOSED in Semantic Scholar, no repository copy in OpenAlex, and
+     none of its 11 citing works reproduces the regional table.
+  L3 1995 WER sub-annual - CRACKED. Agent 1's mis-assignment hypothesis is
+     FALSIFIED; the entries are correct as printed and are committed (rows
+     122-124) with the WHO-internal conflict documented and confidence at 0.5.
+  L4 1991-2002 district data - DISPROVED AS A CLAIM. Landoh is right that the
+     MINISTRY held no district data before 2008, but WER published Togolese
+     cholera at circonscription level from December 1970. 21 district rows
+     committed for 1970-1974 across nine prefectures in five regions.
+  L5 January 1973 - LOCALISED, NOT COUNTED. Bockemuhl & Meinicke's Figure 1
+     shows the only focus still active in I/73 was Anie, in the Plateaux
+     region; the Lome-Anecho littoral had ended in XI/72. No count exists, so
+     the month stays open and the finding is a presence row.
+  L6 Togo MoH yearbooks - CRACKED FOR 2016 (via the WHO AFRO mirror, not
+     Wayback), which settled the 2016 conflict Agent 3 left open: 2 cases, both
+     in Lome Commune. 2015, 2017 and 2018 remain unretrieved.
+
+WHAT I DELIBERATELY DID NOT DO
+  * No zero row for 26 August - 31 December 2002, even though the single 2002
+    notification (257/14, 1.I-25.VIII) equals the whole WHO annual return.
+    Agent 3 adjudicated exactly this inference for 1991 and 1994 and rejected
+    it as circular, because the annual table is COMPILED FROM the notifications.
+    I am not overturning that on my own authority. The same applies to
+    1 August - 31 December 1994 and to September-December 1996.
+  * No upgrade of the 1975/1976 Inferred_Absence rows despite a complete
+    negative sweep of both volume-years, for the same reason.
+  * No rows from the "Cas de consultation" tables in the Togolese yearbooks.
+  * No rows from WER 1972;47(25), 1974;49(14) and 1974;49(21), where the OCR
+    could not resolve a period or a digit.
+  * No rows from WER 1970;45(05) and (16), which sit near a CHOLERA heading but
+    predate cholera's arrival in Togo and are almost certainly smallpox.
+
+WHAT THE NEXT AGENT SHOULD KNOW
+  1. Use pdftotext -layout, not pypdf, on the WER. pypdf drops numbers in the
+     wide two-line tables and collapses the two-column layout used from 2000,
+     which is why the entire 1993 and 2000-2006 seam was believed not to exist.
+  2. The November-December tail of a year is notified in the NEXT year's WER
+     volume. Sweep Y and the first ~10 issues of Y+1 together. This recovered
+     the missing 63 cases of 1999 and the 841-case 2005 entry.
+  3. The IRIS bitstream URL form /bitstreams/{uuid}/download returns an HTML
+     SPA shell that a naive writer will save as a .pdf. Use
+     /server/api/core/bitstreams/{uuid}/content.
+  4. Look IRIS handles up; never infer them. I inferred one and it was wrong.
+  5. Render the page and LOOK at it before committing a row from a pre-1990
+     scan. Five of five visual checks matched the layout extraction, which is
+     what justified committing the rest from text alone - but the check is what
+     established that, not an assumption.
+  6. The Togolese health yearbooks contain two tables that both say "Cholera".
+     Only the "maladies a potentiel epidemique" one is surveillance data.
+================================================================================

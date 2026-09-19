@@ -340,6 +340,7 @@ def validate_country(iso, rep):
                      "column order differs from the specified order")
 
     seen_rows = {}
+    seen_periods = {}
     used_sources = set()
     seen_data_idx = set()
     t = today()
@@ -583,6 +584,24 @@ def validate_country(iso, rep):
         else:
             seen_rows[key] = i
 
+        # Same place, same period, different numbers. Not a duplicate - two
+        # sources genuinely disagree - but it cannot be left unresolved: the
+        # weekly builder's try_insert() keeps whichever row reports MORE cases,
+        # so an unreconciled disagreement silently biases the series upward
+        # rather than being averaged or flagged. Togo 2015 (35 vs 58 cases from
+        # two different sources) is the worked example.
+        pkey = (loc, r.get("TL"), r.get("TR"))
+        if pkey in seen_periods:
+            prev_line, prev_counts = seen_periods[pkey]
+            if prev_counts != key[3:]:
+                rep.warn(iso, "same_period_conflict",
+                         f"same location and period as row {prev_line} but different "
+                         f"counts ({prev_counts} vs {key[3:]}); resolve per the source "
+                         f"hierarchy or mark one row non-primary in processing_notes",
+                         row=i)
+        else:
+            seen_periods[pkey] = (i, key[3:])
+
     # ---- national vs subnational double-counting ---------------------------
     # Grouping on an exact (TL, TR) match only caught the trivial case. The real
     # double-counting risk is a provincial row nested inside a national period -
@@ -732,7 +751,11 @@ def main():
         }, indent=2))
         print(f"\nWrote {out}")
 
-    stale = set(rep.debt) - rep.debt_hits
+    # Scope to what was actually checked. Validating a single country used to
+    # report every other country's debt as stale, inviting someone to delete
+    # live tracked debt because a run that never looked at AGO said so.
+    checked = set(targets)
+    stale = {k for k in set(rep.debt) - rep.debt_hits if k[0] in checked}
     if stale and not args.no_baseline:
         print(f"\nSTALE DEBT ENTRIES ({len(stale)}) - the underlying finding no "
               f"longer occurs; remove them from reference/validation_debt.json:")

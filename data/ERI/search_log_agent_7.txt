@@ -1,0 +1,515 @@
+================================================================================
+AGENT 7 - QUALITY AUDITOR - ERITREA (ERI)
+================================================================================
+Session : ai-cholera-data-mining (session-37); owns Agents 3-7 for this run.
+          Agent 2 of this run was executed by the concurrent session
+          ai-cholera-data-mining-d2 ("session-d2") - see ATTRIBUTION below.
+Start   : 2026-09-19 04:18 (Agent 7)
+Country run true start: 2026-09-19 00:59:41
+          NOT the "Start: 2026-09-19 01:02:00" header in
+          ./data/ERI/search_log_agent_1.txt, which is the peer session's
+          timestamp written with `>` over this session's init header.
+Query budget: none (Agent 7 is uncapped). Queries were spent on VERIFICATION of
+          load-bearing claims, not on rediscovery. No new data rows were added
+          and none should have been.
+
+--------------------------------------------------------------------------------
+STEP 1 - VALIDATOR, BEFORE
+--------------------------------------------------------------------------------
+$ python py/validate_quality.py ERI --json /tmp/ERI_audit.json
+  === ERI (17 rows, 84 sources) ===
+    [WARN ] national_subnational_overlap: period 2014-07-01..2014-09-30 has both
+            national and sub-national rows (rows 66,67,68,69,70,71,72);
+            processing_notes must state which level is primary
+  ERROR 0   WARN 1   INFO 76   exit 0
+
+$ python py/repair_data_integrity.py --dry-run ERI
+  === repair_data_integrity: DRY RUN - no files written ===
+  TOTAL: 0 change(s)
+  => NONE of the four known defects is mechanisable. This independently
+     confirms Agent 5's tooling finding: py/add_observation.py exposes only
+     register-source / add / add-zero / add-presence, repair_data_integrity's
+     duplicate_merge acts on DATA rows only, and validate_quality checks
+     metadata for duplicate INDICES, not duplicate URLs.
+
+--------------------------------------------------------------------------------
+STEP 2 - PRE-REPAIR VERIFICATION (done BEFORE touching anything)
+--------------------------------------------------------------------------------
+V1 D4 CITATION VERIFIED INDEPENDENTLY, against Europe PMC, not against the
+   agent logs:
+   $ curl ".../europepmc/webservices/rest/search?query=EXT_ID:37780421%20AND%20SRC:MED&resultType=core&format=json"
+     hitCount 1
+     TITLE   : Epidemiology of confirmed measles virus cases, surveillance,
+               incidence, and associated factors in Eritrea: 18-year
+               retrospective analysis.
+     JOURNAL : Frontiers in public health vol 11 2023
+     PMID    : 37780421   PMCID: PMC10533993   DOI: 10.3389/fpubh.2023.1218317
+     AUTHORS : Mengistu ST, Achila OO, Tewelde AT, Hamida ME, Tekle F, Michae I,
+               Said M, Fsahatsion D, Abai H, Mulugeta R, Tsegai T, Woldu LG,
+               Werke WY.
+   "Woldemichael" and "Kifle" appear NOWHERE in the author list. The metadata
+   index 80 author string was fabricated. CONFIRMED.
+
+V2 INDEX 19 SPOT-CHECKED AGAINST ITS ORIGINAL SOURCE. Re-downloaded
+   https://web.archive.org/web/20090726152317id_/http://www.who.int/hac/crises/eri/sitreps/eritrea_health_bulletin_no2_6.pdf
+   (649,497 bytes, 12 pages) and re-extracted with pdftotext -layout.
+   Verbatim from the extraction:
+     "On 20/09/06, the Tessenei sub Zoba administrator of Gash Barka Zoba
+      reported the presence of acute watery diarrhoea in Tigtig village to the
+      Zoba MOH. The outbreak started on 18/09/06. ... Stool samples were taken
+      to Asmara Central Laboratory and the results were positive for Vibrio
+      cholerae. ... The out break started in week 37 of September peaked in week
+      38 and was controlled at week 44. There were a total of 60 cases and 3
+      deaths"
+   Also confirmed in the same document, Table 2:
+     "12/11/06 | Cholera across the border | BADA | 0 | Navy | Enhanced
+      Surveillance"
+   Row Index 19 (sCh=60, deaths=3, CFR 5.00, TL 2006-09-18, TR 2006-11-05,
+   conf 0.85) MATCHES ITS SOURCE EXACTLY. No change required.
+
+V3 WER 83(31) VERIFIED INDEPENDENTLY (the other leg of the 2006 contradiction).
+   IRIS handle 10665/241184 -> bitstream 0db51fdf-be04-4c35-9291-89724ed20d26,
+   PDF downloaded and extracted (113,031 chars). Verbatim, p.272:
+     "For the first time ever, Eritrea reported an outbreak that caused 119
+      cases including 9 deaths."
+   Table line: "Eritrea - Erythree   119   9   7.56"
+   And: "The high CFRs for Djibouti (6.7%) and Eritrea (7.6%) reflect the
+         difficulty in accessing vulnerable groups living in remote areas in a
+         timely manner."
+   => Both legs of the 2006 contradiction are now verified by Agent 7 from the
+      primary documents. The contradiction is real and internal to WHO.
+
+V4 JEE 2025 QUOTE VERIFIED VERBATIM. IRIS handle 10665/384909 -> item
+   232eb35b-4302-4931-ada6-5916aea17c76, ORIGINAL bundle PDF, pdftotext
+   (295,384 chars, exactly matching Agent 6's figure):
+     "The National Focal Point lacks full empowerment for direct intersectoral
+      engagement, independent verification of public health events, and timely
+      notification to WHO without a higher level of clearance."
+   (P3.1 Challenges bullet.) "cholera" occurs 4 times, as Agent 6 reported.
+
+V5 PIPELINE DEFECT P1 CONFIRMED TO THE CHARACTER. Same JEE item, TEXT bundle
+   d5412e80-9492-44f5-9004-659fca902988 -> bitstream
+   30ab5309-ca16-472c-b5f4-afc0498512ea, "9789240119284-eng.pdf.txt",
+   sizeBytes 100792.
+     IRIS .txt  : EXACTLY 100,000 characters, "cholera" x0,
+                  ends mid-word: "...vaccination policies for heal"
+     pdftotext  : 295,384 characters, "cholera" x4
+   IRIS "Extracted text" bitstreams are silently truncated at exactly 100,000
+   characters with no warning. ANY corpus-wide negative in ANY of the 40 country
+   files resting on an IRIS .txt of a long document is UNVERIFIED.
+
+V6 2016 ARITHMETIC RE-VERIFIED FROM THE FILE:
+     Index 20 Maimine (AFR::ERI::Debub::Maimine)      deaths 17
+     Index 21 Molqi   (AFR::ERI::Gash-Barka::Molqi)   deaths  3
+     Ala                                              deaths  3  (DELIBERATELY
+       UNROWED - Ala is absent from the ADM2 layer and the agent refused to guess)
+     17 + 3 + 3 = 23 = Index 11 (AFR::ERI national) deaths 23.  EXACT MATCH.
+   Sub-national rowed total = 20 < national 23, i.e. correctly non-additive.
+   Non-additivity language present on ALL FOUR rows (10, 11, 20, 21): verified
+   by regex against the validator's own accepted phrase set.
+
+V7 METADATA 60/64 DUPLICATE CONFIRMED: both URLs resolve to PMC2632984 (Somda
+   et al. 2009). Zero data rows cite either index (rows cite only source_index
+   7, 12, 13, 16, 18, 19, 35, 56, 68), so the merge is risk-free.
+
+--------------------------------------------------------------------------------
+STEP 3 - REPAIRS APPLIED
+--------------------------------------------------------------------------------
+AUTHORISATION AND CONSTRAINTS. py/repair_data_integrity.py covers none of these
+(0 changes on dry run) and py/add_observation.py has no edit/withdraw/supersede
+subcommand, so each was applied as a minimal surgical correction under the
+explicit conditions set for this audit:
+  - touches ONLY processing_notes text, one confidence_weight, and metadata
+    Source/Description fields;
+  - changes NO case count, NO death count, NO date, NO location;
+  - files backed up first;
+  - validator re-run afterwards;
+  - every before/after value logged below.
+Writes used csv.DictReader/DictWriter through an fcntl.flock exclusive lock on
+the same .{name}.lock files py/add_observation.py uses, then an atomic rename,
+so a concurrent session could not interleave.
+
+BACKUPS TAKEN BEFORE ANY WRITE (timestamp 20260919-042121):
+  ./data/ERI/.backup_agent7_pre_repair_cholera_data_ai_20260919-042121.csv
+  ./data/ERI/.backup_agent7_pre_repair_metadata_ai_20260919-042121.csv
+  /tmp/ERI_agent7_backup/cholera_data_ai.csv
+  /tmp/ERI_agent7_backup/metadata_ai.csv
+  md5 before: cholera_data_ai.csv 48bc0856e1dd12af33ce2bd3a5bcb643
+              metadata_ai.csv     85ec9624b098c1494f0c0638495625cd
+
+NOTE ON A FAILED FIRST ATTEMPT (recorded for honesty): the first repair script
+asserted that metadata Index 64's Source string contains "PMC2632984". It does
+not - 64 cites the journal name in full instead. The assertion fired, the
+metadata write was aborted before any file was touched (md5 unchanged and
+verified), and the metadata half was re-run with a corrected assertion. The data
+half had already committed its two changes successfully. No partial or
+inconsistent state was ever written.
+
+D1 - THE OPEN WARN. ./data/ERI/cholera_data_ai.csv Index 12, processing_notes.
+  BEFORE (final sentence): "Level: NATIONAL (AFR::ERI); no sub-national row
+    overlaps this period."
+  AFTER  (final passage) : "Level: NATIONAL (AFR::ERI). National total -
+    includes provinces not individually listed. DO NOT SUM this row with the six
+    zoba rows (Indices 13-18), which are the provincial subset of this same
+    Table 3 and are NOT ADDITIVE with it; this national row is the primary count
+    for MOSAIC aggregation over 2014-07-01..2014-09-30. CORRECTED BY AGENT 7
+    (quality audit) on 2026-09-19: this sentence previously read 'no sub-national
+    row overlaps this period', which was true when Agent 1 (session-d2) wrote it
+    and became false when Agent 2 (session-d2) subsequently added Indices 13-18
+    from the same table. That stale claim is the whole of what was corrected;
+    arithmetic risk is nil because every value in the group is zero. Per brief
+    correction C1 the dates were NOT widened - the Table 3 heading is ambiguous
+    between Q3 and year-to-date and Q3 is true under both readings, so TL/TR
+    remain 2014-07-01..2014-09-30. Counts, dates, location, source, source_index,
+    evidence label and confidence_weight are UNCHANGED."
+  RATIONALE: the validator requires EVERY row in an overlapping national/
+    sub-national group to carry a disambiguating phrase; the six zoba rows had
+    one and the national row did not. The removed sentence was additionally a
+    NOW-FALSE factual claim, which is the more serious half of the defect.
+  DATES NOT WIDENED, per C1. Confirmed post-change: TL 2014-07-01, TR 2014-09-30.
+
+D2 - CONFIDENCE. ./data/ERI/cholera_data_ai.csv Index 9, confidence_weight.
+  BEFORE: 0.6      AFTER: 0.65
+  processing_notes: Agent 5's text left intact; an Agent 7 block appended
+  (1,404 chars) documenting the change, its evidence (WHO doc 5830.doc =
+  metadata index 76; Eritrean MoH notified WHO of Harena-camp bloody diarrhoea on
+  7 and 9 Sept 2000, "identified to be Shigella dysentriae and Escherichia coli",
+  with antibiotic-sensitivity results), the 0.65 cap (row is national, evidence
+  is camp-scoped), and an explicit supersession of clause (d) of Agent 5's own
+  rationale, which had justified 0.60 as deliberately BELOW row 6's 0.65. Leaving
+  the bump WITHOUT that note would have created a fresh internal contradiction of
+  exactly the kind D1 is about.
+  Dates, counts, location, source, source_index, evidence label: UNCHANGED.
+
+D3 - DUPLICATE METADATA. ./data/ERI/metadata_ai.csv Index 60 merged into 64.
+  Index 60 Source
+    BEFORE: "Somda ZC, Meltzer MI, Perry HN, et al. Cost analysis of an
+             integrated disease surveillance and response system: case of
+             Burkina Faso, Eritrea, and Mali. Cost Eff Resour Alloc 2009;7:1
+             (PMC2632984)"
+    AFTER : "[DUPLICATE - merged into Index 64] " + the same citation
+  Index 60 Description
+    BEFORE: (empty)
+    AFTER : full tombstone note - same article as Index 64; duplicated because
+            add_observation.py de-duplicates on exact URL string and the two
+            sessions registered pmc.ncbi.nlm.nih.gov vs www.ncbi.nlm.nih.gov;
+            INDEX 64 IS CANONICAL; cite 64; no data row cites either.
+  Index 64 Description
+    BEFORE: unchanged text
+    AFTER : same text + " MERGE NOTE (Agent 7, 2026-09-19): Index 60 was a
+            duplicate registration of this same article from a different
+            hostname and has been merged into this record. THIS INDEX IS
+            CANONICAL for PMC2632984; Index 60 is retained only as a tombstone
+            pointing here."
+  WHY A TOMBSTONE RATHER THAN DELETION: validate_quality.py raises
+    metadata_index_gaps (an ERROR) on any hole in the metadata Index sequence
+    ("No index numbers can be duplicated or missing"). Deleting 60 would have
+    traded a silent duplicate for a hard ERROR. The tombstone achieves the merge
+    - one canonical record, the duplicate explicitly demoted and cross-linked -
+    without breaking the sequence. Index 60's URL was left UNCHANGED so the
+    provenance of the duplicate registration remains auditable.
+
+D4 - FABRICATED CITATION. ./data/ERI/metadata_ai.csv Index 80, Source.
+  BEFORE: "Woldemichael G, Kifle D, et al. Epidemiology of confirmed measles
+           virus cases, surveillance, incidence, and associated factors in
+           Eritrea: 18-year retrospective analysis. Front Public Health 2023"
+  AFTER : "Mengistu ST, Achila OO, Tewelde AT, Hamida ME, et al. Epidemiology of
+           confirmed measles virus cases, surveillance, incidence, and
+           associated factors in Eritrea: 18-year retrospective analysis. Front
+           Public Health 2023;11:1218317 (PMID 37780421, PMC10533993)"
+  Description: full correction note appended, recording that the original author
+  string was FABRICATED, that Agent 6 self-reported it, the verification method
+  (Europe PMC core record, EXT_ID:37780421 AND SRC:MED, 2026-09-19), the complete
+  13-author list, DOI, PMID, PMCID, and the warning that this Mengistu (ST,
+  Eritrea measles) is NOT the Mengistu of metadata index 39 (DA, Ethiopia
+  cholera retrospective).
+  URL, Date_Range, Data_Type, Reliability_Level and the substantive description
+  were correct as registered and are UNCHANGED. No data row cites index 80.
+
+NOTHING WAS REFUSED. All four defects were repairable within the authorised
+bounds and all four were repaired. Two things were deliberately NOT done:
+  - Index 12's dates were NOT widened to full-year 2014 (correction C1).
+  - metadata Index 60's Status field was NOT changed from "Active" to
+    "Superseded". Status is outside the authorised field set for this audit;
+    the demotion is carried in Source and Description instead. A future run with
+    an edit subcommand should set it properly.
+Also NOT done, deliberately: ./reference/validation_debt.json was left untouched
+although the validator reports 6 stale debt entries project-wide (2 of them ERI:
+data_empty, metadata_unusable). That file is project-scope, not country-scope.
+
+--------------------------------------------------------------------------------
+STEP 4 - VALIDATOR, AFTER
+--------------------------------------------------------------------------------
+$ python py/validate_quality.py ERI --json /tmp/ERI_post.json
+  Validated 1 countries | 17 data rows | 84 metadata sources
+  ERROR 0   WARN 0   INFO 77   exit 0
+The WARN did not disappear - it was DOWNGRADED TO INFO by the validator's own
+logic, which is the intended outcome: the overlap still exists and is now
+documented as non-additive on every row in the group.
+
+FIELD-LEVEL DIFF AGAINST THE BACKUPS (machine-generated):
+  ./data/ERI/cholera_data_ai.csv   3 changes (Index 9 confidence_weight,
+                                   Index 9 processing_notes,
+                                   Index 12 processing_notes)
+  ./data/ERI/metadata_ai.csv       5 changes (Index 60 Source, Index 60
+                                   Description, Index 64 Description,
+                                   Index 80 Source, Index 80 Description)
+  Row counts unchanged: 17 data rows, 84 metadata sources. No row added,
+  no row deleted, no Index reassigned.
+  ASSERTED AND CONFIRMED: zero changes to Location, TL, TR, deaths, sCh, cCh,
+  CFR, reporting_date, source_index, source or source_database on any data row;
+  zero changes to any metadata field other than Source and Description.
+
+INDEPENDENT RE-CHECKS BEYOND THE VALIDATOR (all pass):
+  dual-reference integrity    17/17 source_index -> metadata Index resolves and
+                              source string matches Source exactly; 0 defects
+  metadata index sequence     1..84, no holes, no duplicates
+  date formats                all YYYY-MM-DD
+  temporal logic              TL <= TR <= reporting_date on all 17; none future
+  location legality           all AFR::ERI*; no prohibited categories
+  deaths <= sCh               holds wherever both present
+  CFR arithmetic              Index 19: stated 5.00, computed 3/60 = 5.0 exact
+  confidence bands            all within 0.1-1.0
+  presence file               4 records, all presence_confirmed_count_unknown,
+                              correctly held OUT of cholera_data_ai.csv
+  zero-row labelling          12 zero rows, all Documented_ or Inferred_Absence;
+                              ZERO rows labelled Surveillance_Gap (correct)
+
+--------------------------------------------------------------------------------
+STEP 5 - IMPACT MEASUREMENT
+--------------------------------------------------------------------------------
+$ python py/analyze_effective_gaps.py
+$ python py/analyze_effective_gaps.py --layers JHU WHO --prefix baselineonly
+
+                                 BASELINE(JHU+WHO)   EFFECTIVE(+AI)
+  percent_coverage                      28.2%             31.0%
+  months_with_data                        192               211
+  months_missing                          489               470
+  months_with_positive_cases               24                29
+  months_ai_only                            0                19
+  gap_periods                               4                 5
+  longest gap                     12,784 d          10,744 d
+
+months_ai_only = 19: calendar 1970 (12 months) + Jun-Dec 2000 (7 months). Every
+month the AI layer added is a month where it is the sole source. The other 14
+AI-covered months overlay baseline-covered years and add resolution, not coverage.
+GAP PERIODS CLOSED: 0 of 5. The 4 -> 5 rise is the baseline's 35-year monolith
+being SPLIT by the 1970 and mid-2000 coverage, not a regression. Net 579 days of
+that monolith closed. G3, G4 and G5 are identical before and after.
+
+--------------------------------------------------------------------------------
+STEP 6 - AGENT PERFORMANCE AUDIT
+--------------------------------------------------------------------------------
+From ./data/ERI/workflow_state.json plus the two legacy state files:
+  Agent 1   28 batches cumulative  ~560 q   5 rows
+  Agent 2   15 batches cumulative  ~300 q   9 rows   <- session-d2; the only
+                                                        agent that found a real
+                                                        Eritrean case count
+  Agent 3   13 batches cumulative  ~260 q   2 rows   (8 candidate rows declined)
+  Agent 4   18 batches cumulative  ~360 q   0 ROWS   <- every batch 0% yield
+  Agent 5    8 batches cumulative  ~160 q   1 row    (a reissue, not a new obs.)
+  Agent 6    5 batches             ~100 q   0 rows   (deliverable = the gap
+                                                        classifications)
+  TOTAL     87 batches  ~1,740 queries  17 rows  = ~102 queries per row
+FLAGS:
+  - No agent ran fewer than 3 batches (minimum 5).
+  - No agent reported a yield above 100% (maximum single-batch yield 10%).
+  - No agent claimed a row it did not add. The opposite occurred: the CURRENT
+    workflow_state.json entries sum to 13 rows against 17 in the file, because
+    py/workflow_state.py REPLACES same-numbered entries and the merged run-3
+    Agent 1 entry overwrote an earlier Agent 1 entry worth 4 rows. Attribution
+    is UNDER-counted, not over-claimed.
+  - Agent 2's sources_discovered = 1 understates its registrations; treat the
+    source counts in workflow_state as unreliable, the batch and row counts as
+    reliable.
+
+--------------------------------------------------------------------------------
+ATTRIBUTION
+--------------------------------------------------------------------------------
+Agent 2 of this run was executed by the separate concurrent session
+ai-cholera-data-mining-d2. It contributed Index 19 (2006 Tessenei), Indices 13-18
+(six zoba zeros) and Indices 20-21 (2016 sub-zoba deaths) - nine of the ten rows
+added in this run - and part of Agent 1 (Index 12). Credited as session-d2 work.
+
+--------------------------------------------------------------------------------
+DELIVERABLES
+--------------------------------------------------------------------------------
+  ./data/ERI/search_report.txt      REPLACED WHOLESALE. The file previously on
+                                    disk was an August 2025 artifact describing a
+                                    4-row dataset and an 1865 Massawa epidemic
+                                    that is not in the current data and was never
+                                    substantiated. It was void and is now gone.
+  ./data/ERI/search_log_agent_7.txt this file
+  ./data/ERI/workflow_state.json    agent_num=7 entry, written ONCE at completion
+  Dashboard NOT updated - the orchestrator owns that step.
+
+--------------------------------------------------------------------------------
+APPENDIX - RAW MACHINE-GENERATED FIELD DIFF (backup vs post-repair)
+--------------------------------------------------------------------------------
+==============================================================================
+FILE: ./data/ERI/cholera_data_ai.csv
+BACKUP: ./data/ERI/.backup_agent7_pre_repair_cholera_data_ai_20260919-042121.csv
+rows before 17  rows after 17  (delta 0)
+==============================================================================
+
+--- Index 9 | column: confidence_weight
+  BEFORE (3 chars):
+    0.6
+  AFTER  (4 chars):
+    0.65
+
+--- Index 9 | column: processing_notes
+  BEFORE (5255 chars):
+    Source confirms zero cholera transmission 2000-06-01..2000-12-31. Source states: 'As a result of the combined inter-agency interventions, no cholera or other water-borne disease epidemics were reported in the camps other than isolated outbreaks of Shigellosis.'. Evidence type: Inferred_Absence. Surveillance system status during absence: partial. REISSUED BY AGENT 5 (cross-reference integrator) on 2026-09-18, replacing an earlier version of this row that stood at confidence 0.50. Pre-change backup: /tmp/eri_before_agent5.csv. Dates, counts, evidence label and source are UNCHANGED. The single change is confidence 0.50 -> 0.60, on independent corroboration that Agent 4 recovered but declined to [...] .md: metadata index 38 is the corroborating source and is cited here rather than given its own row. Also unchanged: the WER annual review 'Cholera, 2000' contains no Eritrea entry, and EM-DAT records no epidemic of any kind for Eritrea in 2000 - both weak, both consistent, neither load-bearing. TL is 2000-06-01, after the May 2000 offensive that created the caseload the appeal reviews; the appeal was published 9 February 2001. Level: NATIONAL (AFR::ERI); no sub-national row overlaps this period.
+  AFTER  (6659 chars):
+    Source confirms zero cholera transmission 2000-06-01..2000-12-31. Source states: 'As a result of the combined inter-agency interventions, no cholera or other water-borne disease epidemics were reported in the camps other than isolated outbreaks of Shigellosis.'. Evidence type: Inferred_Absence. Surveillance system status during absence: partial. REISSUED BY AGENT 5 (cross-reference integrator) on 2026-09-18, replacing an earlier version of this row that stood at confidence 0.50. Pre-change backup: /tmp/eri_before_agent5.csv. Dates, counts, evidence label and source are UNCHANGED. The single change is confidence 0.50 -> 0.60, on independent corroboration that Agent 4 recovered but declined to act on.
+
+SCOPE CAVEAT, UNCHANGED AND STILL THE REASON THIS IS Inferred_Absence AND NOT Documented_Absence: the UN Consolidated Appeal sentence is scoped to the IDP CAMPS, not to Eritrea as a whole. It is extended to national level because the camps held roughly 200,000 displaced people in Debub, Gash-Barka and Northern Red Sea - the three zobas of highest cholera risk, and the same geography in which Eritrea's only documented modern outbreak occurred in 2016 - and were the most intensively moni [...] ndex 76) records that the Eritrean MoH notified WHO of bloody diarrhoea in Harena camp on 7 and 9 September 2000, 'identified to be Shigella dysentriae and Escherichia coli', with antibiotic-sensitivity results. That is a contemporaneous, LABORATORY-RESOLVED aetiological determination inside this row's own window and population, from the MoH-to-WHO channel itself - not another argument from non-mention. CAPPED AT 0.65: the row is national and every strand of evidence remains camp-scoped, so clause (b) of Agent 5's rationale above still binds and nothing here extends observation to the ~100,000 IDPs outside camps or to the general rural population. SUPERSEDES CLAUSE (d) OF THE PARAGRAPH ABOVE: this row now sits EQUAL to row 6 (2015 Q1, Inferred_Absence, 0.65) rather than just below it. That is deliberate - row 6 is stronger on scope (national IDSR bulletin, 264 facilities, 98.7% completeness), this row is stronger on intensity and aetiological resolution of observation within its scope, and with a third laboratory-resolved channel the two are now judged comparable rather than ranked. Dates, counts, location, source, source_index and the Inferred_Absence evidence label are UNCHANGED.
+
+--- Index 12 | column: processing_notes
+  BEFORE (4373 chars):
+    Source confirms zero cholera transmission 2014-07-01..2014-09-30. Source states: 'Table 3: The weekly cumulative number of epidemic prone diseases and the emerging and re-emerging disease as third quarter the year | Weekly reported Diseases / Anseba / Debub / G/Barka / Halibet hospital / Maekel / NRS / Orrota Pediatrics Hospital / SRS / Total ... Cholera 0 0 0 0 0 0 0 0 0'. Evidence type: Documented_Absence. Surveillance system status during absence: operational. FIRST EXPLICIT PRINTED CHOLERA ZERO EVER FOUND FOR ERITREA AT NATIONAL LEVEL WITH SUB-NATIONAL RESOLUTION. Agent 1 run 3 (session d2), from a WHO Eritrea country-office bulletin that no prior ERI run had located (12 sibling-filename [...] me paragraph, i.e. it is corroborated at the regional level, whereas this row rests on the national document alone. Also, 'above 90%' completeness means up to 10% of facilities did not report.
+
+LANE NOTE: this document formally sits in the concurrently-running session-37 agent's 'WHO AFRO institutional series' lane. It was already downloaded before the axis split was communicated, so it is filed here at zero additional budget. Level: NATIONAL (AFR::ERI); no sub-national row overlaps this period.
+  AFTER  (5306 chars):
+    Source confirms zero cholera transmission 2014-07-01..2014-09-30. Source states: 'Table 3: The weekly cumulative number of epidemic prone diseases and the emerging and re-emerging disease as third quarter the year | Weekly reported Diseases / Anseba / Debub / G/Barka / Halibet hospital / Maekel / NRS / Orrota Pediatrics Hospital / SRS / Total ... Cholera 0 0 0 0 0 0 0 0 0'. Evidence type: Documented_Absence. Surveillance system status during absence: operational. FIRST EXPLICIT PRINTED CHOLERA ZERO EVER FOUND FOR ERITREA AT NATIONAL LEVEL WITH SUB-NATIONAL RESOLUTION. Agent 1 run 3 (session d2), from a WHO Eritrea country-office bulletin that no prior ERI run had located (12 sibling-filename probes by earlier agents on the same AFRO directory all 404'd; this one was surfaced incidentally by an axis-B WebSearch).
+
+WHY THIS IS Documented_Absence AND NOT Inferred_Absence, which is the whole point of the row. Every previous Eritrean absence row in this file is an inference. Row 6 (Q1 2015) is explicitly labelled Inferred_Absence by Agent 3 with the reason 'this bulletin does not print a cholera line with a 0 in it'. THIS BULLETIN DOES. Table 3 prints a row labelled 'Cholera' with a 0 i [...] in the concurrently-running session-37 agent's 'WHO AFRO institutional series' lane. It was already downloaded before the axis split was communicated, so it is filed here at zero additional budget. Level: NATIONAL (AFR::ERI). National total - includes provinces not individually listed. DO NOT SUM this row with the six zoba rows (Indices 13-18), which are the provincial subset of this same Table 3 and are NOT ADDITIVE with it; this national row is the primary count for MOSAIC aggregation over 2014-07-01..2014-09-30. CORRECTED BY AGENT 7 (quality audit) on 2026-09-19: this sentence previously read 'no sub-national row overlaps this period', which was true when Agent 1 (session-d2) wrote it and became false when Agent 2 (session-d2) subsequently added Indices 13-18 from the same table. That stale claim is the whole of what was corrected; arithmetic risk is nil because every value in the group is zero. Per brief correction C1 the dates were NOT widened - the Table 3 heading is ambiguous between Q3 and year-to-date and Q3 is true under both readings, so TL/TR remain 2014-07-01..2014-09-30. Counts, dates, location, source, source_index, evidence label and confidence_weight are UNCHANGED.
+
+TOTAL FIELD-LEVEL CHANGES IN THIS FILE: 3
+
+==============================================================================
+FILE: ./data/ERI/metadata_ai.csv
+BACKUP: ./data/ERI/.backup_agent7_pre_repair_metadata_ai_20260919-042121.csv
+rows before 84  rows after 84  (delta 0)
+==============================================================================
+
+--- Index 60 | column: Source
+  BEFORE (196 chars):
+    Somda ZC, Meltzer MI, Perry HN, et al. Cost analysis of an integrated disease surveillance and response system: case of Burkina Faso, Eritrea, and Mali. Cost Eff Resour Alloc 2009;7:1 (PMC2632984)
+  AFTER  (231 chars):
+    [DUPLICATE - merged into Index 64] Somda ZC, Meltzer MI, Perry HN, et al. Cost analysis of an integrated disease surveillance and response system: case of Burkina Faso, Eritrea, and Mali. Cost Eff Resour Alloc 2009;7:1 (PMC2632984)
+
+--- Index 60 | column: Description
+  BEFORE (0 chars):
+    
+  AFTER  (889 chars):
+    DUPLICATE REGISTRATION - MERGED INTO INDEX 64 BY AGENT 7 ON 2026-09-19. This is the same article as Index 64 (PMC2632984). It duplicated because py/add_observation.py de-duplicates on exact URL string: this record was registered from https://pmc.ncbi.nlm.nih.gov/articles/PMC2632984/ and Index 64 from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2632984/ by a concurrently-running session, so the hostnames differed and the check did not fire. INDEX 64 IS CANONICAL and carries the fuller description, including supplementary Appendix 1 (the Eritrean IDSR notifiable-disease list, which is what makes the paper load-bearing for gap G2). Cite 64, not this index. No data row cites either index, so the merge carries no arithmetic risk. Retained as a tombstone rather than deleted because validate_quality.py raises metadata_index_gaps (an ERROR) on any hole in the metadata Index sequence.
+
+--- Index 64 | column: Description
+  BEFORE (2699 chars):
+    WHO-AFRO / US CDC field study of Eritrea's national IDSR system covering 2002-2005, i.e. effective gap G2 (2001-01-01..2004-12-31) almost exactly. CONTAINS NO CHOLERA CASE COUNT and NO statement of cholera absence, so it must never be mined for a data row. It is registered because it is the decisive evidence on WHAT KIND of gap G2 is, and because it CORRECTS an earlier finding in this file. THE CORRECTION: the archived run concluded from Eritrea's HSSDP 2012-2016 that Eritrea 'names the epidemic-prone-disease machinery in detail without ever naming cholera as one of the diseases'. The actual Eritrean IDSR notifiable-disease list is published here, as supplementary Appendix 1, captioned 'List [...] igure for 2001-2004. That is NON-PUBLICATION, definitively - not absence of surveillance, and equally not evidence of zero cholera. NOTE the main text also groups the three study countries as ones 'where infectious diseases such as cholera, malaria, meningococcal meningitis and yellow fever are either epidemic or endemic' - a collective risk classification about the three-country set, NOT a confirmation that cholera occurred in Eritrea in any specific period, and not usable as a presence record.
+  AFTER  (2952 chars):
+    WHO-AFRO / US CDC field study of Eritrea's national IDSR system covering 2002-2005, i.e. effective gap G2 (2001-01-01..2004-12-31) almost exactly. CONTAINS NO CHOLERA CASE COUNT and NO statement of cholera absence, so it must never be mined for a data row. It is registered because it is the decisive evidence on WHAT KIND of gap G2 is, and because it CORRECTS an earlier finding in this file. THE CORRECTION: the archived run concluded from Eritrea's HSSDP 2012-2016 that Eritrea 'names the epidemic-prone-disease machinery in detail without ever naming cholera as one of the diseases'. The actual Eritrean IDSR notifiable-disease list is published here, as supplementary Appendix 1, captioned 'List of IDSR priority diseases and diseases of public health importance weekly or monthly reported in Burkina, Eritrea, and Mali during the study period'. Eritrea's 'Epidemic-prone diseases' column reads, in order: CHOLERA; Diarrhea with blood (Shigellosis); Measles; Meningococcal meningitis; Plague; Viral hemorrhagic fevers; Yellow fever. CHOLERA WAS THEREFORE A WEEKLY-OR-MONTHLY NOTIFIABLE EPIDEMIC-PRONE DISEASE IN ERITREA THROUGHOUT 2002-2005. Supporting statements from the main text, verbatim: ' [...]  PPP), the highest of the three countries, about 690,957 USD per year nationally, attributed to 'post-war rebuilding of the national infrastructure, including the health system'. Field sites: central Ministry of Health, Anseba provincial office, Haquaz district. IMPLICATION FOR G2: a nationally established, funded, 93%-complete case-based surveillance system in which cholera was explicitly notifiable produced no published or notified cholera figure for 2001-2004. That is NON-PUBLICATION, definitively - not absence of surveillance, and equally not evidence of zero cholera. NOTE the main text also groups the three study countries as ones 'where infectious diseases such as cholera, malaria, meningococcal meningitis and yellow fever are either epidemic or endemic' - a collective risk classification about the three-country set, NOT a confirmation that cholera occurred in Eritrea in any specific period, and not usable as a presence record. MERGE NOTE (Agent 7, 2026-09-19): Index 60 was a duplicate registration of this same article from a different hostname and has been merged into this record. THIS INDEX IS CANONICAL for PMC2632984; Index 60 is retained only as a tombstone pointing here.
+
+--- Index 80 | column: Source
+  BEFORE (195 chars):
+    Woldemichael G, Kifle D, et al. Epidemiology of confirmed measles virus cases, surveillance, incidence, and associated factors in Eritrea: 18-year retrospective analysis. Front Public Health 2023
+  AFTER  (257 chars):
+    Mengistu ST, Achila OO, Tewelde AT, Hamida ME, et al. Epidemiology of confirmed measles virus cases, surveillance, incidence, and associated factors in Eritrea: 18-year retrospective analysis. Front Public Health 2023;11:1218317 (PMID 37780421, PMC10533993)
+
+--- Index 80 | column: Description
+  BEFORE (697 chars):
+    Retrospective 2002-2020 analysis 'carried out by abstracting data from the integrated disease surveillance and response database (IDSR)', co-authored by a member of the IDSR unit, CDC, Ministry of Health, Asmara. 9,111 suspected cases, 2,767 serologically tested at the National Health Laboratory, zoba-resolved (Anseba, Debub, Gash-Barka, Northern Red Sea, Southern Red Sea), ArcGIS spatial analysis. PROVES the Eritrean national IDSR database holds continuous, zoba-resolved, laboratory-linked case records spanning ALL of G2, ALL of G3 and up to G4, and that MoH-affiliated authors extract and publish from it. Cholera appears zero times in the full text (positive control: Eritrea 62, IDSR 5).
+  AFTER  (1796 chars):
+    Retrospective 2002-2020 analysis 'carried out by abstracting data from the integrated disease surveillance and response database (IDSR)', co-authored by a member of the IDSR unit, CDC, Ministry of Health, Asmara. 9,111 suspected cases, 2,767 serologically tested at the National Health Laboratory, zoba-resolved (Anseba, Debub, Gash-Barka, Northern Red Sea, Southern Red Sea), ArcGIS spatial analysis. PROVES the Eritrean national IDSR database holds continuous, zoba-resolved, laboratory-linked case records spanning ALL of G2, ALL of G3 and up to G4, and that MoH-affiliated authors extract and publish from it. Cholera appears zero times in the full text (positive control: Eritrea 62, IDSR 5). CITATION CORRECTED BY AGENT 7 ON 2026-09-19. This record was registered by Agent 6 with a FABRICATED author string, 'Woldemichael G, Kifle D, et al.', which Agent 6 self-reported before handover. Neither name appears anywhere in the article's author list. The correct attribution, verified by Agent 7 directly against the Europe PMC core record (query EXT_ID:37780421 AND SRC:MED, retrieved 2026-09-19), is: Mengistu ST, Achila OO, Tewelde AT, Hamida ME, Tekle F, Michae I, Said M, Fsahatsion D, Abai H, Mulugeta R, Tsegai T, Woldu LG, Werke WY; 'Epidemiology of confirmed measles virus cases, surveillance, incidence, and associated factors in Eritrea: 18-year retrospective analysis'; Frontiers in Public Health 2023;11:1218317; DOI 10.3389/fpubh.2023.1218317; PMID 37780421; PMCID PMC10533993. Title, URL, date range and substantive description were correct as registered and are UNCHANGED; only the author string was wrong. NOTE: this Mengistu (ST, Eritrea measles) is NOT the Mengistu of metadata index 39 (DA, Ethiopia cholera retrospective) - do not merge them. No data row cites this index.
+
+TOTAL FIELD-LEVEL CHANGES IN THIS FILE: 5
+
+
+================================================================================
+AGENT 7 COMPLETE - 2026-09-19 - ERROR 0, WARN 0, exit 0
+================================================================================
+
+================================================================================
+AGENT 7 - SECOND QUALITY AUDIT SESSION - ERI - 2026-09-19 (post Agents 1-6 run)
+================================================================================
+Scope: audit the 19-row / 126-source ERI dataset after this session's six-agent
+run (2 rows, 42 sources added). No query ceiling; queries spent on verification
+of load-bearing claims only, not rediscovery.
+
+GATE RESULTS
+  py/validate_quality.py ERI                 ERROR 0  WARN 0  INFO 118
+  py/validate_quality.py ERI --no-baseline   ERROR 0  WARN 0  INFO 118
+    -> identical, so nothing is hidden behind reference/validation_debt.json
+  py/repair_data_integrity.py --dry-run ERI  TOTAL: 0 change(s); not applied
+  ./data/ERI/attribution_review.csv          not needed, not created
+
+INDEPENDENT ROW AUDIT: 19/19 pass on dual-reference integrity, date logic,
+deaths<=sCh, cCh<=sCh, CFR accuracy, weight bands, geographic legality (6 real
+zobas), prohibited locations, duplicates, source_database. Script: /tmp (ad hoc).
+
+CLAIMS VERIFIED AGAINST PRIMARY SOURCES
+  Index 23 CONFIRMED. Re-rendered /tmp/who_horn_cholera_1997.pdf (MD5
+    07a8c907e0afad2471e007010f5231b4) with pdftoppm -r 150 -png; PDF page 7 =
+    printed p.5. The table "Latest update on the cholera situation in the Horn
+    of Africa (09 Jan.1998)" prints Eritrea 0 / 0. Metadata 123's Description is
+    a faithful, complete transcription. New corroboration: printed p.3 plans
+    supplies for "countries which so far have been spared". Residual doubt:
+    Sudan also prints 0/0. Weight 0.70 is correct; do not raise it.
+  Index 22 SOUND. 17+3+3 = 23 = Index 11 exactly. All four rows carry the
+    literal strings "DO NOT SUM" and "PRIMARY COUNT". No double count with
+    Index 10 (22 cases vs 23 deaths, different origins). Nominatim on U+12D3
+    U+120B reproduced independently: one Eritrean hit, village 15.1156094 N
+    39.0455282 E, Debub. But Latin "Ala, Eritrea" returns different places, so
+    the identification rests wholly on the Ge'ez spelling. Retraction
+    instruction in the row is the right one. Row adds no new number.
+  Index 19 ADJUDICATION SOUND. Country-office primary report outranks the GHO
+    aggregate that is downstream of the notification that never happened.
+  JHU Phantom column VERIFIED in
+    /Users/johngiles/MOSAIC/jhu_cholera_data/data/Eritrea/
+    ObservationCollection313.csv: 10 of 16 rows Phantom=true (2011-2019, 2021),
+    all with sCh=0 and blank deaths. CORRECTION TO BRIEF: the workflow copy does
+    NOT drop the flag; py/convert_jhu_to_workflow.py keeps it as free text in
+    processing_notes and applies a 0.7 weight. It is simply not a structured
+    field, so no downstream tool branches on it.
+  Empty metadata Descriptions VERIFIED as read-but-undocumented on a sample of
+    four (idx 56, 61, 25, 67); e.g. search_log_agent_2.txt:786 records idx 61
+    "retrieved in full - 969,187 chars, cholera TWICE".
+  No 2022/2024/2025/2026 row of any kind exists. Nothing fabricated.
+
+QUANTIFIED PHANTOM-ZERO EFFECT (gap analyser's own covered_days_by_month logic)
+  coverage 32.7% -> 16.6%; months_jhu 192 -> 72; gap periods 6 -> 9;
+  months_ai_only 31 -> 41. 110 of 223 covered months (49.3%) are phantom-only.
+  Hidden gaps: 2009-01..2014-06, 2015-07..2016-08, 2016-10..2019-12,
+  2021-01..2022-12.
+
+GAP-FILLING IMPACT (baselineonly vs effective)
+  28.2% -> 32.7% (+4.5pp), 31 months closed (1970 x12, 1997 x12, 2000-06..12 x7),
+  +5 positive-case months, months_ai_only 31. Gap periods 4 -> 6 is
+  fragmentation of one 35-year gap, not regression.
+
+NEW DEFECTS FOUND (see search_report.txt D1-D6 for detail)
+  D2 is the most serious: py/build_weekly_timeseries.py discards BOTH
+  AI-discovered Eritrean outbreaks. SOURCE_PRIORITY ranks JHU above AI
+  unconditionally; load_national_rows() takes only exact "AFR::ERI"; and Index
+  11 is skipped because sCh is blank. Result: 2006 wk38-44 and 2016 wk34-39 are
+  emitted as sCh=0/JHU/inferred_zero. The ERI weekly series contains ZERO
+  positive weeks from the AI layer.
+  D3: cholera_weekly_ERI.csv was STALE (04:45 build vs 08:20 data), so Index 23
+  was absent from it. Rebuilt; 1997-01-01..1998-01-09 moved from
+  none/assumed_zero/0.5 to AI/documented_zero/0.70 across 54 weeks. Only ERI and
+  TGO changed. Dashboard NOT updated (orchestrator's job).
+  D4: validate_quality.py's STALE DEBT advice is unsafe under single-country
+  scoping - it named AGO/ETH/KEN entries as stale, but they fire correctly when
+  those countries are in scope. Do not follow it blindly.
+
+ACTIONS TAKEN
+  1. Removed the two genuinely stale ERI entries (data_empty,
+     metadata_unusable) from ./reference/validation_debt.json after verifying
+     them against the current 19-row / 126-source file. Left AGO/ETH/KEN alone.
+     Backup: /tmp/validation_debt.bak.json
+  2. Rebuilt ./data/ERI/cholera_weekly_ERI.csv.
+  3. Wrote ./data/ERI/search_report.txt (full report + metrics appendix).
+  NO data row and NO metadata entry altered, added or withdrawn.
+
+LEFT UNRESOLVED (deliberately)
+  The ./data/ERI/cholera_presence_ai.csv record citing source_index 12 is
+  superseded by data row Index 11 and its "count_unknown" label is now false.
+  Agent 5 asked Agent 7 to retire it. py/add_observation.py has no removal
+  subcommand and hand-editing the CSVs is prohibited, so it stands. Inert (no
+  downstream consumer). Needs a `retire-presence` subcommand.
+
+================================================================================
+AGENT 7 COMPLETE (session 2) - 2026-09-19 - ERROR 0, WARN 0, exit 0
+================================================================================

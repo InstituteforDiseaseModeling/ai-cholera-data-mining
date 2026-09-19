@@ -3,10 +3,6 @@
 # Wait for the in-flight runner to halt (it has a STOP file, so it stops cleanly
 # after the current country), swap in the staged configuration, and relaunch.
 #
-# This exists so the switch to the longer per-country budget happens without a
-# human having to be present at the moment the current country finishes, and
-# without editing a bash script while bash is still reading it.
-#
 # Usage: bash py/handoff_runner.sh <pid-of-running-runner>
 set -uo pipefail
 
@@ -21,7 +17,6 @@ LOG="logs/handoff_$(date +%Y%m%d-%H%M%S).log"
   while kill -0 "$OLD_PID" 2>/dev/null; do sleep 60; done
   echo "runner exited at $(date '+%Y-%m-%d %H:%M:%S')"
 
-  # Any claude process from the old runner should be gone; make sure.
   sleep 10
   pkill -f "claude -p .* --agent workflow-orchestrator" 2>/dev/null && \
     echo "cleaned up a stray orchestrator process"
@@ -29,9 +24,20 @@ LOG="logs/handoff_$(date +%Y%m%d-%H%M%S).log"
   if [[ -f run_all_countries.sh.staged ]]; then
     mv run_all_countries.sh.staged run_all_countries.sh
     chmod +x run_all_countries.sh
-    echo "swapped in staged runner (8h cap, 3 attempts/country)"
+    echo "swapped in staged runner"
   fi
   rm -f STOP
+
+  # Refuse to relaunch if anything is already running. The previous handoff
+  # produced two runners one second apart; they worked ERI and TGO
+  # simultaneously and left two conflicting national rows behind. The runner now
+  # enforces this itself via reference/.runner.pid, but checking here too means
+  # a duplicate supervisor never even starts a process.
+  if pgrep -f "bash run_all_countries.sh" >/dev/null 2>&1; then
+    echo "ABORT: a runner is already live; not relaunching."
+    exit 0
+  fi
+  rm -f reference/.runner.pid
 
   out="logs/full_run_$(date +%Y%m%d-%H%M%S).out"
   echo "relaunching -> $out"

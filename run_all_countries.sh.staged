@@ -27,6 +27,22 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
+# One runner at a time. Nothing in this script is safe to run concurrently with
+# itself: two instances share the manifest, the country directories and the git
+# index, and agents from different sessions overwrite each other's rows.
+RUNLOCK="reference/.runner.pid"
+if [[ -f "$RUNLOCK" ]]; then
+  other="$(cat "$RUNLOCK" 2>/dev/null || true)"
+  if [[ -n "$other" ]] && kill -0 "$other" 2>/dev/null \
+     && ps -p "$other" -o command= 2>/dev/null | grep -q run_all_countries.sh; then
+    echo "ERROR: another runner is already live (pid $other)." >&2
+    echo "       Stop it first (touch STOP) or remove $RUNLOCK if it is stale." >&2
+    exit 3
+  fi
+fi
+echo $$ > "$RUNLOCK"
+trap 'rm -f "$RUNLOCK"' EXIT
+
 MANIFEST="reference/run_manifest.csv"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOGDIR="logs/run_${STAMP}"
@@ -177,6 +193,12 @@ for iso in "${QUEUE[@]}"; do
   rb=$(rowcount "$iso"); sb=$(srccount "$iso")
   log="$LOGDIR/${iso}.log"
   t0=$(date +%s); started_at="$(date '+%Y-%m-%d %H:%M:%S')"
+  # Reference file for the completeness check below. BSD find cannot parse
+  # `-newermt @<epoch>` - it fails, the error was swallowed by 2>/dev/null, and
+  # every country was therefore scored 0/7 and retried MAX_ATTEMPTS times no
+  # matter how well it had gone. A marker file plus bash's own -nt needs no
+  # find at all.
+  marker="$LOGDIR/.mark_${iso}"; : > "$marker"
   echo ""
   echo "--- [$n/${#QUEUE[@]}] $iso  (rows=$rb sources=$sb)  $(date '+%H:%M:%S') ---"
 
@@ -201,7 +223,15 @@ for iso in "${QUEUE[@]}"; do
       124) st="timeout" ;;
       *)   st="failed" ;;
     esac
-    agents_ran=$(find "data/$iso" -name 'search_log_agent_*.txt' -newermt "@$t0" 2>/dev/null | wc -l | tr -d ' ')
+    # Count the seven canonical logs rewritten during this country's window.
+    # Legacy renames (search_log_agent_N_legacy_*.txt) keep their old mtime and
+    # are correctly ignored, and matching exact names means seven distinct
+    # agents must each have run - not simply seven files of any kind.
+    agents_ran=0
+    for k in 1 2 3 4 5 6 7; do
+      f="data/$iso/search_log_agent_${k}.txt"
+      [[ -f "$f" && "$f" -nt "$marker" ]] && agents_ran=$((agents_ran+1))
+    done
     [[ "$st" == "done" && "$agents_ran" -ge 7 ]] && break
     [[ -f STOP ]] && break
   done
