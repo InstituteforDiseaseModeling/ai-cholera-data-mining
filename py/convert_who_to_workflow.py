@@ -30,13 +30,33 @@ WHO_DATA_PATH = os.environ.get('WHO_DATA_PATH',
 DATA_PATH = "./data"
 COUNTRY_MAPPING_PATH = "./reference/country_mapping.json"
 
-# WHO country names to ISO code mapping (MOSAIC framework countries only)
-# Keys must match the exact uppercase country names in cholera_country_weekly.csv.
-# Ghana, Kenya, Togo, Uganda removed — not present in WHO source data.
-# Congo (COG) and Rwanda (RWA) added — present in WHO source data and MOSAIC framework.
+# WHO country names to ISO code mapping (MOSAIC framework countries only).
+# Keys must match the exact uppercase country names in cholera_country_weekly.csv
+# (note CÔTE D'IVOIRE uses a curly apostrophe there).
+#
+# Audited 2026-09-18 against the live source, which carries 43 countries. A
+# previous comment asserted Ghana/Kenya/Togo/Uganda were "not present in WHO
+# source data" - they are present. Seven further MOSAIC countries were never
+# mapped at all and consequently had no WHO baseline: CAF, CIV, CMR, NER, SWZ,
+# TCD, ZAF. Their gap analysis therefore rested on JHU alone, which ends
+# 2025-03-27.
+#
+# Still genuinely absent from the WHO weekly feed (do not add): BEN BFA BWA ERI
+# GAB GIN GMB GNB GNQ LBR MLI MRT SEN SLE.
 WHO_TO_ISO_MAPPING = {
     "ANGOLA": "AGO",
     "BURUNDI": "BDI",
+    "CAMEROON": "CMR",
+    "CENTRAL AFRICAN REPUBLIC": "CAF",
+    "CHAD": "TCD",
+    "C\u00d4TE D\u2019IVOIRE": "CIV",
+    "ESWATINI": "SWZ",
+    "GHANA": "GHA",
+    "KENYA": "KEN",
+    "NIGER": "NER",
+    "SOUTH AFRICA": "ZAF",
+    "TOGO": "TGO",
+    "UGANDA": "UGA",
     "CONGO": "COG",  # Republic of the Congo (WHO uses 'CONGO', not 'REPUBLIC OF THE CONGO')
     "DEMOCRATIC REPUBLIC OF THE CONGO": "COD",
     "ETHIOPIA": "ETH",
@@ -296,8 +316,25 @@ def main():
     total_observations_added = 0
     countries_updated = 0
     
+    # This converter CONCATENATES onto any existing cholera_data_who.csv, so a
+    # second unfiltered run duplicates every row. --only restricts the run, and
+    # countries that already have a file are skipped unless --force is given.
+    import sys as _sys
+    only = set()
+    force = "--force" in _sys.argv
+    for i, a in enumerate(_sys.argv):
+        if a == "--only" and i + 1 < len(_sys.argv):
+            only = {x.strip().upper() for x in _sys.argv[i + 1].split(",")}
+
     # Process each WHO country
     for who_country, iso_code in WHO_TO_ISO_MAPPING.items():
+        if only and iso_code not in only:
+            continue
+        _existing = os.path.join(DATA_PATH, iso_code, "cholera_data_who.csv")
+        if os.path.exists(_existing) and not force:
+            logger.info(f"  ⏭  {iso_code}: cholera_data_who.csv already exists; "
+                        f"skipping to avoid duplicate rows (use --force to override)")
+            continue
         if iso_code not in mosaic_countries:
             logger.warning(f"⚠️  {iso_code} not in MOSAIC framework, skipping")
             continue

@@ -264,7 +264,7 @@ PROFILES_B = {
         "neighbors": ["AGO", "BWA", "COD", "MWI", "MOZ", "NAM", "TZA", "ZWE"],
         "search_languages": ["en"],
         "disease_terms": ["cholera", "acute watery diarrhoea"],
-        "health_domains": ["moh.gov.zm", "ww2.znphi.co.zm"],
+        "health_domains": ["moh.gov.zm", "www.znphi.co.zm"],
         "season": "Lusaka peri-urban (Kanyama, Chawama) and Lake Mweru/Tanganyika fishing camps; rainy season Nov-Apr; 2023-24 major epidemic",
     },
     "ZWE": {

@@ -170,7 +170,7 @@ PROFILES_A = {
         "neighbors": ["AGO", "BDI", "CAF", "COG", "RWA", "SSD", "TZA", "UGA", "ZMB"],
         "search_languages": ["fr", "en"],
         "disease_terms": ["cholera", "diarrhee aqueuse aigue", "epidemie de cholera"],
-        "health_domains": ["sante.gouv.cd", "insp.cd"],
+        "health_domains": ["sante.gouv.cd", "www.insp.cd"],
         "season": "Endemic Great Lakes foci (Sud-Kivu/Uvira, Nord-Kivu, Tanganyika); epidemic spread along Congo river to Kinshasa",
     },
     "COG": {

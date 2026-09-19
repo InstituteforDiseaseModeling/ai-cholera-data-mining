@@ -83,6 +83,10 @@ PRESENCE_COLUMNS = [
 # apparently valid one.
 # --------------------------------------------------------------------------
 SUBLABEL_OK = {
+    ("AGO", "7"),   # 1974 row vs source dated exactly 1974-01-01..1974-12-31
+    ("AGO", "9"),   # 1977 row vs source dated exactly 1977-01-01..1977-12-31
+    ("AGO", "16"),  # Soyo/Zaire 2012 row vs a Sitata report naming Soyo, Zaire Province
+    ("ETH", "2"),   # 2015-2022 spatiotemporal study; rows inside that window
     ("AGO", "10"),  # per-year labels under "WHO Global Health Data - Angola 1989-1996"
     ("BFA", "11"),  # accent/truncation drift on the same Plateforme Cholera factsheet
     ("KEN", "18"),  # per-county labels under "Trans Nzoia and West Pokot Counties 2015-2017"
@@ -124,6 +128,93 @@ DATE_FIXES = [
 ]
 
 
+# Geography conflict check.
+#
+# An earlier version treated any capitalised word in a source title as a place
+# name, so "Spatiotemporal dynamics of cholera epidemics in Ethiopia" read as a
+# location conflict against an Afar row. It now consults the real ADM1 list from
+# reference/country_profiles.json, and only fires when the title names an actual
+# administrative unit of that country which the row's Location does not contain.
+_PROFILES = None
+
+
+def _adm1_units(iso):
+    global _PROFILES
+    if _PROFILES is None:
+        pth = ROOT / "reference" / "country_profiles.json"
+        _PROFILES = json.loads(pth.read_text())["countries"] if pth.exists() else {}
+    p = _PROFILES.get(iso, {})
+    units = list(p.get("adm1", []))
+    for lst in (p.get("adm1_legacy") or {}).values():
+        units.extend(lst)
+    return [u for u in units if len(u) > 3]
+
+
+def _geo_conflict(iso, location, source_title):
+    loc = location.lower().replace("_", " ")
+    title = source_title.lower()
+    named = [u for u in _adm1_units(iso) if u.lower() in title]
+    if not named:
+        return None
+    if loc.count("::") >= 2 and not any(u.lower() in loc for u in named):
+        return (f"source title names {named[:3]}, which does not match the row's "
+                f"Location {location!r}")
+    return None
+
+
+def _parse_range(text):
+    """Parse a metadata Date_Range into (start, end, granularity)."""
+    import re as _re
+    t = (text or "").strip()
+    m = _re.match(r"^(\d{4})-(\d{2})-(\d{2})\s*(?:to|-|..)\s*(\d{4})-(\d{2})-(\d{2})$", t)
+    if m:
+        a = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        b = date(int(m.group(4)), int(m.group(5)), int(m.group(6)))
+        return a, b, "day"
+    m = _re.match(r"^(\d{4})\s*[-\u2013]\s*(\d{4})$", t)
+    if m:
+        return date(int(m.group(1)), 1, 1), date(int(m.group(2)), 12, 31), "year"
+    m = _re.match(r"^(\d{4})$", t)
+    if m:
+        y = int(m.group(1))
+        return date(y, 1, 1), date(y, 12, 31), "year"
+    return None, None, None
+
+
+def can_normalize(iso, row, meta_entry):
+    """(ok, reason) - may this row's label be rewritten to the cited source's name?
+
+    Two things must hold. The row's period must fall inside the source's
+    documented Date_Range, which is what rules out AGO rows dated 2008/2010
+    citing a situation report covering 2025. And the source title must not name
+    a different place than the row, which is what rules out a Migori row citing
+    a Homa Bay report. A year-granular Date_Range cannot validate a full-year
+    total against a source whose title carries a specific date.
+    """
+    tl, tr = d(row.get("TL")), d(row.get("TR"))
+    rs, re_, gran = _parse_range(meta_entry.get("Date_Range", ""))
+    title = (meta_entry.get("Source") or "").strip()
+
+    if rs and tl and tr:
+        if tl < rs or tr > re_:
+            return False, (f"row period {tl}..{tr} falls outside the cited source's "
+                           f"Date_Range {rs}..{re_}")
+    elif rs is None:
+        return False, f"cited source has an unparseable Date_Range {meta_entry.get('Date_Range')!r}"
+
+    import re as _re
+    if gran == "year" and tl and tr and (tr - tl).days > 300 and \
+            _re.search(r"\b\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
+                       title, _re.I):
+        return False, ("cited source is dated to a single day but this row covers a "
+                       "full year; a dated bulletin cannot substantiate an annual total")
+
+    g = _geo_conflict(iso, row.get("Location", ""), title)
+    if g:
+        return False, g
+    return True, ""
+
+
 def load(path):
     with open(path, newline="", encoding="utf-8-sig") as fh:
         rdr = csv.DictReader(fh)
@@ -159,6 +250,7 @@ def repair_country(iso, changes, apply):
         return
     meta_rows, _ = load(mpath) if mpath.exists() else ([], [])
     meta = {(m.get("Index") or "").strip(): (m.get("Source") or "").strip() for m in meta_rows}
+    meta_rows_by_idx = {(m.get("Index") or "").strip(): m for m in meta_rows}
 
     # Track this country's changes separately: the caller's `changes` list is
     # global, so using it to decide whether to rewrite would rewrite all 40
@@ -197,7 +289,8 @@ def repair_country(iso, changes, apply):
 
         # -- 1. source label normalisation -----------------------------------
         if si and si in meta and src and src != meta[si]:
-            if (iso, si) in SUBLABEL_OK:
+            ok, why = can_normalize(iso, r, meta_rows_by_idx.get(si, {}))
+            if (iso, si) in SUBLABEL_OK and ok:
                 notes = r.get("processing_notes") or ""
                 marker = f"Original row label: '{src}'."
                 if marker not in notes:
@@ -215,7 +308,7 @@ def repair_country(iso, changes, apply):
                     "Location": loc, "TL": r.get("TL"), "TR": r.get("TR"),
                     "source_index": si, "row_source_label": src,
                     "metadata_source": meta.get(si, "<index missing from metadata>"),
-                    "issue": "row source label does not match the cited metadata Index",
+                    "issue": (why or "row source label does not match the cited metadata Index"),
                     "action_required": ("verify against the source which entry actually "
                                         "supports this row, then correct source_index or "
                                         "source - do not simply relabel"),
