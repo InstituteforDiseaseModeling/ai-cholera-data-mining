@@ -64,7 +64,10 @@ def collect():
     st = {
         "generated_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         "runner_alive": False, "runner_pid": None, "runner_elapsed_minutes": None,
-        "current_country": None, "country_elapsed_minutes": None,
+        # Countries run up to PARALLEL at a time, so this is a list. The
+        # singular keys below are the first entry, kept so anything reading the
+        # older shape still works.
+        "active": [], "current_country": None, "country_elapsed_minutes": None,
         "current_agent": None, "agent_log_age_minutes": None,
         "last_write_file": None, "last_write_age_minutes": None,
         "stalled": False, "countries_done": 0, "countries_total": 40,
@@ -82,28 +85,43 @@ def collect():
             st["runner_elapsed_minutes"] = round(etime_to_minutes(et), 1)
         cm = re.match(r"^claude -p ([A-Z]{3})\b", args)
         if cm:
-            st["current_country"] = cm.group(1)
-            st["country_elapsed_minutes"] = round(etime_to_minutes(et), 1)
+            st["active"].append({"iso": cm.group(1),
+                                 "elapsed_minutes": round(etime_to_minutes(et), 1)})
 
-    iso = st["current_country"]
-    if iso:
-        d = ROOT / "data" / iso
-        if d.is_dir():
-            # Which agent is working: the most recently touched canonical log.
-            best = None
-            for k in range(1, 8):
-                f = d / f"search_log_agent_{k}.txt"
-                if f.exists() and (best is None or f.stat().st_mtime > best[0]):
-                    best = (f.stat().st_mtime, k)
-            if best:
-                st["current_agent"] = best[1]
-                st["agent_log_age_minutes"] = round((now - best[0]) / 60.0, 1)
-            nf = newest_file(d)
-            if nf:
-                st["last_write_file"] = str(nf[1].relative_to(ROOT))
-                st["last_write_age_minutes"] = round((now - nf[0]) / 60.0, 1)
-                st["stalled"] = st["runner_alive"] and \
-                    st["last_write_age_minutes"] > STALL_MINUTES
+    for a in st["active"]:
+        d = ROOT / "data" / a["iso"]
+        a["agent"] = None
+        a["last_write_file"] = None
+        a["last_write_age_minutes"] = None
+        if not d.is_dir():
+            continue
+        # Which agent is working: the most recently touched canonical log.
+        best = None
+        for k in range(1, 8):
+            f = d / f"search_log_agent_{k}.txt"
+            if f.exists() and (best is None or f.stat().st_mtime > best[0]):
+                best = (f.stat().st_mtime, k)
+        if best:
+            a["agent"] = best[1]
+        nf = newest_file(d)
+        if nf:
+            a["last_write_file"] = str(nf[1].relative_to(ROOT))
+            a["last_write_age_minutes"] = round((now - nf[0]) / 60.0, 1)
+        # A country whose process is alive but which has written nothing for
+        # 45 minutes is not working, whatever `ps` says.
+        a["stalled"] = bool(st["runner_alive"]
+                            and a["last_write_age_minutes"] is not None
+                            and a["last_write_age_minutes"] > STALL_MINUTES)
+
+    st["active"].sort(key=lambda a: a["iso"])
+    if st["active"]:
+        a0 = st["active"][0]
+        st["current_country"] = a0["iso"]
+        st["country_elapsed_minutes"] = a0["elapsed_minutes"]
+        st["current_agent"] = a0["agent"]
+        st["last_write_file"] = a0["last_write_file"]
+        st["last_write_age_minutes"] = a0["last_write_age_minutes"]
+        st["stalled"] = any(a["stalled"] for a in st["active"])
 
     if MANIFEST.exists():
         last = {}
@@ -131,16 +149,25 @@ def html(st):
     def mins(v):
         return f"{v:.0f} min" if isinstance(v, (int, float)) else None
 
+    if st["active"]:
+        cells = []
+        for a in st["active"]:
+            flag = ' <b style="color:#b26a00">STALLED</b>' if a.get("stalled") else ""
+            cells.append(
+                f'<tr><td><b>{a["iso"]}</b></td>'
+                f'<td>agent {a["agent"] or "-"} of 7</td>'
+                f'<td>{mins(a["elapsed_minutes"])}</td>'
+                f'<td><small>wrote {mins(a["last_write_age_minutes"]) or "&mdash;"} ago</small>{flag}</td></tr>')
+        active_tbl = ('<table class="sub"><tr><th>Country</th><th>Progress</th>'
+                      '<th>Running</th><th>Last write</th></tr>' + "".join(cells) + "</table>")
+    else:
+        active_tbl = "<small>none</small>"
+
     body = "".join([
         row("Status", f'<b style="color:{colour}">{badge}</b>'),
         row("Countries complete", f'{st["countries_done"]} of {st["countries_total"]}'
                                   f' &nbsp;<small>{", ".join(st["done"]) or "none yet"}</small>'),
-        row("Current country", st["current_country"]),
-        row("Current agent", f'{st["current_agent"]} of 7' if st["current_agent"] else None),
-        row("This country running for", mins(st["country_elapsed_minutes"])),
-        row("Last file written", f'{st["last_write_file"]}'
-                                 f' <small>({mins(st["last_write_age_minutes"])} ago)</small>'
-            if st["last_write_file"] else None),
+        row(f'In progress ({len(st["active"])})', active_tbl),
         row("Runner uptime", mins(st["runner_elapsed_minutes"])),
         row("Heartbeat written", st["generated_at"]),
     ])
@@ -156,6 +183,9 @@ def html(st):
  th,td{{text-align:left;padding:.5rem .6rem;border-bottom:1px solid #e6e6e6;vertical-align:top}}
  th{{width:14rem;font-weight:600;color:#555}}
  small{{color:#777}} .note{{margin-top:1.4rem;color:#666;font-size:.9rem}}
+ table.sub{{margin:0}} table.sub th,table.sub td{{padding:.25rem .5rem .25rem 0;
+   border:0;width:auto;font-weight:400;color:#1a1a1a}}
+ table.sub th{{color:#888;font-size:.8rem;text-transform:uppercase}}
 </style></head><body>
 <h1>MOSAIC AI cholera pipeline &mdash; run status</h1>
 <div><small>Auto-refreshes every 2 minutes. Heartbeat is written every 10 minutes
@@ -182,18 +212,17 @@ def main():
     OUT_HTML.write_text(html(st))
 
     if not a.quiet:
+        who = ", ".join(f"{a['iso']} ag{a['agent'] or '-'}/7"
+                        f"{' STALLED' if a.get('stalled') else ''}"
+                        for a in st["active"]) or "none"
         print(f"{'RUNNING' if st['runner_alive'] else 'NOT RUNNING'}  "
-              f"country={st['current_country']} agent={st['current_agent']}/7  "
-              f"done={st['countries_done']}/40  "
-              f"last write {st['last_write_age_minutes']} min ago"
-              f"{'  STALLED' if st['stalled'] else ''}")
+              f"done={st['countries_done']}/40  active[{len(st['active'])}]: {who}")
 
     if a.publish:
         sys.path.insert(0, str(ROOT / "py"))
         from publish import publish
-        msg = (f"Run heartbeat: {st['current_country'] or 'idle'} "
-               f"agent {st['current_agent'] or '-'}/7, "
-               f"{st['countries_done']}/40 complete")
+        msg = (f"Run heartbeat: {st['countries_done']}/40 complete, "
+               f"active {', '.join(a['iso'] for a in st['active']) or 'none'}")
         print(publish(["dashboard/run_status.json", "dashboard/run_status.html"], msg))
     return 0
 

@@ -51,6 +51,7 @@ MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}            # retries before moving on
 PERMISSION_MODE="acceptEdits"
 MAX_TURNS=${MAX_TURNS:-600}
 DASH_EVERY=${DASH_EVERY:-5}                # full dashboard rebuild cadence
+PARALLEL=${PARALLEL:-1}                    # countries running concurrently
 DRY=0; LIMIT=0; FROM=""; ONLY=""; RETRY_FAILED=0; PUBLISH=0
 
 while [[ $# -gt 0 ]]; do
@@ -61,6 +62,7 @@ while [[ $# -gt 0 ]]; do
     --only)            ONLY="$2"; shift ;;
     --retry-failed)    RETRY_FAILED=1 ;;
     --timeout)         TIMEOUT_SECS="$2"; shift ;;
+    --parallel)        PARALLEL="$2"; shift ;;
     --permission-mode) PERMISSION_MODE="$2"; shift ;;
     --unattended)      PERMISSION_MODE="bypassPermissions" ;;
     --publish-progress) PUBLISH=1 ;;
@@ -142,20 +144,26 @@ except Exception:
 rowcount () { csvcount "data/$1/cholera_data_ai.csv"; }
 srccount () { csvcount "data/$1/metadata_ai.csv"; }
 
+# Everything below touches state shared by every country - the dashboard build,
+# the gap reference files, the git index - so it runs under a lock. Per-country
+# data lives in data/{ISO}/ and needs no lock; this does.
 refresh_dashboard () {   # $1 = "light" | "full"
   if [[ "$1" == "full" ]]; then
     # Heavy: weekly series for all 40, heatmaps, barplot, then commit+push.
     if [[ $PUBLISH -eq 1 ]]; then
-      bash update_dashboard.sh --publish >> "$LOGDIR/_dashboard.log" 2>&1
+      python3 py/with_lock.py dashboard -- bash update_dashboard.sh --publish \
+        >> "$LOGDIR/_dashboard.log" 2>&1
     else
-      bash update_dashboard.sh >> "$LOGDIR/_dashboard.log" 2>&1
+      python3 py/with_lock.py dashboard -- bash update_dashboard.sh \
+        >> "$LOGDIR/_dashboard.log" 2>&1
     fi
   else
     # Light: just the progress view (checklist + embedded data). Published too,
     # so the live dashboard reflects every completed country rather than only
     # every DASH_EVERY-th one - the run is unattended and this is the only way
     # to watch it from elsewhere.
-    python3 py/update_dashboard_data.py >> "$LOGDIR/_dashboard.log" 2>&1
+    python3 py/with_lock.py dashboard -- python3 py/update_dashboard_data.py \
+      >> "$LOGDIR/_dashboard.log" 2>&1
     if [[ $PUBLISH -eq 1 ]]; then
       # Serialised through py/publish.py so it cannot race the heartbeat,
       # whose push would otherwise leave this one rejected as non-fast-forward
@@ -187,6 +195,7 @@ echo ""
 echo "=== plan ==="
 echo "  countries queued : ${#QUEUE[@]}  ->  ${QUEUE[*]:-none}"
 echo "  per-country cap  : $((TIMEOUT_SECS/60)) min, $MAX_TURNS turns"
+echo "  concurrency      : $PARALLEL country(ies) at a time"
 echo "  permission mode  : $PERMISSION_MODE"
 echo "  dashboard        : refreshed after every country; full rebuild every $DASH_EVERY"
 echo "                     publish to GitHub Pages: $([[ $PUBLISH -eq 1 ]] && echo yes || echo no)"
@@ -210,12 +219,20 @@ fi
 trap '[[ -n "$HEARTBEAT_PID" ]] && kill "$HEARTBEAT_PID" 2>/dev/null; rm -f "$RUNLOCK"' EXIT
 
 # -------------------------------------------------------------------- execute --
-run_start=$(date +%s); n=0
-for iso in "${QUEUE[@]}"; do
-  if [[ -f STOP ]]; then
-    echo ""; echo "STOP file present - halting after $n countries."; rm -f STOP; break
-  fi
-  n=$((n+1))
+# One country per OS process, up to $PARALLEL at a time. Process isolation is
+# what makes this safe: each country's agents write only to data/{ISO}/, and the
+# OS reclaims everything when the process exits, so memory cannot accumulate
+# across the run. Measured footprint is ~460 MB per country after four hours,
+# and the work is network-bound (~2% CPU), so the limit is politeness to the
+# upstream sources rather than this machine.
+#
+# What is NOT safe in parallel, and is therefore serialised or owned by this
+# script alone: the dashboard build, the gap reference files, the git index.
+
+run_country () {
+  local iso="$1" idx="$2"
+  local rb sb log t0 started_at marker attempt st code agents_ran k f t1 ra sa cnt
+
   rb=$(rowcount "$iso"); sb=$(srccount "$iso")
   log="$LOGDIR/${iso}.log"
   t0=$(date +%s); started_at="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -225,8 +242,7 @@ for iso in "${QUEUE[@]}"; do
   # matter how well it had gone. A marker file plus bash's own -nt needs no
   # find at all.
   marker="$LOGDIR/.mark_${iso}"; : > "$marker"
-  echo ""
-  echo "--- [$n/${#QUEUE[@]}] $iso  (rows=$rb sources=$sb)  $(date '+%H:%M:%S') ---"
+  echo "  >> [$idx/${#QUEUE[@]}] $iso starting $(date '+%H:%M:%S')  (rows=$rb sources=$sb)"
 
   # Retry loop. An orchestrator that dies part-way leaves its work on disk and
   # records it in workflow_state.json, so a retry resumes rather than restarting
@@ -235,7 +251,7 @@ for iso in "${QUEUE[@]}"; do
   attempt=0; st="unrun"
   while (( attempt < MAX_ATTEMPTS )); do
     attempt=$((attempt+1))
-    [[ $attempt -gt 1 ]] && echo "    retry $attempt/$MAX_ATTEMPTS ($st) $(date '+%H:%M:%S')"
+    [[ $attempt -gt 1 ]] && echo "  .. $iso retry $attempt/$MAX_ATTEMPTS ($st) $(date '+%H:%M:%S')"
 
     timeout "$TIMEOUT_SECS" claude -p "$iso" \
         --agent workflow-orchestrator \
@@ -273,20 +289,59 @@ for iso in "${QUEUE[@]}"; do
     fi
   fi
 
+  # One short line via O_APPEND is atomic, so parallel children cannot interleave
+  # half-rows into the manifest.
   printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
     "$iso" "$st" "$started_at" "$(date '+%Y-%m-%d %H:%M:%S')" \
     "$rb" "$ra" "$sb" "$sa" "$code" "$log" >> "$MANIFEST"
 
-  echo "    $st  attempts ${attempt}  agents ${agents_ran}/7  rows ${rb}->${ra} (+$((ra-rb)))  sources ${sb}->${sa} (+$((sa-sb)))  $(( (t1-t0)/60 ))min"
+  echo "  << $iso  $st  attempts ${attempt}  agents ${agents_ran}/7  rows ${rb}->${ra} (+$((ra-rb)))  sources ${sb}->${sa} (+$((sa-sb)))  $(( (t1-t0)/60 ))min"
   python3 py/validate_quality.py "$iso" --quiet >/dev/null 2>&1 \
-    || echo "    WARNING: $iso does not pass validation after its run"
+    || echo "  !! $iso does not pass validation after its run"
 
-  # Progress is monitored through the dashboard, so refresh it every country.
-  # The full rebuild (weekly series, heatmaps, barplot) is heavier, so it runs
-  # on a cadence rather than every time.
-  if (( n % DASH_EVERY == 0 )); then refresh_dashboard full "$iso"; else refresh_dashboard light "$iso"; fi
-  echo "    dashboard refreshed ($( (( n % DASH_EVERY == 0 )) && echo full || echo light))"
+  # Shared reference files: regenerate once this country is finished, serialised
+  # so a parallel sibling never reads them mid-rebuild.
+  python3 py/with_lock.py gaps -- python3 py/analyze_effective_gaps.py \
+    >> "$LOGDIR/_dashboard.log" 2>&1
+
+  echo "$iso" >> "$LOGDIR/.completed"
+  cnt=$(wc -l < "$LOGDIR/.completed" | tr -d ' ')
+  if (( cnt % DASH_EVERY == 0 )); then refresh_dashboard full "$iso"; else refresh_dashboard light "$iso"; fi
+}
+
+# Wait until fewer than $PARALLEL countries are in flight. Written with a plain
+# string rather than an array because macOS ships bash 3.2, where expanding an
+# empty array under `set -u` is an error.
+RUNNING_PIDS=""
+wait_for_slot () {
+  local alive p cnt
+  while true; do
+    alive=""; cnt=0
+    for p in $RUNNING_PIDS; do
+      if kill -0 "$p" 2>/dev/null; then alive="$alive $p"; cnt=$((cnt+1)); fi
+    done
+    RUNNING_PIDS="$alive"
+    (( cnt < PARALLEL )) && return 0
+    sleep 15
+  done
+}
+
+run_start=$(date +%s); n=0
+: > "$LOGDIR/.completed"
+for iso in "${QUEUE[@]}"; do
+  if [[ -f STOP ]]; then
+    echo ""; echo "STOP file present - dispatching no more countries."; rm -f STOP; break
+  fi
+  wait_for_slot
+  n=$((n+1))
+  run_country "$iso" "$n" &
+  RUNNING_PIDS="$RUNNING_PIDS $!"
+  sleep 5   # stagger starts so four orchestrators do not hit the API in lockstep
 done
+
+# Wait on the country jobs specifically. A bare `wait` would also wait on the
+# heartbeat, which does not exit until this script does - a deadlock.
+for p in $RUNNING_PIDS; do wait "$p" 2>/dev/null; done
 
 # --------------------------------------------------------------------- wrap --
 echo ""

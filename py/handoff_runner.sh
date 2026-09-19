@@ -50,9 +50,11 @@ LOG="logs/handoff_$(date +%Y%m%d-%H%M%S).log"
   # caffeinate -i prevents idle sleep for the life of the run. A multi-day
   # unattended job that pauses when the lid closes will not complete.
   if command -v caffeinate >/dev/null; then
-    nohup caffeinate -i bash run_all_countries.sh --unattended --publish-progress > "$out" 2>&1 &
+    nohup caffeinate -i bash run_all_countries.sh --unattended --publish-progress \
+      --parallel "${PARALLEL:-4}" > "$out" 2>&1 &
   else
-    nohup bash run_all_countries.sh --unattended --publish-progress > "$out" 2>&1 &
+    nohup bash run_all_countries.sh --unattended --publish-progress \
+      --parallel "${PARALLEL:-4}" > "$out" 2>&1 &
   fi
   echo "relaunched as pid $!"
 } >> "$LOG" 2>&1

@@ -36,6 +36,7 @@ Usage:
 import argparse
 import calendar
 import csv
+import os
 import json
 import re
 from collections import defaultdict
@@ -241,10 +242,17 @@ def analyse(iso, name, layers, end_date, min_gap_days):
 
 
 def write_csv(path, rows, fields):
-    with open(path, "w", newline="", encoding="utf-8") as fh:
+    # Write through a temp file and rename. Agents read these files while this
+    # runs, and with countries running in parallel a reader that opens a gap
+    # file mid-write gets a truncated one and silently targets the wrong gaps.
+    # os.replace is atomic within a filesystem, so a reader sees either the old
+    # file or the new one, never a half-written one.
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=fields)
         w.writeheader()
         w.writerows(rows)
+    os.replace(tmp, path)
     print(f"  {path.relative_to(ROOT)}  ({len(rows)} rows)")
 
 

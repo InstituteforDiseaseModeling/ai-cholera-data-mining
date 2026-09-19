@@ -1,447 +1,461 @@
 ================================================================================
 TOGO (TGO) - AI CHOLERA SURVEILLANCE ENHANCEMENT - FINAL REPORT
 ================================================================================
-Country        : Togo (TGO), West Africa. 6 ADM1 regions (7 after the 2020
-                 creation of Grand Lome). Languages fr/en.
-Workflow run   : 2026-09-19. Agents 1-6 10:35-16:19 UTC. Agent 7 (this audit)
-                 16:56-17:30 UTC.
-Snapshot taken : 2026-09-19 10:25 PDT. SEE THE CONCURRENCY WARNING BELOW - the
-                 file was still being appended to when this was written.
-Validator      : python py/validate_quality.py TGO -> exit 0
-                 ERROR 0 | WARN 42 | INFO 104
-                 (40 multiyear_aggregate + 2 CFR_high; all verified, all justified)
-
-Files (all paths from the repository root
-/Users/johngiles/MOSAIC/ai-cholera-data-mining):
-  ./data/TGO/cholera_data_ai.csv       273 rows  (196 case rows, 77 zero rows)
-  ./data/TGO/metadata_ai.csv           194 sources
-  ./data/TGO/cholera_presence_ai.csv    57 rows  (presence, count unknown)
-  ./data/TGO/retracted_rows_ai.csv      26 tombstones
-  ./data/TGO/cholera_weekly_TGO.csv    rebuilt 2026-09-19 10:11 PDT
-  ./data/TGO/search_log_agent_7.txt    full audit trail for this report
+Country      : Togo (TGO), West Africa. 6 ADM1 regions (7 since the 2020
+               creation of Grand Lome). Neighbours BEN, BFA, GHA. Languages fr/en.
+Report by    : Agent 7 (quality auditor), 2026-09-19
+Run type     : REDEPLOYMENT onto an already-"COMPLETED" country
+Run window   : 2026-09-19T17:26:53Z -> 2026-09-19T22:0x
+Files        : ./data/TGO/cholera_data_ai.csv, ./data/TGO/metadata_ai.csv,
+               ./data/TGO/cholera_presence_ai.csv, ./data/TGO/retracted_rows_ai.csv,
+               ./data/TGO/known_source_traps.txt
 
 --------------------------------------------------------------------------------
-CONCURRENCY WARNING - READ BEFORE USING ANY NUMBER IN THIS REPORT
+1. WHAT THIS RUN ACTUALLY WAS
 --------------------------------------------------------------------------------
-THREE workflow-orchestrator processes ran TGO on 2026-09-19 (PIDs 95058, 59154,
-52328). Two were still alive during this audit, and 52328 - a second full TGO
-run started at 09:50 PDT - was still collecting while the quality gate ran. The
-row count moved 270 -> 273 and the source count 191 -> 194 underneath me, and a
-40th multi-year aggregate (Index 299) landed after this report was first drafted.
-It was audited: national 2010-2014, 551 cases, confidence correctly capped at 0.7,
-explicit period-total and non-additivity language, within 2.5% of the JHU annual
-sum of 565 for the same window. It is sound.
+This was a redeployment onto a saturated country. Togo entered the run at 99.9%
+effective coverage with a single 19-day gap that no published source can close.
+The dominant output was therefore NOT new rows. It was CORRECTIONS AND
+ADJUDICATIONS: four substantive determinations, two retractions, roughly 56
+in-place revisions, and nine new source traps and route facts.
 
-One irreversible loss has already occurred. At 09:51:39 the second run executed
-the Agent 1 initialisation snippet, which TRUNCATES ./data/TGO/search_log_agent_1.txt.
-The first run's Agent 1 log - the record of the 10 batches and 41 rows that
-./data/TGO/workflow_state.json reports - no longer exists and is not in git.
+Net arithmetic, stated plainly:
+  data rows     270 -> 323   (+53; agents 1-6 committed 49, 2 were retracted,
+                              the remainder came from a concurrent launcher)
+  metadata      191 -> 231   (+40)
+  presence rows  ~74 -> 92
+  effective gap periods        1 -> 1    (unchanged; the one left is not closeable)
+  effective coverage       99.9% -> 99.9% (unchanged)
 
-No row was corrupted: the CSV writers take file locks. The damage is to
-provenance, and to the meaning of a quality gate, which cannot certify a file
-that is still growing. Before consuming Togo, re-run:
-    python py/validate_quality.py TGO
-    python py/analyze_effective_gaps.py
-run_all_countries.sh should take a per-country lock.
+Nothing about the coverage percentage moved, and it was never going to. Judging
+this run on gap closure would score it zero. Its value is in the three things
+below, each of which changes what the data MEAN rather than how much there is.
 
-================================================================================
-EXECUTIVE SUMMARY
-================================================================================
-Togo is now the best-covered country in the MOSAIC framework on the headline
-metric, and that headline metric is the least interesting thing about it.
+--------------------------------------------------------------------------------
+2. THE THREE THINGS THAT MATTERED
+--------------------------------------------------------------------------------
 
-Effective coverage rose from 72.7% to 99.9% (495 -> 680 of 681 months), gap
-periods from 5 to 1, and staleness from 545 days to 24. Sixteen gap-years with
-six or more missing months became zero. The AI layer contributed 609 covered
-months, 185 of them as the only source.
+(a) A FALSE NATIONAL ZERO WAS DESTROYED, AND IT WAS HIDING A YEAR OF DISEASE.
+    AI row Index 25 asserted sCh=0 / deaths=0 for 2026-01-01..2026-03-29 at
+    Documented_Absence, confidence 0.95, on the sole evidence that Togo does not
+    appear in WHO multi-country cholera epidemiological update #36 - a report
+    whose own footnote reads "Missing data in this report do not imply the
+    absence of cholera". Togo's own return refutes it: BNTIS No 01/T1/2026,
+    Tableau XIX (source DHIS2) prints cumulative weeks 1-13 of 2026 = 12
+    suspected cases / 1 death. Row 25 is RETRACTED with a tombstone and replaced
+    by AI row 344.
+    CONSEQUENCE: latest_positive_observation moved 2025-03-23 -> 2026-03-29.
+    Nearly a year of apparent Togolese quiescence was an artefact of one
+    mislabelled row. The rebuilt weekly series moves calendar 2026 from 0.0
+    cases across 35 AI-asserted zero weeks to 12.0. This is the single most
+    consequential correction of the run.
 
-HERE IS THE PART THAT MATTERS: 172 of those 185 AI-only months (93%) are
-covered ONLY by a zero / absence row. Twelve have a real dated observation with
-counts; one is covered only by a multi-year aggregate. All fourteen of the
-closed gap-years - 1973, 1975-76, 1979-87, 1989-90 - were closed with zeros, not
-with counts, and twelve of those zeros are Inferred_Absence at confidence
-0.55-0.80, meaning they are inferences from WHO's silence rather than from
-anyone stating that Togo had no cholera. "99.9% coverage" means every month is
-accounted for. It does not mean every month was counted. A reader who takes
-99.9% at face value will over-trust the 1975-1990 segment of this series.
+(b) A SECOND ROW OF THE SAME CLASS SURVIVED FIVE AGENTS, AND THE CHECKER CANNOT
+    SEE IT. AI row Index 108 asserted a national zero for 2024-01-01..2024-06-30
+    at Documented_Absence 0.90 while AI row 334 - also from Togo's own BNTIS,
+    also DHIS2 - records 1 suspected case in ISO weeks 1-13 of 2024. Narrowed to
+    2024-04-01, relabelled Inferred_Absence, 0.90 -> 0.55.
+    CHECKER LIMITATION, FLAGGED FOR REPAIR: py/validate_quality.py's
+    same_period_conflict fires only on IDENTICAL location AND period. A positive
+    row NESTED INSIDE a longer zero row is invisible to it. That is how row 108
+    survived. This is the SECOND row of this class found on one country, so it is
+    not a fluke. The sweep that does catch it - every zero row x every positive
+    row, testing location containment x period overlap, ranked by overlap divided
+    by the POSITIVE row's own length - was re-run by this audit and returned 55
+    dangerous-direction overlaps on TGO, of which zero remain unexplained. It
+    should be added to py/validate_quality.py and run on all 40 countries.
 
-What the run genuinely added, beyond absence assertions:
-  * A sub-annual decomposition of the 1996 and 1999 epidemics from the WHO
-    Weekly Epidemiological Record that reconciles EXACTLY to the JHU annual
-    totals (1999: 667 cases / 31 deaths to the unit; 1996: 17 deaths to the
-    unit, 138 of 146 cases).
-  * The first sub-national data Togo has ever had for most of its record: 174
-    of 273 rows are sub-national, across 38 distinct administrative units,
-    against a JHU baseline whose only non-zero sub-national rows for Togo are
-    six, in 2013 and 2016.
-  * The 1970-74 El Tor epidemic at weekly, district resolution from WER
-    notifications - which disproves the standing belief, sourced to Landoh et al
-    2013, that Togolese district-level data begins in 2008.
-  * A monthly reconstruction of the 2024-25 epidemic (rows 202-206) summing to
-    exactly the documented national total of 281.
-  * 170 of 192 sources at Level 1 reliability; only 5 at Level 3 and none at
-    Level 4.
+(c) TWO NATIONAL SERIES WERE ADJUDICATED, AND NEITHER ADJUDICATION REACHES THE
+    MODEL. 2001: the baseline 2,551 was shown to be a truncated notification sum
+    stopping 14 October; WHO's own published annual review (WER 2002;77(31)
+    Table 1) gives 2,696/132 (AI row 342), and the Ministry's 2,740 is then only
+    1.6% above WHO's own number rather than 7.4%. 2011: determined at 33 cases /
+    1 death against a notified annual of 4, on six Togolese instruments including
+    the only contemporaneous one (BETTOGO n6, December 2011).
+    THE DISAPPOINTING PART: py/build_weekly_timeseries.py ranks sources
+    {WHO:3, JHU:2, AI:1}, so the weekly product still renders 2001 as 2,446 and
+    2011 as 4.0 - both values this run proved to be under-counts. The
+    adjudications are documentation for humans and are invisible to the model.
 
-Four specific defects were referred to this audit. Three were real and are
-repaired; the fourth was mis-described in the briefing and the real version of
-it was cleared on arithmetic. A fifth and larger problem, which nobody referred,
-was found and quantified: a systemic defect in the weekly time-series builder
-that inflates Togo's 2024 national series by 54% and affects 26 of the 40
-countries. It is NOT fixed here, deliberately.
+--------------------------------------------------------------------------------
+3. WHAT IS STILL WRONG - THE NUMBERS I WOULD RATHER NOT REPORT
+--------------------------------------------------------------------------------
+This audit rebuilt ./data/TGO/cholera_weekly_TGO.csv and compared every year's
+weekly total against the highest value any source claims. Two years exceed every
+source, and one of them this run made worse.
 
-================================================================================
-WHAT WAS FOUND AND WHAT WAS DONE
-================================================================================
+  2024: weekly series sums to 432.9 against a documented annual of 281 (+54%).
+        CAUSE: AI rows 202-206 are the WHO AFRO monthly increments (they sum to
+        exactly 281) while the WHO BASELINE layer separately carries the same
+        epidemic as a weekly stream summing to 282. The builder computes its
+        "already covered by observed weekly data" guard PER SOURCE LAYER, so
+        when it processes AI it cannot yet see WHO's weekly rows; the monthlies
+        Fourier-spread in full and survive in the six weeks WHO does not cover
+        (40, 41, 43, 46, 47, 48), adding 122.9 cases on top.
+        PRE-EXISTING: measured at 432.9 both before and after this run.
 
-1. LOME / GOLFE LABEL SPLIT  -> REPAIRED
-   Golfe and Agoe-Nyive turned out NOT to be defective: every pre-2020 row uses
-   the Maritime parent and every post-2020 row uses Grand Lome, without a single
-   exception. That is correct, because those prefectures genuinely transferred
-   region in 2020.
-   Lome WAS defective, and the split was inside one era, not across the reform:
-   twelve 1970-74 rows said Maritime::Lome while thirteen other pre-2020 rows
-   said Grand Lome. The harm is documented in the file itself - tombstones
-   274/275/276 are Agent 6 re-adding rows 131/132/133 under the other label,
-   with the retraction reason "the duplicate guard did not fire because the two
-   rows use different location strings for the same place".
+  2025: weekly series sums to 224.9 against a maximum defensible 209 (+7.6%),
+        and against WHO's 164 (+37%). THIS RUN CAUSED IT: the series read 166.1
+        before. AI rows 345 (183 at week 13) and 348 (209 at week 25) are NESTED
+        READINGS OF ONE CUMULATIVE Togolese DSIUR/DHIS2 SERIES; the builder
+        treats them as two independent period totals and takes a per-week
+        maximum instead of differencing them (209 - 183 = 26 cases over weeks
+        14-25).
+        NET VERDICT ON THIS CHANGE: it improved the documentary record - the 209
+        is now a row instead of prose buried in other rows' notes - and degraded
+        the modelled total. Both halves are true and both are reported.
 
-   CONVENTION NOW IN FORCE, STATED ONCE FOR DOWNSTREAM AGGREGATION:
-     (a) The Lome urban core is ONE stable patch in every era:
-         AFR::TGO::Grand Lome, with its five arrondissements at
-         AFR::TGO::Grand Lome::Lome D1..D5.
-     (b) Golfe and Agoe-Nyive follow the region in force at the observation
-         date: AFR::TGO::Maritime::Golfe before 2020, AFR::TGO::Grand Lome::Golfe
-         from 2020. THEY ARE ONE PLACE - concatenate the two labels for a
-         per-prefecture series; never sum them.
-     (c) AFR::TGO::Maritime and its entire subtree NEVER contain Lome, in any
-         era. Verified against the source quotes on all 9 bare-Maritime rows:
-         the Togolese Ministry tabulates Lome-Commune as a reporting region peer
-         of Maritime, not inside it.
-     (d) Bare AFR::TGO::Maritime DOES include Golfe and Agoe-Nyive before 2020
-         and DOES NOT from 2020. It therefore denotes a smaller territory in
-         rows 59/65/86 than in rows 77/96/165/190/236/269. This is a real
-         administrative fact and cannot be engineered away; it is now stated on
-         every one of those rows.
-     (e) CROSS-LAYER: JHU nests Lome UNDER Maritime. AFR::TGO::Maritime does not
-         mean the same territory in the AI and JHU layers. Map JHU
-         Maritime::Lome -> AI Grand Lome before any cross-layer join. Present
-         exposure is small: JHU's only non-zero Togo sub-national rows are six,
-         in 2013 and 2016.
+  Baseline-layer double-count, NOT the AI layer's doing but found here and worth
+  fixing globally: 1992, 2002, 2009, 2020 and 2021 also exceed every source
+  (2020 reads 136.1 against 67-68, a factor of 2.0). In each case JHU carries
+  BOTH weekly rows and an annual row for the same year and the annual is spread
+  into the weeks the weeklies do not cover. AI contributes zero weeks to all five.
 
-   Actions: 12 rows relabelled; 9 bare-Maritime rows given an explicit
-   territory token; 17 Golfe/Agoe rows given a two-parent crosswalk token. All
-   through py/revise_observation.py. A label-insensitive duplicate scan after
-   the repair finds zero duplicates.
+NO ROW WAS RETRACTED TO FIX ANY OF THIS. Every row involved is a faithful source
+statement; the defect is in the builder. The measured magnitudes have instead
+been written onto rows 202, 203, 204, 205, 206, 345 and 348 so the warning
+travels with the data. MODELLERS: 2024 is 281/17 and 2025 is 164 (WHO/IHR) or
+209 (Togolese DSIUR) - not the weekly product's 432.9 and 224.9.
 
-2. SUPERSEDED METADATA STILL MARKED Active  -> REPAIRED
-   Metadata 176-184 - nine IRIS handles Agent 6 fabricated by guesswork - were
-   Status='Active' with the warning buried in Description. Set to 'Superseded';
-   zero live rows cite them, confirmed after the change.
-   I verified both sides myself rather than trusting the briefing. The retired
-   handles return HTTP 200 pointing at unrelated documents ("Influenza =
-   Grippe", "TYPHUS EXANTHEMATIQUE", "THE WHO AIDS SERIES", and WER 1996;71(38)
-   where WER 1977;52(21) was claimed). The seven replacements plus 168 all
-   return HTTP 200 with titles matching the cited issue exactly.
-   GENERALISABLE LESSON FOR THE WHOLE PIPELINE: a fabricated IRIS handle is
-   LIVE. py/check_urls.py and any liveness-based check cannot detect this defect
-   class. Only resolving the title can.
-   py/revise_observation.py had no way to change a Status, so the only route was
-   hand-editing. I added --set-status, which refuses if any live row still cites
-   the entry - so a bad citation cannot be laundered into a clean-looking
-   "Superseded" record.
+--------------------------------------------------------------------------------
+4. THE GAP THAT IS OPEN AND CANNOT BE CLOSED
+--------------------------------------------------------------------------------
+2026-09-01..2026-09-19 (19 days). LEFT OPEN DELIBERATELY. Four independent
+publication horizons were verified on 2026-09-19, and this audit re-verified the
+most machine-checkable of them:
+  * WHO AFRO weekly bulletin        - stops at Week 33 (16 Aug 2026)
+  * WHO monthly cholera update, now published inside the WER - data as of 26 Jul
+  * ECDC monthly overview           - still "as of 26 August 2026"
+  * WHO's own ArcGIS back-end, layer cholera_adm0_week - queried directly by this
+    audit: max(date_wk) = 2026-08-17 GLOBALLY.
+No product covering the period exists. This is ordinary publication lag, not a
+surveillance failure. DO NOT ZERO-FILL IT and do not extrapolate row Index 50
+(ECDC, as of 26 Aug) forward. It should self-close in early-to-mid October 2026.
 
-3. multiyear_aggregate WARNs (39 at audit entry, 40 at exit)  -> JUSTIFIED, NOT SILENCED
-   All checked individually, none sampled. Every one is capped at confidence 0.7,
-   every one carries explicit period-total language, and every one carries an
-   explicit non-additivity phrase. The five national ones cross-check against JHU: 2007-2013 is exact to
-   the unit (983 = 983), 2000-2006 +2.0%, 2004-2016 +1.7%, 1996-2010 +6.4%.
-   Thirty-four of the original 39 are sub-national and never reach the national
-   weekly series.
-   These WARNs are "verify this" flags that have now been verified. They should
-   remain. No threshold was edited.
+--------------------------------------------------------------------------------
+5. GAP-FILLING IMPACT OF THE AI LAYER OVERALL
+--------------------------------------------------------------------------------
+Measured by re-running py/analyze_effective_gaps.py with layers JHU+WHO only
+(prefix baselineonly) and with all layers.
 
-4. CFR_high WARNs  -> THE BRIEFING NAMED THE WRONG ROWS
-   The two WARNs are Index 42 and Index 47, not Index 243 and Index 103. The
-   validator sets CFR_SMALL_DENOM = 25 and skips the CFR check below 25 cases,
-   so the two rows the briefing named are not flagged and never were.
-     Index 42 (1999, 9/54 = 16.7%): AI rows 39+40+41+42+171 sum to exactly the
-       JHU 1999 annual of 667 cases and 31 deaths. Real tail-of-epidemic ratio.
-     Index 47 (1996, 6/34 = 17.6%): deaths sum exactly to the JHU annual 17;
-       Landoh et al report a Togolese national CFR of 12-17% for 1996-97.
-   Both already at the 0.7 cap. Cleared.
-   Assessed anyway: Index 243 (Lacs 2014, 5 cases / 2 deaths) is a
-   small-denominator artefact quoted verbatim by the source - correct data, but
-   a CFR on n=5 carries no information. Index 103 (Agoe-Nyive 2024, 4/11) is a
-   GENUINE denominator mismatch, already documented as such: the denominator is
-   laboratory-confirmed cases only while the numerator includes community
-   deaths. Its counts are usable; its CFR field is not.
+                             JHU+WHO baseline      + AI layer
+  months with data                  495                680
+  months missing                    186                  1
+  percent coverage                 72.7%              99.9%
+  months_ai / months_ai_only          0 / 0          609 / 185
+  months with positive cases        450                480
+  gap periods                         5                  1
+  total gap-days                  5,650                 19
+  latest observation          2025-03-23         2026-08-26
+  days stale                        545                 24
 
-5. SYSTEMIC WEEKLY-BUILDER DEFECT  -> QUANTIFIED, DELIBERATELY NOT FIXED
-   py/build_weekly_timeseries.py evaluates its aggregate-suppression test per
-   source, so an AI period row is never suppressed by WHO or JHU weekly coverage
-   of the same weeks - it is overlaid and ADDS.
-   Togo 2024 traced end to end: AI rows 202-206 sum to exactly 281, the
-   documented national total. The weekly series nevertheless renders 432.9
-   (WHO observed 282.0 + JHU 28.0 + AI 122.9) - 54% high, and neither the WHO
-   series nor the AI series but a mixture.
-   Togo years affected: 2013 +93%, 2020 +103%, 2021 +93%, 2024 +54%, 2015 +43%,
-   2002 +37%, 2014 +31%.
-   NOT TGO-SPECIFIC: across all 40 countries, 115 of 452 country-years with a
-   JHU annual above 20 cases (25%) show a weekly sum more than 25% above that
-   annual, in 26 of 40 countries. Togo is among the milder cases; the worst are
-   GNB 2006 (21531 vs 37) and KEN 2014 (6292 vs 35).
-   Rows 202-206 were NOT retracted to make the number look right. They are
-   correct and carry within-year timing the WHO dashboard lacks. The fix belongs
-   in the builder, changes all 40 countries, and needs a human decision.
+GAP PERIODS CLOSED (4 of 5 completely, the 5th all but 19 days):
+  1973-01-01..1973-12-31       365d  historical   CLOSED
+  1975-01-01..1976-12-31       731d  historical   CLOSED
+  1979-01-01..1987-12-31     3,287d  historical   CLOSED
+  1989-01-01..1990-12-31       730d  historical   CLOSED
+  2025-04-01..2026-09-19       537d  recent       CLOSED except final 19 days
+  => 5,631 of 5,650 gap-days closed (99.66%).
 
-================================================================================
-COVERAGE, BEFORE AND AFTER
-================================================================================
-                              BASELINE (JHU+WHO)   EFFECTIVE (+AI)
-  total_months                        681                681
-  months_with_data                    495                680
-  months_missing                      186                  1
-  percent_coverage                   72.7%              99.9%
-  months_ai / months_ai_only          0 / 0            609 / 185
-  months_with_positive_cases          450                474
-  gap_periods                           5                  1
-  days_stale                          545                 24
-  latest_observation             2025-03-23         2026-08-26
-  latest_positive_observation    2025-03-09         2025-03-23
+The AI layer is the SOLE source of information for 185 country-months - 27% of
+Togo's entire surveillance history. Read that alongside the caution in
+CLAUDE.md: much of the historical closure is long absence rows (the 1979-1987
+run is nine annual zeros), so those 185 months rest on fewer, longer
+observations than the count suggests. They are correctly labelled
+Inferred_Absence, which is the ceiling the evidence allows - Agent 6 established
+that WHO's zero-reporting instrument is a later innovation and that WER
+"Cholera in 1985/1987/1989" contain no nil-return instrument at all.
 
-  Baseline gap-days closed : 5631 of 5650 (99.7%)
-  Gap-years (>=6 months missing) : 16 -> 0
-  Rank among the 40 MOSAIC countries: 1st on percent_coverage, 8th on
-  months_ai_only.
+--------------------------------------------------------------------------------
+6. ABSENCE-RECORD INTEGRITY - THE COUNTRY'S MAIN MODELLING RISK
+--------------------------------------------------------------------------------
+82 zero rows. py/build_weekly_timeseries.py renders any non-documented zero as
+sCh=0, so a wrongly labelled zero asserts "no cholera" where nobody looked.
+Full audit result:
+  canonical evidence labels : Documented_Absence 57, Inferred_Absence 25
+  Surveillance_Gap labels   : ZERO (correct - it is never a valid zero)
+  missing evidence label    : none
+  missing surveillance status: none
 
-  GAP PERIODS CLOSED
-    1973-01-01..1973-12-31   365d   closed with a zero row (Documented_Absence)
-    1975-01-01..1976-12-31   731d   closed with zero rows (both Inferred)
-    1979-01-01..1987-12-31  3287d   closed with zero rows (1 Documented, 8 Inferred)
-    1989-01-01..1990-12-31   730d   1989 Inferred zero; 1990 closed with a real
-                                    count (136 cases, Index 252)
-    2025-04-01..2026-09-19   537d   closed to 2026-08-26 by a five-row absence
-                                    chain, three Documented and two Inferred
+Agent 6's decisive test - "is Togo IN the WHO zero-reporting LIST, not merely
+absent from the case table" - was spot-checked rather than repeated. Togo is in
+that list for 2018, 2019 and 2022 ONLY; 2016 and 2017 are two consecutive FAILED
+annual returns. Every national Documented_Absence row was then checked against
+the standard that an explicit "0" or "non affected" class is Documented while
+non-appearance in a list is not:
+  Idx 104 (2018-2019) - Togo in the WHO zero-reporting list           OK
+  Idx 106 (2022)      - Togo in the WHO zero-reporting list           OK
+  Idx 105 (2017)      - carried by MoH instruments (RAP 2021 Tableau XXXI
+                        prints 2017 = 0/0), not by WHO                OK
+  Idx 340/350 (2018, 2019) - affirmative ministry statements          OK
+  Idx 10  (1973)      - WHO's own affirmative "remained free of infection
+                        in 1973", not non-listing                     OK
+  Idx 109 (1974), 110 (1978) - IHR(1969) Article 7 "Areas Removed from the
+                        Infected Area List". Removal is an affirmative act,
+                        not a lapse; the criteria are printed in the WER   OK
+  Idx 267 (Jul 2014)  - bilateral Togo-Benin minute, "ALORS QU'AU TOGO AUCUN
+                        CAS N'A ETE ENREGISTRE", against 201 Beninese cases OK
+  Idx 111 (Lacs 2017-2021) - "les derniers cas ... datent de 2016", window
+                        closes the day before the 19 Oct 2021 onset     OK
+CONCLUSION: no remaining Documented_Absence rests on non-listing evidence.
 
-  WHAT THE 185 AI-ONLY MONTHS ACTUALLY REST ON
-    172 months (93%)  a zero / absence row and nothing else
-     12 months  (6%)  a real dated observation with counts
-      1 month   (1%)  a multi-year aggregate and nothing else
+--------------------------------------------------------------------------------
+7. STILL UNDETERMINED
+--------------------------------------------------------------------------------
+ * THE "209" RESIDUAL. ~26 cases over weeks 14-25 of 2025. The systematic half
+   is resolved (Togo's series was already 18 above WHO's by week 13). Settled
+   only by the Togo MoH RAPPORT ANNUEL DE PERFORMANCE 2025, confirmed on
+   2026-09-19 as STILL NOT PUBLISHED (bk.sante.gouv.tg/wp-json/wp/v2/media?
+   search=performance returns 7 items, latest the 2024 edition).
+ * 1998. MoH 3,669/239 against WHO 3,217/221, a 14% gap. Settled by Landoh et al
+   (JID 2013) Table 1, closed on ten access routes.
+ * 1993. WHO 19/2 against the Togolese archive's ~274. WHO's figure is
+   consolidated, not truncated (the single WER notification's DEATHS match the
+   annual exactly). Settled by the Togolese national surveillance archive.
+ * 2008 SENSITIVITY. The one year of 2007-2012 with no published surveillance-
+   sensitivity indicator.
+ * ASCERTAINMENT 2007-2012 RELATIVE TO GHANA. In 2011 a Togolese weekly system
+   MEASURED at 99% completeness and 97% promptness across all 35 districts
+   counted 33 cases nationally while Ghana, across an open border ~200 km from
+   Lome, counted 10,628 (Benin 755, Nigeria 23,377). Whether 33 is the true
+   burden is a question about whether sick people reached a facility.
+ * 2024 AND JAN-MAR 2025 DISTRICT DECOMPOSITIONS. No district case counts exist.
+   Last routes closed: RAP 2024 is readable and has no by-district table; there
+   is no Annuaire 2024; the IFRC GO register holds ten Togo operations ending at
+   MDRTG010 in 2023, so there is no DREF for the 2024-25 outbreak.
+ * 1974-2003 SUB-NATIONAL VOID. Closed as UNANSWERABLE from published sources,
+   on evidence rather than on failure to find: all 101 WER full issues of 1998
+   and 2001 were scanned and contain not one sub-national Togolese number.
+   RUN N+1 MUST NOT RE-SEARCH IT.
 
-================================================================================
-GAPS STILL OPEN, AND WHETHER THE DATA EXISTS AT ALL
-================================================================================
-  * 2026-09-01..2026-09-19 (19d). Publication lag only. No WHO AFRO, WHO HQ or
-    ECDC product covering September 2026 existed on the collection date. Closes
-    itself. DO NOT BACK-FILL.
-  * 1975-1990 remains the weakest segment of the record, and it is weak in a way
-    the coverage number hides. Twelve of these fourteen years are Inferred
-    Absence - inferred from Togo's non-appearance in WER annual tables, by a
-    country that was simultaneously filing yellow-fever returns through the same
-    IHR channel. DATA PROBABLY DOES NOT EXIST in the international record. The
-    Togolese national archive is the only remaining route.
-  * 1993 is irreconcilable and open: WHO reports 19 cases, the Togolese archive
-    ~269-274, and Agent 6 showed the reporting channel was working through the
-    1993 political crisis. Two stable series from a working system differing
-    14-fold. NOT resolvable from public sources.
-  * 1990-1993 and 1998: which Togolese national series is correct is
-    UNDETERMINED. WHO currently wins by builder load order, not by adjudication.
-  * Savanes region pre-2020 magnitude is unknown. Presence is established for
-    1998 and 2001 but no count exists anywhere in the public record. Djadou et
-    al, Med Afr Noire 2001;48(5):187-190, on the 1998 Dapaong epidemic, defeated
-    five agents. Interlibrary loan is the only route left. DATA EXISTS, offline.
-  * 1991-2005 sub-national counts do not exist publicly. WER "infected areas"
-    lists name eight districts with no numbers; these are recorded in
-    ./data/TGO/cholera_presence_ai.csv, correctly, rather than as false zeros.
-  * 2024-25 outbreak GEOGRAPHY is still mostly unknown. 282 national cases for
-    2024 and 164 for 2025 with almost no sub-national attribution. The two
-    documents that would settle it - the Annuaire des Statistiques Sanitaires
-    2024 and the Rapport annuel de performance 2024 - are respectively
-    unpublished and archived as an HTML shell. DATA EXISTS BUT IS NOT YET
-    PUBLISHED. Retry in a few months; this gap closes itself.
-  * Landoh et al 2013 (doi 10.1093/infdis/jit244) is genuinely paywalled -
-    Unpaywall is_oa=false, no PMC deposit. It holds the 2005-2010 regional
-    breakdown. Its figures are visible in search snippets and sum correctly, but
-    they were NOT committed because they could not be read in the source. That
-    was the right call.
-  * The UNICEF Cholera Platform hotspot dossiers are PROVEN unrecoverable:
-    Wayback stored 1,048,576 of 3,021,383 bytes and range requests past that
-    offset 404. Spend no further budget.
-  * MoH statistical yearbooks for 2015, 2017 and 2018 are on neither the
-    ministry server nor Wayback. The 2017 edition is on Scribd.
+2007-2012 IS AN ARCHIVING AND PUBLICATION FAILURE, NOT A DETECTION OR REPORTING
+FAILURE. Three instruments dated inside the window, from three institutions,
+agree: BETTOGO n6 measures 99% weekly completeness and 97% promptitude across
+all 35 districts in 2011; the World Bank AAA69 rates epidemiological
+surveillance (DEPI) FONCTIONNEL for "maladies a potentiel epidemique" - cholera's
+own category - while rating the SIS-DISER routine statistics channel PEU
+FONCTIONNEL; and the MoH PNDS 2012-2016 SWOT names the health database as "non a
+jour depuis 2008". WHO recorded 4 cases for 2011 against a domestic count of 33.
+What failed was the annual submission to Geneva and the publication of the
+Annuaires - which is exactly why no Togolese Annuaire before 2014 can be found.
 
-  THE EPISTEMIC BOUND ON EVERY ZERO ROW, stated because MOSAIC consumes these
-  zeros as data: a zero means NO CASES WERE ASCERTAINED AND REPORTED. It does
-  not mean V. cholerae was absent. Opintan et al 2021 find West African lineage
-  persistence "in the absence of reported cholera cases", with Togolese isolates
-  among the closest relatives of Ghanaian ones.
+--------------------------------------------------------------------------------
+8. AGENT PERFORMANCE
+--------------------------------------------------------------------------------
+All six agents cleared the mandatory 3-batch floor. No agent reported a yield
+above 100% (all yields are correctly expressed as operations-that-committed-a-row
+out of 20, not rows). Every row and source index claimed in workflow_state.json
+was verified PRESENT in the files - zero false claims across all six agents.
 
-================================================================================
-VALIDATOR STATUS
-================================================================================
-  Entry : exit 0 | ERROR 0 | WARN 41 | INFO 102  (270 rows, 191 sources)
-  Exit  : exit 0 | ERROR 0 | WARN 42 | INFO 104  (273 rows, 194 sources)
-          The WARN count rose from 41 to 42 during the audit because the concurrent
-          run added a 40th multi-year aggregate (Index 299), itself verified sound.
-  Zero ERRORs were present on arrival and zero remain. Nothing was suppressed.
+  A1 baseline collector    12 batches  29 rows  14 sources  MOST PRODUCTIVE by
+     volume; ran to the 12-batch ceiling because four batches landed on exactly
+     5% and kept resetting the counter. Depth not breadth: 20 sub-national and
+     5 locality-level rows.
+  A2 geographic expansion   7 batches   2 rows   2 sources  LOW row yield but 17
+     presence rows, and it was right to correct its own brief: the "only
+     sub-national record" premise was already false.
+  A3 zero-transmission      8 batches   7 rows   7 sources  Resolved 2026-03-30..
+     2026-07-26 to monthly resolution and produced the first sub-annual
+     observation ever recorded inside the 2007-2012 black hole. Correctly
+     REFUSED to write three available zeros on self-contradicting evidence.
+  A4 obscure sources        8 batches   2 rows   2 sources  LOWEST row yield of
+     the run, but recovered a document nobody in this pipeline has had (the
+     Togo-Benin cross-border meeting, via Common Crawl WARC byte-range from a
+     dead domain) and proved TRAP 1 from WHO's own catalogue.
+  A5 cross-reference       10 batches   9 rows   7 sources  HIGHEST VALUE of the
+     run. Both retractions, all four adjudications, 35 in-place revisions, and
+     the bk.sante.gouv.tg route discovery.
+  A6 gap context            3 batches   0 rows   3 sources  ZERO rows, and that
+     is the correct outcome - there was no uncovered period in which a row could
+     legitimately be created. Its product was classification and correction: it
+     caught row 108, reclassified rows 117-120, and established the
+     zero-reporting-list test. Yield does not measure this.
 
-  FIXED     : 9 metadata Status values (176-184 Active -> Superseded)
-              12 row relabels (Maritime::Lome -> Grand Lome)
-              26 rows given explicit territory / crosswalk annotations
-              py/revise_observation.py gained --set-status with a citation guard
-  JUSTIFIED : 40 multiyear_aggregate WARNs (all verified as true period totals,
-              all capped at 0.7, all non-additive-annotated)
-              2 CFR_high WARNs (both reconcile exactly to the JHU annuals)
-  NOT FIXED : the weekly-builder over-count (systemic, 26 of 40 countries,
-              needs a human decision)
-              data Indices 7, 8 and 54 were removed by earlier agents without
-              tombstones and cannot be recovered
-              the 1990 presence/data overlap (benign, no count duplicated)
+CONCURRENCY EVENT: two run_all_countries.sh launchers ran the same queue
+simultaneously and both worked TGO. Integrity was re-verified by this audit and
+HOLDS: zero duplicate Index values in cholera_data_ai.csv, zero duplicate
+metadata Index values, zero exact-duplicate observation groups, zero orphan
+source_index values, zero source-label drift, metadata Index contiguous 1..231.
 
-  python py/repair_data_integrity.py --dry-run TGO -> 0 changes.
-  No ./data/TGO/attribution_review.csv was produced: nothing was withheld for
-  human judgement. Everything mechanical had already been repaired by Agents 5
-  and 6.
+--------------------------------------------------------------------------------
+9. REUSABLE METHODS DISCOVERED THIS RUN (these generalise beyond Togo)
+--------------------------------------------------------------------------------
+ 1. WHEN A GOVERNMENT SITE SERVES AN EMPTY SPA SHELL, READ THE RESPONSE'S
+    Content-Security-Policy connect-src HEADER. Three runs and six agents
+    recorded sante.gouv.tg as dead because it serves an identical ~17.6 KB React
+    shell for every path. The CSP header names the back-end the SPA fetches
+    from: bk.sante.gouv.tg, a live WordPress instance with an open REST API that
+    both LISTS and SERVES the PDFs -
+      /wp-json/wp/v2/media?search=<term>&per_page=100
+      /wp-json/wp/v2/documentation?per_page=100
+    It yielded the Rapport annuel de performance 2024 (the top unretrieved
+    document of the previous run, proven absent from Common Crawl), BNTIS
+    T1/2026 and the PNDS mid-term evaluation. Full inventory taken: 113 PDFs.
+ 2. COMMON CRAWL WARC BYTE-RANGE REQUESTS RECOVER PRE-BREAKAGE PDFs FROM ROTTED
+    GOVERNMENT DOMAINS, and work when the Internet Archive is down.
+    index.commoncrawl.org/collinfo.json -> {CRAWL}-index?url=...&output=json ->
+    HTTP Range request against data.commoncrawl.org/{filename} using the offset
+    and length fields. It holds 79 real PDF captures of sante.gouv.tg taken
+    before that site broke. Practical budget ~100 index queries per session.
+ 3. files.aho.afro.who.int HAS AN EXPIRED TLS CERTIFICATE. WebFetch refuses and
+    plain curl returns nothing; `curl -k` works. Its filenames are
+    country-agnostic - always read the title page.
+ 4. USE A PARALLEL NOTIFIABLE-DISEASE CHANNEL AS A REPORTING HEARTBEAT. Under
+    IHR(1969) exactly three diseases were notifiable: cholera, plague and yellow
+    fever. A Togo entry in a WER yellow-fever notification table therefore proves
+    the SAME channel that would have carried cholera was open. WER "Yellow fever
+    in 1984" records Togo notifying a fatal, twice-laboratory-confirmed case in
+    November 1984 with a WHO-supported 300,000-person vaccination response -
+    inside the cholera-free run, in one of its two demanding years. Cheaper and
+    more complete still: the WHO GHO notifiable-disease series
+    (ghoapi.azureedge.net/api/WHS3_{41,43,46,...}?$filter=SpatialDim eq 'TGO')
+    shows Togo filed a return in EVERY year 1974-2025.
 
-================================================================================
-AGENT EFFECTIVENESS
-================================================================================
- Agent  Batches  Rows  Sources  Verdict
-   1      10      41     51     MOST PRODUCTIVE OVERALL. Only agent to meet the
-                                stopping criterion rather than the ceiling.
-                                Established the WER spine and the absence chain.
-   2      12      53     20     Best geographic yield. Produced almost all the
-                                regional and district decompositions, and flagged
-                                the Grand Lome / Maritime coding problem that
-                                this audit resolved.
-   3      12      18     13     Low row count by design - it validated absence
-                                and DELETED bad rows. It refused to upgrade the
-                                1975-1990 zeros to Documented_Absence, which was
-                                the single most important judgement of the run.
-   4      12      67     42     HIGHEST ROW COUNT AND HIGHEST SOURCE COUNT. The
-                                WER 1970-74 weekly notifications are its work and
-                                they disprove the "no district data before 2008"
-                                belief.
-   5      12      45     14     HIGHEST SUSTAINED YIELD (no collection batch
-                                below 10%). Did the arithmetic reconciliations
-                                that let this audit clear both CFR WARNs and all
-                                39 multi-year WARNs quickly.
-   6      12      18      8     LEAST PRODUCTIVE on rows, and it caused the two
-                                defects referred to this audit (the fabricated
-                                IRIS handles and the duplicate Lome rows). But it
-                                CAUGHT AND SELF-CORRECTED BOTH, wrote the most
-                                detailed log in the run (2419 lines), and
-                                corrected its own yields from 60/45/25% to
-                                0/0/5% after realising it had been counting
-                                operations rather than committing queries. On
-                                net: low yield, high integrity.
+--------------------------------------------------------------------------------
+10. THE SEVEN SOURCE TRAPS (full text in ./data/TGO/known_source_traps.txt)
+--------------------------------------------------------------------------------
+These are reusable. The file's numbering skips 4.
+ T1 The WHO DON of 27 Jan 1997 reporting 739 cases / 121 deaths in Dapaong,
+    Savanes is MENINGITIS. Proven from WHO's own DON catalogue API, which titles
+    it "1997 - Meningitis outbreak in Togo - Update". Five agents across three
+    runs were served it as a cholera hit. WHO has published exactly ONE cholera
+    DON for Togo ever: 4 January 2021.
+ T2 From July 2026 the WHO multi-country cholera report is published INSIDE the
+    WER. The old who.int/publications/m/item/ path is DEAD, and on finding it
+    dead previous runs silently fell back to ECDC and cited it as WHO.
+ T5 TOGOLESE ANNUAIRES CARRY TWO INCOMPATIBLE CHOLERA STREAMS: the IDSR
+    notification table (Division de la surveillance integree) and routine HMIS
+    "Cas de consultation" / "Causes d'hospitalisation" tables that also carry a
+    "Cholera" line. PIS 2016 reads 2 cases in one and 654 consultations in the
+    other FOR THE SAME YEAR. An agent grepping the PDF hits the wrong one first.
+    Reproduced worse in Annuaire 2019: ~52 "cholera cases" for a year in which
+    four independent instruments all record ZERO.
+ T6 The Maritime region 2021 performance report's "2076 cas confirmes avec 47
+    deces" is COVID-19, not cholera. Lacs cholera in 2021 was ~37-39 cases.
+ T7 SEARCH-RESULT SUMMARIES INVENT TOGO CHOLERA NUMBERS at a high rate - four
+    fabrications in one agent's run, all four dying on contact with the document
+    ("239 deaths in 1998"; "34 V. cholerae isolates" which are 34 TEST REQUESTS;
+    a WER maternity table read as cholera; a 2006-2013 percentage split
+    attributed to 2001). NEVER enter a figure that exists only in a summary.
+ T8 AI row 26's headline quote is about MEASLES. It is deliberate and explained
+    in the row body - offered as proof that AFRO was still receiving Togolese
+    district data - but on the one country whose T1 is a meningitis outbreak
+    repeatedly ingested as cholera, it is a trap for the next grep.
+ T9 WHO's own zero-reporting footnote is DATED A YEAR WRONG IN ENGLISH. WER
+    2020;95(37) "Cholera 2019": the English footnote says 2018, the French on the
+    same page says 2019, and the two language lists differ in membership. Anyone
+    citing Togo's 2019 nil return must quote the FRENCH.
+ Plus the standing rule: the 2026-09-01..2026-09-19 gap is NOT closeable.
 
-  All six cleared the 3-batch floor. Agent 6 initially stopped at 3 and was
-  correctly redeployed. No agent reported a yield above 100%, and claimed row
-  counts reconcile to the index ranges for all six.
-  CAVEAT: Agents 2-6 counted Wayback CDX sweeps, IRIS API calls, PubMed MCP
-  calls and bulk PDF retrieval as "queries", not just WebSearch. Defensible and
-  itemised, but it makes these yields non-comparable with other countries and
-  shifts the 5% threshold.
-
-================================================================================
-WHAT A FUTURE RUN SHOULD TRY THAT THIS ONE DID NOT
-================================================================================
- 1. SEARCH COMBINED / DOUBLE WER ISSUES EXPLICITLY. The single largest 1998
-    recovery in this run came from WER 1998;73(51-52), a combined double issue
-    that volume-index sweeps skip. This is generalisable to every country that
-    used the WER.
- 2. RESOLVE IRIS HANDLES THROUGH THE DSpace ITEM API AND CHECK THE RETURNED
-    TITLE. Never construct a handle. A wrong handle returns HTTP 200, so URL
-    liveness checking gives false assurance - this run proved it four times.
- 3. GO AFTER THE TOGOLESE NATIONAL ARCHIVE AND INTERLIBRARY LOAN for the two
-    named, verified, offline items: Djadou et al 2001 (Dapaong 1998, the only
-    route to a Savanes count) and Landoh et al 2013 (the 2005-2010 regional
-    breakdown). Five agents have now failed on these online; the answer is not
-    another web search.
- 4. RETRY THE 2024 MoH DOCUMENTS IN 3-6 MONTHS. The Annuaire 2024 and the
-    Rapport annuel de performance 2024 will settle the 2024-25 outbreak
-    geography. This gap closes itself; do not spend query budget on it now.
- 5. ATTACK THE 1975-1990 BLOCK WITH NON-WHO SOURCES. Everything there currently
-    rests on WHO's silence. Colonial-era and post-independence Togolese
-    ministry bulletins, French cooperation medical archives (ORSTOM/IRD), and
-    mission hospital records are untried and are the only way to convert twelve
-    Inferred_Absence rows into evidence.
- 6. FIX THE ORCHESTRATION BEFORE THE NEXT FULL RUN. Three concurrent TGO runs
-    destroyed one agent log and made the quality gate non-deterministic. A
-    per-country lock file is a one-line change.
- 7. DECIDE THE BUILDER QUESTION. Until the per-source aggregate-suppression
-    defect is resolved, Togo's 2024 national weekly series reads 432.9 against a
-    documented 281, and 25% of country-years across the framework are similarly
-    inflated. This is the highest-value open item in the pipeline and it is not
-    a data-collection problem.
+--------------------------------------------------------------------------------
+11. WHAT A FUTURE RUN SHOULD TRY THAT THIS ONE DID NOT
+--------------------------------------------------------------------------------
+ 1. FIX THE TOOLS BEFORE SEARCHING AGAIN. Three defects found here are worth
+    more than any further Togolese query:
+      - add the nested zero x positive sweep to py/validate_quality.py;
+      - make py/build_weekly_timeseries.py compute its coverage guard ACROSS
+        layers, not per layer (fixes 2024's +54%);
+      - teach it to DIFFERENCE nested cumulative rows (fixes 2025's +7.6%);
+      - and make it stop double-counting JHU weekly-plus-annual years.
+ 2. RE-CHECK ONE URL: bk.sante.gouv.tg/wp-json/wp/v2/media?search=performance.
+    The Rapport annuel de performance 2025 settles the 209 residual and is the
+    single highest-value outstanding document. One query.
+ 3. Retrieve metadata sources 69 (UNICEF WCARO "Cholera Factsheet Togo 2017
+    FINAL") and 165 (Plan Strategique de lutte contre le cholera 2015-2017).
+    Both exist only as web.archive.org URLs and both were unreachable for most
+    of this run; the Internet Archive came back mid-run and was not re-tried on
+    them. Five multiyear rows (Indices 76-80) depend on source 69.
+ 4. Pursue Landoh et al (JID 2013) Table 1 by INTERLIBRARY LOAN or by writing to
+    the corresponding author. Ten automated routes are closed. It settles 1998
+    outright and is the last open question of any size in the historical record.
+ 5. Do NOT re-search: the 1974-2003 sub-national void, BETTOGO n1-n5, the WER
+    infected-areas series (fully mined end to end), or the 2024/Jan-Mar 2025
+    district decompositions. All four are closed on positive evidence.
 
 ================================================================================
 APPENDIX - METRICS
 ================================================================================
-DATASET
-  data rows                          273   (case 196 / zero 77)
-  national (AFR::TGO) / sub-national  99 / 174
-  distinct administrative units        38
-  temporal span              1970-11-01 .. 2026-08-26
-  rows by decade of TL   1970s 55 | 1980s 9 | 1990s 24 | 2000s 44 | 2010s 79 | 2020s 62
-  total suspected cases in case rows          50,346
-  confidence_weight   min 0.40 | median 0.85 | max 0.95 | rows <0.5: 3
 
-SOURCES (./data/TGO/metadata_ai.csv)
-  total                                194
-  Level 1 (WHO/MoH/peer-reviewed)      172  (88.7%)
-  Level 2 (UN/NGO/regional)             17  (8.9%)
-  Level 3 (news/preliminary)             5  (2.6%)
-  Level 4                                0
-  Status: Active 174 | Verified 10 | Superseded 9 | URL-Updated 1
-  cited by >=1 row 125 | registered but uncited 69
-  languages: English-only 103, English/French 59, French-only 30
+A. FINAL DATASET STATE
+   data rows (cholera_data_ai.csv)            323
+     case rows (sCh>0, cCh>0 or deaths>0)     241
+     zero rows (sCh=0)                         82
+   metadata sources (metadata_ai.csv)         231
+   presence rows (cholera_presence_ai.csv)     92
+   retraction tombstones                       29 records / 26 distinct Index
+   attribution_review.csv                      not created (nothing needed judgement)
 
-ZERO / ABSENCE ROWS
-  total                                 77
-  Documented_Absence                    63
-  Inferred_Absence                      14
-  Surveillance_Gap (illegal label)       0
-  surveillance status: operational 65 | partial 12
+B. VALIDATOR
+   BEFORE this audit : ERROR 0   WARN 47   INFO 135
+   AFTER  this audit : ERROR 0   WARN 47   INFO 135
+   py/repair_data_integrity.py --dry-run TGO : 0 changes (nothing mechanical left)
+   Final artefact: /tmp/TGO_post_94008.json
 
-INTEGRITY
-  dual-reference mismatches              0 / 273
-  source_index not in metadata           0
-  blank source_index or source           0
-  duplicate / missing metadata Index     0
-  duplicate rows (label-insensitive)     0
-  rows with no case value                0
-  rows with blank sCh                    5 (1 national; builder does not
-                                            zero-fill these - verified)
-  data Indices removed without tombstone 3 (7, 8, 54)
+   The 47 warnings, every one examined and CONSCIOUSLY LEFT STANDING:
+   41 multiyear_aggregate. All 41 verified to be genuine source-reported period
+      totals, from 11 distinct source/period groups, each carrying an explicit
+      "Source states" quote naming the period. All 41 are already at
+      confidence_weight 0.7, the ceiling CLAUDE.md sets. Tested for mis-entered
+      single years by comparing every aggregate's sCh against the JHU annual for
+      every year in its span: one coincidence surfaced (Idx 228, Tchamba = 4,
+      equal to the JHU 2011 annual) and is arithmetically excluded because the
+      18 district rows of source 150 sum to EXACTLY the printed table total 625.
+    4 same_period_conflict. All adjudicated and all carrying their determination:
+      2001 (Idx 342 primary, 2696/132; Idx 302 marked "do not sum");
+      2011 (Idx 126 PRIMARY at 33/1; Idx 329 marked NON-ADDITIVE, 0.8);
+      2015 (Idx 300 PRIMARY at 35/1; Idx 331 explicitly NON-PRIMARY, cut to 0.6);
+      2011 again (Idx 349 cCh-only vs Idx 126 sCh-only) - a genuine CHECK
+      ARTEFACT: the check compares count tuples and fires unconditionally when
+      they differ, so no processing_notes phrasing can suppress it.
+    2 CFR_high_flagged_for_review. Idx 42 (1999, 9/54 = 16.7%) and Idx 47 (1996,
+      6/34 = 17.6%). Both are single WER notification lines, so deaths and cases
+      share one denominator by construction; both are small-denominator
+      tail-of-epidemic periods; both capped at 0.7. Independently corroborated:
+      the four 1996 notifications' deaths sum to 17, EXACTLY the WHO annual.
 
-RETRACTIONS (./data/TGO/retracted_rows_ai.csv, 26 tombstones)
-  citation verified false, re-issued correctly     5
-  duplicate / superseded by a better source        8
-  contradicted by new primary evidence             3
-  re-issued against a verified IRIS handle        11 (Agent 6 self-correction)
+C. REPAIRS MADE BY THIS AUDIT
+   7 in-place annotations via py/revise_observation.py (no values changed):
+     Idx 345, 348  - measured 2025 nested-cumulative double-count (224.9 v 209)
+     Idx 202-206   - measured 2024 cross-layer double-count (432.9 v 281)
+   Rows deleted: NONE. Warnings suppressed: NONE.
 
-VALIDATOR FINDINGS
-  ERROR                                  0
-  WARN  multiyear_aggregate             40  (all verified, justified)
-  WARN  CFR_high_flagged_for_review      2  (both verified, justified)
-  INFO  metadata_unused                 69
-  INFO  national_subnational_overlap    35  (INFO, not WARN: every row in every
-                                             overlap group carries the required
-                                             non-additivity phrase)
+D. COVERAGE AND GAPS (py/analyze_effective_gaps.py, horizon 2026-09-19)
+   see section 5. 72.7% -> 99.9%; 5 gap periods -> 1; 5,650 gap-days -> 19;
+   months_ai_only 185; days_stale 545 -> 24.
 
-WEEKLY SERIES (./data/TGO/cholera_weekly_TGO.csv, rebuilt 2026-09-19 10:11 PDT)
-  2956 weeks, 1366 non-zero, seasonal template country_k1
-  methods: fourier 1795 | inferred_zero 689 | observed 365 |
-           documented_zero 102 | assumed_zero 5
-  KNOWN OVERSTATEMENT vs the documented national annual (builder defect, not a
-  data defect): 2013 +93% | 2020 +103% | 2021 +93% | 2024 +54% | 2015 +43% |
-  2002 +37% | 2014 +31%.  1996-2012 reproduce the JHU annuals exactly.
+E. SOURCE RELIABILITY DISTRIBUTION (231 metadata entries)
+   Level 1 (WHO/MoH/peer-reviewed)   202   87.4%
+   Level 2 (UN agencies/NGOs)         23    10.0%
+   Level 3 (news/preliminary)          6     2.6%
+   Level 4                             0
+   Status: Active 210, Verified 10, Superseded 10, URL-Updated 1
 
-REPORT PROVENANCE
-  This file replaces a version written at 09:45 PDT on the same day by an
-  earlier Agent 7 run, which snapshotted 258 rows / 181 sources. That version is
-  preserved at /tmp/tgo_audit/prior_search_report_0945.txt for the duration of
-  this session only. The May 2026 report is kept permanently at
-  ./data/TGO/search_report_legacy_2026-05-15.txt.
+F. CONFIDENCE WEIGHT DISTRIBUTION (323 data rows)
+   0.90-1.00  107     0.70-0.89  200     0.30-0.69   16     <0.30   0
+
+G. GEOGRAPHIC DISTRIBUTION (323 data rows)
+   national AFR::TGO        124
+   region  ADM1              83
+   district ADM2            106
+   locality ADM3             10
+
+H. TEMPORAL DISTRIBUTION (by TL decade)
+   1970s 55   1980s 9   1990s 25   2000s 50   2010s 108   2020s 76
+   The 1980s remain the thinnest decade at 9 rows - correctly so: they are the
+   nine-year zero run, and no document exists that could make a 1980s Togolese
+   zero Documented rather than Inferred.
+
+I. KNOWN PROVENANCE IMPERFECTIONS IN THE LEDGER (minor, reported not hidden)
+   - Index values 274, 275 and 276 each carry TWO tombstones: they were
+     allocated, retracted, then RE-ALLOCATED to different observations and
+     retracted again. Neither allocation is live, so nothing is ambiguous in the
+     current data, but py/add_observation.py allocates the next Index from the
+     live file without consulting retracted_rows_ai.csv and will reuse a
+     retracted index. Worth fixing before it produces a live collision.
+   - Index values 7, 8 and 54 are neither live nor tombstoned. Row 111's note
+     records that row 8 was retracted, so at least one tombstone was lost before
+     the ledger existed. Historical, pre-dating this run's tooling.
+
+================================================================================
+END OF REPORT
+================================================================================

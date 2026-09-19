@@ -45,7 +45,10 @@ running anything — bash will not expand them for you.
 ISO=ETH                      # <- the actual ISO3 code you were given
 COUNTRY_NAME="Ethiopia"      # <- from reference/country_profiles.json
 
-python py/analyze_effective_gaps.py                              # refresh gap targeting
+# The gap files are refreshed for you by the runner before your country starts.
+# Do NOT regenerate them yourself: countries run in parallel and these files are
+# shared, so a rebuild here would swap the targeting data out from under another
+# country's agents mid-search. Read them; do not write them.
 python py/validate_quality.py "$ISO" --json "/tmp/${ISO}_pre.json"   # starting state
 ```
 
@@ -66,7 +69,9 @@ Then initialise:
 mkdir -p ./data/$ISO
 printf '=== AGENT 1 INITIALIZATION ===\nCountry: %s (%s)\nStart: %s\nStatus: INITIALIZED\n\n' \
   "$COUNTRY_NAME" "$ISO" "$(date '+%Y-%m-%d %H:%M:%S')" > ./data/$ISO/search_log_agent_1.txt
-bash update_dashboard.sh     # marks the country PENDING
+# The runner owns the dashboard. Do not run update_dashboard.sh: it rebuilds all
+# 40 weekly series and commits to git, so with countries running in parallel two
+# of them collide on .git/index.lock and on each other's output.
 ```
 
 ## Deploy the seven agents in order
@@ -109,8 +114,8 @@ redeployment. Do not silently accept an empty result.
 
 ```bash
 python py/validate_quality.py $ISO --json /tmp/${ISO}_post.json
-python py/analyze_effective_gaps.py
-bash update_dashboard.sh     # marks the country COMPLETED
+# Coverage figures for your report: read reference/effective_surveillance_gaps_*.csv.
+# The runner regenerates them and refreshes the dashboard once your country exits.
 ```
 
 Report: rows before/after, sources before/after, coverage before/after from the
