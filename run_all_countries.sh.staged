@@ -125,8 +125,22 @@ if [[ ! -f "$MANIFEST" ]]; then
   echo "iso,status,started,finished,rows_before,rows_after,sources_before,sources_after,exit_code,log" > "$MANIFEST"
 fi
 status_of () { awk -F, -v i="$1" '$1==i {s=$2} END {print s}' "$MANIFEST"; }
-rowcount () { local f="data/$1/cholera_data_ai.csv"; [[ -f "$f" ]] && echo $(( $(wc -l < "$f") - 1 )) || echo 0; }
-srccount () { local f="data/$1/metadata_ai.csv";   [[ -f "$f" ]] && echo $(( $(wc -l < "$f") - 1 )) || echo 0; }
+# Count CSV *records*, not newlines. processing_notes routinely contains
+# embedded newlines inside a quoted field, so `wc -l` overcounts badly - ERI
+# reported 91 rows for a file holding 19 observations, and every "+N rows"
+# delta in the manifest and on the published dashboard was wrong by that much.
+csvcount () {
+  local f="$1"
+  [[ -f "$f" ]] || { echo 0; return; }
+  python3 -c "import csv,sys
+try:
+    with open(sys.argv[1], newline='', encoding='utf-8') as fh:
+        print(sum(1 for _ in csv.DictReader(fh)))
+except Exception:
+    print(0)" "$f"
+}
+rowcount () { csvcount "data/$1/cholera_data_ai.csv"; }
+srccount () { csvcount "data/$1/metadata_ai.csv"; }
 
 refresh_dashboard () {   # $1 = "light" | "full"
   if [[ "$1" == "full" ]]; then

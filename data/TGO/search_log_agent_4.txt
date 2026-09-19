@@ -25,3 +25,118 @@ MY TARGETS (from the brief, priority order)
       find a PRIMARY Togolese document showing the monthly/regional build-up.
 
 PRE-FLIGHT ROUTE RECONNAISSANCE (not counted as queries)
+  IA / Wayback  : STILL OFFLINE (2026-09-19 19:0x UTC). web.archive.org root 200 but
+                  serves "Internet Archive services are temporarily offline";
+                  /cdx/ returns the same offline page; archive.org/wayback/available 429.
+                  => Agent 3's main BETTOGO route remains unavailable. Not my fault, not
+                  recoverable this run.
+  IRIS API      : the endpoint Agent 2 recorded (/rest/discover/...) now 403s.
+                  THE WORKING ENDPOINT IS  https://iris.who.int/server/api/discover/search/objects?query=...
+                  Verified live. Record this for run N+1.
+  IRIS "bettogo": 0 hits (totalElements 0).
+  files.aho.afro.who.int : DEGRADED FURTHER since Agent 3. curl -k still connects but
+                  metadata 75's own control URL
+                  (afahobckpcontainer/production/files/Rapport_annuel_de_performance_2020_
+                  MSHPAUS_valide_19082021_vf.pdf) now returns 404, and / returns 400.
+                  aho.afro.who.int/api/countries and /countries/tg both 404.
+                  => treat this host as DEAD, not merely cert-broken.
+  academic.oup.com : 403 to curl (Cloudflare) on both landing page and article-pdf path.
+
+================================================================================
+=== BATCH 1 | PHASE 1 | TGO ===
+Target gap : T1 2007-2012 black hole + T3 1998/2001 adjudication
+Category mix: WHO/official, academic, historical/archival, national
+Operations (1 operation = 1 WebSearch / WebFetch / curl probe set / extraction pass):
+   1  WebSearch: BETTOGO "Bulletin Epidemiologique du Togo" pdf
+   2  WebSearch: Landoh "National surveillance data on the epidemiology of cholera in Togo" full text
+   3  curl probe set: academic.oup.com article-pdf + landing (403/403);
+      wahooas.org bulletin PDF (404, 45 KB error page - confirms Agent 3);
+      afro.who.int/sites/default/files/pdf/ 28 BETTOGO permutations
+      (Togo-Bettogo-n{1,2,3,4,5,7,8}[-dec] / bettogo-n{n} / Togo_Bettogo_n{n}) -> ALL 404.
+      Control Togo-Bettogo-n6-dec2011.pdf -> 200, 755 048 bytes.
+   4  curl + pdftotext extraction pass over BETTOGO n6 (full 8-page read, not just the
+      cholera section). SEE FINDINGS BELOW.
+   5  WebSearch: site:afro.who.int Togo "bulletin epidemiologique" OR "Bettogo" pdf
+   6  WebSearch: Togo "Division de l'Epidemiologie" bulletin epidemiologique BETTOGO 2009 2010 cholera
+   7  API probe set: OpenAlex + Semantic Scholar + Unpaywall on 10.1093/infdis/jit195
+      (wrong DOI - that is Rebaudet's environmental-determinants paper, BRONZE OA)
+   8  OpenAlex title search -> Landoh DOI is 10.1093/infdis/jit244, oa_status "closed",
+      no repository copy anywhere in OpenAlex's location list.
+   9  curl probe set: files.aho.afro.who.int (15 filename permutations + control) -> all 404
+  10  WebSearch: Togo "annuaire des statistiques sanitaires" 2010/2011/2012 cholera pdf
+  11  WebFetch: academic.oup.com/jid/article/208/suppl_1/S115/834498 -> abstract only,
+      paywalled (EUR 39 day pass). NINTH independent route to Landoh, still closed.
+  12  API probe set: CORE v3 (empty) + EuropePMC core record
+      (pmcid None, isOpenAccess N, inEPMC N) -> TENTH route closed.
+  13  WebFetch: afro.who.int/fr/publications/annuaire-des-statistiques-sanitaires-du-togo-annee-2016
+  14  WebSearch: afro.who.int "annuaire des statistiques sanitaires du Togo" 2008-2013
+  15  crawl: afro.who.int/countries/togo/publications pages 0-12
+  16  crawl: afro.who.int/countries/togo/publications pages 12-25 (listing ENDS at page 13)
+  17  WebFetch: ghdx.healthdata.org/organizations/ministry-health-togo-0 -> 403 (confirms Agent 3)
+  18  WebSearch: medbox.org Togo annuaire / rapport annuel ministere sante 2009-2012
+  19  curl + pdftotext: togo.unfpa.org PRINCIPAUX INDICATEURS DE SANTE AU TOGO 2014 (1.6 MB, 2825 lines)
+  20  grep/structure pass over PIS-2014 for multi-year MPE series
+
+FINDINGS
+
+ F1  BETTOGO n6 READ IN FULL (Agent 3 used only the cholera paragraph).
+     Table I "SITUATION DES MALADIES A POTENTIEL EPIDEMIQUE (MPE) NOTIFIEES : ANNEE 2011"
+     gives, for Cholera: trimestre 4 (octobre-decembre) = 1 cas / 0 deces;
+     CUMUL ANNEE 2011 = 33 cas / 1 deces / letalite 3.0.
+     Narrative, same bulletin: "Le quatrieme trimestre n'a pas enregistre de cas de
+     cholera. Seul le troisieme trimestre 2011, a connu une epidemie de cholera survenue
+     dans la ville de Tsevie ou l'on a denombre 29 cas et 1 deces."
+     => The Q4 table cell (1 case) and the Q4 narrative (no cases) CONTRADICT each other
+        inside one four-page bulletin. Agent 3 declined to write a Q4 zero for this
+        reason; I additionally decline to write the Q4 = 1 POSITIVE row, for the same
+        reason. A single case that the document simultaneously asserts and denies is not
+        worth the noise it would add to a weekly series. RECORDED, NOT WRITTEN.
+     Also read out, new to the record but NOT cholera-quantitative:
+        Table III surveillance completeness 2011 = 99% completude / 97% promptitude
+        nationally, 35 districts, 1 820 expected weekly reports. This is direct evidence
+        that Togo's IDSR surveillance system was OPERATIONAL in 2011 - useful to Agent 6
+        and to anyone weighting the 2011 absence/attestation conflict.
+        Named authorship: Division de l'Epidemiologie, chef Dr NASSOURY I. Danladi;
+        Dr LANDOH is listed on the validation committee, which ties BETTOGO directly to
+        the Landoh JID paper's data source.
+     Issue numbering confirmed: n6 = decembre 2011, and the masthead advertises
+     "janvier 2012/N 7", so the series is QUARTERLY, n1 would be ~mid-2010. That dates
+     the series' start AFTER most of the black hole, which materially lowers the expected
+     value of n1-n5 for 2007-2009. Worth knowing before run N+1 spends another 84 probes.
+
+ F2  *** NEW ADJUDICATION EVIDENCE FOR T3 (the 1998/2001 national-series dispute) ***
+     Landoh et al's abstract states 12 676 cases and 554 deaths for Togo 1996-2010, drawn
+     from "national surveillance data housed in the National Ministry of Health".
+     The WHO/JHU annual series for the SAME window sums to 11 913 cases / 552 deaths
+     (computed from data/TGO/cholera_data_jhu.csv, rows 12-26).
+       -> cases differ by +763, deaths by only +2.
+     The two known MoH-vs-WHO deltas are 1998 (3669-3217 = +452) and 2001 (2740-2551 =
+     +189), together +641 - i.e. 84% of the entire 763-case discrepancy, with deaths
+     essentially unchanged, which is exactly the signature of a case-ascertainment
+     difference rather than a different epidemic.
+     => The Togolese domestic series is arithmetically consistent with Landoh's MoH total
+        in a way the WHO series is not. This is the first quantitative evidence either way.
+     COUNTER-INDICATION, recorded so Agent 5 is not misled: Landoh also reports "annual
+     national cholera incidence varied from 0.9 to 66 cases per 100 000 population".
+     The 0.9 lower bound matches 1997 = 42 cases (the WHO figure) at Togo's 1997
+     population almost exactly; and 66/100 000 at Togo's 1998 population (~4.87 M) gives
+     ~3 214, i.e. WHO's 3 217, not the MoH's 3 669 (which would be ~75/100 000).
+     => STILL UNDETERMINED, but no longer evidence-free. Agent 5 should weigh the total
+        (favours MoH) against the incidence range (favours WHO). Resolving it needs
+        Landoh's Table 1, which is behind the OUP paywall on all ten routes tried.
+
+ F3  Principaux Indicateurs de Sante 2014 retrieved from a host nobody in this country
+     has used: togo.unfpa.org/sites/default/files/pub-pdf/. Its Tableau XXXVI is the
+     already-known 2014 regional table (Lome Commune 113/6, Maritime 36/3, total 262/11 -
+     matches Agent 3's corrected edition, source 168). NO cholera time series in it.
+     VALUE: it proves the PIS series carries a "Cas et deces lies aux maladies a potentiel
+     epidemique PAR REGION en {year}" table. Earlier editions of PIS would therefore give
+     REGIONAL cholera breakdowns for the black-hole years. That is the Batch 2 target.
+
+Sources found  : 0 registered (nothing yielded an extractable NEW number)
+Rows added     : 0
+Successful queries: 0/20
+Yield          : 0%
+Consecutive sub-5% batches: 1
+Decision       : CONTINUE (3-batch floor; and Batch 1 produced two live leads:
+                 togo.unfpa.org pub-pdf, and the PIS regional-table structure)
