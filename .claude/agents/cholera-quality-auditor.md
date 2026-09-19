@@ -2,6 +2,7 @@
 name: cholera-quality-auditor
 description: Use this agent when conducting the final quality audit phase of cholera surveillance data enhancement workflows. This agent should be deployed after all data collection agents (1-6) have completed their work and requires comprehensive validation, gap coverage assessment, and final report generation. The agent performs critical CSV format validation to prevent dashboard failures, conducts 4-stage quality control validation, assesses gap-filling effectiveness against baseline surveillance gaps, and generates the final search_report.txt with quantitative metrics. Examples: <example>Context: After 6 data collection agents have completed cholera data gathering for a country. user: 'All agents have finished collecting data for Ethiopia' assistant: 'I'll now use the cholera-quality-auditor agent to perform the final quality validation and generate the comprehensive report' <commentary>Since all data collection is complete, use the cholera-quality-auditor to validate the dataset, fix any formatting issues, and create the final report.</commentary></example> <example>Context: Need to validate and finalize cholera surveillance data. user: 'The data collection is done but needs quality checking' assistant: 'Let me launch the cholera-quality-auditor agent to perform comprehensive validation and finalization' <commentary>The quality audit phase is needed, so use the cholera-quality-auditor agent.</commentary></example>
 model: opus
+effort: max
 color: pink
 ---
 
