@@ -27,21 +27,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-# One runner at a time. Nothing in this script is safe to run concurrently with
-# itself: two instances share the manifest, the country directories and the git
-# index, and agents from different sessions overwrite each other's rows.
 RUNLOCK="reference/.runner.pid"
-if [[ -f "$RUNLOCK" ]]; then
-  other="$(cat "$RUNLOCK" 2>/dev/null || true)"
-  if [[ -n "$other" ]] && kill -0 "$other" 2>/dev/null \
-     && ps -p "$other" -o command= 2>/dev/null | grep -q run_all_countries.sh; then
-    echo "ERROR: another runner is already live (pid $other)." >&2
-    echo "       Stop it first (touch STOP) or remove $RUNLOCK if it is stale." >&2
-    exit 3
-  fi
-fi
-echo $$ > "$RUNLOCK"
-trap 'rm -f "$RUNLOCK"' EXIT
 
 MANIFEST="reference/run_manifest.csv"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -81,8 +67,7 @@ command -v claude >/dev/null || { echo "claude CLI not found" >&2; exit 1; }
 # and exits 0 - a silent partial run. 0 means wait indefinitely; the real bound
 # is the per-country `timeout` below.
 export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
-mkdir -p "$LOGDIR" reference
-rm -f STOP
+mkdir -p reference
 
 # ---------------------------------------------------------------- preflight --
 echo "=== preflight ==="
@@ -203,7 +188,36 @@ echo "  logs             : $LOGDIR/"
 echo "  manifest         : $MANIFEST   (touch STOP to halt gracefully)"
 
 [[ ${#QUEUE[@]} -eq 0 ]] && { echo "nothing to do"; exit 0; }
-[[ $DRY -eq 1 ]] && { echo ""; echo "(dry run - nothing executed)"; exit 0; }
+[[ $DRY -eq 1 ]] && { echo ""; echo "(dry run - nothing executed, nothing changed)"; exit 0; }
+
+# ------------------------------------------------- past here we change things --
+# Nothing above this line may touch disk state. A --dry-run once cleared the
+# STOP file at startup and so disarmed a graceful halt that a live runner was
+# waiting on: that runner rolled straight into the next country instead of
+# stopping for its scheduled replacement.
+mkdir -p "$LOGDIR"
+
+# One runner at a time. Nothing in this script is safe to run concurrently with
+# itself: two instances share the manifest, the country directories and the git
+# index, and agents from different sessions overwrite each other's rows.
+if [[ -f "$RUNLOCK" ]]; then
+  other="$(cat "$RUNLOCK" 2>/dev/null || true)"
+  if [[ -n "$other" ]] && kill -0 "$other" 2>/dev/null \
+     && ps -p "$other" -o command= 2>/dev/null | grep -q run_all_countries.sh; then
+    echo "ERROR: another runner is already live (pid $other)." >&2
+    echo "       Stop it first (touch STOP) or remove $RUNLOCK if it is stale." >&2
+    exit 3
+  fi
+fi
+echo $$ > "$RUNLOCK"
+trap 'rm -f "$RUNLOCK"' EXIT
+
+# A STOP left over from a previous run would halt this one after one country,
+# so it is cleared here - but loudly, and only in a real run.
+if [[ -f STOP ]]; then
+  echo "  note: clearing a leftover STOP file before starting"
+  rm -f STOP
+fi
 
 # ------------------------------------------------------------------ heartbeat --
 # A country takes about four hours, and the dashboard is only rebuilt when one
