@@ -1,27 +1,369 @@
-=== AGENT 2 INITIALIZATION ===
-Country: Nigeria (NGA)
-Agent: Geographic expansion
-Start Time: 2025-07-23 16:53:15
-Max Queries: 100 (5 batches)
-Min Queries: 40 (2 batches)
-Stop Criteria: 2 consecutive batches <5% data observation yield
-Focus: State, provincial, district-level cholera data across Nigeria
+================================================================================
+AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - NIGERIA (NGA)
+================================================================================
+Start: 2026-09-21
+Pre-search state:
+  ./data/NGA/cholera_data_ai.csv : 91 AI rows (indices 1-91)
+  ./data/NGA/metadata_ai.csv     : 45 sources (indices 1-45)
+  National coverage before this run: 95.7%
+ASSIGNMENT: sub-national (ADM1 state / ADM2 LGA) expansion, priority order
+  P1 2026 state + LGA breakdowns, May-Sep 2026 (65,690+ national cases held
+     almost entirely as national weekly totals)
+  P2 state splits for big historical years held only as national totals
+     (2021 111,662; 2018 42,466; 2010 41,787; 1999 26,358; 1991 59,478)
+  P3 LGA detail for north-east conflict states and Lagos
+NOTE ON QUERY ACCOUNTING: a "query" below is one discovery action - a WebSearch,
+  a WebFetch, or one REST/API probe against a named endpoint. Agent 1 exhausted
+  its session WebSearch allowance, so this agent deliberately weights the budget
+  toward direct API/endpoint interrogation, which is higher-yield per call.
 
-=== BATCH 1 START - 16:53:45 ===
-BATCH 1 COMPLETE - 16:57:20 - 20 queries executed
-BATCH 1 YIELD: 16 additional observations found, 16/20 queries successful = 80% yield
+================================================================================
+=== BATCH 1 | PHASE 1 (broad discovery, API-first) | NGA ===
+================================================================================
+Target : PRIORITY 2 - state-level breakdowns for the large historical years held
+         in the file only as undifferentiated national totals; and discovery of
+         any ADM1 companion to the WHO ArcGIS cholera service.
+Queries (20 discovery actions):
+  Q01 GET services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services?f=json
+      (WHO AFRO ArcGIS org service directory - 2,504 services enumerated)
+  Q02 filter that directory for cholera services (42 found)
+  Q03 GET Adm1_Nigeria_Cholera/FeatureServer/0?f=json  (layer schema)
+  Q04 GET Adm1_Nigeria_Cholera/FeatureServer/0/query where=1=1 (37 state rows)
+  Q05 GET arcgis.com/sharing/rest/search q=title:"Adm1_Nigeria_Cholera"
+  Q06 GET arcgis.com/sharing/rest/search q="nigeria cholera" sort=modified desc
+  Q07 GET arcgis.com/sharing/rest/search q=owner:EllenDavis5 cholera
+  Q08 GET ftp.ncdc.gov.ng/.../ddf6ee2fa457e6ac5d60ad0b25d7a023.pdf
+      (NCDC Cholera Situation Report, epi week 43 2021)
+  Q09 GET services4.arcgis.com/.../Nigeria_Cholera_Cases_and_Deaths_by_State_2021 schema
+  Q10 GET that feature service /query (37 state rows; matches the PDF exactly)
+  Q11 GET ncdc.gov.ng/diseases/sitreps/?cat=7 full archive listing (93 PDFs)
+  Q12 GET NCDC cholera sitrep epi week 52 2021
+  Q13 GET NCDC cholera sitrep epi week 52 2022
+  Q14 GET NCDC cholera sitrep epi week 52 2023
+  Q15 GET NCDC cholera sitrep epi week 39 2024
+  Q16 GET NCDC cholera sitrep serial 23, epi week 43 2018
+  Q17 GET NCDC national monthly cholera update serial 05, October 2019
+  Q18 GET NCDC cholera sitrep epi week 9 2025
+  Q19 GET NCDC national cholera situation report week 36/37 2017
+  Q20 GET Cholera_Afro_temporal/FeatureServer/20 and Cholera_ADM1 schemas
 
-Data extraction completed - 5 key observations added to CSV files
+Categories covered: WHO/official (Q01-Q07, Q20), national NPHI (Q08, Q11-Q19),
+  technical/GIS (Q01-Q04, Q09, Q10).
 
-=== BATCH 2 START - 16:59:15 ===
-BATCH 2 COMPLETE - 17:03:45 - 20 queries executed
-BATCH 2 YIELD: 12 additional observations found, 12/20 queries successful = 60% yield
+*** THE DECISIVE FIND: THE NCDC CHOLERA SITUATION REPORT ARCHIVE ***
+  Agent 1 established that NCDC's dedicated cholera sitrep series is
+  DISCONTINUED (newest = week 9, March 2025) and correctly concluded that it
+  cannot help with 2026. What it did not do is mine the 93 BACK ISSUES. Every
+  issue from 2018 onward carries a full state-by-state cumulative table
+  (cases, deaths, CFR, tests) and most carry a top-14/15 LGA table. That is
+  the single richest sub-national cholera source for Nigeria in existence and
+  it was sitting unused behind one listing URL.
 
-=== AGENT 2 SUMMARY ===
-Total batches completed: 2 (minimum requirement met)
-Total queries executed: 40 (minimum 40 queries reached)
-Yield pattern: 80%, 60%
-Current yield status: Both batches >5% threshold - continuing above minimum
-Geographic coverage: Enhanced significantly across states and LGAs
-Data observations added: 17 total (5 from Batch 1 + 5 key from Batch 2)
-Agent 2 Status: COMPLETED - Geographic expansion successful
+  Tables extracted (pdftotext -layout), with arithmetic verified against each
+  report's own printed national total:
+    2018 wk43 (1 Jan-29 Oct)  20 states   sums 42,446/818 vs printed 42,466/830
+                                          -> the NCDC document does NOT sum to
+                                             its own total; 20 cases and 12
+                                             deaths short. Recorded as printed,
+                                             not rescaled.
+    2019 Oct  (1 Jan-31 Oct)   7 states   sums 1,583/22   = printed  EXACT
+    2021 wk52 (full year)     34 states   sums 111,062/3,604 = printed EXACT
+                              15 LGAs     sums 32,865        = printed EXACT
+    2022 wk52 (full year)     33 states   sums 23,763/592 = printed  EXACT
+    2023 wk52 (full year)     31 states   sums 3,683/128  = printed  EXACT
+                              14 LGAs
+    2024 wk39 (1 Jan-29 Sep)  36 states   sums 10,837/359 = printed  EXACT
+                              14 LGAs
+    2025 wk9  (1 Jan- 2 Mar)  25 states   sums 1,149/28   = printed  EXACT
+                              14 LGAs
+
+*** SUPERSESSION HANDLED EXPLICITLY (2021) ***
+  The week-43 2021 table was extracted first (48 rows, former indices 92-139),
+  then the week-52 2021 table was found and is strictly better: it covers the
+  full calendar year, matching the period of the national row index 11 exactly,
+  and adds Akwa Ibom plus materially larger values for Borno (3,906 -> 5,672),
+  Lagos (152 -> 2,551), Gombe (1,412 -> 2,361) and Adamawa (784 -> 1,701).
+  45 of the 48 week-43 rows were RETRACTED via py/revise_observation.py
+  (tombstoned in ./data/NGA/retracted_rows_ai.csv) rather than left alongside
+  the week-52 rows, because two overlapping cumulative observations of the same
+  state in the same year is precisely the double-counting hazard this agent
+  exists to prevent.
+  THREE were deliberately KEPT: Hadejia (3,060), Dutse (3,000) and Birnin Kudu
+  (970), all Jigawa. These appear in the week-43 top-15 LGA table but VANISH
+  from the week-52 table even though Jigawa's state total rose from 12,965 to
+  15,141 and the week-52 inclusion cut-off was only 860 cases. Jigawa's
+  LGA-level line list was dropped or re-coded between the two reports. Those
+  three rows are the only LGA attribution for Jigawa in 2021, so they survive
+  at week-43 resolution with that explanation written into their notes.
+
+*** SEVEN CONFLICTS EXPOSED IN PRE-EXISTING ROWS, ALL ADJUDICATED IN NOTES ***
+  Bringing in the NCDC primary tables contradicted eight rows already in the
+  file. None was silently deleted; each was downweighted and annotated with the
+  primary figure and the index of the row that now carries it.
+    index 10  Bauchi 2019 = 9,725/29.  NCDC's entire 2019 NATIONAL total is
+              1,583/22 from seven states, and Bauchi is not one of them. The
+              value is within 3.3% of NCDC's Bauchi 2018 figure (9,405), so it
+              is almost certainly the 2018 outbreak mis-dated. 0.85 -> 0.2
+    index 25  Lagos 2024 = 1,248/40.  NCDC week 39 gives Lagos 4,667/134 for
+              weeks 1-39 alone; Lagos was the 2024 epicentre at 43% of national
+              cases. 0.85 -> 0.2
+    index 19  Plateau 2023 = 485/12 vs NCDC 15/0          0.85 -> 0.2
+    index 21  Bauchi  2023 = 420/9  vs NCDC 30/1          0.85 -> 0.2
+    index 22  Borno   2023 = 521/11 vs NCDC 38/6          0.85 -> 0.2
+    index 23  Delta   2023 = 215/5  vs NCDC 20/6          0.85 -> 0.2
+    index 20  Abia    2023 = 310/7  vs NCDC 142/7         0.85 -> 0.2
+    index 26  FCT     2021 = 514/12 vs NCDC 1,286/77      0.80 -> 0.3
+  And two national-level conflicts, flagged but NOT altered (Agent 5/7's call):
+    index 11  national 2021 = 111,662 vs NCDC 111,062 (deaths agree exactly at
+              3,604; looks like a digit transposition)
+    index 13  national 2022 = 23,550/584 vs NCDC 23,763/592
+    index 15  national 2023 = 3,683/80; cases agree exactly, NCDC deaths = 128
+  Corroborated rather than contradicted: index 16 Zamfara 2023 (NCDC's own two
+  tables disagree by one case, 913 vs 914), index 17 Cross River 2023 (cases
+  identical), index 18 Obubra 2023 (515, identical), index 12 Borno 2022
+  (12,496 vs NCDC 12,465, 0.2% apart).
+
+Sources found: 8 usable.  Registered: metadata index 46,47,48,49,50,51,52,53
+  46 NCDC Cholera Situation Report Epi Week 43 2021 (state + LGA)     [L1]
+  47 NCDC Cholera Situation Report Epi Week 52 2021 (full-year)       [L1]
+  48 NCDC Cholera Situation Report Serial 23 Epi Week 43 2018         [L1]
+  49 NCDC Cholera Situation Report Epi Week 52 2022 (full-year)       [L1]
+  50 NCDC Cholera Situation Report Epi Week 52 2023 (full-year)       [L1]
+  51 NCDC Cholera Situation Report Epi Week 39 2024                   [L1]
+  52 NCDC Cholera Situation Report Epi Week 9 2025 (final issue)      [L1]
+  53 NCDC National Monthly Update for Cholera Serial 05, Oct 2019     [L1]
+
+Rows added (net, after the 45 retractions): 245.  File 91 -> 336 rows.
+  126,127,137            2021 Jigawa LGAs kept from the week-43 table
+  138-171                2021 state rows   (34 states, full calendar year)
+  172-186                2021 LGA rows     (15 LGAs)
+  187-206                2018 state rows   (20 states, 1 Jan-29 Oct)
+  207-239                2022 state rows   (33 states, full calendar year)
+  240-270                2023 state rows   (31 states, full calendar year)
+  271-306                2024 state rows   (36 states, 1 Jan-29 Sep)
+  307-331                2025 state rows   (25 states, 1 Jan- 2 Mar)
+  332-338                2019 state rows   ( 7 states, 1 Jan-31 Oct)
+  339-351                2023 LGA rows     (13 LGAs)
+  352-365                2024 LGA rows     (14 LGAs, incl. 10 Lagos LGAs)
+  366-379                2025 LGA rows     (14 LGAs, incl. 8 Bayelsa LGAs)
+  Every one of these carries "Provincial subset - do not sum with national row"
+  plus the verified parts-vs-whole arithmetic. National rows 9, 11, 13, 15, 24
+  were annotated "National total - includes provinces not individually listed".
+
+New geography for this dataset: Anambra, Akwa Ibom, Benue, Edo, Ekiti, Enugu,
+  Gombe, Imo, Kaduna, Kogi, Kwara, Nasarawa, Ogun, Ondo, Osun, Oyo, Taraba,
+  Yobe as named states; and 55 LGAs, including the first LGA resolution for
+  metropolitan Lagos (Lagos Island, Eti-Osa, Lagos Mainland, Alimosho,
+  Ajeromi/Ifelodun, Epe, Surulere, Ikorodu, Kosofe, Apapa) and for the Niger
+  Delta (Southern Ijaw, Nembe, Ekeremor, Ogbia, Brass, Sagbama, Yenagoa,
+  Kolokuma/Opokuma, Andoni, Akuku Toru, Patani).
+
+Negative results worth recording:
+  - Adm1_Nigeria_Cholera (WHO AFRO ArcGIS, owner ngomr@who.int_WHO) is a SINGLE
+    STATIC SNAPSHOT dated 12 April 2023, not a time series: 37 state polygons,
+    12 with non-zero cases, total 1,070 cases / 34 deaths. It is superseded in
+    every respect by the NCDC 2023 week-52 table (3,683/128, 31 states) and was
+    NOT used for rows. There is no cholera_adm1_week companion to the WHO
+    cholera_adm0_week service; of 42 cholera services in that org, the only
+    Nigeria one is this snapshot.
+  - Cholera_Afro_temporal/Data_ is an ADM0 weekly table (country, epiweek,
+    cases, deaths, cumulative) - the same national resolution Agent 1 already
+    mined, no sub-national split.
+  - The 2017 week 36/37 sitrep has no machine-readable state table; its state
+    figures are inside chart images. Borno 1,380 at end of week 36 and national
+    5,138/136 as at 10 Sep 2017 are in the text; left for a later batch.
+  - The 2022 week-52 "Table 5: Top 15 Local Government Areas" is mislabelled in
+    the PDF - its contents are STATE totals, already captured. No 2022 LGA data.
+
+Successful queries: 8/20 (Q08, Q12, Q13, Q14, Q15, Q16, Q17, Q18)
+Yield        : 40%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum not met; Priority 1, the 2026 epidemic
+               geography, is not yet touched)
+
+================================================================================
+=== BATCH 2 | PHASE 1->2 (2026 sub-national discovery) | NGA ===
+================================================================================
+Target : PRIORITY 1 - state (ADM1) and LGA (ADM2) breakdowns of the 2026
+         epidemic, May-September 2026, ~65,690 national cases currently held
+         almost entirely as national weekly totals.
+Queries (20 discovery actions):
+  Q21 GET api.reliefweb.int/v2/reports (GET form)            -> empty
+  Q22 POST api.reliefweb.int/v2/reports + reliefweb.int HTML -> 403 / AWS WAF
+  Q23 GET data.humdata.org CKAN package_search "cholera Nigeria"
+  Q24 GET CKAN package_show x6, Regional Cholera Platform WCA 2012-2017
+  Q25 GET ncdc.gov.ng/reports/weekly (index, 431 weekly issues 2016-2026)
+  Q26 GET NCDC Weekly Epidemiological Report Vol.16 No.32 (24 Aug 2026) PDF
+  Q27 GET arcgis.com search "cholera AND (Borno OR Nigeria OR NCDC)"
+  Q28 GET CKAN package_search fq=groups:nga cholera/epidemic/outbreak
+  Q29 GET arcgis.com search owner:jusman_UNICEF (cholera OR epidemic)
+  Q30 GET services3.arcgis.com/7J7WB6yJX0pYke9q Cholera FeatureServer
+  Q31 GET + parse "NCDC EPIDEMICS DATA_NEMA_Cholera 2019 to 2023" xlsx
+  Q32 GET iris.who.int DSpace discover "Weekly Bulletin on Outbreaks"
+  Q33 GET afro.who.int outbreaks-and-other-emergencies-updates listing
+  Q34 GET api.techziward.com AFRO event tracker (2 endpoint forms)
+  Q35 GET afro.who.int week 33 2026 bulletin landing page
+  Q36 GET iris.who.int DSpace discover "OEW" + afro.who.int file-index probe
+  Q37 GET arcgis.com search title:cholera_adm1 / "cholera adm1 week" /
+      owner:maps_WHO cholera
+  Q38 GET unicef.org/nigeria/reports
+  Q39 GET unicef.org/nigeria/research-and-reports
+  Q40 GET unicef.org/media/{id}/file probe x6 above the known sitrep IDs
+
+Categories covered: WHO/official (Q25,Q26,Q32-Q37), humanitarian (Q21-Q24,
+  Q28-Q31,Q38-Q40), technical/GIS (Q27,Q29,Q30,Q37).
+
+Rows added : 0.   Yield : 0%.   Consecutive sub-5% batches: 1.
+Decision   : CONTINUE.
+
+This batch produced no rows but four decisive negatives that materially change
+what later agents should attempt:
+
+  (1) THERE IS NO WHO ADM1 CHOLERA SERVICE. The task brief hypothesised a
+      cholera_adm1_week companion to the cholera_adm0_week feature service that
+      Agent 1 mined. It does not exist. Evidence: the WHO AFRO ArcGIS org
+      (services.arcgis.com/5T5nSi527N4F7luB) exposes 2,504 services of which 42
+      contain "cholera"; a title search for cholera_adm1 across all of ArcGIS
+      Online returns 14 items, none of them a Nigeria weekly series; and
+      owner:maps_WHO - the account that owns cholera_adm0_week, last modified
+      1 Sep 2026 - owns 28 cholera items, every one of which is adm0 or a
+      dashboard over adm0. The only WHO Nigeria ADM1 cholera object anywhere is
+      Adm1_Nigeria_Cholera, a single static snapshot dated 12 April 2023
+      (1,070 cases / 34 deaths over 12 states), which the NCDC 2023 week-52
+      table supersedes completely. The WHO global cholera dashboard is
+      national-only by design.
+
+  (2) THE NCDC WEEKLY EPIDEMIOLOGICAL REPORT HAS NO STATE TABLE FOR CHOLERA.
+      Vol.16 No.32 (24 Aug 2026) was downloaded and read in full. Its cholera
+      section is Table 8 (week: 199 suspected, 130 confirmed, 0 deaths, "State:
+      6, LGA: 12") and Table 9 (year to date 2025 vs 2026). It gives the COUNT
+      of affected states and LGAs but never names them. So the one national
+      surveillance product NCDC still publishes in 2026 cannot yield
+      sub-national geography, however many issues are mined.
+
+  (3) NIGERIA CHOLERA IS ABSENT FROM THE WHO AFRO WEEKLY BULLETIN. The week 33
+      (10-16 Aug 2026) bulletin was retrieved via the IRIS DSpace REST API
+      (hdl 10665/387514 -> TEXT bitstream) and read. Its "Ongoing events" table
+      carries 18 cholera events - Angola, Burundi, Cameroon, CAR, Chad, Congo,
+      DRC, Mozambique, Namibia, Rwanda, South Africa, South Sudan, Zimbabwe -
+      and NOT Nigeria, even though Nigeria's ~65,000 cases make it the largest
+      cholera event in the region. Nigeria does appear in the same table for
+      dengue, diphtheria, Lassa fever, polio and the humanitarian crisis. AFRO
+      is simply not tracking the Nigerian cholera event in this product. That
+      is worth reporting in its own right and it closes off what would
+      otherwise be the obvious route to state-level 2026 numbers.
+
+  (4) A PLAUSIBLE-LOOKING LGA DATASET REJECTED. "NCDC EPIDEMICS DATA_NEMA_
+      Cholera 2019 to 2023" (ArcGIS item 1e1ed14daf7f4bf79d22e3f22ba8d678,
+      owner jusman_UNICEF, used for UNICEF/NEMA's Nigeria Risk Analysis 2024)
+      is an .xlsx with five sheets and 748 State/LGA/Year/Cases/Deaths records -
+      superficially the single richest LGA-level cholera source available. It
+      was downloaded, parsed and REJECTED. Its totals are irreconcilable with
+      NCDC's own published situation reports in both directions:
+        2021  xlsx 387 cases   vs NCDC 111,062   (287x low)
+        2022  xlsx 1,210       vs NCDC 23,763    (20x low)
+        2023  xlsx 2,608       vs NCDC 3,683     but Jigawa 1,405 vs NCDC 84
+        2019  xlsx 1,683       vs NCDC 1,583     but Katsina 606 vs NCDC 131,
+              and it lists 22 states where NCDC names exactly seven
+      Its sheets are titled "XXXX Disease 2019" ... "XXXX Disease 2023", i.e.
+      an unfilled template placeholder. Whatever stream it represents, it is
+      not NCDC cholera surveillance. NO ROWS WERE CREATED FROM IT. Recorded
+      here so no later agent spends budget rediscovering it, and so nobody
+      ingests 748 rows of unknown provenance.
+
+  Also blocked or empty: reliefweb.int and its API (AWS WAF / approved-appname
+  requirement), reports.unocha.org, unocha.org, response.reliefweb.int (all
+  HTTP 202 challenge pages), unicef.org/nigeria (403/404), africacdc.org
+  download listings (404), api.techziward.com (404 on both endpoint forms).
+  The HDX Regional Cholera Platform WCA files (2012-2017) are country-by-epiweek
+  only, no sub-national split.
+
+================================================================================
+=== BATCH 3 | PHASE 2 (targeted 2026 sub-national, incl. Hausa) | NGA ===
+================================================================================
+Target : PRIORITY 1 continued. With the institutional routes closed, switched
+         to the publishers' own content APIs for the Nigerian press, which is
+         where Borno State PHEOC and state health ministry figures actually
+         surface. WebSearch was unavailable (see the budget note at the end of
+         this log), so every one of these is a direct HTTP call.
+Queries (20 discovery actions):
+  Q41 GET dailytrust.com/wp-json/wp/v2/search?search=cholera
+  Q42 GET premiumtimesng.com/wp-json/wp/v2/posts?search=cholera (probe)
+  Q43 GET vanguardngr.com/wp-json/wp/v2/posts?search=cholera -> 403 Cloudflare
+  Q44 GET dailytrust.com posts search=cholera after=2026-05-01 (45 posts)
+  Q45 GET africacdc.org/wp-json/wp/v2/search epidemic intelligence weekly
+  Q46 GET africacdc.org/download-category/epidemic-intelligence-weekly-report/
+  Q47 GET africacdc.org/institutes/emergency-preparedness-and-response/
+  Q48 GET dailytrust.com "Cholera bites harder in Borno, spreads to Plateau"
+  Q49 GET dailytrust.com "Cholera kills 5, hospitalises 11 in Plateau community"
+  Q50 GET premiumtimesng.com posts search=cholera after=2026-05-01 (26 posts)
+  Q51 GET premiumtimesng.com post 906045 (NCDC >65,000, 28 Aug 2026)
+  Q52 GET premiumtimesng.com post 882813 (Borno 2,715, 26 May 2026)
+  Q53 GET premiumtimesng.com post 897430 (Borno >35,500 MSF, 22 Jul 2026)
+  Q54 GET premiumtimesng.com post 884090 (Borno 37 deaths, 31 May 2026)
+  Q55 [HAUSA] GET aminiya.ng posts search=kwalara after=2026-05-01 (21 posts)
+  Q56 GET businessday.ng posts search=cholera after=2026-05-01
+  Q57 [HAUSA] GET aminiya.ng post 314607 (PHEOC LGA breakdown, 2 Jun 2026)
+  Q58 [HAUSA] GET aminiya.ng post 312436 (first death, Maiduguri, 7 May 2026)
+  Q59 [HAUSA] GET aminiya.ng post 314134
+  Q60 GET dailytrust.com "WHO donates drugs to Zamfara" (21 Sep 2026) and
+      "EU gives Nigeria, Cameroon, Chad, CAR EUR2.3m" (18 Aug 2026)
+
+Categories covered: humanitarian/NGO (Q45-Q47, Q53), regional (Q46, Q60),
+  LINGUISTIC/HAUSA (Q55, Q57, Q58, Q59), news/Level 3 (Q41-Q44, Q48-Q54, Q56).
+
+*** THE HAUSA QUERY WAS THE ONE THAT PAID ***
+  The English-language press carried only a partial four-LGA version of the
+  Borno PHEOC breakdown (MMC, Jere, Konduga, Monguno), which Agent 1 logged as
+  an unextracted lead. Aminiya, Daily Trust's Hausa title, carried the FULL
+  ten-LGA list from Dr Jacob Thlizer, Manager of the Borno State Public Health
+  Emergency Operations Centre, on 2 June 2026. It sums to exactly 4,204 - the
+  precise value of the existing Borno row index 90 for the identical period.
+  That is a complete, arithmetically exact decomposition of an existing row.
+
+*** THREE COMPLETE BORNO LGA SNAPSHOTS NOW EXIST, AND THEY ARE MONOTONE ***
+                     24 May    2 Jun    18 Jun     (cumulative, suspected)
+    Maiduguri (MMC)   1,568    2,404     7,083
+    Jere                834    1,214     3,403
+    Konduga              95      275       863
+    Mafa                159      184       618
+    Monguno              56       90       860
+    Kaga                  -       18        48
+    Bama                  -        8       108
+    Kwaya Kusar           -        8        28
+    Ngala                 2        2         9
+    Magumeri              1        1         -
+    Biu / Damboa / Dikwa / Gwoza / Hawul / Marte appear only at 18 Jun
+    STATE TOTAL       2,715    4,204    13,234
+  Every LGA present in more than one snapshot increases monotonically, and each
+  snapshot's LGA values sum to exactly its printed state total. That is a
+  strong internal validation of the whole Borno 2026 LGA series and it gives
+  MOSAIC the epidemic's spatial seeding sequence: MMC and Jere carry 88% of the
+  burden at 24 May, with Bama, Kaga and Kwaya Kusar seeded between 24 May and
+  2 June and the hinterland LGAs between 2 and 18 June.
+
+Sources found: 4 usable.  Registered: metadata index 54, 55, 56, 57
+  54 Daily Trust / Plateau State MoH, Mangu LGA, 14 Jun 2026          [L3]
+  55 Daily Trust / Monguno CTC admission records, 16 Jun 2026         [L3]
+  56 Premium Times / Borno official epi summary, 24 May 2026          [L3]
+  57 Aminiya (HAUSA) / Borno State PHEOC, 2 Jun 2026                  [L3]
+
+Rows added : 19.  Indices 380-398.
+  380  AFR::NGA::Plateau::Mangu      2026-06-01..2026-06-14  52 / 5 deaths
+       First LGA attribution for the 2026 Plateau outbreak; communities named
+       as Pushit, Mangu I and Mangu II.
+  381  AFR::NGA::Borno::Monguno      2026-06-11..2026-06-13  296
+       A rare ADDITIVE three-day LGA observation (48 / 68 / 180 by day) at the
+       epidemic's steepest point; CTC admissions, so a lower bound.
+  382-388  Borno LGA snapshot at 24 May 2026 (7 LGAs, sums to 2,715 exactly)
+  389-398  Borno LGA snapshot at  2 Jun 2026 (10 LGAs, sums to 4,204 exactly)
+  New geography: Magumeri LGA (Borno), Mangu LGA (Plateau).
+  Rows 64, 90 and 91 were annotated with corroboration found in this batch,
+  including the ward of the index case (Shehuri North, MMC, death announced
+  5 May 2026, attributed to contaminated dam water).
+
+Successful queries: 4/20 (Q48, Q49, Q52, Q57)
+Yield        : 20%
+Consecutive sub-5% batches: 0 (reset)
+Decision     : CONTINUE (3-batch minimum now met, but no run of 3 sub-5%
+               batches and the 1991/1999/2010 state splits are untouched)

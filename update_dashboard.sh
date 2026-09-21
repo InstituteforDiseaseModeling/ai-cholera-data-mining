@@ -80,6 +80,17 @@ if ! python py/update_dashboard_data.py; then
 fi
 echo "✅ Dashboard data update completed"
 
+# Country run-status table. Must run AFTER update_dashboard_data.py, which
+# rewrites the embedded CSV/JSON blobs in dashboard.html; this then re-injects
+# the table between the COUNTRY-STATUS markers.
+echo ""
+echo "📋 Rebuilding country status table..."
+if ! python py/generate_country_status_page.py; then
+    echo "❌ ERROR: Country status table generation failed"
+    exit 1
+fi
+echo "✅ Country status table updated"
+
 # Generate coverage barplot with error handling
 echo ""
 echo "📊 Generating coverage barplot..."
