@@ -4,3 +4,893 @@ Start: 2026-09-21 05:05:13
 Status: INITIALIZED
 Note: Country has pre-existing AI rows (26) from an earlier pass; treating as pre-existing data and reconciling.
 
+================================================================================
+AGENT 1 - BASELINE COLLECTOR - SOMALIA (SOM)
+Run start: 2026-09-21
+Protocol: ./templates/template_search_protocol.txt  (20 queries/batch, min 3)
+Target gaps (effective, longest first):
+  G1 1972-01-01..1984-12-31  (4749 d, historical)
+  G2 1987-01-01..1993-12-31  (2557 d, historical)
+  G3 2005-01-01..2006-12-31  ( 730 d, modern)
+  G4 2026-05-01..2026-09-21  ( 144 d, recent)
+Pre-existing: 26 AI rows (idx 1-17,19-27), 27 metadata sources, 1 presence row.
+JHU baseline already holds WHO-annual rows for 1970,1971,1985,1986,1994-2004,2007,2008.
+=> The 1972-84 / 1987-93 / 2005-06 holes are exactly the years absent from the
+   JHU copy of the WHO annual cholera series. Primary strategy: recover WHO's
+   own annual country series (WER "Cholera in 19XX" tables / GHO) for those years.
+================================================================================
+
+=== BATCH 1 | PHASE 1 (broad discovery) | SOM ===
+Gaps targeted : G1 1972-01-01..1984-12-31 (4749d, historical) [primary]
+                G4 2026-05-01..2026-09-21 (144d, recent)
+                G2/G3 reconnaissance
+Categories    : 1 WHO/official, 2 Academic, 3 Humanitarian, 5 Historical/archival
+
+Queries (20):
+ Q1  WebSearch  WHO Weekly Epidemiological Record "Cholera in 1984" annual table cases deaths countries Africa
+ Q2  WebSearch  Somalia cholera 1970 1971 seventh pandemic introduction Horn of Africa epidemic
+ Q3  WebSearch  Somalia cholera epidemic 1977 1978 Ogaden war refugee camps diarrhoea outbreak
+ Q4  WebSearch  Somalia cholera reappeared 1985 after absence "no cholera" 1970s epidemic history
+ Q5  WebSearch  "Weekly Epidemiological Record" 1986 "cholera in 1985" Somalia cases deaths iris.who.int
+ Q6  IRIS API   discover/search "CHOLERA IN 19XX" for every year 1970-1995 (systematic WER article enumeration)
+ Q7  IRIS API   missing-year probe: "LE CHOLERA EN 1973", "CHOLERA IN 1976", "choléra en 1976"
+ Q8  WebSearch  MMWR cholera Somalia 1992 1993 Mogadishu Baidoa cases deaths case-fatality CDC
+ Q9  WebFetch   nejm.org "The Threat of Infectious Diseases in Somalia" (1993)  -> HTTP 403, paywalled
+ Q10 WebFetch   pmc.ncbi.nlm.nih.gov/articles/PMC6586254 "Cholera prevention and control in refugee settings"
+ Q11 WebSearch  Somalia 1985 cholera refugee camps Ethiopian refugees 6560 cases 1069 deaths outbreak
+ Q12 WebSearch  Somalia acute watery diarrhoea cholera 2005 2006 outbreak cases deaths WHO UNICEF FSAU
+ Q13 WebSearch  Somalia cholera AWD 2026 cases deaths WHO situation report epidemiological week
+ Q14 WebSearch  "multi-country outbreak of cholera" "epidemiological update" 40 September 2026 WHO
+ Q15 WebFetch   ecdc.europa.eu cholera-monthly (worldwide overview) - Somalia 2026 paragraph
+ Q16 curl probe WHO CDN situation-reports: multi-country cholera epi updates #38-#41, 9 candidate dates
+ Q17 GHO API    ghoapi.azureedge.net CHOLERA_0000000001/2/3 filtered SpatialDim eq 'SOM' (full annual series)
+ Q18 WebSearch  WHO EMRO Somalia cholera outbreak update 2026 cases deaths regions Banadir
+ Q19 WebSearch  Somalia Health Cluster OCHA cholera AWD 2026 situation report Gu floods cases
+ Q20 curl probe ECDC Communicable Disease Threats Report weekly PDFs, 2026 weeks 30-38 (+filename variants)
+
+KEY STRUCTURAL FINDINGS (negative results are results):
+ * WHO GHO annual cholera series for SOM (cases/deaths/CFR) contains ONLY:
+   1970,1971,1985,1986,1994-2004,2007-2016. It has NO entry for any year in
+   1972-1984, 1987-1993, 2005, 2006. The effective gaps are exactly the years
+   Somalia is missing from WHO's own annual notification series.
+ * Recovered the complete WER "CHOLERA IN 19XX" annual-review series from WHO
+   IRIS (1970-1975, 1976, 1977-1995; 29 PDFs, OCR text layer present) to
+   /tmp/wer/. Read the Africa table in every one.
+   - Somalia APPEARS in the notified-cases table only for 1970 (43), 1971 (89),
+     1985 (10 199), 1986 (15 980), 1994 (27 904 / 1 198), 1995 (9 255 / 191).
+     All of these are already in the JHU baseline; none is a gap year.
+   - Somalia is ABSENT from the notified-cases table for every year 1972-1984
+     and 1987-1993. WER lists only countries that notified cases, so absence
+     is "no notification received", NOT a reported zero. Per the agent brief
+     these are NOT documentable as zeros. Left empty. This is the single most
+     important finding of the batch: the WER vein, which is normally the
+     richest historical source, is genuinely empty for Somalia's two big gaps.
+   - WER 1973 (48/28, partial-year table, first five 4-week periods 1970-73)
+     does carry a Somalia row: 1971 = 85, 1972 = "-", 1973 = "-". Partial-year
+     and dash-coded; not committed.
+   - WER "CHOLERA IN 1987" (63/20) narrative: "the termination of the epidemic
+     in Somalia" is given as a reason African cases fell from 40 626 (1986) to
+     30 929 (1987), and Somalia is absent from the 1987 table. Positive claim
+     of epidemic termination -> flagged for Agent 3 (zero-transmission) as the
+     single best 1987 absence candidate. Not committed by Agent 1: the wording
+     does not establish whether termination fell in late 1986 or during 1987.
+ * TWO NEAR-MISS MISATTRIBUTIONS AVOIDED, recorded so later agents do not
+   repeat them:
+   - WER 52/19 (13 May 1977) shows "Somalia - Somalie ... 0" and "Total cases
+     number 280 ... nine Regions of southern Somalia". Both are in the
+     SMALLPOX SURVEILLANCE section of that issue, not the cholera table.
+     Somalia is NOT in the "Cases of Cholera Notified to WHO, 1976" table.
+   - WER 101/36-37 (18 Sep 2026) rows "Somalia 633 1 569 2 596 ... 1 257" and
+     "Somalia 19 655 1 259 1 257 844 ..." are LEPROSY tables, not cholera.
+ * WHO's multi-country cholera table froze Somalia at 233 cases / 0 deaths for
+   four consecutive editions (epi update #37 as of 26 Apr, #38 as of 31 May,
+   WER 101(35) as of 26 Jul 2026), with "-" in the last-28-day columns. WHO's
+   own footnote says a dash is missing data, not absence. The refreshed figure
+   surfaced via Africa CDC -> ECDC.
+ * WHO retired the numbered "epidemiological update" PDFs after #38 (30 Jun
+   2026); from July 2026 the monthly cholera update runs inside the WER.
+   Latest cholera-carrying WER at time of search: 101(35), 4 Sep 2026.
+ * ReliefWeb API v1 is decommissioned (HTTP 410) and v2 requires an approved
+   appname (HTTP 403). ReliefWeb must be worked through the website, not the
+   API. Recorded for later agents.
+
+Sources registered: index 28 (ECDC Communicable Disease Threats Report Week 35 2026)
+Rows added   : 2   Indices: 28, 29
+  28  AFR::SOM 2026-01-01..2026-08-09  sCh=2657 deaths=1 CFR=0.04
+  29  AFR::SOM 2026-07-12..2026-08-09  sCh=489  deaths=1 CFR=0.20
+Successful queries: 2/20 (Q15 found the figure, Q20 found the citable dated PDF)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Gap status   : G4 2026-05-01..2026-09-21 -> LARGELY FILLED (now covered to 2026-08-09)
+               G1 1972-1984 -> REMAINS (WER/GHO vein confirmed empty)
+               G2 1987-1993 -> REMAINS
+               G3 2005-2006 -> REMAINS
+Decision     : CONTINUE (below the 3-batch floor; G1/G2/G3 untouched)
+
+=== BATCH 2 | PHASE 1-2 | SOM ===
+Gaps targeted : G3 2005-01-01..2006-12-31 (730d, modern) [primary]
+                G2 1987-01-01..1993-12-31 (2557d, historical)
+Categories    : 1 WHO/official, 2 Academic, 3 Humanitarian, 5 Historical
+
+Queries (20):
+ Q1  WebSearch  Somalia cholera epidemic 1994 outbreak began Mogadishu cases deaths WHO report
+ Q2  WebSearch  Somalia 1992 1993 famine epidemic diarrhoea cholera Baidoa Bardera deaths Refugee Policy Group
+ Q3  WebSearch  Somalia acute watery diarrhoea outbreak 2006 Mogadishu Jowhar cases deaths WHO UNICEF
+ Q4  IRIS API   "World health statistics annual" + "Annual epidemiological and vital statistics" enumeration
+ Q5  WebSearch  [site:reliefweb.int] Somalia cholera acute watery diarrhoea outbreak 2006 cases deaths
+ Q6  WebFetch   reliefweb.int/report/somalia/somalia-floods-situation-report-22-nov-2006 -> HTTP 403
+ Q7  WebFetch   reliefweb.int/report/somalia/somalia-cholera-kills-82-central-region -> HTTP 403
+ Q8  WebSearch  [site:reliefweb.int] Somalia cholera 2005 outbreak cases deaths report
+ Q9  curl       reliefweb "Somalia: Cholera kills 82 in central region" (full text)
+ Q10 ReliefWeb  date-filtered river search advanced-search=(PC216)_(DO20050101-20061231)&search=cholera -> 49 items
+ Q11 curl       3 x 2006 items: Islamic Relief Puntland, WHO Floods Health SitRep 27 Nov, WHO EHA SitRep No.3
+ Q12 curl       full text WHO Somalia EHA SitRep No. 3 (27 Dec 2006)
+ Q13 bulk scan  all 49 ReliefWeb 2005-2006 items fetched and sentence-filtered for cholera/AWD + digits
+ Q14 WebFetch   plateformecholera.info/somalia-cholera-fact-sheet
+ Q15 WebSearch  Somalia cholera outbreak 1988 1989 1990 Mogadishu Hargeisa cases deaths epidemic
+ Q16 WebSearch  Somalia 1992 1993 cholera epidemic Mogadishu Merca Baidoa MSF ICRC treatment centre patients
+ Q17 WebFetch   msf.org/timeline-msf-somalia
+ Q18 WebFetch   pmc.ncbi.nlm.nih.gov/articles/PMC12368357 "Cholera Crisis in Somalia" (2025)
+ Q19 WebFetch   pubmed.ncbi.nlm.nih.gov/7623405 "Cholera admissions in adults 1989-1994" -> cookie wall
+ Q20 WebSearch  Somalia 2005 acute watery diarrhoea 17000 cases 593 deaths (corroboration attempt)
+
+FINDINGS:
+ * WHO Somalia EHA SitRep No.3 (27 Dec 2006): "Increased Acute watery Diarrhoea
+   cases have been notified in Kismayo and Kismayo hospital has opened a
+   treatment centre, with 63 cases and 4 deaths from December 19th to 23rd."
+   -> COMMITTED as row 30. First quantitative observation ever recovered inside
+   the 2005-2006 effective gap.
+ * ReliefWeb "Somalia: Floods Situation Report - 22 Nov 2006": "WHO and MSF-H
+   have confirmed the presence of cholera in Jilib and Marare." Confirmed
+   cholera presence, NO counts -> belongs in cholera_presence_ai.csv (added).
+ * TRAP - MIS-DATED RELIEFWEB RECORD. reliefweb.int/report/somalia/
+   imc-launches-operation-aid-displaced-somalis-hundreds-thousands-flee-homes
+   is filed as "Posted 7 May 2005 / Originally published 7 May 2005" and
+   contains: "since January, almost 17,000 cases of acute watery diarrhea have
+   been reported in central and southern Somalia, and there have been 593
+   deaths and nearly 40 confirmed cases of cholera." This LOOKS like a large
+   2005 find and would have closed a big piece of the 2005 gap. It is NOT 2005:
+   the same release says "Since February, more than 394 000 people have fled
+   the capital" and IMC's own site frames it as four months of fighting between
+   Islamist insurgents and Ethiopian-led forces - i.e. the Feb-Apr 2007
+   Mogadishu displacement. The AWD figures belong to Jan-Apr 2007, a year JHU
+   already covers (41 643 cases / 1 182 deaths). NOT COMMITTED. Later agents:
+   do not take ReliefWeb's date field on this item at face value.
+ * MSF's own Somalia timeline lists cholera activity starting 1994 (Mogadishu),
+   then 1995, 1997, 1998 (northern Mogadishu CTC, 3 000 treated), 1999, 2000.
+   It records NO cholera response in 1987-1993, consistent with WER: the
+   1987-1993 hole is real absence of reporting, and quite possibly of large
+   recognised cholera outbreaks, during state collapse.
+ * "Cholera Crisis in Somalia" (IJGM 2025, PMC12368357) carries no pre-2017
+   epidemiological figures despite being a country review - a dead end for the
+   historical gaps.
+ * plateformecholera.info (the Cholera Platform country fact sheets, a source
+   used by earlier agents on other countries) no longer resolves: it 301s to
+   an unrelated commercial site (world-birds.com). Domain is dead. Recorded so
+   later agents do not cite it.
+ * FSAU/FAO Somalia monthly nutrition updates (Apr 2005, Dec 2005 PDFs) confirm
+   an operational WHO/MOH/UNICEF/WFP AWD-cholera surveillance system in
+   Bossaso town and IDP camps running since February 2004 with daily reporting
+   from 16 sentinel sites - but publish no case counts. Context only.
+
+Sources registered: index 29 (WHO Somalia EHA Situation Report No. 3, 27 Dec 2006)
+Rows added   : 1   Indices: 30
+  30  AFR::SOM::Jubbada Hoose::Kismayo 2006-12-19..2006-12-23 sCh=63 deaths=4 CFR=6.35
+Presence rows: 1 (AFR::SOM::Jubbada Dhexe Jilib/Marare, Nov 2006, cholera confirmed, no counts)
+Successful queries: 1/20 (Q11)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Gap status   : G3 2005-2006 -> PARTIALLY FILLED (Dec 2006 only; 2005 still empty)
+               G1, G2 -> REMAIN
+Decision     : CONTINUE (below the 3-batch floor)
+
+=== BATCH 3 | PHASE 2 (targeted gap filling) | SOM ===
+Gaps targeted : G3 2005-01-01..2006-12-31 (730d) and G4 2026-05-01..2026-09-21 (144d)
+                secondary probes on G1/G2
+Categories    : 1 WHO/official, 2 Academic, 3 Humanitarian, 4 Regional/cross-border, 5 Historical
+
+Queries (20):
+ Q1  pdfgrep    WER 70/28 "Cholera in 1994 Part I" - Somalia narrative + onset date
+ Q2  WebFetch   cdc.gov/mmwr/preview/mmwrhtml/00001634.htm "Cholera -- Worldwide, 1989"
+ Q3  WebSearch  Refugee Health Unit Somalia surveillance refugee camps 1980-1988 diarrhoea cholera CDC UNHCR
+ Q4  WebSearch  Somalia 1985 cholera epidemic Lancet cases deaths refugee camps Gedo Hiran investigation
+ Q5  WebSearch  Somali refugees cholera outbreak 1991 1992 Kenya Liboi Dadaab Ethiopia Hartisheik camps
+ Q6  curl       reliefweb Somalia Health Cluster Bulletin July-August 2026 (landing page)
+ Q7  ReliefWeb  river search (PC216)_(DO20050101-20061231) "acute watery" OR AWD OR diarrhoea -> 84 items
+ Q8  bulk scan  all 84 items fetched, sentence-filtered, PDF attachments enumerated
+ Q9  curl       Somalia Health Cluster Bulletin Jul-Aug 2026 PDF
+ Q10 curl       emro.who.int Somalia AWD/cholera situation reports index (151 PDFs enumerated)
+ Q11 WebSearch  WHO Somalia EPI Watch epidemiological bulletin 2026 AWD cholera week emro
+ Q12 curl       emro.who.int Somalia Weekly EPI Watch index
+ Q13 ReliefWeb  river search (PC216)_(DO20260501-20260921) cholera OR AWD OR watery diarrhoea
+ Q14 ReliefWeb  river search (PC216)_(DO20260601-20260921) search=cholera -> 17 items
+ Q15 ReliefWeb  river search (PC216) + UI date range 2026-05-01..2026-09-21
+ Q16 curl       reliefweb "Somalia: Diarrhoea kills 40 in Puntland" (11 Dec 2006) full text
+ Q17 curl       reliefweb "Somalia EHA SitRep No. 5" (31 Dec 2006)
+ Q18 curl       reliefweb "Horn of Africa Health Review - Nov 2006"
+ Q19 curl       4 x 2006 PDF attachments: WHO EHA SitRep 5, HoA Health Review Nov 06,
+                Somaliland assistance bulletin Oct-Dec 06, FSAU Monthly Nutrition Update Dec 06
+ Q20 pdftotext  deep read of the FSAU Dec 2006 "Update on Acute Watery Diarrhoeal Cases" section
+
+FINDINGS:
+ * 2026 CLOSED to 16 August. Somalia Health Cluster Bulletin Jul-Aug 2026
+   (published 9 Sep 2026, sourced to the FMOH IDSR Epidemiology Bulletin):
+   "2,649 AWD/Cholera cases and 1 deaths from epi-week 1- 33, 2026". This
+   independently corroborates the ECDC/Africa CDC figure of 2 657 cases / 1
+   death as of 9 Aug 2026 to within 8 cases, and both jointly refute WHO's
+   frozen 233 carried in WER 101(35). -> row 31.
+   Additional detail not committed (no separate counts): 57% of cases under 5,
+   71% under 10, ~60% classified severe; transmission persistent in riverine
+   districts and IDP-hosting areas.
+ * LATE-2006 AWD WAVE RECONSTRUCTED. Four quantitative observations now exist
+   inside the previously empty 2005-2006 gap:
+     row 30  Kismayo (Jubbada Hoose)  19-23 Dec 2006     63 cases,  4 deaths  (WHO EHA SitRep 3)
+     row 32  Puntland, 7 regions       6 Nov-11 Dec 2006 2000 cases, 39 deaths (Puntland MoH via IRIN)
+     row 33  Togdheer                  1 Nov-21 Dec 2006 1629 cases, 25 deaths (FSAU)
+     row 34  Sanaag/Sool/Bari/Nugaal/Mudug 23 Oct-19 Nov 2006 381 cases, 13 deaths (FSAU)
+   Outbreak onset precisely dated by FSAU: "the last week of October 2006 and
+   the first week of November 2006, the first case of acute watery diarrhoea
+   (AWD) was reported in the Eastern Sanag area of Sanag region".
+ * CROSS-BORDER (not committed, out of country scope): FSAU records the
+   concurrent Ethiopia Somali Region AWD outbreak as "219 deaths affecting 19
+   zones and 56 woredas linked to Vibrio cholerae 01 serotype inaba" - the
+   aetiological bridge that makes the Somali northern wave a cholera wave.
+   Useful to Agent 2/5 and to ETH.
+ * WHO EHA SitRep No.5 (31 Dec 2006): "The acute watery diarrhoea outbreak in
+   Kismayo is now under control with only three new cases reported on a daily
+   basis." Qualitative tail of the Kismayo outbreak; no new cumulative figure.
+ * emro.who.int hosts 151 Somalia cholera PDFs (weekly infographics and monthly
+   reports) but they span 2020-2023 ONLY - nothing for 2005-2006 and nothing
+   for 2026. The Weekly EPI Watch index likewise stops in 2023. Both indexes
+   are a rich vein for Agents 2 and 5 working 2020-2023 weekly/regional
+   granularity; they are useless for this agent's gaps. URLs enumerated.
+ * MMWR "Cholera -- Worldwide, 1989" does not mention Somalia or the Horn of
+   Africa at all. Further negative evidence for 1988-1989.
+ * WER "Cholera in 1994 Part I" names Somalia among the year's major outbreaks
+   (27 904 cases / 1 198 deaths) but gives no onset date, so it cannot be used
+   to push any of the 1994 burden back into 1993.
+
+Sources registered: 31 (Somalia Health Cluster Bulletin Jul-Aug 2026),
+                    32 (IRIN/TNH Puntland 11 Dec 2006),
+                    33 (FSAU Somalia Monthly Nutrition Update Dec 2006)
+Rows added   : 4   Indices: 31, 32, 33, 34
+Successful queries: 3/20 (Q9, Q16, Q19)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Gap status   : G4 2026 -> FILLED to 2026-08-16 (36 days of the 144-day gap remain)
+               G3 2005-2006 -> 2006 Oct-Dec now covered at ADM1 level; 2005 and
+                               Jan-Sep 2006 still EMPTY
+               G1, G2 -> REMAIN
+Decision     : CONTINUE (3-batch floor met, but yield 15% >> 5%; 2005 untouched)
+
+=== BATCH 4 | PHASE 2-3 | SOM ===
+Gaps targeted : G3 2005-01-01..2006-12-31 (2005 + Jan-Sep 2006 still empty),
+                G2 1987-1993, G4 residual 2026
+Categories    : 1 WHO/official, 2 Academic, 3 Humanitarian, 6 Technical, 7 Linguistic (Arabic)
+
+Queries (20):
+ Q1  curl       reliefweb "Somali strategy for Cholera prevention and control 2020-2024" (attachment discovery)
+ Q2  IRIS API   "Communicable disease profile" Somalia / Somalia cholera epidemiology surveillance / 1997-1999
+ Q3  IRIS API   bitstream download + full read: WHO Communicable disease epidemiological profile, HORN OF AFRICA 2007 (WHO_CDS_NTD_DCE_2007.1)
+ Q4  curl+pdf   Endorsed Somali Strategy for Cholera Prevention and Control 2020-2024 (FMOH)
+ Q5  IRIS API   WHO EMRO annual report of the Regional Director / biennial report 2004-2005
+ Q6  WebFetch   pmc pmid 7485686 Coppo et al. AJTMH 1995 -> reCAPTCHA wall
+ Q7  grep       background scan output filtered to 2005-dated items
+ Q8  curl       reliefweb "Somalia: Diarrhoea kills 20 children in the south" (19 Jun 2006)
+ Q9  curl+pdf   4 x FSAU Monthly Nutrition Updates (Aug 2005, Oct 2005, Dec 2005, Feb 2006)
+ Q10 WebSearch  Somalia cholera outbreak 2005 Bossaso Mogadishu Kismayo confirmed cases deaths WHO
+ Q11 WebSearch  [Arabic] الكوليرا في الصومال 2005 2006 حالات إسهال مائي حاد وفيات منظمة الصحة العالمية
+ Q12 WebSearch  Gaffga Tauxe Mintz "Cholera: a new homeland in Africa" 2007 Somalia annual cases table
+ Q13 curl       iddynamics.jhsph.edu/projects/cholera-data-and-maps-somalia -> HTTP 404, page retired
+ Q14 local grep /Users/johngiles/MOSAIC/jhu_cholera_data/data/Somalia/*.csv for any 2005/2006 record
+ Q15 pdfread    HoA 2007 profile, "Epidemiology of cholera in Somalia since 1994" table
+ Q16 pdfread    Somali strategy Table 1 "AWD/Cholera cases from 2009 to 2019 in Somalia"
+ Q17 WebSearch  Somalia cholera AWD cases September 2026 outbreak update epidemiological week 35 36
+ Q18 curl       reliefweb UNICEF Somalia SitRep no.2 mid-year 2026 / OCHA Monthly Update June 2026 (attachments)
+ Q19 curl+pdf   Somalia Health Cluster Bulletin May-June 2026
+ Q20 pdfread    AWD/cholera section of the May-June 2026 Health Cluster Bulletin
+
+FINDINGS:
+ * DEFINITIVE NEGATIVE ON 2005. Three independent systematic databases have NO
+   Somalia cholera record for 2005 or for January-September 2006:
+     - WHO GHO annual series (cases/deaths/CFR): jumps 2004 -> 2007
+     - WER "Cholera in 20XX" annual tables: no Somalia row for 2005 or 2006
+     - JHU cholera database, checked directly at
+       /Users/johngiles/MOSAIC/jhu_cholera_data/data/Somalia/ (34 observation
+       collections): zero rows containing "2005" or "2006" anywhere
+   And decisively: WHO's own "Communicable disease epidemiological profile for
+   HORN OF AFRICA 2007" (WHO_CDS_NTD_DCE_2007.1), compiled in 2007, prints a
+   table "Epidemiology of cholera in Somalia since 1994" running 1994, 1995,
+   1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004 - and STOPS at 2004.
+   WHO itself had no 2005 or 2006 annual figure for Somalia. Sourced to
+   "WHO/EMRO, Biennial Report 2004-2005 and WHO/CDS/EPR, 2006".
+   The four rows Agent 1 added for Oct-Dec 2006 (rows 30, 32, 33, 34) are
+   therefore the first quantitative Somalia cholera/AWD data of any kind in
+   that 730-day gap, and they came from humanitarian reporting, not from any
+   surveillance database.
+ * The HoA 2007 profile's Somalia annual series is itself worth mining by
+   Agent 5: 1994 28 000, 1995 10 000, 1996 10 000, 1997 6 000, 1998 14 800,
+   1999 10 000, 2000 7 244, 2001 1 821, 2002 1 304, 2003 6 686, 2004 4 490,
+   each with a narrative description of which regions were hit. Several
+   diverge sharply from the JHU/WHO-annual baseline already loaded
+   (e.g. 1998: profile 14 800 vs baseline 4 417; 2000: 7 244 vs 7 496;
+   2003: 6 686 vs 11 020). Not Agent 1's gaps, so not committed - flagged.
+ * 1987-1993 IS A SURVEILLANCE GAP, NOT A DISEASE-FREE PERIOD. The endorsed
+   national Somali Strategy for Cholera Prevention and Control 2020-2024
+   states: "confirmed cholera outbreaks were reported from Somalia in the
+   period from 1983 to 1990, when a study reported the isolation of over 4,000
+   cases with an overall case-fatality rate of 13%" (citing Coppo et al.,
+   Am J Trop Med Hyg 1995;53(4):351-9). Recorded as a PRESENCE row for
+   1987-01-01..1990-12-31 in ./data/SOM/cholera_presence_ai.csv, NOT as a data
+   row: the "over 4,000" is a count of laboratory ISOLATES from one study, not
+   a surveillance incidence total - WER alone records 10 199 (1985) + 15 980
+   (1986) suspected cases, which already exceed it. Writing 4 000 into cCh for
+   1983-1990 would have credited ~96 months of coverage with a number that
+   does not mean what that column means.
+   >>> AGENT 3: DO NOT write zero rows for 1987-1990. Confirmed cholera
+   outbreaks occurred. The absence is in the reporting, not the disease.
+ * NOT COMMITTED, and why: IRIN 19 Jun 2006, "Somalia: Diarrhoea kills 20
+   children in the south" - "At least 20 children under the age of five have
+   died in the last 10 days of watery diarrhoea" at Afmadow District Hospital
+   (Jubbada Hoose), plus "Some 50 people were arriving at the facility to seek
+   treatment for diarrhoea every day" and a peak of nine deaths on 11 June.
+   This is a deaths-only observation. py/build_weekly_timeseries.py renders an
+   empty sCh as 0 and treats it as a documented zero, so a deaths-only row
+   would assert "0 cholera cases in Afmadow in June 2006" while recording 20
+   child deaths - a false negative worse than the gap. Multiplying 50/day x 10
+   days to manufacture ~500 cases would be my arithmetic, not the source's,
+   which CLAUDE.md prohibits. Left out deliberately. Agent 2/6: this is a real
+   mid-2006 AWD mortality event in Afmadow worth a targeted hunt for the
+   underlying case count.
+ * 2026 extended backwards: Somalia Health Cluster Bulletin May-June 2026 -
+   "1,755 AWD/Cholera cases and 0 deaths from epi-week 1- 23, 2026", and
+   "as of epi-week 24, 2026, a staggering 1,835 cases were reported".
+   -> row 35. TRAP noted in the same bulletin: "15,249 alerts of suspected
+   cholera cases were reported through IDSR between week 1 - 24, 2026" are
+   ALERTS, not cases; do not use as a case count.
+ * FSAU monthly nutrition updates for Aug/Oct/Dec 2005 and Feb 2006 contain no
+   AWD or cholera case counts at all - only the standing note that a WHO/MOH/
+   UNICEF/WFP AWD-cholera sentinel system has operated in Bossaso town and its
+   IDP camps since February 2004 with daily reporting from 16 sites. So
+   surveillance existed in 2005; its output is simply not published anywhere
+   reachable. That distinction matters for Agent 6.
+
+Sources registered: 34 (Somali Strategy for Cholera Prevention and Control 2020-2024),
+                    35 (Somalia Health Cluster Bulletin May-June 2026)
+Rows added   : 1   Indices: 35
+Presence rows: 1 (AFR::SOM 1987-01-01..1990-12-31, confirmed outbreaks, no usable count)
+Successful queries: 1/20 (Q19)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Gap status   : G4 2026 -> now covered 1 Jan..16 Aug 2026; 17 Aug-21 Sep unpublished
+               G3 2005-2006 -> Oct-Dec 2006 covered; 2005 and Jan-Sep 2006 EMPTY
+                               and now shown to be absent from WHO/JHU records entirely
+               G1 1972-1984, G2 1987-1993 -> REMAIN (G2 reclassified: surveillance gap,
+                               disease present)
+Decision     : CONTINUE to batch 5
+
+=== BATCH 5 | PHASE 3 (deep validation / archives) | SOM ===
+Gaps targeted : G3 2005 + Jan-Sep 2006 (the last tractable hole), G2 1987-1993
+Categories    : 2 Academic, 5 Historical/archival, 6 Technical, 1 WHO/official
+
+Queries (20):
+ Q1  WebSearch  ProMED mail cholera Somalia 2005 2006 archive number outbreak report
+ Q2  curl probe applications.emro.who.int/dsaf/epi/{2005,2006,2007,2008}/ directory listings
+ Q3  curl       emro.who.int weekly epidemiological monitor index
+ Q4  WebFetch   ajtmh.org "Review of reported cholera outbreaks worldwide, 1995-2005" -> HTTP 403
+ Q5  WebSearch  Rebaudet et al. "Environmental Determinants of Cholera Outbreaks in Inland Africa" supplementary Somalia
+ Q6  curl+grep  choleraalliance.org jit195.pdf (Rebaudet inland Africa full text)
+ Q7  curl probe academic.oup.com JID 208(S1):S98 "Cholera in Coastal Africa" -> HTTP 403 x2
+ Q8  WebSearch  "Cholera in Coastal Africa" Rebaudet 2013 supplementary data Somalia 1995-2011
+ Q9  WebSearch  [site:who.int] WHO Disease Outbreak News Somalia cholera 2005 2006 AWD
+ Q10 WebSearch  Somalia cholera outbreak June 2005 Mogadishu Hiiraan news deaths children
+ Q11 WebSearch  Somalia cholera epidemic 1992 1993 Bardera Baidoa Mogadishu cases relief agencies
+ Q12 curl       apps.dtic.mil ADA333009.pdf -> served an HTML challenge page, not the PDF
+ Q13 WebSearch  NEJM 1993 "The Threat of Infectious Diseases in Somalia" Heppner et al.
+ Q14 curl       apps.dtic.mil ADA266190.pdf "The Endemic Infectious Diseases of Somalia" -> HTML challenge
+ Q15 ReliefWeb  river search (PC216)_(DO20070101-20070430) search=cholera -> 60 items, scanned titles
+ Q16 WebSearch  Somalia AWD cholera outbreak "since November 2006" total cases deaths
+ Q17 IRIS API   item metadata lookup to verify the handle of the HoA 2007 profile
+ Q18 register   WHO Communicable Disease Epidemiological Profile: Horn of Africa 2007 (index 36)
+ Q19 ReliefWeb  launched broad background harvest: (PC216)_(DO20050101-20060930) search=health,
+                every report page AND every PDF attachment fetched and sentence-filtered
+ Q20 self-check corrected a mis-guessed IRIS handle in metadata (10665/69832 -> 10665/84474)
+
+FINDINGS:
+ * No new rows. The 2005 / Jan-Sep 2006 hole survived every Phase 3 avenue:
+   ProMED is not directly searchable without JS and the two ProMED source IDs
+   cited in the literature (20050701.19 for a Somalia outbreak 1-25 June 2005,
+   20061201.34 for 1-29 November 2006) are truncated in the citing tables and
+   could not be resolved to posts; AJTMH and Oxford JID both return 403;
+   DTIC serves a JS challenge instead of its PDFs; WHO EMRO's Epidemiological
+   Monitor archive only exists from 2008; there is no WHO Disease Outbreak
+   News item for Somalia in 2005 or 2006.
+   >>> LEAD FOR AGENT 4: ProMED post IDs 20050701.19 and 20061201.34 are cited
+   in the cholera-outbreak-review literature as covering Somalia outbreaks of
+   1-25 June 2005 and 1-29 November 2006. If ProMED's archive can be reached,
+   those two posts are the single highest-value unopened documents for this
+   country's 2005-2006 gap.
+ * SELF-CORRECTION LOGGED: I registered source 36 with a guessed IRIS handle
+   (10665/69832). It returned HTTP 200 - but for a DIFFERENT document. Handle
+   verified against the IRIS item API and corrected to 10665/84474 using the
+   writer module's own load/locked/save primitives, not a hand edit. A 200
+   response is not proof that a guessed permalink is the right permalink.
+
+Sources registered: 36 (WHO Communicable Disease Epidemiological Profile: Horn of Africa 2007)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (1 of 3 sub-5% batches; broad 2005-2006 harvest still running)
+
+=== BATCH 6 | PHASE 3 (primary-source verification) | SOM ===
+Gaps targeted : G1 1972-01-01..1984-12-31, G2 1987-01-01..1993-12-31,
+                G3 2005-2006 (Puntland absence)
+Categories    : 2 Academic (primary-source verification), 1 WHO/official, 3 Humanitarian
+
+Queries (20):
+ Q1  EuropePMC API  EXT_ID:7485686 (malformed query, retried)
+ Q2  WebSearch      Coppo Colombo Pazzani Mohamud Omar Vibrio cholerae horn of Africa Somalia 1983 1990
+ Q3  EuropePMC API  EXT_ID:7485686 AND SRC:MED, resultType=core -> full verbatim abstract
+ Q4  self-correct   removed the erroneous 1987-1990 presence row from cholera_presence_ai.csv
+ Q5  add-zero       1987-01-01..1990-12-31 Documented_Absence
+ Q6  add-zero       1983-01-01..1984-12-31 Documented_Absence
+ Q7  bulk scan      review of the 120-item ReliefWeb 2005-Sep2006 health harvest (pages + PDFs)
+ Q8  curl           reliefweb "Somalia: IDP fact sheet - Aug 2006" + attachment discovery
+ Q9  curl+pdf       UN OCHA Somalia IDP Fact Sheet 23 Aug 2006 full text
+ Q10 register+zero  Puntland 2005-07-01..2006-08-23 Documented_Absence
+ Q11 pdfread        WER 61(26) "Cholera in 1985" Africa narrative, English and French columns
+ Q12 register+zero  WER 61(26); 1972-01-01..1982-12-31 Documented_Absence
+ Q13 WebSearch      Somalia cholera 1991 1992 1993 no cholera reported absence civil war surveillance collapse
+ Q14 WebSearch      Somalia 1994 cholera epidemic Bossaso first laboratory-confirmed spread Vibrio
+ Q15 IRIS API       item metadata for WER 1985 handle confirmation (10665/225862)
+ Q16 curl           bg scan progress checks x2
+ Q17 WebSearch      [via Q2 result chain] Semantic Scholar record for Coppo et al. 1995
+ Q18 cross-check    Coppo abstract against Somali national strategy's citation of it
+ Q19 cross-check    Coppo/WER/HoA-2007-profile/MSF-timeline convergence on 1987-1993
+ Q20 cross-check    WER 1976 and 1977 issues re-read for Somalia cholera (confirmed absent from tables)
+
+THE FINDING THAT CHANGED THIS COUNTRY'S HISTORICAL PICTURE:
+ Coppo A, Colombo M, Pazzani C, Bruni R, Mohamud KA, Omar KH, Mastrandrea S,
+ Salvia AM, Rotigliano G, Maimone F. "Vibrio cholerae in the horn of Africa..."
+ Am J Trop Med Hyg 1995;53(4):351-9 (PMID 7485686). Verbatim abstract, via the
+ Europe PMC REST API (PubMed itself served a cookie wall and PMC a reCAPTCHA):
+
+   "The prevalence of Vibrio cholerae O1 and non-O1 has been investigated in
+    numerous Somali regions of the Horn of Africa from 1983 to 1990. From
+    January 1983 to January 1985 and between December 1986 and December 1990,
+    no strains of V. cholerae O1 and 226 strains (5.3%) of V. cholerae non-O1
+    were isolated from 4,295 diarrhea cases."
+
+ This is a denominator-backed laboratory finding of ABSENCE across two windows
+ that together cover 1983-1984 and 1987-1990 - six years spanning both
+ historical gaps.
+
+ SELF-CORRECTION. In batch 4 I recorded a PRESENCE row for 1987-1990 on the
+ strength of the endorsed Somali national cholera strategy, which cites this
+ very paper as showing "confirmed cholera outbreaks were reported from Somalia
+ in the period from 1983 to 1990, when a study reported the isolation of over
+ 4,000 cases with an overall case-fatality rate of 13%". That is a misreading
+ of its own citation: 4,295 is the number of diarrhoea cases CULTURED, and the
+ result was zero O1 isolates. The presence row has been removed and replaced
+ by two documented-absence rows. Lesson for later agents: an endorsed national
+ strategy document is not a substitute for the primary source it cites.
+
+ Chasing the same question backwards produced the second key quote, from WER
+ 61(26) "Cholera in 1985" (English and French columns agree):
+   "...was offset by a report of over 10 000 cases from Somalia (last affected
+    in 1971)..."  /  "...un rapport de la Somalie (ou la derniere poussee
+    remontait a 1971)..."
+ WHO affirmatively states Somalia had not been affected since 1971.
+
+ And the third, from the UN OCHA Somalia IDP Fact Sheet of 23 August 2006:
+   "In Bossaso, cholera cases are usually first reported from IDP sites.
+    Subsequent to efforts from all health partners, there have been no cholera
+    outbreaks in Puntland since 2004/5."
+ paired with FSAU's independent confirmation that a WHO/MOH/UNICEF/WFP
+ cholera sentinel system with 16 daily-reporting IDP-camp sites had been
+ running in Bossaso since February 2004 - i.e. somebody WAS looking.
+
+1991-1993 DELIBERATELY LEFT EMPTY. Coppo's surveillance ends December 1990;
+ the state collapsed in January 1991; MSF's own timeline records no cholera
+ activity until 1994; WHO's HoA 2007 profile calls the 1994 Bossaso event
+ "a new laboratory-confirmed epidemic" and "the first large-scale epidemic of
+ cholera within Somalia". None of that is evidence of absence during
+ 1991-1993 - it is evidence that nobody was able to look. Writing a zero there
+ would be the exact false negative the protocol forbids.
+
+Sources registered: 37 (UN OCHA Somalia IDP Fact Sheet 23 Aug 2006),
+                    38 (WHO WER 61(26): Cholera in 1985)
+                    [source 18, the Coppo paper, was already registered]
+Rows added   : 4   Indices: 36, 37, 38, 39
+  36  AFR::SOM           1987-01-01..1990-12-31  ZERO  Documented_Absence  partial      0.80
+  37  AFR::SOM           1983-01-01..1984-12-31  ZERO  Documented_Absence  partial      0.80
+  38  AFR::SOM::Puntland 2005-07-01..2006-08-23  ZERO  Documented_Absence  operational  0.75
+  39  AFR::SOM           1972-01-01..1982-12-31  ZERO  Documented_Absence  partial      0.65
+Presence rows: -1 (erroneous 1987-1990 row removed)
+Successful queries: 4/20 (Q3, Q9, Q11, Q12)
+Yield        : 20%
+Consecutive sub-5% batches: 0 (reset)
+Gap status   : G1 1972-1984 -> CLOSED (rows 39 + 37, documented absence)
+               G2 1987-1993 -> 1987-1990 CLOSED (row 36); 1991-1993 REMAINS, correctly
+               G3 2005-2006 -> Puntland Jul 2005-Aug 2006 absence + Oct-Dec 2006 counts;
+                               south/central 2005-Sep 2006 REMAINS
+               G4 2026      -> covered to 2026-08-16
+Decision     : CONTINUE to batch 7 (yield 20%, well above threshold)
+
+=== BATCH 7 | PHASE 3 | SOM ===
+Gaps targeted : G2 1991-1993, G3 2005 + Jan-Sep 2006 south/central, G4 17 Aug-21 Sep 2026
+Categories    : 3 Humanitarian, 1 WHO/official, 2 Academic, 5 Archival
+
+Queries (20):
+ Q1  curl+pdf   msf.org "MSF Speaking Out: Somalia 1991-1993" (12.3 MB, 13 148 lines of text)
+ Q2  pdfread    the two cholera mentions in that document, in context
+ Q3  bulk scan  final review of the completed 120-item ReliefWeb 2005-Sep2006 health harvest
+ Q4  WebSearch  WHO Somalia annual report 2005 2006 health situation communicable disease surveillance
+ Q5  curl+pdf   emro.who.int WHO/UNICEF Somalia Child Health Situation Analysis
+ Q6  pdfread    its AWD and CSR-system sections
+ Q7  ReliefWeb  river search (PC216)_(DO20260901-20260921) - every Somalia report published 1-21 Sep 2026
+ Q8  WebSearch  Somaliland Hargeisa Burao cholera AWD outbreak 2005 2006 cases deaths Ministry of Health
+ Q9  WebSearch  Somalia cholera outbreak 2005 Gedo Bakool Hiraan Middle Shabelle WHO CSR
+ Q10 curl probe applications.emro.who.int EMCSR numbered document series, 15 numbers sampled 200-300
+ Q11 curl       reliefweb IRC "El Nino rains flood Mogadishu" (17 Sep 2026)
+ Q12 curl       reliefweb Somalia Emergency Trend Tracking Report Week 13 (Sep 2026)
+ Q13 curl       reliefweb OCHA Somalia Monthly Humanitarian Update June 2026
+ Q14 curl+pdf   UNICEF Somalia Humanitarian Situation Report no.2 (Mid-Year), 30 June 2026
+ Q15-Q20        follow-on fetches and greps within Q1/Q5/Q7/Q14 document sets
+
+FINDINGS (all negative, and the negatives are the point):
+ * MSF's own 200-page contemporaneous account of its Somalia operations
+   1991-1993, assembled from its internal cables and press releases, contains
+   exactly TWO occurrences of the word cholera, neither with a Somali case
+   count: one is a January 1991 Mogadishu field assessment noting "reasonably
+   significant risk of cholera", the other refers to the Latin American
+   epidemic. An agency running major medical programmes across Somalia
+   throughout the period documented no cholera epidemic. That is consistent
+   with, but not proof of, absence - and it is emphatically not surveillance.
+   1991-1993 stays empty.
+ * WHO EMRO's numbered EMCSR document series on applications.emro.who.int
+   exists only from roughly 2019; its dsaf/epi Epidemiological Monitor archive
+   only from 2008. Neither reaches 2005-2006.
+ * No Somalia report published on ReliefWeb between 1 and 21 September 2026
+   (29 items) carries an AWD/cholera case count. The Health Cluster Bulletin
+   of 9 September 2026 (already row 31, data to epi-week 33 = 16 August) is
+   the most recent published figure in existence. The residual 17 Aug-21 Sep
+   2026 window is not a data gap so much as a publication lag.
+ * IMPORTANT DEFINITIONAL WARNING, registered as source 39 for later agents:
+   the WHO/UNICEF Somalia Child Health Situation Analysis reports the WHO
+   Somalia CSR system recording "435 deaths in 78,000 cases of AWD in 2008"
+   and 218 AWD deaths in 2009, against WHO GHO's cholera figures for the same
+   years of 1 281 cases / 16 deaths (2008) and 208 / 3 (2009) - a 60-fold to
+   250-fold divergence. The reason is definitional: that CSR indicator is
+   ALL-CAUSE acute watery diarrhoea, and the same document names rotavirus as
+   Somalia's leading AWD pathogen. Those 78 000 cases are NOT cholera and must
+   not be entered as such. This is distinct from the narrower "AWD/suspected
+   cholera" indicator used by the Health Cluster and FMOH IDSR, which is what
+   rows 24, 25, 28, 29, 31 and 35 record.
+
+Sources registered: 39 (WHO/UNICEF Somalia Child Health Situation Analysis)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (1 of 3; one untried Phase 3 vein remains - web archive
+               recovery of WHO Somalia pages that existed in 2005-2007)
+
+=== BATCH 8 | PHASE 3 (web-archive recovery) | SOM ===
+Gaps targeted : G3 2005-01-01..2006-12-31 (the last substantively open gap)
+Categories    : 5 Historical/archival, 1 WHO/official, 3 Humanitarian
+
+Queries (20):
+ Q1  IA CDX     probe of 3 targets (emro.who.int/somalia*, who.int/disasters, sacb.info) - 503/504
+ Q2  IA CDX     retry: url=emro.who.int/somalia matchType=prefix from=2005 to=2008 filter=statuscode:200
+                -> 86 archived URLs recovered
+ Q3  triage     of those 86 URLs by filename
+ Q4  Wayback    WHOSomalia_Annual_Report_2006.pdf (snapshot 20080921004820)
+ Q5  Wayback    FloodsupdateNov2006.pdf (snapshot 20061208182819)
+ Q6  Wayback    WHO Somalia Annual Report 2007.pdf (snapshot 20081221093647)
+ Q7  pdfread    AR2006 "DISEASE SURVEILLANCE and RESPONSE" + "Cholera in Somalia" sections
+ Q8  pdfread    AR2006 flood-response section (Jilib) and the Nov 2006 floods update
+ Q9  register   source 40, WHO Somalia Annual Report 2006 (archive-recovered)
+ Q10 add        row 40 - Jilib district, 50 suspected / 2 confirmed, Nov 2006
+ Q11 add-zero   row 41 - Banadir (Mogadishu), 2005-01-01..2006-06-30
+ Q12 maintenance removed the Jilib/Marare presence row, now superseded by a counted row
+ Q13 Wayback    WHO Somalia publications-reports.htm as archived 2006-04-17
+ Q14 grep       AR2007 for any 2005/2006 retrospective cholera figures
+ Q15 pdfread    AR2007 AWD section (2007 figures, outside the gap)
+ Q16 Wayback    WHO Somalia Report 2004 parts 2 and 3, grepped for cholera
+ Q17 IA CDX     sacb.info prefix 2005-2007 -> 400 URLs
+ Q18 IA CDX     fsausomali.org prefix 2005-2007 -> 367 URLs
+ Q19 IA CDX     unicef.org/somalia prefix 2005-2007 -> 346 URLs
+ Q20 Wayback    SACB "Brief Update on the Health Sector in Somalia February 2005.pdf"
+
+FINDINGS:
+ * THE ARCHIVE VEIN PAID OFF. WHO Somalia's country-office annual reports were
+   published on emro.who.int/somalia/pdf/ and that path no longer exists; the
+   2006 report survives only in the Internet Archive. Its "Cholera in Somalia"
+   section produced the two best observations yet for the 2005-2006 gap:
+   - row 40: Jilib district, Middle Juba - 50 suspected cases as of 22 Nov 2006
+     with two of nine AMREF stool samples positive for V. cholerae, 3-4 new
+     cases/day, 80% under five, MSF-Holland CTC established. The first
+     LABORATORY-CONFIRMED cholera observation inside this gap.
+   - row 41: Mogadishu (Banadir) - documented absence 1 Jan 2005 to 30 Jun 2006,
+     "The first six months of 2006 passed without a single cholera case
+     reported in Mogadishu or Bossaso, maintaining the success achieved the
+     year before in Mogadishu and for 2 years in Bossaso."
+   The same report establishes that surveillance was operational throughout:
+   three full-time WHO surveillance officers in three zonal offices, AWD
+   explicitly annotated "{Cholera}" as one of five weekly-reported
+   outbreak-prone diseases, sentinel sites up from 68 in 2005 to 133 in 2006,
+   trained volunteers reporting daily from Mogadishu and Bossaso IDP camps,
+   and a MoH/Merlin/WHO outbreak response team meeting regularly.
+ * A NUMBER I DELIBERATELY DID NOT TAKE. The same section reports "A total of
+   14.233 watery diarrhea cases were reported for both (< 5 and > 5) age
+   groups during the period from January-June 06" (European thousands
+   separator; = 14 233). It is tempting - it is national, it is WHO, and it
+   sits squarely in the empty half of the gap. It is NOT cholera. It is the
+   all-cause acute watery diarrhoea sentinel indicator, the same series that
+   recorded 78 000 AWD cases in 2008 and for which WHO names rotavirus as
+   Somalia's leading pathogen; and the very next paragraph of the same report
+   says there was not a single cholera case in Mogadishu or Bossaso over that
+   period. Entering 14 233 as suspected cholera would have contradicted the
+   document it came from. Recorded here so no later agent takes it either.
+ * WHO Somalia never published an annual report for 2005: the publications
+   page as archived in April 2006 lists the 2004 report as the most recent.
+   The 2004 report's cholera section is purely narrative (it repeats the 1971
+   / 1985 / 1994 history) with no 2004-2005 counts.
+ * SACB (Somalia Aid Coordination Body) was the body WHO's weekly surveillance
+   data was actually sent to. Its site is archived (400 URLs 2005-2007) but the
+   health committee holdings stop at 2004 minutes plus one February 2005
+   "Brief Update on the Health Sector in Somalia", which is a strategy and
+   planning document with no case counts. The 2005 weekly surveillance output
+   went to SACB members in Nairobi and appears never to have been published.
+   >>> This is the most complete answer available to "why is Somalia 2005
+   empty": the data existed, it was collected weekly from 68 sentinel sites,
+   and it was circulated privately rather than published.
+
+Sources registered: 40 (WHO Somalia Annual Report 2006, archive-recovered)
+Rows added   : 2   Indices: 40, 41
+Presence rows: -1 (Jilib/Marare row superseded by counted row 40)
+Successful queries: 2/20 (Q2 recovered the URL, Q4 recovered the document)
+Yield        : 10%
+Consecutive sub-5% batches: 0 (reset)
+Gap status   : G3 2005-2006 -> Mogadishu cholera-free 2005-Jun 2006 (row 41);
+                               Puntland/Bossaso cholera-free to Aug 2006 (row 38);
+                               Oct-Dec 2006 outbreak quantified in Puntland,
+                               Togdheer, Jilib and Kismayo (rows 30, 32, 33, 34, 40).
+                               Remaining truly unknown: south/central Somalia
+                               outside Mogadishu, Jan 2005 - Sep 2006.
+Decision     : CONTINUE to batch 9 (archive vein still open)
+
+=== BATCH 9 | PHASE 3 | SOM ===
+Gaps targeted : G3 2005 + Jan-Sep 2006, G2 1991-1993 (regional context)
+Categories    : 5 Archival, 7 Linguistic (Somali), 4 Regional/cross-border, 3 Humanitarian
+
+Queries (20):
+ Q1  Wayback    WHO Somalia News_old.htm (snapshot 20071014) - contains 2003 news only
+ Q2  IA CDX     domain-wide emro.who.int with a cholera urlkey filter, 2005-2008 -> HTTP 504
+ Q3  WebSearch  [Somali] daacuunka Soomaaliya 2005 2006 shubanka biyaha caafimaad xaalad
+ Q4  WebSearch  Hiiraan Online / Garowe Online / Shabelle 2006 cholera Somalia outbreak deaths
+ Q5  WebSearch  Ethiopia Somali Region AWD 2006-2007 outbreak cross-border Vibrio cholerae Inaba
+ Q6  pdfgrep    WER annual cholera tables 1990, 1991, 1992, 1993 for all Horn-of-Africa neighbours
+ Q7  WebSearch  Weill et al. Science 2017 "Genomic history of the seventh pandemic of cholera in Africa" Somalia isolates
+ Q8  WebSearch  Merlin Somalia Puntland surveillance unit 2005 2006 cholera AWD annual review
+ Q9  Wayback    unicef.org/somalia/health.html (snapshot 20050103)
+ Q10-Q20        follow-on Wayback retrievals and greps across the UNICEF Somalia 2005 page set
+                (health_53/90/93/96/98/99/100/101.html), the SACB health directory listing, and
+                the fsausomali.org 2005-2006 archive index
+
+FINDINGS:
+ * REGIONAL CONTEXT THAT SETTLES HOW 1991-1993 SHOULD BE READ. Somalia's
+   neighbours were reporting substantial cholera to WHO in exactly the years
+   Somalia reported nothing: Kenya 3 388 cases / 80 deaths and Uganda 5 072 /
+   104 in 1992; Djibouti 10 055 / 89 in 1993. Cholera was circulating hard in
+   the Horn while Somalia's notifications were blank. That is the signature of
+   a collapsed reporting system, not of a disease-free country. It is the
+   strongest single argument for leaving 1991-1993 empty rather than zeroed.
+ * UNICEF's own Somalia country page as it stood in January 2005 states
+   "Cholera is endemic in Somalia, with outbreaks occurring annually from
+   December to June" - a general endemicity statement with no counts, but it
+   confirms that the agencies working there in 2005 regarded annual
+   Dec-Jun cholera as the expected pattern. Recorded as context; not a row.
+ * Weill et al. 2017, the definitive African cholera phylogeny (1 070 V.
+   cholerae O1 genomes, 45 countries, 49 years), is not open access and its
+   isolate-level supplementary table could not be reached. If any agent can
+   obtain it, the Somali isolate dates in that table would settle whether
+   V. cholerae O1 was circulating in Somalia during 1991-1993 - the single
+   cleanest remaining test for this country's last historical gap.
+ * Somali-language searching produced clinical/explanatory material only; no
+   2005-2006 Somali-language surveillance reporting survives online.
+
+Rows added   : 0     Successful queries: 0/20     Yield: 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+=== BATCH 10 | PHASE 3 | SOM ===
+Gaps targeted : G2 1991-1993 (genomic test), G3 2005-2006, G4 residual
+Categories    : 6 Technical/genomic, 2 Academic, 1 WHO/official
+
+Queries (20):
+ Q1  curl       pasteur.hal.science/pasteur-02045755/document (Weill 2017 HAL deposit) - HTML stub only
+ Q2-Q3 curl     two constructed HAL file paths for the Weill PDF - both return the 12 kB stub
+ Q4  EuropePMC  EXT_ID:29123067 core record - confirms isOpenAccess=N, no PMCID, no full text
+ Q5  WebFetch   PMC11745870 "Unmasking the Neglected Cholera Outbreaks in Sub-Saharan Africa"
+ Q6-Q8 curl     three WHO Global Cholera and AWD Dashboard / xMart API endpoint candidates - all 404
+ Q9  curl+pdf   GTFCC Somalia PAMI report re-read for any pre-2018 annual series
+ Q10-Q20        follow-on probes: Nature Communications 2026 multicountry genomic analysis,
+                science.org DOI resolution, researchgate/semanticscholar mirrors of Weill 2017,
+                and repeat dashboard endpoint patterns
+
+FINDINGS:
+ * The genomic test could not be run. Weill et al. 2017 is paywalled and its
+   isolate table is not mirrored in any open repository reachable from here.
+ * WHO's Global Cholera and AWD Dashboard has no public data endpoint that
+   responds to the obvious URL patterns; ECDC's monthly narrative remains the
+   only machine-readable route to the current dashboard figures, which is why
+   AI row 28 cites ECDC rather than WHO directly.
+ * GTFCC's Somalia PAMI report (already metadata index 26) contains no annual
+   series earlier than 2018.
+ * "Unmasking the Neglected Cholera Outbreaks in Sub-Saharan Africa" mentions
+   Somalia once, for a 2023 cost-of-treatment estimate. No epidemiology.
+
+Rows added   : 0     Successful queries: 0/20     Yield: 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE to batch 11 (one batch short of the stopping criterion)
+
+=== BATCH 11 | PHASE 3 (final sweep) | SOM ===
+Gaps targeted : G4 residual 17 Aug-21 Sep 2026; G3 2005 + Jan-Sep 2006
+Categories    : 1 WHO/official, national ministry sources, 3 Humanitarian
+
+Queries (20):
+ Q1-Q4  curl probes  moh.gov.so, moh.gov.so/en, moh.nomadilab.org, fsnau.org
+ Q5     WebSearch    moh.gov.so Somalia FMOH IDSR epidemiological bulletin 2026 cholera AWD weekly
+ Q6     ReliefWeb    river search (PC216) search="e-IDSR" -> 66 issues indexed
+ Q7     ReliefWeb    same search, page 3, to establish the oldest issue
+ Q8     ReliefWeb    river search (PC216)_(DO20250101-20260921) search="e-IDSR" -> zero results
+ Q9     register     source 41, the e-IDSR series, as an explicit lead for Agents 2 and 5
+ Q10-Q20             follow-on: Somaliland and Puntland ministry domains, FSNAU document
+                     index, WHO EMRO Somalia news 2026, and repeat ReliefWeb date-window
+                     queries for any Somalia health publication dated after 16 Aug 2026
+                     carrying a case count
+
+FINDINGS:
+ * The Somalia FMOH e-IDSR Weekly Epidemiological Bulletin IS published on
+   ReliefWeb - 66 issues, epi-week 12 of 2022 through epi-week 47 of 2024,
+   with region- and district-level weekly AWD/suspected-cholera figures. It
+   stops in late 2024. It therefore cannot touch any Agent 1 gap: 2022-2024
+   are already covered at annual level, and the series ends well before the
+   2026 recency gap. Registered as source 41 with an explicit NOT-MINED flag
+   so Agents 2 and 5 pick it up - it is the richest untapped source for
+   weekly and sub-national granularity in this country.
+ * The residual 2026 window, 17 August to 21 September, is confirmed to be a
+   PUBLICATION LAG rather than a data gap. The latest published figure of any
+   kind is the Health Cluster Bulletin of 9 September 2026 reporting to
+   epi-week 33 (16 August), already committed as row 31. Nothing published
+   between 1 and 21 September 2026 (29 Somalia items on ReliefWeb) carries a
+   later count, WHO's numbered epi-update series ended at #38, and the WER
+   cholera monthly has not yet published August data.
+
+Rows added   : 0     Successful queries: 0/20     Yield: 0%
+Consecutive sub-5% batches: 3  (batches 9, 10 and 11)
+Decision     : STOP - stopping criterion met: three consecutive batches below
+               5% data-observation yield, after 11 batches / 220 queries,
+               well past the 3-batch floor and inside the 12-batch ceiling.
+
+================================================================================
+AGENT 1 RUN SUMMARY - SOMALIA
+================================================================================
+Batches executed : 11 (220 queries)
+Batch yields (%) : 10, 5, 15, 5, 0, 20, 0, 10, 0, 0, 0
+Stopped because  : 3 consecutive batches below 5% yield (batches 9, 10, 11)
+Rows added       : 14   indices 28-41 in ./data/SOM/cholera_data_ai.csv
+   counts (9):  28 29 30 31 32 33 34 35 40
+   zeros  (5):  36 37 38 39 41
+Sources added    : 14   metadata indices 28-41 in ./data/SOM/metadata_ai.csv
+Presence file    : net -1 row (added 1, removed 2 - one erroneous, one superseded)
+Self-corrections : 3  (a wrong IRIS handle; a presence row built on a national
+                   strategy's misquotation of its own citation; a presence row
+                   superseded once a count was found)
+Validation       : python py/validate_quality.py SOM -> exit 0, 0 ERRORs;
+                   the 6 WARNs all attach to pre-existing rows (1-27), none to
+                   anything Agent 1 wrote.
+
+GAP OUTCOMES
+  G1 1972-01-01..1984-12-31 (4749 d)  CLOSED as documented absence
+     rows 39 (1972-1982, WER 61(26) "last affected in 1971", conf 0.65)
+     and 37 (1983-1984, Coppo et al. zero O1 isolates from 4 295 cultured
+     diarrhoea cases, conf 0.80).
+  G2 1987-01-01..1993-12-31 (2557 d)  57% CLOSED
+     row 36 covers 1987-1990 as documented absence on the same Coppo
+     laboratory denominator, conf 0.80.
+     1991-1993 LEFT EMPTY ON PURPOSE. Surveillance ceased with the state in
+     January 1991; Coppo's laboratory series ends December 1990; MSF's own
+     200-page account of its 1991-1993 Somalia operations mentions cholera
+     twice and never with a case count; and Somalia's neighbours were
+     reporting heavily in exactly those years (Kenya 3 388 in 1992, Uganda
+     5 072 in 1992, Djibouti 10 055 in 1993). Blank notifications amid a
+     regional epidemic is the signature of a collapsed reporting system. A
+     zero here would be a fabricated negative.
+  G3 2005-01-01..2006-12-31 (730 d)  SUBSTANTIALLY FILLED
+     Absence, evidenced: Mogadishu/Banadir cholera-free 2005 through Jun 2006
+     (row 41, WHO Somalia's own annual report); Puntland cholera-free Jul 2005
+     through Aug 2006 (row 38, UN OCHA, with FSAU confirming an operational
+     16-site sentinel system in Bossaso since Feb 2004).
+     Outbreak, quantified: the Deyr-2006 flood wave, onset last week of
+     October 2006 in Eastern Sanaag - rows 34 (NE regions, 381/13),
+     32 (Puntland, 2000/39), 33 (Togdheer, 1629/25), 40 (Jilib, 50 suspected /
+     2 lab-confirmed), 30 (Kismayo, 63/4).
+     Still unknown: south/central Somalia outside Mogadishu, Jan 2005-Sep 2006.
+     This is not for want of looking - WHO's own Horn of Africa profile,
+     compiled in 2007, prints Somalia's annual cholera series and stops at
+     2004; GHO and the JHU database both jump 2004 -> 2007.
+  G4 2026-05-01..2026-09-21 (144 d)  FILLED to 2026-08-16
+     rows 35 (1 Jan-7 Jun, 1755/0), 28 (1 Jan-9 Aug, 2657/1), 29 (12 Jul-9 Aug,
+     489/1), 31 (1 Jan-16 Aug, 2649/1 - the primary national figure).
+     Remaining 36 days are a publication lag, not a gap.
+
+THE MOST IMPORTANT THING IN THIS LOG
+  WHO's multi-country cholera table froze Somalia at 233 cases / 0 deaths for
+  four consecutive editions - epi-update #37 (as of 26 Apr), #38 (31 May),
+  WER 101(35) (26 Jul 2026) - with "-" in the last-28-day columns. Two
+  independent sources show the true figure was an order of magnitude higher:
+  ECDC/Africa CDC 2 657 cases as of 9 August, and Somalia's own Health Cluster
+  and FMOH IDSR 2 649 as of 16 August. Anyone reading Somalia's 2026 burden
+  off the WHO country table alone would understate it roughly elevenfold.
+
+HANDOVER LEADS, in order of value
+  1. ProMED post IDs 20050701.19 (Somalia outbreak 1-25 June 2005) and
+     20061201.34 (1-29 November 2006), cited in the cholera-outbreak-review
+     literature. ProMED's archive could not be reached from here. These are the
+     two highest-value unopened documents for the 2005-2006 gap. -> Agent 4.
+  2. Weill et al., Science 2017, "Genomic history of the seventh pandemic of
+     cholera in Africa": 1 070 V. cholerae O1 genomes, 45 countries, 49 years.
+     Paywalled, no open mirror found. The Somali isolate dates in its
+     supplementary table would settle 1991-1993 definitively. -> Agent 4.
+  3. Somalia FMOH e-IDSR Weekly Epidemiological Bulletin, 66 issues on
+     ReliefWeb spanning 2022-2024, weekly AWD/cholera by region and district.
+     Registered as source 41, unmined. -> Agents 2 and 5.
+  4. WHO EMRO Somalia hosts 151 cholera PDFs (weekly infographics, monthly
+     reports) for 2020-2023 and a Weekly EPI Watch index for 2020-2023.
+     -> Agents 2 and 5.
+  5. WHO Horn of Africa profile 2007 prints Somalia's annual series 1994-2004
+     with per-year regional narrative; several values diverge sharply from the
+     loaded baseline (1998: 14 800 vs 4 417; 2003: 6 686 vs 11 020). The
+     Somali national strategy's Table 1 likewise diverges for 2009 (5 278 vs
+     GHO's 208). -> Agent 5 conflict resolution.
+  6. IRIN 19 Jun 2006, Afmadow District Hospital: 20 child deaths in 10 days
+     from watery diarrhoea, ~50 diarrhoea patients/day. Deaths-only, so not
+     committable without creating a false zero. A case count for this event
+     would fill mid-2006 south Somalia. -> Agents 2 and 6.
+
+TRAPS DOCUMENTED SO NOBODY REPEATS THEM
+  * ReliefWeb dates the IMC release "IMC launches operation to aid displaced
+    Somalis" to 7 May 2005. Its contents (394 000 fled Mogadishu since
+    February; Ethiopian-led forces vs Islamist insurgents) are unambiguously
+    May 2007. Its "almost 17,000 cases of acute watery diarrhea ... 593 deaths"
+    belongs to 2007, not 2005.
+  * WER 52(19) of 13 May 1977 shows "Somalia - Somalie ... 0" and "Total cases
+    number 280 ... nine Regions of southern Somalia". Both are SMALLPOX.
+  * WER 101/36-37 of 18 Sep 2026 shows two Somalia rows of numbers. Both are
+    LEPROSY.
+  * The endorsed Somali national cholera strategy states its cited study
+    reported "the isolation of over 4,000 cases" for 1983-1990 with 13% CFR.
+    The study reports the opposite: 4 295 diarrhoea cases CULTURED and ZERO
+    V. cholerae O1 isolated.
+  * WHO Somalia's 2006 annual report gives "14.233 watery diarrhea cases ...
+    January-June 06". That is all-cause AWD - the same indicator that read
+    78 000 in 2008, for which WHO names rotavirus as the leading pathogen -
+    and the same report says there was not one cholera case in Mogadishu or
+    Bossaso over that period. It is not a cholera count.
+  * Somalia Health Cluster Bulletin May-June 2026 reports "15,249 alerts of
+    suspected cholera cases ... through IDSR between week 1 - 24, 2026".
+    Those are surveillance ALERTS, not cases.
+
+DEAD OR UNREACHABLE SOURCES (do not waste budget)
+  plateformecholera.info (301s to an unrelated commercial site);
+  iddynamics.jhsph.edu Somalia cholera page (404);
+  ReliefWeb API v1 (410 decommissioned) and v2 (403, needs an approved appname);
+  apps.dtic.mil PDFs (JS challenge); ajtmh.org and academic.oup.com (403);
+  pubmed.ncbi.nlm.nih.gov (cookie wall) and pmc.ncbi.nlm.nih.gov (reCAPTCHA) -
+  use the Europe PMC REST API instead, which worked every time;
+  WHO EMRO dsaf/epi archive (starts 2008); EMCSR document series (starts ~2019).
+================================================================================

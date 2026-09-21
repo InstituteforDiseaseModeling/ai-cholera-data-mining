@@ -2,12 +2,15 @@
 #
 # Keep the 40-country run going across account spend-limit resets.
 #
-# The weekly spend limit was reached on 2026-09-20 with 36 countries still to
-# do. Nothing is wrong with those countries and nothing needs fixing - the run
-# simply cannot proceed until the limit resets, which happens on a weekly
-# cycle. This supervisor notices when a run has stopped, and restarts it. If
-# the limit is still exhausted the runner detects that within seconds and halts
-# again, so a wasted probe costs almost nothing.
+# Sequential by default, and deliberately so. Parallelism cannot raise
+# throughput when the binding constraint is spend per window rather than wall
+# clock: four countries at once consumed a whole session budget in 70 minutes
+# and then sat idle for nearly four hours, leaving four countries a quarter
+# done instead of one finished. A session window is worth roughly 280
+# country-minutes and a country needs about 300, so one window is about one
+# country. Running one at a time paces the work to the rate the budget refills,
+# and if the limit is raised enough that a window never runs out, sequential
+# simply runs continuously and loses nothing.
 #
 # Exits by itself once all 40 countries are marked done.
 #
@@ -16,7 +19,8 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-INTERVAL="${1:-1800}"
+INTERVAL="${1:-900}"          # how often to check on a live run
+PARALLEL="${PARALLEL:-1}"
 LOG="logs/supervisor_$(date +%Y%m%d-%H%M%S).log"
 mkdir -p logs
 
@@ -36,7 +40,7 @@ PY
 }
 
 {
-  echo "supervisor started $(date '+%Y-%m-%d %H:%M:%S'), probing every $((INTERVAL/60)) min"
+  echo "supervisor started $(date '+%Y-%m-%d %H:%M:%S'), parallel=$PARALLEL"
   while true; do
     left="$(remaining)"
     if [[ "$left" == "0" ]]; then
@@ -46,19 +50,32 @@ PY
 
     if pgrep -f "bash run_all_countries.sh" >/dev/null 2>&1; then
       echo "$(date '+%Y-%m-%d %H:%M:%S')  runner alive, $left country(ies) left"
-    else
-      out="logs/full_run_$(date +%Y%m%d-%H%M%S).out"
-      echo "$(date '+%Y-%m-%d %H:%M:%S')  no runner, $left left - launching -> $out"
-      rm -f STOP reference/.runner.pid
-      if command -v caffeinate >/dev/null; then
-        nohup caffeinate -i bash run_all_countries.sh --unattended --publish-progress \
-          --parallel "${PARALLEL:-4}" > "$out" 2>&1 &
-      else
-        nohup bash run_all_countries.sh --unattended --publish-progress \
-          --parallel "${PARALLEL:-4}" > "$out" 2>&1 &
-      fi
-      echo "    launched as pid $!"
+      sleep "$INTERVAL"
+      continue
     fi
+
+    # Do not probe a limit that has not reset. Each probe starts a country, is
+    # refused in about three seconds, and appends a blocked_spend_limit row to
+    # the manifest; ten of those per window is noise, not information. The CLI
+    # states when the limit resets, so wait for that moment and retry once.
+    wait_s="$(python3 py/limit_reset.py 2>/dev/null | head -1)"
+    if [[ "${wait_s:-0}" =~ ^[0-9]+$ ]] && (( wait_s > 0 )); then
+      echo "$(date '+%Y-%m-%d %H:%M:%S')  spend limit in force; sleeping $((wait_s/60)) min until it resets"
+      sleep "$wait_s"
+      continue
+    fi
+
+    out="logs/full_run_$(date +%Y%m%d-%H%M%S).out"
+    echo "$(date '+%Y-%m-%d %H:%M:%S')  no runner, $left left - launching (parallel=$PARALLEL) -> $out"
+    rm -f STOP reference/.runner.pid
+    if command -v caffeinate >/dev/null; then
+      nohup caffeinate -i bash run_all_countries.sh --unattended --publish-progress \
+        --parallel "$PARALLEL" > "$out" 2>&1 &
+    else
+      nohup bash run_all_countries.sh --unattended --publish-progress \
+        --parallel "$PARALLEL" > "$out" 2>&1 &
+    fi
+    echo "    launched as pid $!"
     sleep "$INTERVAL"
   done
 } >> "$LOG" 2>&1
