@@ -367,3 +367,227 @@ Yield        : 20%
 Consecutive sub-5% batches: 0 (reset)
 Decision     : CONTINUE (3-batch minimum now met, but no run of 3 sub-5%
                batches and the 1991/1999/2010 state splits are untouched)
+
+================================================================================
+=== BATCH 4 | PHASE 2->3 (historical sub-national: 1991, 1999, 2010) | NGA ===
+================================================================================
+Target : PRIORITY 2 for the pre-NCDC years. 1991 (59,478), 1999 (26,358) and
+         2010 (41,787) are held in the file only as undifferentiated national
+         totals; NCDC did not exist before 2011 and published no cholera
+         situation reports before 2017, so the route is peer-reviewed
+         literature and open research datasets.
+Queries (20 discovery actions):
+  Q61 GET api.github.com/repos/GinaCharnley/cholera_data_drc_nga tree (301)
+  Q62 GET api.github.com/repositories/333096254/git/trees/main?recursive=1
+  Q63 GET api.github.com/repositories/333096254 (repo metadata)
+  Q64 GET raw.githubusercontent .../"Cholera data, DRC & NGA/NGA-Table 1.csv"
+  Q65 GET ghoapi.azureedge.net CHOLERA_0000000001 SpatialDim eq 'NGA'
+  Q66 GET ghoapi.azureedge.net CHOLERA_0000000002 SpatialDim eq 'NGA'
+  Q67 GET NCDC cholera sitrep epi week 39 2018
+  Q68 GET NCDC national monthly cholera update, epi week 27 2019
+  Q69 GET NCDC cholera sitrep epi week 30 2022
+  Q70 GET NCDC cholera sitrep epi week 39 2021
+  Q71 GET NCDC cholera sitrep epi week 30 2024
+  Q72 Europe PMC search: cholera + Nigeria + 1991/1992 + epidemic
+  Q73 Europe PMC search: cholera + Nigeria + 2010 + outbreak + states
+  Q74 Europe PMC search: cholera + Nigeria + "local government area" /
+      "spatial distribution" / hotspot  (391 hits)
+  Q75 Europe PMC fullTextXML PMC11770646 (Niger Med J 2024 review) - no tables
+  Q76 Europe PMC fullTextXML PMC3428179 (Adagbada et al. 2012, Pan Afr Med J)
+  Q77 Europe PMC search: cholera + Yobe + Nigeria
+  Q78 Europe PMC search: cholera + Borno + Nigeria + 2021/2022 + LGA
+  Q79 Europe PMC search: cholera + Bauchi + Nigeria
+  Q80 Europe PMC fullTextXML PMC13076490 (Frontiers Lagos One Health 2026)
+      and PMC12482021 (five-decade review)
+
+Categories covered: ACADEMIC (Q72-Q80), technical/open data (Q61-Q64),
+  WHO/official (Q65, Q66), national NPHI (Q67-Q71).
+
+*** FIND 1: THE CHARNLEY ET AL. SUB-NATIONAL DATASET, PROPERLY MINED ***
+  Agent 1 consulted github.com/GinaCharnley/Cholera-data-DRC-NGA-BMCInfectDis
+  only to confirm that 1974 and 1990 are absent from it. Its NGA table holds
+  1,354 rows, 386 with a year and 203 with a STATE - a sub-national resource
+  that had not been touched. 84 rows were extracted from it, spanning 1971 to
+  2017 and covering 24 states and 22 LGAs.
+  IT CANNOT BE INGESTED NAIVELY. Each row is one dated report from a named
+  primary reference, so rows within a state-year are overlapping snapshots, not
+  a partition: the 2010 rows sum to 279,692 against a national 44,456, and the
+  2018 rows to 94,517 against 42,466. The extraction therefore takes ONE row
+  per state-year - the largest cumulative value - and writes the full snapshot
+  series into processing_notes. Five screens were applied and every rejection
+  is recorded in the row notes:
+    - no case count (deaths-only rows are prohibited by CLAUDE.md)     11 rows
+    - deaths exceeding cases                                            1 row
+    - implied CFR above 50%                                             3 rows
+    - value at or above 90% of the WHO GHO national total for the year  3 rows
+    - LGA name not a verifiable Nigerian LGA -> demoted to state level  9 rows
+  The 90%-of-national screen is the one that matters. It caught
+  "Bauchi 2014 = 35,996 cases / 755 deaths", which is EXACTLY Nigeria's
+  national 2014 figure in the WHO Global Health Observatory - a national total
+  mis-attributed to a state inside a peer-reviewed dataset. It also caught
+  "Rivers/Andoni 2015 = 10,903" against a national 5,290. Without that screen
+  both would have entered MOSAIC as state-level truth.
+
+*** FIND 2: THE 2010 STATE TABLE ***
+  Adagbada et al. 2012, Pan African Medical Journal 12:59 (PMC3428179), Table 3
+  gives all 17 states of the 2010 epidemic with cases, deaths, CFR, the number
+  of LGAs in the state and the number affected. Deaths sum to EXACTLY the
+  printed 1,182; cases sum to 26,640 against a printed 26,240, and the table's
+  row numbering skips 8, so a state was dropped in typesetting. Recorded as
+  printed, not rescaled, with the discrepancy in every row's notes. The printed
+  Plateau CFR of 23.0% contradicts its own 29/526 = 5.5% and is a typo; CFR is
+  recomputed by the writer. This is the first 2010 state breakdown in the
+  dataset and covers 64% of the national total.
+  Table 2 of the same paper yielded the FIRST 1991 sub-national attribution in
+  the dataset (Cross River, 588 cases, CFR 13%, V. cholerae O1 El Tor Ogawa),
+  plus Kano 1997 (847) - the only 1997 sub-national observation anywhere in the
+  file - and Kano 1999 (2,347, full year) and Kano 1995/6 (2,630).
+
+*** FIND 3: THE ONLY 2022 LGA TABLE NCDC EVER PUBLISHED ***
+  The week-52 2022 issue's "Table 5: Top 15 Local Government Areas" is
+  mislabelled and contains STATE totals. The week-30 2022 issue has the real
+  thing: 15 LGAs across Taraba, Cross River, Kano, Borno, Zamfara and Katsina,
+  summing to exactly its printed 1,851. Without checking a mid-year issue there
+  would be no 2022 LGA geography at all.
+  The week-30 2024 issue likewise yielded three Lagos LGAs - Mushin, Oshodi/
+  Isolo and Ojo - that drop out of the week-39 top 14 because others overtake
+  them, not because their counts fall.
+
+Sources found: 4 usable.  Registered: metadata index 58, 59, 60, 61
+  58 Charnley et al. 2022 BMC Infect Dis Nigeria sub-national dataset  [L2]
+  59 NCDC Cholera Situation Report Epi Week 30 2022 (LGA table)        [L1]
+  60 NCDC Cholera Situation Report Epi Week 30 2024 (LGA table)        [L1]
+  61 Adagbada et al. 2012 Pan Afr Med J (state tables)                 [L1]
+
+Rows added : 124 net (125 added, 1 retracted).  File 355 -> 479 rows.
+  399-482  Charnley sub-national 1971-2017 (84 rows; index 401 retracted as a
+           coarser duplicate of the existing index 3, Oyo/Ibadan 1996)
+  483-497  2022 LGA rows (15)
+  498-500  2024 Lagos LGA rows (3)
+  501-517  2010 state rows (17, Adagbada Table 3)
+  518-521  Cross River 1991; Kano 1997; Kano 1999; Kano 1995/6
+  522-523  Lagos 2010 (3,000+/120) and Lagos 2017 (27/2), Frontiers One Health
+  New geography: 1991 Cross River, 1997 Kano, 2010 Ekiti/Osun/Taraba/Kaduna/
+  Sokoto/Cross River/Rivers/Plateau/Katsina/Kano, 2017 Lagos, and the LGAs
+  Bali, Gassol, Wukari (Taraba), Ogoja, Ikom, Calabar Municipal, Odukpani,
+  Obanliku (Cross River), Gwarzo, Gaya, Bichi (Kano), Bayo (Borno), Katsina,
+  Safana (Katsina), Mushin, Ojo, Oshodi-Isolo, Kosofe (Lagos), Wurno, Rabah,
+  Tambuwal (Sokoto), Ngala, Gwoza (Borno), Zaria (Kaduna), Gwagwalada, Kwali,
+  Kuje (FCT), Akwanga (Nasarawa), Quaan Pan (Plateau), Otukpo, Makurdi (Benue),
+  Potiskum (Yobe), Ibadan North-West, Akinyele (Oyo), Birnin Kudu (Jigawa),
+  Obudu (Cross River), Dandi (Kebbi), Ilorin East (Kwara), Gombe.
+
+Conflicts adjudicated in notes (none silently resolved):
+  index 426  Sokoto/Wurno 2010 = 1,185 cases against a peer-reviewed SOKOTO
+             STATE 2010 total of 51 cases from 1 affected LGA. An LGA cannot
+             exceed its state 23-fold. Downweighted 0.6 -> 0.2.
+  index 8    Borno/Muna Garage 2017 = 5,340/61 is almost certainly the BORNO
+             STATE total: Charnley's Borno state series ends at 5,336/61 on
+             12 Nov 2017, the same deaths and 0.07% apart on cases. Index 472
+             now carries the state-level figure. Downweighted 0.8 -> 0.3.
+  indices 418-428  Charnley 2010 state snapshots superseded for annual totals
+             by the Adagbada table; downweighted to 0.4, retained for timing.
+  index 405  Kano 1999 = 815 (WHO DON, 12 May) superseded by 2,347 full-year.
+  index 400  Kano 1996 = 5,600 (Hutin 2003) vs Adagbada 2,630 for 1995/6 -
+             irreconcilable, both retained, neither averaged.
+  index 1    Katsina 662: Adagbada dates it 1992, but the underlying Umoh et
+             al. study was published in 1983, so 1982 as held here is right.
+  index 294  a THIRD Lagos 2024 value (Frontiers, 401/21) recorded and not
+             entered; NCDC's 4,667/134 preferred.
+  index 5    the 2001 "national" row of 724 turns out to be a WHO Disease
+             Outbreak News snapshot of 27 Nov 2001, not a year total: the two
+             2001 state rows alone sum to 2,170 and WHO GHO gives 2,312.
+
+Also fixed in this batch: seven rows whose TL equalled TR (a cumulative
+outbreak count encoded as a single day, which the weekly builder would have
+crushed into one week) had TL widened to the preceding month, with the
+inference stated in the notes; and every 2026 row plus the 1991, 2001, 2004-08
+and 2010 national rows were given an explicit machine-checkable double-counting
+statement. py/validate_quality.py NGA now reports ZERO
+national_subnational_overlap warnings, down from 19 at the start of this run.
+
+Successful queries: 5/20 (Q64, Q69, Q71, Q76, Q80)
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (no run of 3 sub-5% batches; 2021 and 2018 LGA
+               geography at mid-season cut-points is still unmined)
+
+================================================================================
+=== BATCH 5 | PHASE 3 (mid-season LGA tables; final 2026 sweep) | NGA ===
+================================================================================
+Target : PRIORITY 3 - LGA geography that the year-end NCDC issues hide, plus a
+         last sweep for 2026 non-Borno state data.
+Rationale: NCDC re-ranks its "Top 14/15/20 LGAs" table in EVERY issue. An LGA
+         can drop out of a later table without its count falling, simply
+         because other LGAs overtake it. Mining only the year-end issue
+         therefore systematically loses the LGAs that were prominent early or
+         mid-season. This batch tests that hypothesis across four years.
+Queries (20 discovery actions):
+  Q81-Q87  GET NCDC cholera sitreps 2021 weeks 26, 30, 33, 36, 40, 44, 48
+  Q88-Q90  GET NCDC cholera sitreps 2023 weeks 21, 30, 39
+  Q91-Q92  GET NCDC cholera sitreps 2024 weeks 22, 34
+  Q93-Q94  GET NCDC cholera sitreps 2018 weeks 41, 35
+  Q95      GET NCDC national cholera situation report week 36/37 2017 (re-read)
+  Q96      GET ncdc.gov.ng/news
+  Q97      GET dailytrust.com posts, five state-specific 2026 queries
+           (cholera Yobe / Adamawa / Katsina / Jigawa / Bayelsa, after 1 Apr 2026)
+  Q98      GET africacdc.org/disease-outbreak/
+  Q99      GET WHO cholera_report_period FeatureServer, all countries + NIGERIA
+  Q100     GET data.humdata.org CKAN, Nigeria datasets by recency
+
+THE HYPOTHESIS HELD. Twenty-five LGA rows were recovered that the year-end
+issues do not contain:
+  2021 wk40 published a top-TWENTY rather than a top-fifteen, surfacing
+       Gwoza (Borno, 960), Bichi (Kano, 837) and Illela (Sokoto, 722)
+  2023 wk21 (early season) surfaced Afikpo North (Ebonyi), Kaita, Daura and
+       Kankara (Katsina) and Etung (Cross River) - all pushed out of the
+       week-52 table as Zamfara and Cross River grew
+  2023 wk30 surfaced Funtua and Sabuwa (Katsina) and Sumaila (Kano)
+  2024 wk22 is the PRE-LAGOS phase of the 2024 epidemic, when the burden sat
+       in the Niger Delta. Every one of its thirteen non-Lagos LGAs is absent
+       from the Lagos-dominated week-30 and week-39 tables: Yenagoa, Nembe,
+       Ekeremor, Kolokuma/Opokuma, Ogbia, Sagbama (Bayelsa), Talata Mafara
+       (Zamfara), Warri South West (Delta), Giade (Bauchi), Afikpo North
+       (Ebonyi), Umu-Nneochi (Abia), Kokona (Nasarawa), Okitipupa (Ondo)
+  2024 wk34 surfaced Shomolu (Lagos)
+  Every set was checked against its state's full-year total before committing;
+  no LGA sum exceeds its state.
+
+Negatives established in this batch:
+  - NCDC published NO LGA-level table for 2018 or 2019. The 2018 and 2019
+    situation reports give only a per-state count of "LGAs ever reported
+    cases", never the LGA names. Checked weeks 35, 39, 41 and 43 of 2018 and
+    week 27 of 2019. So there is no route to 2018 LGA geography through NCDC,
+    which matters because 2018 is one of the large years (42,466).
+  - The 2017 national situation report's state figures live inside chart
+    images; its text yields only the national 5,138/136 as at 10 Sep 2017 and
+    Borno 1,380 at the end of week 36. No state table is extractable.
+  - No 2026 case data for Yobe, Adamawa, Katsina, Jigawa or Bayelsa in the
+    Nigerian press. Agent 1 reached the same conclusion by a different route.
+  - africacdc.org/disease-outbreak/ and ncdc.gov.ng/news render their listings
+    client-side and expose nothing to a plain fetch.
+  - WHO's cholera_report_period service confirms the shape of the recent gap:
+    Nigeria's reporting window in the WHO global cholera dashboard runs
+    2023-01-02 to 2026-08-23. There is nothing beyond that to find, for
+    Nigeria or for any other country, and the service is per-country only -
+    there is no sub-national companion.
+
+Sources found: 5 usable.  Registered: metadata index 62, 63, 64, 65, 66
+  62 NCDC Cholera Situation Report Epi Week 40 2021 (top-20 LGA table) [L1]
+  63 NCDC Cholera Situation Report Epi Week 21 2023 (LGA table)        [L1]
+  64 NCDC Cholera Situation Report Epi Week 30 2023 (LGA table)        [L1]
+  65 NCDC Cholera Situation Report Epi Week 22 2024 (LGA table)        [L1]
+  66 NCDC Cholera Situation Report Epi Week 34 2024 (LGA table)        [L1]
+
+Rows added : 25.  Indices 524-548.  File 479 -> 504 rows.
+
+Successful queries: 5/20 (Q85, Q88, Q89, Q91, Q92)
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE. The stopping criteria are NOT met - there has been no
+               run of three consecutive batches below 5% yield and only 5 of 12
+               batches are used. Two untouched seams remain: the Charnley
+               dataset's 2018-2021 sub-national rows (deliberately skipped in
+               batch 4 in favour of NCDC, but 2020 has NO NCDC cholera sitrep at
+               all and therefore no sub-national coverage whatsoever), and the
+               UNICEF mid-year 2026 sitrep's reported 20-LGA Borno breakdown.

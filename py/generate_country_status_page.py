@@ -462,6 +462,85 @@ Generated {datetime.now(timezone.utc).astimezone():%Y-%m-%d %H:%M %Z} &middot;
 """
 
 
+def live_stats():
+    """Figures the dashboard used to hard-code, computed from the data.
+
+    Every one of these was wrong on the published site: average coverage was
+    stated as 57.2% against an actual 81.5%, and the AI layer's contribution as
+    3.1% against an actual 23.7% of country-months - an eightfold
+    understatement of the project's own result. They are computed here so they
+    cannot drift again.
+    """
+    eff = read_csv(ROOT / "reference" / "effective_surveillance_gaps_coverage.csv")
+    base = read_csv(ROOT / "reference" / "baseline_surveillance_gaps_coverage.csv")
+    fnum = lambda r, k: float(r.get(k) or 0)
+    inum = lambda r, k: int(r.get(k) or 0)
+
+    s = {}
+    if eff:
+        n = len(eff)
+        tot = sum(inum(r, "total_months") for r in eff) or 1
+        s["eff_coverage"] = f'{sum(fnum(r, "percent_coverage") for r in eff) / n:.1f}%'
+        s["jhu_share"] = f'{100 * sum(inum(r, "months_jhu") for r in eff) / tot:.1f}%'
+        s["who_share"] = f'{100 * sum(inum(r, "months_who") for r in eff) / tot:.1f}%'
+        s["ai_share"] = f'{100 * sum(inum(r, "months_ai") for r in eff) / tot:.1f}%'
+        s["ai_only_share"] = f'{100 * sum(inum(r, "months_ai_only") for r in eff) / tot:.1f}%'
+        s["gt50"] = str(sum(1 for r in eff if fnum(r, "percent_coverage") > 50))
+        s["gt75"] = str(sum(1 for r in eff if fnum(r, "percent_coverage") > 75))
+        s["zero_cov"] = str(sum(1 for r in eff if fnum(r, "percent_coverage") == 0))
+        s["top5"] = "".join(
+            f"<li>{r['country']} ({r['iso_code']}): {fnum(r, 'percent_coverage'):.1f}%</li>"
+            for r in sorted(eff, key=lambda r: -fnum(r, "percent_coverage"))[:5])
+        ago = [r for r in eff if r["iso_code"] == "AGO"]
+        if ago:
+            s["ago_coverage"] = f'{fnum(ago[0], "percent_coverage"):.1f}%'
+    if base:
+        m = sum(fnum(r, "percent_coverage") for r in base) / len(base)
+        s["baseline_coverage"] = f"{m:.1f}%"
+        s["baseline_missing"] = f"{100 - m:.1f}%"
+        s["baseline_zero_cov"] = str(
+            sum(1 for r in base if fnum(r, "percent_coverage") == 0))
+
+    # WHO baseline extent, so "2023-2025" cannot go stale again.
+    lo, hi = "9999", "0000"
+    for d in (ROOT / "data").iterdir():
+        f = d / "cholera_data_who.csv"
+        if not f.exists():
+            continue
+        for r in read_csv(f):
+            for k in ("TL", "TR"):
+                v = (r.get(k) or "")[:10]
+                if len(v) == 10:
+                    lo, hi = min(lo, v), max(hi, v)
+    if lo != "9999":
+        s["who_range"] = f"{lo[:4]}–{hi[:4]}"
+
+    s["source_count"] = str(sum(
+        1 for line in (ROOT / "reference" / "priority_sources.txt").read_text().splitlines()
+        if line[:1].isalnum()))
+    s["generated"] = f"{datetime.now(timezone.utc).astimezone():%Y-%m-%d %H:%M %Z}"
+    return s
+
+
+def patch_stats(html, stats):
+    """Replace <!--STAT:key-->...<!--/STAT--> spans with computed values."""
+    out, n = html, 0
+    for key, val in stats.items():
+        a, b = f"<!--STAT:{key}-->", "<!--/STAT-->"
+        i = 0
+        while True:
+            i = out.find(a, i)
+            if i < 0:
+                break
+            j = out.find(b, i)
+            if j < 0:
+                break
+            out = out[:i + len(a)] + val + out[j:]
+            i = i + len(a) + len(val) + len(b)
+            n += 1
+    return out, n
+
+
 def inject(frag):
     """Replace the marked region of the production dashboard."""
     if not DASHBOARD.exists():
@@ -478,13 +557,18 @@ def inject(frag):
     i = html.index(MARK_START)
     j = html.index(MARK_END, i) + len(MARK_END)
     new = html[:i] + MARK_START + "\n" + frag + "\n" + MARK_END + html[j:]
+
+    stats = live_stats()
+    new, n_stats = patch_stats(new, stats)
+
     if new == html:
         print("  dashboard unchanged")
         return False
     tmp = DASHBOARD.with_suffix(".tmp")
     tmp.write_text(new)
     tmp.replace(DASHBOARD)
-    print(f"  injected into {DASHBOARD.relative_to(ROOT)}")
+    print(f"  injected into {DASHBOARD.relative_to(ROOT)}  "
+          f"({n_stats} computed figures patched)")
     return True
 
 
