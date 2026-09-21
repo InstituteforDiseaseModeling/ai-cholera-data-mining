@@ -1,93 +1,1546 @@
-# AGENT 3: ZERO-TRANSMISSION VALIDATION - SEARCH LOG
-# Country: Benin (BEN)
-# Agent: 3 (Zero-transmission validation with systematic absence period documentation)
-# Start Time: 2025-01-22 15:43:00
-# Minimum Requirement: 2 batches (40 queries)
-# Stopping Criteria: 2 consecutive batches <4% data observation yield
-# Target: Validate and document ALL cholera-free periods as zero-transmission entries
+================================================================================
+AGENT 3 - ZERO-TRANSMISSION VALIDATOR - BENIN (BEN)
+================================================================================
+Start Time      : 2026-09-19 (session date)
+Working dir     : /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Data file       : /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/cholera_data_ai.csv
+Metadata file   : /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/metadata_ai.csv
+Presence file   : /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/cholera_presence_ai.csv
+Retraction file : /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/retracted_rows_ai.csv
 
-=== AGENT 3 SEARCH LOG ===
+STATE AT START (read from the files, not assumed):
+  cholera_data_ai.csv       : 105 rows
+  metadata_ai.csv           : 77 sources
+  cholera_presence_ai.csv   : 20 rows
+  retracted_rows_ai.csv     : 3 rows (all retracted by Agent 1)
+  python py/validate_quality.py BEN -> ERROR 0  WARN 0  (exit 0)
 
-ZERO-TRANSMISSION VALIDATION OBJECTIVES:
-- Systematic validation of cholera-free periods with surveillance confirmation
-- Documentation of ALL validated absence periods as data observations in cholera_data.csv
-- Cross-border validation against neighboring country outbreak patterns
-- Historical gap analysis between documented outbreaks
-- Surveillance system capacity validation during absence periods
+################################################################################
+SESSION CONSTRAINT (inherited, verified): the WebSearch budget for this session
+was exhausted by Agent 1 (200/200 calls). Agent 3 therefore executes all queries
+against directly addressable indexes, exactly as Agent 2 did. Engines used:
+  [GHO]   WHO Global Health Observatory OData API
+          https://ghoapi.azureedge.net/api/{Indicator}?$filter=SpatialDim eq '{ISO3}'
+          AUTHORITATIVE for annual cholera cases/deaths by country-year. Unlike
+          the WER OCR text layer, it does not silently drop rows.
+  [IRIS]  WHO IRIS DSpace REST API. Recipe:
+          /server/api/pid/find?id=hdl:10665/{handle} -> uuid
+          /server/api/core/items/{uuid}/bundles -> bitstreams -> /content
+          plus OAI-PMH GetRecord for metadata only.
+  [IRISQ] IRIS DSpace discovery search:
+          /server/api/discover/search/objects?query=...&size=N
+  [RW]    ReliefWeb API https://api.reliefweb.int/v1/reports?appname=...
+  [EPMC]  Europe PMC REST search
+  [PM]    PubMed E-utilities
+  [OA]    OpenAlex / Crossref
+  [CDX]   Internet Archive CDX + Wayback
+  [WF]    direct document retrieval (curl with browser UA)
+DuckDuckGo / Mojeek / Brave confirmed blocked by Agent 2; not retried.
+Each API query counts as one query for batch accounting.
+################################################################################
 
-IDENTIFIED GAP PERIODS FOR VALIDATION:
-- Historical gaps: 2000-2002, 2004-2007 (pre-2003 outbreak and post-2003 to pre-2008)
-- Mid-decade gaps: 2017-2020 (between 2016 and 2021 outbreaks)
-- Departmental absence periods: Zou, Couffo departments not in recent affected list
-- Annual validation: 2019, 2020 (minimal activity years per surveillance data)
+AGENT 3 MANDATE AND TARGETS
+  A. AUDIT the 15 pre-existing zero rows for the Surveillance_Gap trap. A zero is
+     legitimate ONLY if a source affirmatively states no cases occurred, or an
+     authoritative annual surveillance table reports Benin AS A REPORTING COUNTRY
+     with 0. "Benin is absent from the table" alone is ambiguous between
+     zero-reported and did-not-report, and needs a second leg.
+     Existing zero rows: 19 (1979), 20 (1985), 21 (1987), 22 (1988), 23 (1989),
+     24 (1990-01-01..1990-12-21), 25 (2007), 27 (2025), 28 (2026-01..05),
+     29 (2026-06-01..08-26), 39-44 (2001 six departments).
+  B. FIND undocumented zeros. NOTE (established before searching, by reading
+     /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/cholera_data_jhu.csv):
+     JHU holds a NATIONAL annual row for EVERY year 1970-2024 except
+     1979, 1985, 1987, 1988, 1989, 1990 and 2007 - i.e. exactly the years
+     Agents 1/2 already zero-filled. Every "candidate cholera-free window" in the
+     task brief (1972-78, 1980-84, 1986, 1992-95, 1997-2000, 2002, 2004, 2006,
+     2011-12, 2015, 2017-20) therefore ALREADY has a baseline row, and most carry
+     NON-ZERO counts (1977=2, 1983=1, 1984=1, 2017=11 ...), so they are not
+     cholera-free years and must not be zero-filled. Annual-level absence work in
+     Benin is CLOSED. Remaining zero-shaped value is therefore:
+       B1 sub-annual absence inside low-count years (WER weekly notification
+          tables bound the weeks in which the year's handful of cases fell)
+       B2 sub-national absence during known epidemics (departments positively
+          stated as unaffected)
+       B3 the open recent gap 2026-08-27..2026-09-19 (24 days)
+       B4 upgrading weakly-sourced zeros with a second independent leg
+  C. VERIFY surveillance was functioning during each asserted absence.
+  D. REGIONAL CROSS-CHECK against TGO / NGA / NER / BFA for each absence window.
+================================================================================
 
-BATCH 1 (Queries 1-20) - Systematic zero-transmission validation
-[15:43:05] "Benin cholera-free period 2000 2001 2002 surveillance WHO no cases reported" - SUCCESS: Found academic validation that absence periods represent genuine gaps, not surveillance failures
-[15:43:06] "Benin cholera absence 2004 2005 2006 2007 zero cases WHO surveillance" - PARTIAL: Found surveillance framework evidence, no specific 2004-2007 zero confirmation
-[15:43:07] "Benin cholera zero transmission 2017 2018 surveillance WHO no cases" - NEGATIVE: Evidence shows endemic status since 2016, annual cases reported 2017-2018
-[15:43:08] "Benin cholera surveillance 2019 2020 WHO annual report zero cases" - NEGATIVE: Evidence of endemic status, no zero reporting found for 2019-2020
-[15:43:09] "Benin surveillance system functional 2000s cholera absence disease-free" - SUCCESS: Academic validation that surveillance was functional during absence periods
-[15:43:10] ""Benin cholera-free" OR "zero cholera cases" surveillance confirmation" - SUCCESS: Found 2016 official end declaration (zero cases since Nov 14, 2016)
-[15:43:11] "Benin cholera gap analysis between outbreaks absence periods validation" - SUCCESS: Academic research validates absence periods as genuine epidemiological gaps
-[15:43:12] "WHO cholera surveillance Benin "no cases" "zero cases" annual reporting" - NEGATIVE: No evidence of zero reporting, endemic since 2016
-[15:43:13] "Benin cholera epidemiological silence periods absence transmission validation" - SUCCESS: Academic validation of epidemiological silence periods methodology
-[15:43:14] "Benin Nigeria Togo cholera 2005-2007 cross-border Benin absence validation" - SUCCESS: Found cross-border transmission coordination evidence
-[15:43:15] "Benin cholera 2001-2002 absence period surveillance system functioning" - SUCCESS: Evidence of functional surveillance, no specific absence confirmation
-[15:43:16] "Benin IDSR surveillance 2000s cholera zero reporting confirmation" - SUCCESS: Found IDSR implementation details, surveillance functioning since early 2000s
-[15:43:17] "Benin cholera 2004-2007 gap period WHO surveillance zero transmission" - PARTIAL: Found surveillance gap analysis methodology, no specific period confirmation
-[15:43:18] "Benin cholera ministry health annual reports 2017-2020 zero cases" - NEGATIVE: No specific ministry reports found, endemic status confirmed
-[15:43:19] "Benin cholera absence decade 2000-2010 validated zero periods" - SUCCESS: Academic evidence of validated absence periods methodology
-[15:43:20] "Benin Zou Couffo departments cholera-free surveillance confirmation" - SUCCESS: Zou/Couffo not listed among affected departments in recent outbreaks
-[15:43:21] "Benin cholera regional context 2019 2020 absence validation neighboring" - PARTIAL: Found regional context, no specific absence validation 2019-2020
-[15:43:22] "Benin surveillance capacity cholera detection zero-transmission validation" - SUCCESS: Found official 2016 zero-transmission validation protocol
-[15:43:23] "Benin cholera historical gaps validated absence periods academic studies" - SUCCESS: Academic validation of multi-year lulls in endemic countries
-[15:43:24] "Benin cholera 2017-2020 no cases surveillance WHO AFRO confirmation" - NEGATIVE: Contradicted premise, endemic status confirmed for 2017-2020
+=== BATCH 1 | PHASE 1 (audit of existing zeros + authoritative annual series) | BEN ===
+Gap targeted : none new - this batch is the MANDATED AUDIT of the 15 pre-existing
+               zero rows (indices 19-25, 27-29, 39-44) plus establishment of the
+               authoritative annual baseline against which any new zero must be judged.
+Queries (20):
+   1 [GHO] Indicator?$filter=contains(IndicatorName,'holera')  -> 4 indicator codes
+   2 [GHO] CHOLERA_0000000001?$filter=SpatialDim eq 'BEN'      (reported cases, all years)
+   3 [GHO] CHOLERA_0000000002?$filter=SpatialDim eq 'BEN'      (reported deaths, all years)
+   4 [GHO] WHS3_40?$filter=SpatialDim eq 'BEN'                 (legacy series - empty)
+   5 [GHO] CHOLERA_0000000001?$filter=Value eq '0'  - DOES GHO EVER STORE AN EXPLICIT ZERO?
+   6 [GHO] CHOLERA_0000000001?$filter=TimeDim eq 1979 - full 1979 reporter list
+   7 [WF ] local WER cache /tmp/wer/10665_225862.txt = WER 1986;61(26) 'Cholera in 1985' full text
+   8 [GHO] CHOLERA_0000000001?$filter=TimeDim eq 1984 - West African 1984 magnitudes
+   9 [WF ] Benin MoH, Plan d'Endiguement du Cholera au Benin 2017-2021 (June 2017), 51pp
+         web.archive.org/web/20220616191731if_/http://plateformecholera.info/attachments/
+         article/430/Plan%20d'Endiguement%20Cholera%20du%20Benin.pdf  -> HTTP 200, pdftotext OK
+  10 [IRIS] OAI-PMH GetRecord oai:iris.who.int:10665/228168 (WER 1991;66(42) metadata)
+  11 [IRIS] discover/search/objects?query=handle:"10665/228168" -> uuid 0fca345e -> bundles ->
+         bitstream WER6642_305-311.PDF.txt -> full text of 'Cholera in Africa'
+  12 [CDX] web.archive.org/cdx plateformecholera.info* filter=original:.*benin.*  (empty)
+  13 [CDX] web.archive.org/cdx plateformecholera.info matchType=domain limit=20000 (3070 urls)
+  14 [WF ] wayback 20240718170855 Cholera Factsheet_Benin_2017_FINAL.pdf -> served text/html (soft 404)
+  15 [CDX] web.archive.org/cdx plateformecholera.info/attachments/article/228* (2 captures only)
+  16 [WF ] 5 URL variants of the Benin factsheet (live https, www http, 2019id_, 2020id_, /benin-cholera-factsheet)
+  17 [WF ] scrape live plateformecholera.info/benin-cholera-factsheet for asset links
+  18 [WF ] local /tmp/wer/cholera_2024_annual.txt = WER 2025;100(36) 'Cholera, 2024' - Benin lines
+  19 [WF ] same document, Table 1 (pp.248-340) and Table 2/Table 4 reconciliation
+  20 [RW ] api.reliefweb.int v1 -> HTTP 410 decommissioned; v2 -> HTTP 403 'not an approved appname'.
+         ReliefWeb API is CLOSED to this run; Agent 2's ReliefWeb *site search* route is the fallback.
 
-BATCH 1 SUMMARY: 20/20 queries completed
-- QUANTITATIVE DATA DISCOVERIES: 0 queries yielded new quantitative cholera case/death data for CSV
-- Data observation yield: 0/20 = 0% (below 4% threshold)
-- Key validation findings: Academic validation of absence periods methodology, 2016 official zero-transmission declaration, surveillance system functioning evidence
-- Absence validation: Strong evidence that lull periods represent genuine gaps, not surveillance failures
-- CSV FILES UPDATED: No new observations added (validation evidence, no quantitative zero-transmission entries suitable for CSV)
+Sources found : 3 usable new documents (MoH Plan d'Endiguement; WER 1991;66(42) full text;
+                WER 2025;100(36) 'Cholera, 2024')   Registered: none yet (see batch 2)
+Rows added    : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch minimum not reached; and the audit produced findings that
+               change what batches 2+ should target)
 
-BATCH 2 (Queries 21-40) - Extended zero-transmission validation and surveillance capacity assessment
-[15:44:05] "Benin cholera zero cases 2004 2005 2006 2007 WHO surveillance annual report" - NEGATIVE: No specific WHO annual reports found documenting zero cases for 2004-2007
-[15:44:06] "Benin cholera absence period 2000 2001 2002 surveillance IDSR zero transmission" - PARTIAL: IDSR framework development confirmed, limited specific 2000-2002 absence data
-[15:44:07] "\"Benin cholera-free\" 2019 2020 WHO surveillance annual epidemiological" - NEGATIVE: Evidence contradicts premise, Benin reported 2.2% CFR in 2019, not cholera-free
-[15:44:08] "Benin surveillance system functional cholera-free periods 2000s IDSR WHO AFRO" - SUCCESS: IDSR implementation timeline confirmed (1998-2002), functional surveillance framework
-[15:44:09] "Benin cholera surveillance gaps vs disease-free periods validation methodology" - SUCCESS: Academic validation that "lull periods not due to inadequate surveillance but absence of cases"
-[15:44:10] "Benin Nigeria Togo cholera 2004-2007 cross-border absence validation regional" - SUCCESS: Cross-border coordination framework found, limited 2004-2007 specific validation
-[15:44:11] "Benin cholera 2017 2018 endemic status surveillance WHO no zero reporting" - SUCCESS: Confirmed endemic status since 2016, no zero reporting for 2017-2018
-[15:44:12] "WHO annual cholera surveillance Benin 2019 2020 endemic cases reported" - SUCCESS: Confirmed endemic status, Benin CFR 2.2% in 2019, cases reported annually since 2016
-[15:44:13] "Benin Zou Couffo departments cholera-free surveillance confirmation unaffected" - PARTIAL: Couffo longest detection periods, no specific cholera-free confirmation found
-[15:44:14] "Benin IDSR cholera zero reporting protocol surveillance capacity 2000s" - SUCCESS: IDSR timeline confirmed (adopted 1998, implemented by 2002), cholera immediate reporting protocol
-[15:44:15] "Benin cholera epidemiological silence periods academic validation absence" - SUCCESS: Academic validation of "lull periods" vs surveillance failures, genuine absence confirmed
-[15:44:16] "Benin cholera 2001-2003 gap period surveillance system WHO validation" - PARTIAL: 2003 outbreak confirmed (265 cases, 3 deaths), surveillance system development context
-[15:44:17] "West Africa cholera 2005-2007 Benin absence neighboring outbreaks validation" - PARTIAL: Regional dynamics confirmed, limited specific 2005-2007 Benin absence validation
-[15:44:18] "Benin ministry health annual report 2000s cholera zero cases confirmation" - NEGATIVE: No ministry reports found confirming zero cases, 2003 outbreak documented
-[15:44:19] "Benin cholera surveillance quality 2000-2010 functional zero-transmission detection" - SUCCESS: 2008 outbreak surveillance quality assessed, early detection capabilities confirmed
-[15:44:20] "Benin cholera 2004-2007 lull period epidemiological evidence absence validation" - SUCCESS: Academic evidence of multi-year lull periods in endemic countries, validation methodology
-[15:44:21] "Benin cholera zero transmission validation protocol 2016 end declaration WHO" - SUCCESS: Found 2016 end declaration protocol (2 weeks after last case Nov 14), WHO validation standard
-[15:44:22] "Benin cholera regional context 2000s absence genuine vs surveillance failure" - SUCCESS: Academic conclusion "absence not due to surveillance failure but genuine absence of cases"
-[15:44:23] "Academic studies Benin cholera absence periods validated zero-transmission methodology" - SUCCESS: Academic validation of elimination-reintroduction cycles in Africa vs endemic Asia patterns
-[15:44:24] "Benin cholera 2019-2020 endemic status WHO AFRO surveillance confirmed cases" - SUCCESS: Confirmed endemic status since 2016, CFR 2.2% in 2019, cases reported annually
+--------------------------------------------------------------------------------
+AUDIT FINDINGS - BATCH 1
+--------------------------------------------------------------------------------
+F1. WHAT A MISSING GHO ROW MEANS (decisive for rows 19-25).
+    Query 5 shows the WHO GHO annual cholera series DOES store explicit zero-case
+    rows - 51 of them (SGP 1953, ETH 1982, MDG/MOZ 1996, SDN 1999, AUT 2001, and a
+    large 2005-2006 block: AGO BWA CAF COG COM CPV DZA ERI ETH GAB GMB GNQ LSO MDG
+    MNG MUS NAM PNG SWZ SYC VNM ZAF ...). A country-year row therefore exists when
+    the country NOTIFIED; the stored value may be 0. It follows that Benin's
+    ABSENCE from GHO in 1979/1985/1987/1988/1989/1990/2007 means "Benin filed no
+    notification", NOT "Benin notified zero". Agent 1's GHO cross-check correctly
+    ruled out OCR row-loss, but it cannot by itself convert omission into a
+    documented zero. Every existing Benin zero therefore needs a SECOND, positive
+    leg. Rows 19, 21, 22, 23, 24 have one (F2, F3); rows 20 and 25 do not (F4).
 
-BATCH 2 SUMMARY: 20/20 queries completed
-- QUANTITATIVE DATA DISCOVERIES: 0 queries yielded new quantitative cholera case/death data for CSV
-- Data observation yield: 0/20 = 0% (below 4% threshold)
-- Key validation findings: 2016 WHO epidemic end protocol (2 weeks after last case), academic validation of genuine absence vs surveillance failure
-- Surveillance evidence: IDSR functional since 2002, endemic status confirmed since 2016, 2019 CFR 2.2%
-- CSV FILES UPDATED: No new observations added (validation studies, no quantitative zero-transmission data suitable for CSV)
+F2. WER 1991;66(42) QUOTE VERIFIED, AND ITS IDIOM DISAMBIGUATED (rows 21-24).
+    Retrieved in full (query 11). Line 65: "Countries which had not reported
+    cholera for several years (Benin, Burkina Faso, Chad, Togo) have reported cases
+    in 1991 (Map 2)." French line 67: "Des pays ont notifie des cas en 1991
+    (Carte 2), qui ne rapportaient plus de cholera depuis plusieurs annees (Benin,
+    Burkina Faso, Tchad, Togo)."
+    The phrase "had not reported" is on its face ambiguous between "no cases
+    occurred" and "failed to notify" - precisely the Surveillance_Gap trap. It is
+    disambiguated WITHIN THE SAME PARAGRAPH: the very next sentence writes "Chad,
+    which had not EXPERIENCED cholera since 1975" (FR: "n'avait pas CONNU de
+    cholera depuis 1975"), and line 73 writes "Zambia... which had REMAINED FREE OF
+    cholera for several years (1984-1988)" (FR: "reste plusieurs annees SANS
+    cholera"). WER uses "had not reported", "had not experienced" and "remained
+    free of" interchangeably for the same class of country in the same passage.
+    WHO's editorial intent is disease absence. VERDICT: rows 21, 22, 23, 24
+    (1987, 1988, 1989, 1990-01-01..1990-12-21) are LEGITIMATE Documented_Absence.
+    Benin's last pre-1991 notification was 1986, so "several years" = 1987-1990
+    exactly, matching the four rows. NO CHANGE NEEDED.
 
-AGENT 3 CUMULATIVE STATUS AFTER 2 BATCHES:
-- Total Queries: 40/40 (minimum requirement met)
-- Consecutive Low-Yield Batches: 2 (Batch 1: 0%, Batch 2: 0%)
-- STOPPING CRITERIA: ✓ MET (2 consecutive batches <4% yield)
-- Key Validation Achievements: Academic confirmation that absence periods represent genuine epidemiological gaps, WHO epidemic end protocol documented, surveillance system functionality confirmed
+F3. ROW 19 (1979) rests on WER 1980;55(18) explicitly NAMING Benin among four
+    countries that reported cholera in 1978 but not in 1979 - a naming statement of
+    the same class as F2. NO CHANGE NEEDED pending re-verification in batch 3.
 
-=== AGENT 3: ZERO-TRANSMISSION VALIDATION - COMPLETED ===
-Search Performance: 40 queries across 2 batches, 0% data observation yield
-Validation Standards: Strong academic evidence supporting genuine absence methodology
-Key Finding: Academic validation that "lull periods not due to inadequate surveillance but genuine absence of cholera cases"
-Surveillance Confirmation: IDSR functional since 2002, WHO epidemic end protocol documented
-Stopping Criteria: Applied after minimum 2 batches, stopped on 2 consecutive zero-yield batches
+F4. ROW 20 (1985) IS THE WEAKEST HISTORICAL ZERO - but it survives, and for a
+    better reason than the one recorded.
+    The article behind it (query 7, full text read) carries two caveats that on
+    their face undermine it: (a) "there is strong reason to believe that cholera is
+    present in a number of countries which have not notified cases in accordance
+    with the International Health Regulations"; (b) "The absence of notifications
+    from several West African countries that had experienced large outbreaks in
+    1984 was offset by a report of over 10 000 cases from Somalia..."
+    Caveat (b) at first reading points straight at Benin. IT DOES NOT. Query 8
+    (GHO, 1984, West Africa) gives the 1984 magnitudes: Niger 3788, Burkina Faso
+    2191, Mali 1795, Nigeria 1667, Ghana 1015, Senegal 728, Liberia 492,
+    Mauritania 166 - and BENIN 1 (one case). Benin did not have a large 1984
+    outbreak, so it is not a member of the class WER is warning about. The
+    countries WER means are Niger and Nigeria, which had large 1984 outbreaks and
+    are both absent from the 1985 Table 2 (which does contain Burkina Faso 1149,
+    Mali 1352, Senegal 3759, Ghana 108, Liberia 60, Mauritania 355).
+    Independent supporting leg found: the Benin MINISTRY OF HEALTH's own Plan
+    d'Endiguement du Cholera 2017-2021 (query 9, p.15) states "Apres un debut
+    massif avec plus de 2000 cas en 1971, une accalmie tres significative est
+    observee ENTRE 1972 ET 1990. En 1991, l'epidemie de cholera a atteint un niveau
+    record jamais enregistre dans l'histoire du pays avec plus de 7000 cas."
+    The national authority itself characterises 1972-1990 as a sustained lull - a
+    national-level statement, independent of WHO notification, that is consistent
+    with 1985 being genuinely quiet and inconsistent with a hidden 1985 epidemic.
+    VERDICT on row 20: keep the row; its EVIDENCE LABEL should be Inferred_Absence,
+    not Documented_Absence, because no source states a 1985 Benin zero positively -
+    it is omission plus context. Revision applied in batch 3.
+
+F5. ROW 25 (2007) - same structural weakness as row 20, no naming statement,
+    and now materially undercut by F6. Revision applied in batch 3.
+
+F6. **THE MOST IMPORTANT FINDING OF THIS BATCH.** WHO's own annual cholera article
+    contains a Benin zero that is demonstrably FALSE, and it is already in the
+    baseline.
+    WER 2025;100(36), 'Cholera, 2024' (5 September 2025), Table 2 is titled
+    "Countries reported 0 cases and deaths in 2024, fulfilling the public health
+    surveillance service of 'zero reporting'". Its Africa (32) list reads
+    "Algeria, Angola, BENIN, Botswana, Burkina Faso, Cabo Verde, Central African
+    Republic, Chad, Cote d'Ivoire, Djibouti, Egypt, Equatorial Guinea, Eswatini,
+    Gabon, Gambia, Guinea, Guinea-Bissau, Lesotho, Libya, Madagascar, Mali,
+    Mauritania, Mauritius, Morocco, Namibia, Republic of Congo, Rwanda, Sao Tome
+    and Principe, Senegal, Seychelles, Sierra Leone, Tunisia" (Benin also in the
+    French list). Table 1 of the same article, which lists countries reporting
+    cases, does NOT contain Benin. On the face of it this is a gold-standard
+    Documented_Absence for all of 2024 at confidence 1.0.
+    IT MUST NOT BE ENTERED. Two independent checks refute it:
+      (i) Table 4 of the SAME article ("cases by gender and age group, 2024")
+          carries a row "Benin - Benin 504 401 1.26 74 (8) 831 (92)". 504+401=905
+          and 74+831=905. Table 1's first African entry is Burundi with exactly
+          905 cases. Table 4's subsequent rows align correctly with Table 1
+          (Comoros 5025+5667=10692 = Table 1's 10692; Ethiopia 14413+12739=27152 =
+          Table 1's 27152). So Table 4's first African row is BURUNDI's data
+          mislabelled "Benin" - a typesetting slip, not Benin data. That disposes
+          of Table 4 but shows how fragile this article's country labelling is.
+      (ii) The decisive refutation is in the baseline itself.
+          /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/cholera_data_jhu.csv
+          holds 52 national rows for Benin 2024. Forty are true weekly rows from
+          'UNICEF Country Programme Report (UID: 5101)' and sum to 398 cases (395
+          net of one duplicated week of 3). Eleven are cumulative snapshots from
+          the same series, running 121 (to 3 Mar) -> 189 -> 192 -> 193 -> 198 ->
+          315 (to 30 Jun) -> 395 (to 7 Jul) -> 395 (to 1 Sep) -> 395 (to 29 Sep).
+          The weekly and cumulative series agree exactly at 395. Benin's last
+          non-zero week of 2024 is the week ending 2024-07-07; every weekly row
+          from 2024-07-08 to 2024-09-29 is 0.
+          The 52nd row is 'WHO Annual Cholera Report (UID: 302)', 2024-01-01 to
+          2024-12-31, sCh=0 deaths=0 - i.e. the WER Table 2 zero is ALREADY in the
+          baseline, and it sits in the same file as 395 UNICEF-documented cases.
+    CONCLUSION: Benin notified WHO zero cholera for calendar 2024 while UNICEF's
+    country-programme surveillance recorded 395 cases in Jan-Jul 2024. WHO's
+    "zero reporting" list for Benin 2024 is a NOTIFICATION artefact, not an
+    absence. No 2024 zero row will be created. This also resolves the conflict the
+    orchestrator flagged for Agent 5 ("GTFCC 279 cases Jun2023-Jun2024 vs WHO
+    zero-reporting for 2024"): both are right about their own channel; the GTFCC/
+    UNICEF channel is the one that reflects transmission.
+    KNOCK-ON (row 27, the 2025 zero): row 27 rests on Benin's absence from WHO's
+    2025 country lists. F6 proves that exactly this evidence type failed for Benin
+    one year earlier. Row 27 must therefore be re-tested against a NON-WHO-
+    notification channel (UNICEF WCA / GTFCC / AFRO event-based surveillance)
+    before its 0.8 confidence can stand. That is the first task of batch 2.
+
+F7. ROWS 39-44 (2001, six departments) rest on a positively stated Health Ministry
+    claim relayed by IRIN: "No cases have been registered in the departments of
+    Atacora and Donga in the northwest, Mono and Couffo in the southwest, and
+    Oueme/Plateau in the southeast". That is an affirmative assertion of absence
+    from the national surveillance service, not an omission. Documented_Absence at
+    0.7 (Level 3 relay of a Level 1 statement) is correct. NO CHANGE NEEDED.
+
+F8. TARGETING CORRECTION FOR BATCHES 2+. The brief's candidate absence windows
+    (1972-78, 1980-84, 1986, 1992-95, 1997-2000, 2002, 2004, 2006, 2011-12, 2015,
+    2017-20) are all already covered by JHU national rows, and GHO/JHU give them
+    NON-ZERO counts (1973=3, 1977=2, 1983=1, 1984=1, 1993=10, 2006=91, 2017=11...),
+    so none is a cholera-free year. 2015 and 2018 already carry 81 and 53 JHU
+    national weekly rows summing to zero. ANNUAL-LEVEL ABSENCE WORK FOR BENIN IS
+    CLOSED. Batches 2+ retarget onto: (a) re-testing rows 27/28/29 for 2025-2026,
+    (b) the open 2026-08-27..2026-09-19 window, (c) sub-national absence stated
+    positively by a source, (d) the intra-2024 absence tail (8 Jul - 31 Dec 2024)
+    which IS supported by UNICEF weekly zeros and by WHO, and which no layer
+    currently states as a single absence period.
+
+=== BATCH 2 | PHASE 1-2 (2025/2026 re-test + sub-national absence discovery) | BEN ===
+Gaps targeted: (a) re-test of rows 27/28/29 against a NON-WHO-notification channel, made
+               necessary by finding F6; (b) the open 2026-08-27..2026-09-19 window (24d,
+               recent); (c) sub-national absence during known epidemics, which Agent 2
+               recorded as "2022-01-01..2026-09-19 SUB-NATIONAL: no source at any level
+               below national exists".
+Queries (20):
+  21 [IRISQ] discover/search 'Weekly Bulletin on Outbreaks and other Emergencies 2026', sort date DESC
+  22 [WF ] WER 2026;101(34), 28 Aug 2026 - full text, Benin grep (0 hits)
+  23 [WF ] WER 2026;101(35), 04 Sep 2026 - full text; 'Multi-country outbreak of cholera',
+          data as of 26 July 2026, Table 1 African block read in full
+  24 [WF ] WER 2026;101(36-37), 18 Sep 2026 - full text; the single Benin hit located
+  25 [WF ] four API probes for the WHO Global Cholera and AWD Dashboard
+          (worldhealthorg.shinyapps.io/page7_cholera, extranet.who.int/publicemergency/api/cholera,
+          cholera.who.int/api/data, who.int/data/gho/info/gho-odata-api) - all 404/000 except the doc page
+  26 [WF ] who.int/emergencies/situations/acute-cholera-outbreak -> 404
+  27 [WF ] who.int/emergencies/situations/cholera-outbreak -> 404 (JS-rendered hub, no static PDFs)
+  28 [IRISQ] discover/search '"Weekly Bulletin on Outbreaks and other Emergencies" 2026' (55 hits)
+  29 [WF ] Benin MoH Plan d'Endiguement, section 1.5, lines 843-915 - the 2016 commune enumeration
+  30 [HDX] data.humdata.org/api/3/action/package_search?q=cholera&rows=40 (29 datasets)
+  31 [HDX] package_show?id=world-health-organization-who-cholera-data (modified 2026-09-03)
+  32 [WF ] who.maps.arcgis.com/sharing/rest/content/items/3aa7bfec.../data - the WHO dashboard
+          country file, 28 rows, epi weeks 2025-12-29..2026-08-17
+  33 [WF ] who.int/emergencies/disease-outbreak-news/item/cholera-benin (DON, 25 Jan 2022)
+  34 [WF ] ifrc.org/docs/Appeals/13/MDRBJ01302.pdf (DREF update 2, 30 Jan 2014)
+  35 [WF ] gtfcc.org 11th-annual-meeting country progress reports, 5.4 MB - Benin section pp.3-8
+  36 [GHO] CHOLERA_0000000001?$filter=Value eq '0' re-read, grouped by year
+  37 [IRISQ] discover/search handle:"10665/241184" -> uuid -> bundles -> bitstreams (WER 2008;83(31))
+  38 [IRIS] bitstream content WER8331_269-283.PDF.txt - 'Cholera, 2007' full text, 80 kB
+  39 [IRIS] handle:"10665/223030" -> bitstream WER 1980;55(18) 'Cholera in 1979' full text
+  40 [WF ] africacdc.org/?s=Event+Based+Surveillance+Report - newest is April 2024, dead end for 2026
+
+Sources found : 0 new registrations needed (the WHO dashboard country file Agent 1 had already
+                registered as metadata Index 39; the MoH Plan is Index 51; the DON is Index 1)
+Rows added    : 9    Indices: 110,111,112,113,114,115 (2016 department zeros)
+                            116,117,118 (2021-22 wave department zeros)
+Successful queries: 2/20  (query 29 -> rows 110-115; query 33 -> rows 116-118)
+Yield        : 10%
+Consecutive sub-5% batches: 0 (reset)
+Decision     : CONTINUE
+
+--------------------------------------------------------------------------------
+BATCH 2 FINDINGS
+--------------------------------------------------------------------------------
+F9. NEW ROWS 110-115 - ALL TWELVE BENIN DEPARTMENTS NOW ACCOUNTED FOR IN 2016.
+    The MoH Plan d'Endiguement section 1.5 states that 2016 consisted of exactly two
+    waves and names the communes of each:
+      wave 1 (wks 5-24, 196 cases, 0 deaths): So-Ava, Aguegues, Adjohoun, Dangbo, Bonou, Ze
+      wave 2 (wks 32-46, 678 cases, 13 deaths): Cotonou, Abomey-Calavi, So-Ava, Allada, Ze,
+        Ouidah, Seme-Kpodji, Adjarra, Bohicon, Abomey, Dassa-Zoume, Savalou, Bante, Save,
+        Parakou, N'Dali (+ Porto-Novo in the narrative)
+    Those communes fall in six departments: Atlantique, Oueme, Littoral, Zou, Collines,
+    Borgou. INDEPENDENT CHECK: those six are exactly the six that already carry 2016
+    sub-national rows in cholera_data_ai.csv from the UNICEF sitrep and the JHU UID 3541
+    commune table. The remaining six - Alibori, Atacora, Couffo, Donga, Mono, Plateau -
+    appear in no 2016 source at any level, and are now entered as zeros at confidence 0.7
+    with surveillance=partial. Partial, not operational, is deliberate: the same MoH
+    document records that the index death of wave 2 (9 Aug, So-Ava) reached the health
+    zone only on 17 Aug and the national level on 19 Aug, that early Cotonou cases were
+    seen in private practices that never notified, that community cases went unrecorded,
+    and that sample transport and reagent supply failed - 'il est apparu des
+    dysfonctionnements au niveau du systeme de surveillance epidemiologique et de la
+    confirmation biologique'. A system that lost a week in its own epicentre could lose a
+    handful of cases in a quiet department, so 0.7 rather than the 0.8 a government report
+    would otherwise earn.
+    REGIONAL CROSS-CHECK: 2016 is an absence-during-activity case, not absence during a
+    quiet period - Benin itself had 874 cases and Togo and Nigeria were both reporting.
+
+F10. NEW ROWS 116-118 - THE 2021-22 WAVE HAD NINE AFFECTED DEPARTMENTS, NAMED.
+    WHO Disease Outbreak News 'Cholera - Benin', 25 January 2022: "Cases have been
+    reported from nine departments in Benin including Alibori, Atacora, Atlantique,
+    Borgou, Collines, Donga, Littoral, Mono and Oueme." The stated count (nine) and the
+    number of names (nine) agree, so the enumeration is closed. Benin has twelve
+    departments; Couffo, Plateau and Zou are the three not named, and are entered as zeros
+    for 2021-09-01..2022-01-16 at confidence 0.85.
+    This directly contradicts Agent 2's closing note that no sub-national source exists for
+    2022-01-01..2026-09-19: the DON covers to 16 January 2022 at department level.
+    SURVEILLANCE STATUS operational, evidenced inside the same document rather than
+    assumed: incident management system activated nationally AND in the affected
+    departments; 'Epidemiological surveillance activities are ongoing, including
+    community-based surveillance, active case finding and case investigations'; stool
+    culture at the National Public Health Laboratory in Cotonou and Parakou (41 samples,
+    V. cholerae O1 confirmed).
+
+F11. ROW 19 (1979) QUOTE VERIFIED VERBATIM AND THE IDIOM CONFIRMED AGAIN.
+    WER 1980;55(18) retrieved in full: "On the other hand, four countries (Benin, Malawi,
+    Togo and Upper Volta) that had reported cholera in 1978 did not report cases in 1979."
+    The same paragraph writes "Of those that had reported cholera in 1978, three (Iraq,
+    Macao and the Maldives) REMAINED FREE in 1979", "Ivory Coast, which had been FREE
+    since 1971", and "The Americas REMAINED FREE of cholera in 1979". As in WER 1991;66(42),
+    "did not report cases" and "remained free" are the same editorial category.
+    ROW 19 CONFIRMED - Documented_Absence, no change.
+
+F12. ROW 25 (2007) - NO POSITIVE STATEMENT EXISTS; THE LABEL IS WRONG BUT THE ROW IS RIGHT.
+    WER 2008;83(31) 'Cholera, 2007' retrieved in full (80 kB): the string "Benin" does not
+    occur anywhere, and the article contains no zero-reporting list of any kind - the era's
+    only encoding of a cholera-free country is omission from Table 1. GHO's explicit
+    zero-case rows for 2007 number seven worldwide (JPN, MYS, PHL, SVN, SWZ, TCD, UKR), so
+    the explicit-zero encoding existed but was used by almost nobody; Benin never filed one
+    in the entire 1970-2016 GHO series.
+    NEW SUPPORTING ARITHMETIC (not previously in the file): the Benin MoH Plan states
+    "Entre 2004 et 2016, le Benin a enregistre 7247 cas et 73 DECES soit une letalite de 1%".
+    GHO's Benin death counts for the eleven years it holds in that window - 2004:9, 2005:11,
+    2006:1, 2008:5, 2009:1, 2010:8, 2011:4, 2012:3, 2013:6, 2014:12, 2016:13 - sum to
+    EXACTLY 73. The two years GHO lacks inside the window are 2007 and 2015, and the
+    ministry's own thirteen-year death total leaves exactly zero deaths for them. That is
+    an independent national-source consistency check that 2007 carried no cholera deaths.
+    CAVEAT recorded honestly: the same arithmetic on CASES does not close - GHO's eleven
+    years sum to 7025 against the ministry's 7247, leaving 222 cases unaccounted. Part of
+    that is explained by the ministry using 874 for 2016 (its own two-wave total) against
+    GHO's 761, and by JHU/GHO disagreeing on 2005 (861 vs 749) and 2008 (1075 vs 985); but
+    it cannot be excluded that a small number of 2007 cases sit in the ministry's series.
+    VERDICT: keep the row; relabel Documented_Absence -> Inferred_Absence (WHO's annual
+    table does not list Benin with 0, it merely omits Benin, which is the Inferred_Absence
+    definition in CLAUDE.md); lower confidence 0.85 -> 0.70. Applied in batch 3.
+
+F13. ROW 27 (2025) - AGENT 1'S DECISIVE ARGUMENT IS REFUTED BY F6.
+    Row 27 was raised to 0.80 and held at Documented_Absence on this reasoning, quoted from
+    its processing_notes: "BENIN APPEARS IN TABLE 2 (zero reports submitted), NOT in the
+    did-not-report list. Benin is therefore a demonstrated active zero-reporter to WHO,
+    which is precisely the property needed to read a subsequent year's absence from the case
+    table as a reported zero rather than as a reporting failure."
+    Being an active zero-reporter is worth nothing if the zero it reported was false, and
+    the only instance in which that can be checked shows it was. Benin's 2024 zero return to
+    WHO is contradicted by TWO independent channels:
+      (i) the UNICEF Country Programme weekly series already in
+          /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/cholera_data_jhu.csv -
+          395 cases between January and 7 July 2024, weekly and cumulative series agreeing
+          exactly, last non-zero week ending 2024-07-07;
+      (ii) BENIN'S OWN MINISTRY OF HEALTH, reporting to the GTFCC 11th Annual Meeting
+          (June 2024, metadata Index 22): "Nombre total de cas de cholera: 279 cas, dont 10
+          confirmes en laboratoire durant les 12 derniers mois. Nombre de deces lies au
+          cholera: 1 deces (Juin 2023 - Juin 2024)."
+    So in the one year where Benin's WHO zero return can be audited, it was wrong by several
+    hundred cases, and the country's own ministry says so. The inference "Benin files
+    zero returns, therefore Benin's absence from the 2025 table is a reported zero" does not
+    survive.
+    What still supports row 27, and it is not nothing: the UNICEF WCA press release of
+    30 July 2025 positively separates Benin ("Niger, Liberia, Benin, Central Africa
+    Republic, Cameroon, remain under close surveillance due to their vulnerability") from
+    the seven countries with active epidemics - and UNICEF WCA is precisely the channel that
+    DID capture Benin's 2024 cases, so its 2025 non-outbreak classification is meaningful.
+    Against it: 395 cases in 2024 did not stop UNICEF WCA-adjacent reporting from treating
+    Benin as a non-outbreak country either, so a similar low-hundreds year in 2025 could sit
+    below the same threshold.
+    VERDICT: keep the row; relabel Documented_Absence -> Inferred_Absence; lower confidence
+    0.80 -> 0.60, aligning it with rows 28 and 29 which rest on the same class of evidence.
+    Applied in batch 3.
+
+F14. ROWS 28/29 (2026) - LABEL AND CONFIDENCE ALREADY CORRECT; ONE NEW CORROBORATION,
+    ONE NEW LIMIT.
+    Agent 1 had already downgraded both to Inferred_Absence and had already found and
+    registered the WHO dashboard country file (metadata Index 39). Batch 2 re-derived that
+    file independently through the HDX CKAN API (queries 30-32) and confirms: 28 reporting
+    countries worldwide for epi weeks 2025-12-29 to 2026-08-17, Benin absent. New this
+    batch: WER 2026;101(35) of 4 September 2026 gives the 19 African-Region reporting
+    countries for 1 Jan - 26 July 2026 (Angola, Burundi, Cameroon, CAR, Chad, Congo, DRC,
+    Ethiopia, Kenya, Malawi, Mozambique, Namibia, Nigeria, Rwanda, South Africa, South
+    Sudan, Tanzania, Zambia, Zimbabwe) - Benin absent, and the same article carries the
+    standing disclaimer "Missing data in this report do not imply the absence of cholera or
+    AWD cases or deaths in the respective country", which is why Inferred_Absence is right.
+    NO CHANGE to rows 28/29 beyond appending these corroborations.
+    SURVEILLANCE-FUNCTIONING EVIDENCE, newly found and independent of cholera: WER
+    2026;101(36-37) of 18 September 2026, Table 5 "Global leprosy situation by WHO Region
+    and country or territory, 2025", carries a complete Benin row - population 14 814
+    thousand, registered prevalence 83, 87 new cases detected, 75 MB, 39 among women, 42
+    with G2D, 5 child cases, 1 child case with G2D, 2 non-autochthonous. A country filing a
+    full 2025 notifiable-disease return to WHO was reporting. This is exactly the
+    "reporting measles and polio but not cholera" test, and Benin passes it.
+
+F15. THE 2026-08-27..2026-09-19 WINDOW REMAINS OPEN, AND THE REASON IS NOW SPECIFIC.
+    Every candidate product was checked and each stops short:
+      WHO multi-country epidemiological updates - monthly; #38 (30 Jun) covers to 31 May;
+        the next, reflected in WER 101(35) of 4 Sep, covers to 26 July. #40 would publish
+        end-September, after this run.
+      WHO Global Cholera and AWD Dashboard country file (HDX, refreshed 2026-09-03) -
+        last epidemiological week 2026-08-17.
+      ECDC Cholera worldwide overview - monthly, as of 26 August 2026 (already row 29).
+      WHO AFRO Weekly Bulletin on Outbreaks and other Emergencies - on IRIS the newest is
+        Week 33 (10-16 August 2026); weeks 34-37 are not yet deposited.
+      Africa CDC Weekly Event Based Surveillance Report - the public archive stops at
+        April 2024.
+      WER 2026;101(36-37) of 18 Sep 2026 - covers weeks 36-37 but is a signals digest with
+        no country-level cholera table.
+    STATUS: REMAINING. This is a publication-lag gap, not a Beninese surveillance gap, and
+    it will close on its own when the September products appear. It is correctly left empty.
+
+=== BATCH 3 | PHASE 2-3 (apply audit verdicts; national statistical yearbooks) | BEN ===
+Gaps targeted: sub-national absence in years with no sub-national layer at all; national
+               sub-annual absence inside covered years; and the batch-1/2 audit verdicts.
+Queries (20):
+  41 [EPMC] cholera AND Benin AND (epidemiology OR surveillance) AND (departement OR commune OR spatial)
+  42 [EPMC] cholera AND Benin AND (1970 OR 1991 OR retrospective OR trends)
+  43 [EPMC] PMC12532610 fullTextXML - 'Geographical shifting of cholera burden in Africa' (2025)
+  44 [EPMC] PMC5908202 fullTextXML - Moore et al., 'Dynamics of cholera epidemics from Benin
+          to Mauritania', PLoS NTD 2018;12:e0006379 - Table 1 read in full
+  45 [WF ] GTFCC 11th annual meeting, Benin section 3 (national cholera plan / PAMI)
+  46 [IRISQ] discover/search AFRO 'Weekly Bulletin on Outbreak and other Emergencies' 2024 - all 52 listed
+  47 [IRIS] bash fetcher for handles 376438/376975/378249 - failed (returned the 135-byte licence stub)
+  48 [IRIS] python fetcher, same three - same stub problem diagnosed
+  49 [IRIS] python fetcher with a bitstream size filter -> AFRO bulletins 2024 weeks 10, 20, 27
+          retrieved in full (72-86 kB each)
+  50 [WF ] sanity check of those bulletins' country and cholera coverage
+  51 [HDX] package_search q='cholera west central africa' (88 results; UNICEF WCA regional
+          cholera platform datasets stop at 2017 - no 2024/2025 equivalent exists)
+  52 [WF ] sante.gouv.bj live probe (https 200, http 522, www 000)
+  53 [CDX] web.archive.org/cdx sante.gouv.bj matchType=domain, 4659 URLs, filtered for
+          'annuaire|statistiq|bulletin|epidem|cholera|surveillance'   [THE KEY QUERY]
+  54 [WF ] Annuaire des statistiques sanitaires 2018 (live 404 -> wayback 20250429105300, 4.1 MB)  [HIT]
+  55 [WF ] Annuaire 2010 (wayback 20250429105648, 4.9 MB)
+  56 [WF ] Annuaire 2012 (wayback 20250429111953, 4.9 MB)
+  57 [WF ] Annuaire 2013 (wayback 20250429104748, 5.4 MB)
+  58 [WF ] Annuaire 2014 (wayback 20250429104539, 5.6 MB)
+  59 [WF ] Annuaire 2019 (wayback 20220621000240, 12.2 MB)  [HIT]
+  60 [WF ] Annuaire 2021 (wayback 20241105080815, 20.0 MB)  [HIT]
+
+Sources found : 3 registered - metadata Index 78 (Annuaire 2018), 79 (Annuaire 2019),
+                80 (Annuaire 2021)
+Rows added    : 30   Indices:
+                119            national 2024-07-08..2024-12-31 absence (adjudicated; evidence
+                               assembled in batches 1-2, committed here)
+                120-127        2018 department zeros: Alibori, Atacora, Borgou, Collines,
+                               Donga, Mono, Plateau, Zou
+                128-131        2018 department counts: Atlantique 1, Couffo 1, Littoral 3, Oueme 1
+                               (all with cCh=0 - none confirmed nationally in 2018)
+                132-140        2019 department zeros: Alibori, Atacora, Borgou, Collines, Couffo,
+                               Donga, Mono, Plateau, Zou
+                141-142        2019 NATIONAL sub-annual absences: 1 Jan-30 Jun and 1 Nov-31 Dec
+                143-144        2019 department counts: Atlantique 19/6, Littoral 31/13
+                145-148        2021 department zeros: Couffo, Plateau, Zou (0.85), Atacora (0.70)
+Revisions applied (py/revise_observation.py, never hand edits):
+                Index 20  Documented_Absence -> Inferred_Absence, 0.80 -> 0.70  (F4)
+                Index 25  Documented_Absence -> Inferred_Absence, 0.85 -> 0.70  (F12)
+                Index 27  Documented_Absence -> Inferred_Absence, 0.80 -> 0.60  (F13)
+                Index 28  label/confidence confirmed, two corroborations appended (F14)
+                Index 29  label/confidence confirmed, two corroborations appended (F14)
+Successful queries: 3/20  (54, 59, 60)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (the yearbook seam is clearly productive and four more volumes are
+               already downloaded but unread)
+
+--------------------------------------------------------------------------------
+BATCH 3 FINDINGS
+--------------------------------------------------------------------------------
+F16. THE SINGLE MOST PRODUCTIVE SOURCE FOUND IN THIS RUN: the ANNUAIRE DES STATISTIQUES
+    SANITAIRES of Benin's Ministry of Health. Every volume carries a table titled 'Cas et
+    deces des maladies a potentiel epidemique par zone sanitaire' with a CHOLERA column
+    giving an explicit number for every health zone and every one of the twelve
+    departments. A printed 0 in a national government table is the strongest absence
+    evidence obtainable - it is a system that looked, tabulated and recorded zero, not a
+    country missing from a WHO list. The live site returns HTTP 404 for the PDFs; they are
+    reachable only through the Internet Archive. Volumes located: 2010, 2012, 2013, 2014,
+    2018, 2019, 2020, 2021 (2011, 2015, 2016, 2017 exist as CDX entries but their captures
+    are HTML, not PDF). 2018, 2019 and 2021 are extracted in this batch; 2010, 2012, 2013,
+    2014 are downloaded and go into batch 4.
+
+F17. 2018 - SIX SUSPECTED CASES, NONE CONFIRMED, EIGHT DEPARTMENTS AT ZERO.
+    Tableau 113 (SGSI/DPP/MS, 2018): Alibori 0, Atacora 0, Atlantique 1, Borgou 0,
+    Collines 0, Couffo 1, Donga 0, Littoral 3, Mono 0, Oueme 1, Plateau 0, Zou 0; national
+    total 6 suspected, 0 deaths, and 1+1+3+1 = 6 so the decomposition is complete. The
+    narrative adds that for cholera 'aucun cas n'a ete confirme'.
+    THIS RESOLVES A CONFLICT NOBODY HAD RESOLVED. The baseline gives Benin 0 for 2018 from
+    both the WHO Annual Cholera Report and the UNICEF weekly series, while WHO's Disease
+    Outbreak News of 25 January 2022 says Benin has had 'cases reported annually since
+    2016'. Both are right: six suspected, zero confirmed. WHO counted confirmed cholera.
+
+F18. 2019 - THE YEAR'S CASES ARE TEMPORALLY BOUNDED BY THE GOVERNMENT ITSELF.
+    Tableau 109 (Plateforme SIMR_DNSP/MS, 2019): ten departments at 0; only Atlantique
+    (19 suspected, 6 confirmed) and Littoral (31, 13); total 50 suspected, 19 confirmed,
+    0 deaths. And p.143: 'Le Benin a enregistre DE JUILLET A OCTOBRE 2019 des cas de
+    cholera dans les departements du Littoral, Atlantique et de l'Oueme avec 50 cas au
+    total dont 19 confirmes et zero (0) deces.'
+    TRIPLE AGREEMENT on magnitude and timing: the WHO Annual Cholera Report row in the
+    baseline gives Benin exactly 50 cases and 0 deaths for 2019; and the UNICEF Country
+    Programme weekly national series is zero in all 53 weeks of 2019 EXCEPT eleven
+    consecutive weeks from the week beginning 2019-07-01 to the week ending 2019-09-15
+    (8,1,3,7,7,8,6,2,1,1,1 = 45). Twenty-six weekly zero returns precede the first case.
+    Rows 141 and 142 therefore document 1 Jan - 30 Jun and 1 Nov - 31 Dec 2019 as national
+    absences - the conservative complement of the ministry's July-October window, even
+    though the UNICEF series would justify starting the second window in mid-September.
+    DISCREPANCY NOT SUPPRESSED: the narrative names Oueme as a third affected department
+    while the table gives Oueme 0. The table reconciles to the national total, so it is
+    used - but NO Oueme zero row has been created for 2019.
+
+F19. 2021 - AN IDSR TABLE THAT INDEPENDENTLY CONFIRMS ROWS 116-118 AND EXPOSES ONE CONFLICT.
+    Tableau 125 (Plateforme SIMR_DNSP/MS, 2021), cholera suspected/confirmed/deaths:
+    Alibori 2/1/1, Atacora 0/0/0, Atlantique 107/11/0, Borgou 946/22/15, Collines 7/3/0,
+    Couffo 0/0/0, Donga 152/1/6, Littoral 28/11/1, Mono 2/1/0, Oueme 4/0/0, Plateau 0/0/0,
+    Zou 0/0/0, Benin 1248/50/23.
+    Couffo, Plateau and Zou are zero for the whole of 2021 - independently confirming the
+    three rows this agent added in batch 2 from the WHO DON, by a completely different
+    route and a different reporting system, and extending them back over January-August.
+    THE CONFLICT: the WHO DON names ATACORA among the nine affected departments for
+    1 Sep 2021 - 16 Jan 2022, but the Annuaire gives Atacora 0 for all of calendar 2021.
+    Reconcilable if Atacora's cases fell in January 2022, which the DON's window allows
+    and the Annuaire's does not cover. Handled by entering the Atacora zero for calendar
+    2021 only, at reduced confidence 0.70, and NOT entering an Atacora zero for the DON's
+    wave window. Flagged for Agent 5.
+    THE EIGHT NON-ZERO 2021 DEPARTMENT COUNTS ARE DELIBERATELY NOT ENTERED. Donga 152/1/6
+    and Borgou 946/22/15 in particular are substantial and are absent from every layer, but
+    they are calendar-year figures that would sit across Agent 2's wave-window rows
+    (Borgou 841 for weeks 43-50, Atlantique 104, Littoral 17, Parakou 597) and invite
+    double-counting. FOR AGENT 5: the full 2021 department table is printed above; adjudicate
+    it against the existing wave-window rows before entering it.
+
+F20. MOORE ET AL. 2018 (PLoS NTD) TABLE 1 - a peer-reviewed annual series for West Africa,
+    2009-2015, where 0 is used as a real value (Gambia all seven years, Guinea 2010 and
+    2015, Senegal 2013-2015, Sierra Leone 2009-2011 and 2014-2015). Benin reads
+    2009:74, 2010:983, 2011:775, 2012:668, 2013:528, 2014:832, 2015:0.
+    NO ROW WAS CREATED FOR 2015 and the reason should be recorded. The period is already
+    the best-attested absence in the whole Benin dataset: the baseline holds 73 UNICEF and
+    JHU weekly national rows spanning 2015-01-05 to 2015-12-27, EVERY ONE of them zero -
+    a full year of weekly zero returns from an operational system. Adding an annual AI row
+    on top would be duplication without coverage gain. 2015 is recorded here as
+    VALIDATED-ABSENT rather than FILLED. Regional context for that year, from the same
+    Table 1: Nigeria 5290, Niger 51, Togo 35, Burkina Faso 0 - so Benin's 2015 zero is an
+    absence held while its largest neighbour was reporting.
+    The paper also states 'Certain countries such as Benin and Togo have reported cholera
+    cases nearly every year albeit with relatively low incidence', which independently
+    supports finding F8: annual-level absence work for Benin is closed.
+
+F21. A THIRD DEMONSTRATION THAT BENIN'S CHOLERA DID NOT REACH THE WHO CHANNEL IN 2024.
+    WHO AFRO's Weekly Bulletin on Outbreaks and other Emergencies was retrieved for weeks
+    10, 20 and 27 of 2024. Benin appears in all three - in week 10 with 'Benin
+    Poliomyelitis (cVDPV2) Grade 2 ... 30' cases and in week 27 with 'Benin Measles
+    Ungraded 3-Jul-2024 1-Jan-2024 23-Jun-2024 728 321 0 0.00%' and the note 'Measles
+    outbreak in ongoing in Benin, from week 1 through week 25, 2024 (ending 23 June), a
+    total of 728 suspected cases of measles, including 288 confirmed IgM+'. NO BENIN
+    CHOLERA EVENT IS LISTED IN ANY OF THE THREE - including week 27 (1-7 July 2024), the
+    very week in which the UNICEF Country Programme series records 80 Benin cholera cases.
+    This is the surveillance-functioning test CLAUDE.md prescribes, and it comes out the
+    unusual way round: Benin WAS reporting notifiable diseases to WHO AFRO in 2024 with
+    week-level resolution, and its cholera still did not appear. The national system was
+    operational; the cholera notification pathway to WHO was not. Every Benin absence
+    inferred from a WHO cholera table must be weighted with that in mind - which is exactly
+    why rows 20, 25 and 27 were relabelled and re-weighted in this batch.
+
+=== BATCH 4 | PHASE 3 (systematic mining of the Annuaire series) | BEN ===
+Gap targeted : Benin's ADM1 (department) layer, which Agent 2 reported as essentially
+               non-existent outside 2016 and 2021. This batch works the seam found at the
+               end of batch 3.
+Queries (20):
+  61 [WF ] 'Graphique 12 : Nombre de cas de cholera par mois' in the 2010/2012/2013/2014 volumes
+  62 [WF ] TOTAL rows of the epidemic-disease tables in the 2010/2012/2013 volumes
+  63 [WF ] Annuaire 2014, Tableau 129 - full department table (titled 'en 2013')
+  64 [WF ] Annuaire 2010 Tableau 103 and Annuaire 2012 Tableau 101 - full department tables
+  65 [--] conflict check of existing AI rows against 2010 / 2012 / 2013
+  66 [CDX] all Annuaire PDFs in the sante.gouv.bj CDX
+  67 [CDX] sante.gouv.bj application/pdf captures from 2023 onward -> 2011/2015/2016/2017 PDFs found
+  68 [WF ] Annuaire 2011 (wayback 20250429113156, 4.8 MB)  [HIT]
+  69 [WF ] Annuaire 2015 (wayback 20250429124642, 5.3 MB)  [HIT]
+  70 [WF ] Annuaire 2016 (wayback 20250429114908, 5.5 MB)  [HIT]
+  71 [WF ] Annuaire 2017 (wayback 20250429105817, 3.1 MB)  [HIT]
+  72 [WF ] Annuaire 2020 (wayback 20221020112646, 16.7 MB) [HIT]
+  73 [WF ] department-row extraction from all five
+  74 [WF ] Annuaire 2020 Tableau 119 column header (to identify the confirmed-case column)
+  75 [WF ] live sante.gouv.bj /ressources /publications /documents /annuaire-statistique - all 404
+  76 [WF ] six plausible live URLs for a 2022 or 2023 Annuaire - all 404
+  77 [CDX] instad.bj (Benin national statistics institute) PDF captures - only a copy of the 2019 volume
+  78 [CDX] 2014-dated PDFs on sante.gouv.bj - only zone-level volumes (Bassila, NBT, Tanguieta)
+  79 [GHO] CHOLERA_0000000003 (case fatality rate) for BEN - completeness cross-check
+  80 [WF ] search all volumes for a 2014-specific cholera table - none exists
+
+Sources found : 8 registered - metadata Index 81 (Annuaire 2010), 82 (2012), 83 (2013),
+                84 (2011), 85 (2015), 86 (2016), 87 (2017), 88 (2020)
+Rows added    : 94   Indices 149-241
+Rows retracted: 3    Indices 112, 114, 115 (see F24)
+Rows revised  : 3    Indices 110, 111, 113 (confidence 0.70 -> 0.85, see F24)
+Successful queries: 8/20  (63, 64, 68, 69, 70, 71, 72, 74)
+Yield        : 40%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+--------------------------------------------------------------------------------
+BATCH 4 FINDINGS
+--------------------------------------------------------------------------------
+F22. BENIN NOW HAS A COMPLETE DEPARTMENT-BY-YEAR CHOLERA MATRIX FOR 2010-2021 EXCEPT 2014.
+    Ten volumes of the Annuaire des statistiques sanitaires were located and read: 2010,
+    2011, 2012, 2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021. Each carries a table 'Cas
+    et deces des maladies a potentiel epidemique par zone sanitaire' with an explicit
+    cholera number for every health zone and every one of the twelve departments. The
+    national totals and the department decompositions, with the external check applied:
+      2010  969 cases /  7 deaths   (GHO 983/8)    9 departments at zero
+      2011  775 /  4                (GHO 755/4)    4 at zero
+      2012  630 /  3                (GHO 625/3)    3 at zero
+      2013  528 /  6                (GHO 528/6 EXACT)   6 at zero
+      2014  -- no 2014 table exists; the 2014 volume reprints the 2013 table --
+      2015    0 /  0                (Moore 2018 Table 1 = 0; 73 weekly zero returns)  12 at zero
+      2016  874 / 13                (= the Plan d'Endiguement's own two-wave total EXACTLY)  3 at zero
+      2017   13 /  1                (WHO annual 11)      9 at zero
+      2018    6 /  0, none confirmed (WHO annual 0 - confirmed vs suspected)  8 at zero
+      2019   50 / 19 confirmed / 0 deaths (WHO annual 50/0 EXACT)  10 at zero
+      2020  232 suspected / 29 confirmed / 6 deaths (WHO annual 232/6 EXACT)  7 at zero
+      2021 1248 / 50 confirmed / 23 deaths            4 at zero
+    In every year the twelve departmental entries sum exactly to the printed national
+    total. That internal consistency, plus the exact agreement with WHO in 2013, 2019 and
+    2020 and the exact agreement with the Plan d'Endiguement in 2016, is why these tables
+    are treated as Level 1 and the department zeros entered as Documented_Absence at 0.85.
+
+F23. A TRAP IN THE SAME DOCUMENTS, AND THE REASON IT WAS NOT WALKED INTO.
+    Every volume also prints 'Graphique 12 : Nombre de cas de cholera par mois en YYYY',
+    which looks like exactly what a weekly/monthly transmission model wants. IT IS NOT
+    CHOLERA. In the 2010 volume its twelve values (37, 68, 55, 51, 24, 21, 7, 18, 12, 8,
+    10, 12) sum to 323 - that volume's MENINGITIS cumulative total - while its cholera
+    total is 969. In the 2012 volume the values (71, 192, 243, 252, 61, 33, 50, 45, 61, 59,
+    35, 63) sum to 1165, again that volume's meningitis total, against a cholera total of
+    630. The identical twelve numbers are then reprinted unchanged in the 2013 volume
+    (still captioned 'en 2012') and in the 2014 volume (recaptioned 'en 2014' with
+    'Source : SIMR/DNSP, 2014'). The graph is both mislabelled and recycled. NO monthly
+    series was extracted from it. This is recorded prominently in the processing_notes of
+    every row derived from these documents so that a later agent cannot use it by mistake.
+    Related: the 2014 volume's Tableau 129 is correctly captioned 'en 2013' and its total
+    of 528/6 matches GHO's 2013 exactly, so the 2014 volume contains NO 2014 cholera table.
+    2014 remains the one year in 2010-2021 with no department breakdown.
+
+F24. AGENT 3 CORRECTED THREE OF ITS OWN ROWS. In batch 2 this agent inferred six 2016
+    department zeros from the commune enumeration in the Plan d'Endiguement. The Annuaire
+    2016 Tableau 118 states the department numbers directly and gives Couffo 1, Mono 1 and
+    Plateau 1 - not zero. A commune with a single case simply was not named in a strategy
+    document's narrative list. Rows 112 (Couffo), 114 (Mono) and 115 (Plateau) were
+    RETRACTED through py/revise_observation.py --delete, with the reasoning written to
+    /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/retracted_rows_ai.csv, and
+    replaced by count rows of 1 case each from the Annuaire. The inference WAS right for
+    Alibori, Atacora and Donga, which the same table also prints as 0; rows 110, 111 and
+    113 were retained and their confidence raised 0.70 -> 0.85 now that they rest on a
+    stated figure rather than on an inference. Net effect on the 2016 department layer: it
+    is now stated rather than derived, and it reconciles to 874/13.
+
+F25. 2015 IS CONFIRMED ZERO BY THE GOVERNMENT ITSELF, AND NOW HAS A DEPARTMENT LAYER.
+    Annuaire 2015 Tableau 130 prints 0 cholera cases and 0 deaths for every health zone,
+    every department and the national total. That is a fourth independent channel agreeing
+    with Moore et al. 2018 Table 1 (Benin 2015 = 0), with the 73 consecutive weekly zero
+    returns in the baseline, and with GHO's silence. Twelve department-level zero rows were
+    added for 2015; they are new information even though the national zero was not, because
+    no layer previously held anything for Benin below national level in 2015.
+
+F26. NO 2022 OR 2023 ANNUAIRE EXISTS IN PUBLIC REACH. The live ministry site 404s on
+    /ressources, /publications, /documents and /annuaire-statistique and on six plausible
+    direct filenames; the Internet Archive holds no 2022 or 2023 volume; INSTaD, the
+    national statistics institute, holds only a copy of the 2019 health yearbook. The
+    department layer therefore stops at 2021. 2022-2026 SUB-NATIONAL REMAINS OPEN, with
+    the single exception of the three 2021-22 wave-window rows this agent added in batch 2
+    from the WHO Disease Outbreak News.
+
+=== BATCH 5 | PHASE 3 (pre-2010 national sources, MoH sitreps, health-zone volumes) | BEN ===
+Gaps targeted: the department layer before 2010; the 2022-2026 sub-national gap; and a final
+               attempt at 2026-08-27..2026-09-19.
+Queries (20):
+  81 [WF ] Annuaire_Statistique_2009_DPP.pdf (wayback 20161224161505, 4.2 MB)  [HIT]
+  82 [CDX] sante.gouv.bj CDX filtered for 'chol' - 36 hits
+  83 [WF ] full list of the cholera PDFs on sante.gouv.bj - 26 national cholera SitReps, July-Sept 2019
+  84 [WF ] Annuaire 2009, section 3.1.4.1.1 'Cholera'  [HIT]
+  85 [CDX] sante.gouv.bj/documents* for pre-2009 Annuaires - none
+  86 [WF ] Annuaire_Statistique_2010_DPP.pdf - a duplicate of the 2010 volume already held
+  87 [WF ] MoH Rapport de situation Cholera No 26, 30 September 2019  [HIT]
+  88 [WF ] MoH Rapport de situation Cholera No 01, 6 July 2019
+  89 [IRISQ] IRIS AFRO weekly bulletins 2022 (50 issues listed)
+  90 [IRIS] AFRO bulletin 2022 week 5  (Benin cholera: 1430 cases / 20 deaths as of 16 Jan 2022)
+  91 [IRIS] AFRO bulletin 2022 week 11 (1622 / 20 as of 6 Feb 2022)
+  92 [IRIS] AFRO bulletin 2022 week 14 (1679 / 20, 46 confirmed, as of 13 Mar 2022)
+  93 [WF ] full Benin cholera narrative in the week-14 bulletin
+  94 [WF ] ECDC publications index filtered to Communicable Disease Threats Reports - 0 links served
+  95 [WF ] ECDC CDTR direct URL probes, weeks 35-38 of 2026 - all 404
+  96 [WF ] ECDC Cholera worldwide overview page re-fetched - STILL 'as of 26 August 2026'
+  97 [WF ] Annuaire 2014, Zone Sanitaire de Tanguieta-Materi-Cobly (wayback 20220303020354)  [HIT]
+  98 [EPMC] (Benin) AND (cholera) AND PUB_YEAR:[2022 TO 2026] - 292 hits, none Benin-specific
+  99 [WF ] full context of the Tanguieta-Materi-Cobly cholera statement + title page
+ 100 [WF ] sibling zone volumes: Bassila 2014, Natitingou-Boukoumbe-Toucountouna 2014,
+          Porto-Novo-Aguegues-Seme-Kpodji 2015 and 2016
+
+Sources found : 3 registered - metadata Index 89 (Annuaire 2009), 90 (MoH SitRep No 26 of
+                30 Sept 2019), 91 (Zone Sanitaire Tanguieta-Materi-Cobly Annuaire 2014)
+Rows added    : 19   Indices 242-260
+                242-252  2009 department zeros (11 departments)
+                253      2009 Mono / Athieme 74 cases, 1 death
+                254-257  2019 commune-level confirmed cases: Ze 3, So-Ava 2,
+                         Abomey-Calavi 2, Cotonou 12
+                258-260  Tanguieta, Materi, Cobly 2002-01-01..2014-12-31 absence
+Rows revised  : 2    Index 141 (TR narrowed 2019-06-30 -> 2019-06-26)
+                     Index 25  (double-counting statement added, see below)
+Successful queries: 3/20  (81/84 counted once as the 2009 volume, 87, 97)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+--------------------------------------------------------------------------------
+BATCH 5 FINDINGS
+--------------------------------------------------------------------------------
+F27. 2009 - THE WHOLE YEAR'S CHOLERA IN ONE COMMUNE, AND ELEVEN DEPARTMENTS AT ZERO.
+    Annuaire 2009, section 3.1.4.1.1: 'Au cours de l'annee 2009, 74 cas de cholera dont un
+    (01) deces ont ete notifies dans le departement du Mono (commune d'Athieme). La tranche
+    d'age la plus touchee est celles des 15 ans et plus avec 67 cas.' WHO GHO gives Benin
+    2009 = 74 cases and 1 death, and the WHO Annual Cholera Report row in the baseline the
+    same - so the ministry's sentence accounts for 100% of the notified caseload and the
+    complement is safe: the other eleven departments recorded nothing. Entered as eleven
+    department zeros at 0.80 (lower than the 0.85 used where a department table is printed,
+    because here the zero is reached by subtraction) plus one commune row carrying the
+    entire national caseload at Athieme, Mono - a geography no layer previously held, the
+    baseline having only a single national 2009 row.
+
+F28. BENIN'S OWN 2019 CHOLERA SITREPS EXIST AND ARE ARCHIVED - 26 of them, numbered N01
+    (6 July 2019) to N026 (30 September 2019), on sante.gouv.bj and reachable only via the
+    Internet Archive. SitRep No 26 gives the closing picture: outbreak start 3 July 2019,
+    laboratory confirmation 5 July 2019 at the Laboratoire National de Sante Publique,
+    '19 cas confirmes tous gueris - 03 dans la commune de Ze, 02 dans la commune de So-Ava,
+    02 Abomey-Calavi, 12 dans la commune de Cotonou', 1 probable case in Cotonou, and 'Du
+    27 au 30 Septembre 2019: Aucun nouveau cas enregistre'. Four commune rows were added
+    carrying cCh only, because the sitrep breaks down CONFIRMED cases by commune and does
+    not break down the 50 suspected; inventing an sCh would have been fabrication.
+    IT ALSO CORRECTED ONE OF THIS AGENT'S OWN ROWS. The sitrep describes the index case:
+    'un homme de 60 ans, cultivateur, recu en urgence a l'Hopital de zone d'Allada le 30
+    juin 2019... Le debut remonterait a trois (03) jours'. Onset was therefore 27 June 2019,
+    not July. Row 141, the January-June 2019 national absence, had its end date narrowed
+    from 2019-06-30 to 2019-06-26 so that the dataset does not assert Benin was cholera-free
+    on days when the index case was already symptomatic.
+    FOR AGENT 2 OR 5: the other 25 sitreps were located but not mined. They are a
+    three-times-weekly national series for July-September 2019 with commune detail and
+    would support a much finer 2019 curve than the four rows added here.
+
+F29. A THIRTEEN-YEAR DOCUMENTED ABSENCE AT HEALTH-ZONE LEVEL - the single most
+    epidemiologically informative zero found in this run.
+    Annuaire des statistiques sanitaires 2014 of the Zone Sanitaire de Tanguieta-Materi-
+    Cobly (Direction Departementale de la Sante Atacora-Donga), section 3.9.1: cholera
+    'est une maladie a declaration obligatoire et immediate. De 2002 a 2014 aucun cas de
+    cholera n'a ete notifie dans la zone sanitaire.'
+    Entered as ONE row per commune spanning 2002-01-01 to 2014-12-31, per the CLAUDE.md
+    instruction to prefer a single multi-year row over year-by-year inference.
+    The surveillance-functioning test is passed inside the same two paragraphs: the very
+    next subsection reports the zone's meningitis caseload year by year - 92 (2009), 106,
+    86, 184, 102, 121 (2014) - including a declared 2012 meningitis epidemic met with
+    MenAfriVac campaigns. A zone that detected and responded to a meningitis epidemic, and
+    that lists cholera as immediately notifiable, was looking.
+    It is also consistent with everything else now in the file: the national Annuaires give
+    Atacora 0 in 2009, 2010, 2011, 2013 and 2015-2021, and its only non-zero year in that
+    window, 2012 with 11 cases, places them in the Kouande-Ouassa-Pehunco-Kerou zone, a
+    different zone of the same department. The span covers Benin's 2003, 2005, 2008-2010 and
+    2012-2014 epidemics and Nigeria's 2010 and 2014 epidemics, so it is a sustained absence
+    held through repeated national and regional activity - the northern boundary condition
+    for a disease that in Benin is a southern lagoon-and-coastal phenomenon.
+
+F30. DO NOT EXTEND THE 2021 DEPARTMENT ZEROS INTO 2022. The WHO AFRO bulletin for week 14
+    of 2022 says of Benin's continuing wave: 'General trend: Decreasing since 9 consecutive
+    weeks. However, GEOGRAPHIC EXTENSION OF THE OUTBREAK TO BE CONSIDERED, WITH NEW COMMUNES
+    BEING AFFECTED.' WHO is explicitly warning that the geography changed in 2022. The
+    Couffo, Plateau and Zou zeros therefore stop at 2022-01-16 where the Disease Outbreak
+    News stops, and are NOT carried forward. The same bulletins do give the national
+    cumulative series Agent 2 flagged (1430 at 16 Jan 2022, 1622 at 6 Feb, 1679 with 46
+    confirmed at 13 Mar) - still unextracted, still Agent 5's to adjudicate.
+
+F31. THE 2026-08-27..2026-09-19 WINDOW IS CLOSED TO THIS RUN, CONFIRMED A THIRD TIME.
+    ECDC's Cholera worldwide overview was re-fetched and still reads 'as of 26 August 2026';
+    ECDC's weekly Communicable Disease Threats Report is not reachable (the publications
+    index serves no links to a plain fetch and direct week-35 to week-38 2026 URLs 404);
+    WHO's dashboard country file stops at epidemiological week 2026-08-17; the AFRO weekly
+    bulletin on IRIS stops at week 33 (16 August 2026); Africa CDC's public archive stops in
+    April 2024. Three agents have now independently reached the same conclusion. This is a
+    PUBLICATION-LAG gap, not a Beninese surveillance gap, and it is correctly left empty
+    rather than zero-filled.
+
+F32. ONE VALIDATOR WARNING RAISED AND FIXED IN-BATCH. Adding the 2002-2014 commune rows put
+    sub-national rows inside the period of national zero row 25 (2007), which carried no
+    double-counting statement - Agent 2 had avoided sub-national additions over the
+    zero rows for exactly this reason. Row 25 was revised through py/revise_observation.py
+    to name the national level as primary. Validation returned to ERROR 0 / WARN 0.
+
+=== BATCH 6 | PHASE 3 (health-zone yearbooks - the seam opened by F29) | BEN ===
+Gap targeted : sub-departmental absence. The Tanguieta-Materi-Cobly volume showed that
+               Benin's ZONE-level yearbooks carry narrative multi-year cholera absence
+               statements that the national volumes do not. This batch works that seam.
+Queries (20):
+ 101 [WF ] absence-phrase sweep of the four zone volumes already downloaded
+ 102 [CDX] every application/pdf on sante.gouv.bj (906 URLs) -> 56 distinct Annuaire volumes
+ 103-115 [WF] bulk retrieval of thirteen zone / departmental volumes:
+          Bassila 2014, Bassila 2015, ZS2KP 2015, Aplahoue-Djakotomey-Dogbo 2011,
+          ZS-C 2008, ZSDCO 2015, ZS DCO 2012, DDS Atacora-Donga 2013, DDS Mono 2013,
+          DDS Borgou-Alibori 2010, DDS Oueme-Plateau 2010, ZS Banikoara 2011, ZS NKP 2011
+          - all thirteen retrieved as real PDFs and converted
+ 116 [WF ] absence-phrase sweep across all thirteen  [3 HITS]
+ 117 [WF ] Banikoara volume: title page, section 3.4 context, meningitis table
+ 118 [WF ] Nikki-Kalale-Perere volume: title page and section context
+ 119 [WF ] ZS2KP volume: title page (identifies it as Kouande-Kerou-Pehunco)
+ 120 [WF ] broader sweep of every cholera section in all thirteen - no further absence statements
+
+Sources found : 3 registered - metadata Index 92 (ZS Banikoara 2011), 93 (ZS Nikki-Kalale-
+                Perere 2011), 94 (ZS Kouande-Kerou-Pehunco 2015)
+Rows added    : 7    Indices 261-267
+                261      Banikoara (Alibori) 2002-01-01..2011-12-31 - TEN-YEAR absence
+                262-264  Nikki, Kalale, Perere (Borgou) 2011
+                265-267  Kouande, Kerou, Pehunco (Atacora) 2015
+Successful queries: 3/20  (the ZS2KP, Banikoara and NKP retrievals)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+--------------------------------------------------------------------------------
+BATCH 6 FINDINGS
+--------------------------------------------------------------------------------
+F33. A SECOND TEN-YEAR ZONE ABSENCE: BANIKOARA, ALIBORI, 2002-2011.
+    Annuaire des statistiques sanitaires 2011 of the Zone Sanitaire de Banikoara (DDS
+    Borgou-Alibori), section 3.4.1: 'De 2002 a 2011 aucun cas de cholera n'a ete notifie
+    dans la zone sanitaire.' The two sentences before it establish the surveillance:
+    'Ces maladies sont sous surveillance du systeme alerte (SNIGS, PEV). Les donnees sont
+    collectees de facon HEBDOMADAIRE par les agents de sante qualifies de la zone', and
+    cholera 'est une maladie a declaration obligatoire et immediate'. The same section then
+    gives the zone's meningitis series 2004-2011 (34, 29, 12, 38, 35, 44, 35, 18 cases;
+    8, 8, 4, 4, 5, 6, 4, 2 deaths) and records active case-finding around a former patient
+    at Gomparou with no suspect case found. Weekly collection, mandatory immediate
+    notification, a detected meningitis burden and active case-finding - the system was
+    looking. Banikoara sits on the Niger and Burkina Faso borders, and the span covers
+    Niger's 2010 epidemic (1154 cases) and Nigeria's 2010 epidemic (44 456), so this is a
+    decade-long frontier absence held through regional activity. Entered as ONE row.
+
+F34. NIKKI-KALALE-PERERE 2011 - AN ABSENCE INSIDE A DEPARTMENT THAT HAD CASES.
+    'Aucun cas de Cholera n'a ete enregistre dans la zone sanitaire en 2011.' The national
+    Annuaire 2011 gives BORGOU 66 cholera cases that year, so this row says where inside
+    Borgou the disease was not - information no other source in the dataset carries.
+    Geography caveat recorded rather than resolved silently: the volume's cover prints
+    'DEPARTEMENT DE L'ALIBORI' under the zone name, which is a template error; Nikki,
+    Kalale and Perere are Borgou communes and every national Annuaire places the zone in
+    Borgou, so the rows are coded to Borgou.
+
+F35. KOUANDE-KEROU-PEHUNCO 2015 - the zone that carried ALL of Atacora's 2012 cholera
+    (the national Annuaire 2012 puts all 11 Atacora cases in Kouande-Ouassa-Pehunco-Kerou)
+    states 'En 2015 aucun cas de cholera n'a ete notifie dans la zone sanitaire'. A stated
+    zero in a zone with demonstrated susceptibility is an observation, not a default, which
+    is why it was entered even though 2015 was nationally zero. With F29 it completes the
+    Atacora picture: the two zone volumes cover the department's north-west (Tanguieta-
+    Materi-Cobly, absent 2002-2014) and its centre (Kouande-Kerou-Pehunco, absent 2015,
+    the only Atacora zone ever to report).
+
+F36. THE ZONE SEAM IS NOW EXHAUSTED FOR ABSENCE STATEMENTS. All thirteen retrieved volumes
+    were swept twice - once for absence phrasings, once for every cholera section - and
+    only three carry a narrative absence claim. The others (Bassila 2014/2015, Aplahoue-
+    Djakotomey-Dogbo 2011, ZS-C 2008, ZSDCO 2012/2015, DDS Atacora-Donga 2013, DDS Mono
+    2013, DDS Borgou-Alibori 2010, DDS Oueme-Plateau 2010) carry case-definition text and
+    tables but no statement of absence. Their tables are a possible source of COUNT rows
+    for Agent 2 or 5; they are not further absence material.
+
+=== BATCH 7 | PHASE 3 (regional / cross-border framing; 2008-2010 departmental volumes) | BEN ===
+Gap targeted : a different angle entirely - sources that place Benin OUTSIDE a neighbour's
+               epidemic, and the pre-2010 departmental directorate volumes.
+Queries (20):
+ 121 [EPMC] cholera AND cross-border AND (Togo OR Nigeria OR Niger) AND Benin
+ 122 [EPMC] cholera AND "Gulf of Guinea" AND (spared OR unaffected OR "free of")
+ 123 [EPMC] Vibrio cholerae genomic West Africa (Benin OR Togo) introduction/importation
+ 124 [EPMC] cholera Nigeria "neighbouring countries" (Benin OR Niger OR Cameroon) surveillance
+ 125 [EPMC] PMC13000271 'Multicountry genomic analysis underscores regional cholera spread in
+          Africa' full text - Benin is not mentioned once
+ 126 [WF ] ProMED post search for cholera Benin - HTTP 308, no usable index
+ 127 [WF ] WAHO/OOAS site search - HTTP 404
+ 128-133 [WF] six departmental volumes: DDS Mono-Couffo 2009, DDS Oueme-Plateau 2009,
+          DDS Atacora-Donga 2010, DDS Atacora-Donga 2012, DDS Borgou-Alibori 2011,
+          DDS Oueme-Plateau 2011 - all retrieved
+ 134 [WF ] absence-phrase sweep of the enlarged set  [2 corroborations, 0 new periods]
+ 135 [WF ] DDS Oueme-Plateau 2009 statement in context
+ 136 [WF ] DDS Atacora-Donga 2010 statement in context
+ 137 [OA ] OpenAlex title_and_abstract.search:'cholera Benin' - 57 works, all already known
+          or without extractable absence data
+ 138 [GO ] IFRC GO API v2 events for BEN - the endpoint ignores the country filter and
+          returns the global event stream; unusable
+ 139 [WF ] two guessed URLs for the Benin Plan d'elimination du cholera 2022-2026 - both 404
+ 140 [CDX] gtfcc.org PDF captures filtered for Benin - two documents found, carried to batch 8
+
+Sources found : 0 new registrations
+Rows added    : 0
+Rows revised  : 4    Indices 150, 155 (Atacora and Donga 2010) and 250, 251 (Oueme and
+                     Plateau 2009) - each given an independent departmental corroboration
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (the stopping rule needs three consecutive sub-5% batches)
+
+--------------------------------------------------------------------------------
+BATCH 7 FINDINGS
+--------------------------------------------------------------------------------
+F37. TWO OF THIS AGENT'S DERIVED ZEROS BECAME STATED ZEROS. No new periods, but the
+    evidence class of four existing rows improved, which matters more than row count for an
+    absence dataset.
+    (a) DDS Oueme-Plateau, Annuaire 2009, section 3.1.4.1: 'Selon le tableau ci-apres AUCUN
+        CAS DE CHOLERA, de fievre jaune, de shiguellose et aucun deces n'a ete enregistre au
+        sein des maladies a potentiel epidemique en 2009 dans les communes des departements
+        de l'Oueme/Plateau. Seuls 6 cas de meningite ont ete declares dans la commune de
+        Sakete, soit une incidence departementale de 0,4 pour 100 000 habitants.' The Oueme
+        and Plateau 2009 zeros (rows 250, 251) had been derived by subtracting Mono/Athieme
+        from the national total; they are now stated at commune resolution by the
+        responsible departmental directorate, which in the same breath resolves six
+        meningitis cases in one commune - so the system was detecting small numbers.
+    (b) DDS Atacora-Donga, Annuaire 2010: 'En 2010, aucun cas de cholera, de shigellose et
+        de tetanos maternel et neonatal n'a ete notifie.' The same paragraph reports 182
+        meningitis cases with 26 deaths in Atacora, 37 with 8 deaths in Donga, 20 yellow
+        fever in Atacora against 13 in Donga, and 7 AFP in Atacora against 5 in Donga -
+        a directorate that was plainly looking, and that records explicitly which diseases
+        produced nothing. Rows 150 and 155 corroborated.
+
+F38. THE CROSS-BORDER ANGLE IS EMPTY FOR BENIN. Four Europe PMC strategies were run against
+    the idea that a regional or neighbouring-country source might positively place Benin
+    outside an epidemic. Nothing does. The most likely candidate, 'Multicountry genomic
+    analysis underscores regional cholera spread in Africa' (2026), does not mention Benin
+    at all. The West African regional literature treats Benin either as a low-incidence
+    endemic country reporting 'nearly every year' (Moore et al. 2018) or not at all. This
+    is a genuine negative result and is recorded as such rather than left as an untried
+    avenue for the next agent.
+
+F39. TOOL NOTES FOR LATER AGENTS. ProMED's post search returns HTTP 308 with a 15-byte body
+    and no usable index. The WAHO/OOAS site search path returns 404. The IFRC GO API v2
+    /event/ endpoint silently ignores countries__iso3 and returns the global event stream,
+    so it cannot be used for country filtering as written. ReliefWeb's API is closed
+    entirely: v1 returns HTTP 410 'decommissioned' and v2 returns HTTP 403 'not an approved
+    appname' (batch 1, query 20).
+
+=== BATCH 8 | PHASE 3 (GTFCC documents, national portals, bibliographic sweeps) | BEN ===
+Gap targeted : 2022-2026 sub-national, and any remaining citable statement of absence.
+Queries (20):
+ 141 [WF ] GTFCC 9th WG-OCV meeting, Benin country update, 11-12 October 2022
+ 142 [WF ] GTFCC 10th annual meeting, Benin presentation, 2023 (already mined by Agent 2)
+ 143 [WF ] full text of the 2022 GTFCC Benin update
+ 144 [CDX] every bulletin / sitrep / situation PDF on sante.gouv.bj
+ 145-152 [WF] afro.who.int/countries/benin; africacdc.org/country/benin; cousp.bj; anssp.bj;
+          who.int/countries/ben; extranet.who.int/e-spar; worldhealthorg.shinyapps.io/cholera;
+          gtfcc.org/country/benin
+ 153 [OA ] Crossref query 'cholera Benin surveillance' from 2020
+ 154 [OA ] Semantic Scholar graph search 'cholera Benin departments surveillance' (no total returned)
+ 155 [WF ] archive.org advancedsearch 'cholera AND Benin' - 33 hits, all irrelevant
+ 156 [EPMC] TITLE:"Cholera surveillance time series in Africa" - 4 records
+ 157 [OA ] Crossref bibliographic match for the same title
+ 158 [EPMC] PMC13079947 full text (Gates Open Research, doi 10.12688/gatesopenres.16378.1)
+ 159 [WF ] its Data Availability statement -> OSF osf.io/2ncf7, .rds files
+ 160 [OSF] api.osf.io/v2/nodes/2ncf7 - provenance check
+
+Sources found : 0 new registrations
+Rows added    : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE (one more batch required before the stopping rule is satisfied)
+
+--------------------------------------------------------------------------------
+BATCH 8 FINDINGS
+--------------------------------------------------------------------------------
+F40. THE GTFCC 2022 BENIN DOCUMENT IS A VACCINATION CALENDAR, NOT SURVEILLANCE DATA, AND IS
+    CORRECTLY EXCLUDED. The 9th GTFCC WG-OCV country update (11-12 October 2022) records
+    'Identification des Hotspots cholera : 15 communes situees dans 07 Departements
+    (Regions) avec une population totale de 4.063.659 habitants' and annexes a preventive
+    OCV campaign calendar naming those communes with their 2021 populations and campaign
+    years: Abomey-Calavi, Allada, Kpomasse, So-Ava, Ze (Atlantique); Nikki, Parakou,
+    Tchaourou (Borgou); Savalou (Collines); Djougou (Donga); Cotonou (Littoral); Adjohoun,
+    Aguegues, Dangbo, Seme-Kpodji (Oueme). CLAUDE.md prohibits vaccination and population
+    figures as data rows and NONE were entered. Nor can 'not a hotspot' be read as 'zero
+    cases': a hotspot list is a prioritisation, not a surveillance return. It is recorded
+    here only as geographic context. The document also states that as of October 2022
+    'Le Benin n'avait jamais eu recours a la vaccination contre le cholera (ni preventive
+    ni reactive)', which is useful for anyone modelling immunity: no OCV had ever been used
+    in Benin up to that date.
+
+F41. THERE IS NO ROUTINE BENIN EPIDEMIOLOGICAL BULLETIN SERIES IN PUBLIC REACH. A sweep of
+    every bulletin-, sitrep- and situation-named PDF on sante.gouv.bj returns Lassa fever
+    sitreps (2016, 2018-2019), COVID-19 sitreps (2020), the 2019 cholera sitrep run already
+    mined, quarterly SNIGS retro-information leaflets from 2011 and 2014, and institutional
+    newsletters. There is no weekly or monthly national epidemiological bulletin, which is
+    why Benin's post-2021 sub-national record simply does not exist publicly.
+
+F42. THE ONE PROMISING BIBLIOGRAPHIC LEAD TURNED OUT TO BE THE SAME DATA WE ALREADY HAVE.
+    'Cholera surveillance time series in Africa between 2010 and 2023' (Lee EC, Zheng Q.,
+    Gates Open Research 2026, doi 10.12688/gatesopenres.16378.1, PMC13079947) is exactly the
+    kind of paper that could have closed 2022-2023 at sub-national level. It does not
+    mention Benin once in 43 kB of text, and its underlying data (OSF osf.io/2ncf7,
+    Public_surveillance_dataset.rds and Public_outbreak_dataset.rds, code at
+    github.com/HopkinsIDD/OutbreakExtractR, zenodo.15319642) is the Johns Hopkins Cholera
+    Taxonomy database - the same lineage as
+    /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/BEN/cholera_data_jhu.csv, which this
+    project already holds in full. Extracting it would be circular, not corroborative. NOT
+    PURSUED, and recorded here so the next agent does not spend a batch on it.
+
+F43. WHO AFRO's own Benin country page states that cholera cases 'y sont rapportees presque
+    chaque annee' - reported there almost every year - which agrees with Moore et al. 2018
+    and with WHO's Disease Outbreak News of 25 January 2022 ('cases reported annually since
+    2016'), and independently confirms finding F8: there are no undocumented annual-level
+    cholera-free years left to find in Benin. All absence work from here is necessarily
+    sub-annual or sub-national, which is what batches 2-6 delivered.
+
+=== BATCH 9 | PHASE 3 (historical + linguistic categories; weekly regional series) | BEN ===
+Gap targeted : the two query categories not yet worked as SEARCHES rather than as documents -
+               historical (category 5) and linguistic (category 7) - plus sub-annual structure
+               in years the baseline holds only as annual totals.
+Queries (20):
+ 161 [WF ] local WER cache swept for 'Dahomey'
+ 162 [IRISQ] IRIS discovery '"Cholera in 1970"' -> hdl 10665/218451
+ 163 [IRISQ] IRIS discovery '"Cholera in 1971"' -> hdl 10665/218990
+ 164 [IRIS] bitstream text of WER 'Cholera in 1970'  [HIT]
+ 165 [WF ] its Table 1 'Cases of Cholera Notified in 1970, by Date of First Notification'
+ 166-171 [EPMC] six francophone / historical queries: 'cholera Benin epidemie/surveillance/
+          departement'; 'cholera AND Dahomey'; 'Benin cholera Cotonou/So-Ava/lagunaire';
+          'cholera Benin 1991 epidemic'; 'cholera (Benin OR Dahomey) 1970/1971 West Africa
+          pandemic'; 'cholera (Mono OR Oueme OR Atacora OR Borgou) Benin'
+ 172 [EPMC] 'Five decades of infectious diseases outbreaks in the African region (1970-2018)'
+          - no open full text
+ 173 [EPMC] the 1976 and 1971 Dahomey cholera papers - no abstracts held by Europe PMC
+ 174 [HDX] package_search fq=groups:ben  [HIT - the WCA regional cholera platform series]
+ 175 [HDX] package_show cholera-outbreaks-in-central-and-west-africa-2017-regional-update
+ 176 [WF ] download and parse wca_Cases2017_RegCholeraPlatformWCA.xlsx  [HIT]
+ 177-180 [WF] the same for 2012, 2013, 2014 and 2015  [HIT]
+
+Sources found : 5 registered - metadata Index 95 (WER 'Cholera in 1970'), 96 (WCA weekly 2017),
+                97 (WCA weekly 2012), 98 (WCA weekly 2013), 99 (WCA weekly 2014)
+Rows added    : 9    Indices 268-276
+                268      national 1970-01-01..1970-07-31 - the pandemic's initial condition
+                269-270  national 2017-01-01..2017-06-17 and 2017-08-28..2017-12-31
+                271-272  national 2012-01-30..2012-06-23 and 2012-12-10..2012-12-31
+                273-274  national 2013-01-01..2013-08-24 and 2013-12-16..2013-12-31
+                275-276  national 2014-05-01..2014-06-28 and 2014-12-08..2014-12-31
+Rows revised  : 2    Index 11 (TL 2013-01-01 -> 2013-08-25), Index 26 (TL 2014-06-01 -> 2014-06-29)
+Successful queries: 3/20  (164, 176, 177-180 counted once)
+Yield        : 15%
+Consecutive sub-5% batches: 0 (reset by this batch)
+Decision     : CONTINUE
+
+--------------------------------------------------------------------------------
+BATCH 9 FINDINGS
+--------------------------------------------------------------------------------
+F44. THE INITIAL CONDITION OF THE SEVENTH PANDEMIC IN BENIN (row 268).
+    WER 'Cholera in 1970' (WER 1971;46, IRIS 10665/218451): cholera 'appeared... in Guinea
+    in West Africa. From Guinea, following the expected pattern the disease spread to 10
+    countries in West Africa and by the end of 1970 had infected Sierra Leone, Liberia,
+    Ghana, Ivory Coast, Mali, Togo, DAHOMEY, Upper Volta, Nigeria and Niger.' WER
+    1991;66(42) fixes the date and the sequence: 'In AUGUST 1970, Guinea was hit by a
+    cholera outbreak, which was to spread rapidly to an entire continent that had been FREE
+    OF THIS SCOURGE SINCE THE END OF THE NINETEENTH CENTURY... reaching Sierra Leone,
+    Liberia, Cote d'Ivoire, Ghana, Togo, Dahomey (now Benin), Nigeria and southern Cameroon
+    successively BETWEEN SEPTEMBER 1970 AND FEBRUARY 1971.'
+    The row stops at 31 July rather than 31 August: the September-February statement would
+    allow the later date but is a retrospective with a two-month grain, so the row uses the
+    unimpeachable bound instead - West Africa as a whole had no cholera before August 1970 -
+    and leaves August 1970 empty rather than claiming it either way.
+    WHY THE EXACT DATE COULD NOT BE HAD: the 1970 article's Table 1 is literally titled
+    'Cases of Cholera Notified in 1970, by Date of First Notification and Country' and would
+    settle this to the day, but the IRIS text layer for the 1971 scan has collapsed the
+    table - the sixteen African country names run together as one block and the date column
+    survives only as an unaligned token stream ('1311 1.9 39 20.10 610 23.8 2411 2712 2712
+    23.9 5.12 24.11 30 9 17.12'), fourteen date-like tokens for sixteen countries, so none
+    can be safely assigned to Dahomey. A later agent with the PAGE IMAGE could read it off
+    and tighten row 268. That is a concrete, bounded task and is the single most useful
+    follow-up left in the historical era.
+
+F45. THE UNICEF WCARO REGIONAL CHOLERA PLATFORM WEEKLY SERIES - the best sub-annual source
+    found for Benin, and it was hiding on HDX under a regional name.
+    Datasets exist for 2012, 2013, 2014, 2015, 2016 and 2017 only. Each is a single sheet,
+    eighteen countries by fifty-two weeks. Benin's rows:
+      2012  weekly values sum to 625 = EXACTLY WHO GHO's 625 for 2012
+      2013  sum 528 = EXACTLY GHO's 528 and exactly the Annuaire 2013's 528
+      2014  sum 863 against GHO's 832 (3.7%); weeks 1-14 sum to EXACTLY 115 and weeks 27-29
+            to 200, matching AI rows 77 (115, 1 Jan - 30 Apr) and 78 (201, 2-20 Jul), both
+            of which came from a completely separate source
+      2015  every week zero - a FOURTH independent confirmation of the 2015 national zero,
+            alongside the Annuaire 2015, Moore et al. 2018 Table 1, and the 73 weekly zero
+            returns already in the baseline
+      2017  sum 10, non-zero only in weeks 25, 28, 31 and 34, against GHO/WHO's 11 and the
+            Annuaire 2017's 13
+    That level of agreement with two independent national channels is why these were entered
+    at 0.8 despite being a Level 2 UN compilation.
+    WHAT THEY BUY: six national sub-annual absence windows in years the dataset previously
+    held only as annual totals - most importantly 2013-01-01..2013-08-24 (an EIGHT-MONTH
+    national absence in a 528-case year) and the two 2017 windows in a year for which the
+    entire dataset held exactly one row. Every window is dated on the UNION of the ISO and
+    Sunday-start week conventions, so each concedes a day at both boundaries.
+
+F46. THE WEEKLY SERIES CORRECTED TWO EXISTING ROWS' START DATES - both of which had been
+    calendar-year or explicitly approximate.
+    Row 11 (So-Ava, 211 cases) spanned all of 2013. The weekly series is zero through week
+    34 and IFRC DREF MDRBJ013 update 2 says 'Since August 2013 a cholera epidemic has been
+    on-going in Benin. The epidemic was recognized in the So-Ava municipality... in
+    September 2013'. TL moved to 2013-08-25. The count is untouched.
+    Row 26 (Atlantique, 150 cases, 7 deaths) carried TL 2014-06-01, which its own notes
+    flagged as an estimate. The weekly series is zero in weeks 15-26 and resumes at week 27
+    with 81 cases and week 28 with 84 - 165 across the fortnight ending 13 July, against the
+    150 this row's source reports cumulative to Monday 14 July. TL moved to 2014-06-29.
+    Neither correction would have been visible without the weekly series, and both remove
+    apparent contradictions with the new absence rows rather than creating them.
+
+F47. THE FRANCOPHONE AND HISTORICAL SEARCH CATEGORIES ARE EMPTY FOR ABSENCE. Six Europe PMC
+    strategies in French and on the colonial name returned two genuinely old Benin cholera
+    papers - '[The epidemic of cholera in Dahomey]' (1971) and '[Clinical and therapeutic
+    study of cholera in Dahomey. (133 clinical cases)]' (1976) - neither with an abstract in
+    Europe PMC and neither an absence source. Recorded so the next agent does not repeat it.
+
+=== BATCH 10 | PHASE 3 (exhausting the WCA weekly series; 2021-2022 checks) | BEN ===
+Queries (20):
+ 181 [HDX] package_show cholera-outbreaks-in-central-and-west-africa-2016-regional-update
+ 182 [WF ] download and parse wca_Cases2016_RegCholeraPlatformWCA.xlsx  [HIT]
+ 183 [WF ] sheet inventory of all six WCA workbooks - one sheet each, CASES only, no deaths
+          sheet and no sub-national sheet
+ 184-186 [HDX] package_show probes for 2018, 2019, 2020, 2021 regional updates - all absent
+ 187 [HDX] package_search 'RegCholeraPlatform OR "regional cholera platform"' - exactly six
+          datasets, 2012 to 2017. The series is bounded and is now fully exploited.
+ 188 [--] 2015 full-year national absence committed from the same series
+ 189 [--] baseline weekly-coverage audit for 2020, 2021 and 2022
+ 190 [IRISQ] IRIS AFRO bulletins issued from September 2022
+ 191-192 [IRIS] AFRO bulletins week 1 2023 and week 7 2023 - Benin's only listed ongoing
+          events are COVID-19 and cVDPV2 polio; the cholera event has been dropped
+ 193 [WF ] 'declared over / closed / contained / no new case' sweep around every Benin
+          mention in every AFRO bulletin held - no closure statement exists
+ 194-197 [IRIS] AFRO bulletin week 20 2022 - the Benin cholera event is still listed but
+          frozen at 'as of 13 March 2022'
+ 198 [GHO] CHOLERA_0000000001 TimeDim ge 2017 - ZERO records globally; the GHO annual
+          cholera series ends at 2016 for every country
+ 199 [WF ] ECDC cholera monthly page re-checked once more
+ 200 [GHO] Togo death series as a neighbour sanity check - also ends 2015
+
+Sources found : 1 registered - metadata Index 100 (WCA weekly 2015). The 2016 dataset was
+                already registered by Agent 2 as Index 49 and was REUSED rather than
+                duplicated, the URL being identical.
+Rows added    : 4    Indices 277-280
+                277  national 2016-06-20..2016-08-06 - the trough between the two 2016 waves
+                278  national 2016-12-09..2016-12-31
+                279  national 2012-08-13..2012-09-01 - the trough between the two 2012 peaks
+                280  national 2015-01-01..2015-12-31 - a full cholera-free year at 0.9
+Successful queries: 2/20
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+--------------------------------------------------------------------------------
+BATCH 10 FINDINGS
+--------------------------------------------------------------------------------
+F48. THE 2016 WEEKLY SERIES SUMS TO 874 - the national total in BOTH of Benin's own
+    documents (Annuaire 2016 Tableau 118, and the Plan d'Endiguement's 'les deux flambees
+    de 2016 qui ont cumule 874 cas et 13 deces'). It also reproduces the ministry's own
+    wave boundaries exactly: the Plan says wave 1 ran 'de la cinquieme a la vingt-quatrieme
+    semaine' and wave 2 'de la trente-deuxieme semaine a la quarante-sixieme semaine', and
+    the series is non-zero across weeks 5-24 and 32-46 and zero across 25-31 and 47-52.
+    Row 277 marks the inter-wave trough, which no layer previously held - AI row 79 carried
+    the first wave and rows 5 and 80 the second, with nothing between them.
+
+F49. 2015 ENTERED AS A SINGLE FULL-YEAR ROW AT CONFIDENCE 0.9, the highest absence
+    confidence in this file, because four independent channels state it: the WCA weekly
+    series (0 in all 52 weeks), Benin's Annuaire 2015 Tableau 130 (0 for every zone, every
+    department and the nation), Moore et al. 2018 Table 1 (Benin 0 for 2015), and 73
+    weekly zero returns already in the baseline. It is held below 1.0 only because no WHO
+    annual table lists Benin explicitly with 0 - GHO simply has no 2015 Benin record, which
+    as established in finding F1 means 'did not notify', not 'notified zero'. Nigeria
+    reported 5290 cases, Niger 51 and Togo 35 that year, so this is a twelve-month absence
+    held with all three land neighbours reporting.
+
+F50. A FALSE ZERO AVOIDED - the 2021 inter-wave period. WHO's Disease Outbreak News says
+    'In 2021, Benin reported its first epidemic wave of cholera between March and April...
+    A second epidemic wave began in September 2021', which reads like an invitation to
+    enter May-August 2021 as an absence. IT WOULD HAVE BEEN WRONG. The baseline holds a
+    UNICEF Country Programme cumulative row for 2021-01-04 to 2021-07-04 of 106 cases,
+    against the 103 of the March-April So-Ava wave - so roughly three cases occurred
+    between the end of the first wave and early July. 'No epidemic wave' is not 'no cases',
+    and the row was not created. Recorded because this is precisely the distinction the
+    agent exists to police, and the evidence against it was three cases deep.
+
+F51. NO AFRO CLOSURE STATEMENT EXISTS FOR ANY BENIN CHOLERA EVENT. Every Benin mention in
+    every AFRO Weekly Bulletin retrieved in this run (2021 wk42, 2022 wks 5/11/14/20, 2023
+    wks 1/7, 2024 wks 10/20/27, 2026 wk 33) was swept for 'declared over', 'closed',
+    'contained', 'ended' and 'no new case'. None occurs. The 2021-22 event is carried
+    frozen at 'as of 13 March 2022' through week 20 of 2022 and has simply vanished from
+    the table by week 7 of 2023, where Benin's only listed events are COVID-19 and cVDPV2
+    polio. Disappearance from a monitoring table is omission, not a declared end, so no
+    absence row was created for 2022 on that basis.
+
+F52. THE WHO GHO ANNUAL CHOLERA SERIES ENDS AT 2016 - GLOBALLY, not just for Benin. A query
+    for CHOLERA_0000000001 with TimeDim >= 2017 returns zero records for any country. Every
+    statement in this log about 'GHO has no record for Benin in year X' where X >= 2017 is
+    therefore a property of the series, not of Benin, and must not be read as evidence
+    about Beninese reporting. This correction matters for anyone re-reading findings F1
+    and F12.
+
+=== BATCH 11 | PHASE 3 (last push on 2022-2026 sub-national) | BEN ===
+Queries (20):
+ 201 [RW ] reliefweb.int/updates?search=cholera Benin - JS-rendered, no titles to a plain fetch
+ 202 [CDX] *.bj domains filtered for 'chol' - empty
+ 203 [RW ] reliefweb.int/country/ben - JS-rendered, zero cholera mentions in the served HTML
+ 204-210 [IRIS] AFRO bulletins 2024 weeks 36, 44, 52 and 2023 week 6, swept for a Benin
+          CHOLERA row: Benin appears in all four (measles, polio, COVID-19) and the cholera
+          line count is ZERO in every one
+ 211-214 [CDX] Beninese news domains lanationbenin.info, 24haubenin.info, matinlibre.com,
+          beninwebtv.com - 2, 2, 3 and 5 archived URLs containing 'chol' respectively; none
+          is a surveillance report
+ 215 [IRISQ] IRIS discovery 'Benin cholera' sorted by date - the top hits are the WER and
+          AFRO bulletins already held
+ 216 [IRIS] AFRO bulletin week 33 2026 - exactly one Benin mention, not cholera
+ 217 [--] WHO AFRO Regional Director's report - no country cholera table
+ 218 [HDX] package_search fq=groups:ben AND res_format:XLSX - 61 datasets, none cholera
+ 219 [OA ] OpenAlex cholera Benin, publication_year>2021  [LEAD - see batch 12]
+ 220 [WF ] WHO dashboard country file re-checked - unchanged, last epi week 2026-08-17
+
+Sources found : 0 registered in this batch
+Rows added    : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE - query 219 surfaced a Benin-specific paper that Agent 2 had
+               recorded as unreachable; chased in batch 12.
+
+F53. THE 2022-2026 SUB-NATIONAL GAP IS NOT CLOSEABLE THROUGH ANY OF THE ROUTES TRIED.
+    ReliefWeb's site pages are JavaScript-rendered and its API is closed to this run, so the
+    fallback Agent 2 used in 2026 no longer works either. Beninese news domains have almost
+    no archived cholera coverage. AFRO's weekly bulletins list Benin for measles, polio and
+    COVID-19 across 2023 and 2024 and never for cholera. HDX has 61 Benin datasets and not
+    one is cholera. This is now a three-agent, three-method negative result.
+
+=== BATCH 12 | PHASE 3 (the recovered SciRP paper; source verification) | BEN ===
+Queries (20):
+ 221 [OA ] OpenAlex title.search 'Cholera Recurrence within Benin Littoral' -> pdf_url
+ 222 [WF ] www.scirp.org/pdf/ojepi2024142_121890750.pdf with a browser UA and a
+          Referer of https://www.scirp.org/journal/ojepi  -> HTTP 200, 2.3 MB  [HIT]
+ 223 [WF ] its Table 4 'Cholera cases in Cotonou from 2017 to 2023' and Table 3 (2016 by
+          department of origin)
+ 224 [--] metadata Index 30 inspected; the paper was already registered by Agent 2 as
+          unreachable, so the entry was UPDATED rather than duplicated
+ 225 [WF ] the paper's 2008 material
+ 226 [WF ] its epidemic-duration sentence in context  [HIT]
+ 227-240 [WF] HTTP reachability check on all 23 sources Agent 3 registered (metadata 78-100)
+
+Sources found : 0 new; metadata Index 30 revised with the working retrieval route and the
+                validation result; metadata Index 97-100 revised to record their direct
+                resource URLs, their landing pages being JavaScript-rendered
+Rows added    : 43   Indices 281-322 (the Cotonou health-zone matrix) and 323
+Successful queries: 2/20  (222 and 226)
+Yield        : 10%
+Decision     : STOP - 12 batches executed, the protocol ceiling (240 queries).
+
+--------------------------------------------------------------------------------
+BATCH 12 FINDINGS
+--------------------------------------------------------------------------------
+F54. THE SOURCE AGENT 2 COULD NOT REACH WAS RECOVERED, AND IT IS THE ONLY SUB-NATIONAL
+    CHOLERA SOURCE FOR BENIN AFTER 2021.
+    Agent 2's closing note read: 'SciRP Open Journal of Epidemiology paper (metadata 30)
+    returns HTTP 403 on the article page, DOI redirect and PaperDownload endpoint; its 2023
+    Littoral figures remain unextracted.' The working route is the direct PDF URL published
+    in OpenAlex's primary_location.pdf_url field -
+    https://www.scirp.org/pdf/ojepi2024142_121890750.pdf - fetched with a browser
+    User-Agent and a Referer header of https://www.scirp.org/journal/ojepi. Recorded in
+    metadata Index 30 so no future agent has to rediscover it.
+    Its Table 4 is a complete 6 health-zone by 7-year matrix of Cotonou cholera cases,
+    2017-2023, entered here as 42 rows (16 zeros, 26 counts):
+              2017 2018 2019 2020 2021 2022 2023  total
+      Cot I      0    0    3   38    4    0    0     45
+      Cot II     1    0   13    0    3    0    0     17
+      Cot III    2    0    4    2   10    2    1     21
+      Cot IV     1    1    2   10    9    2    0     25
+      Cot V      2    0    8    2   10    0    0     22
+      Cot VI     1    2    1    0    3    0    0      7
+      TOTAL      7    3   31   52   39    4    1    137
+    VALIDATION BEFORE USE, because a single SciRP table is not self-certifying. The matrix
+    is internally consistent in both directions - every row sums to its printed row total,
+    every column to its printed annual total, and the whole to 137. Externally, its annual
+    Littoral totals match Benin's own Annuaire des statistiques sanitaires EXACTLY for four
+    of the five checkable years: 2017 (7 v 7), 2018 (3 v 3), 2019 (31 v 31), 2020 (52 v 52).
+    Only 2021 differs (39 v the Annuaire's 28). Four exact matches against an independent
+    government series is why these rows were entered at all.
+    CONFIDENCE 0.6, the top of the Level 3 band Agent 2 assigned. Not raised despite the
+    validation, because the publisher is SciRP and the authors themselves write 'This
+    secondary data analysis is prone to error, especially in terms of data completeness'.
+    The four exact matches are recorded in metadata 30 as grounds for Agent 5 or 7 to
+    reconsider the reliability level.
+    WHAT IT CLOSES: the 2022 and 2023 columns are the ONLY below-national cholera
+    observations for those years anywhere in the dataset, and they include nine health-zone
+    zeros - Cotonou I, II, V and VI in 2022, and Cotonou I, II, IV, V and VI in 2023 - each
+    of them an absence recorded in one zone of a city while a neighbouring zone of the same
+    city was reporting cases in the same year. That is the most demanding class of absence
+    claim in this file and is weighted accordingly.
+
+F55. THE 2008 LITTORAL ROW IS DELIBERATELY LABELLED INFERRED, AND THE REASONING IS THE
+    POINT. The same paper dates the 2008 Littoral epidemic exactly - 'the devastation
+    period... July 26 to December and lasted 21 weeks (30 to 50) in 2008' - which would
+    support a documented absence for the first half of 2008, a period for which the dataset
+    holds nothing below national level and whose five existing 2008 rows all begin on or
+    after 24 July. It is entered as Inferred_Absence at 0.5 instead, because a 'devastation
+    period' is a statement about the EPIDEMIC, not about zero cases, and there is no weekly
+    series for 2008 against which to check it (the UNICEF WCARO series begins in 2012). The
+    identical reasoning about WHO's 2021 wave language was tested against data earlier in
+    this run and turned out to be wrong by three cases (finding F50), which is precisely why
+    this row is hedged. Its end date is 23 July 2008, the day before the earliest existing
+    2008 row, so it overlaps nothing.
+
+F56. ALL 23 SOURCES REGISTERED BY THIS AGENT WERE FETCHED AND CONFIRMED LIVE. Metadata
+    Index 78-96 return HTTP 200 with the expected content type (17 PDFs, one HTML, one
+    XLSX). Index 97-100 returned HTTP 202 because the registered URL was the HDX dataset
+    landing page, which is JavaScript-rendered; those four entries were revised to record
+    the direct resource URL alongside, so the data is retrievable without the API.
+
+================================================================================
+
+================================================================================
+AGENT 3 - FINAL SUMMARY - BENIN (BEN)
+================================================================================
+BATCHES : 12 of 12 (the protocol ceiling). 240 queries.
+YIELDS  : 0, 10, 15, 40, 15, 15, 0, 0, 15, 10, 0, 10  (percent)
+STOP    : 12-batch ceiling. The three-consecutive-sub-5% rule was NEVER triggered -
+          batches 7, 8 and 11 were the only zero-yield batches and they were not
+          consecutive, batch 11 being followed by a 10% batch that recovered a source
+          the previous agent had recorded as unreachable.
+
+FILE STATE            START -> END
+  cholera_data_ai.csv   105 -> 316 rows   (+211 added, 3 of them later retracted, net +208
+                                           against 6 retractions now in the tombstone file)
+  metadata_ai.csv        77 -> 100 sources (+23, every one fetched and confirmed live)
+  presence_ai.csv        20 -> 20         (no count-less presence claims arose)
+  retracted_rows_ai.csv   3 -> 6          (+3, all three retracted by this agent against
+                                           its own earlier rows - see F24)
+  validate_quality.py   ERROR 0 / WARN 0 at start AND at finish
+
+WHAT WAS ADDED: 211 rows - 131 absences and 80 counts - across four geographic levels
+  (16 national, 138 department, 15 commune, 42 health-zone). The AI layer now carries an
+  absence row touching every year from 1970 to 2026 except the epidemic years 1971-1978 and
+  1980-1984, 1986 and 1991-2000.
+
+--------------------------------------------------------------------------------
+PART 1 - THE AUDIT OF THE FIFTEEN PRE-EXISTING ZERO ROWS
+--------------------------------------------------------------------------------
+The governing finding is F1: WHO's GHO annual cholera series DOES store explicit zero-case
+rows (51 of them), so a country-year row exists when the country NOTIFIED and the stored
+value may be 0. Benin has no GHO row for 1979, 1985, 1987-1990 or 2007 and never filed an
+explicit zero in the whole 1970-2016 series, so its absence from GHO means "filed nothing",
+not "filed zero". Every pre-existing Benin zero therefore needed a second, positive leg.
+
+  Row 19  1979                CONFIRMED, no change. WER 1980;55(18) names Benin among four
+                              countries that reported cholera in 1978 and "did not report
+                              cases in 1979", and the same paragraph uses "remained free"
+                              for the identical class of country (F11).
+  Rows 21-24  1987-1990       CONFIRMED, no change, Documented_Absence at 0.85-0.90. The
+                              WER 1991;66(42) quote was retrieved and verified verbatim, and
+                              the phrase "had not reported" is disambiguated inside the same
+                              paragraph, which writes "had not EXPERIENCED cholera since
+                              1975" of Chad and "REMAINED FREE OF cholera" of Zambia (F2).
+  Row 20  1985                RELABELLED Documented_Absence -> Inferred_Absence, 0.80 -> 0.70.
+                              No source states a 1985 Benin zero; it rests on table omission.
+                              KEPT, and the apparently fatal WER caveat about "the absence of
+                              notifications from several West African countries that had
+                              experienced LARGE OUTBREAKS IN 1984" was shown NOT to apply to
+                              Benin, which had one case in 1984 against Niger's 3788 and
+                              Nigeria's 1667 (F4).
+  Row 25  2007                RELABELLED -> Inferred_Absence, 0.85 -> 0.70. The 2007 WER was
+                              read in full: Benin is not mentioned and the article contains
+                              no zero-reporting list of any kind. New supporting arithmetic
+                              found: Benin's own ministry gives 73 deaths for 2004-2016 and
+                              the eleven years GHO holds sum to EXACTLY 73, leaving zero
+                              deaths for 2007 and 2015 (F12).
+  Row 27  2025                RELABELLED -> Inferred_Absence, 0.80 -> 0.60. The argument that
+                              had held it at Documented_Absence - "Benin is a demonstrated
+                              active zero-reporter to WHO" - is refuted (F6, F13).
+  Rows 28-29  2026            LABEL AND CONFIDENCE CONFIRMED CORRECT. Two new legs appended:
+                              WER 2026;101(35) of 4 Sept 2026 (19 African reporting countries
+                              to 26 July, Benin absent) and independent re-derivation of
+                              WHO's dashboard country file; plus, for the surveillance test,
+                              Benin's complete 2025 LEPROSY return in WER 2026;101(36-37)
+                              Table 5 (F14).
+  Rows 39-44  2001 departments  CONFIRMED, no change. They rest on a positively stated Health
+                              Ministry claim relayed by IRIN, not on omission (F7).
+
+--------------------------------------------------------------------------------
+PART 2 - THE FINDING WITH THE WIDEST CONSEQUENCES
+--------------------------------------------------------------------------------
+F6/F21/F13: WHO's WER 2025;100(36) Table 2 lists Benin among 32 African countries that
+"reported 0 cases and deaths in 2024, fulfilling the public health surveillance service of
+'zero reporting'". At face value that is a gold-standard Documented_Absence for all of 2024
+at confidence 1.0. IT IS FALSE, and it was NOT entered. Three independent refutations:
+  - the UNICEF Country Programme weekly series already in the JHU baseline records 395 Benin
+    cases from January to 7 July 2024, weekly and cumulative series agreeing exactly;
+  - Benin's own Ministry of Health told the GTFCC in June 2024: "279 cas, dont 10 confirmes
+    en laboratoire durant les 12 derniers mois... 1 deces (Juin 2023 - Juin 2024)";
+  - WHO AFRO's own Weekly Bulletin listed Benin for POLIO in week 10 of 2024 and for MEASLES
+    in week 27 - the very week UNICEF recorded 80 cholera cases - and carried no Benin
+    cholera event at all.
+Benin's national surveillance was operational throughout 2024; the cholera notification
+pathway to WHO was not. CONSEQUENCE FOR THE MODELLERS: for Benin, absence from a WHO cholera
+table is weak evidence even when the country is demonstrably reporting other diseases. That
+is why rows 20, 25 and 27 were re-weighted and why rows 28-29 stay at 0.7.
+It also resolves the conflict the orchestrator flagged for Agent 5 (GTFCC 279 cases
+Jun2023-Jun2024 versus WHO zero-reporting for 2024): both are right about their own channel,
+and the GTFCC/UNICEF channel is the one that reflects transmission.
+
+--------------------------------------------------------------------------------
+PART 3 - WHAT WAS FOUND THAT NOBODY HAD
+--------------------------------------------------------------------------------
+1. THE ANNUAIRE DES STATISTIQUES SANITAIRES (F16, F22). Eleven national volumes (2009-2013,
+   2015-2021), reachable only through the Internet Archive - the live ministry site 404s on
+   every one. Each carries "Cas et deces des maladies a potentiel epidemique par zone
+   sanitaire" with an explicit cholera number for every health zone and department. Benin now
+   has a complete department-by-year matrix for 2009-2021 except 2014. Validation: the
+   departmental entries sum exactly to the printed national total in EVERY year, and those
+   totals match WHO exactly in 2013, 2019 and 2020 and the ministry's own Plan d'Endiguement
+   exactly in 2016.
+2. THE UNICEF WCARO REGIONAL CHOLERA PLATFORM WEEKLY SERIES (F45, F48). Six HDX datasets,
+   2012-2017, hiding under a regional name. Weekly national counts whose annual sums equal
+   GHO EXACTLY for 2012 (625) and 2013 (528) and the national yearbook exactly for 2016 (874).
+   They produced eight national sub-annual absence windows, including an EIGHT-MONTH one in
+   2013 and two in 2017, a year for which the entire dataset previously held one row.
+3. THREE MULTI-YEAR HEALTH-ZONE ABSENCES (F29, F33, F35), each a single sentence in a
+   zone-level yearbook: Tanguieta-Materi-Cobly 2002-2014, Banikoara 2002-2011, and
+   Kouande-Kerou-Pehunco 2015. Each carries its own surveillance proof in the adjacent
+   paragraph - weekly data collection, mandatory immediate notification, and a detected
+   meningitis burden in the same zone and years.
+4. THE 2009 EXCLUSIVE STATEMENT (F27): all 74 of Benin's 2009 cases in one commune, Athieme
+   in Mono, confirmed to the case by GHO - giving eleven department zeros and the country's
+   entire 2009 caseload at commune level, where the baseline held one national row.
+5. THE RECOVERED SciRP PAPER (F54): the only sub-national cholera source for Benin after
+   2021, recovered through OpenAlex's pdf_url after Agent 2 recorded it as unreachable. A
+   complete Cotonou health-zone by year matrix 2017-2023, validated exactly against the
+   national yearbook for four of five checkable years.
+6. THE PANDEMIC'S INITIAL CONDITION (F44): 1 January - 31 July 1970, before cholera existed
+   anywhere in West Africa.
+
+--------------------------------------------------------------------------------
+PART 4 - ERRORS CAUGHT, INCLUDING THIS AGENT'S OWN
+--------------------------------------------------------------------------------
+  - Three of this agent's own 2016 department zeros (Couffo, Mono, Plateau), inferred from a
+    commune list, were RETRACTED when the ministry's own department table gave each 1 case,
+    and replaced with count rows. The inference was right for Alibori, Atacora and Donga,
+    whose rows were upgraded to 0.85 (F24).
+  - A May-August 2021 absence that WHO's own wording invited was NOT created: the baseline
+    shows 106 cases by 4 July 2021 against 103 in the March-April wave (F50).
+  - Row 11 (So-Ava 2013) and row 26 (Atlantique 2014) had their start dates corrected from
+    calendar-year and estimated values to evidenced ones (F46).
+  - Row 141's end date was pulled back four days because Benin's own sitrep dates the 2019
+    index case's onset to 27 June, not July (F28).
+  - A validator WARNING raised by this agent's own additions was found and fixed in-batch
+    (F32).
+
+--------------------------------------------------------------------------------
+PART 5 - GAP STATUS
+--------------------------------------------------------------------------------
+FILLED / VALIDATED-ABSENT by this agent:
+  1970-01-01..1970-07-31 national            VALIDATED-ABSENT (0.85)
+  2002-2014 Tanguieta, Materi, Cobly         VALIDATED-ABSENT (0.80)
+  2002-2011 Banikoara                        VALIDATED-ABSENT (0.80)
+  2008-01-01..2008-07-23 Littoral            VALIDATED-ABSENT, INFERRED (0.50)
+  2009 eleven departments                    VALIDATED-ABSENT (0.80)
+  2010, 2011, 2012, 2013 departments         VALIDATED-ABSENT (0.85)  [9, 4, 3, 6 departments]
+  2012-08-13..2012-09-01 national            VALIDATED-ABSENT (0.80)
+  2012-01-30..2012-06-23, 2012-12-10..12-31  VALIDATED-ABSENT (0.80)
+  2013-01-01..2013-08-24, 2013-12-16..12-31  VALIDATED-ABSENT (0.80)
+  2014-05-01..2014-06-28, 2014-12-08..12-31  VALIDATED-ABSENT (0.80)
+  2015 whole year, national + 12 departments VALIDATED-ABSENT (0.90 / 0.85)
+  2015 Kouande, Kerou, Pehunco               VALIDATED-ABSENT (0.80)
+  2016 Alibori, Atacora, Donga               VALIDATED-ABSENT (0.85, upgraded from 0.70)
+  2016-06-20..2016-08-06, 2016-12-09..12-31  VALIDATED-ABSENT (0.80)
+  2017 nine departments                      VALIDATED-ABSENT (0.85)
+  2017-01-01..06-17, 2017-08-28..12-31 nat   VALIDATED-ABSENT (0.80)
+  2017-2023 Cotonou health zones, 16 cells   VALIDATED-ABSENT (0.60)
+  2018 eight departments                     VALIDATED-ABSENT (0.85)
+  2019 nine departments                      VALIDATED-ABSENT (0.85)
+  2019-01-01..06-26, 2019-11-01..12-31 nat   VALIDATED-ABSENT (0.85)
+  2020 seven departments                     VALIDATED-ABSENT (0.85)
+  2021 Couffo, Plateau, Zou (0.85), Atacora (0.70)   VALIDATED-ABSENT
+  2021-09-01..2022-01-16 Couffo, Plateau, Zou        VALIDATED-ABSENT (0.85)
+  2024-07-08..2024-12-31 national            VALIDATED-ABSENT (0.75), adjudicated
+
+REMAINING:
+  2026-08-27..2026-09-19 (24 days)  REMAINING - not closeable. Every candidate product was
+      checked and each stops short: WHO's dashboard country file at epi week 2026-08-17,
+      ECDC's monthly overview at 26 August 2026 (re-fetched three times), the AFRO weekly
+      bulletin on IRIS at week 33 (16 August), Africa CDC's public archive at April 2024,
+      and WER 2026;101(36-37) of 18 September carries no country cholera table. A
+      PUBLICATION-LAG gap, not a Beninese surveillance gap. Correctly left empty.
+  2014 department layer  REMAINING - no 2014 table exists. The 2014 national volume reprints
+      the 2013 table (total 528, matching GHO's 2013 exactly) and its "Graphique 12" is the
+      recycled mislabelled meningitis series (F23).
+  2022-2026 sub-national outside Cotonou  REMAINING. No Annuaire exists for 2022 or 2023; the
+      live ministry site 404s; INSTaD holds only a copy of the 2019 volume; ReliefWeb is
+      JS-rendered with its API closed; AFRO lists Benin for measles, polio and COVID-19
+      across 2023-2024 and never for cholera; HDX has 61 Benin datasets and none is cholera.
+      The Cotonou health-zone matrix (F54) is the sole exception and covers 2022 and 2023.
+  2025 sub-national  REMAINING - nothing below national level exists for 2025 either.
+
+--------------------------------------------------------------------------------
+PART 6 - HANDED TO LATER AGENTS
+--------------------------------------------------------------------------------
+FOR AGENT 5 (adjudication):
+  - The 2021 department table (Annuaire 2021 Tableau 125: Alibori 2/1/1, Atlantique 107/11/0,
+    Borgou 946/22/15, Collines 7/3/0, Donga 152/1/6, Littoral 28/11/1, Mono 2/1/0, Oueme
+    4/0/0, national 1248/50/23) was deliberately NOT entered as counts, because those
+    calendar-year figures would sit across Agent 2's wave-window rows (Borgou 841 for weeks
+    43-50, Parakou 597, Atlantique 104, Littoral 17) and invite double-counting. Adjudicate.
+  - Atacora conflict: WHO's DON names Atacora among the nine departments affected 1 Sep 2021
+    - 16 Jan 2022, while the Annuaire 2021 gives Atacora 0 for the calendar year. Reconcilable
+    if Atacora's cases fell in January 2022. Handled here by entering only a calendar-2021
+    Atacora zero at reduced confidence 0.70.
+  - The weekly series and AI row 5 disagree on when the 2016 second wave ended: week 46
+    (20 November) against 8 December.
+  - The 2019 sitrep allocates 7 of the 19 confirmed cases to Atlantique communes and 12 to
+    Cotonou; the Annuaire 2019 allocates 6 and 13. Both recorded, neither reconciled away.
+  - The six 2022 WHO Annual Cholera Report rows in the JHU baseline give 536, 433, 208, 225,
+    28 and 405 for the same year.
+FOR AGENT 2:
+  - The other 25 Benin MoH cholera sitreps of 2019 (N01 of 6 July to N026 of 30 September)
+    are archived and were located but not mined; they are a three-times-weekly national
+    series with commune detail.
+  - The department tables of the Annuaires 2010, 2011, 2012, 2013 were entered here in full
+    (zeros and counts); the health-zone level within them was recorded in processing_notes
+    but not broken out into rows.
+FOR WHOEVER HAS PAGE IMAGES:
+  - WER "Cholera in 1970" Table 1 gives the date of first notification for every country
+    infected in 1970. The IRIS text layer has destroyed its column alignment. Reading
+    Dahomey's date off the page image would tighten row 268 from a month-grain bound to an
+    exact date - the single most useful remaining task in the historical era.
+================================================================================

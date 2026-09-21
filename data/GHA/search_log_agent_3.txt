@@ -1,47 +1,980 @@
-=== AGENT 3 INITIALIZATION ===
-Country: Ghana (GHA)
-Start Time: 2026-05-14
-Agent 3 Status: INITIALIZED
-Focus: Zero-transmission validation for gap periods
+================================================================================
+AGENT 3 - ZERO-TRANSMISSION VALIDATOR | GHANA (GHA)
+================================================================================
+Start Time: 2026-09-19
+Role: audit every existing absence row against WHO primary documents, resolve
+      contested zeros, and add only zeros that rest on an affirmative statement
+      of no cases from a system that was demonstrably looking.
 
-=== BASELINE STATUS FROM AGENTS 1-2 ===
-cholera_data_ai.csv: 26 rows
-metadata_ai.csv: 21 sources
-Zero transmission already documented: 2020, 2021, 2022, 2023 (rows 12-15)
+INHERITED STATE
+  Agent 1: 12 batches, 34 rows, 38 sources. Built the WHO WER annual-cholera
+           series for Ghana from the IRIS DSpace API. Retracted a false 2021
+           zero. Downweighted the 2020 zero to 0.6.
+  Agent 2: 12 batches, 85 rows, 37 sources. Added four sub-national absence
+           rows (Upper East 2024, Northern 2024-25, North Tongu 2023,
+           Keta 2024). FLAGGED index 51 (July 2025 national zero) as
+           contradicted by five laboratory-confirmed cases in
+           Abura-Asebu-Kwamankese District, Central Region.
 
-Target gap periods for validation:
-1. 1986-1989 (4 years): Possibly surveillance gap not disease absence
-2. 2018: JHU shows zero/minimal transmission with weekly data
-3. Small gap: Nov-Dec 2020 (JHU shows this)
+ABSENCE ROWS INHERITED (sCh=0), to be audited one by one:
+   12  AFR::GHA                      2020-01-01..2020-12-31  conf 0.60
+   14  AFR::GHA                      2022-01-01..2022-12-31  conf 0.95  src 8 (Level 3 news)
+   15  AFR::GHA                      2023-01-01..2023-12-31  conf 0.95  src 8 (Level 3 news)
+   27  AFR::GHA                      2017-01-01..2017-12-31  conf 0.95  src 22 (Level 3 news)
+   41  AFR::GHA                      1986-01-01..1986-12-31  conf 0.90
+   42  AFR::GHA                      1987-01-01..1987-12-31  conf 0.90
+   43  AFR::GHA                      1988-01-01..1988-12-31  conf 0.90
+   44  AFR::GHA                      1989-01-01..1989-12-31  conf 0.90
+   49  AFR::GHA                      2025-06-01..2025-06-29  conf 0.90
+   51  AFR::GHA                      2025-07-01..2025-07-27  conf 0.40  CONTESTED
+   54  AFR::GHA                      2025-09-30..2025-10-26  conf 0.90
+   57  AFR::GHA                      2025-10-27..2025-12-28  conf 0.90
+   58  AFR::GHA                      2026-01-01..2026-07-26  conf 0.90
+   59  AFR::GHA                      2026-07-27..2026-08-26  conf 0.85
+  141  AFR::GHA::Upper_East          2024-10-04..2024-11-06  conf 0.80
+  142  AFR::GHA::Northern            2024-10-04..2025-05-19  conf 0.80
+  143  AFR::GHA::Volta::North_Tongu  2023-10-01..2023-10-24  conf 0.80
+  144  AFR::GHA::Volta::Keta         2024-10-04..2024-12-26  conf 0.60
 
-=== AGENT 3 SEARCH LOG - ZERO-TRANSMISSION VALIDATION ===
-=== BATCH 1 ZERO-TRANSMISSION VALIDATION RESULTS (2026-05-14) ===
-Queries executed: 16
-Sources found: 2 new sources (metadata entries 22-23)
-Data observations added: 4 new rows (rows 27-30)
-Yield: 6/16 = 37.5%
+BASELINE CONTEXT (JHU national annual series, read before searching):
+  Continuous non-zero national annual counts 1970-1985 and 1990-2016.
+  Missing years: 1986-1989, 2018, 2020, 2025+.
+  JHU already carries zero-valued annual rows for 2017, 2022, 2023, so the AI
+  rows for those years are corroboration, not new coverage.
+  IMPLICATION: there are no candidate cholera-free YEARS in 1990-2016. Target 2
+  (1990s-2000s inter-epidemic troughs) is therefore a verification exercise, not
+  a gap-filling one; any zero there would have to be sub-annual or sub-national.
 
-Key discoveries:
-- 2017: Zero cholera outbreaks confirmed. GHS records plus multiple sources confirm 'no case in 2017' - despite one GHS RTI data point showing 24,358 (likely mislabeled/cumulative data)
-- 2018: JHU shows 2 cases for entire year - near-zero transmission
-- 2019: JHU shows 1 case for entire year - near-zero transmission
-- 2020: JHU shows 1 case (confirmed - Graphic Online says zero since 2020, JHU shows 1 case Jan-June 2022 data)
-- 1986-1989: Surveillance gap documented - WHO only consistently reports Ghana since 1990
-- Ghana confirmed to report cholera cases every year since 1990 by WHO
-- 2020-2023: Previously documented zero transmission confirmed by multiple sources
+=== BATCH 1 | PHASE 1 (WHO primary documents - independent re-verification) | GHA ===
+Gap targeted : the inherited absence rows themselves (1986-1989, 2017, 2018, 2020,
+               2022, 2023). Audit before acquisition.
+Queries (20):
+  B1-01 IRIS DSpace API: resolve bundles for the WER annual cholera items 1986-1989
+  B1-02 IRIS: download the TEXT (OCR) bitstreams for WER 1986-1989
+  B1-03 grep the four OCR texts for Ghana and for absence language
+        ("remained free", "no cases", "did not report", "failure to report")
+  B1-04 IRIS: download ORIGINAL-bundle PDF WER 62/20 "Cholera in 1986"; pdftotext -layout;
+        reconstruct Table 2 AFRICA and reconcile row count and sum
+  B1-05 same for WER 63/20 "Cholera in 1987"
+  B1-06 same for WER 64/19 "Cholera in 1988"
+  B1-07 same for WER 65/19 "Cholera in 1989"
+  B1-08 IRIS discover API: search "Cholera in 1990"
+  B1-09 WER 66/19 "Cholera in 1990" ORIGINAL PDF; locate and read the Ghana sentence
+        in both English and French, with surrounding narrative
+  B1-10 IRIS discover API: locate the annual items "Cholera, 2017/2018/2020/2022/2023"
+  B1-11 WER 93/38 "Cholera, 2017" PDF - Ghana grep + zero-reporting footnote a
+  B1-12 WER 94/38 "Cholera, 2018" PDF - Ghana grep + zero-reporting list read
+  B1-13 WER "Cholera, 2020" PDF - Ghana grep + footnote b (did-not-report list)
+  B1-14 WER 98/38 "Cholera, 2022" PDF - Ghana grep + Table 2
+  B1-15 WER 99/36 "Cholera, 2023" PDF - Ghana grep + Table 2
+  B1-16 Neighbour cross-check inside WER 2017/2022/2023: Burkina Faso, Cote d'Ivoire,
+        Togo, Nigeria
+  B1-17 WebSearch: Ghana Health Service 2020 annual report cholera zero cases DHIMS2
+  B1-18 Ghana MoH "Health Sector Annual Programme of Work 2020 Holistic Assessment
+        Report" PDF (moh.gov.gh) - pdftotext + cholera grep
+  B1-19 WebSearch: Ghana Health Service declares cholera outbreak over 2025
+  B1-20 WebFetch ghs.gov.gh/disease-outbreaks and afro.who.int Ghana 2024-surge photo story
+Sources found: 1 new registrable   Registered: metadata index 102 (WER "Cholera, 2017")
+Rows added   : 3   Indices 157 (2017 narrowed), 158 (2022 re-cited), 159 (2023 re-cited)
+Rows retracted: 3  Indices 14, 15, 27  (all replaced in the same batch)
+Rows revised : 4   Indices 41, 42, 43, 44
+Successful queries: 3/20  (B1-11 -> 157, B1-14 -> 158, B1-15 -> 159)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
 
-Surveillance gap analysis:
-1986-1989: Reporting gap (cholera likely present but not consistently reported to WHO)
-2018: Near-zero with 2 sporadic cases per JHU weekly data
-2019: Near-zero with 1 sporadic case per JHU annual data
-2020-2023: True zero transmission confirmed by GHS/WHO
+WHAT THE PRIMARY DOCUMENTS ACTUALLY SAY (verified by Agent 3, not taken on trust):
 
-=== STOPPING CRITERIA EVALUATION ===
-Batch 1 yield: 37.5% - CONTINUE
-Total batches: 1 of 10 maximum
+  1986  WER 62/20 Table 2 AFRICA: 17 value rows, narrative states 17 reporting
+        countries, rows sum to exactly 40 626 = the stated African total. The table
+        is complete. The OCR TEXT bundle silently drops TWO country names (the 839
+        and 226 rows, alphabetically Kenya and Rwanda) - so Agent 1's OCR-fidelity
+        control was weaker than it looked - but the layout PDF settles it: no
+        unnamed row sits in Ghana's alphabetical slot. GHANA ABSENT.
+        Narrative: "5 countries that had reported cases in 1985 apparently remained
+        free of cholera in 1986". Note the hedge "apparently".
+  1987  17 named rows, sum 30 929 = stated total. GHANA ABSENT.
+  1988  12 rows (1 unnamed = Burundi, 564), sum 23 223 = stated total. GHANA ABSENT.
+        Togo appears with ONE case - minimal reporters are captured.
+  1989  16 rows (1 unnamed = Angola, 17 601), sum 35 606 = stated total. GHANA ABSENT.
+        Rwanda appears with ONE case.
+  1990  "the disease reappeared in Ghana, which had not reported an outbreak since
+        1986" / "la maladie est reapparue au Ghana qui n'avait signale aucune flambee
+        depuis 1986". Same paragraph: "Seven countries that had experienced cholera in
+        1989 apparently remained free in 1990" - WHO hedges here too.
+  2017  Footnote a: "The following countries reported 0 cases and deaths in 2017,
+        fulfilling the vital public health surveillance service of 'zero reporting':
+        ... Ghana ...". AN AFFIRMATIVE NIL RETURN.
+  2018  Ghana appears NOWHERE - not in Table 1, not in the zero-reporting list.
+        NO RETURN MADE. This is a surveillance gap at WHO level, not a zero.
+  2020  Footnote b: "The following countries considered by the Global Task Force on
+        Cholera Control to be at risk for cholera did not report cholera data to WHO
+        for 2020: Angola, Burkina Faso, Cote d'Ivoire, Ghana, ...". EXPLICITLY
+        NON-REPORTING.
+  2022  Table 2, Africa (14) includes Ghana. AFFIRMATIVE NIL RETURN.
+  2023  Table 2, Africa (28) includes Ghana. AFFIRMATIVE NIL RETURN.
 
-AGENT 3 COMPLETION:
-cholera_data_ai.csv: 30 rows (added 4)
-metadata_ai.csv: 23 sources (added 2)
+ADJUDICATIONS MADE IN THIS BATCH
 
-End Time: 2026-05-14
+  A. 1986-1989 (rows 41-44): Documented_Absence -> Inferred_Absence, 0.90 -> 0.70.
+     The tables are complete and Ghana is genuinely not in them, but WER published no
+     zero-reporting list before 2017, so non-appearance cannot be graded a nil return;
+     WHO's own wording is "apparently remained free"; and the 1990 sentence is about
+     reporting an OUTBREAK, not about zero CASES. The zeros stand; only the claim
+     strength is corrected. build_weekly_timeseries caps an inferred zero at 0.6.
+
+  B. 2017 (row 27 -> row 157): RETRACTED AND REPLACED, window narrowed to
+     2017-01-19..2017-12-31, confidence 0.95 -> 0.85, now cited to WER directly
+     (metadata 102) instead of to a graphic.com.gh news article that was mislabelled
+     in metadata index 22 as "GHS Ghana Health Service Zero Cholera 2017".
+     The conflict Agent 2 flagged is REAL: PMC records 12 Cape Coast cases between
+     1 and 18 January 2017. Ghana's nil return for 2017 therefore missed the January
+     tail of the October 2016 outbreak. Corroborating evidence that Ghana's returns
+     under-ascertain in this era: the same paper counts 704 cases in Cape Coast alone
+     for 17 Oct 2016 - 4 Jan 2017, while Ghana's WHO return for 2016 was 175.
+
+  C. 2022 (row 14 -> row 158) and 2023 (row 15 -> row 159): RETRACTED AND REPLACED
+     for citation repair only. Values and windows unchanged, confidence unchanged at
+     0.95, now cited to WER "Cholera, 2022" (metadata 55) and WER "Cholera, 2023"
+     (metadata 56) rather than to the Level 3 graphic.com.gh article (metadata 8) that
+     could never have supported 0.95 - and that is known false for 2021.
+
+REGIONAL CROSS-CHECK for the confirmed zero years (target 4):
+  2017  Nigeria in major epidemic (12 174 cases) but WER states "West Africa outside
+        of Nigeria experienced relatively [low incidence]"; no Ghanaian land neighbour
+        with a substantial outbreak.
+  2022  Togo also a zero-reporter; Burkina Faso 4 cases; Cote d'Ivoire did not report.
+        Nigeria 23 839 cases - but Nigeria does not border Ghana.
+  2023  Burkina Faso AND Cote d'Ivoire also zero-reporters; Togo 3 cases.
+  All three are absences during a QUIET NEIGHBOURHOOD, so they do not require the
+  extraordinary evidence an absence-against-an-epidemic would.
+
+DEAD ENDS:
+  * ghs.gov.gh/disease-outbreaks renders a cholera card reading "Year: N/A, Date: N/A,
+    New Cases: 0, Total Cases: 0". That is an unpopulated widget, NOT a nil return.
+    Do not cite it as a zero; a future agent could easily mistake it for one.
+  * Ghana MoH "2020 Holistic Assessment Report" (moh.gov.gh, 2.3 MB, 157 kB of text)
+    does not contain the word "cholera" at all. It does evidence a functioning
+    surveillance apparatus in 2020 (nationwide SORMAS rollout) but says nothing about
+    cholera incidence.
+  * WHO AFRO photo story "From Outbreak to Containment: How Ghana Beat the 2024
+    Cholera Surge" gives no dates, no counts and no outbreak-end declaration.
+
+=== BATCH 2 | PHASE 2 (resolving the contested 2025 zeros) | GHA ===
+Gap targeted : 2025-05-01..2025-07-27 - the window Agent 2 flagged as contested
+Queries (20):
+  B2-01 WebFetch gna.org.gh AAK cholera article of 18 July 2025 - exact wording, period,
+        named official, deaths
+  B2-02 WebSearch: Ghana cholera July 2025 Moree Abura-Asebu-Kwamankese Central Region
+  B2-03 Reconstruct the WHO HQ 2025 cumulative series from sitreps #27 to #33 and test it
+        for arithmetic consistency against the stated last-28-day increments
+  B2-04 Probe cdn.who.int filename patterns for sitreps 27-32 (all 404; the sfvrsn query
+        string is required - recorded so the next agent does not repeat this)
+  B2-05 WebFetch who.int publication page for sitrep #29 to recover the true PDF URL
+  B2-06 Download sitrep #29 PDF; read Table 1 African Region rows and the footnote key
+  B2-07 WebFetch who.int publication page for sitrep #30 to recover the PDF URL
+  B2-08 Download sitrep #30; read Ghana's row and the last-28-day window definition
+  B2-09 WebFetch who.int publication page for sitrep #28 to recover the PDF URL
+  B2-10 Download sitrep #28; print Table 1 with cat -v to see which rows carry the
+        section mark and which cells are blank rather than zero
+  B2-11 Download WHO epidemiological update #34; read the standing data caveat
+  B2-12 afro.who.int June 2025 bulletin page -> IRIS bitstream URL (redirects to HTML;
+        the handle URL is not directly fetchable)
+  B2-13 IRIS discover API: locate the Monthly Regional Cholera Bulletin June 2025 item
+  B2-14 Download the June 2025 AFRO bulletin; read the Ghana section AND the last-update
+        column of the country table
+  B2-15 Download the May 2025 AFRO bulletin; same two reads
+  B2-16 IRIS: enumerate the whole AFRO Monthly/Weekly Regional Cholera Bulletin series to
+        confirm whether any issue exists after June 2025
+  B2-17 Cross-check the AAK district figure against the Central Region 2025 totals quoted
+        in the same GNA article (3 028 suspected, 290 confirmed, 19 deaths)
+  B2-18 Check whether sitreps #28/#29 carry WHO's standing "missing data does not imply
+        absence" caveat (they do not; it appears from update #34 onward)
+  B2-19 Compare the section-mark treatment of Ghana with Kenya and Rwanda in the same
+        table (reporting countries carry explicit 0; non-reporters carry blanks)
+  B2-20 Metadata audit of indices 22 and 23 against their URLs
+Sources found: 0 new registrable (all already in metadata)
+Rows added   : 0
+Rows retracted: 2   Indices 49 (June 2025 zero), 51 (July 2025 zero)
+Presence rows added: 1  AFR::GHA 2025-07-01..2025-07-27 (cholera present, no national count)
+Metadata revised: 2  indices 22 and 23 (descriptions corrected; 23 set to Superseded)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (minimum 3 batches not yet reached, and this batch's job was
+               subtraction, not addition)
+
+THE DECISIVE FINDING OF THIS RUN - HOW TO READ A WHO CHOLERA TABLE
+
+  WHO's multi-country cholera situation reports mark non-reporting countries with a
+  section mark and leave their last-28-day cells EMPTY. Countries that reported and
+  had no cases carry an explicit 0. In sitrep #29 (data to 27 July 2025):
+
+      Ghana§      2 480   14   7   0.6   [ four blank cells ]
+      Kenya         425   20   1   4.7     7   0   0.0   -93
+      Rwanda        280    0   2   0.0    13   0   0.0   -41
+      § Countries which did not report cholera cases between 1 and 27 July 2025
+
+  Kenya and Rwanda returned zeros for the 28-day window and WHO printed them as 0.
+  Ghana returned nothing and WHO printed nothing. The footnote phrase "did not report
+  cholera cases" is therefore about the REPORT, not about the CASES. Any agent reading
+  a section-marked WHO row as a zero is manufacturing a false negative.
+
+  AFRO's monthly bulletin makes the same distinction even more plainly, in a column
+  nobody had looked at: its country table carries a LAST UPDATE date per country.
+
+      June 2025 bulletin, country table:
+         5  Mozambique                    ... 29-Jun-25
+         6  United Republic of Tanzania   ... 29-Jun-25
+         7  Ghana                         ... 27-Apr-25
+         8  Nigeria                       ... 29-Jun-25
+      June 2025 bulletin, Ghana section, verbatim:
+         "In 2025, a cumulative total of 2 325 cases and 13 deaths were reported in
+          Ghana, with a CFR of 0.6%. The last report from the country was in April
+          with 74 cases, no deaths reported as of 27 April 2025."
+
+  And the May 2025 bulletin, whose Ghana section says "In May, no new cases were
+  reported", carries the SAME 27-Apr-25 last-update date. Its "no new cases" is
+  therefore "no new report", which is exactly why WHO HQ recorded 6 Ghanaian cases
+  for 1-25 May in sitrep #27 while AFRO was calling May a zero. AFRO "no new cases
+  were reported" is NOT a nil return for Ghana in 2025. Agent 1 had already retracted
+  the May zero built on that phrasing; the June and July zeros rested on the same
+  sand.
+
+  THIRD LINE, ARITHMETIC: Ghana's WHO HQ 2025 cumulative ran 2 480 (to 25 May),
+  2 480 (to 29 June), 2 480 (to 27 July), 2 554 (to 31 August). The stated increment
+  for 27 July - 31 August was 15. So about 59 cases were added retrospectively to the
+  period BEFORE 27 July - the months recorded as zeros. WHO backfilled Ghana's missing
+  returns, which is only possible if they were missing.
+
+RESOLUTION OF THE TWO CONTESTED ROWS
+  Index 51 (2025-07-01..2025-07-27, national zero): RETRACTED. Section-marked in
+    sitrep #29 with blank cells; AFRO says Ghana's last report was April; ~59 cases
+    backfilled into the pre-August period; and a named Central Regional NADMO
+    Director reports five laboratory-confirmed cases in Abura-Asebu-Kwamankese
+    District "early July". This period is a Surveillance_Gap, which is not a zero.
+    Recorded instead in data/GHA/cholera_presence_ai.csv as
+    AFR::GHA 2025-07-01..2025-07-27, cholera present, no national count.
+  Index 49 (2025-06-01..2025-06-29, national zero): RETRACTED for the same reasons.
+    Ghana's cells in sitrep #28 are blank, and AFRO's June bulletin says in terms
+    that the last report was in April. The countervailing evidence - AFRO Weekly
+    Bulletin week 26 "there are no patients in admission" - shows empty treatment
+    centres, which is consistent with low transmission but is not a case return and
+    cannot carry a zero. June 2025 is LEFT GENUINELY EMPTY. No presence row: unlike
+    July there is no positive evidence of June cases, only of June silence.
+
+METADATA REPAIRS
+  Index 23 "WHO Surveillance Gap Ghana 1986-1989" -> Status Superseded, description
+    rewritten to record that the WER primary documents contradict the presence claim
+    it was created to support.
+  Index 22 "GHS Ghana Health Service Zero Cholera 2017" -> description rewritten to
+    warn that the name is misleading: the URL is the graphic.com.gh news article
+    (identical to metadata index 8, Level 3), not a Ghana Health Service publication.
+
+=== BATCH 3 | PHASE 2 (auditing the Oct 2025 - Aug 2026 absence block) | GHA ===
+Gap targeted : 2025-09-30..2026-08-26 - the four inherited recent zeros (54, 57, 58, 59)
+Queries (20):
+  B3-01 WebFetch who.int item page for sitrep #31 -> PDF URL
+  B3-02 WebFetch who.int item page for sitrep #32 -> PDF URL
+  B3-03 Download sitrep #31; read Ghana's row and the last-28-day window definition
+  B3-04 Download sitrep #32; read Ghana's row and the footnote key
+  B3-05 WebSearch: Ghana cholera "declared over" / "outbreak ended" 2025, last case
+  B3-06 WebFetch ReliefWeb DREF final report page (403) then curl with a browser UA
+  B3-07 Extract the ReliefWeb attachment URL and download MDRGH020dfr.pdf
+  B3-08 Grep the DREF final report for outbreak-end language and surveillance statements
+  B3-09 IRIS discover: AFRO "Weekly Bulletin on Outbreaks and other Emergencies" 2025
+  B3-10 IRIS discover, paged: enumerate the weekly-bulletin series for Oct-Dec 2025
+  B3-11 Download AFRO Weekly Bulletin week 37 of 2025; read the Ghana rows
+  B3-12 Download AFRO Weekly Bulletin week 2 of 2026; read the Ghana rows
+  B3-13 Download AFRO Weekly Bulletin week 33 of 2026; read the Ghana rows
+  B3-14 IRIS discover: does a WER annual "Cholera, 2025" article exist yet? (No - the
+        latest annual is "Cholera, 2024", issued 5 September 2025)
+  B3-15 Download WER 101/35; Ghana grep, footnote check, data-caveat read
+  B3-16 WebSearch: Ghana cholera cases October November December 2025 (contrary evidence)
+  B3-17 WebSearch: Ghana cholera 2026 outbreak cases GHS (contrary evidence)
+  B3-18 WebFetch WHO AFRO "Ghana identifies priority areas to strengthen cholera
+        prevention and control" (PAMI exercise, 5 April 2026)
+  B3-19 WebSearch: WHO Global Cholera and AWD Dashboard Ghana 2026 monthly data
+  B3-20 Probe the ArcGIS hub data-download endpoints for a machine-readable Ghana series
+Sources found: 0 new registrable
+Rows added   : 0
+Rows revised : 4   Indices 54, 57 (confidence 0.90 -> 0.50), 58, 59 (evidence strengthened)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE (minimum 3 batches not yet reached; and target 5, sub-national
+               absence, has not been worked at all)
+
+THE SURVEILLANCE-FUNCTIONING TEST, RUN PROPERLY FOR THE FIRST TIME
+
+  The question that decides whether Ghana's post-September-2025 silence is an absence
+  or a blackout is whether Ghana was reporting ANYTHING to WHO. It was, and the proof
+  is in the same bulletin that carries the cholera events.
+
+    AFRO Weekly Bulletin, week 37 of 2025 (8-14 Sep 2025), ongoing-events table:
+      Ghana | Cholera | Grade 3 | notified 31-Aug-24 | start 1-Oct-24 |
+        end of reporting period 13-Apr-25 | 7 086 cases | 1 895 confirmed | 51 deaths
+      Ghana | Mpox    | Grade 3 | notified 4-Mar-25  | start 21-Feb-25 | ...
+    AFRO Weekly Bulletin, week 2 of 2026 (5-11 Jan 2026):
+      Ghana cholera event REMOVED from the table.
+      Ghana | Mpox | Grade 3 | end of reporting period 28-Dec-25 | 944 confirmed | 7 deaths
+    AFRO Weekly Bulletin, week 33 of 2026 (10-16 Aug 2026):
+      Ghana | Mpox | Protracted | end of reporting period 29-May-26 | 1 075 confirmed
+      "Ghana continues to report mpox transmission across all 16 regions."
+
+  Ghana was laboratory-confirming and reporting mpox from all sixteen regions into the
+  same WHO AFRO product that lists cholera events, right through the period in which it
+  reported no cholera. That is a country that was looking. It converts the 2026 silence
+  from a Surveillance_Gap into a defensible Inferred_Absence, and it is the single
+  strongest piece of evidence supporting rows 58 and 59.
+
+  Note also that the Ghana cholera event card was already FROZEN at an end-of-reporting-
+  period of 13 April 2025 as late as week 37 of 2025 - five months stale - before AFRO
+  finally closed it. AFRO's closure is an affirmative act and supports the absence, but
+  it cannot date the end of transmission.
+
+WHAT THE WHO SITREPS ACTUALLY SHOW FOR OCT-DEC 2025
+  #31 (31 Aug - 28 Sep 2025): Ghana NOT section-marked; explicit 8 cases, 0 deaths.
+      Ghana was reporting, down to single figures.
+  #32 (30 Sep - 26 Oct 2025): "Ghana§ 2 562 14 8 0.5" then a literal dash in every
+      last-28-day column. Footnote: "Countries which did not report cholera cases
+      between 30 September and 26 October 2025". NON-REPORTING.
+  #33 (1 - 28 Dec 2025): Ghana section-marked again.
+  So rows 54 and 57 sit inside a documented WHO non-reporting stretch. They are KEPT,
+  because the absence is inferable from evidence outside the frozen cumulative (no
+  contrary Ghanaian report anywhere; AFRO closed the event; the mpox test above), but
+  their confidence is cut 0.90 -> 0.50, deliberately below the 0.6 inferred-zero cap in
+  py/build_weekly_timeseries.py so the downgrade actually propagates. The specific
+  reason Ghana deserves less than a generic inferred zero: WHO backfilled about 59
+  cases into an earlier section-marked Ghanaian stretch in this same calendar year, so
+  this exact inference has already failed once for this exact country in this year.
+
+WHAT WER 101/35 DOES AND DOES NOT SAY (row 58's basis, re-read)
+  Ghana appears nowhere in it. But the article carries NO zero-reporting list and NO
+  section-mark footnote, and it states "Potential underreporting and reporting delays
+  may affect timeliness and accuracy" and "Data in this report may be adjusted
+  retrospectively as more information becomes available". Absence from its Table 1 is
+  therefore not a nil return, and Inferred_Absence - which the row already carried - is
+  the correct grade. The row's strength comes from the AFRO mpox test, not from WER.
+
+DEAD ENDS
+  * There is no WHO WER annual "Cholera, 2025" article yet; the latest annual is
+    "Cholera, 2024" (5 September 2025). When the 2025 annual appears it will settle
+    whether Ghana's final 2025 total exceeded 2 562, and therefore whether the Oct-Dec
+    2025 zeros survive. THIS IS THE SINGLE MOST USEFUL FUTURE CHECK FOR GHANA.
+  * The IFRC DREF final report MDRGH020 (8 pp) contains no outbreak-end declaration and
+    no date of last case. It does say "Ghana has a robust surveillance system, capable
+    of detecting cases for timely response", and records an operational end with a
+    three-month timeframe from 16 January 2025.
+  * WHO AFRO's PAMI news item (5 April 2026) confirms a live national cholera programme
+    reviewing 2020-2025 data across 261 districts, but gives no case counts.
+  * The WHO Global Cholera and AWD Dashboard (ArcGIS hub) could not be resolved to a
+    machine-readable feature service from its data-download page; the hub site config
+    exposes no service URLs. A future agent wanting a monthly Ghana series should try
+    the dashboard UI rather than the hub API.
+  * There are no AFRO Monthly Regional Cholera Bulletins after June 2025, and no AFRO
+    Weekly Bulletins indexed on IRIS between mid-September 2025 and January 2026.
+
+=== BATCH 4 | PHASE 2/3 (sub-national absence, the 2020 question, national primary sources) | GHA ===
+Gap targeted : sub-national zeros during the 2014 and 2024-25 epidemics; the unresolved
+               2020 national zero (index 12); Ghanaian primary surveillance sources
+Queries (20):
+  B4-01 WebSearch: "Upper West Region" Ghana no cholera / cholera-free 2024 2025
+  B4-02 WebSearch: Ghana 2014 cholera all ten regions / regions spared
+  B4-03 WebSearch: Ghana 2014 affected-region enumeration (OCHA map, IFRC EPoA, PLOS NTD)
+  B4-04 WebSearch: Volta Region cholera 2024 2025 "no case" regional health directorate
+  B4-05 WebSearch: gna.org.gh / citinewsroom "records no cholera case" 2025
+  B4-06 WebSearch: "Bono Region" / "Savannah Region" / "Oti Region" cholera 2025 no cases
+  B4-07 WebFetch parliament.gh "Update on the Outbreak of Cholera and CSM in Ghana"
+  B4-08 WebSearch: Ghana cholera 2020 zero cases "weekly epidemiological report" / IDSR /
+        DHIMS2 annual surveillance  <-- THE BREAKTHROUGH QUERY
+  B4-09 Probe ghs.gov.gh/gwer/v6w2-report.php and six URL variants (all 404) and the
+        Wayback CDX for ghs.gov.gh/gwer* (Internet Archive returned "Temporarily Offline")
+  B4-10 Fetch ghs.gov.gh/gwer and extract the Next.js flight payload
+  B4-11 Probe ghs.gov.gh Payload CMS /api/* collection slugs (all "Route not found")
+  B4-12 Download the (frontend)/gwer page bundle; it iframes https://phd.teamdesk.pro/gwer
+  B4-13 Probe phd.teamdesk.pro endpoints; /api/reports responds with JSON
+  B4-14 GET /api/reports?limit=500 - full index of 52 issues, Volumes 7 (2025) and 8 (2026)
+  B4-15 Find the PDF endpoint: /api/reports/{id}/pdf
+  B4-16 Bulk download all 52 GWER PDFs (26 MB) and pdftotext -layout them
+  B4-17 Extract the CHOLERA section from all 19 issues of 2025 (weeks 18-36)
+  B4-18 Extract the CHOLERA section from all 33 issues of 2026 (weeks 1-34, week 7 absent)
+        and identify the ten issues that carry no cholera section at all
+  B4-19 Read the GWER ANNEX summary tables (present only in weeks 1-3 of 2026) to verify
+        that the bulletin does list diseases with zero counts when the annex is printed
+  B4-20 Re-read the IFRC DREF final report for its "Targeted Regions" line
+Sources found: 2   Registered: metadata index 103 (GWER Vol 7, 2025), 104 (GWER Vol 8, 2026)
+Rows added   : 29  Indices 160-178 (2025 weeks 18-36 national weekly counts)
+                   Indices 179-188 (2026 documented weekly national zeros)
+Rows revised : 2   Indices 58, 59 (Inferred_Absence -> Documented_Absence)
+Successful queries: 5/20  (B4-08, B4-12, B4-14, B4-17, B4-18)
+Yield        : 25%
+Consecutive sub-5% batches: 0 (reset)
+Decision     : CONTINUE
+
+THE GHANA WEEKLY EPIDEMIOLOGICAL REPORT - HOW TO REACH IT
+
+  Agent 2 recorded as its binding constraint that "GHS weekly epidemiological bulletins
+  have no open archive; this needs a data request to Ghana Health Service, not more
+  searching". That is wrong, and the reason it looked true is worth recording. The
+  page at https://ghs.gov.gh/gwer is a Next.js shell that renders nothing server-side;
+  its route bundle simply iframes an external app. The archive lives at:
+
+      index :  https://phd.teamdesk.pro/api/reports?limit=500
+      PDF   :  https://phd.teamdesk.pro/api/reports/{id}/pdf
+      UI    :  https://phd.teamdesk.pro/gwer
+
+  52 issues are available as of 19 September 2026: Volume 7 (2025) weeks 18-36 and
+  Volume 8 (2026) weeks 1-34, week 7 missing. Each is a 4-7 page PDF. This is a
+  Level 1 Ghanaian national primary source at WEEKLY resolution and it is the single
+  most valuable thing found for Ghana in this whole workflow.
+
+WHAT IT PROVES ABOUT THE CONTESTED 2025 ZEROS - THE AUDIT IS VINDICATED
+
+  Ghana's own bulletin records LABORATORY-CONFIRMED cholera in exactly the months the
+  retracted rows 49 and 51 asserted were zero:
+
+      Week 26 (23-29 Jun 2025)  2 suspected, 2 CONFIRMED  Ga Central, Greater Accra
+      Week 28 ( 7-13 Jul 2025) 11 suspected, 4 CONFIRMED  Abura-Asebu-Kwamankese
+      Week 29 (14-20 Jul 2025) 12 suspected, 4 CONFIRMED  Abura-Asebu-Kwamankese
+      Week 30 (21-27 Jul 2025) 10 suspected, 4 CONFIRMED  Abura-Asebu-Kwamankese
+      Week 32 ( 4-10 Aug 2025) 11 suspected, 1 CONFIRMED  Abura-Asebu-Kwamankese
+
+  Fifteen culture-confirmed cases in the window WHO's situation reports left blank.
+  The June zero (retracted index 49) and the July zero (retracted index 51) were both
+  false negatives, and the district Agent 2 named as the contradiction - Abura-Asebu-
+  Kwamankese - is exactly where the confirmations are. The full national weekly series
+  for 2025 weeks 18-36 is now in the file as indices 160-178.
+
+WHAT IT SHOWS FOR 2026, AND THE ONE JUDGEMENT CALL IN THIS BATCH
+
+  In every 2026 issue carrying a cholera section, the closing sentence is that Vibrio
+  cholerae was NOT isolated on culture. Not one confirmed case in weeks 1-34. But the
+  IDSR syndromic screen did flag suspects in 24 of the 33 available weeks - roughly 130
+  to week 30 - all cultured, all negative.
+
+  JUDGEMENT: rows 58 and 59 keep sCh=0 rather than being rewritten to the syndromic
+  counts. Reasons, stated so a later agent can overturn them: (a) 0 is the WHO/GTFCC
+  definition count on which the whole of Ghana's JHU and WHO baseline is built, and is
+  what Ghana itself returned to WHO for 2026, so switching definitions mid-series would
+  create a discontinuity; (b) py/build_weekly_timeseries.py reads sCh and ignores cCh
+  entirely, so putting ~200 culture-negative syndromic suspects into sCh would tell
+  MOSAIC that cholera persisted through 2026 in a country whose reference laboratory
+  isolated Vibrio cholerae not once - a false POSITIVE, the mirror of the error this
+  agent exists to prevent. The syndromic counts are recorded verbatim in the note on
+  index 58 so nothing is lost.
+  For 2025 the same columns ARE populated with the syndromic counts (indices 160-178),
+  because that period had 15 confirmations in the same districts as the suspects and
+  because WHO's own 2025 monthly increments for Ghana (6 in May, 15 in August, 8 in
+  September) are of the same order as the GWER suspected counts.
+
+  TEN WEEKS OF 2026 CARRY NO CHOLERA SECTION AT ALL - weeks 5, 6, 8, 9, 11, 14, 18, 19,
+  20 and 24. The bulletin prints a cholera section for a single suspected case (it does
+  so in weeks 13, 15 and 16), so no section means no suspected case nationally. These
+  ten weeks are now documented zeros at weekly resolution, indices 179-188: an
+  affirmative national nil return from a system reporting from all 261 districts. This
+  is the best absence evidence Ghana has anywhere in the dataset.
+
+SUB-NATIONAL ABSENCE - WHAT WAS AND WAS NOT ADDED
+  * 2014 epidemic: NO regional zeros added. The outbreak reached all 10 regions by
+    week 52 of 2014 (130 of 216 districts), so there is no region to call cholera-free
+    for the year. At the 10 September 2014 cut only 8 of 10 regions were affected, but
+    no located source names the 8, so the complement cannot be derived.
+  * 2024-25 epidemic: NO further regional zeros added, deliberately. The Health
+    Minister told Parliament on 18 February 2025 that the outbreak affected "Greater
+    Accra, Central, Western, Ashanti, and Eastern Regions", which would make the other
+    eleven regions an inferrable complement - but the IFRC DREF final report lists
+    "Targeted Regions: Central, Eastern, Greater Accra, Western, Western North",
+    putting Western North inside the response footprint. With one of the eleven
+    already ambiguous, deriving nine regional zeros from a single national enumeration
+    would be exactly the kind of tidy inference that produces false negatives. Agent 2's
+    two regional rows (Upper East, Northern) stand because each rests on a named
+    regional health director's positive statement of zero; no such statement could be
+    found for any other region despite four targeted searches.
+
+=== BATCH 5 | PHASE 3 (the 1990s-2000s question, the 2020 question, the open recent gap) | GHA ===
+Gap targeted : target 2 (1992-1998 and 2000-2009 inter-epidemic troughs); index 12 (2020);
+               2026-08-24..2026-09-19
+Queries (20):
+  B5-01 phd.teamdesk.pro /api/volumes - are there GWER volumes before 2025?
+  B5-02 phd.teamdesk.pro /api/reports paging - is there an issue after week 34 of 2026?
+  B5-03 IRIS discover: resolve UUIDs for WER annual cholera 1992, 1995, 2000, 2005, 2010,
+        2012, 2015, 2016
+  B5-04 Download + layout-extract WER "Cholera in 1992"
+  B5-05 Download + layout-extract WER "Cholera in 1995"
+  B5-06 Download + layout-extract WER "Cholera, 2000"
+  B5-07 Download + layout-extract WER "Cholera, 2005"
+  B5-08 Download + layout-extract WER "Cholera, 2010"
+  B5-09 Download + layout-extract WER "Cholera, 2012"
+  B5-10 Download + layout-extract WER "Cholera, 2016"
+  B5-11 Test each of the seven for a zero-reporting list ("zero reporting", "reported 0
+        cases and deaths")
+  B5-12 Read Ghana's Table 1 row in each of the seven
+  B5-13 WebFetch Oxford International Health "Cholera burden in Ghana: a systematic review
+        and meta-analysis" for a year-by-year 2017-2024 series
+  B5-14 WebSearch: WHO multi-country cholera epidemiological update September 2026, Ghana
+  B5-15 Probe cdn.who.int for epidemiological updates 39/40/41 across five plausible
+        publication dates (all 404)
+  B5-16 Probe who.int publication pages for updates 39 and 40 (both 404)
+  B5-17 WebSearch: AFRO Weekly Bulletin weeks 35-37, September 2026, Ghana
+  B5-18 WebSearch: Ghana cholera September 2026 GHS weekly report
+  B5-19 Re-read the Ghana MoH 2020 Holistic Assessment for surveillance-functioning
+        evidence (nationwide SORMAS rollout)
+  B5-20 Final adjudication of index 12
+Sources found: 0 new registrable
+Rows added   : 0
+Rows revised : 1   Index 12 (Documented_Absence -> Inferred_Absence, 0.60 -> 0.40)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+TARGET 2 IS CLOSED WITH A DEFINITIVE NEGATIVE RESULT
+  There are NO documented cholera-free years available for Ghana between 1990 and 2016,
+  and no amount of further searching will produce one. Two independent reasons:
+  (a) Ghana reported non-zero cases to WHO in EVERY year 1990-2016. Spot-verified by
+      Agent 3 directly from the WER PDFs: 1992 228 cases / 23 deaths; 1995 4 698 / 93;
+      2000 3 331 / 74; 2005 3 166 / 51; 2010 438 / 3; 2012 9 548 / 100; 2016 175 / 0.
+      These match the JHU baseline, which likewise carries a non-zero national annual
+      value for every year 1990-2016.
+  (b) The WER did not publish a zero-reporting register before the 2017 article. Agent 3
+      grepped the 1992, 1995, 2000, 2005, 2010, 2012 and 2016 annual articles for "zero
+      reporting", "reported 0 cases" and "0 cases and deaths" and got zero hits in all
+      seven. The "countries reported 0 cases and deaths ... fulfilling the vital public
+      health surveillance service of zero reporting" list first appears in "Cholera,
+      2017". So even a sub-annual Ghanaian nil return could not be documented from WHO
+      sources for that era.
+  This also retrospectively justifies the Batch 1 downgrade of the 1986-1989 rows: no
+  nil-return register existed then either.
+
+INDEX 12 (2020) - RESOLVED AS FAR AS THE EVIDENCE ALLOWS
+  Downgraded Documented_Absence -> Inferred_Absence, 0.60 -> 0.40. Kept rather than
+  retracted. WHO received no 2020 return from Ghana at all (WER "Cholera, 2020"
+  footnote b). No Ghanaian primary source exists in the open literature: the MoH 2020
+  Holistic Assessment does not contain the word cholera; the GWER archive starts at
+  2025; the 2025 systematic review gives no annual series. The only affirmative claim
+  is the Graphic Online report of a GHS statement, a Level 3 source falsified for 2021.
+  It is kept because it IS an affirmative national assertion, because Ghana's
+  surveillance was demonstrably operating in 2020 (nationwide SORMAS rollout, IDSR via
+  DHIMS2 since 2003), and because 2019 (1 case) and 2021 (2 cases) bracket 2020 so
+  tightly that 0-3 is near certain. 0.40 sits below the 0.6 inferred cap so it
+  propagates, and inside the Level 3 band that metadata index 8 actually warrants.
+  LEAD FOR A FUTURE AGENT: search-engine snippets show that ghs.gov.gh/gwer/v6w2-report.php
+  and v6w24-report.php once existed and carried weekly cholera statements for 2021
+  ("no cholera cases were reported during the Week"). Those URLs now 404 and the
+  Internet Archive was offline for the whole of this run. Retry the Wayback Machine for
+  ghs.gov.gh/gwer/v5w*-report.php (2020) and v6w*-report.php (2021). That is the single
+  remaining route to a Ghanaian primary source for 2020-2021.
+
+2026-08-24..2026-09-19 REMAINS GENUINELY OPEN, AND NO ZERO WAS INVENTED FOR IT
+  GWER week 34 (ending 23 August 2026) is the most recent Ghanaian issue published; the
+  PHD Tracker index was read on 19 September 2026 and has nothing later. WHO's
+  epidemiological update series stops at #38 (data to 30 June 2026); updates 39, 40 and
+  41 do not exist at any of the URL patterns probed. The AFRO Weekly Bulletin is indexed
+  on IRIS only to week 33 (16 August 2026). ECDC's monthly overview runs to 26 August
+  2026 and is already used by index 59. Nothing published covers 24 August - 19
+  September 2026. The gap stands.
+
+=== BATCH 6 | PHASE 3 (sub-national absence from the national bulletin) | GHA ===
+Gap targeted : target 5 - regions affirmatively cholera-free during a transmission window
+Queries (20):
+  B6-01 Download the IFRC 2014 EPoA from adore.ifrc.org (returns HTML, not the PDF)
+  B6-02 WebFetch ReliefWeb's 2014 Ghana cholera disaster page (403)
+  B6-03 WebSearch: Ghana 2014 "eight regions" / "8 out of the 10 regions", unaffected
+  B6-04 Programmatic extraction of region names from the cholera section of all 52 GWER
+        issues
+  B6-05 Read Ghana's canonical ADM1 names from reference/country_profiles.json
+  B6-06 Check the region naming convention already used in data/GHA/cholera_data_ai.csv
+  B6-07..B6-13 Per-week manual verification of the region attribution in GWER 2025
+        weeks 26, 27, 28, 29, 30, 31 and 32 (the automated extraction bleeds into
+        adjacent disease sections in some issues and cannot be trusted unread)
+  B6-14 Cross-check the GWER Abura-Asebu-Kwamankese weekly series against index 136
+  B6-15 WebSearch: Upper West Region 2014 cholera-free statement
+  B6-16 WebSearch: Ghana 2011/2012 cholera regional spread, unaffected regions
+  B6-17 Identify a second outlet for the Upper East 2024 zero (MyJoyOnline, BusinessGhana)
+  B6-18 Test whether the 2012 "53 districts in nine regions" statement yields a derivable
+        complement (it does not - the tenth region is never named)
+  B6-19 Test the 2011 "mainly from three regions (Central, Eastern and Greater Accra)"
+        statement (the word "mainly" makes the complement underivable)
+  B6-20 Full re-audit listing of every zero row in the file, plus validate_quality
+Sources found: 0 new registrable (the GWER volumes were registered in Batch 4)
+Rows added   : 14  Indices 189-202 (regional documented absences, 2025-06-23..2025-08-10)
+Rows revised : 2   Indices 136, 141
+Successful queries: 2/20  (B6-04 and the B6-07..B6-13 verification block)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+FOURTEEN REGIONAL DOCUMENTED ABSENCES, AND WHY THIS WINDOW
+  Weeks 26-32 of 2025 (23 June - 10 August) are the only stretch of the second half of
+  2025 in which Ghana had culture-confirmed cholera: 2 confirmations in Ga Central,
+  Greater Accra (week 26) and 4, 4, 4 and 1 in Abura-Asebu-Kwamankese District, Central
+  Region (weeks 28, 29, 30, 32) - fifteen in all. Over those same seven weeks the GWER
+  names every district in the country with a suspected cholera case, and every one of
+  them is in Central or Greater Accra. The other fourteen regions each returned zero
+  through an IDSR system the bulletin states was reporting from all 261 districts.
+  That is a documented regional absence, not an inference from silence, and it bounds
+  the 2025 tail of Ghana's epidemic to two coastal regions at weekly resolution.
+  Rows 189-202: Ahafo, Ashanti, Bono, Bono East, Eastern, North East, Northern, Oti,
+  Savannah, Upper East, Upper West, Volta, Western, Western North.
+
+A CONFLICT THE GWER RESOLVES
+  Index 136 (Abura-Asebu-Kwamankese, 16 suspected / 5 confirmed for 2025 to 18 July,
+  from the Central Regional NADMO Director via the Ghana News Agency) is superseded in
+  practice by the GWER, which gives 8 suspected / 4 confirmed in week 28 and 11 / 4 in
+  week 29 - 19 suspected and 8 confirmed by 20 July. The GHS bulletin is the better
+  source. Index 136 is kept and annotated, not retracted, because it is the row that
+  triggered this audit and it was right about the thing that mattered.
+
+WHAT COULD NOT BE DONE, AND WHY - stated so nobody repeats it
+  * 2014 epidemic: at the 10 September 2014 cut the outbreak was in "8 out of the 10
+    regions", but no located source names the eight, so the two cholera-free regions
+    cannot be identified. By week 52 of 2014 all ten regions were affected, so there is
+    no region to call cholera-free for the year as a whole.
+  * 2012 epidemic: "53 districts in nine regions" - the tenth region is never named.
+  * 2011 epidemic: "mainly from three regions (Central, Eastern and Greater Accra)" -
+    "mainly" forecloses the complement.
+  * No Ghanaian regional health directorate statement of zero could be found for 2014,
+    2011 or 2012 despite targeted searching; the genre (a named regional director
+    telling a news agency the region has recorded no case) appears to be a feature of
+    the 2024-25 epidemic's media cycle, which Agent 2 already mined.
+
+=== BATCH 7 | PHASE 3 (archival recovery of Ghana's own bulletins) | GHA ===
+Gap targeted : 2018-2021 - the years where WHO's record is weakest and the 2020 row that
+               Agent 1 explicitly handed to Agent 3 to resolve or retire
+Queries (20):
+  B7-01 Retry the Internet Archive (offline in Batch 4, back up now): availability API and
+        CDX for ghs.gov.gh/gwer*
+  B7-02 Fetch the archived GWER yearly index pages for 2018, 2019, 2020 and 2021
+  B7-03 Parse the 2020 index - it lists 33 issues, v5w21 through v5w53
+  B7-04 Bulk-fetch the archived issues v5w21 to v5w35
+  B7-05 Extract the CHOLERA statement from each of v5w21-v5w35
+  B7-06 Bulk-fetch the archived issues v5w36 to v5w53
+  B7-07 Extract the CHOLERA statement and the header date from each of v5w37-v5w53
+  B7-08 Retry v5w36 (the Wayback capture is a stub - NOT archived)
+  B7-09 Probe v5w1, v5w10, v5w20 (not archived; the site's own 2020 index starts at week 21)
+  B7-10 Probe v4w20 (2019) and v3w20 (2018) (not archived)
+  B7-11 Re-fetch the 2018/2019/2021/all-reports index pages at their exact CDX timestamps
+        (all four are 3 kB stubs - the listings did not survive)
+  B7-12 Probe v6w1, v6w2, v6w12, v6w24, v6w36, v6w48, v6w52 (2021)
+  B7-13 Read the CHOLERA statement in v6w2
+  B7-14 Read the CHOLERA statement AND the ANNEX 1 cumulative table in v6w24
+  B7-15 Verify ANNEX 1's column headers and period labels before using the cumulative
+  B7-16 Verify ISO week boundaries for 2020 weeks 21-53 against the issues' own header
+        dates (they agree; several headers carry stale copy-paste dates, so ISO
+        arithmetic was used rather than the printed date)
+  B7-17 Register GWER Volume 5 (2020) as a source
+  B7-18 Register GWER Volume 6 (2021) as a source
+  B7-19 Cross-check the 2020 documented zeros against WER "Cholera, 2020" footnote b
+  B7-20 Cross-check the 2021 cumulative zero against WER "Cholera, 2021" Table 1
+Sources found: 2   Registered: metadata index 105 (GWER Vol 5, 2020), 106 (GWER Vol 6, 2021)
+Rows added   : 3   Indices 203 (2020-05-18..2020-08-30), 204 (2020-09-07..2021-01-03),
+                   205 (2021-01-04..2021-06-20) - all Documented_Absence at 0.95
+Rows revised : 2   Indices 12, 61
+Successful queries: 3/20  (B7-05, B7-07, B7-14)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+THE SINGLE BIGGEST RESULT OF THIS AGENT'S RUN
+
+  Agent 1 wrote of the 2020 zero: "Agent 3 should either find a Ghanaian primary source
+  for 2020 or consider retiring this row." The source exists. Ghana's Weekly
+  Epidemiological Report for 2020 survives in the Internet Archive for weeks 21 to 53,
+  and every single issue says, in a section of its own:
+
+        CHOLERA
+        No cholera case was reported during the Week.
+
+  Thirty-two issues, read one at a time, not from an index or a search snippet:
+  weeks 21-35 ("No cholera case was reported during the Week") and weeks 37-53 ("No
+  cholera cases were reported during the Week"). Week 36 is the one gap - its Wayback
+  capture is a stub - and is deliberately excluded, which is why the result is two rows
+  and not one.
+
+  The surveillance-functioning test is not merely passed, it is passed with the
+  bulletin's own metrics: every 2020 issue carries a section headed REGIONAL PERFORMANCE
+  BASED ON REPORTING scoring each region's IDSR completeness (week 21: Upper West best
+  at 96.4%), and the same issues report meningitis, measles, yellow fever, human rabies,
+  influenza-like illness and maternal deaths district by district, in the middle of the
+  COVID-19 pandemic year.
+
+  Set this against WHO: WER "Cholera, 2020" names Ghana among the GTFCC at-risk
+  countries that "did not report cholera data to WHO for 2020". WHO's silence about
+  Ghana in 2020 was WHO not receiving a return. Ghana was looking the whole time and
+  finding nothing. That is precisely the distinction this agent exists to preserve, and
+  here it runs in the direction nobody expected.
+
+AND 2021 IS NOW HALF-CLOSED, WITH A BONUS
+  The week 24 issue of Volume 6 carries "ANNEX 1: SUMMARY OF REPORTED CASES/EVENTS:
+  WEEK 24 (WEEK ENDING 20 JUNE 2021)" with columns Week 23 / Week 24 / Cumulative to
+  Week 24. Cholera reads 0, 0, - in all three, while the same table records 41 995
+  cumulative cases of acute watery diarrhoea in persons aged 5 and over and 291
+  cumulative suspected polio cases. Ghana's year-to-date cholera count on 20 June 2021
+  was zero.
+  BONUS: WER "Cholera, 2021" gives Ghana 2 laboratory-confirmed cases for the calendar
+  year (index 61). Those two cases must therefore have occurred ON OR AFTER 21 JUNE
+  2021. The 2021 cases are now dated to the second half of the year, which no source in
+  this dataset previously established.
+
+WHAT IS STILL MISSING FROM THE ARCHIVE, FOR THE NEXT AGENT
+  * GWER 2020 weeks 1-20 and week 36: the site's own 2020 index lists only weeks 21-53,
+    so weeks 1-20 may never have been published online. Week 36 exists as a URL but its
+    only capture is a stub.
+  * GWER Volume 6 (2021): only weeks 2 and 24 are archived. Weeks 25-52 of 2021 would
+    date the two WHO-recorded 2021 cases exactly.
+  * GWER Volumes 3 (2018) and 4 (2019): the yearly index pages survive only as 3 kB
+    stubs and no individual issue could be retrieved. 2018 is the year WHO has NOTHING
+    for - no case return and no zero return - so a recovered 2018 volume would be the
+    highest-value find left in Ghana.
+
+=== BATCH 8 | PHASE 3 (exhausting the archive, regional cross-check) | GHA ===
+Gap targeted : GWER volumes 3 (2018), 4 (2019), 6 (2021 beyond week 24), and 2022-2024
+Queries (20):
+  B8-01 Full Wayback CDX sweep of ghs.gov.gh/gwer* - definitive list of archived issues
+  B8-02 Enumerate every capture of v5w36-report.php and v6w1-report.php
+  B8-03 Retry v5w36 with the raw id_ Wayback modifier
+  B8-04 Retry v6w1 with the raw id_ Wayback modifier
+  B8-05 Inspect what those two captures actually contain
+  B8-06 Search the 2020 issues for an ANNEX cumulative table
+  B8-07 Search all 33 issues of 2020 for any cumulative or year-to-date cholera statement
+  B8-08 IRIS discover for WER "Cholera, 2021"
+  B8-09 Download WER "Cholera, 2021"; read Ghana's row
+  B8-10 Read WER 2021 Table 2 (zero-reporting list) - Ghana is correctly absent from it
+  B8-11 Read WER 2021 footnote b (did-not-report list) - Ghana is correctly absent
+  B8-12 Read Burkina Faso's 2021 row (3 cases)
+  B8-13 Read Cote d'Ivoire's 2021 row (12 cases)
+  B8-14 Read Togo's 2021 row (40 cases, 5 deaths, CFR 12.5%)
+  B8-15 Read the WER 2021 laboratory-confirmation table for Ghana (2 cases, 100% confirmed)
+  B8-16 Probe the live site for v6w30-report.php (404)
+  B8-17 Probe the live site for v7w10, v8w10, v9w10 under the old naming (all 404)
+  B8-18 Check the PHD Tracker /api/volumes for any 2022-2024 volume (none)
+  B8-19 Reconcile volume numbering: Vol 3=2018, 4=2019, 5=2020, 6=2021, then 7=2025, 8=2026
+  B8-20 Append the regional cross-check to index 205
+Sources found: 0 new registrable
+Rows added   : 0
+Rows revised : 1   Index 205
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+THE ARCHIVE IS NOW EXHAUSTED - a definitive negative result, so nobody repeats it
+  The Wayback Machine holds exactly 36 GWER issue pages and no more:
+      v5w21 ... v5w53   (2020, weeks 21-53 - all 33 URLs)
+      v6w1, v6w2, v6w24 (2021)
+  Of those, v5w36 and v6w1 are unusable: their only captures are the site's own
+  Cloudflare bot-verification interstitial ("Please wait while your request is being
+  verified"), not the report. Everything else has been read and used.
+  No issue of Volume 3 (2018) or Volume 4 (2019) is archived; their yearly index pages
+  survive only as 3 kB stubs. 2018 remains the year for which the world has NO Ghanaian
+  cholera information at all - WHO received neither a case return nor a zero return, and
+  no Ghanaian bulletin survives.
+  The 2020 issues carry no ANNEX cumulative table (that feature begins in Volume 6) and
+  no year-to-date cholera statement anywhere, so 2020 weeks 1-20 cannot be closed from
+  the issues that do survive.
+  VOLUME NUMBERING, which tells its own story: Volume 3 = 2018, 4 = 2019, 5 = 2020,
+  6 = 2021, then the series jumps to Volume 7 = 2025 and Volume 8 = 2026. There are no
+  volumes for 2022, 2023 or 2024, on the live site or in the archive. The GWER appears
+  to have lapsed for three years and resumed in 2025 - which is worth knowing, because
+  it means no Ghanaian weekly bulletin exists for the 2024-25 epidemic itself.
+
+REGIONAL CROSS-CHECK FOR THE 2021 ABSENCE - THE HARDER CASE, AND IT HOLDS
+  WER "Cholera, 2021" Table 1: Togo 40 cases, 5 deaths, CFR 12.5%; Cote d'Ivoire 12
+  cases; Burkina Faso 3 cases; Ghana 2 cases, both laboratory-confirmed. Ghana's
+  documented zero for 4 January - 20 June 2021 (index 205) therefore holds while its
+  eastern neighbour was having a genuine, lethal outbreak. Per the standard this agent
+  works to, that demands firmer evidence than an absence in a quiet neighbourhood - and
+  it has it, because the zero comes from Ghana's own IDSR annex printing an explicit 0
+  beside 41 995 cumulative cases of acute watery diarrhoea, not from Ghana's silence in
+  someone else's table. Noted on the row. Ghana is correctly absent from both the 2021
+  zero-reporting list and the 2021 did-not-report list: it reported, and it reported
+  cases.
+
+=== BATCH 9 | PHASE 3 (IHR infected-area registers - the historical re-audit) | GHA ===
+Gap targeted : 1986-1989, re-opened. Agent 1 had probed the WER weekly notification lists
+               without result; Agent 3 went back at them from a different angle.
+Queries (20):
+  B9-01 IRIS discover: "Ghana infected area cholera removed"
+  B9-02 IRIS discover: "Diseases subject to the Regulations Ghana 1987"
+  B9-03 IRIS discover: "Ghana cholera free area 1988" -> surfaced the "Infected Areas as
+        on {date}" series, which is what actually mattered
+  B9-04 Enumerate the 1988 "Infected Areas" items in IRIS
+  B9-05 Download and read "Infected Areas as on 9 June 1988"
+  B9-06 Download and read "Infected Areas as on 22 December 1988" (annual index issue)
+  B9-07 Discover that pdftotext -layout scrambles these multi-column tables and that
+        pdftotext -raw preserves the reading order - the single technique that made the
+        finding possible
+  B9-08 Re-extract the 1988 registers in raw order and attribute each GHANA block to its
+        disease heading
+  B9-09 Read "Infected Areas as on 18 February 1988"
+  B9-10 Read "Infected Areas as on 29 September 1988"
+  B9-11 Read "Infected Areas as on 24 November 1988"
+  B9-12 Enumerate the "Infected Areas" items for 1985, 1986, 1987, 1989 and 1990
+  B9-13 Read "Infected Areas as on 29 August 1985"
+  B9-14 Read "Infected Areas as on 26 September 1985" and "5 December 1985"
+  B9-15 Read "Infected Areas as on 13 February 1986" and "15 May 1986"
+  B9-16 Read "Infected Areas as on 4 December 1986"
+  B9-17 Read "Infected Areas as on 2 July 1987"
+  B9-18 Read "Infected Areas as on 20 April 1989" and "14 December 1989"
+  B9-19 Read "Infected Areas as on 22 February 1990" and "19 July 1990"
+  B9-20 Separate Ghana's CHOLERA entry from its YELLOW FEVER entry in every register
+Sources found: 1   Registered: metadata index 107 (WER IHR Infected Areas register)
+Rows added   : 0
+Rows retracted: 1  Index 41 (the 1986 zero)
+Rows revised : 3   Indices 42, 43, 44 (confidence 0.70 -> 0.60)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+THE FIND THAT REOPENED 1986-1989
+
+  Every WER issue carried a table, "Infected Areas as on {date}", listing every area a
+  State Party had notified to WHO as infected with cholera, plague or yellow fever under
+  the International Health Regulations and had NOT yet certified free. It is the closest
+  thing the pre-2017 era has to a nil-return register, read in reverse. Nobody had looked
+  at it for Ghana, because pdftotext -layout scrambles its five-column layout beyond
+  recognition; pdftotext -raw preserves the reading order and makes it trivial.
+
+  GHANA'S CHOLERA TRACK, from nine registers read individually:
+
+      29 Aug 1985   ABSENT
+      26 Sep 1985   Central, Eastern, Greater Accra (excl. port area), Volta, Western
+                    - FIVE WHOLE REGIONS
+      05 Dec 1985   the same five regions
+      13 Feb 1986   NARROWED to Central Region: Mfantsiman District, Breman Asikuma District
+      15 May 1986   the same two districts
+      04 Dec 1986   the same two districts
+      02 Jul 1987   the same two districts
+      18 Feb / 09 Jun / 29 Sep / 24 Nov 1988   the same two districts
+      20 Apr 1989 / 14 Dec 1989                the same two districts
+      22 Feb 1990   ABSENT
+      19 Jul 1990   ABSENT
+
+  (Ghana also appears in most of these registers under YELLOW FEVER - Northern Region,
+  Bole and West Gonja districts. That is a different disease and must not be read as
+  cholera. The -raw extraction separates them cleanly; the -layout extraction does not.)
+
+WHAT IT MEANS, AND WHAT WAS DONE
+
+  1986 (index 41): RETRACTED. WHO's own IHR register carried two Ghanaian cholera foci
+  throughout calendar 1986, so WHO did not regard Ghana as cholera-free that year. And
+  the narrowing from five regions to two districts between December 1985 and February
+  1986 is itself an act of notification - Ghana was still in active traffic with WHO, so
+  the residual listing cannot be waved away as a country that had stopped talking. The
+  evidence for the zero was only Ghana's absence from the 1986 annual case table, which
+  WHO hedges as "apparently remained free", plus the 1990 sentence "had not reported an
+  outbreak since 1986" - whose most natural reading makes 1986 the LAST outbreak year,
+  and which now fits the register exactly. Whether cases occurred in 1986 or the listing
+  was residual from the 1985 outbreak CANNOT BE DETERMINED, and that is the definition of
+  missing data, not of absence. 1986 is left genuinely empty.
+
+  1987, 1988, 1989 (indices 42, 43, 44): KEPT, confidence 0.70 -> 0.60. What saves them
+  is a direct WHO assertion the 1986 row never had: WER "Cholera in 1990" says "the
+  disease reappeared in Ghana, which had not reported an outbreak since 1986". WHO is
+  affirmatively characterising these three years. Against that, a four-year-old unretired
+  infected-area listing is weak evidence of continuing transmission - but it is not
+  nothing, and it means WHO never certified Ghana cholera-free in this period. 0.60 is
+  the inferred-zero cap in py/build_weekly_timeseries.py; the rows now sit at it rather
+  than above it.
+
+  This is the second time in this run that a Ghanaian "zero" has turned out to rest on a
+  country's absence from someone else's table rather than on anybody saying no cases
+  occurred. The first was the June and July 2025 pair.
+
+FOR THE NEXT AGENT: the exact date Ghana certified Mfantsiman and Breman Asikuma free
+  lies between 14 December 1989 and 22 February 1990 and would appear in the WER weekly
+  "Areas removed from the infected area list" column. Finding it would date the end of
+  the 1985 wave precisely. Note also that the same register technique - pdftotext -raw on
+  the "Infected Areas as on {date}" tables - is applicable to EVERY MOSAIC country for
+  the whole 1970-1995 period, and as far as this agent can tell nobody in this pipeline
+  has used it.
+
+=== BATCH 10 | PHASE 3 (bounding the register technique, final sweeps) | GHA ===
+Gap targeted : how far the IHR-register evidence extends; 2018 and 2019, the weakest years
+Queries (20):
+  B10-01 IRIS discover: "Infected Areas as on 1975"
+  B10-02 IRIS discover: "Infected Areas as on 1979"
+  B10-03 IRIS discover: "Infected Areas as on 1993"
+  B10-04 IRIS discover: "Areas removed from the infected area list 1990"
+  B10-05 Read the cholera block of "Infected Areas as on 18 December 1975"
+  B10-06 Read the cholera block of "Infected Areas as on 19 July 1979"
+  B10-07 Read the cholera block of "Infected areas as at 2 June 1993"
+  B10-08 IRIS discover: "Areas Removed from the Infected Area List" filtered to 1989/1990
+         (no hits in that date range)
+  B10-09 IRIS discover: "Infected areas as at 1991"
+  B10-10 IRIS discover: "Infected areas as at 1992"
+  B10-11 Read the cholera block of "Infected areas as at 14 March 1991"
+  B10-12 Read the cholera block of "Infected areas as at 4 June 1992"
+  B10-13 IRIS discover: WER "Cholera, 2024"
+  B10-14 Download WER "Cholera, 2024"; read Ghana's row and the confirmation table
+  B10-15 WebSearch: Ghana cholera 2018 2019 GHS surveillance annual report
+  B10-16 WebSearch: Ghana cholera 2017-2019 "no outbreak" / "cholera-free"
+  B10-17 Check the community-based surveillance literature for a 2018-2019 Ghanaian
+         cholera statement (PMC7418973 - 317 events detected Sep 2018 - Mar 2019, none
+         cholera, but the paper does not say so in terms and cannot carry a zero)
+  B10-18 Final inventory of every zero row in data/GHA/cholera_data_ai.csv
+  B10-19 Final inventory of data/GHA/retracted_rows_ai.csv
+  B10-20 py/validate_quality.py GHA
+Sources found: 0 new registrable
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 3  (batches 8, 9 and 10)
+Decision     : STOP - three consecutive batches below the 5% yield threshold, after
+               10 batches / 200 queries, with the 3-batch minimum long since met.
+
+HOW FAR THE IHR REGISTER TECHNIQUE REACHES, FOR THE NEXT AGENT
+  18 Dec 1975   Ghana LISTED (Central Region, Western Region)
+  19 Jul 1979   Ghana LISTED (Ashanti, Brong-Ahafo, Central, Eastern, Greater Accra)
+  1985-1989     as set out in Batch 9
+  22 Feb 1990   Ghana ABSENT
+  14 Mar 1991   Ghana ABSENT - although Ghana reported 13 172 cases to WHO in 1991
+  04 Jun 1992   Ghana ABSENT - although Ghana reported 228 cases in 1992
+  02 Jun 1993   Ghana ABSENT - although Ghana reported 1 448 cases in 1993
+  So the register tracks Ghana's reported cholera faithfully through the 1970s and
+  1980s and then stops being maintained for Ghana from 1991. It is usable evidence for
+  roughly 1970-1990 and worthless after that. This bounds how much weight the 1986-1989
+  listing can bear in either direction and is the reason those rows were downweighted
+  rather than retracted wholesale.
+
+2018 AND 2019 REMAIN THE WEAKEST YEARS IN THE GHANA SERIES, AND NOTHING CLOSES THEM
+  2018: WHO received no return of any kind - Ghana appears neither in WER "Cholera,
+  2018" Table 1 nor in its zero-reporting list. No GWER volume survives (Volume 3 is
+  not archived). The only figure in the dataset is index 28's 2 cases from the JHU/WHO
+  weekly stream. There is no basis for a 2018 zero and none was created.
+  2019: WER gives 1 case; index 29 records it. No GWER volume survives (Volume 4 is not
+  archived). No basis for a sub-annual zero.
+
+================================================================================
+AGENT 3 SUMMARY - GHANA
+================================================================================
+Batches: 10 (200 queries).  Yields by batch (%): 15, 0, 0, 25, 0, 10, 15, 0, 0, 0.
+Stopping reason: three consecutive batches below 5% yield (batches 8, 9, 10).
+Sources registered: 6 - metadata indices 102 (WER "Cholera, 2017"), 103 (GWER Vol 7,
+  2025), 104 (GWER Vol 8, 2026), 105 (GWER Vol 5, 2020, via the Internet Archive),
+  106 (GWER Vol 6, 2021, via the Internet Archive), 107 (WER IHR Infected Areas
+  register 1985-1990).
+Rows added: 46.  Rows retracted: 6.  Rows revised: 18.  Metadata revised: 2.
+Presence rows added: 1.
+Final state: 193 rows in ./data/GHA/cholera_data_ai.csv, 42 of them zeros; validator
+  exits 0 with 0 errors.
+
+THE THREE THINGS THAT MATTER MOST
+  1. Ghana's own national weekly bulletin exists and nobody had found it. The Ghana
+     Weekly Epidemiological Report is live at phd.teamdesk.pro (2025-2026) and partly
+     recoverable from the Internet Archive (2020, and two issues of 2021). It gives
+     national cholera counts at WEEKLY resolution with laboratory outcomes, and it
+     states zero explicitly when zero is what happened.
+  2. Three inherited zeros were false and are gone. June 2025 and July 2025 rested on
+     WHO section-mark footnotes that mean "did not report", not "reported none"; Ghana's
+     own bulletin shows fifteen culture-confirmed cases in that window. The 1986 zero
+     rested on Ghana's absence from an annual table while WHO's own IHR register carried
+     two Ghanaian cholera foci throughout the year.
+  3. One inherited zero turned out to be much stronger than anyone thought. The 2020
+     zero, which Agent 1 had reduced to 0.6 and flagged for possible retirement, is now
+     carried by thirty-two consecutive issues of Ghana's own bulletin, each stating in a
+     section of its own that no cholera case was reported that week - while WHO was
+     recording Ghana as a country that had not reported at all.
+================================================================================

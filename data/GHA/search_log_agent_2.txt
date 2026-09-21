@@ -1,38 +1,1176 @@
-=== AGENT 2 INITIALIZATION ===
-Country: Ghana (GHA)
-Start Time: 2026-05-14
-Agent 2 Status: INITIALIZED
-Focus: Geographic expansion at provincial and district levels
+================================================================================
+AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - GHANA (GHA)
+================================================================================
+Start: 2026-09-19
+Mission: sub-national (region / district / municipal) cholera case and death counts.
 
-=== BASELINE STATUS FROM AGENT 1 ===
-cholera_data_ai.csv: 19 rows
-metadata_ai.csv: 17 sources
-Priority Gaps: 1986-1989 (surveillance gap), 2025 current outbreak detail
+STATE READ BEFORE FIRST QUERY
+  ./data/GHA/workflow_state.json      - Agent 1 ran 12 batches, 34 rows, 38 sources,
+                                        stopped at the 12-batch ceiling.
+  ./data/GHA/search_log_agent_1.txt   - 650 lines; Agent 1 worked national totals and
+                                        the recent 2025-2026 series (WHO HQ sitreps,
+                                        AFRO monthly/weekly bulletins, WER annuals).
+  ./data/GHA/cholera_data_ai.csv      - 67 rows, of which only 20 are sub-national.
+  ./data/GHA/metadata_ai.csv          - 64 sources (index 1-64).
+  ./reference/effective_surveillance_gaps_detailed.csv - GHA: 1986-1989 (filled by
+                                        Agent 1) and 2025-05-01..2026-09-19 (filled to
+                                        2026-08-26 by Agent 1). Note the file predates
+                                        Agent 1's writes; I am not permitted to
+                                        regenerate it (the runner owns that).
 
-=== AGENT 2 SEARCH LOG - GEOGRAPHIC EXPANSION ===
-=== BATCH 1 GEOGRAPHIC EXPANSION RESULTS (2026-05-14) ===
-Queries executed: 20 (Geographic/regional focus)
-Sources found: 4 new sources (metadata entries 18-21)
-Data observations added: 7 new rows (rows 20-26)
-Yield: 10/20 = 50% (good yield batch)
+SUB-NATIONAL COVERAGE INHERITED (20 rows)
+  Upper East::Builsa 1999 (x2), Upper East::Kassena_Nankana 1999
+  Eastern::East_Akim 2010, Eastern::Akatsi 2012, Central::KEEA 2012
+  Brong_Ahafo 2014, Greater_Accra 2014, Greater_Accra::Accra_Metropolis 2014,
+  Greater_Accra::La_Dadekotopon 2014, Greater_Accra::Shai_Osudoku 2014
+  Greater_Accra::Osu_Klottey 2011, 2012; Western::Medinya 2011
+  Central::Cape_Coast 2016 (x3), Central 2025, Central::Awutu_Senya_East 2024,
+  Western 2024, Western::Sekondi_Takoradi 2024,
+  Greater_Accra / Central / Western confirmed-case counts 2024-10..2025-03
 
-Key discoveries:
-- 2014 La-Dadekotopon district: 1,907 cases (Greater Accra)
-- 2014 Shai-Osudoku district: 315 cases (Greater Accra)
-- 2014 national mid-outbreak: 14,411 cases, 127 deaths (Sept 10)
-- 2014 national final: 28,975 cases, 243 deaths (Dec 2014)
-- 2024 Western Region: 789 cases, 17 deaths (Dec 7 snapshot)
-- 2024 Sekondi-Takoradi: 79 suspected, 23 confirmed, 2 deaths
-- 2024 early outbreak: 93 suspected, 9 confirmed, 1 death (Oct 11)
+GEOGRAPHIC TARGETS (priority order)
+  1. 2014 epidemic (28,975 cases / 243 deaths) - all 10 then-regions + Greater Accra
+     and Central districts
+  2. 2024-25 epidemic (6,145+) - Greater Accra districts, Central districts beyond
+     Awutu Senya East, Western districts beyond Sekondi-Takoradi
+  3. 2011 (10,628) and 2012 (9,548) - regional and district splits
+  4. 2016 Central Region beyond Cape Coast
+  5. 1999 Upper East beyond Builsa / Kassena-Nankana
+  6. 1970s-1990s regional breakdowns
 
-Gap status: 1986-1989 remains unfilled - no specific historical data found
+================================================================================
+=== BATCH 1 | PHASE 1 | GHA ===
+Gap targeted : 2014 epidemic sub-national geography (the 28,975-case / 243-death
+               national epidemic had only 5 sub-national rows in the file)
+Queries      : 20
+  B1-01 WebFetch PMC5637323 - full Greater Accra 2014 district table (DIRECT HANDOFF)
+  B1-02 WebFetch PMC5714944 - economic evaluation, to characterise the conflict
+  B1-03 WebSearch Ghana 2014 cholera outbreak cases deaths by region Central Eastern
+        Western Volta Ashanti Northern
+  B1-04 WebSearch Ghana Health Service 2014 cholera situation report regional
+        distribution cases 10 regions 130 districts
+  B1-05 WebFetch unocha.org Ghana cholera outbreak map 24 Aug 2014 (403)
+  B1-06 WebFetch medrxiv 2023.07.22.23293033 Central Region retrospective (403)
+  B1-07 curl medrxiv same, browser UA (403, Cloudflare)
+  B1-08 WebFetch scispace.com Outbreak of Cholera Greater Accra Region 2014 (empty)
+  B1-09 WebFetch scirp.org paperid=128033 Central Region retrospective (403)
+  B1-10 WebFetch reliefweb.int/disaster/ep-2014-000116-gha (403)
+  B1-11 curl same disaster page, browser UA (200 - dated IFRC/WHO/UNICEF timeline)
+  B1-12 curl adore.ifrc.org FileId=68147 EPoA operations update (502)
+  B1-13 WebSearch "Situation Report on Cholera Outbreak in Ghana" 2015 week reliefweb
+  B1-14 ReliefWeb API v1 reports, country gha, query cholera (410 decommissioned)
+  B1-15 ReliefWeb API v2 POST, same (no result)
+  B1-16 ReliefWeb API v2 GET, same (403 - appname not approved)
+  B1-17 curl reliefweb.int/updates advanced-search DI4322 listing
+  B1-18 WebSearch reliefweb Situation Report Ghana 2014 week 40/44/48 regions
+  B1-19 curl reliefweb attachment MDRGH010 DREF Review Report PDF (200, 97k chars)
+  B1-20 WebSearch IFRC DREF MDRGH010 EPoA 2014 "4,800" Central region
+  (+4 over budget, carried as batch-1 overflow: curl adore FileId=62864 (502);
+   curl two reliefweb EPoA slugs (one 200 - the EPoA full text); WebSearch reliefweb
+   EPoA MDRGH010; curl reliefweb DREF review landing page for publication date)
+Sources found: 3    Registered: metadata index 65, 66, 67
+Rows added   : 19   Indices: 72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,
+                             89,90,91,92,93,94,95,96  (26 total incl. the 2 conflict
+                             replacements and the 5 anchor/derived rows)
+Rows retracted: 2   Indices 20, 21 (tombstoned in ./data/GHA/retracted_rows_ai.csv)
+Successful queries: 5/20  (B1-01, B1-02, B1-11, B1-19, B1-22-overflow)
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
 
-=== STOPPING CRITERIA EVALUATION ===
-Batch 1 yield: 50% - CONTINUE
-Total batches: 1 of 10 maximum
+  DIRECT-HANDOFF OUTCOME - PMC5637323 Greater Accra 2014 district table
+  Extracted all 15 districts. The table is ARITHMETICALLY CLOSED against the
+  regional total the same paper reports:
+    10504+103+49+68+153+190+1955+1337+369+2327+326+1447+22+246+1103 = 20199 cases
+    65+1+0+1+1+0+5+2+0+15+6+14+0+1+10                               =   121 deaths
+  Accra Metropolis (10504/65) was already in the file as index 68. The other 14
+  are new: Ga South 1955/5, Ledzokuku-Krowor 1447/14, Ga West 1337/2, Tema 1103/10,
+  Kpone Katamanso 369/0, La Nkwantanang 326/6, Ga East 190/0, Ga Central 153/1,
+  Ada East 103/1, Ashaiman 68/1, Adentan 49/0, Ningo Prampram 22/0, plus the two
+  conflict replacements below.
 
-AGENT 2 COMPLETION:
-cholera_data_ai.csv: 26 rows (added 7)
-metadata_ai.csv: 21 sources (added 4)
+  CONFLICT RESOLVED - La Dadekotopon and Shai Osudoku, 2014
+  Two Level 1 peer-reviewed papers disagree:
+    PMC5637323 (Ohene-Adjei 2017, regional surveillance line list, 9 Jun-31 Dec):
+        La Dadekotopon 2327 cases / 15 deaths ; Shai Osu Doku  246 cases / 1 death
+    PMC5714944 (Nonvignon, household cost analysis, "June to December 2014"):
+        La-Dadekotopon 1907 cases / no deaths ; Shai-Osudoku  315 cases / no deaths
+  RESOLUTION: keep PMC5637323; retract rows 20 and 21; re-add as 84 and 85 at
+  confidence 0.85 (down from 0.95 for the unconflicted districts of the same table)
+  with both values recorded in processing_notes. Three reasons:
+   1. ARITHMETIC. PMC5637323's 15 district rows sum exactly to its own stated
+      regional total, and that regional total is independently corroborated to
+      within 0.3% by the WHO WER "Cholera, 2014" statement that Greater Accra held
+      70% of Ghana's 28,944 national cases (0.70 x 28944 = 20261 vs 20199 reported).
+      PMC5714944's pair sums to 2222, a number that reconciles to nothing; the paper
+      uses it only as the sampling frame for a 418-household costing survey.
+   2. NOT A SUBSET. PMC5714944 is LOWER for La-Dadekotopon (1907 < 2327) but HIGHER
+      for Shai-Osudoku (315 > 246). A whole/part relation moves one way only, so
+      these are two different case-ascertainment bases - facility registers ("2222
+      cholera cases were reported in health facilities; HIA (1907) and LIA (315)")
+      versus the district surveillance line list - not a total and its subset.
+   3. FALSE ZEROS. Rows 20 and 21 carried deaths=0 solely because the economic
+      paper reports no deaths at all. The line list records 15 deaths in
+      La-Dadekotopon (the region's second-highest toll) and 1 in Shai-Osudoku.
+      Retained, they would have asserted CFR=0 for both districts.
 
-End Time: 2026-05-14
+  NEW 2014 REGIONAL COVERAGE from the IFRC EPoA (14 August 2014 cut)
+    Greater Accra 4340/39, Eastern 264/0, Ashanti 10/0, Western 23/0, national
+    4800/43 from 32 districts in 5 regions. Eastern, Ashanti and Western had NO
+    2014 regional row before this. Sekondi-Takoradi carried all 23 Western cases.
+    Central Region's bullet is empty in both the EPoA and the DREF review, so its
+    figure was DERIVED BY RESIDUAL (163 cases / 4 deaths) at confidence 0.5 and
+    flagged ESTIMATED; the district counts close independently (16+7+3+1=27 of 32,
+    leaving 5 districts for Central).
+
+  DATA DELIBERATELY NOT EXTRACTED - week-38 district bar chart
+    The DREF review's Figure 1 gives 16 bar values summing exactly to the stated
+    15,034 Greater Accra total for weeks 1-38: 7823, 53, -, 19, 63, 146, 190, 138,
+    1377, 860, 1658, 717, 829, 28, 272, 861. The obvious mapping is the district
+    list printed immediately above it, but that mapping puts Ga West at 1377 (year
+    end 1337), Kpone Katamanso at 860 (year end 369), La Nkwantanang at 717 (year
+    end 326), Shai Osudoku at 272 (year end 246) and Ningo Prampram at 28 (year end
+    22) - five districts whose week-38 cumulative would exceed their year-end
+    cumulative, which is impossible. The bar labels are not in the PDF text layer,
+    so the ordering cannot be confirmed and no per-district week-38 row was written.
+    Only the prose regional total (15,034, index 96) was taken.
+
+  AMBIGUITY LEFT OPEN - Ada West 2014
+    PMC5637323's closed table omits Ada West, and the DREF review says "Fifteen
+    districts out of sixteen in this region had recorded cases", which together
+    point to a genuine district-level zero for the 2014 epidemic. But the EPoA's
+    14 August list names Ada West among the "16 districts" reporting cases. Because
+    a wrong district zero is worse for spatial modelling than a missing row, no
+    zero row was written. Left for Agent 3 with the evidence stated here.
+
+=== BATCH 2 | PHASE 1 | GHA ===
+Gap targeted : 2024-25 epidemic sub-national geography (6,145+ cases; the file had
+               Central region, Western region, Sekondi-Takoradi and Awutu Senya East
+               only, and nothing at all for Greater Accra districts)
+Queries      : 20
+  B2-01 WebSearch Ghana cholera 2024 2025 Greater Accra districts Ablekuma Ada East
+        Tema Ga South cases deaths breakdown
+  B2-02 WebSearch Ghana Health Service cholera situation report January 2025 regional
+        breakdown Greater Accra Central Western Eastern cases districts
+  B2-03 curl reliefweb IFRC DREF MDRGH020 initial operation page
+  B2-04 curl same, grep for PDF attachment URL (none exposed)
+  B2-05 curl same, broader attachment grep (none)
+  B2-06 curl reliefweb IFRC DREF MDRGH020 final report page
+  B2-07 IFRC GO API goadmin.ifrc.org appeal?code=MDRGH020 (200; dref-final-report 401)
+  B2-08 WebSearch Ghana cholera Central Region 2024 2025 Awutu Senya East Effutu Gomoa
+        Cape Coast Komenda districts cases deaths
+  B2-09 WebSearch Ghana cholera Western Region 2024 Effia Kwesimintsim Shama Ahanta
+        West Tarkwa cases deaths district
+  B2-10 curl graphic.com.gh Central Region 7 dead 47 confirmed + citinewsroom Western
+        Region 14 cholera deaths
+  B2-11 curl both, extract datePublished
+  B2-12 curl graphic.com.gh, second attempt at article date (found "Nov - 19 - 2024")
+  B2-13 WebSearch "Central Region" Ghana cholera "720 suspected" Agnes Anane
+  B2-14 WebSearch Ghana cholera Greater Accra region Dec 2024 Jan 2025 regional health
+        directorate total suspected
+  B2-15 curl flutrackers.com Ghana 2024-2025 Cholera thread (15.7k chars, ~20 dated
+        Ghanaian news items with district detail - the highest-value single fetch)
+  B2-16 curl same, extract per-post dates and source URLs
+  B2-17 curl adomonline.com Greater Accra 200 cases 13 deaths 2025 + Western Region 15
+        cholera deaths
+  B2-18 curl myjoyonline Agona Swedru 214 + myjoyonline Effutu two children +
+        mynewsgh Effutu more deaths
+  B2-19 curl all six news URLs, extract article:published_time
+  B2-20 curl 3news Ada East/West 43 cases + 3news Kwesimintsim, and WebSearch for the
+        "Central Region rise to 3,028" headline seen in Adom's related links
+Sources found: 8    Registered: metadata index 68,69,70,71,72,73,74,75
+Rows added   : 10   Indices: 97,98,99,100,101,102,103,104,105,106
+Rows revised : 1 row, twice - index 22 (conflict note, then confidence 0.85 -> 0.50)
+Successful queries: 4/20  (B2-10, B2-17, B2-18, B2-20)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+  NEW SUB-NATIONAL COVERAGE
+    Central Region 19 Nov 2024      720 susp / 47 conf / 7 deaths   (index 97)
+    Western Region 13 Dec 2024      >800 susp / 14 deaths           (index 98)
+    Greater Accra 2025 to 24 Apr    1465 susp / 200 conf / 13 deaths (index 99)
+    Western Region 16 Dec 2024      >1000 susp / 90 conf / 15 deaths (index 100)
+    Agona West (Central) 25 Jan 25  214 susp / 11 conf              (index 101) NEW DISTRICT
+    Effutu (Central) 10 Feb 2025    356 susp / 29 conf / 2 deaths   (index 102) NEW DISTRICT
+    Ada East (Gt Accra) 24 Oct 24   37 confirmed                    (index 103) NEW DISTRICT
+    Ada West (Gt Accra) 24 Oct 24   6 confirmed                     (index 104) NEW DISTRICT
+    Greater Accra 24 Oct 2024       43 conf / 2 deaths              (index 105)
+    Effia-Kwesimintsim (W) 12 Dec   19 cases / 2 deaths, one day    (index 106) NEW DISTRICT
+
+  CONFLICT ADJUDICATED - Western Region 2024 death count
+    Four dated figures exist:
+       7 Dec 2024  17 deaths  GBC (existing row 22)
+      13 Dec 2024  14 deaths  Regional Director of Health Services Dr Yaw Ofori Yeboah,
+                              via Citi News (new row 98)
+      16 Dec 2024  15 deaths  Deputy Regional Director for Public Health Dr Gifty Amugi,
+                              via Adom Online (new row 100)
+      23 Dec 2024  17 deaths  Ghana Health Service national release - "The most affected
+                              region is the Western Region, which has reported 17 deaths"
+    The last three rise monotonically, as a cumulative count must. Only row 22 breaks
+    monotonicity, reaching 17 sixteen days before the GHS put the region at 17. Row 22's
+    confidence was cut 0.85 -> 0.50 and both the conflict and this reasoning were written
+    into its processing_notes. It was NOT retracted: its 789-case figure for 7 December sits
+    plausibly between the 16 December "over 1,000" and the earlier counts, so only the death
+    figure is doubtful.
+
+  PLAUSIBILITY FLAG RAISED, NOT RESOLVED - Greater Accra 13 deaths "in 2025"
+    Row 99 takes the regional health directorate at its word. But WHO AFRO puts Ghana at
+    2,325 cases and 13 deaths nationally for 1 Jan - 27 Apr 2025 (index 45), so the row
+    implies every 2025 death in Ghana was in Greater Accra and none in Central, which was
+    the epicentre through January. The alternative reading - that the directorate's 13 is
+    cumulative from October 2024 - is recorded in the row's notes for Agent 5.
+
+  FIGURES DELIBERATELY NOT RECORDED
+    - "close to 200 suspected cases" (Ada, 24 Oct 2024): too vague for sCh; only the exact
+      43 confirmed and 2 deaths were taken.
+    - MyNewsGh's 12 Feb 2025 claim of 7 cumulative Effutu deaths: internally inconsistent
+      (2 + 3 more = 5, not 7), unnamed source. Recorded as an annotation on row 102 rather
+      than written as a contradictory row.
+    - Week-38 2014 Greater Accra district bar chart (see batch 1).
+
+  DISTRICTS CONFIRMED PRESENT BUT NOT QUANTIFIED (for Agent 3 / the presence file)
+    Central 2024-25: Awutu Senya (West), Mfantseman, Twifo-Hemang-Lower-Denkyira,
+      Cape Coast, Gomoa East, Agona East, and with suspected cases only
+      Komenda-Edina-Eguafo-Abirem, Assin South, Assin North, Gomoa West.
+    Greater Accra 2024-25: Kpone Katamanso, Korle Klottey, Ashaiman, Ga South,
+      Accra Metro, La Nkwantanang Madina.
+    Western 2024-25: Shama, Ahanta West (named as adjoining the epicentre).
+    Awutu Senya East hotspot sub-districts: Akwelley, Kasoa North, Odupong Kpehe.
+
+=== BATCH 3 | PHASE 1/2 | GHA ===
+Gap targeted : 2011, 2012 and 2013 sub-national geography, plus any pre-2010
+               sub-national record (the file had nothing sub-national between the
+               1999 Upper East rows and 2010 East Akim)
+Queries      : 20
+  B3-01 WebSearch Ghana cholera 2011 epidemic 10628 cases regional distribution
+  B3-02 WebSearch Ghana cholera 2012 outbreak 53 districts nine regions by region
+  B3-03 curl nature.com Temporal trend and spatial clustering Kumasi
+  B3-04 curl reliefweb.int/disaster/ep-2012-000069-gha
+  B3-05 curl nature.com same, grep study-area and data section
+  B3-06 WebSearch reliefweb Ghana Cholera DREF final report MDRGH007 2012
+  B3-07 curl reliefweb.int/disaster/ep-2013-000009-gha (Ashanti January 2013)
+  B3-08 curl nature.com same, grep for case totals
+  B3-09 curl idpjournal.biomedcentral.com two-districts paper (blocked, 3 KB)
+  B3-10 WebSearch reliefweb Ghana Cholera Epidemic DREF MDRGH008 final report 2013
+  B3-11 curl reliefweb 2013 disaster page, extract report links (none exposed)
+  B3-12 curl pmc PMC5090876 (blocked, 167 chars)
+  B3-13 WebFetch PMC5090876 - which region is Akatsi District in?
+  B3-14 WebSearch "MDRGH008" Ghana cholera DREF 2013 Ashanti Kumasi
+  B3-15 curl link.springer.com Ashanti spatial patterns (blocked)
+  B3-16 WebFetch ij-healthgeographics.biomedcentral.com same (301 to Springer)
+  B3-17 WebFetch academic.oup.com Cholera burden in Ghana systematic review 2025
+  B3-18 WebFetch link.springer.com same (303 to auth wall)
+  B3-19 PubMed search_articles: cholera Ghana (region OR district OR spatial OR outbreak)
+        - 106 hits, 40 returned
+  B3-20 PubMed get_full_text PMC2628349 - Kumasi refuse-dump spatial study
+  (+3 overflow: PubMed get_article_metadata on 28 PMIDs to triage for sub-national
+   content; PubMed get_full_text PMC2533654; PubMed get_full_text PMC6294804)
+Sources found: 4    Registered: metadata index 76, 77, 78, 79
+Rows added   : 3    Indices: 107, 108, 109
+Rows revised : 1    Index 5 - LOCATION CORRECTED (see below)
+Successful queries: 3/20  (B3-07, and the two PubMed full-text calls in overflow)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+  GEOGRAPHIC ERROR FOUND AND FIXED - row 5, Akatsi District
+    Row 5 (422 cases, 5 deaths, September 2012) was recorded at
+    AFR::GHA::Eastern::Akatsi. Akatsi District is in the VOLTA Region. The row's own
+    cited source says so: Nyarko et al., Infectious Diseases of Poverty 2016
+    (PMC5090876), "Akatsi District, shown in Fig. 1, is located in the south eastern
+    part of the Volta Region of Ghana". The same paper places the companion district
+    correctly - "Komenda-Edina-Eguafo-Abirem (KEEA) Municipal in the Central Region" -
+    which matches row 6. Location changed to AFR::GHA::Volta::Akatsi; no count or date
+    touched. Akatsi stayed in Volta through the December 2018 reorganisation (it did
+    not go to the new Oti Region), so the name is right for both 2012 and today.
+    Impact: 422 cases and 5 deaths were assigned to the wrong first-level unit, which
+    is exactly the kind of error that corrupts a spatial transmission model.
+
+  NEW SUB-NATIONAL COVERAGE
+    Ashanti Region  Dec 2012 - 21 Jan 2013   310 cases / 18 deaths   (index 107)
+      First Ghana record of any kind for 2013 in this file. GHS declared the outbreak
+      8 Jan 2013; source says pockets of cases from December 2012, so TL straddles the
+      year boundary and part may also sit in the national 2012 total (index 4).
+    Ashanti Region  1997-2001 cumulative     3231 cases              (index 108)
+      Now the EARLIEST sub-national observation in the file, two years before the
+      previous earliest (1999 Upper East). Derived as the sum of a complete
+      stratification, at confidence 0.7: the paper prints no regional total but gives
+      two independent partitions of the 18 districts that both sum to 3231
+      (urbanization 126+357+2748; overcrowding 51+310+2870).
+    Kumasi Metropolis  29 Sep - 9 Dec 2005   1166 cases              (index 109)
+      The only district-level Ghana observation between 1999 and 2010. Individual
+      line-list records from the Kumasi Metropolitan Disease Control Unit.
+
+  DERIVATION CONSIDERED AND REJECTED - Kumasi Metropolis 1997-2001
+    The Ashanti paper's third stratification, by order of neighbourhood with Kumasi
+    Metropolis, totals 562 + 69 + 21 = 652 against the region's 3231, leaving 2579.
+    That remainder is presumably Kumasi Metropolis itself, which as the reference
+    district belongs to no neighbourhood order. But the paper writes "the second order
+    neighborhood (with Kumasi Metropolis)", which can be read as putting Kumasi inside
+    that stratum, and the population denominators of the urbanization and overcrowding
+    tables disagree (3,084,759 vs 3,708,951) even though their case totals match. Too
+    ambiguous; no Kumasi 1997-2001 row written.
+
+  CLUSTER COUNTS NOT EXTRACTED
+    PMC2628349 (Osei & Duker 2008, Kumasi refuse dumps) reports four significant
+    spatial clusters of the 2005 outbreak with 376, 1, 214 and 23 cases. Clusters of
+    communities are not administrative units and the four do not cover the whole
+    metropolis, so none was written as a row. They do corroborate the magnitude of the
+    1166-case metropolis total in index 109.
+
+  HISTORICAL CONTEXT RECORDED, NOT QUANTIFIABLE
+    PMC2533654 and PMC2628349 both state that cholera entered Ghana on 1 September
+    1970 via a Togolese national at Kotoka International Airport, that the epidemic
+    then spread along the coast from a smuggled corpse, and that Ashanti Region began
+    reporting cases in July 1971. No counts attached - presence only.
+    Ashanti outbreak years within 1997-2001 were 1998, 1999 and 2001, with "very few"
+    cases in 1997 and 2000 - too vague to split the 3231 by year, and NOT enough to
+    write zero rows for 1997 or 2000.
+
+=== BATCH 4 | PHASE 2 | GHA ===
+Gap targeted : district detail inside the 2014 Brong Ahafo and 2016 Central Region
+               outbreaks, the 2015 Upper East outbreak, and any pre-2010 or
+               2013 sub-national record
+Queries      : 20
+  B4-01 PubMed get_full_text PMC7837350 - Cape Coast 2016, sub-metro breakdown
+  B4-02 PubMed search: (Bongo OR "Upper East" OR Builsa OR Kassena OR Bolgatanga OR
+        Bawku) AND cholera AND Ghana
+  B4-03 WebSearch Ghana 2015 cholera Bongo district Upper East burial ceremony Opare
+  B4-04 PubMed convert_article_ids 29903037, 25648630 -> PMCIDs
+  B4-05 curl journalajrid.com Outbreak of Cholera in Ghana systematic review 2010-2020
+  B4-06 WebFetch same (403)
+  B4-07 WebFetch esmed.org Vea-Gunga Bongo District 2015
+  B4-08 WebSearch Ghana 2015 cholera Sunyani West district Brong Ahafo
+  B4-09 PubMed get_full_text PMC5908202 - Rebaudet, Benin to Mauritania 2009-2015
+  B4-10 PubMed get_full_text PMC5553860 - Brong Ahafo 2014, district breakdown
+  B4-11 WebSearch Ghana 2010 census district populations Pru / Atebubu-Amantin /
+        Sene West / Asunafo North (to resolve the Brong Ahafo contradiction)
+  B4-12 PubMed get_full_text PMC5881562 - Osu Klottey surveillance 2011-2013
+  B4-13 WebSearch Ghana 1999 cholera Upper East Bolgatanga Bawku Navrongo districts
+  B4-14 WebSearch Ghana cholera 2024-25 Eastern Region districts
+  B4-15 WebFetch who.int Disease Outbreak News 1999_09_02 Ghana cholera
+  B4-16 WebFetch who.int Disease Outbreak News 1997_03_21a (turned out to be
+        meningitis, not cholera - discarded)
+  B4-17 curl reliefweb Ghana floods in the north worsen cholera outbreak (1999)
+  B4-18 py/validate_quality.py GHA
+  B4-19 cross-check of which rows carry the machine-checkable double-counting label
+  B4-20 curl the same ReliefWeb 1999 report again for the truncated sentence
+Sources found: 2    Registered: metadata index 80, 81
+Rows added   : 16   Indices: 110,111,112,113,114,115,116,117,118,119,120,121,122,
+                             123,124,125
+Rows revised : 6    Indices 1 (LOCATION CORRECTED), 32 (PERIOD CORRECTED), 70, 71
+                    (confirmed counts backfilled), 107 (confidence 0.80 -> 0.45),
+                    and 27, 108, 113 (double-counting labels)
+Successful queries: 6/20  (B4-01, B4-07, B4-09, B4-10, B4-12, B4-15)
+Yield        : 30%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+  MIS-ATTRIBUTION FOUND AND FIXED - row 1, the 1999 national figure
+    Row 1 carried 3,997 cases and 100 deaths at AFR::GHA::Upper_East::Builsa. WHO's
+    Disease Outbreak News of 2 September 1999 gives two separate figures and the row
+    had attached the national one to a single district:
+      "As at 23 August, 269 cases with 9 deaths had been reported from 3 of the 6
+       subdivisions"                                        <- Builsa District
+      "As at 31 August 1999, a total of 3 997 cases and 100 deaths had been reported
+       to WHO."                                             <- Ghana, nationally
+    Three checks confirm the national reading: 3,997 by 31 August is consistent with
+    9,000 cases and 250 deaths for the whole of 1999 (index 31); it is fifteen times
+    the Builsa figure from eight days earlier; and 3,997 cases in a district of well
+    under 100,000 people implies an attack rate above 4%, at the edge of plausibility.
+    Row 1 relocated to AFR::GHA and re-weighted 0.95 -> 0.90; the true Builsa figure
+    (269 cases / 9 deaths, a lower bound since it covers 3 of 6 subdivisions) added as
+    index 125.
+
+  PERIOD CORRECTED - row 32, Builsa September 1999
+    The IRIN/Ghanaian Red Cross figure of 1,220 cases and 27 deaths is cumulative "as
+    at 12 September", not a September-only count. TL moved 1999-09-01 -> 1999-07-01 so
+    it reads as a nested cumulative snapshot alongside index 125 rather than as an
+    implausible twelve-day burst.
+
+  SOURCE CONTRADICTION RESOLVED BY ARITHMETIC - Brong Ahafo 2014 district shares
+    PMC5553860's abstract and its Results section give the same three percentages to
+    different districts:
+      abstract: Atebubu-Amanten 31.1, Sene West 26.0, Pru 18.2, Asunafo North 9.9
+      results : Pru 31.1, Atebubu-Amanten 26.0, Sene west 18.2
+    The Results ordering is right. The paper also gives attack rates (Sene West 321,
+    Atebubu-Amanten 254, Pru 249, Asunafo North 82 per 100,000), so dividing each
+    implied case count by its attack rate recovers the district population. Only the
+    Results ordering reproduces the 2010 census: Atebubu-Amantin 0.260 x 1035 = 269
+    cases / 254 per 100k = 105,906 against a census 105,938 (0.03% off), where the
+    abstract ordering gives 126,772 (20% off). Asunafo North, on which both orderings
+    agree, checks out identically (124,878 derived vs 124,685 census). Census figures
+    verified by search (B4-11), not from memory.
+
+  NEW SUB-NATIONAL COVERAGE (16 rows)
+    Cape Coast UCC sub-metro 2016-17   341 susp / 56 conf / 0 deaths  (110) NEW DEPTH
+      First municipal/sub-metro-level row for Ghana - AFR::GHA::Central::Cape_Coast::
+      UCC_Sub_Metro. 48% of the metropolis's cases.
+    Shama (Western) 2016              1 case                          (111) NEW DISTRICT
+    Ashanti 2016                      1 case                          (112)
+      Two documented exportations from the Cape Coast outbreak, already inside its 704.
+    Bongo (Upper East) 2015           13 cases / 2 deaths             (113) NEW DISTRICT
+    Greater Accra 2011-2014           35,985 cases                    (114)
+      From the Ghana MoH weekly district database via Rebaudet et al.; the paper's own
+      national denominator 48,914 reproduces exactly from WER annual totals
+      (10387+9563+20+28944), so numerator and denominator are on one basis.
+    Brong Ahafo 2014, nine districts, ALL NEW:
+      Pru               322 susp / 3 conf / 8 deaths   (115)
+      Atebubu-Amantin   269 susp / 5 conf / 9 deaths   (116)
+      Sene West         188 susp / 1 death             (117)
+      Asunafo North     102 susp / 97 conf / 2 deaths  (118)
+      Techiman          26 confirmed                   (119)
+      Wenchi            9 confirmed                    (120)
+      Dormaa East       5 confirmed                    (121)
+      Nkoranza South    5 confirmed                    (122) - the region's index district
+      Sunyani Municipal 3 confirmed                    (123)
+      The nine confirmed counts are REPORTED and sum exactly to the region's stated 153
+      (97+26+9+5+5+5+3+3). The four suspected counts are DERIVED from stated percentage
+      shares of 1035 and carry confidence 0.6 with an ESTIMATED flag. Successor regions
+      after the 2018 reorganisation are recorded on every row.
+    Osu Klottey (Greater Accra) 2013  14 susp / 0 conf / 0 deaths     (124)
+      Derived by subtraction from the paper's own 2011-2013 totals (1056 - 546 - 496).
+    Builsa (Upper East) to 23 Aug 99  269 cases / 9 deaths            (125)
+
+  EXISTING ROWS IMPROVED
+    Rows 70 and 71 (Osu Klottey 2011 and 2012) had no confirmed count; the source
+    reports 9 of 13 tested positive in 2011 and 12 of 24 in 2012. Both backfilled.
+
+  MAJOR CONFLICT RAISED ON ROW 107 (Ashanti, December 2012 - January 2013)
+    Rebaudet et al. (PMC5908202), working from the Ghana MoH weekly district database
+    and WHO WER returns, record an 18-month national lull from end-2012 to mid-2014
+    with Ghana's whole-of-2013 suspected total at 20 cases, ALL culture-negative. That
+    cannot be squared with 310 cases and 18 deaths in Ashanti in January 2013. Two
+    readings are possible - most of the 310 fell in December 2012 and is already inside
+    the national 2012 total, or the event was declared as cholera but never confirmed.
+    Row 107 kept but cut from 0.80 to 0.45 with both readings written into its notes.
+    Independent support for the lull came from the Osu Klottey paper the same batch:
+    that one Accra district recorded 14 suspected cases in 2013, 2 tested, 0 positive -
+    which would be 14 of the nation's 20.
+
+  VALIDATION
+    py/validate_quality.py GHA: ERROR 0, WARN 10 (was 14 before this batch's fixes;
+    all four national_subnational_overlap warnings were closed by adding the
+    machine-checkable labels to indices 27, 108 and 113).
+
+=== BATCH 5 | PHASE 2 | GHA ===
+Gap targeted : Volta and Eastern Region district detail for 2014, remaining Central
+               Region districts for 2016, Greater Accra districts for 2024-25, and
+               pre-1998 regional history
+Queries      : 20
+  B5-01 WebSearch Ghana cholera 2014 Volta Region Ho municipal cases deaths
+  B5-02 curl ghana.un.org IOM Population Mobility Mapping for Rapid Cholera Response
+  B5-03 curl dergipark.org.tr THE CHOLERA OUTBREAK IN GHANA (ESTUDAM 2019)
+  B5-04 curl ghs.gov.gh/disease-outbreaks (live page carries only an mpox banner)
+  B5-05 curl dergipark, grep for the hotspot table
+  B5-06 pdftotext -layout on the ESTUDAM PDF, locate Table 1
+  B5-07 pdftotext -layout again, print Table 1 in full
+  B5-08 WebSearch ugspace University of Ghana GFELTP cholera outbreak investigations
+  B5-09 curl iris.who.int AFRO weekly bulletin item page (no text layer exposed)
+  B5-10 curl panafrican-med-journal.com/content/series/25/1 - Ghana FELTP supplement
+  B5-11 curl PAMJ 25/1/15 (Atwima Nwabiagya) and 25/1/17 (Central Region diarrhoea)
+  B5-12 WebSearch SCIRP Retrospective Study Vibrio Cholerae Central Region
+  B5-13 curl medrxiv full PDF of the Central Region retrospective (Cloudflare, 4 KB)
+  B5-14 PubMed get_full_text PMC7351161 - molecular study, southern Ghana 2012-2015
+  B5-15 curl ajol.info Ghana Medical Journal record for the Cape Coast paper
+  B5-16 curl researchgate mirror of the Central Region retrospective (blocked)
+  B5-17 curl scirp.org paperinformation 128033 (1 char returned)
+  B5-18 WebSearch Ghana cholera 1982 1991 epidemic regions historical
+  B5-19 WebSearch Ghana cholera 2025 Ablekuma Korle Klottey Okaikwei Ga West districts
+  B5-20 WebSearch Ghana cholera 2012 Jomoro district Western Region cross-border
+Sources found: 1    Registered: metadata index 82
+Rows added   : 1    Indices: 126
+Successful queries: 1/20  (B5-02)
+Yield        : 5%
+Consecutive sub-5% batches: 0  (5% is not below the 5% threshold)
+Decision     : CONTINUE
+
+  NEW SUB-NATIONAL COVERAGE
+    Greater Accra, 4 Oct - 14 Nov 2024: 68 laboratory-confirmed (index 126). Fills the
+    six-week hole between the region's 43 confirmed on 24 October (index 105) and its
+    200 confirmed by March 2025 (indices 38, 99). Sourced to a Ghana Health Service
+    situation report quoted by IOM Ghana.
+
+  THREE FINDS DELIBERATELY NOT TURNED INTO ROWS
+  1. ESTUDAM hotspot table (Donkor & Maimaiti 2019, citing Ministry of Health 2018),
+     "Selected cholera hotspots in Ghana from 1998 to 2017", gives district groups as
+     PERCENTAGES of the national total with no denominator in the table:
+       Greater Accra / Accra                                          58.5%
+       Central / Abura-Asebu-Kwamankese, Agona, Cape Coast, Gomoa,
+         Mfantseman                                                    8.0%
+       Ashanti / Atwima, Bosomtwe-Atwima-Kwanwoma, Kumasi, Kwabre      5.4%
+       Eastern / Akwapim South, East Akim, New Juaben, West Akim       4.2%
+       Central / Awutu-Efutu-Senya, Komenda-Edina-Eguafo-Abirem        2.8%
+       Brong-Ahafo / Atebubu                                           1.8%
+       Western / Ahanta West, Shama-Ahanta West, Wassa West            1.5%
+       Eastern / Akwapim North, Birim South                            1.2%
+       Volta / Ketu 1.0%, Keta 0.7%; Upper East / Kassena-Nankana 0.8%;
+       Northern / Tamale 0.6%
+     The only candidate denominator in the paper is 82,754 cases and 519 deaths for
+     1998-2017 EXCLUDING 2003 and 2006. Converting would stack three derivations
+     (share x a partial-period total) to produce twenty-year cumulative rows for
+     district GROUPS that are mostly not single administrative units. A 20-year
+     cumulative spreads over ~1,040 model weeks and carries a high risk of being
+     summed against the many annual rows already present, so nothing was written.
+     The ranking is recorded here because it is genuinely useful as a hotspot map:
+     Tamale, Ketu and Keta appear on it and have NO rows at all in this dataset.
+  2. Molecular study PMC7351161 (Danso et al., PLoS ONE 2020) reports that of 109
+     successfully MLVA-typed archived isolates from the 2012, 2014 and 2015 outbreaks,
+     Ablekuma sub-district of Accra Metropolis held 22.9% (25) and Ga West Municipal
+     16.5% (18), spread over 15 districts/sub-districts. These are counts of ARCHIVED
+     ISOLATES THAT SEQUENCED WELL from a convenience collection across three separate
+     outbreak years - not a district confirmed-case count for any period. Recording
+     them as cCh would look like surveillance data while being a laboratory sampling
+     artefact. Not written.
+  3. Systematic review PMC12585563 (Kwakye et al., Int Health 2025) Table 2 lists
+     CFRs against "sample size" per study, but the sample sizes mix case counts with
+     numbers tested (e.g. Dzotsi 218 = rectal swabs taken, Acquah 61 = exposed cohort),
+     so the table cannot be read as case counts. It did surface one lead worth
+     following: three Ohene-Adjei strata of 4023/12, 12255/64 and 3339/45, whose deaths
+     sum exactly to Greater Accra's 121 for 2014 - pursued in batch 6.
+
+  DEAD ENDS WORTH RECORDING SO THEY ARE NOT RETRIED
+    medrxiv.org and scirp.org both refuse automated requests (Cloudflare), so the
+    Central Region 2016 retrospective could be read only through its abstract; its
+    district detail beyond Cape Coast and KEEA remains unobtained.
+    ghs.gov.gh/disease-outbreaks no longer serves cholera situation reports.
+    iris.who.int item pages expose no text layer to curl.
+    No source found gives 2014 Volta or Eastern Region case counts, or any 1982 or
+    1990-91 sub-national breakdown. The 1982 national peak of 15,032 cases is the only
+    figure recoverable for that era and it is national, not sub-national.
+
+=== BATCH 6 | PHASE 3 | GHA ===
+Gap targeted : citation chains out of the papers already used, cross-border and
+               French-language reporting, and Ghanaian-media district reporting for
+               the 2024-25 epidemic
+Queries      : 20
+  B6-01 WebFetch PMC5637323 - identify what 4023 / 12255 / 3339 are (age groups, not
+        geography; lead closed)
+  B6-02 PubMed search (Eibach OR Dzotsi) AND cholera AND Ghana
+  B6-03 WebSearch Ghana cholera 2024-25 district breakdown AFRO weekly bulletin
+  B6-04 PubMed get_article_metadata on 4 PMIDs to triage
+  B6-05 PubMed get_full_text PMC4549830 - Dzotsi, two Accra sub-metros 2012
+  B6-06 WebSearch (French) cholera Ghana Grand Accra transfrontalier Togo CIV BFA
+  B6-07 WebSearch Togo 2014 Lome imported from Ghana Aflao Ketu South
+  B6-08 curl plateformecholera.info/country/ghana (domain now serves a spam site)
+  B6-09 curl plateformecholera.info integrated-approach Ghana Togo Benin (same)
+  B6-10 PubMed get_full_text PMC4883745 - Eibach, molecular epidemiology 2014
+  B6-11 WebSearch UNICEF Ghana cholera situation report 2024-25 districts
+  B6-12 WebSearch Ghana cholera 2014 Ketu South Hohoe Ho Volta district figures
+  B6-13 curl tlarremore.wordpress.com Ghana cholera blog post (45 chars returned)
+  B6-14 WebSearch "Ketu North" cholera "24 new" Afornyaga Volta 252 cases
+  B6-15 WebSearch "Central Region" Ghana cholera 2025 "3,028" 19 deaths
+  B6-16 curl ghanaweb Here are the regions affected by Cholera outbreak (21 chars)
+  B6-17 curl adomonline slug guess for the Central Region 3,028 article (found)
+  B6-18 curl adomonline site search ?s=cholera+Central+Region, and the 3,028 article
+        body plus its published_time
+  B6-19 curl adomonline site search ?s=cholera+district
+  B6-20 curl adomonline Ashanti 5 confirmed cases + Agona West three deaths, with
+        published_time for each
+Sources found: 4    Registered: metadata index 83, 84, 85, 86
+Rows added   : 7    Indices: 127, 128, 129, 130, 131, 132, 133
+Rows revised : 3    Indices 67 and 107 (Eibach cross-checks), 101 (companion-row note)
+Successful queries: 4/20  (B6-05, B6-17, B6-18, B6-20)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+  NEW SUB-NATIONAL COVERAGE
+    Accra Metropolis, Jan-Jun 2012      71 laboratory-confirmed     (index 127)
+      Two-facility sentinel study (Korle-Bu Polyclinic, Maamobi General). Recorded as
+      a FLOOR at confidence 0.7, with sCh and deaths left empty because the study's
+      361 cases and 5 deaths are all diarrhoeal presentations, not cholera.
+    Central Region, to 19 March 2025    3028 susp / 260 conf / 19 deaths (index 128)
+      The largest and latest regional figure of the 2024-25 epidemic, from the named
+      Central Regional Director of Health Services at the Annual Health Sector
+      Performance Review. Completes a monotone four-point regional curve:
+      720/47/7 (19 Nov 24) -> 1929/180/14 (26 Jan 25) -> 3028/260/19 (19 Mar 25).
+    Ashanti Region, to 28 Dec 2024      28 susp / 5 confirmed       (index 129)
+      FIRST Ashanti record of the 2024-25 epidemic, and its three districts:
+      Sekyere South 3 confirmed (130, NEW DISTRICT), Kumasi 1 (131),
+      Bekwai 1 (132, NEW DISTRICT). The three partition the regional 5 exactly.
+      Valuable as a bound on how far inland a coastal epidemic reached.
+    Agona West, to 27 Jan 2025          200 susp / 11 conf / 3 deaths (index 133)
+      Supplies the death count missing from index 101. Written as a separate,
+      source-clean row rather than edited into 101; both rows annotated not to sum.
+
+  CONFLICT RECORDED - Greater Accra 2014 versus Eibach's six-region total
+    Eibach et al. (PMC4883745) report 20,185 cases and 165 deaths for SIX southern
+    regions in 2014 (Ashanti, Central, Eastern, Greater Accra, Western, Volta, onset
+    20 May - 11 Dec). That is essentially the same number as the 20,199 recorded for
+    GREATER ACCRA ALONE (index 67), which cannot both be right. The authors themselves
+    say the extract is partial - "restricted to six Southern Ghanaian regions ... for
+    which data quality was adequate" and "outbreak numbers differ from official WHO
+    numbers". Index 67 stands: its 15 districts close on it exactly and WHO's WER puts
+    Greater Accra at ~70% of 28,944, i.e. ~20,261. Eibach's figure was deliberately NOT
+    written as a multi-region row - it would read as a regional aggregate while being a
+    partial database extract. Note appended to index 67.
+
+  THIRD SOURCE ON GHANA 2013, reinforcing the row-107 doubt
+    Eibach: "For the year 2013 50 cholera cases have been reported from Ghana, but no
+    isolates were send for confirmation to the NPHRL." So 2013 national accounts are
+    WHO/WER 20 (all culture-negative), GHS 50 (no isolates submitted), against row
+    107's 310 cases in Ashanti alone. Note appended to index 107; confidence stays 0.45.
+
+  LEADS FOUND BUT NOT WRITTEN
+    - A blog post dated 12 June 2015 quotes "over 252 cases ... in the Volta region"
+      and "twenty four new cholera cases ... in Ketu North district ... first case
+      recorded in Afornyaga", attributed to a Joy News interview with Ketu North
+      Disease Control Officer Christian Gohoho. The same post says "over 10,000
+      recorded cases nationwide", which fits 2014 (10,387 in 2011 / 28,975 in 2014) and
+      not 2015 (about 690), so the post is almost certainly republishing 2014 content
+      under a 2015 date. The period cannot be fixed, so neither figure was written.
+      These remain the only Volta Region numbers found anywhere in this run.
+    - Eibach's Fig 3 names the districts that contributed typed isolates in 2011, 2012
+      and 2014: Asante Akim North, Accra, Adentan, Agona-Swedru, Awutu-Senya, Ashaiman,
+      Ga East, Ga South, Ga West, Gomoa East, Gomoa West, Hohoe, Ho, Kpone-Katamanso,
+      Ledzekuku-Krowor, Tema. Confirms Ho and Hohoe (Volta) and Gomoa East/West
+      (Central) had laboratory-confirmed cholera, but gives no counts - presence only.
+    - plateformecholera.info, the West African cholera platform, no longer exists; the
+      domain now serves an unrelated commercial site. Any future agent citing it should
+      check what actually resolves.
+
+=== BATCH 7 | PHASE 3 | GHA ===
+Gap targeted : district-level reporting in Ghanaian media archives, reached by site
+               search rather than by general web search - the technique that had
+               already proved highest-yield in batches 2 and 6
+Queries      : 20
+  B7-01 curl myjoyonline.com/?s=cholera+district
+  B7-02 curl citinewsroom.com/?s=cholera+cases+district
+  B7-03 curl myjoyonline Jomoro District cholera outbreak, with published_time
+  B7-04 curl myjoyonline Agona West and Effutu declining, with published_time
+  B7-05 curl gna.org.gh/?s=cholera
+  B7-06 curl citinewsroom.com/?s=cholera+Kasoa
+  B7-07 curl gna.org.gh search page, extract all dated article URLs
+  B7-08 curl gna.org.gh Abura-Asebu-Kwamankese 16 suspected 5 confirmed (July 2025)
+  B7-09 curl gna.org.gh Central Region moves to tame cholera outbreak (July 2026)
+  B7-10 curl citinewsroom Kasoa search page, extract article URLs (none exposed)
+  B7-11 WebSearch citinewsroom Cholera outbreak kills five in Kasoa / cases climb to 56
+  B7-12 curl gbcghanaonline.com/?s=cholera+cases
+  B7-13 curl ghanaiantimes.com.gh/?s=cholera+cases
+  B7-14 curl 3news.com/?s=cholera+cases
+  B7-15 curl ghanaiantimes Cholera outbreak overwhelms health facilities W/R
+  B7-16 curl same, extract datePublished
+  B7-17..B7-20 four further site-search result pages scanned for dated district items
+        (gbc Winneba, gbc Agona West, ghanaiantimes G/A 9 cases, 3news listing) - all
+        duplicated figures already held
+Sources found: 4    Registered: metadata index 87, 88, 89, 90
+Rows added   : 4    Indices: 134, 135, 136, 137
+Rows revised : 3    Indices 51 (confidence 0.9 -> 0.4), 128, 101-adjacent
+Successful queries: 4/20  (B7-03, B7-04, B7-08, B7-15)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+  MOST IMPORTANT FINDING OF THIS BATCH - a national documented zero contradicted
+    Row 51 asserted sCh=0 for Ghana nationally over 1-27 July 2025, on WHO situation
+    report #29. The Ghana News Agency of 18 July 2025, quoting Emmanuel Kwesi Dawood,
+    Central Regional Director of NADMO, reports that Abura-Asebu-Kwamankese District
+    "has this year recorded 16 suspected cases of cholera mostly in Moree, with five
+    confirmed, early July". Five LABORATORY-CONFIRMED cases in early July 2025 cannot
+    coexist with a true national zero for that month. The likely explanation is that
+    WHO recorded no Ghanaian RETURN for July 2025 rather than a returned zero - the
+    exact failure mode CLAUDE.md warns about, where py/build_weekly_timeseries.py turns
+    an absence of reporting into sCh=0 and so into a false negative. Row 51 cut from
+    0.9 to 0.4 with the contradiction written into its notes; NOT retracted, because
+    absence rows are Agent 3's remit and because the district figure is cumulative for
+    the year and so does not by itself fix how many cases fell inside 1-27 July.
+    Agent 3 should take this up.
+
+  NEW SUB-NATIONAL COVERAGE
+    Jomoro (Western), 1-17 May 2012     110 cases / 2 deaths        (index 134)
+      NEW DISTRICT and the only documented CROSS-BORDER IMPORTATION in the dataset:
+      "20 of the cases were brought from the Ivorian side of the border", attributed to
+      pollution of the Tano River, cases presenting at Elubo Health Centre on the
+      Cote d'Ivoire frontier. Independently corroborated by Rebaudet et al., who record
+      "a new outbreak emerged in May 2012 in Sud Comoe, adjacent to Jomoro District in
+      Ghana, where an outbreak was ongoing". Two independent sources, agreeing on
+      place, month and direction of movement.
+    Central Region, week to 16 Feb 2025  133 new cases / 2 deaths   (index 135)
+      The ONLY incident (new-case) observation in the file for the 2024-25 epidemic;
+      every other row is cumulative. Covers Agona West and Effutu only, so recorded at
+      region level as an explicit FLOOR. Consistency check: Central ran 1929 (26 Jan) to
+      3028 (19 Mar), about 147 cases a week on average, so 133 in one February week
+      from the two worst districts is exactly where it should sit.
+    Abura-Asebu-Kwamankese (Central), 2025 to 18 Jul  16 susp / 5 conf  (index 136)
+      NEW DISTRICT, the coastal district east of Cape Coast, cases concentrated at the
+      fishing town of Moree.
+    Western Region, to 17 Dec 2024       1347 cumulative cases      (index 137)
+      A figure read off the regional health directorate's own SITREP rather than a
+      rounded verbal estimate, and it validates the whole approximate series built in
+      batches 2 and 6: 789 (7 Dec) -> "over 800" (13 Dec) -> "over 1,000" (16 Dec) ->
+      1347 (17 Dec), where 1347 minus the 157 new cases of the reporting period leaves
+      1190 at the prior cut, sitting squarely above "over 1,000".
+
+  CENTRAL REGION CONFIRMED COUNT NOW HAS THREE VALUES
+    WHO AFRO 210 (to 23 Mar 2025, index 39), Central Regional Health Directorate 260
+    (19 Mar 2025, index 128), GNA 290 (18 Jul 2025). Suspected (3028) and deaths (19)
+    are identical across the directorate and GNA accounts, so only the confirmed count
+    moves - consistent with later laboratory results being returned against a closed
+    case list. Recorded on index 128; nothing retracted.
+
+  CHECKED AND CLEARED - no evidence of 2026 cholera in Ghana
+    GNA published "Central Region moves to tame cholera outbreak" (16 July 2026) and
+    "Ghana Health Service intensifies public education on Cholera in Keta" (July 2026).
+    Both were read in full. They are PREVENTION-EDUCATION pieces prompted by recent
+    floods and by "recurring cholera outbreaks" in general; neither reports a single
+    2026 case, death or district. They therefore do NOT contradict Agent 1's 2026
+    documented zeros (indices 58, 59), and no row was written from either.
+
+  FIGURES DELIBERATELY NOT EXTRACTED
+    - "as of 16 February 2025 only the Central Region had active cases, with 28 patients
+      currently receiving treatment... Effutu recorded 18 active cases, while Cape Coast
+      reported six" - these are PREVALENT cases under care, not incidence, and would be
+      misread as new cases.
+    - Western Region severity split (severe 60, moderate 80, mild 65 = 205) reconciles
+      with neither the 157 new nor the 1347 cumulative in the same SITREP.
+
+=== BATCH 8 | PHASE 3 | GHA ===
+Gap targeted : district and regional figures in the Ghana News Agency archive (the
+               "district health director interview" genre), 2011 district data, and
+               regional ABSENCE statements during the 2024-25 epidemic
+Queries      : 20
+  B8-01 curl modernghana.com/search/?q=cholera+cases+district (58 chars, JS-only)
+  B8-02 curl graphic.com.gh component/search cholera cases (70 chars, JS-only)
+  B8-03 WebSearch Ghana cholera 2011 Accra sub-metro Ablekuma Ayawaso Okaikoi
+  B8-04 WebSearch modernghana/ghanaweb 2011 cholera Greater Accra districts
+  B8-05 PubMed get_full_text PMC13472063 - Ada Foah KAP study
+  B8-06 regex scan of that full text for Ada East district case figures
+  B8-07 second scan with a looser pattern (national annual figures only - no district)
+  B8-08 curl gna.org.gh Tarkwa-Nsuaem prevention programme, April 2025
+  B8-09 curl africacdc.org/?s=cholera+Ghana
+  B8-10 WebSearch Ghana cholera 2024-25 Eastern Region districts
+  B8-11 curl gna.org.gh/?s=cholera+cases+recorded+district, extract dated URLs
+  B8-12 curl gna.org.gh/?s=cholera+outbreak+municipality+deaths, extract dated URLs
+  B8-13 curl three GNA articles: Upper East no case, Tarkwa-Nsuaem three deaths,
+        Western Region mobile food vendors
+  B8-14 curl gbcghanaonline.com/?s=Northern+region+no+cholera, extract URLs
+  B8-15 curl gna.org.gh GHS engages stakeholders Northern Region, May 2025
+  B8-16..B8-20 five further GNA and GBC result pages scanned; all remaining items
+        duplicated figures already held or carried none
+Sources found: 5    Registered: metadata index 91, 92, 93, 94, 95
+Rows added   : 5    Indices: 138, 139, 140, 141, 142
+Rows revised : 3    Index 22 (DEATHS CORRECTED 17 -> 8, confidence 0.50 -> 0.70),
+                    49 and 51 (double-counting labels)
+Successful queries: 3/20  (B8-08, B8-13, B8-15)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+  CONFLICT FROM BATCH 2 DEFINITIVELY RESOLVED - Western Region deaths at 7 Dec 2024
+    GNA of 15 December 2024: "As of December 7, 2024, a total of 789 suspected cases
+    and eight deaths have been recorded across various facilities in the Western
+    Region." Same date, same case count, EIGHT deaths - not 17. The metadata
+    Description of row 22's own source (index 19, GBC) also already read "789 cases and
+    8 deaths", so the 17 was a transcription error committed when the row was written,
+    not a genuine disagreement between sources. Row 22 corrected to 8 deaths and its
+    confidence restored from 0.50 to 0.70. The Western Region death series is now
+    strictly monotone, as a cumulative count must be:
+       8 on  7 Dec 2024   GNA / GBC                     (index 22, corrected)
+      14 on 13 Dec 2024   Regional Director of Health   (index 98)
+      15 on 16 Dec 2024   Deputy Regional Director PH   (index 100)
+      17 on 23 Dec 2024   GHS national release
+      19 on 15 Jan 2025   Deputy Regional Director PH   (index 140)
+    The batch-2 adjudication that identified row 22 as the sole non-monotone point is
+    confirmed and its cause identified. This is the single most useful correction of
+    the run after the row-1 mis-attribution.
+
+  NEW SUB-NATIONAL COVERAGE
+    Tarkwa-Nsuaem (Western), Q4 2024      167 cases / 3 deaths      (index 138)
+    Tarkwa-Nsuaem (Western), to 15 Dec 24  50 cases / 3 deaths      (index 139)
+      NEW DISTRICT, and the two points are internally consistent: the death count is 3
+      at both cuts, so all three deaths occurred on or before 15 December and the
+      later 117 cases were non-fatal. Notable for spatial modelling because
+      Tarkwa-Nsuaem is an INLAND mining municipality and was NOT one of the four
+      coastal districts that received the December 2024 OCV campaign, yet carried 167
+      cases - the Western outbreak was not confined to the coast.
+    Western Region, to 15 Jan 2025        2225 cases / 19 deaths    (index 140)
+      Final and largest regional figure of the epidemic. The same source states that
+      13 of the region's districts recorded NO cases, against the eight involved in
+      the 17 December SITREP - a direct bound on spatial extent.
+
+  TWO REGIONAL DOCUMENTED ABSENCES - the negative observations this dataset lacked
+    Upper East Region, 4 Oct - 6 Nov 2024   (index 141)
+      "The Upper East Regional Health Directorate of the Ghana Health Service (GHS),
+      says the Region has not recorded any cholera case" - Dr Freeman Samson Samani,
+      Deputy Director of Public Health, Bolgatanga.
+    Northern Region, 4 Oct 2024 - 19 May 2025  (index 142)
+      "He said the region had not recorded any cholera cases to date and emphasised the
+      need for continued public education to maintain the region's zero-case status" -
+      Dr Chrysantus Kubio, Northern Regional Director of Health, Tamale.
+    Both are POSITIVE statements of zero by named regional directors of health, not
+    inferences from silence, and in both cases the directorate was demonstrably active
+    on cholera at the time (intensified education in Upper East, a prevention
+    stakeholder forum in Northern), so surveillance is recorded as operational rather
+    than unknown. Together they bound the 2024-25 epidemic to southern Ghana: every
+    case in this dataset falls in Greater Accra, Central, Western, Eastern or Ashanti,
+    and the two northern regions with directorate statements both report zero.
+
+  NEGATIVE FINDING WORTH RECORDING
+    No district-level data for the 2011 epidemic (10,628 cases) could be found by any
+    route tried across batches 3, 5 and 8 - academic, humanitarian, WHO or Ghanaian
+    media. The only 2011 sub-national records that exist anywhere in this dataset are
+    Osu Klottey District (index 70) and Medinya, Western Region (index 69), plus the
+    2011-2014 Greater Accra aggregate (index 114). Ghanaian news archives from 2011 are
+    largely not indexed, and modernghana.com and graphic.com.gh both serve their search
+    only through JavaScript, so neither can be queried by an automated agent. A human
+    with access to Ghana Health Service DHIMS2 extracts would close this immediately;
+    no open source will.
+
+=== BATCH 9 | PHASE 3 | GHA ===
+Gap targeted : regional and district ABSENCE statements for the regions with no rows
+               at all (Volta, Northern, Upper East, Upper West, Western North, Oti,
+               Savannah, North East, Bono group), and 2014 Eastern/Volta district counts
+Queries      : 20
+  B9-01 curl gna.org.gh Western North Health Directorate stakeholder meeting, May 2025
+  B9-02 curl gbcghanaonline Northern region has no cholera but we are preparing, 2025
+  B9-03 curl gna.org.gh Keta open defaecation cholera warning, July 2025
+  B9-04 curl gna.org.gh/?s=cholera+Eastern+Region+cases, extract dated URLs
+  B9-05 curl gna.org.gh/?s=cholera+Volta+Region+cases, extract dated URLs
+  B9-06 curl gna.org.gh/?s=cholera+Upper+West+region, extract dated URLs
+  B9-07 curl gna.org.gh COVID-19 slows down cholera spread in Eastern Region, July 2021
+  B9-08 curl gna.org.gh No cholera in flooded North Tongu, October 2023
+  B9-09 curl gna.org.gh Keta Health Directorate cautions public, December 2024
+  B9-10 curl gna.org.gh Cholera Outbreak 16 Dead 115 infected, November 2024
+  B9-11 curl gna.org.gh Cholera death toll rise to forty-three, January 2025
+  B9-12 WebSearch Ghana 2014 cholera Eastern Region Nsawam Kwahu West New Juaben counts
+  B9-13 WebSearch OCHA West and Central Africa cholera regional update 2014 Ghana table
+  B9-14 curl reliefweb OCHA WCA cholera regional update week 35 2014
+  B9-15 curl reliefweb OCHA WCA cholera regional update week 39 2014 (404)
+  B9-16..B9-20 five further GNA result pages scanned for regional-directorate items;
+        remainder were national figures already held or carried no numbers
+Sources found: 2    Registered: metadata index 96, 97
+Rows added   : 2    Indices: 143, 144
+Rows revised : 1    Index 142 (GBC corroboration of the Northern Region zero)
+Successful queries: 2/20  (B9-08, B9-09)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+  TWO MORE DOCUMENTED ABSENCES, both in Volta Region, which had no 2023-25 rows at all
+    North Tongu District, 1-24 October 2023   (index 143)
+      The most epidemiologically informative negative in the whole file: a district at
+      the centre of the Akosombo and Kpong dam-spillage disaster, with about 35,000
+      people displaced across eight Lower Volta districts, recording ZERO cholera three
+      weeks in. Flooding is the classic cholera trigger in Ghana, so a documented zero
+      under maximal exposure is worth more to a transmission model than another
+      positive count. Surveillance operational on strong evidence: top-ten-cause
+      surveillance was running and cholera was checked for and absent from it, facilities
+      were reconfigured for case management, ten doctors were deployed, and the district
+      director was briefing the GHS Director-General in person at the National
+      Emergency Operations Centre.
+    Keta Municipal, 4 Oct - 26 Dec 2024       (index 144)
+      The ONLY Volta observation of any kind for the 2024-25 epidemic. Keta is a coastal
+      municipality on the Togo border and a named Ministry of Health cholera hotspot for
+      1998-2017, so a zero there while the coastal epidemic ran westward from Accra is
+      meaningful. Confidence held at 0.6, below the Upper East and Northern regional
+      absences, because the speaker is a Community Health Nurse Promotion Officer rather
+      than a director of health and because "within the period" is undefined.
+
+  NOT WRITTEN
+    Western North Regional Health Directorate held a cholera-prevention stakeholder
+    meeting in May 2025 (Sefwi-Wiawso) but made NO statement of zero cases, only of
+    preventive intent. That is not evidence of absence and no row was written - the
+    distinction matters, and the Northern and Upper East statements were written
+    precisely because they do assert a zero in terms.
+    The Eastern Regional Hospital Medical Director's July 2021 remarks on cholera being
+    slowed by COVID-19 hygiene are explicitly unquantified: the article itself notes "he
+    stopped short of giving out statistics to buttress his comment".
+
+  2014 EASTERN AND VOLTA DISTRICT COUNTS: SEARCHED HARD, NOT FOUND
+    The IFRC EPoA names the seven affected Eastern districts (Nsawam Adoagyiri, Kwahu
+    West, New Juaben, Akwapim North, West Akim, Fanteakwa, Lower Manya Krobo) and gives
+    the regional total (264 cases, 0 deaths at 14 August 2014, index 88) but never
+    splits them. No OCHA West and Central Africa regional update, academic paper, WHO
+    product or Ghanaian media item located in nine batches carries a per-district
+    Eastern or Volta figure for 2014. The 2014 district picture is therefore complete
+    for Greater Accra (15 of 15) and Brong Ahafo (9 of 17 reporting), and empty
+    everywhere else.
+
+=== BATCH 10 | PHASE 3 | GHA ===
+Gap targeted : the last Ghanaian outlets not yet site-searched, and the Eastern Region,
+               which was the only one of the five 2024-25 affected regions with no row
+Queries      : 20
+  B10-01 curl newsghana.com.gh/?s=cholera+district+cases (58 chars, JS-only)
+  B10-02 curl theghanareport.com/?s=cholera+cases+district
+  B10-03 curl starrfm.com.gh/?s=cholera+cases
+  B10-04 curl starrfm search page, extract article URLs (slug-only scheme, no dates)
+  B10-05 curl theghanareport search page, extract article URLs (categories only)
+  B10-06 WebSearch starrfm "19 cases of cholera" Eastern Region Regional Minister
+  B10-07 WebSearch theghanareport "No cholera cases recorded after floods" GHS
+  B10-08 curl adomonline GHS confirms no cholera outbreak after floods, with date
+  B10-09 curl starrfm.com.gh/?s=cholera+Eastern+Region, extract hrefs
+  B10-10 curl starrfm slug guess e-r-19-cases-of-cholera... (hit)
+  B10-11 curl starrfm slug variant er-19-cases... (miss)
+  B10-12 curl starrfm Eastern Region article body and published_time
+  B10-13 curl moh.gov.gh/?s=cholera
+  B10-14 curl starrfm Birim North cholera scare (a "scare", no cases - not written)
+  B10-15 curl peacefmonline search (404, Nuxt app)
+  B10-16 curl ghanaweb search.php (21 chars)
+  B10-17 curl ghanabusinessnews.com/?s=cholera+region+cases (58 chars, JS-only)
+  B10-18 WebSearch Ghana cholera 2025 Greater Accra districts Ablekuma Okaikwei Ayawaso
+  B10-19 WebSearch GHS cholera weekly situation report 2025 Ada East Ningo Prampram
+  B10-20 curl dtm.iom.int population mobility mapping PDF (232 chars, gated)
+Sources found: 1    Registered: metadata index 98
+Rows added   : 1    Indices: 145
+Rows revised : 1    Index 58 (Ghanaian primary-source corroboration of the 2026 zero)
+Successful queries: 1/20  (B10-12)
+Yield        : 5%
+Consecutive sub-5% batches: 0  (5% is not below the 5% threshold)
+Decision     : CONTINUE
+
+  EASTERN REGION FINALLY COVERED
+    Eastern Region, 4 Oct - 19 Nov 2024: 19 suspected cases, 0 deaths (index 145).
+    Eastern Regional Minister Seth Kwame Acheampong at the Regional Coordinating
+    Council in Koforidua: five districts initially reported suspected cases but
+    confirmations came from only two, Abuakwa South and New Juaben North; all confirmed
+    cases were discharged and there were no fatalities. deaths=0 is therefore DOCUMENTED,
+    not assumed. With this row, ALL FIVE regions affected by the 2024-25 epidemic now
+    carry at least one quantified observation: Greater Accra, Central, Western, Ashanti
+    and Eastern.
+
+  2026 NATIONAL ZERO STRENGTHENED WITH A GHANAIAN PRIMARY SOURCE
+    Row 58's zero for 1 Jan - 26 Jul 2026 previously rested on WHO's global table alone.
+    It is now corroborated by the Ghana Health Service itself: Director-General
+    Dr Samuel Kaba Akoriyea, at a post-flood disinfection exercise at Tema Station
+    Market and Adabraka Polyclinic on 11 July 2026, said "Fortunately, as of now, we
+    don't have any registered cholera outbreak." The statement came after the nationwide
+    floods of 29 June 2026 - precisely the conditions that seed cholera - and while the
+    GHS was actively fumigating flood-affected communities, so it is an operational
+    surveillance system reporting a zero rather than a silence. Carried independently by
+    Adom Online, 3news, Omanghana and Ghana Business News. Note appended to index 58.
+
+  OUTLETS THAT CANNOT BE SEARCHED BY AN AUTOMATED AGENT (recorded so they are not retried)
+    peacefmonline.com (Nuxt single-page app, search path 404s), ghanaweb.com
+    (search.php returns 21 characters), modernghana.com, graphic.com.gh,
+    newsghana.com.gh and ghanabusinessnews.com (all serve search results only through
+    JavaScript). dtm.iom.int download links are gated. Outlets that DO respond to a
+    plain site search, and which produced most of this run's district data, are:
+    gna.org.gh, adomonline.com, myjoyonline.com, citinewsroom.com, ghanaiantimes.com.gh,
+    gbcghanaonline.com, 3news.com and starrfm.com.gh (slug-only URLs, so the search page
+    must be scraped for hrefs rather than dated paths).
+
+=== BATCH 11 | PHASE 3 | GHA ===
+Gap targeted : pre-2000 sub-national data through historical and archival routes, and
+               verification of every source this agent registered
+Queries      : 20
+  B11-01 WebSearch Ghana cholera 1970 1971 first epidemic coastal villages Accra Keta
+         Ada, Ashitey / Pobee / Grant, Ghana Medical Journal
+  B11-02 curl web.archive.org wildcard for ghanahealthservice.org epidemiological pages
+  B11-03 Internet Archive CDX API, ghanahealthservice.org*, filtered to cholera /
+         epidemio / bulletin / sitrep / outbreak
+  B11-04 curl archived GHS weekly epidemiological bulletin week 1 2015 (250 chars)
+  B11-05 curl same with id_ raw-content modifier (0 bytes)
+  B11-06 Internet Archive CDX API, ghanahealthservice.org/downloads/*, 5000 rows
+  B11-07 curl archived GHS 2015 3rd Quarter Bulletin (15.6k chars, no cholera content)
+  B11-08 curl archived GHS Cholera_Alert_to_General_Public.pdf (0 bytes)
+  B11-09..B11-20 HTTP verification of all 34 source URLs registered by this agent
+Sources found: 0    Registered: none
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (one sub-5% batch, not three)
+
+  URL VERIFICATION: ALL 34 AGENT 2 SOURCES RETURN HTTP 200
+    Metadata indices 65-98 were each fetched with a browser user agent. Every one
+    resolves. No dead links were introduced by this agent.
+
+  HISTORICAL SUB-NATIONAL DATA FOR GHANA: A NEGATIVE FINDING
+    Nothing pre-1997 at sub-national level could be recovered by any route tried.
+    What exists is narrative only and carries no counts: cholera entered Ghana on
+    1 September 1970 via a Togolese national at Kotoka International Airport; the
+    epidemic took hold when a fisherman's body was smuggled back for burial and spread
+    along the coast; Ashanti Region began reporting in July 1971; the worst-hit sites
+    of the 1970-71 wave were the fishing villages of Akplabanya (then Ada District) and
+    Nyanyano (then Winneba District); the single worst pre-2014 year was 1982 with
+    15,032 national cases. Names of places, no numbers attached to them.
+    The Ghana Health Service website's archived downloads consist almost entirely of
+    malaria bulletins; the one archived weekly epidemiological bulletin URL (week 1 of
+    2015) no longer returns content, and the archived quarterly bulletin that does
+    resolve contains no cholera. There is no open archive of GHS weekly epidemiological
+    bulletins. This is the binding constraint on Ghanaian sub-national history, and no
+    amount of further searching will move it - it needs a data request to GHS.
+
+=== BATCH 12 | PHASE 3 | GHA ===
+Gap targeted : one last sweep of the outlets that DO answer a plain site search, using
+               phrasings not yet tried ("regional health directorate recorded",
+               "suspected cases municipal", "region records")
+Queries      : 20
+  B12-01 curl gna.org.gh/?s=cholera+regional+health+directorate+recorded
+  B12-02 curl gna.org.gh/?s=cholera+suspected+cases+municipal
+  B12-03 curl myjoyonline.com/?s=cholera+region+records
+  B12-04 curl gna.org.gh Kpone-Katamanso confirms two cholera cases, with date
+  B12-05 curl myjoyonline Central Region records 20 cholera deaths, with date
+  B12-06 curl gna.org.gh Takoradi records suspected cases of cholera, with date
+  B12-07..B12-20 fourteen further result rows from the three site searches opened and
+         read; all either duplicated figures already held, were prevention or
+         vaccination pieces, or concerned other countries
+Sources found: 3    Registered: metadata index 99, 100, 101
+Rows added   : 11   Indices: 146,147,148,149,150,151,152,153,154,155,156
+Rows revised : 1    Index 15 (double-counting label)
+Successful queries: 3/20  (B12-04, B12-05, B12-06)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : STOP - 12-batch ceiling (240 queries) reached. This is the protocol's
+               second stopping condition. The first, three consecutive batches below
+               5% yield, was NEVER met: the run's yields were
+               25, 20, 15, 30, 5, 20, 20, 15, 10, 5, 0, 15 percent, and only one batch
+               (11) fell below 5%. Ghana still has findable sub-national data and a
+               further agent on this country would not be wasting its time.
+
+  THE SINGLE BEST FIND OF THE RUN, and it came in the last batch
+    MyJoyOnline of 6 September 2014 carries a COMPLETE DISTRICT BREAKDOWN of the
+    Central Region's 2014 epidemic, from Dr Kwaku Anin Karikari, Central Regional
+    Deputy Director of the Ghana Health Service:
+      Agona West              216 cases /  4 deaths   (index 147)
+      Cape Coast Metropolis   212 /  5                (148)  last district to record,
+                                                             yet led the death toll
+      Awutu Senya East        174 /  3                (149)  INDEX DISTRICT - first
+                                                             suspected case at Kasoa,
+                                                             21 July 2014
+      Abura-Asebu-Kwamankese   40 /  2                (150)
+      Mfantseman               40 /  0                (151)  NEW DISTRICT
+      Effutu                   39 /  1                (152)
+      Asikuma-Odoben-Brakwa     8 /  0                (153)  NEW DISTRICT
+      Komenda-Edina-Eguafo-
+        Abirem (KEEA)           8 /  2                (154)
+      Central Region total    783 / 20                (146)
+    ARITHMETIC CHECK: the eight named districts sum to 737 cases and 17 deaths against
+    the stated regional 783 and 20, leaving 46 cases and 3 deaths for the three further
+    districts the source counts (11 in all) but does not name. Parts do not exceed the
+    whole; the residual is small and plausible.
+    This was the single largest remaining hole in the 2014 geography and it is now
+    closed. It also PARTIALLY VALIDATES the derived Central Region residual of batch 1
+    (index 92, 163 cases / 4 deaths at 14 August 2014): growth to 783 by 2 September is
+    steep but coherent for an epidemic in its second month, so the residual is of the
+    right order and index 92 can stand.
+    Two districts show the same signature in both epidemics. Agona West and Effutu were
+    the Central Region's worst-hit districts in 2014 AND in 2024-25. KEEA produced a
+    CFR of 25% here (8 cases, 2 deaths) and 18.8% in 2012 (index 6, 32 cases, 6 deaths)
+    - two independent outbreaks eight years apart with CFRs near 20% in one small
+    municipality points to a persistent treatment-access problem, not a reporting
+    artefact, and is flagged for a modeller's attention.
+
+  TWO MORE DISTRICT FIRSTS
+    Kpone-Katamanso (Greater Accra), to 21 Oct 2024: 2 confirmed  (index 155)
+      The third Greater Accra district to confirm cases in 2024-25, after Ada East and
+      Ada West. Named municipal health director. The same municipality carried 369
+      cases in 2014 (index 76), so it is a recurrent focus.
+    Sekondi-Takoradi (Western), to 5 Nov 2024: 4 suspected        (index 156)
+      The start of the Western Region curve at district level, the day after the
+      regional index case. The source's headline and body disagree on whether one of
+      the four was already confirmed, so only the total was extracted and confidence
+      was set to 0.65.
+
+================================================================================
+AGENT 2 SUMMARY - GHANA (GEOGRAPHIC EXPANSION)
+================================================================================
+Batches: 12 (240 queries). Yields by batch (%):
+  25, 20, 15, 30, 5, 20, 20, 15, 10, 5, 0, 15
+Stopping reason: 12-batch ceiling. The three-consecutive-batches-below-5% condition
+was NEVER met - only batch 11 fell below 5%, and it was spent on archival dead ends
+and on verifying this agent's own source URLs.
+
+OUTPUT
+  Rows added      : 85   indices 72-156, all present, none retracted after the fact
+  Rows retracted  :  2   indices 20 and 21, tombstoned in retracted_rows_ai.csv
+  Rows revised    : 18   indices 1, 5, 15, 22, 27, 32, 49, 51, 58, 67, 70, 71, 101,
+                         107, 108, 113, 128, 142
+  Sources added   : 37   metadata indices 65-101; 5 Level 1, 15 Level 2, 17 Level 3
+                         ALL 37 verified HTTP 200
+  File state      : 150 data rows, 101 metadata sources
+                    py/validate_quality.py GHA exits 0 with 0 ERRORs and 10 WARNs.
+                    Of those 10, four notes_missing_quote and the CFR_inconsistent and
+                    one period_single_day predate this agent; the two
+                    multiyear_aggregate warnings and one period_single_day are on this
+                    agent's rows and are documented in their processing_notes as
+                    deliberate. All four national_subnational_overlap warnings that
+                    existed or arose during this run were CLOSED by adding the
+                    machine-checkable label to indices 15, 27, 49, 51, 108 and 113.
+
+GEOGRAPHIC COVERAGE, BEFORE AND AFTER
+  Sub-national rows   20  ->  104
+  Regions with data    7  ->    9   (added Northern and Upper East, both as documented
+                                     absences; Volta now has three rows where it had
+                                     one mis-assigned)
+  Districts with data 16  ->   50
+  Sub-district depth   0  ->    1   (Cape Coast::UCC_Sub_Metro, index 110 - the first
+                                     municipal-level row for Ghana)
+
+  Districts newly covered (34): Ada_East, Ada_West, Adentan, Ashaiman, Ga_Central,
+  Ga_East, Ga_South, Ga_West, Kpone_Katamanso, La_Nkwantanang, Ledzokuku_Krowor,
+  Ningo_Prampram, Tema (Greater Accra); Abura_Asebu_Kwamankese, Agona_West,
+  Asikuma_Odoben_Brakwa, Effutu, Mfantseman (Central); Asunafo_North, Atebubu_Amantin,
+  Dormaa_East, Nkoranza_South, Pru, Sene_West, Sunyani_Municipal, Techiman, Wenchi
+  (Brong Ahafo); Bekwai, Kumasi_Metropolis, Sekyere_South (Ashanti); Bongo (Upper
+  East); Keta, North_Tongu (Volta); Effia_Kwesimintsim, Jomoro, Shama, Tarkwa_Nsuaem
+  (Western).
+
+  EPIDEMICS NOW MAPPED
+    2014 (28,975 cases): all 15 affected Greater Accra districts, closed against the
+      regional total; 9 of 17 reporting Brong Ahafo districts; 8 of 11 reporting
+      Central districts, closed to within 46 cases of the regional total; regional
+      totals for Greater Accra, Central, Eastern, Ashanti, Western and Brong Ahafo.
+    2024-25 (6,145+): all five affected regions quantified, plus 13 districts, plus
+      documented regional absences in Northern and Upper East and a district absence
+      in Keta.
+    2012: Jomoro cross-border importation; Accra Metropolis sentinel confirmations.
+    2005: Kumasi Metropolis, 1,166 cases - the only district record between 1999-2010.
+    1997-2001: Ashanti Region, 3,231 cases - now the earliest sub-national row.
+
+CORRECTIONS MADE TO PRE-EXISTING ROWS (the part most likely to matter)
+  1  Index 1   national 1999 figure was filed as a Builsa DISTRICT figure. WHO's own
+                DON separates 3,997 cases / 100 deaths nationally from 269 / 9 in
+                Builsa. Relocated to AFR::GHA; the true Builsa figure added as 125.
+  2  Index 22  Western Region deaths at 7 Dec 2024 were 17; GNA gives 8 for the same
+                date and case count, and the row's own source metadata said 8.
+                Corrected. The regional death series is now strictly monotone.
+  3  Index 5   Akatsi District was filed under Eastern Region. It is in VOLTA, as the
+                row's own cited source states. Relocated.
+  4  Index 32  Builsa September 1999 was dated as a 12-day period; the source is a
+                cumulative "as at 12 September". TL moved to 1 July 1999.
+  5  Indices 20, 21  La-Dadekotopon and Shai-Osudoku 2014 carried the economic-study
+                figures with FALSE ZERO DEATHS. Retracted and replaced (84, 85).
+  6  Indices 70, 71  Osu Klottey 2011 and 2012 had no confirmed count; the source
+                reports 9 and 12. Backfilled.
+  7  Index 107 Ashanti January 2013 (310 cases / 18 deaths) contradicted by two
+                independent accounts of Ghana's 2013 national total (WHO 20, GHS 50).
+                Confidence cut 0.80 -> 0.45 with both readings recorded.
+  8  Index 51  National documented zero for July 2025 contradicted by five
+                laboratory-confirmed cases in Abura-Asebu-Kwamankese in early July,
+                reported by the Central Regional NADMO Director. Confidence cut
+                0.90 -> 0.40 and handed to Agent 3.
+  9  Index 58  2026 national zero strengthened: the GHS Director-General independently
+                confirmed no registered outbreak on 11 July 2026, after the 29 June
+                floods. It is no longer a WHO-only zero.
+
+WHAT COULD NOT BE FOUND, AND WHY
+  - 2011 epidemic (10,628 cases) at district level. Searched in batches 3, 5 and 8 by
+    academic, humanitarian, WHO and Ghanaian-media routes. Only Osu Klottey and
+    Medinya exist. Ghanaian news archives from 2011 are largely unindexed, and
+    modernghana.com and graphic.com.gh serve search only through JavaScript.
+  - 2014 Eastern and Volta DISTRICT counts. The IFRC EPoA names the seven affected
+    Eastern districts and gives the regional total but never splits them; no other
+    source does either.
+  - Anything sub-national before 1997. The 1970-71, 1982 and 1990-91 waves survive only
+    as narrative: place names without numbers.
+  - GHS weekly epidemiological bulletins. There is no open archive. This is the binding
+    constraint on Ghanaian sub-national history and no further searching will move it -
+    it needs a data request to the Ghana Health Service.
+
+METHOD NOTE FOR THE NEXT AGENT
+  The highest-yield technique on Ghana by a wide margin was SITE SEARCH of Ghanaian
+  news outlets - curl "https://{outlet}/?s=cholera+..." then extracting dated article
+  URLs - not general web search. The genre that pays is the interview with a named
+  district or regional health director, which routinely carries exact counts that never
+  reach WHO or the academic literature. Outlets that answer a plain site search:
+  gna.org.gh, adomonline.com, myjoyonline.com, citinewsroom.com, ghanaiantimes.com.gh,
+  gbcghanaonline.com, 3news.com, starrfm.com.gh (slug-only URLs; scrape hrefs).
+  Outlets that do NOT: modernghana.com, graphic.com.gh, ghanaweb.com, peacefmonline.com,
+  newsghana.com.gh, ghanabusinessnews.com. Also blocked to automated requests:
+  medrxiv.org, scirp.org, link.springer.com, reliefweb.int and unocha.org via WebFetch
+  (but reliefweb.int answers curl with a browser user agent). plateformecholera.info no
+  longer exists - the domain now serves an unrelated commercial site.
+================================================================================

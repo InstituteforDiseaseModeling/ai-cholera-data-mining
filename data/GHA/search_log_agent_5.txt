@@ -1,41 +1,337 @@
-=== AGENT 5 INITIALIZATION ===
-Country: Ghana (GHA)
-Start Time: 2026-05-14
-Agent 5 Status: INITIALIZED
-Focus: Cross-reference validation and permutation of successful sources
+=== AGENT 5 (CROSS-REFERENCE INTEGRATOR) - GHANA (GHA) ===
+Start: 2026-09-20
+Working file: ./data/GHA/cholera_data_ai.csv  (592 rows at start)
+Metadata    : ./data/GHA/metadata_ai.csv      (234 sources at start)
+Presence    : ./data/GHA/cholera_presence_ai.csv (26 rows at start)
+Validator at start: ERROR 0 / WARN 29 / INFO 98
 
-=== BASELINE STATUS FROM AGENTS 1-4 ===
-cholera_data_ai.csv: 30 rows
-metadata_ai.csv: 23 sources
-High-yield source types: WHO AFRO, PMC academic articles, GHS reports
+NOTE ON THE PRE-EXISTING CONTENT OF THIS FILE
+This log previously contained a 41-line Agent 5 entry dated 2026-05-14 from an
+earlier, much smaller run of the GHA workflow (it recorded a file state of
+"30 rows / 23 sources" and 1 batch). That run's rows survive in the current
+cholera_data_ai.csv (indices 31-34). The log is superseded by the run below,
+which starts from 592 rows / 234 sources. The old text is preserved verbatim at
+the foot of this file under "APPENDIX: SUPERSEDED 2026-05-14 AGENT 5 LOG".
 
-=== AGENT 5 SEARCH LOG - CROSS-REFERENCE INTEGRATION ===
-=== BATCH 1 CROSS-REFERENCE RESULTS (2026-05-14) ===
-Queries executed: 20
-Sources found: 2 new sources (metadata entries 24-25)
-Data observations added: 4 new rows (rows 31-34)
-Yield: 5/20 = 25%
+MISSION (from the launching agent):
+ (a) re-mine the three proven seams (WHO IRIS WER; Ghana Health Service weekly
+     epidemiological report; WHO HQ/AFRO 2024-25 series) for adjacent periods;
+ (b) adjudicate the conflicts and integrity risks the run has accumulated.
+ (b) is weighted higher than (a).
 
-Key discoveries:
-- 1999 annual total: 9,000+ cases, 250 deaths (CFR 2.8%) - cross-references WHO DON report
-- 1999 Builsa district September 12 update: 1,220 cases, 27 deaths (Ghanaian Red Cross)
-- 1999 Kassena Nankana: 81 cases, 8 deaths as of September 12
-- 2016 Central Region retrospective: 731 cases total October-December 2016
+================================================================================
+=== BATCH 1 | PHASE 2 (targeted re-mine of a proven seam) | GHA ===
+Seam        : WHO AFRO "Weekly Bulletin on Outbreaks and other Emergencies".
+              Agents 1 and 2 cited exactly two issues of this series (metadata
+              27 = Week 18 2025, metadata 29 = Week 37 2025). It was never
+              enumerated.
+Method      : IRIS DSpace discover API
+              iris.who.int/server/api/discover/search/objects?query="Weekly
+              Bulletin on Outbreaks and other Emergencies"&dsoType=item
+              -> 470 items, 2017-2026. Built a (year,week)->uuid index, then for
+              each issue pulled the TEXT bundle bitstream via
+              /server/api/core/items/{uuid}/bundles and extracted the
+              "Ghana Cholera" grade-3 table line plus its narrative paragraph.
+Gap targeted: 2024-08-01..2025-04-27, the 2024-25 epidemic - flagged by the
+              launching agent as the period with the least weekly granularity.
 
-Cross-validation notes:
-- 1999 data: WHO DON report (3,997 cases as of Aug 31) cross-validates with annual total (9,000+)
-  consistent pattern - most cases came after August flood season
-- 2016 data: SCIRP study (731 cases) vs PMC study (704 cases) - slight variation due to
-  different geographic inclusion criteria
-- 2024 December 31: 4,850 suspected, 398 confirmed cases - adds specificity to
-  existing row 16 (4155 cases as of Dec 26) vs this Dec 31 figure
+Queries (20 issue-level retrievals):
+   1-6    AFRO weekly bulletin 2024 wk34, 35, 36, 37, 38, 39
+   7-19   AFRO weekly bulletin 2024 wk40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+          50, 51, 52
+   20     AFRO weekly bulletin 2025 wk04
 
-=== STOPPING CRITERIA EVALUATION ===
-Batch 1 yield: 25% - CONTINUE
-Total batches: 1 of 10 maximum
+FINDINGS
+  * NEGATIVE but structurally important: every 2024 issue from Week 35 to Week
+    52 carries the SAME frozen Ghana line, "31-Aug-24 ... 24 2 0 0.00%", the
+    21 August Ada District alert. The AFRO WEEKLY bulletin never updated Ghana
+    once during the entire Oct-Dec 2024 escalation. Recorded once, in the note
+    on the new index 606, rather than as eighteen identical rows.
+  * The 21-23 August 2024 Ada District index event (24 suspected, 2 confirmed,
+    0 deaths) was absent from this dataset: every GHA 2024 row began 2024-10-01.
+  * WHO AFRO puts the outbreak at 4618 suspected cases / 37 deaths by 26 Dec
+    2024, against index 16's 4155 / 35 from RGG News at the identical date.
 
-AGENT 5 COMPLETION:
-cholera_data_ai.csv: 34 rows (added 4)
-metadata_ai.csv: 25 sources (added 2)
+Sources found : 2    Registered: metadata 235 (wk35 2024), 236 (wk04 2025)
+Rows added    : 3    Indices: 606, 607, 608
+Rows revised  : 1    Index 16 (confidence 0.90 -> 0.50, conflict adjudicated)
+Successful queries: 2/20   (2024 wk35; 2025 wk04)
+Yield         : 10%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE - the seam is clearly live, just not in the 2024 issues.
 
-End Time: 2026-05-14
+================================================================================
+=== BATCH 2 | PHASE 2/3 | GHA ===
+Targets     : (a) the rest of the AFRO weekly bulletin series for 2025;
+              (b) the WHO HQ multi-country cholera situation reports #24 and
+              #26, which Agent 1 recorded as never located, plus #25/#28/#29
+              which were registered but never extracted from.
+Conflict    : WHO HQ vs WHO AFRO, Ghana 2024-25 (item (a) of the mission).
+
+Queries (20):
+   1-13   AFRO weekly bulletin 2025 wk05, 06, 07, 08, 09, 10, 11, 12, 13, 14,
+          15, 16, 17
+   14     WebSearch: WHO "multi-country outbreak of cholera" "external situation
+          report" 24 March 2025
+   15     WebSearch: WHO "multi-country outbreak of cholera" "external situation
+          report" "26" May 2025
+   16     direct fetch 20250310_..._sitrep_24.pdf  -> HTTP 200
+   17     direct fetch 20250724_..._sitrep_28.pdf  -> HTTP 200
+   18     direct fetch 20250407_..._sitrep_25.pdf  -> HTTP 200 (metadata 51,
+          registered by Agent 1, never extracted from)
+   19     direct fetch 20250828_..._sitrep_29.pdf  -> HTTP 200 (metadata 40,
+          same)
+   20     WebFetch of the who.int publications item page for sitrep #26 to
+          recover its cdn href, then fetch 20250512_..._sitrep_26.pdf
+          (two guessed URLs, 20250522_ and 20250519_, both returned 404 first)
+
+*** THE WHO HQ vs WHO AFRO CONFLICT, RESOLVED ***
+The two series are not two estimates of the same quantity compiled the same way.
+The WHO HQ situation-report figures ARE the WHO Global Cholera and AWD Dashboard
+weekly series, and that dashboard is the MOSAIC WHO baseline layer already in
+./data/GHA/cholera_data_who.csv. Four independent exact closures establish it:
+
+   dashboard 2025 wk1-4   0 + 572 + 103 + 0      = 675   = sitrep #23 (1-26 Jan)
+   dashboard 2025 wk5-8   532 + 64 + 0 + 624     = 1220  = sitrep #24 last-28-d
+   dashboard 2025 wk14-17 44 + 18 + 6 + 0        = 68    = sitrep #26 last-28-d
+   dashboard 2025 wk18    6                      -> cum 2480 = sitrep #27
+   and 675 + 1220 = 1895 = #24 cumulative; 1895 + 508 = 2403 = #25 cumulative.
+
+The AFRO bulletins are a separate regional compilation. They AGREE with HQ:
+   2024 year-end   AFRO 4618 @26 Dec   vs dashboard Oct-Dec sum 4616
+   March 2025      AFRO 511            vs HQ 508, dashboard wk9-13 511
+   April 2025      AFRO 74             vs HQ 68; AFRO's "April" is epi-weeks
+                                       14-18, and dashboard wk18 = 6, so
+                                       68 + 6 = 74 exactly. Not a disagreement.
+They DIVERGE only in January-February 2025:
+   January         AFRO 948            vs HQ 675          (+273 AFRO)
+   February        AFRO 792 (derived)  vs HQ 1220 (printed) (-428 AFRO)
+   cum @ 23 Feb    AFRO 1740           vs HQ 1895          (-155 AFRO)
+   cum @ 27 Apr    AFRO 2325           vs HQ 2474          (-149 AFRO)
+
+DECISION: WHO HQ is the PRIMARY national series for Ghana 2024-25, because it
+is the same data as the WHO baseline layer the AI layer has to sit beside. AFRO
+rows are kept, annotated as the alternative series, and downweighted where they
+directly contradict a printed HQ figure (index 63: 0.90 -> 0.50; index 45:
+0.95 -> 0.70). Nothing was averaged. Both numbers appear verbatim in the notes
+of every affected row.
+
+Sources found : 3    Registered: metadata 237 (AFRO wk05), 238 (wk08),
+                     239 (wk15), 240 (wk16), 241 (HQ sitrep #24),
+                     242 (HQ sitrep #26), 243 (HQ sitrep #28) - 7 in total,
+                     plus first use of the previously dead metadata 40 and 51
+Rows added    : 18   Indices: 609, 610, 611, 612, 613, 614, 615, 616, 617, 618,
+                     619, 620, 621, 622, 623, 624, 625, 626
+Rows revised  : 9    Indices: 38, 39, 40 (TR 2025-03-23 -> 2025-02-16, the
+                     recycled AFRO paragraph re-dated to its first appearance),
+                     140 (WHO corroboration of the 2225 Western figure),
+                     63 (0.90 -> 0.50), 45 (0.95 -> 0.70), 46, 47, 55, 56
+                     (cross-series notes)
+Successful queries: 9/20  (2025 wk05, wk08, wk15, wk16; WebSearch #24;
+                     WebSearch #26; WebFetch #26 item page; fetch #25; fetch #29)
+Yield         : 45%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE
+
+================================================================================
+=== BATCH 3 | PHASE 2 (re-mine of the second proven seam) + recency | GHA ===
+Seam        : Ghana Health Service "Ghana Weekly Epidemiological Report" (GWER),
+              live index at https://phd.teamdesk.pro/api/reports?limit=500,
+              PDFs at https://phd.teamdesk.pro/api/reports/{id}/pdf
+Method      : enumerated the whole live index (52 issues: 2025 wk18-36 and
+              2026 wk1-34, week 7 of 2026 never published; /api/volumes confirms
+              only Volume 7 and Volume 8 exist on the platform, so 2022-2024 are
+              NOT recoverable this way), downloaded all 52 PDFs, pdftotext
+              -layout, and extracted the CHOLERA section of each.
+              Agent 3 had mined the NATIONAL weekly totals from these issues.
+              What it left behind was the DISTRICT detail.
+
+Queries (20):
+   1     WebSearch: Ghana cholera outbreak September 2026
+   2     WebSearch: Ghana Health Service cholera cases 2026 confirmed
+   3     WebFetch afro.who.int "Ghana identifies priority areas to strengthen
+         cholera prevention and control" (5 April 2026, PAMI exercise)
+   4     WebFetch PMC13472063, cholera KAP study, Ada Foah 2026
+   5     IRIS discover API sorted by date, to test for AFRO weekly bulletins
+         later than Week 33 of 2026
+   6     phd.teamdesk.pro /api/reports?limit=500
+   7     phd.teamdesk.pro /api/volumes
+   8-18  GWER 2025 issues wk26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36
+   19    GWER 2026 issues wk01-wk30 (sweep)
+   20    GWER 2026 issues wk31-wk34 (the window covered only by ECDC)
+
+FINDINGS
+  * DISTRICT-LEVEL detail for the whole 2025 resurgence, which existed nowhere
+    in this dataset. Every week's districts sum EXACTLY to Agent 3's national
+    weekly row, which is a strong internal check on both:
+      wk26  Ga Central 2 (2 confirmed)                        = idx 168  2/2
+      wk27  Awutu-Senya East 1, Accra 1, Ga Central 5,
+            Korle-Klottey 3, Tema 1                           = idx 169 11/0
+      wk28  Abura-Asebu-Kwamankese 8 (4 conf), Accra 2,
+            Korle Klottey 1                                   = idx 170 11/4
+      wk29  Abura-Asebu-Kwamankese 11 (4 conf), Tema 1        = idx 171 12/4
+      wk30  Abura-Asebu-Kwamankese 9 (4 conf), Effutu 1       = idx 172 10/4
+      wk31  Abura-Asebu-Kwamankese 2, Adentan 4               = idx 173  6/0
+      wk32  Abura-Asebu-Kwamankese 5 (1 conf), Okaikwei
+            North 4, Kpone-Katamanso 2                        = idx 174 11/1
+      wk33  Ga East 1, Ga West 1                              = idx 175  2/0
+      wk35  Abura-Asebu-Kwamankese 2, Karaga 1                = idx 177  3/0
+      wk36  Accra Metropolis 2, La-Dade-Kotopon 1,
+            Abura-Asebu-Kwamankese 1                          = idx 178  4/0
+    Week 34 was deliberately NOT decomposed: three districts are named for four
+    cases without saying which has two.
+    ABURA-ASEBU-KWAMANKESE (Central Region) is the focus of the 2025 resurgence:
+    13 of the 15 laboratory-confirmed cases of 2025 are its, the other 2 being
+    Ga Central's in week 26. That was not previously visible anywhere.
+  * The last laboratory-confirmed cholera case in Ghana to date is in week 32 of
+    2025 (4-10 August 2025), Abura-Asebu-Kwamankese.
+  * 2026, all 33 published issues: ~200 syndromic suspects across 23 weeks,
+    every one cultured, NOT ONE isolate of Vibrio cholerae. Mission item (g)
+    adjudicated - Agent 3's sCh=0 endorsed, reasoning written into indices 58
+    and 59, weekly suspect tally preserved there and here:
+      wk1 1, wk2 1, wk3 1, wk4 4, wk10 2, wk12 2, wk13 1, wk15 1, wk16 1,
+      wk17 5, wk21 12, wk22 10, wk23 11, wk25 10, wk26 12, wk27 4, wk28 34,
+      wk29 14, wk31 2, wk32 9, wk33 5, wk34 4 (wk30 table only; wk5, 6, 8, 9,
+      11, 14, 18, 19, 20, 24 carry no cholera section at all - these are Agent
+      3's indices 179-188).
+  * RECENCY, negative: no route to 2026-08-27..2026-09-19 exists. GWER week 34
+    (data to 23 August 2026, published 23 August) is the latest Ghanaian issue;
+    the AFRO weekly bulletin series on IRIS stops at Week 33 of 2026 (16 August);
+    ECDC stops at 26 August. The gap is real and is left empty.
+  * NOT USED: PMC13472063 restates Ghana Health Service annual figures but
+    mislabels them - it gives "2010: 9542 cases with 100 deaths", which is the
+    WHO 2012 figure (9548/100); its 2015 (618/5) and 2016 (150/0) also disagree
+    with the WHO annual series in the JHU baseline (692/8 and 175/0). Nothing was
+    extracted from it. The AFRO PAMI article gives only "93 of 261 districts
+    identified as priority areas" - no counts.
+
+Sources found : 0 new registrations (metadata 103 and 104 already existed)
+Rows added    : 26  Indices: 627-646 (2025 wk26-33 districts), 647-651
+                    (2025 wk35-36 districts), 652 (GWER documented zero
+                    2026-07-27..2026-08-23)
+Rows revised  : 2   Indices 58, 59 (2026 adjudication, ~2.0 and ~2.5 kB of
+                    reasoning appended)
+Successful queries: 11/20  (GWER 2025 wk26, 27, 28, 29, 30, 31, 32, 33, 35, 36;
+                    GWER 2026 wk31-34)
+Yield         : 55%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE
+
+================================================================================
+=== BATCH 4 | PHASE 3 (citation networks + the integrity mandate) | GHA ===
+Targets     : (i) follow references out of the productive Ghanaian papers;
+              (ii) discharge mission items (b)-(h) - the conflicts and
+              integrity risks the run had accumulated.
+
+Queries (20):
+   1   WebSearch: Ghana 2014 cholera Greater Accra "La Dade-Kotopon" OR
+       "Ledzokuku" district cases Accra Metropolitan 10504
+   2   WebSearch: ugspace.ug.edu.gh thesis cholera Ghana district surveillance
+       data 2011 2014
+   3   WebFetch PMC5881562, Osu Klottey District surveillance 2011-2013
+   4   WebFetch medRxiv 2023.07.22.23293033, Central Region retrospective
+       -> HTTP 403, and the /content/medrxiv/early/... PDF path -> HTTP 404
+   5   PubMed search_articles "cholera Ghana" -> 121 records
+   6   PubMed get_article_metadata, 30 most recent
+   7   PubMed full text PMC12585563 (systematic review + meta-analysis, 2025)
+   8   PubMed full text PMC5637323 (Ohene-Adjei 2017, Greater Accra 2014)
+   9   PubMed full text PMC5714944 (household cost analysis, 2017)
+  10   IRIS item API: resolve ALL 141 IRIS-hosted URLs in metadata_ai.csv
+  11   IRIS discover API: enumerate the 50 WER 1970 vol.45 [full issue] items
+  12   IRIS TEXT bitstream of WER 1970;45(48); grep Western Dagomba
+  13   IRIS ORIGINAL bitstream of WER 1988;63(52); pdftotext -raw; read the
+       Infected Areas register section by section
+  14   IRIS ORIGINAL bitstream of WER 1986;61(49); same
+  15   cross-check of metadata 23, 107, 151, 152-157 against every data row and
+       every presence row
+  16   audit of cholera_presence_ai.csv: counts hidden in quotes, missing
+       metadata, source-name drift
+  17   grep for the WER 1991;66(11) AIDS figure 1732 anywhere in the data file
+  18   reconciliation of the 1978 national weekly series against the WHO annual
+  19   arithmetic verification of the 15 Greater Accra 2014 districts against
+       the regional total
+  20   sweep of every pre-1975 period for national/sub-national overlap
+
+--- WHAT THE PAPERS GAVE (few rows, but the right ones) -------------------
+  * PMC5637323 (Ohene-Adjei et al. 2017, doi 10.1186/s12889-017-4803-9) was
+    cited by Agent 2 for its district table only. Two things it also contains,
+    now recorded: (a) "Ada West district did not report any cases" - a
+    DOCUMENTED DISTRICT ABSENCE through the worst epidemic in the region's
+    history, and the reason the other 15 districts sum exactly to 20199/121;
+    (b) "The year started with no confirmed cases recorded for the first 23
+    weeks in the GAR. The first positive case was confirmed in week 24 (9th
+    June 2014)" - a documented REGIONAL absence for 1 Jan - 8 Jun 2014, with
+    the index case identified (10-year-old girl, Ussher Polyclinic, onset
+    9 June, V. cholerae O1 Ogawa), peak week 35, decline from week 49.
+  * PMC5881562 (Osu Klottey 2011-2013) had already been fully mined by Agent 2
+    (indices 70, 71, 124). Nothing left.
+  * PMC12585563 (systematic review) Table 2 lists three "Ohene-Adjei et al."
+    CFR rows - 4023/12, 12255/64, 3339/45. Their deaths sum to exactly 121 and
+    their cases to 19617. Agent 5 traced them to the AGE-GROUP table of
+    PMC5637323 (<5, 5-19, 20-40, >40; the missing ~566 are the under-5s with
+    zero deaths, "2.8% of cases"). Age groups are a PROHIBITED location class
+    under CLAUDE.md, so nothing was entered - but the identification closes off
+    what would otherwise look like an unexploited three-way regional split.
+  * PMC13472063 and the AFRO PAMI article: nothing usable (see batch 3).
+
+--- MISSION ITEM (f): THE METADATA 152-157 AUDIT, AND WHAT IT TURNED UP -----
+  Agent 5 resolved every one of the 141 IRIS URLs in metadata_ai.csv through
+  the IRIS item API (handle -> redirect -> /server/api/core/items/{uuid}) and
+  compared the resolved dc.title against the year;volume(issue) in the Source
+  field.
+      133 of 141 point at exactly the issue their Source field names.
+      152, 153, 154, 155, 156, 157 - CONFIRMED WRONG, exactly as Agent 4
+        self-reported. They resolve to MALARIA SURVEILLANCE, ACQUIRED
+        IMMUNODEFICIENCY SYNDROME (AIDS), INFLUENZA, TRADITIONAL MEDICINE,
+        EPIDEMIOLOGY (a course announcement) and "Infected Areas as on
+        22 February 1990" respectively. All six are already Status=Superseded.
+        NO data row and NO presence row cites any of them. Clean.
+      151 - A SEVENTH, NOT PREVIOUSLY KNOWN. Source names WER 1970;45(48);
+        handle 10665/218035 resolves to the article "Infected Areas as on
+        3 December 1970". Off by one, the same numeric-adjacency defect.
+        One row cited it (index 308). Agent 5 enumerated all 50 WER 1970
+        vol.45 full issues, found no. 48 at handle 10665/218034, downloaded its
+        TEXT bitstream and confirmed the quoted Western Dagomba sentence
+        appears verbatim on page 535 under "1970, 45, 529-540 / No. 48 /
+        27 NOVEMBRE 1970". Index 308 retracted (tombstone in
+        ./data/GHA/retracted_rows_ai.csv), re-added unchanged as index 655
+        against new metadata 244, metadata 151 set Superseded.
+      107 - the eighth. Its URL is not a document at all, it is a DSpace
+        search-API query string. Cited by nothing. Recorded in its Description.
+  The WER 1991;66(11) AIDS figure "1732" that Agent 4 says it nearly committed:
+  the string does not occur anywhere in cholera_data_ai.csv. Nothing survived.
+
+--- A FALSE-PRESENCE DEFECT FOUND WHILE DOING (f) --------------------------
+  Agent 3 wrote, in the Description of metadata 107: "Ghana appears twice in
+  most of these registers - the second entry, Northern Region with Bole and
+  West Gonja districts, is under YELLOW FEVER, not cholera". Agent 4 registered
+  those districts as CHOLERA infected areas anyway and wrote SIX rows into
+  ./data/GHA/cholera_presence_ai.csv on that basis (Bole and West Gonja, 1985
+  through 1990). Agent 5 settled it against the primary documents:
+      WER 1988;63(52), "Infected Areas as on 22 December 1988", pdftotext -raw:
+        CHOLERA section      -> GHANA / Central Region / Breman Asikuma
+                                District / Mfantsiman District
+        YELLOW FEVER section -> GHANA / Northern Region / Bole District /
+                                West Gonja District
+      WER 1986;61(49) is identical in structure.
+  AGENT 3 IS RIGHT. The six Bole / West Gonja presence rows are yellow-fever
+  registrations recorded as cholera presence and must be deleted. They are the
+  only false cholera-presence assertions in the file. Agent 5 could not delete
+  them - no pipeline tool edits cholera_presence_ai.csv and CLAUDE.md forbids
+  hand-editing it - so the finding is written into the Descriptions of metadata
+  158, 159, 160, 161, 162, 163 and 164, which are the entries those rows cite,
+  with the exact section and line references. THIS IS THE HIGHEST-PRIORITY
+  UNFIXED ITEM LEFT IN GHANA.
+
+Sources found : 1    Registered: metadata 244 (WER 1970;45(48) full issue,
+                     verified handle)
+Rows added    : 3    Indices: 653 (Ada West 2014 documented district absence),
+                     654 (Greater Accra 2014-01-01..2014-06-08 documented
+                     absence), 655 (re-cited Western Dagomba importation)
+Rows retracted: 1    Index 308 (mis-cited; replaced by 655)
+Metadata fixed: 10   151 -> Superseded; 244 registered; Descriptions rewritten
+                     on 23, 107, 158, 159, 160, 161, 162, 163, 164
+Successful queries: 2/20  (PubMed full text PMC5637323; IRIS WER 1970;45(48))
+Yield         : 10%
+Consecutive sub-5% batches: 0
+Decision      : CONTINUE

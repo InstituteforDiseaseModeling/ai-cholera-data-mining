@@ -27,6 +27,8 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
+RUNLOCK="reference/.runner.pid"
+
 MANIFEST="reference/run_manifest.csv"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOGDIR="logs/run_${STAMP}"
@@ -35,6 +37,7 @@ MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}            # retries before moving on
 PERMISSION_MODE="acceptEdits"
 MAX_TURNS=${MAX_TURNS:-600}
 DASH_EVERY=${DASH_EVERY:-5}                # full dashboard rebuild cadence
+PARALLEL=${PARALLEL:-1}                    # countries running concurrently
 DRY=0; LIMIT=0; FROM=""; ONLY=""; RETRY_FAILED=0; PUBLISH=0
 
 while [[ $# -gt 0 ]]; do
@@ -45,6 +48,7 @@ while [[ $# -gt 0 ]]; do
     --only)            ONLY="$2"; shift ;;
     --retry-failed)    RETRY_FAILED=1 ;;
     --timeout)         TIMEOUT_SECS="$2"; shift ;;
+    --parallel)        PARALLEL="$2"; shift ;;
     --permission-mode) PERMISSION_MODE="$2"; shift ;;
     --unattended)      PERMISSION_MODE="bypassPermissions" ;;
     --publish-progress) PUBLISH=1 ;;
@@ -63,8 +67,7 @@ command -v claude >/dev/null || { echo "claude CLI not found" >&2; exit 1; }
 # and exits 0 - a silent partial run. 0 means wait indefinitely; the real bound
 # is the per-country `timeout` below.
 export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
-mkdir -p "$LOGDIR" reference
-rm -f STOP
+mkdir -p reference
 
 # ---------------------------------------------------------------- preflight --
 echo "=== preflight ==="
@@ -109,31 +112,50 @@ if [[ ! -f "$MANIFEST" ]]; then
   echo "iso,status,started,finished,rows_before,rows_after,sources_before,sources_after,exit_code,log" > "$MANIFEST"
 fi
 status_of () { awk -F, -v i="$1" '$1==i {s=$2} END {print s}' "$MANIFEST"; }
-rowcount () { local f="data/$1/cholera_data_ai.csv"; [[ -f "$f" ]] && echo $(( $(wc -l < "$f") - 1 )) || echo 0; }
-srccount () { local f="data/$1/metadata_ai.csv";   [[ -f "$f" ]] && echo $(( $(wc -l < "$f") - 1 )) || echo 0; }
+# Count CSV *records*, not newlines. processing_notes routinely contains
+# embedded newlines inside a quoted field, so `wc -l` overcounts badly - ERI
+# reported 91 rows for a file holding 19 observations, and every "+N rows"
+# delta in the manifest and on the published dashboard was wrong by that much.
+csvcount () {
+  local f="$1"
+  [[ -f "$f" ]] || { echo 0; return; }
+  python3 -c "import csv,sys
+try:
+    with open(sys.argv[1], newline='', encoding='utf-8') as fh:
+        print(sum(1 for _ in csv.DictReader(fh)))
+except Exception:
+    print(0)" "$f"
+}
+rowcount () { csvcount "data/$1/cholera_data_ai.csv"; }
+srccount () { csvcount "data/$1/metadata_ai.csv"; }
 
+# Everything below touches state shared by every country - the dashboard build,
+# the gap reference files, the git index - so it runs under a lock. Per-country
+# data lives in data/{ISO}/ and needs no lock; this does.
 refresh_dashboard () {   # $1 = "light" | "full"
   if [[ "$1" == "full" ]]; then
     # Heavy: weekly series for all 40, heatmaps, barplot, then commit+push.
     if [[ $PUBLISH -eq 1 ]]; then
-      bash update_dashboard.sh --publish >> "$LOGDIR/_dashboard.log" 2>&1
+      python3 py/with_lock.py dashboard -- bash update_dashboard.sh --publish \
+        >> "$LOGDIR/_dashboard.log" 2>&1
     else
-      bash update_dashboard.sh >> "$LOGDIR/_dashboard.log" 2>&1
+      python3 py/with_lock.py dashboard -- bash update_dashboard.sh \
+        >> "$LOGDIR/_dashboard.log" 2>&1
     fi
   else
     # Light: just the progress view (checklist + embedded data). Published too,
     # so the live dashboard reflects every completed country rather than only
     # every DASH_EVERY-th one - the run is unattended and this is the only way
     # to watch it from elsewhere.
-    python3 py/update_dashboard_data.py >> "$LOGDIR/_dashboard.log" 2>&1
+    python3 py/with_lock.py dashboard -- python3 py/update_dashboard_data.py \
+      >> "$LOGDIR/_dashboard.log" 2>&1
     if [[ $PUBLISH -eq 1 ]]; then
-      {
-        git add -A dashboard/ reference/run_manifest.csv 2>/dev/null
-        git diff --staged --quiet || {
-          git commit -q -m "Run progress: ${2:-country} complete - $(date '+%Y-%m-%d %H:%M:%S')"
-          git push -q origin "$(git branch --show-current)"
-        }
-      } >> "$LOGDIR/_dashboard.log" 2>&1
+      # Serialised through py/publish.py so it cannot race the heartbeat,
+      # whose push would otherwise leave this one rejected as non-fast-forward
+      # with the error going only to this log.
+      python3 py/publish.py dashboard/ reference/run_manifest.csv \
+        -m "Run progress: ${2:-country} complete - $(date '+%Y-%m-%d %H:%M:%S')" \
+        >> "$LOGDIR/_dashboard.log" 2>&1
     fi
   fi
 }
@@ -158,6 +180,7 @@ echo ""
 echo "=== plan ==="
 echo "  countries queued : ${#QUEUE[@]}  ->  ${QUEUE[*]:-none}"
 echo "  per-country cap  : $((TIMEOUT_SECS/60)) min, $MAX_TURNS turns"
+echo "  concurrency      : $PARALLEL country(ies) at a time"
 echo "  permission mode  : $PERMISSION_MODE"
 echo "  dashboard        : refreshed after every country; full rebuild every $DASH_EVERY"
 echo "                     publish to GitHub Pages: $([[ $PUBLISH -eq 1 ]] && echo yes || echo no)"
@@ -165,20 +188,75 @@ echo "  logs             : $LOGDIR/"
 echo "  manifest         : $MANIFEST   (touch STOP to halt gracefully)"
 
 [[ ${#QUEUE[@]} -eq 0 ]] && { echo "nothing to do"; exit 0; }
-[[ $DRY -eq 1 ]] && { echo ""; echo "(dry run - nothing executed)"; exit 0; }
+[[ $DRY -eq 1 ]] && { echo ""; echo "(dry run - nothing executed, nothing changed)"; exit 0; }
+
+# ------------------------------------------------- past here we change things --
+# Nothing above this line may touch disk state. A --dry-run once cleared the
+# STOP file at startup and so disarmed a graceful halt that a live runner was
+# waiting on: that runner rolled straight into the next country instead of
+# stopping for its scheduled replacement.
+mkdir -p "$LOGDIR"
+
+# One runner at a time. Nothing in this script is safe to run concurrently with
+# itself: two instances share the manifest, the country directories and the git
+# index, and agents from different sessions overwrite each other's rows.
+if [[ -f "$RUNLOCK" ]]; then
+  other="$(cat "$RUNLOCK" 2>/dev/null || true)"
+  if [[ -n "$other" ]] && kill -0 "$other" 2>/dev/null \
+     && ps -p "$other" -o command= 2>/dev/null | grep -q run_all_countries.sh; then
+    echo "ERROR: another runner is already live (pid $other)." >&2
+    echo "       Stop it first (touch STOP) or remove $RUNLOCK if it is stale." >&2
+    exit 3
+  fi
+fi
+echo $$ > "$RUNLOCK"
+trap 'rm -f "$RUNLOCK"' EXIT
+
+# A STOP left over from a previous run would halt this one after one country,
+# so it is cleared here - but loudly, and only in a real run.
+if [[ -f STOP ]]; then
+  echo "  note: clearing a leftover STOP file before starting"
+  rm -f STOP
+fi
+
+# ------------------------------------------------------------------ heartbeat --
+# A country takes about four hours, and the dashboard is only rebuilt when one
+# finishes, so between completions the published site is frozen and the run is
+# indistinguishable from a dead one to anyone watching remotely. The heartbeat
+# publishes dashboard/run_status.html every few minutes instead.
+HEARTBEAT_PID=""
+if [[ $PUBLISH -eq 1 ]]; then
+  HEARTBEAT_PUBLISH=1 nohup bash py/run_heartbeat.sh 600 >/dev/null 2>&1 &
+  HEARTBEAT_PID=$!
+  echo "  heartbeat       : pid $HEARTBEAT_PID -> dashboard/run_status.html (every 10 min)"
+fi
+trap '[[ -n "$HEARTBEAT_PID" ]] && kill "$HEARTBEAT_PID" 2>/dev/null; rm -f "$RUNLOCK"' EXIT
 
 # -------------------------------------------------------------------- execute --
-run_start=$(date +%s); n=0
-for iso in "${QUEUE[@]}"; do
-  if [[ -f STOP ]]; then
-    echo ""; echo "STOP file present - halting after $n countries."; rm -f STOP; break
-  fi
-  n=$((n+1))
+# One country per OS process, up to $PARALLEL at a time. Process isolation is
+# what makes this safe: each country's agents write only to data/{ISO}/, and the
+# OS reclaims everything when the process exits, so memory cannot accumulate
+# across the run. Measured footprint is ~460 MB per country after four hours,
+# and the work is network-bound (~2% CPU), so the limit is politeness to the
+# upstream sources rather than this machine.
+#
+# What is NOT safe in parallel, and is therefore serialised or owned by this
+# script alone: the dashboard build, the gap reference files, the git index.
+
+run_country () {
+  local iso="$1" idx="$2"
+  local rb sb log t0 started_at marker attempt st code agents_ran k f t1 ra sa cnt
+
   rb=$(rowcount "$iso"); sb=$(srccount "$iso")
   log="$LOGDIR/${iso}.log"
   t0=$(date +%s); started_at="$(date '+%Y-%m-%d %H:%M:%S')"
-  echo ""
-  echo "--- [$n/${#QUEUE[@]}] $iso  (rows=$rb sources=$sb)  $(date '+%H:%M:%S') ---"
+  # Reference file for the completeness check below. BSD find cannot parse
+  # `-newermt @<epoch>` - it fails, the error was swallowed by 2>/dev/null, and
+  # every country was therefore scored 0/7 and retried MAX_ATTEMPTS times no
+  # matter how well it had gone. A marker file plus bash's own -nt needs no
+  # find at all.
+  marker="$LOGDIR/.mark_${iso}"; : > "$marker"
+  echo "  >> [$idx/${#QUEUE[@]}] $iso starting $(date '+%H:%M:%S')  (rows=$rb sources=$sb)"
 
   # Retry loop. An orchestrator that dies part-way leaves its work on disk and
   # records it in workflow_state.json, so a retry resumes rather than restarting
@@ -187,7 +265,7 @@ for iso in "${QUEUE[@]}"; do
   attempt=0; st="unrun"
   while (( attempt < MAX_ATTEMPTS )); do
     attempt=$((attempt+1))
-    [[ $attempt -gt 1 ]] && echo "    retry $attempt/$MAX_ATTEMPTS ($st) $(date '+%H:%M:%S')"
+    [[ $attempt -gt 1 ]] && echo "  .. $iso retry $attempt/$MAX_ATTEMPTS ($st) $(date '+%H:%M:%S')"
 
     timeout "$TIMEOUT_SECS" claude -p "$iso" \
         --agent workflow-orchestrator \
@@ -201,7 +279,29 @@ for iso in "${QUEUE[@]}"; do
       124) st="timeout" ;;
       *)   st="failed" ;;
     esac
-    agents_ran=$(find "data/$iso" -name 'search_log_agent_*.txt' -newermt "@$t0" 2>/dev/null | wc -l | tr -d ' ')
+
+    # An exhausted account spend limit is not a country failure, and retrying
+    # cannot fix it. Left undetected it is worse than useless: on 2026-09-20 the
+    # limit was reached at 02:33 and the runner burned through the remaining 36
+    # countries in under two minutes, recording every one of them as `failed`
+    # when none had run at all. Stop the whole run and say so.
+    if tail -c 8000 "$log" 2>/dev/null | grep -qiE "spend limit|usage limit|upgrade to increase your usage"; then
+      st="blocked_spend_limit"
+      echo "  !! $iso BLOCKED: account spend limit reached - halting the run."
+      echo "     Countries already marked done are skipped when you restart;"
+      echo "     everything else is picked up where it left off."
+      touch STOP
+      break
+    fi
+    # Count the seven canonical logs rewritten during this country's window.
+    # Legacy renames (search_log_agent_N_legacy_*.txt) keep their old mtime and
+    # are correctly ignored, and matching exact names means seven distinct
+    # agents must each have run - not simply seven files of any kind.
+    agents_ran=0
+    for k in 1 2 3 4 5 6 7; do
+      f="data/$iso/search_log_agent_${k}.txt"
+      [[ -f "$f" && "$f" -nt "$marker" ]] && agents_ran=$((agents_ran+1))
+    done
     [[ "$st" == "done" && "$agents_ran" -ge 7 ]] && break
     [[ -f STOP ]] && break
   done
@@ -217,20 +317,59 @@ for iso in "${QUEUE[@]}"; do
     fi
   fi
 
+  # One short line via O_APPEND is atomic, so parallel children cannot interleave
+  # half-rows into the manifest.
   printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
     "$iso" "$st" "$started_at" "$(date '+%Y-%m-%d %H:%M:%S')" \
     "$rb" "$ra" "$sb" "$sa" "$code" "$log" >> "$MANIFEST"
 
-  echo "    $st  attempts ${attempt}  agents ${agents_ran}/7  rows ${rb}->${ra} (+$((ra-rb)))  sources ${sb}->${sa} (+$((sa-sb)))  $(( (t1-t0)/60 ))min"
+  echo "  << $iso  $st  attempts ${attempt}  agents ${agents_ran}/7  rows ${rb}->${ra} (+$((ra-rb)))  sources ${sb}->${sa} (+$((sa-sb)))  $(( (t1-t0)/60 ))min"
   python3 py/validate_quality.py "$iso" --quiet >/dev/null 2>&1 \
-    || echo "    WARNING: $iso does not pass validation after its run"
+    || echo "  !! $iso does not pass validation after its run"
 
-  # Progress is monitored through the dashboard, so refresh it every country.
-  # The full rebuild (weekly series, heatmaps, barplot) is heavier, so it runs
-  # on a cadence rather than every time.
-  if (( n % DASH_EVERY == 0 )); then refresh_dashboard full "$iso"; else refresh_dashboard light "$iso"; fi
-  echo "    dashboard refreshed ($( (( n % DASH_EVERY == 0 )) && echo full || echo light))"
+  # Shared reference files: regenerate once this country is finished, serialised
+  # so a parallel sibling never reads them mid-rebuild.
+  python3 py/with_lock.py gaps -- python3 py/analyze_effective_gaps.py \
+    >> "$LOGDIR/_dashboard.log" 2>&1
+
+  echo "$iso" >> "$LOGDIR/.completed"
+  cnt=$(wc -l < "$LOGDIR/.completed" | tr -d ' ')
+  if (( cnt % DASH_EVERY == 0 )); then refresh_dashboard full "$iso"; else refresh_dashboard light "$iso"; fi
+}
+
+# Wait until fewer than $PARALLEL countries are in flight. Written with a plain
+# string rather than an array because macOS ships bash 3.2, where expanding an
+# empty array under `set -u` is an error.
+RUNNING_PIDS=""
+wait_for_slot () {
+  local alive p cnt
+  while true; do
+    alive=""; cnt=0
+    for p in $RUNNING_PIDS; do
+      if kill -0 "$p" 2>/dev/null; then alive="$alive $p"; cnt=$((cnt+1)); fi
+    done
+    RUNNING_PIDS="$alive"
+    (( cnt < PARALLEL )) && return 0
+    sleep 15
+  done
+}
+
+run_start=$(date +%s); n=0
+: > "$LOGDIR/.completed"
+for iso in "${QUEUE[@]}"; do
+  if [[ -f STOP ]]; then
+    echo ""; echo "STOP file present - dispatching no more countries."; rm -f STOP; break
+  fi
+  wait_for_slot
+  n=$((n+1))
+  run_country "$iso" "$n" &
+  RUNNING_PIDS="$RUNNING_PIDS $!"
+  sleep 5   # stagger starts so four orchestrators do not hit the API in lockstep
 done
+
+# Wait on the country jobs specifically. A bare `wait` would also wait on the
+# heartbeat, which does not exit until this script does - a deadlock.
+for p in $RUNNING_PIDS; do wait "$p" 2>/dev/null; done
 
 # --------------------------------------------------------------------- wrap --
 echo ""
@@ -251,6 +390,10 @@ last = {}
 for r in csv.DictReader(open('reference/run_manifest.csv')):
     last[r['iso']] = r['status']
 incomplete = sorted(i for i in mosaic if last.get(i) != 'done')
+blocked = sorted(i for i in mosaic if last.get(i) == 'blocked_spend_limit')
+if blocked:
+    print(f"BLOCKED BY SPEND LIMIT ({len(blocked)}): {' '.join(blocked)}")
+    print("These did not run and did not fail. They resume on the next launch.")
 if incomplete:
     print(f"NOT YET COMPLETE ({len(incomplete)}/40): {' '.join(incomplete)}")
     print("Re-run `bash run_all_countries.sh --unattended --publish-progress` to continue;")

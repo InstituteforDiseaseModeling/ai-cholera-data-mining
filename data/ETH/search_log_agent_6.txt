@@ -1,150 +1,1073 @@
-=== AGENT 6: GAP CONTEXT INVESTIGATOR INITIALIZATION ===
-Country: Ethiopia (ETH)
-Start Time: 2025-08-06
-Agent 6 Status: INITIALIZED
-Purpose: Characterize temporal gaps ≥6 months to distinguish surveillance failures from true disease absence
+================================================================================
+AGENT 6 - GAP CONTEXT INVESTIGATOR - ETHIOPIA (ETH)
+================================================================================
+Country      : Ethiopia (ETH)
+Agent        : 6 of 7 (gap-context-investigator)
+Start time   : 2026-09-20 (session continues the ETH full re-run)
+Working dir  : /Users/johngiles/MOSAIC/ai-cholera-data-mining
 
-GAPS TO INVESTIGATE:
-1. 2005: Between 2004 outbreak and 2006 major outbreak
-2. 2008: Between 2007 and 2009 outbreaks  
-3. 2010-2015: 6-year period with sparse data
-4. Dec 2024 - Aug 2025: Current gap (8 months)
+MISSION: for every remaining window >= 6 months, decide whether the emptiness
+means NO CHOLERA or NOBODY REPORTING, and write a zero row ONLY where a source
+affirmatively states zero cases. Non-reporting windows are LEFT EMPTY on
+purpose; that is a correct outcome, not a failure.
 
-Current metadata index: Starting at Index 13
-Current data observations: 30 rows in cholera_data_ai.csv
+--------------------------------------------------------------------------------
+TOOLING CONSTRAINT (inherited, verified again this run)
+--------------------------------------------------------------------------------
+WebSearch is EXHAUSTED SESSION-WIDE (Agent 1 consumed all 200 calls; the budget
+is shared across the session, not per agent). Zero WebSearch calls were
+available to this agent. A "BATCH" is therefore redefined, as Agents 4 and 5
+also did, as 20 DISCOVERY OPERATIONS (HTTP fetch / REST query / PDF render /
+corpus grep / MCP literature call). The 3-batch / 60-operation floor binds and
+was met.
 
-=== BATCH 1: HEALTH SYSTEM FUNCTIONALITY AND CONFLICT ASSESSMENT ===
-Focus: Health system capacity, political transitions, surveillance functionality 2005-2015
+Substitute channels used by this agent:
+  - ReliefWeb over HTML with a desktop User-Agent (client /tmp/a5/rw.py).
+    JSON APIs remain blocked (v1 410, v2 403); HTML search, report pages and
+    PDF attachments return 200. This is the channel Agents 2/3/4 wrongly
+    recorded as dead and Agent 5 reopened.
+  - WHO GHO OData (ghoapi.azureedge.net) for Ethiopia and every neighbour.
+  - WHO IRIS DSpace 7 REST API (iris.who.int) for WER and WHO reports.
+  - PubMed MCP + Europe PMC fullTextXML + NCBI E-utilities.
+  - AAU ETD DSpace 7 REST API and the /tmp/a4/aau thesis cache (119 theses).
+  - edrmc.gov.et direct PDF URLs; HDX CKAN API; WebFetch on direct doc URLs.
+  - Internet Archive: retested once (see BATCH 1) and abandoned.
 
-Queries executed (attempted 20, many blocked by API):
-1. Ethiopia cholera surveillance system 2005 2008 health system assessment - API ERROR
-2. Ethiopia cholera absence 2005 2008 2010-2015 surveillance gaps - API ERROR
-3. Ethiopia cholera epidemiology 2004-2016 retrospective analysis - SUCCESS (found major patterns)
-4. Ethiopia cholera outbreak 2009 2010 2011 2012 2013 2014 2015 - API ERROR
-5. Ethiopia cholera cases 2009-2015 WHO reports - SUCCESS (found 2009 data: >20,000 cases)
-6. Ethiopia drought famine health system 2011 2012 Horn of Africa - SUCCESS (health system disruption)
-7. Ethiopia AWD cases 2010-2014 epidemiological bulletins - API ERROR
-8. Ethiopia humanitarian situation cholera OCHA 2010-2015 - API ERROR
-9. Ethiopia post-conflict health assessment 2000-2015 - SUCCESS (surveillance evaluation)
-10. MSF Ethiopia cholera AWD 2010-2015 field reports - API ERROR
-11. Ethiopia 2009 cholera outbreak Addis Ababa - API ERROR
-12. Ethiopia cholera 2009 outbreak epidemiology 20000 cases - SUCCESS (detailed 2009 outbreak)
-13. Ethiopia cholera AWD absence 2005 surveillance - API ERROR
-14. Ethiopia 2008 acute watery diarrhea cholera - API ERROR
+--------------------------------------------------------------------------------
+INHERITED STATE
+--------------------------------------------------------------------------------
+data/ETH/cholera_data_ai.csv       563 rows  (A1 +74, A2 +284, A3 +5 net,
+                                              A4 +70, A5 +102)
+data/ETH/metadata_ai.csv           132 sources
+data/ETH/cholera_presence_ai.csv    17 presence records
+data/ETH/retracted_rows_ai.csv      11 retractions
 
-Key findings:
-- 2009: Major cholera outbreak with >20,000 cases reported (July 2008-June 2009: 9,485 cases, 193 deaths, CFR 2.0%)
-- 2009: Addis Ababa alone reported 4,000 cases, 40 deaths (CFR 0.33%)
-- 2011-2012: Horn of Africa drought crisis severely impacted health systems
-- Surveillance limitations: Cholera often reported as AWD due to diagnostic capacity issues
-- No national cholera surveillance guidelines until 2011
-- 2006-2010 period had mean incidence rate of 20.57 per 100,000
+GOVERNING PRINCIPLE INHERITED FROM AGENT 3, RE-AFFIRMED HERE:
+  Ethiopia's absence from a WHO table is WORTHLESS as evidence of zero cases.
+  EPHI has stated in print that Ethiopian cholera "was not reported to the WHO
+  due to fear of economic repercussions." The Weekly Epidemiological Record
+  omits Ethiopia entirely for 2015 and 2016 while EPHI's own national line list
+  records 227 and 29,871 cases for those two years. Every classification below
+  applies this test.
 
-Gap characterization findings:
-- 2005: No specific data found - likely surveillance gap rather than absence
-- 2008: Part of 2008-2009 outbreak period (July 2008 start)
-- 2010-2015: Limited surveillance capacity, drought crisis impact, but some transmission likely occurred
-- System disruption during 2011-2012 drought likely caused under-reporting
+--------------------------------------------------------------------------------
+STEP 0 - THE TRUE REMAINING GAPS, DERIVED FROM THE DATA FILES DIRECTLY
+--------------------------------------------------------------------------------
+reference/effective_surveillance_gaps_detailed.csv is STALE (it is the runner's
+pre-run snapshot, still listing only 1998 and 2026-03..2026-09; it predates
+Agent 3's three retractions and ~460 rows added since). Per instruction it was
+NOT regenerated - the orchestrator owns that file and other countries are
+running in parallel. Instead the gaps were recomputed in-process from
+data/ETH/cholera_data_{jhu,who,ai}.csv by day-level interval union.
 
-Data observation yield: 2/14 queries = 14.3% (only 2009 quantitative data found)
+DAY-LEVEL EMPTY RUNS across JHU + WHO + AI, 1970-01-01 .. 2026-09-19:
+    1972-01-01 .. 1981-12-31    3,653 days (10.0 y)
+    1983-01-01 .. 2003-12-31    7,670 days (21.0 y)
+    2026-07-27 .. 2026-09-19       55 days  (last covered day = 2026-07-26,
+                                             AI Index 41, WER 101(35))
+Nothing else anywhere in the series is empty for as much as 150 consecutive
+days. Ethiopia's remaining gap burden is therefore THREE windows, not the two
+the stale file lists, and the 21-year run is a single contiguous block that has
+to be subdivided on evidence rather than on the calendar.
 
-CSV Updates:
-- Added 2008-2009 outbreak: 9,485 cases, 193 deaths (CFR 2.0%)
-- Added Addis Ababa 2009: 4,000 cases, 40 deaths (CFR 1.0%)
-- Metadata index 13 added
+*** STRUCTURAL FINDING THAT CHANGES THE SHAPE OF THIS TASK ***
+Several windows this agent was asked to classify are NOT empty in the data.
+They are already filled with ZEROS - in the JHU BASELINE layer, not the AI
+layer - sourced to "WHO Annual Cholera Report (UID: 314)":
 
-=== BATCH 2: REGIONAL CONTEXT AND SPECIFIC YEAR INVESTIGATION ===
-Focus: Regional patterns, neighboring countries, specific years 2010-2015
+    JHU Index 217  1982   sCh=0  deaths=0
+    JHU Index 219  2005   sCh=0  deaths=0
+    JHU Index 228  2011   sCh=0  deaths=(blank)
+    JHU Index 229  2012   sCh=0  deaths=(blank)
+    JHU Index 230  2013   sCh=0  deaths=(blank)
+    JHU Index 231  2014   sCh=0  deaths=(blank)
 
-Queries executed (attempted 15, most blocked by API):
-1. Ethiopia cholera AWD surveillance 2010 2011 outbreak - API ERROR
-2. Ethiopia cholera epidemiology 2012 2013 2014 - API ERROR
-3. Horn of Africa cholera Somalia Kenya 2010-2015 - API ERROR
-4. Ethiopia no cholera zero cases 2010-2015 - API ERROR
-5. Ethiopia cholera 2015 outbreak cases AWD - API ERROR
-6. WHO Ethiopia AWD cholera 2011 drought - API ERROR
-7. Ethiopia cholera cases 2015 September Oromia - API ERROR
-8. Ethiopia retrospective cholera analysis 2001-2023 - API ERROR
-9. PMC11244260 WebFetch - SUCCESS (data storage challenges pre-2015)
-10. Nature article s41598-024-51324-z - ERROR (redirect)
+and the JHU layer has NO ROW AT ALL for 1972-1981 or 1983-2003. So the WHO
+annual channel distinguishes "Ethiopia returned a nil" (1982, 2005, 2011-2014)
+from "Ethiopia returned nothing" (1972-81, 1983-2003) - which is a real and
+useful distinction - BUT the nil returns are only as good as the notifier.
+2011 is the test case and it FAILS: see BATCH 4. This is recorded here because
+it is invisible to anyone reading only the AI layer.
 
-Key findings:
-- Data storage challenge: "Finding data from 2015 and backward was challenging as data had not been adequately stored in the National Data Center"
-- Well-organized cholera data only available after 2015
-- Total of 215,205 AWD/cholera cases 2001-2023
-- Surge years included 2006, 2007, 2009, coinciding with El Niño events
+================================================================================
+=== BATCH 1 | PHASE 1 (broad discovery) | ETH ===
+================================================================================
+WINDOW TARGETED : 2026-07-27 .. 2026-09-19 (the "current tail" named in the
+                  task brief) - REDEFINED BY THIS BATCH, see FINDING 1.
+QUESTION        : is the post-July-2026 silence no cholera, or no reporting?
 
-Gap characterization update:
-- 2010-2015: SURVEILLANCE SYSTEM FAILURE confirmed - inadequate data storage at national level
-- Pre-2015 data was not systematically collected or stored
-- This explains absence of specific case counts for 2010-2014
-- Not necessarily cholera-free, but rather surveillance/data management failure
+OPERATIONS (24 executed; a batch = 20 discovery operations):
+  01 ReliefWeb  search "Ethiopia cholera"           +DO20260701-20260920
+  02 ReliefWeb  search "Ethiopia acute watery diarrhoea" +DO20260715-20260920
+  03 ReliefWeb  search "Ethiopia health cluster"    +DO20260715-20260920
+  04 ReliefWeb  search "Ethiopia EPHI weekly"       +DO20260715-20260920
+  05 ReliefWeb  search "Weekly Bulletin on Outbreak and other Emergencies 2026"
+  06 ReliefWeb  search "Weekly Bulletin Outbreaks Emergencies Week 36"
+  07 ReliefWeb  fetch  Concern Worldwide "Cholera Outbreak Rapid Response:
+                       Lessons learned ... Ethiopia" (10 Jul 2026)
+  08 ReliefWeb  fetch  UNICEF Ethiopia Humanitarian Sitrep No.3 (Mid-Year),
+                       30 Jun 2026 - HTML page
+  09 ReliefWeb  fetch  the same sitrep's PDF attachment + pdftotext -layout
+  10 WHO GHO    OData  CHOLERA_0000000001 full dump -> ETH + 8 neighbours
+  11 WHO GHO    OData  Indicator list, filter contains 'holera'
+  12 WHO GHO    OData  CHOLERA_0000000001 filtered SpatialDim eq 'ETH'
+  13 WHO IRIS   discover "Weekly Bulletin on Outbreaks and other Emergencies
+                       2026" (403 with a desktop UA; 200 with "Mozilla/5.0")
+  14 WHO IRIS   discover "Ethiopia Public Health Emergencies Weekly Bulletin"
+  15 WHO IRIS   discover "AFRO Monthly Regional Cholera Bulletin 2026"
+  16 WHO IRIS   bundles/bitstreams for item 7b19de5b "Monthly bulletin:
+                       March 2026"
+  17 corpus     grep Ethiopia in /tmp/a5/wb_week-31.txt (AFRO wk31 2026)
+  18 corpus     grep Ethiopia in /tmp/a5/wb_week-32.txt
+  19 corpus     grep Ethiopia in /tmp/a5/wb_week-33.txt
+  20 corpus     read AFRO wk31 Ethiopia feature article (event description)
+  21 corpus     read AFRO wk31 Ethiopia PUBLIC HEALTH ACTIONS section
+  22 HDX CKAN   package_search q=ethiopia+cholera
+  23 HDX CKAN   package_show world-health-organization-who-cholera-data
+                       -> ArcGIS resource download + parse
+  24 ECDC       communicable-disease-threats-report index scrape (no usable
+                       links returned; channel abandoned)
 
-Data observation yield: 0/10 queries = 0% (no new quantitative data found)
+--------------------------------------------------------------------------------
+FINDING 1 (DECISIVE) - THE 2026 WINDOW IS NOT 55 DAYS, IT IS 201 DAYS
+--------------------------------------------------------------------------------
+WHO's OWN global cholera dataset, republished on HDX and last modified
+2026-09-03 (registered here as metadata Index 133), carries per country the
+FIRST and LAST epidemiological week for which that country submitted data.
+The Ethiopian row reads, verbatim:
 
-=== BATCH 3: RETROSPECTIVE ASSESSMENTS AND HUMANITARIAN REPORTS ===
-Focus: Post-crisis evaluations, retrospective studies, NGO assessments 2010-2015
+  "ETHIOPIA","African Region","ETH",2025-12-29,2026-03-02,50,2
 
-Queries executed (attempted 10, all blocked by API):
-1. UNICEF Ethiopia emergency cholera AWD 2011 2012 - API ERROR
-2. Red Cross Ethiopia cholera 2010-2015 emergency - API ERROR
-3. Ethiopia health ministry cholera surveillance 2010-2015 - API ERROR
+first_epiwk 2025-12-29, LAST_EPIWK 2026-03-02, 50 cases, 2 deaths.
 
-Data observation yield: 0/3 queries = 0% (no new quantitative data)
+Ethiopia has therefore submitted NO cholera epidemiological week to WHO since
+2 MARCH 2026. The "as of 26 July 2026" in WER 101(35) is the PUBLICATION's
+data-as-of date, not Ethiopia's last reporting week; the 50/2 has simply been
+carried forward unchanged for five months. Agent 1's Index 41 already suspected
+this ("did not move between 2 March and 26 July 2026") but could not prove it;
+this field proves it. The same snapshot, same day, for Ethiopia's neighbours:
 
-Due to API restrictions, unable to complete full batch. Moving to final analysis.
+  SOUTH SUDAN   2026-01-01 .. 2026-08-17    13 641 cases    119 deaths
+  SUDAN         2026-01-04 .. 2026-08-17     2 633 cases    237 deaths
+  KENYA         2026-05-11 .. 2026-06-15        40 cases      0 deaths
+  SOMALIA       2025-12-29 .. 2026-01-12       233 cases      0 deaths
+  (DRC to 2026-08-10, Nigeria/Mozambique/Chad/Cameroon all to 2026-08-17)
 
-=== FINAL GAP CONTEXT CHARACTERIZATION ===
+Two land neighbours were in large, actively-reported epidemics for the whole of
+Ethiopia's silence. Ethiopia is not in a quiet neighbourhood.
 
-GAPS INVESTIGATED AND CLASSIFIED:
+--------------------------------------------------------------------------------
+FINDING 2 - ETHIOPIA WAS STILL REPORTING *OTHER* NOTIFIABLE DISEASES, BUT ITS
+            DISEASE LINE ALSO FROZE IN EARLY AUGUST
+--------------------------------------------------------------------------------
+The health-system-functionality test. In the WHO AFRO Weekly Bulletin on
+Outbreaks and other Emergencies, Ethiopia has exactly FOUR entries in the
+all-events table for weeks 31, 32 and 33 of 2026:
+    Drought/food insecurity (Grade 2, since 26-Mar-26)
+    Humanitarian crisis (Protracted 2, Sudanese refugees, 98 049)
+    Humanitarian crisis (Protracted 3, 21.4 million in need)
+    MEASLES (Protracted 3, since 1-Jan-26)
+and NO cholera entry.
 
-1. **2005 GAP (Between 2004 and 2006 outbreaks)**
-   - Classification: UNCERTAIN - likely surveillance gap
-   - Evidence: No specific data found, but surrounded by major outbreaks
-   - Context: Pre-2015 data storage issues confirmed
-   - Confidence: Low
+The measles entry is a real, quantified national notification:
+  "As of epidemiological week 31, (2 August 2026), Ethiopia had reported
+   3 598 suspected measles cases, including 1,526 confirmed cases (42%) with
+   44 deaths. A total of 35 outbreaks were identified across 34 woredas, with
+   the highest burden reported in Oromia and Amhara. Nine woredas remained in
+   active outbreak status."
+So EPHI ran case-based measles surveillance with laboratory confirmation and
+woreda-level outbreak classification through 2 August 2026. A country doing
+that is not a country without a notification system.
 
-2. **2008 GAP**
-   - Classification: FILLED - Not actually a gap
-   - Evidence: July 2008-June 2009 outbreak documented (9,485 cases, 193 deaths)
-   - Context: Part of continuous 2008-2009 epidemic period
-   - Confidence: High
+BUT the same row is frozen: in the week-33 bulletin (data as reported to
+16-Aug-26) the measles line still reads "2-Aug-26 / 3598 / 1526 / 44", while
+the two humanitarian-crisis rows and the drought row for Ethiopia were updated
+to 16-Aug-26. Only the CFR changed (1.39 -> 1.22), a recomputation. So
+Ethiopia's DISEASE notifications to AFRO also stop in early August, while its
+narrative/contextual entries continue. The reporting channel degrades; it does
+not cleanly demonstrate "looking and finding nothing".
 
-3. **2010-2015 GAP (6-year period)**
-   - Classification: SURVEILLANCE SYSTEM FAILURE (Non-reporting)
-   - Evidence: 
-     * National Cholera Elimination Plan states "Finding data from 2015 and backward was challenging as data had not been adequately stored in the National Data Center"
-     * Well-organized cholera data only became available after 2015
-     * 2011-2012 Horn of Africa drought crisis severely disrupted health systems
-     * No national cholera surveillance guidelines until 2011
-   - Context: Combination of data management failure and health system disruption
-   - Not cholera-free, but rather inability to systematically capture and store surveillance data
-   - Confidence: High
+--------------------------------------------------------------------------------
+FINDING 3 - ETHIOPIA WAS DETECTING CHOLERA AFTER ITS LAST WHO SUBMISSION
+--------------------------------------------------------------------------------
+UNICEF Ethiopia Humanitarian Situation Report No.3 (Mid-Year), 30 June 2026,
+covering January-June 2026, states in its WASH section:
+  "Furthermore, recurring population displacement and cholera outbreaks,
+   especially in Oromia, placed significant additional pressure on already
+   overstretched WASH infrastructure and services."
+Oromia is a region with NO 2026 cholera row anywhere in the file. Recorded as
+a presence record (no count given) in data/ETH/cholera_presence_ai.csv.
+The same report's health section gives 51 Amhara cholera cases detected and
+treated Jan-Jun 2026 (already Index 58). Set against WHO's national total of
+50 frozen at 2 March, Ethiopia was demonstrably still finding cholera in at
+least two regions after its last WHO submission.
 
-4. **Dec 2024 - Aug 2025 GAP (Current, 8 months)**
-   - Classification: ONGOING - Too recent to characterize
-   - Evidence: Current period, surveillance still active
-   - Context: Following major 2024 outbreak (112,301 cases through July)
-   - Confidence: N/A
+TRAP AVOIDED: the same sitrep's Annex A prints "Individuals receiving treatment
+for cholera/acute watery diarrhoea in UNICEF-supported facilities 30,223". The
+column structure was checked: 30,223 sits under "2026 Cumulative TARGET" and
+the results column is EMPTY. It is a programme target, not a case count, and
+was not extracted. (CLAUDE.md: REJECT "targeted", "beneficiaries".)
 
-=== SUMMARY OF AGENT 6 FINDINGS ===
+--------------------------------------------------------------------------------
+FINDING 4 - SURVEILLANCE-DEGRADING CONTEXT IS DOCUMENTED FOR THIS EXACT WINDOW
+--------------------------------------------------------------------------------
+AFRO week 31 2026, Ethiopia humanitarian-crisis feature:
+  "Ethiopia entered the second half of 2026 facing three pressures
+   simultaneously: continuing armed violence and insecurity across several
+   regions, a rainfall season that failed at its most critical point, and a
+   sharp contraction in humanitarian partner presence driven by funding
+   shortfalls."
+  "Renewed insecurity in Tigray and Amhara, alongside continued conflict in
+   Oromia and other areas, is disrupting livelihoods, restricting humanitarian
+   access ... humanitarian operations remain constrained by significant funding
+   gaps."
+Amhara recorded 55 security incidents in July 2026 affecting humanitarian
+workers; food assistance in Tigray was "interrupted entirely" during June.
+Ethiopia hosts 98,049 Sudanese refugees with continuing arrivals "mainly into
+Amhara and Benishangul-Gumuz" - i.e. population flow out of an active,
+WHO-reported cholera epidemic and into Ethiopia.
 
-Total queries attempted: 27
-Successful queries: 6
-API errors: 21
-Data observation yield: 7.4% (2 new data rows added from 27 queries)
+--------------------------------------------------------------------------------
+CLASSIFICATION - WINDOW 1
+--------------------------------------------------------------------------------
+WINDOW      : 2026-03-03 .. 2026-09-19 (201 days, 6.6 months)
+              (the brief named 2026-07-27..2026-09-19; the true reporting stop
+               is 2026-03-02, so the window is four months longer)
+CLASS       : NON-REPORTING  (high confidence)
+SURVEILLANCE: partial-to-degraded. Case-based measles surveillance with lab
+              confirmation was demonstrably running to 2 Aug 2026; cholera
+              notification to WHO stopped 2 Mar 2026; all Ethiopian disease
+              notification to AFRO appears frozen after early Aug 2026.
+REGIONAL    : South Sudan and Sudan, both land neighbours, reported cholera
+              weekly to WHO through 17 Aug 2026 (13 641 and 2 633 cases).
+              Ethiopia hosts and continues to receive Sudanese refugees.
+LOCAL       : cholera positively documented inside the silence's run-up -
+              Oromia "recurring cholera outbreaks" Jan-Jun 2026; Amhara 51
+              cases detected and treated Jan-Jun 2026.
+WRITTEN     : NO ZERO ROW. One presence record (AFR::ETH::Oromia,
+              2026-01-01..2026-06-30) in data/ETH/cholera_presence_ai.csv.
+              One annotation appended to data/ETH/cholera_data_ai.csv Index 41.
+              One source registered: metadata Index 133.
+LEFT EMPTY  : 2026-03-03..2026-09-19 deliberately. A zero here would assert to
+              MOSAIC that Ethiopia had no cholera for six months while two
+              neighbours ran epidemics and two Ethiopian regions were finding
+              cases.
+FLAG FOR AGENT 7: Index 41's TR of 2026-07-26 masks 2026-03-03..2026-07-26 in
+              the effective-gap analysis. The row was NOT retracted because it
+              quotes WER Table 1 accurately; the masking is an artefact of
+              cumulative rows, not a citation defect. Agent 7 should decide
+              whether the gap analyser ought to read last_epiwk.
 
-Key accomplishments:
-1. Filled 2008-2009 gap with quantitative data (9,485 cases nationally, 4,000 in Addis Ababa)
-2. Characterized 2010-2015 gap as surveillance system failure, not disease absence
-3. Confirmed pre-2015 national data storage challenges
-4. Documented impact of 2011-2012 drought crisis on health systems
+Rows added to cholera_data_ai.csv : 0
+Successful queries                : 0/20
+Yield                             : 0%
+Consecutive sub-5% batches        : 1
+Decision                          : CONTINUE (3-batch floor; window 1 settled)
 
-Recommendations for future surveillance:
-- 2010-2015 gap should NOT be recorded as zero-transmission
-- This period represents surveillance system failure and should be flagged as such
-- Any modeling should account for likely underreporting during this period
-- Post-2015 data is more reliable due to improved surveillance systems
+================================================================================
+=== BATCH 2 | PHASE 2 (targeted gap filling) | ETH ===
+================================================================================
+WINDOW TARGETED : 2012-01-01 .. 2015-09-06  ("2012-2015, still empty")
+QUESTION        : was there no cholera in Ethiopia in 2012-2014, or no reporting?
 
-Agent 6 Status: COMPLETED
-End Time: 2025-08-06
+*** FIRST CORRECTION TO THE BRIEF: 2012-2015 IS NOT EMPTY. IT IS FULL OF ZEROS
+    THAT NOBODY OBSERVED. ***
+The brief says "2012-2015 still empty". It is not. data/ETH/cholera_data_jhu.csv
+carries national annual rows asserting sCh=0 for 2011, 2012, 2013 and 2014
+(JHU Index 228, 229, 230, 231, source "WHO Annual Cholera Report (UID: 314)").
+Read their processing_notes and the picture sharpens:
+
+  JHU 217 (1982)  sCh=0  deaths=0  conf 1.0  "Primary: True, Phantom: FALSE"
+  JHU 219 (2005)  sCh=0  deaths=0  conf 1.0  "Primary: True, Phantom: FALSE"
+  JHU 228 (2011)  sCh=0  deaths=''  conf 0.7 "Primary: True, Phantom: TRUE -
+                                    Zero transmission period validated by JHU"
+  JHU 229 (2012)  sCh=0  deaths=''  conf 0.7 "... Phantom: TRUE ..."
+  JHU 230 (2013)  sCh=0  deaths=''  conf 0.7 "... Phantom: TRUE ..."
+  JHU 231 (2014)  sCh=0  deaths=''  conf 0.7 "... Phantom: TRUE ..."
+
+Cross-checked against WHO's own database: the GHO cholera series has an
+EXPLICIT 0 for Ethiopia in 1982 and in 2005, and NO ETHIOPIAN ROW AT ALL for
+2011, 2012, 2013 or 2014. So JHU's Phantom flag is honest - it marks exactly
+the years WHO published nothing - but the sCh column renders both kinds of
+year as the same character, 0. Anything downstream that reads sCh and not the
+Phantom flag (py/build_weekly_timeseries.py, the coverage analysis, and the
+model) receives four consecutive years of asserted national zero for a country
+WHO has no data for.
+
+2011 is the test case and IT FAILS. The file already contains Kebri Dahar
+woreda, 13 cases 11-24 Aug 2011 (Index 555) and 3 cases 9-10 Oct 2011 (Index
+556), plus WHO's own July 2011 Horn of Africa risk assessment listing "acute
+watery diarrhoea in parts of Afar, Somali and Oromia regions". A phantom zero
+from this channel has already been proved wrong once for Ethiopia.
+
+--------------------------------------------------------------------------------
+OPERATIONS (28 executed)
+--------------------------------------------------------------------------------
+  01-03 ReliefWeb searches, DO20120101-20151231: "Ethiopia Weekly Humanitarian
+        Bulletin", "Ethiopia AWD outbreak", "Ethiopia measles outbreak"
+  04-06 ReliefWeb year rivers for 2012, 2013, 2014
+  07-11 FULL CRAWLS of the OCHA Ethiopia Weekly Humanitarian Bulletin series:
+        2011 (0 issues - series begins later), 2012 (29), 2013 (49), 2014 (50),
+        2015 (51). Every issue page fetched and scanned for cholera / acute
+        watery diarrhoea / AWD / measles / meningitis / polio / yellow fever /
+        dengue / scabies / malaria. Cached under /tmp/a6/ocha{year}/.
+  12-14 Read the AWD-positive 2012 issues (10 Sep, 24 Sep) and the
+        measles/meningitis issue (8 Oct 2012)
+  15-17 Read the cholera/AWD-positive 2014 issues (26 May, 21 Jul, 25 Aug,
+        29 Sep) and the 2013 (11 Nov) and 2015 (27 Jul) ones
+  18    Grep every Oct-Dec 2014 issue for Dollo Ado / Liben / diarrhoea
+        follow-up (none)
+  19-22 Regex scans of the 119-thesis AAU FELTP corpus at /tmp/a4/aau for AWD
+        and cholera absence statements bound to 2012-2014
+  23-25 Full-context extraction and woreda identification from theses
+        9ed0d822 (Nigatu Tarekegn 2014), d77df3de (Dereje Mamo 2015),
+        95cbda54 (Engdayehu Hailu 2015)
+  26    Thesis abcdb0a0 (Tahir Abdifatah 2015) context + calendar resolution
+  27    AAU ETD DSpace 7 discover API: resolved 3 full UUIDs from 8-char
+        prefixes by author-name query
+  28    Inspection of data/ETH/cholera_data_jhu.csv phantom-zero rows
+
+--------------------------------------------------------------------------------
+FINDING 5 - THE OCHA WEEKLY SERIES, THE CHANNEL AGENT 2 NAMED AS THE MISSING KEY
+--------------------------------------------------------------------------------
+179 issues crawled across 2012-2015. Cholera or AWD appears in SIX of them:
+
+  2012-09-10  SNNPR RHB/PHEM + WHO training 27-31 Aug 2012 "on early warning,
+              surveillance and management of communicable disease outbreak
+              focusing on Acute Watery Diarrhoea (AWD) and malaria"; 131 IDSR/
+              PHEM focal persons from ALL woreda health offices and health
+              institutions in Sidama Zone. Somali Region diarrhoea outbreak,
+              Dollo Ado woreda, 292 cases since July 2012, mostly under-fives,
+              NOT labelled AWD or cholera.
+  2012-09-24  "an outbreak of diarrhoea in Gode woreda, Shebelle zone (Somali
+              Region) was confirmed as NORMAL DIARRHOEA, NOT acute watery
+              diarrhoea (AWD)." UNICEF household water-treatment chemicals sent
+              to Tigray "AWD-prone areas". This is the system running a
+              differential diagnosis and returning a true negative.
+  2013-11-11  "heightened risk for acute watery diarrhoea" after flooding in
+              Dassenech woreda, South Omo. Risk, not cases.
+  2014-05-26  Gambella RHB + Ethiopian Public Health Institute "strengthening
+              acute watery diarrhoea (AWD) outbreak preparedness and response
+              measures following reports of a cholera outbreak in neighbouring
+              South Sudan declared in mid-May".
+  2014-07-21  "the Government and health partners procured Oral Cholera
+              Vaccination (OCV) and the vaccination campaign in the camps and
+              entry points is scheduled for 24 July."
+  2014-08-25  "health partners started the SECOND ROUND of the oral cholera
+              vaccination campaign on 15 August."
+  2014-09-29  KEY EVENTS: "Suspected cases of acute watery diarrhea (AWD) were
+              reported from Dollo Ado woreda last week. A health team is
+              currently investigating the report."
+  2015-07-27  cholera preparedness in Gambella after the South Sudan outbreak.
+
+Two things follow. (1) Ethiopia in 2014 judged its cholera risk high enough to
+run a TWO-ROUND oral cholera vaccination campaign - that is not the posture of
+a country with a clean nil return. (2) There is a contemporaneous AWD case
+signal in Ethiopia in September 2014, the year JHU records as a phantom zero,
+and the twelve subsequent issues never report the investigation's outcome.
+Recorded as a presence record at confidence 0.4 with the word SUSPECTED written
+into the quote itself: AFR::ETH::Somali::Liben::Dollo_Ado, 2014-09-22..28.
+
+Across the same 179 issues, measles, meningitis, polio, yellow fever and dengue
+appear constantly, with weekly counts - e.g. 8 Oct 2012: "There were 36 new
+suspected measles cases during the week in Oromia, Amhara and SNNPR, and 18 new
+cases of meningitis in Amhara, Dire Dawa, SNNPR and Tigray." The notifiable
+disease machinery was plainly running.
+
+--------------------------------------------------------------------------------
+FINDING 6 - THIRTEEN WOREDA-LEVEL DOCUMENTED ABSENCES FOR 2013 AND 2014
+--------------------------------------------------------------------------------
+The AAU FELTP corpus contains structured Meher/Belg PHEM assessments carried
+out with the FMOH/EPHI/PHEM questionnaire. Four of them state AWD counts of
+zero for named woredas over named months, WITH a positive count of some other
+notifiable disease in the same sentence. That is the precise evidential shape
+this agent exists to find, and it is what separates absence from silence.
+
+2013, Nigatu Tarekegn (AAU ETD 9ed0d822-f5a6-46b2-a904-cc7a034052fb, metadata
+Index 134), South Omo and Segen zones, June 2013 assessment:
+  South Ari and Benatsemay woredas, Jan-May 2013 - "There were no AWD and
+  Meningitis cases reported from any of the reporting sites of IDS", alongside
+  4,674 and 1,499 malaria cases and 6 and 5 measles cases, AND an ONGOING
+  YELLOW FEVER OUTBREAK in the same zone being counted to 104 cases / 36 deaths
+  / CFR 34.6%. Both woreda sections add "There was no AWD epidemic in the last
+  3 years."
+  Konso and Burji woredas, Jan-May 2013 - "there were no cases seen in AWD,
+  Measles, and Meningitis in both woredas but there were a total of 17748
+  Malaria cases from Konso and Burji and 6 deaths from Konso were reported."
+    -> Index 574, 575 (conf 0.80), 576, 577 (conf 0.75)
+
+2014, Dereje Mamo (AAU ETD d77df3de-572c-4d97-afc9-f5caaddbaf84, Index 135),
+Gedeo and Sidama zones, Jan-May 2014:
+  Kochore and Wonago - "In both assessed Woredas, zero cases and death of AWD
+  was reported, but in Kochore Woreda 11 cases of meningitis were reported from
+  Jan - May, 2014", plus 12 measles cases in Kochore with a month-by-month
+  split and a 76-case zone-level meningitis OUTBREAK in January 2014.
+  Aroresa and Boricha - "zero cases and death of AWD as well as measles was
+  reported from Jan - May, 2014", with PHEM reporting COMPLETENESS stated as
+  above the 80% minimum in both woredas.
+    -> Index 578, 579 (conf 0.80), 580, 581 (conf 0.75)
+
+2014, Engdayehu Hailu (AAU ETD 95cbda54-6beb-4e87-aa99-ffd2bfffd3a5, Index
+136), South Omo and Segen Area Populations zones, fieldwork 23 Jun-5 Jul 2014:
+  Dasenech, Hamer, Benatsemay - "Five suspected measles cases were reported
+  from Benatsemay Woreda during March-May 2014 and ... samples were taken and
+  sent to Federal PHI. But there was no any suspected case of AWD and
+  Meningitis cases", with monthly malaria cases and deaths for all three
+  woredas and a detected-and-contained 336-case malaria epidemic and 39-case
+  rubella epidemic in January 2014.
+  Konso, Alle - "There was no Measles, Meningitis and AWD case and epidemic in
+  the assessed Woredas and Zone."
+    -> Index 582, 583, 584 (conf 0.80), 585, 586 (conf 0.70)
+
+Dasenech is the same woreda that recorded 1,426 AWD cases and 23 deaths in
+2009, so these are woredas that do report when there is something to report.
+
+2011-2014, Tahir Abdifatah (AAU ETD abcdb0a0, Index 138), Jarar (Degehabur)
+zone, ETHIO-SOMALI REGION, Meher assessment 26 Nov-12 Dec 2014:
+  "Birkood, Ararso, aware and Gashamo districts were NOT REPORTED Acute Watery
+  Diarrhea in the last three years while Degahbuur council, Guanaco and
+  Degahbuur district had reported cases of AWD in 2004."
+    -> Index 587-590, 2011-12-12..2014-12-12, conf 0.65, surveillance PARTIAL.
+  CALENDAR RESOLVED BY INTERNAL CONSISTENCY: the same paragraph says AWD
+  occurred "in the last 3 years in 3 woredas (30%) of the zone" and then names
+  exactly three woredas as having had AWD "in 2004". For that to sit inside the
+  last three years, 2004 must be ETHIOPIAN CALENDAR = 11 Sep 2011 - 10 Sep 2012
+  Gregorian. Two presence records written accordingly for Degahbur and
+  Gunagado. THIS IS A DIRECT CHALLENGE TO JHU'S 2012 PHANTOM ZERO: AWD in two
+  named Somali Region woredas inside 2004 EC.
+  Confidence deliberately held to 0.65 and surveillance to PARTIAL: it is a
+  three-year district-office recall statement, the zone has no district-level
+  multi-sectoral coordination forum and the zonal one is "functional only
+  during epidemics", and Somali is Ethiopia's highest-burden cholera region.
+  Positive control for the same year and region: the same thesis documents a
+  laboratory-investigated measles outbreak in Hamaro woreda, 43 suspected cases
+  and 1 death, 6 April - 5 May 2014, with 5 blood samples sent for confirmation.
+
+--------------------------------------------------------------------------------
+CLASSIFICATION - WINDOW 2
+--------------------------------------------------------------------------------
+WINDOW      : 2012-01-01 .. 2015-09-06
+CLASS       : MIXED, and the mixture is the finding.
+  NATIONAL 2012, 2013, 2014 : UNDETERMINED, currently mis-stated as zero.
+    The only national-level assertion is JHU's phantom zero, which is WHO's
+    missing-year rendered as 0, from the same channel that produced a
+    falsified zero for 2011 and that omits Ethiopia entirely for 2015 and 2016
+    (227 and 29,871 EPHI cases). No source anywhere affirmatively states that
+    Ethiopia had zero cholera cases in 2012, 2013 or 2014. NO NATIONAL ZERO
+    ROW WAS WRITTEN BY THIS AGENT, and none should be.
+  SUB-NATIONAL 2013 and 2014 : TRUE ABSENCE at 13 named woredas, documented,
+    with the surveillance system demonstrably counting other notifiable
+    diseases in the same sentence. Written as Index 574-586 and 587-590.
+  2014 nationally : positively CONTRADICTED in part - a suspected AWD report
+    from Dollo Ado in September 2014 and a two-round OCV campaign.
+  2012 : partially CONTRADICTED - AWD in Degahbur council, Gunagado and
+    Degahbur district during 2004 EC (Sep 2011 - Sep 2012).
+SURVEILLANCE: OPERATIONAL nationally and in SNNPR (weekly measles/meningitis/
+    malaria counts, yellow fever and rubella outbreaks detected and quantified,
+    specimens sent to the Federal PHI, PHEM completeness above 80%); PARTIAL in
+    the Somali Region periphery.
+REGIONAL    : Somalia notified 22,576 (2012), 6,864 (2013) and 2,820 (2014);
+    Uganda 6,326 / 748 / 309; Tanzania 286 / 270; South Sudan 6,421 (2014);
+    Kenya 35 (2014). Ethiopia sits inside a region with continuous
+    transmission and notifies nothing.
+WRITTEN     : 17 zero rows (Index 574-590), 3 presence records, 6 sources
+    (metadata Index 134, 135, 136, 138, 139 and, from Batch 3, 137).
+LEFT EMPTY  : the NATIONAL 2012, 2013 and 2014 series. This agent will not add
+    a national zero on top of a phantom one.
+FLAG FOR AGENT 7 AND FOR THE MODELLERS: JHU Index 228-231 are Phantom:True
+    zeros for 2011-2014. 2011's is disproved by rows already in this file.
+    Consider whether py/build_weekly_timeseries.py should honour the Phantom
+    flag rather than the sCh value.
+
+Rows added to cholera_data_ai.csv : 17  (Index 574-590)
+Successful queries                : 6/20  (the 4 thesis scans/extractions and
+                                    2 UUID/metadata operations that produced
+                                    committed rows)
+Yield                             : 30%
+Consecutive sub-5% batches        : 0
+Decision                          : CONTINUE
+
+================================================================================
+=== BATCH 3 | PHASE 2-3 | ETH ===
+================================================================================
+WINDOWS TARGETED: 1972-01-01..1981-12-31 (10 y), 1983-01-01..1992-12-31 (10 y),
+                  1993-01-01..1997-12-31, 1998, 1999-01-01..2003-12-31.
+                  These are the two genuinely EMPTY day-level runs in the whole
+                  Ethiopian series.
+QUESTION        : is 29 years of nothing an absence of cholera or an absence of
+                  notification?
+
+OPERATIONS (29 executed):
+  01-04 PubMed MCP: Ethiopian cholera history/epidemiology reviews; Ethiopian
+        AWD 2012-2014; Ethiopian IDSR evaluations; "cholera Ethiopia[Title]"
+        sorted by publication date (65 hits enumerated)
+  05    WHO GHO OData: enumerated EVERY "number of reported cases" indicator
+  06-11 WHO GHO OData, Ethiopia series pulled for measles WHS3_62, meningitis
+        WHS3_47, poliomyelitis WHS3_49, yellow fever WHS3_50, pertussis
+        WHS3_43, diphtheria WHS3_41
+  12    Raw-value verification: distinguished null (no return) from '0'
+        (explicit nil return) for 1990-2006, for each disease
+  13    Extension of the cross-disease table to 2010-2025
+  14    CONTROL: counted countries with a GHO cholera entry per year, to test
+        whether Ethiopia's post-2010 blank is Ethiopian or is the indicator
+        ending. IT IS THE INDICATOR: GHO cholera stops at 2016 for EVERY
+        country. All claims below are therefore restricted to <=2016.
+  15    AAU thesis corpus scan for AWD/cholera statements bound to 1995-2005
+  16-17 ReliefWeb DO19960101-20051231: "Ethiopia cholera", "Ethiopia acute
+        watery diarrhoea"
+  18    Fetched "Report on the Food and Nutrition Situation in Gode, Fik,
+        Korahe, Jijiga and Shinile zones of the Somali Region", 11 Aug 2000
+  19-24 Six further ReliefWeb searches over 1996-2005 (three with a malformed
+        advanced-search filter, repeated correctly)
+  25    FULL CRAWL of the UN-EUE/OCHA "Relief Bulletin: Weekly Humanitarian
+        Highlights in Ethiopia" series for 1996-2003: 54 issues found, all
+        dated 19 Aug 2002 - 26 Dec 2003; every issue fetched and scanned
+  26    Same for 2004-2005: 59 issues fetched and scanned
+  27-28 ReliefWeb searches for UN Emergencies Unit for Ethiopia material
+        1996-2002
+  29    PubMed MCP metadata for PMID 7485686 (Coppo et al. 1995), the lead
+        Agent 4 left unresolved for 1983-1992
+
+--------------------------------------------------------------------------------
+FINDING 7 - THE CONTROL EXPERIMENT THAT SETTLES 1972-2003
+--------------------------------------------------------------------------------
+The question "was Ethiopia's health system able to notify WHO?" is answerable
+directly, because WHO's GHO holds Ethiopia's notifications for SIX diseases,
+and it distinguishes a null (no return) from a '0' (explicit nil return).
+Registered here as metadata Index 137.
+
+  year   cholera   measles   polio   yellow fever   pertussis   diphtheria
+  1970       850         -       -              -           -            -
+  1971     2 187         -       -              -           -            -
+  1974         -     3 821       -           null       4 949         null
+  1977         -     3 132       -           null       3 096           23
+  1980         -    10 690     234           null      23 429          142
+  1982         0    10 527     153           null      10 823          697
+  1985         -    66 544      92           null       5 148           99
+  1990         -     1 836      81           null         922           61
+  1993         -     1 152     104           null        null         null
+  1994         -     1 133      56           null        null         null
+  1995         -       562     199              0         626           45
+  1997         -     1 113      19              0        null         null
+  1998         -     1 603      55              0         749           19
+  1999         -     5 329     131              0         733          125
+  2000         -     1 660     152              0        null         null
+  2001         -     2 366       1              0        null         null
+  2002         -     3 332       0              0        null         null
+  2003         -       228       0              0        null         null
+  2004        16        73       1           null        null         null
+  2005         0       357      22              0        null         null
+  ("-" = NO Ethiopian cholera row exists at all; "0" = an explicit nil return.)
+
+Read that carefully. Ethiopia filed a MEASLES value to WHO in every single year
+from 1974 to 2010. It filed a POLIO value in every year from 1980 to 2010,
+including explicit ZEROS in 2002 and 2003. It filed explicit YELLOW FEVER
+ZEROS in 1995 and in every year 1997-2003 and 2005-2008. Ethiopia therefore
+knew perfectly well how to tell WHO that a disease had not occurred, and did so
+repeatedly, in the very years its cholera line is not zero but BLANK.
+
+And the blank years are not quiet years. Scrascia et al. (already metadata
+Index 29) establish that cholera re-emerged in the Horn in 1993 via Djibouti -
+which notified WHO of 10,055 cases that year - spread to central and southern
+Ethiopia, and reached Somalia in 1994, where WHO was notified of 28,334 cases.
+In 1998 a multidrug-resistant V. cholerae O1 epidemic "affected thousands of
+people throughout the country". For 1993, 1994, 1995 and 1998 Ethiopia filed
+measles counts, polio counts and (1995, 1998) yellow-fever nil returns, and
+filed NOTHING for cholera. Ethiopia was the documented SOURCE of a neighbour's
+notified epidemic and notified nothing itself.
+
+That is not a country that was looking and finding nothing. It is a country
+whose notification channel was open, in daily use, and closed to one disease.
+
+MODERN CONFIRMATION INSIDE THE INDICATOR'S RANGE: in 2016 Ethiopia filed a
+measles count of 4,579 and a yellow-fever ZERO to WHO, and filed NOTHING for
+cholera, in a year EPHI's own national line list records 29,871 cholera cases.
+The 2015 and 2016 behaviour is the same behaviour as the 1990s behaviour, and
+for 2015-2016 we can prove what the truth was.
+
+--------------------------------------------------------------------------------
+FINDING 8 - THE REGIONAL PICTURE, FROM THE SAME DATABASE
+--------------------------------------------------------------------------------
+WHO GHO cholera notifications, Ethiopia's neighbourhood (blank = no entry):
+  1974-1981  Kenya every year (21-2,808), Tanzania from 1974 (10-6,608),
+             Uganda from 1975 (3-1,539), Sudan 1979-80. Ethiopia: blank.
+  1982       Ethiopia 0 - its ONLY nil return of the century - while Kenya
+             reported 3,498, Tanzania 4,071 and Uganda 190.
+  1983-1992  Somalia 10,199 (1985) and 15,980 (1986); Sudan 4,457 (1985);
+             Tanzania every year (1,231-18,526); Kenya 8 of 10 years.
+             Ethiopia: blank in all ten.
+  1993-1998  Djibouti 10,055 (1993), 1,122 (1994), 2,424 (1997), 164 (1998);
+             Somalia 28,334 / 9,255 / 10,274 / 6,814 / 4,417; Kenya up to
+             22,432 (1998); Uganda 49,514 (1998); Tanzania 40,249 (1997).
+             Ethiopia: blank in all six.
+  1999-2003  Somalia EVERY year (17,757 / 7,496 / 2,567 / 2,775 / 11,020);
+             Kenya four of five; Uganda every year; Tanzania every year;
+             Djibouti 1,828 (2000). Ethiopia: blank in all five.
+
+--------------------------------------------------------------------------------
+FINDING 9 - WHAT THE SURVEILLANCE SYSTEM LOOKED LIKE, WINDOW BY WINDOW
+--------------------------------------------------------------------------------
+1972-1981. The notification channel demonstrably existed and was used from 1974
+(measles, pertussis), 1977 (diphtheria) and 1980 (polio). Ethiopia had itself
+notified 850 cholera cases in 1970 and 2,187 in 1971, so cholera was on the
+notifiable list and had been used. The decade covers the 1974 revolution, the
+Derg, and the 1977-78 Ogaden war. Nothing in the record states that Ethiopia
+had no cholera; the record states that Ethiopia stopped saying.
+
+1983-1992. Surveillance genuinely degraded: 1983-85 famine, the northern wars,
+and state collapse in 1991 - Ethiopia's measles notification falls to 497 in
+1991, its lowest of the century, and pertussis and diphtheria returns stop
+after 1990. Presence, however, is positively documented. Coppo et al., Am J
+Trop Med Hyg 1995;53(4):351-9 (PMID 7485686, registered as metadata Index 140):
+"During a cholera epidemic in 1985 and 1986 ... A drug-susceptible Ogawa strain
+FROM ETHIOPIA caused the introduction of the disease into northern Somalia."
+Recorded as a national presence record for 1985-01-01..1986-12-31 with the
+inference stated plainly inside the quote: the paper's fieldwork is Somali, it
+gives no Ethiopian date, place or count, and the window used is the Somali
+epidemic's own span.
+
+1993-1997 and 1998. Presence is documented (Scrascia, already in
+cholera_presence_ai.csv for 1993-10..1995-12 and for 1998) and notification is
+proved absent by Finding 7. Agent 4's discovery stands and now has a mechanism:
+WHO/EMC/DIS/97.11 records that at WHO's urgent interregional cholera meeting in
+Nairobi on 18-19 December 1997, "Djibouti, Kenya, Somalia, Tanzania and Uganda
+have reported cholera outbreaks to WHO" - Ethiopia is absent from that list
+although it sent a delegation, and the meeting minuted that the countries
+present said there were no political constraints on notifying WHO.
+
+1999-2003. Three independent strands.
+  (a) Notification: yellow-fever nil returns filed in every year 1999-2003 and
+      polio nil returns in 2002 and 2003; cholera blank in all five.
+  (b) Surveillance on the ground, from the 11 August 2000 UN assessment of
+      Gode, Fik, Korahe, Jijiga and Shinile zones of the Somali Region
+      (https://reliefweb.int/report/ethiopia/report-food-and-nutrition-situation-gode-fik-korahe-jijiga-and-shinile-zones-somali):
+      "There is no formal nutritional surveillance system covering the Somali
+      region." "There is no comprehensive mortality surveillance in place in
+      the region." "Prolonged diarrhoeal illness particularly among
+      malnourished children has been reported frequently; cases of bloody
+      diarrhoea have also been reported, but laboratory testing has been
+      negative for shigella dysenteriae thus far." "Some of this decline is
+      likely to be due to high mortality among those with severe malnutrition
+      particularly if associated with measles or WATERY DIARRHOEA."
+      In the region that would later carry Ethiopia's largest cholera burden,
+      during the 2000 famine, there was no surveillance system, watery
+      diarrhoea was contributing to a mortality peak, and the only laboratory
+      testing mentioned was for shigella.
+  (c) Context: the Ethio-Eritrean war ran May 1998 - December 2000 and the
+      Gode famine peaked in 2000.
+  NOTHING in this window affirmatively states zero cholera cases. The one
+  quantitative fact pointing the other way is that when Ethiopia resumed
+  cholera notification it reported a very small number - 16 cases for 2004 -
+  and then a formal nil for 2005. That is compatible with genuinely low
+  transmission in the early 2000s, and it is the reason this window is
+  classified UNDETERMINED rather than NON-REPORTING outright.
+
+--------------------------------------------------------------------------------
+FINDING 10 - THE 2002-2003 HUMANITARIAN RECORD, AND WHY IT PROVES NOTHING
+--------------------------------------------------------------------------------
+The UN-EUE/OCHA "Relief Bulletin: Weekly Humanitarian Highlights in Ethiopia"
+series was crawled in full for the periods ReliefWeb holds: 54 issues from
+19 Aug 2002 to 26 Dec 2003, and 59 issues across 2004-2005. Cholera, AWD and
+acute watery diarrhoea appear in ZERO of the 113 issues. Measles appears in
+about twenty of them and polio in about a dozen.
+It is tempting to read that as national absence. DO NOT. See Batch 4,
+Finding 11, which shows the same test failing against a known epidemic.
+
+--------------------------------------------------------------------------------
+CLASSIFICATIONS - WINDOWS 3, 4 AND 5
+--------------------------------------------------------------------------------
+WINDOW 5a   : 1972-01-01 .. 1981-12-31 (3,653 days)
+CLASS       : NON-REPORTING (high confidence)
+SURVEILLANCE: functioning for other notifiable diseases from 1974 onwards
+              (measles and pertussis 1974, diphtheria 1977, polio 1980);
+              cholera notification stopped after Ethiopia's own 1970-71
+              epidemic and was not resumed.
+REGIONAL    : Kenya, Tanzania, Uganda and Djibouti all notifying.
+WRITTEN     : NOTHING. No zero row. Period left genuinely empty.
+
+WINDOW 5b   : 1983-01-01 .. 1992-12-31 (3,653 days)
+CLASS       : NON-REPORTING with genuinely DISRUPTED surveillance
+              (high confidence), and cholera POSITIVELY PRESENT in 1985-86.
+SURVEILLANCE: disrupted - 1983-85 famine, northern wars, 1991 state collapse;
+              measles returns fall to 497 in 1991; pertussis and diphtheria
+              returns cease after 1990.
+REGIONAL    : Somalia 10,199 (1985) and 15,980 (1986), Sudan 4,457 (1985).
+WRITTEN     : one national presence record 1985-01-01..1986-12-31 (Coppo,
+              metadata Index 140). No zero row. Period left genuinely empty.
+
+WINDOW 4a   : 1993-01-01 .. 1997-12-31
+CLASS       : NON-REPORTING, DEMONSTRATED (highest confidence of any window
+              in this run). Cholera present from October 1993; Ethiopia
+              notified measles, polio and yellow-fever zeros and not cholera;
+              Ethiopia is absent from WHO's own December 1997 list of Horn
+              countries that had reported outbreaks, while attending.
+WRITTEN     : nothing new; presence already recorded for 1993-10..1995-12.
+              No zero row. Period left genuinely empty.
+
+WINDOW 4b   : 1998-01-01 .. 1998-12-31
+CLASS       : NON-REPORTING, DEMONSTRATED. A characterised, multidrug-resistant
+              V. cholerae O1 epidemic "throughout the country"; 22 isolates
+              from 6 outbreaks in Oromiya, Somali, Harari, Addis Ababa and
+              Dire Dawa; and a WHO cholera line that is blank while the
+              yellow-fever line for the same year reads 0.
+WRITTEN     : nothing new; presence already recorded. No zero row.
+              Agent 4's instruction "DO NOT WRITE A 1998 ZERO ROW" is endorsed
+              and now has a positive proof behind it rather than an absence of
+              search results.
+
+WINDOW 3    : 1999-01-01 .. 2003-12-31 (1,826 days)
+CLASS       : UNDETERMINED, leaning NON-REPORTING.
+              Evidence for non-reporting: yellow-fever and polio nil returns
+              filed in the same years while cholera stayed blank; no
+              surveillance system in the Somali Region in 2000; war 1998-2000;
+              famine 2000; every neighbour reporting, Somalia in all five
+              years. Evidence the other way: when notification resumed in 2004
+              the figure was 16, and 2005 was a formal, WER-corroborated nil.
+SURVEILLANCE: partial nationally, ABSENT in the Somali Region in 2000 by the
+              UN's own words.
+WRITTEN     : NOTHING. No zero row. Period left genuinely empty. Agent 3's
+              refusal to write a 1999-2003 absence row is endorsed.
+
+Rows added to cholera_data_ai.csv : 0
+Successful queries                : 0/20 (one presence record and one source,
+                                    neither of which counts toward yield)
+Yield                             : 0%
+Consecutive sub-5% batches        : 1
+Decision                          : CONTINUE (Phase 3 corroboration outstanding)
+
+================================================================================
+=== BATCH 4 | PHASE 3 (deep validation and controls) | ETH ===
+================================================================================
+PURPOSE: test this agent's own inferences before reporting them, and reopen the
+         Internet Archive channel that Agent 4 recorded as offline.
+
+OPERATIONS (20 executed):
+  01    PubMed MCP full text of the Ethiopia National Cholera Elimination Plan
+        2022-2028, Clin Infect Dis (PMC11244260, doi:10.1093/cid/ciae200) -
+        already registered as metadata Index 1
+  02    INTERNET ARCHIVE AVAILABILITY RETEST - archive.org HTTP 200,
+        web.archive.org HTTP 302. THE CHANNEL IS BACK UP. Agent 4 recorded it
+        offline for the whole of its run; that is no longer true.
+  03-04 Wayback CDX for ephi.gov.et and ehnri.gov.et with a URL-substring
+        filter for bulletin/phem/weekly/surveillance
+  05    Wayback CDX for ehnri.gov.et, unfiltered, 400 captures
+  06-07 Wayback CDX for both domains with a regex filter for
+        cholera|AWD|diarrh - returned NOTHING for both
+  08    *** CONTROL THAT SAVED A FALSE FINDING *** re-ran the same filtered
+        query for meningitis and measles, which are KNOWN to be present in the
+        unfiltered listing. They also returned nothing. The CDX `filter`
+        parameter was not working as assumed, so the earlier empty cholera
+        result was an artefact of my query, not a fact about Ethiopia. Both
+        queries were discarded and redone as full pulls with a local grep.
+  09-10 Full CDX pulls (581 captures for ehnri.gov.et, 4,000 for ephi.gov.et)
+        with local grep and a meningitis positive control
+  11    Retrieved and read the one cholera artefact found
+  12-13 OCHA 2015 control greps (see FINDING 11)
+  14-15 Verification that the EPHI "economic repercussions" statement is
+        already recorded in data/ETH/cholera_data_ai.csv, and enumeration of
+        the five rows citing metadata Index 1
+  16    IFRC GO events API for Ethiopia, most recent first
+  17-18 ReliefWeb: "WHO Ethiopia situation report" Jun-Sep 2026; all Ethiopia
+        items 1-20 Sep 2026
+  19-20 Relief Bulletin crawl completion checks and date-range verification
+
+--------------------------------------------------------------------------------
+FINDING 11 - THE CONTROL THAT INVALIDATES "SILENCE IN HUMANITARIAN REPORTING"
+--------------------------------------------------------------------------------
+Batches 2 and 3 found that cholera and AWD are nearly absent from the OCHA
+Ethiopia weekly series. Before treating that as evidence of anything, it was
+tested against a period where the answer is known.
+
+Ethiopia's 2015-2017 epidemic began in epidemiological WEEK 35 of 2015. The
+file already contains, from JHU and from earlier agents: 3 cases in the week of
+24-30 Aug 2015; weekly national counts of 25, 38, 88 and 38 for 16 Nov - 13 Dec
+2015; a national 2015 figure of 238 cases and 2 deaths; Oromia 127/1, Somali
+106/1, Addis Ababa 3/0 and Afar 2/0 for Aug-Dec 2015; and a national
+1,884 cases / 19 deaths for week 45 of 2015 to week 20 of 2016.
+
+ALL SEVENTEEN issues of the OCHA Ethiopia Weekly Humanitarian Bulletin from
+7 September to 28 December 2015 were grepped for "cholera", "acute watery",
+"AWD" and even the bare stem "diarrh".
+
+        RESULT: ZERO MATCHES IN ALL SEVENTEEN ISSUES.
+
+The only 2015 issue in the entire year that mentions cholera is 27 July 2015,
+and that one is about SOUTH SUDAN.
+
+The same test applied to 2004-2005: 59 Relief Bulletin issues, zero mentions of
+cholera or AWD - in a period when Ethiopia had itself notified WHO of 16
+cholera cases for 2004.
+
+CONCLUSION, AND IT IS BINDING ON EVERYTHING ABOVE: absence of cholera from
+Ethiopia's humanitarian reporting has NO evidential value as to whether cholera
+was occurring. It fails against a known epidemic and against a known
+notification. Every "no cholera mentioned in N bulletins" observation in this
+log is therefore reported as context only and was NOT used to support any zero
+row. This is why no national zero row was written for 2002, 2003, 2012, 2013 or
+2014 despite the temptation of 113 and 179 clean weekly issues.
+
+--------------------------------------------------------------------------------
+FINDING 12 - EPHI'S OWN ACCOUNT OF THE PRE-2015 RECORD
+--------------------------------------------------------------------------------
+The Ethiopia National Cholera Elimination Plan paper (metadata Index 1), whose
+authors are EPHI and the Ministry of Health, says in its own words:
+  "Ethiopia, a country with a LONG HISTORY OF ENDEMIC AND EPIDEMIC CHOLERA,
+   has faced persistent challenges."
+  "Although well-organized cholera data at the national level in Ethiopia
+   became available AFTER 2015, available evidence in the past 2 decades
+   (2001-2023) reported a total of 215 205 acute watery diarrhea/cholera cases
+   and 2355 deaths in the country."
+and, under "Lack of Comprehensive National Cholera Data for Identifying
+Hotspots":
+  "Obtaining at least 5 years of cholera data was a requirement to prioritize
+   hotspot woredas. FINDING DATA FROM 2015 AND BACKWARD WAS CHALLENGING AS DATA
+   HAD NOT BEEN ADEQUATELY STORED IN THE NATIONAL DATA CENTER. However, the
+   data were collected and collated from the regional, zonal, and woreda health
+   offices and the WHO Country Office."
+That is the national public health institute stating that the pre-2015 national
+cholera record is a DATA-CUSTODY failure. It is the cleanest available
+first-party statement that pre-2015 Ethiopian blanks are missing data.
+
+--------------------------------------------------------------------------------
+FINDING 13 - ETHIOPIA RAN A NATIONAL CHOLERA PROGRAMME THROUGHOUT THE YEARS
+              THE BASELINE RECORDS AS ZERO
+--------------------------------------------------------------------------------
+Recovered from the reopened Internet Archive:
+  http://web.archive.org/web/20131215165217if_/http://ehnri.gov.et/newsletter/cholera.jpg
+captured 15 December 2013. It is the cover of "GUIDELINE ON CHOLERA OUTBREAK
+MANAGEMENT, ETHIOPIA", Ethiopian Health and Nutrition Research Institute,
+Federal Democratic Republic of Ethiopia - i.e. the 2011 national cholera
+guideline, still posted on the national institute's website in December 2013.
+The NCP paper describes that guideline as having "focused on the national
+cholera surveillance system, emphasizing case detection, outbreak
+investigation, and the management and REPORTING of cases".
+Ethiopia therefore ran a named national CHOLERA surveillance and case-
+management guideline continuously through 2011-2014 - the four years JHU
+carries as phantom zeros and for which WHO holds no data at all. The word
+"cholera" was in domestic use while WHO received nothing.
+Not registered as a source and no row written: it is a document cover, it
+carries no case count, and registering it would create an orphan metadata
+entry. It is recorded here with its full archive URL.
+
+--------------------------------------------------------------------------------
+FINDING 14 - WINDOW 1 RE-TESTED AGAINST INDEPENDENT CHANNELS
+--------------------------------------------------------------------------------
+IFRC GO events API, Ethiopia, most recent first: no Ethiopian cholera event of
+any kind in 2026. ReliefWeb, all Ethiopia items 1-20 September 2026: nothing on
+cholera. ReliefWeb, "WHO Ethiopia situation report" June-September 2026:
+nothing on cholera. Combined with the WHO global dataset's last_epiwk of
+2026-03-02 and the AFRO weekly bulletins' lack of any Ethiopian cholera event,
+the picture for 2026 is consistent across five independent channels: no
+Ethiopian cholera information of any kind has been published since March 2026.
+Per FINDING 11 that is not evidence of absence. WINDOW 1 REMAINS
+NON-REPORTING AND REMAINS EMPTY.
+
+Rows added to cholera_data_ai.csv : 0
+Successful queries                : 0/20
+Yield                             : 0%
+Consecutive sub-5% batches        : 2
+Decision                          : STOP after 4 batches / 96 discovery
+                                    operations. The protocol criterion (3
+                                    consecutive batches below 5%) was NOT met -
+                                    batch yields were 0 / 30 / 0 / 0 percent -
+                                    and the 12-batch ceiling was not reached.
+                                    Stopped because the MANDATE IS COMPLETE:
+                                    every window of six months or more in
+                                    Ethiopia's series has been classified with
+                                    evidence, the classification for each is
+                                    now supported by a positive test rather
+                                    than by an absence of search results, and
+                                    FINDING 11 establishes that the remaining
+                                    reachable channels (humanitarian reporting)
+                                    cannot settle the open windows either way.
+                                    Further searching would add counts, which
+                                    is Agents 1-5's mandate, not classification.
+
+================================================================================
+AGENT 6 - FINAL CLASSIFICATION TABLE: EVERY WINDOW >= 6 MONTHS
+================================================================================
+window                     class                      surveillance   zero row?
+-------------------------- -------------------------- -------------- ---------
+2026-03-03..2026-09-19     NON-REPORTING              partial/       NO
+  (201 d, 6.6 mo)          (high confidence)          degrading
+  Evidence: WHO's own global cholera dataset gives Ethiopia last_epiwk
+  2026-03-02 while South Sudan and Sudan report to 2026-08-17 with 13,641 and
+  2,633 cases; Ethiopia's AFRO measles line is live to 2 Aug 2026 (3,598 cases,
+  1,526 confirmed, 44 deaths, 35 outbreaks in 34 woredas) but then freezes too;
+  UNICEF records 51 Amhara cholera cases treated and "recurring ... cholera
+  outbreaks, especially in Oromia" for Jan-Jun 2026; conflict in Amhara, Oromia
+  and Tigray plus "a sharp contraction in humanitarian partner presence".
+  NOTE: the brief gave this window as 2026-07-27..2026-09-19 (55 d). It is
+  four months longer than that. Index 41's TR of 2026-07-26 masks the extra
+  four months from the gap analyser; annotated, not retracted.
+
+2012-01-01..2012-12-31     UNDETERMINED, partially    operational    NO
+                           CONTRADICTED                              (national)
+  The only national assertion is JHU Index 229, a Phantom:True zero. AWD is
+  documented in Degahbuur council, Gunagado and Degahbuur district during
+  2004 EC (11 Sep 2011 - 10 Sep 2012). Two presence records written.
+
+2013-01-01..2013-12-31     UNDETERMINED nationally;   operational    4 woreda
+                           TRUE ABSENCE at 4 woredas                 zeros
+  South Ari, Benatsemay (South Omo), Konso, Burji (Segen), Jan-May 2013 -
+  Index 574-577. Malaria, measles and a 104-case yellow fever outbreak counted
+  in the same documents. The national year has no affirmative source at all.
+
+2014-01-01..2014-12-31     UNDETERMINED nationally,   operational    9 woreda
+                           partially CONTRADICTED;    to partial     zeros
+                           TRUE ABSENCE at 9 woredas
+  Kochore, Wonago (Gedeo), Aroresa, Boricha (Sidama), Dasenech, Hamer,
+  Benatsemay (South Omo), Konso, Alle (Segen) Jan-May 2014 - Index 578-586;
+  plus Birkood, Ararso, Aware, Gashamo (Jarar, Somali) Dec 2011-Dec 2014 -
+  Index 587-590. CONTRADICTED nationally by a suspected AWD report from Dollo
+  Ado in the week of 22-28 Sep 2014 and by a two-round OCV campaign in
+  Gambella in July-August 2014.
+
+2015-01-01..2015-09-06     UNDETERMINED               operational    NO
+  Agent 4 dated the wave's start to epidemiological week 35 of 2015, so the
+  empty part of 2015 is Jan to late August. No source states zero for it.
+
+1999-01-01..2003-12-31     UNDETERMINED, leaning      partial        NO
+  (1,826 d)                NON-REPORTING              nationally;
+                                                      ABSENT in the
+                                                      Somali Region
+  Yellow-fever and polio NIL RETURNS filed to WHO in the same years while
+  cholera stayed blank; "no formal nutritional surveillance system covering
+  the Somali region" and "no comprehensive mortality surveillance" (UN,
+  Aug 2000) with watery diarrhoea in the mortality picture; Ethio-Eritrean war
+  1998-2000; Gode famine 2000; Somalia reporting in all five years. Against:
+  when notification resumed the figure was 16 (2004) and then a real nil
+  (2005), consistent with genuinely low transmission.
+
+1998-01-01..1998-12-31     NON-REPORTING, DEMONSTRATED  functioning  NO
+  Characterised multidrug-resistant V. cholerae O1 epidemic "throughout the
+  country", 22 isolates from 6 outbreaks in 5 regions/cities; Ethiopia's WHO
+  cholera line blank while its yellow-fever line for 1998 reads 0 and its
+  measles line reads 1,603.
+
+1993-01-01..1997-12-31     NON-REPORTING, DEMONSTRATED  functioning  NO
+  Cholera re-entered the Horn via Djibouti in 1993 (10,055 notified), spread
+  to central and southern Ethiopia, and reached Somalia in 1994 (28,334
+  notified). Ethiopia notified measles and polio every year and a yellow-fever
+  zero in 1995 and 1997, and notified no cholera. WHO's Nairobi meeting of
+  18-19 Dec 1997 lists Djibouti, Kenya, Somalia, Tanzania and Uganda as having
+  reported outbreaks; Ethiopia attended and is not on the list.
+
+1983-01-01..1992-12-31     NON-REPORTING +             DISRUPTED    NO
+  (3,653 d)                DISRUPTED SURVEILLANCE;
+                           PRESENT 1985-86
+  Famine 1983-85, northern wars, 1991 state collapse; measles returns bottom
+  out at 497 in 1991; pertussis and diphtheria returns stop after 1990. An
+  Ethiopian Ogawa strain seeded the 1985-86 northern Somalia epidemic (Coppo
+  et al. 1995). Presence record written for 1985-01-01..1986-12-31.
+
+1972-01-01..1981-12-31     NON-REPORTING               functioning  NO
+  (3,653 d)                (high confidence)           for other
+                                                       diseases
+  Ethiopia notified 850 cholera cases in 1970 and 2,187 in 1971, then nothing
+  for eleven years; meanwhile it filed measles and pertussis from 1974,
+  diphtheria from 1977 and polio from 1980, every year. Kenya, Tanzania,
+  Uganda and Djibouti all notifying cholera throughout.
+
+================================================================================
+WINDOWS DELIBERATELY LEFT EMPTY, AND WHY
+================================================================================
+2026-03-03..2026-09-19, 2015-01-01..2015-09-06, 1999-2003, 1998, 1993-1997,
+1983-1992 and 1972-1981 were all left with NO ZERO ROW, and the NATIONAL
+series for 2012, 2013 and 2014 was left without an AI zero row on top of JHU's
+phantom one.
+
+The single reason, stated once: in none of these windows does any source
+affirmatively say that Ethiopia had no cholera cases. What exists is silence -
+in WHO's tables, in humanitarian bulletins, in the WER. This agent tested
+whether Ethiopian silence means absence, twice, and it failed both times:
+  - WHO's table: Ethiopia filed a yellow-fever NIL RETURN and a measles count
+    in 2016 and filed nothing for cholera, in a year with 29,871 EPHI cases.
+  - Humanitarian bulletins: seventeen consecutive weekly OCHA bulletins,
+    September to December 2015, contain not one instance of "cholera", "AWD"
+    or even "diarrh", during the opening months of Ethiopia's largest modern
+    epidemic.
+A zero row in any of these windows would be indistinguishable downstream from
+an observation, and MOSAIC would learn that cholera vanishes from Ethiopia for
+a decade at a time. It does not; Ethiopia stops saying.
+
+================================================================================
+WHAT WAS WRITTEN, AND WHERE
+================================================================================
+data/ETH/cholera_data_ai.csv  - 17 NEW ROWS, all Documented_Absence zeros,
+  all sub-national, Index 574-590:
+    574 AFR::ETH::SNNPR::South_Omo::South_Ari    2013-01-01..2013-05-31  0.80
+    575 AFR::ETH::SNNPR::South_Omo::Benatsemay   2013-01-01..2013-05-31  0.80
+    576 AFR::ETH::SNNPR::Segen_Area::Konso       2013-01-01..2013-05-31  0.75
+    577 AFR::ETH::SNNPR::Segen_Area::Burji       2013-01-01..2013-05-31  0.75
+    578 AFR::ETH::SNNPR::Gedeo::Kochore          2014-01-01..2014-05-31  0.80
+    579 AFR::ETH::SNNPR::Gedeo::Wonago           2014-01-01..2014-05-31  0.80
+    580 AFR::ETH::SNNPR::Sidama::Aroresa         2014-01-01..2014-05-31  0.75
+    581 AFR::ETH::SNNPR::Sidama::Boricha         2014-01-01..2014-05-31  0.75
+    582 AFR::ETH::SNNPR::South_Omo::Dasenech     2014-01-01..2014-05-31  0.80
+    583 AFR::ETH::SNNPR::South_Omo::Hamer        2014-01-01..2014-05-31  0.80
+    584 AFR::ETH::SNNPR::South_Omo::Benatsemay   2014-01-01..2014-05-31  0.80
+    585 AFR::ETH::SNNPR::Segen_Area::Konso       2014-01-01..2014-05-31  0.70
+    586 AFR::ETH::SNNPR::Segen_Area::Alle        2014-01-01..2014-05-31  0.70
+    587 AFR::ETH::Somali::Jarar::Birkood         2011-12-12..2014-12-12  0.65
+    588 AFR::ETH::Somali::Jarar::Ararso          2011-12-12..2014-12-12  0.65
+    589 AFR::ETH::Somali::Jarar::Aware           2011-12-12..2014-12-12  0.65
+    590 AFR::ETH::Somali::Jarar::Gashamo         2011-12-12..2014-12-12  0.65
+  and ONE ANNOTATION appended to Index 41 (the 2026 national row), pinning
+  Ethiopia's last cholera epi-week submitted to WHO at 2026-03-02.
+
+data/ETH/cholera_presence_ai.csv - 6 NEW PRESENCE RECORDS (17 -> 23):
+    AFR::ETH::Oromia                        2026-01-01..2026-06-30  0.80
+    AFR::ETH::Somali::Jarar::Degahbur       2011-09-11..2012-09-10  0.65
+    AFR::ETH::Somali::Jarar::Gunagado       2011-09-11..2012-09-10  0.65
+    AFR::ETH::Somali::Liben::Dollo_Ado      2014-09-22..2014-09-28  0.40
+    AFR::ETH                                1985-01-01..1986-12-31  0.70
+
+data/ETH/metadata_ai.csv - 8 NEW SOURCES (132 -> 140):
+    133 WHO global cholera dataset (adm0 first/last epi-week), HDX 2026-09-03
+    134 Nigatu Tarekegn EFETP 2014 - South Omo / Segen PHEM assessment 2013
+    135 Dereje Mamo EFETP 2015 - Gedeo / Sidama PHEM assessment 2014
+    136 Engdayehu Hailu EFETP 2015 - South Omo / Segen PHEM assessment 2014
+    137 WHO GHO notifiable-disease cross-section for Ethiopia 1974-2010
+    138 Tahir Abdifatah EFETP 2015 - Jarar zone Meher assessment Dec 2014
+    139 OCHA Ethiopia Weekly Humanitarian Bulletin series 2012-2015
+    140 Coppo et al., Am J Trop Med Hyg 1995;53(4):351-9 (PMID 7485686)
+
+py/validate_quality.py ETH: ERROR 0, WARN 7, INFO 72, exit 0. All seven
+warnings are the pre-existing multiyear_aggregate warnings Agent 5 verified;
+none belongs to a row written by this agent.
+
+================================================================================
+HANDOVER TO AGENT 7
+================================================================================
+1. INDEX 41 MASKS FOUR MONTHS. Its TR of 2026-07-26 is faithful to WER Table 1
+   but WHO's own dataset gives Ethiopia last_epiwk 2026-03-02. The effective
+   gap analysis will therefore not see 2026-03-03..2026-07-26 as a gap. The row
+   was annotated rather than retracted; Agent 7 should decide whether the gap
+   analyser ought to read last_epiwk.
+2. JHU PHANTOM ZEROS. data/ETH/cholera_data_jhu.csv Index 228-231 assert
+   sCh=0 for 2011-2014 and are flagged "Phantom: True" with confidence 0.7,
+   versus "Phantom: False" and confidence 1.0 for the genuine nil returns of
+   1982 and 2005. WHO's GHO has NO Ethiopian cholera row for 2011-2014 at all.
+   2011's phantom zero is already disproved by Index 555 and 556 in the AI
+   layer. Consider whether py/build_weekly_timeseries.py should honour the
+   Phantom flag rather than the sCh value. This is the largest remaining
+   correctness risk in Ethiopia's series and it lives in the baseline, not in
+   the AI layer.
+3. INTERNET ARCHIVE IS BACK UP. Agent 4 stopped with the Wayback channel dead
+   and the WHO cholera country-profile URLs untested. It answered HTTP 200 on
+   20 Sep 2026. The CDX `filter` parameter did not work; pull unfiltered and
+   grep locally, and always run a positive control.
+4. AAU FELTP CORPUS STILL NOT EXHAUSTED. Agent 5's unworked list stands. This
+   agent mined it for ABSENCE statements rather than counts and found four
+   previously unused theses that way (9ed0d822, d77df3de, 95cbda54, abcdb0a0);
+   the same regex approach over the other 115 cached theses would likely yield
+   more woreda-level zeros and counts.
+5. RELIEFWEB REACHES BACK TO 1996 and holds complete weekly series: the OCHA
+   Ethiopia Weekly Humanitarian Bulletin (2012 onwards) and the UN-EUE/OCHA
+   Relief Bulletin (2002 onwards). Caches: /tmp/a6/ocha{2012..2015}/,
+   /tmp/a6/rb9903/, /tmp/a6/rb0405/. Remember FINDING 11 before drawing any
+   inference from their silence.
+================================================================================
+END OF AGENT 6 LOG
+================================================================================

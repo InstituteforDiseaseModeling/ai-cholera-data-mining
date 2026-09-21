@@ -1,3 +1,757 @@
+================================================================================
+AGENT 4 - OBSCURE SOURCE EXPLORER - GHANA (GHA)
+================================================================================
+Run start : 2026-09-20
+Working on: ./data/GHA/cholera_data_ai.csv, ./data/GHA/metadata_ai.csv,
+            ./data/GHA/cholera_presence_ai.csv
+Entry state: 193 AI rows (indices 1-205 with gaps), 107 metadata sources.
+Prior agents: A1 12 batches/34 rows; A2 12 batches/85 rows; A3 10 batches/46 rows.
+
+NOTE: this file replaces a stub log from a 2026-05-14 Agent 4 run that executed
+30 queries in 2 batches and added 0 rows. That log is preserved verbatim at the
+bottom of this file under "APPENDIX: SUPERSEDED 2026-05-14 LOG".
+
+TARGETS (historical era + gaps >=3y, per the Agent 4 remit)
+  T1 1970-1985 sub-annual and sub-national detail. JHU holds annual national
+     totals for every year 1970-1985; nothing sub-annual, nothing sub-national.
+  T2 1986-1989 actual CASE COUNTS (A1 put documented zeros on 1987-89 from the
+     WER annual tables; A3 retracted the 1986 zero because WHO IHR infected-area
+     registers carry Central Region towns as infected right through 1989).
+  T3 1990-1999 sub-national detail. Only sub-national row before 2005 is
+     Ashanti 1997-2001 (index 108) and Upper East 1999 (125, 32, 33).
+  T4 Broken-link recovery and grey literature (theses, GWER back-years,
+     plateformecholera.info, Ghana Medical Journal, Noguchi).
+
+METHOD NOTE - the seam being worked
+  The WER published, weekly through the 1970s, a bilingual article titled
+  "CHOLERA = CHOLERA" carrying a per-country table of newly notified cases and
+  deaths with an explicit reporting period. IRIS holds 803 such items as
+  separate DSpace records; 109 of them fall in 1970-1978. Each has a TEXT
+  (OCR) bundle reachable at
+     /server/api/core/items/{uuid}/bundles -> bundle "TEXT" -> bitstream content
+  This is the primary instrument for T1 and is, as far as the prior logs show,
+  unmined by this pipeline.
+================================================================================
+
+=== BATCH 1 | PHASE 1 (discovery) | GHA ===
+Gap targeted : 1970-01-01..1999-12-31 (historical; sub-annual + sub-national
+               detail absent from every layer) and 1986-1989 (1461d, historical)
+Queries (archive retrieval / enumeration operations, IRIS DSpace API):
+  B1-01 IRIS discover: "Infected Areas"                      -> API reachable, 1957 hit
+  B1-02 IRIS discover: "Ghana cholera" (all item types)      -> 5188, too broad
+  B1-03 IRIS discover: dc.title:"CHOLERA = CHOLERA"          -> 803 weekly items
+  B1-04 IRIS discover: title:CHOLERA                         -> 2130, too broad
+  B1-05 IRIS discover: f.dateIssued range-filter syntax test -> 422, unsupported
+  B1-06 IRIS: page through all 803 weekly cholera items, capture volume/issue
+  B1-07 IRIS: item metadata for WER 45/36 (uuid 09180c4b)    -> journal/vol/issue fields
+  B1-08 IRIS: bundle list for 45/36                          -> ORIGINAL + TEXT bundles exist
+  B1-09 IRIS: bulk TEXT download, 175 weekly cholera items 1969-1999
+  B1-10 grep Ghana across those 175                          -> only 4 hits
+  B1-11 read WER 45/36 Ghana passage   (imported case, Accra, 2 Sep 1970)
+  B1-12 read WER 45/48 Ghana passage   (2nd imported case, W Dagomba D, Northern R)
+  B1-13 read WER 46/05 Ghana passage   (epidemic to 31.XII.70 ~3000/200; 1-8.I.71 1353/116)
+  B1-14 IRIS discover: dc.relation.volume:46 AND dc.relation.issue:04
+        -> DISCOVERY: IRIS carries "[full issue]" items, not just per-article items
+  B1-15 IRIS: enumerate every WER "[full issue]" item, volumes 45-66 -> 1139 issues
+  B1-16 IRIS: bulk TEXT download all 1139 issues (1970-1991)
+  B1-17 grep Ghana across 1139 issues                        -> 618 issues
+  B1-18 restrict to Ghana INSIDE a CHOLERA block             -> 335 issues
+  B1-19 IRIS: bulk ORIGINAL PDF download, those 335 issues
+  B1-20 pdftotext -layout on all 335 + column-anchored Ghana block extraction
+Sources found: 335 WER issues carrying a Ghana cholera entry, 60 of them carrying
+               a numeric notification table
+Registered   : 0 (registration deferred to batch 2, after image verification)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE - batch 1 was pure instrument-building and it worked. The
+               WER weekly "DISEASES SUBJECT TO THE REGULATIONS" tables carry Ghana
+               cholera counts by REGION and by DISTRICT, weekly, from Nov 1970, and
+               national sub-annual aggregates through 1990. Nothing in this dataset
+               has ever used them.
+
+NOTE ON METHOD (corrects the brief): the brief said these tables parse under
+`pdftotext -raw` and not `-layout`. For the WER the opposite is true. `-raw`
+interleaves the five columns and destroys the number/row correspondence;
+`-layout` preserves it, and a column-anchored slice around the "GHANA" token
+recovers the table cleanly. The IRIS TEXT (OCR) bitstream is worse than both and
+must not be used for numbers - it scrambles multi-column tables silently.
+
+=== BATCH 2 | PHASE 2 (targeted gap filling) | GHA ===
+Gap targeted : 1974-01-01..1990-12-31 national SUB-ANNUAL resolution. Before this
+               batch the dataset held exactly one observation per year for
+               1970-1996 (JHU annual national) and nothing finer.
+Queries:
+  B2-01 render WER 1971;46(10) p.15, read the Ghana cumulative regional table
+  B2-02 crop/read the "27.XII-30" 8-region block on that page
+  B2-03 crop/read the deaths column of the "Up to/Jusqu'au 26.XII" 5-region block
+  B2-04 high-zoom crop of the "27.XII-30" period header (no second month printed)
+  B2-05 scan all 335 -layout files for GHANA header lines carrying a period marker
+        -> 60 numeric notification blocks
+  B2-06 wide re-extraction with 6 lines of header context -> 372 blocks
+  B2-07 loose re-extraction (period markers OCR'd as digits) -> 97 blocks
+  B2-08 read the Ghana blocks of WER 1980;55(06) and 1981;56(03)
+  B2-09 read WER 1982;57(01), 1982;57(26), 1983;58(39), 1984;59(22), 1984;59(31),
+        1985;60(51-52)
+  B2-10 read WER 1990;65(48), 1979;54(15), 1978;53(51-52), 1977;52(43), 1976;51(25),
+        1975;50(31)
+  B2-11 page-locate and render WER 1971;46(04) -> period header resolves to "1-8.I"
+  B2-12 render and read WER 1990;65(48) p.8
+  B2-13 render and read WER 1977;52(43) p.8
+  B2-14 render and read WER 1983;58(39) p.10
+  B2-15 render and read WER 1982;57(39) p.8
+  B2-16 render and read WER 1978;53(03) p.4
+  B2-17 locate WER 1978;53(07) p.8 and resolve the merged "44315" cell
+  B2-18 regex-extract the "Notifications Received from ... to <date>" header from all
+        335 issues -> 211 exact WER publication dates
+  B2-19 per-volume linear interpolation for the remaining issue dates (WER is weekly,
+        so issue n = issue 1 + 7(n-1) days; spot-checked against 6 known issues)
+  B2-20 register 33 WER issues as sources and commit the national sub-annual rows
+
+Sources found: 33 WER issues with extractable Ghana national counts
+Registered   : metadata indices 108-140 in ./data/GHA/metadata_ai.csv
+Rows added   : 69 -> ./data/GHA/cholera_data_ai.csv indices 206-274
+  1974 : 7 rows  (5.V-15.VI, 16.VI-20.VII, 21.VII-24.VIII, 25-31.VIII, 1-7.IX,
+                  8-14.IX, 7-12.X)
+  1975 : 15 rows (4 January weeks, the 2.II-26.IV aggregate, 5 May-June weeks,
+                  5 July-August weeks)
+  1977 : 11 rows (the 1.I-30.IX cumulative plus nine weekly counts 30.X-31.XII,
+                  covering the whole Q4 1977 epidemic wave week by week)
+  1978 : 20 rows (2 January weeks, 19-25.II, 2 March weeks, 4 Apr-May weeks,
+                  8 Jul-Sep weeks, 4 October weeks, the 29.X-31.XII aggregate)
+  1979 : 1 row   (1.I-30.VI = 1139/78)
+  1980 : 2 rows  (Q1 = 118/9, Q2 = 27/0)
+  1981 : 1 row   (H1 = 238/13)
+  1982 : 6 rows  (1.I-28.III = 1205r/136r, plus monthly Feb 256, Mar 607, Apr 203,
+                  May 206, Jun 291 with deaths not yet received)
+  1983 : 1 row   (H1 = 3656/416)
+  1984 : 2 rows  (Q1 = 544r/65r revised, Q2 = 144/18)
+  1985 : 1 row   (H1 = 25/0)
+  1990 : 1 row   (13.VII-2.XI = 94 + 572 suspected, 19 deaths)
+  1975 : 1 further row committed separately (30.IV-6.V 1978, CFR 15.2%, at 0.7)
+Successful queries: 12/20
+Yield        : 60%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+Cross-checks performed
+  * WER 1971;46(04) prints 1-8.I regional counts summing to 1353 cases / 116 deaths,
+    which is EXACTLY the figure the narrative in WER 1971;46(05) gives for the same
+    week. The table-extraction method is therefore self-validating on this seam.
+  * WER 1982;57(39) 1.I-28.III = 1205r is consistent with the monthly series in
+    WER 1982;57(26) (Feb 256 + Mar 607).
+  * WER 1984;59(31) 544r/65r for Q1 1984 supersedes the preliminary 321/55 in
+    WER 1984;59(22); only the revised figure was entered.
+Discrepancy recorded, NOT silently resolved
+  * WER 1977;52(43) gives 756 cases / 62 deaths for 1.I-30.IX.1977 while the WER/JHU
+    FINAL annual for 1977 is 6565/353. Both are in the row's processing_notes and
+    the row is weighted 0.8.
+Rows NOT entered because the OCR/column alignment could not be trusted
+  * WER 1975;50(17) "15-21.XII 1 / 3" - deaths would exceed cases; column pairing
+    in that two-column block is not resolvable from the scan.
+  * WER 1975;50(18) - the two period columns cannot be matched to their rows.
+  * WER 1976;51(25) - period markers ("7-13JCU", "23-2901") are not decodable.
+
+=== BATCH 3 | PHASE 2 (targeted gap filling) | GHA ===
+Gap targeted : ALL sub-national data before 1997 - listed by Agent 2 as a
+               remaining gap ("the 1970-71, 1982 and 1990-91 waves survive only
+               as place names without numbers").
+Queries:
+  B3-01 resolve IRIS handles for the 1970-74 WER issues carrying Ghana blocks
+  B3-02 register WER 1970;45(46) as a source
+  B3-03 register WER 1970;45(50)
+  B3-04 register WER 1970;45(52)
+  B3-05 register WER 1971;46(04)
+  B3-06 register WER 1971;46(10)
+  B3-07 register WER 1971;46(41)
+  B3-08 register WER 1972;47(48)
+  B3-09 register WER 1973;48(40)
+  B3-10 register WER 1974;49(41)
+  B3-11 register WER 1971;46(05) (narrative article, not the table)
+  B3-12 commit the WER 46/10 "Up to 26.XII" 5-region cumulative block
+  B3-13 commit the WER 46/10 "27.XII-30" 8-region cumulative block
+  B3-14 commit the WER 46/04 1-8.I.1971 5-region block
+  B3-15 commit the WER 46/05 national 1-8.I.1971 aggregate
+  B3-16 commit the 1970 district rows (Accra PA, Ada, Winneba)
+  B3-17 commit the WER 45/52 cumulative-to-5.XII district rows (Ada, Anlo:Keta)
+  B3-18 render WER 1971;46(41) p.7 to resolve "4X1" -> 4.X with footnote marker
+        "Date of telegram"; commit the Takoradi imported case
+  B3-19 register WER 1970;45(48) and commit the Western Dagomba imported case
+  B3-20 commit the 1972-1982 district rows (Sunyani x3, Brong-Ahafo Apr-74,
+        Lawra, Eastern 29.V.78, Kpandu, Berekum)
+
+Sources found: 11 further WER issues
+Registered   : metadata indices 141-151
+Rows added   : 34 -> ./data/GHA/cholera_data_ai.csv indices 275-308
+  REGIONAL, 1970-71 epidemic (13 rows) - the first sub-national Ghanaian cholera
+  numbers in this dataset before 1997:
+    cumulative to 26.XII.1970 : Central 1186/95, Eastern 278/26,
+                                Greater Accra 355/10, Volta 605/26, Western 651/55
+    27.XII.1970-30.I.1971     : Ashanti 22/3, Brong-Ahafo 16/3, Central 2520/135,
+                                Eastern 453/34, Greater Accra 469/33, Northern 12/3,
+                                Volta 570/8, Western 921/70
+  REGIONAL, week 1-8.I.1971 (5 rows): Greater Accra 72/8, Central 756/44,
+                                Eastern 33/1, Volta 207/47, Western 285/16
+  NATIONAL, week 1-8.I.1971 (1 row): 1353/116
+  REGIONAL, other (2 rows): Brong-Ahafo Apr-1974 1/1; Eastern 29.V.1978 1/1
+  DISTRICT (13 rows): Accra (PA) 9.XI.1970 1 imported; Western Dagomba (Northern)
+    Nov-1970 1 imported; Ada (Eastern) 29.XI-5.XII.1970 3/3 and cumulative to
+    5.XII 51/2; Winneba (Central) 9.XII.1970 29/27; Anlo:Keta (Volta) cumulative
+    to 5.XII.1970 61/8; Takoradi port 4.X.1971 1 imported; Sunyani (Brong-Ahafo)
+    17-23.IX.1972 2/2, 24-30.IX.1972 1/1, 27.IX.1973 3/0; Lawra (Upper Region,
+    now Upper West) 12-18.III.1978 1/0; Kpandu (Volta) 4.XII.1978 1/1;
+    Berekum (Brong-Ahafo) 13.VII.1982 2 suspected/2
+Successful queries: 9/20
+Yield        : 45%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+Double-counting discipline applied to every row in this batch: each sub-national
+row's processing_notes names the overlapping national/annual rows it must not be
+summed with. py/validate_quality.py raises exactly one national_subnational_overlap
+WARN, for 1971-01-01..1971-01-08, and the notes on those 14 rows state that the
+national row is the aggregate of the five regional rows.
+
+Honest caveat recorded in the data: the Western Dagomba imported case may be the
+same event as the Accra (PA) 9.XI.1970 imported case - WER 1971;46(05) knows of
+only two importations into Ghana. The row is weighted 0.6 and says so.
+
+=== BATCH 4 | PHASE 3 (deep validation / archives) | GHA ===
+Gap targeted : 1986-01-01..1989-12-31 (1461d, historical) - the specific open
+               question handed to this agent: "were there actual CASE COUNTS for
+               Ghana 1986-1989 anywhere?"
+Queries:
+  B4-01 extract every Ghana block from WER volumes 61-65 with its issue header
+  B4-02 build a section-aware extractor (Infected Areas as on / Newly Infected
+        Areas as on / Areas Removed from the Infected Area List / Notifications
+        Received from) over all 335 issues -> 348 Ghana register entries
+  B4-03 filter to verified Ghanaian administrative names and print the 1984-1990
+        chronology
+  B4-04 search all 348 entries for an "Areas Removed" notice naming Ghana
+  B4-05 confirm the absence of any Ghana entry in the numeric notification table
+        between WER 1985;60(51-52) and WER 1990;65(48)
+  B4-06 IRIS handle lookup for the anchor issues of each register year
+  B4-07 HTTP-verify six candidate IRIS handles -> five resolve to UNRELATED WER
+        articles (Malaria Surveillance, AIDS, Influenza, Traditional Medicine,
+        Epidemiology); only 10665/227490 was genuinely an Infected Areas item
+  B4-08 withdraw metadata 152-157 with py/revise_observation.py --set-status
+        Superseded, before any observation cited them
+  B4-09 re-register seven Infected Areas sources against handles read from the
+        IRIS item metadata (indices 158-164)
+  B4-10..B4-13 commit the 1985, 1986, 1987, 1988 district presence entries
+  B4-14 commit the 1989 and January-March 1990 district presence entries
+  B4-15 read the 1971-75 "Areas Removed" entries for Ghana (chronology below)
+  B4-16 append the adjudication to cholera_data_ai.csv index 42 (1987 zero)
+  B4-17 append the adjudication to index 43 (1988 zero)
+  B4-18 append the adjudication to index 44 (1989 zero)
+  B4-19 inspect ./data/GHA/retracted_rows_ai.csv for the retracted 1986 zero
+  B4-20 decide against restoring the 1986 zero (reasoning recorded below)
+
+Sources found: the complete Ghana IHR infected-area chronology, 1970-1990
+Registered   : metadata 158-164 (152-157 superseded before use, never cited)
+Rows added   : 0 to cholera_data_ai.csv (no counts exist to add)
+               20 to ./data/GHA/cholera_presence_ai.csv
+               3 adjudication notes appended to indices 42, 43, 44
+Successful queries: 0/20  (presence rows are not data rows)
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+--------------------------------------------------------------------------------
+WHAT THE INFECTED AREAS REGISTERS YIELDED FOR GHANA, 1970-1990
+--------------------------------------------------------------------------------
+The registers give PRESENCE at district resolution and, separately, the weekly
+notification tables on the same pages give COUNTS. They are different
+instruments and must not be conflated. For Ghana:
+
+  1970-71  Regions progressively added: Accra, Central, Eastern, Volta, Western
+           (Nov-Dec 1970), then Ashanti, Brong-Ahafo, Northern (Jan 1971).
+  1971-75  Ghana actively USED the removal mechanism. Removal notices naming
+           Ghana appear in WER 1971;46(18) (Brong-Ahafo, Northern),
+           1971;46(26) (Central, Eastern, Greater Accra, Volta),
+           1971;46(31), 1972;47(17) (Volta), 1972;47(20), 1972;47(35)
+           (Central, Greater Accra), 1972;47(48) (Ashanti, Brong-Ahafo, Volta),
+           1974;49(31) (Eastern), 1974;49(44) (Volta), 1975;50(31) (Eastern).
+  1981     1981;56(16) removes Ashanti, Brong-Ahafo, Eastern, Volta, Western.
+  1983-84  1983;58(39) removes Ashanti; 1984;59(27) removes Volta.
+           *** That 1984 notice is the LAST removal notice naming Ghana. ***
+  1984-85  Six regions listed (Ashanti, Brong-Ahafo, Central, Eastern, Volta,
+           Western) plus Northern Region with Bole District and West Gonja
+           District named individually from 1 November 1984.
+  Jul 1986 The Central Region listing NARROWS to two named districts,
+           Mfantsiman and Breman Asikuma (Infected Areas as on 10 July 1986).
+  1986-89  FROZEN. The same four districts in two regions - Mfantsiman and
+           Breman Asikuma (Central), Bole and West Gonja (Northern) - are
+           carried month after month, unchanged, through Infected Areas as on
+           12 October 1989. No removal notice, no addition, no case figure.
+  Jan-Mar  Last entries: Mfantsiman + Bole + West Gonja (25 Jan 1990),
+  1990     Bole + West Gonja (22 Feb 1990), Northern Region (22 Mar 1990).
+           Ghana then vanishes from the register.
+  Nov 1990 Reappears as NEWLY infected: "Accra Region, X Accra District,
+           X Greater Accra Districts" (Infected Areas as on 29 November 1990),
+           alongside the first Ghanaian case figures since 1985.
+
+ANSWER TO THE 1986-1989 CASE-COUNT QUESTION: NO. There is no Ghanaian cholera
+case or death figure anywhere in WER volumes 61, 62, 63 or 64. The numeric
+notification table carries Ghana for the last time in WER 1985;60(51-52)
+(1.I-30.VI.1985, 25 cases, 0 deaths) and does not carry it again until
+WER 1990;65(48) (13.VII-2.XI.1990). The four-year gap in the WER is total.
+
+Why the 1986 zero was NOT restored: Agent 3 retracted it on the strength of the
+infected-area listings. Those listings are now fully characterised and they cut
+both ways - the July 1986 narrowing shows the register was still being managed
+that year, so the two Central Region districts were a deliberate status and not
+pure neglect; but the register then froze for three years with no removal
+notice, which is the signature of an abandoned entry. Neither reading is
+demonstrated, so 1986 is left genuinely empty, exactly as Agent 3 left it, and
+the evidence is now in ./data/GHA/cholera_presence_ai.csv where it can inform
+gap classification without asserting a count.
+
+CITATION-INTEGRITY INCIDENT, SELF-REPORTED: in B4-06 this agent registered six
+sources against IRIS handles it had INFERRED from numeric adjacency rather than
+looked up. Five of the six resolved to unrelated WER articles. They were caught
+by an HTTP check before any observation cited them and were marked Superseded
+with an explanatory Description via py/revise_observation.py --meta-index.
+Metadata indices 152-157 in ./data/GHA/metadata_ai.csv are those withdrawn
+entries; 158-164 are their verified replacements. Never infer an IRIS handle.
+
+=== BATCH 5 | PHASE 3 (broken-link recovery, grey literature) | GHA ===
+Gap targeted : (a) 1986-1989 case counts outside the WER; (b) the GWER back-years
+               the brief said Agent 3 had not retrieved (2012-2019, 2022-2024).
+Queries:
+  B5-01 WebSearch: Ghana Medical Journal cholera epidemic 1980s cases deaths retrospective
+  B5-02 WebFetch PMC6003169 "Cyclical cholera outbreaks in Ghana: filth, not myth"
+        -> no year-by-year table; gives "the highest number of cholera cases
+        recorded in a single year during an outbreak was 15 032, in 1982",
+        which CONFLICTS with the WHO/JHU 1982 annual of 11 051. Recorded here,
+        not entered, because it would duplicate the JHU annual row.
+  B5-03 WebFetch doi 10.1093/inthealth/ihaf069 (2025 Ghana cholera systematic
+        review) -> OUP redirect not followed
+  B5-04 WebSearch: Ghana Ministry of Health annual report cholera 1987 1988 1989
+        -> nothing; the 1986-89 MoH annual reports are not digitised
+  B5-05 WebFetch apps.dtic.mil ADA333092 (US DoD Ghana disease risk assessment)
+        -> HTTP 403, and a browser-UA curl returns an HTML interstitial
+  B5-06 WebSearch: ugspace.ug.edu.gh cholera thesis district annual trend
+  B5-07 fetch the Dongdem 2021 University of Ghana PhD thesis full text
+        -> Figure 1.1 is "Annual cholera cases reported in Ghana according to the
+        Disease Surveillance department records (1980 to 2019)" but it is a
+        CHART, so the numbers are not in the text layer. Confirms the
+        introduction narrative (1970, fishermen, worst-hit Akplabanya in the then
+        Ada District and Nyanyano near Kasoa) which independently corroborates
+        the Ada and Winneba district rows added in batch 3. Cites
+        Ashitey, G. A. (1994) "An Epidemiology of disease control in Ghana
+        1901-1990", Ghana Universities Press - the most promising remaining
+        offline source for 1986-89 and not available online.
+  B5-08 UGSpace DSpace discover API probe -> 513 cholera items, all 2008+
+  B5-09 Internet Archive CDX for ghs.gov.gh (domain match, 40 805 captures)
+  B5-10 filter the CDX to /gwer/journals/ PDFs -> 108 distinct issues
+  B5-11..B5-14 four passes of web.archive.org id_ replay to fetch them
+        (the endpoint refuses connections under load) -> 85 PDFs recovered
+  B5-15 pdftotext -layout all 85 and count cholera mentions
+  B5-16 parse the GWER Annex 1 "Cholera" row (previous week / current week /
+        cumulative) plus the issue volume, week number and week-ending date
+  B5-17 read the GWER 2017 week-52 year-end issue in full
+  B5-18 register the seven anchor GWER issues as sources
+  B5-19 commit the 2017 and 2018 count rows; retract the falsified 2017 zero
+  B5-20 commit the 2017, 2018 and 2019 documented-absence rows
+
+Sources found: 85 archived GWER issues, covering GWER Volume 2 (2017, weeks 33-52),
+               Volume 3 (2018, weeks 1-44) and Volume 4 (2019, weeks 14-49).
+               The brief and Agent 3 both recorded GWER Volume 3 as "not archived".
+               It is archived.
+Registered   : metadata 165-171
+Rows added   : 8 -> indices 298-305 ; 1 row RETRACTED (former index 157)
+Successful queries: 6/20
+Yield        : 30%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+--------------------------------------------------------------------------------
+THE 2017 FINDING - a WHO nil return that was not a zero
+--------------------------------------------------------------------------------
+Ghana appears in the WER 93/38 "Cholera, 2017" zero-reporting register, and on
+that basis a documented-zero row had been entered for 2017-01-19..2017-12-31
+(former index 157, Agent 3). Ghana Health Service's OWN weekly epidemiological
+report says otherwise:
+    GWER Vol. 2 No. 33, week ending 21 August 2017 : cholera cumulative 15, 0 deaths
+    GWER Vol. 2 No. 38, week ending 24 September   : week 37 = 1 case, cumulative 16
+    GWER Vol. 2 No. 52, week ending 31 December    : cumulative to week 52 = 16, 0 deaths
+                                                     Figure 1 "Cumulative number of
+                                                     cases for Weekly notifiable
+                                                     diseases 1-52, 2017: Cholera 16"
+Only 12 of those 16 fall inside 1-18 January (index 11, Cape Coast Metropolis),
+so at least four cholera cases occurred inside the window the retracted row
+asserted to be cholera-free. The zero was a NIL RETURN TO WHO, not an absence of
+disease. Index 157 was retracted with a tombstone in
+./data/GHA/retracted_rows_ai.csv and replaced by three GWER-sourced rows.
+
+--------------------------------------------------------------------------------
+THE 2018 FINDING - Ghana's two 2018 cases have a place and a date
+--------------------------------------------------------------------------------
+GWER Vol. 3 Week 42 carries a full outbreak report: on 17 October 2018 the Ketu
+South Municipal Health Directorate (Volta Region, Togo border) was notified of
+two critically ill cases among six Ghanaian travellers in transit from Nigeria
+to Kumasi; both were laboratory-confirmed and both recovered; 15 contacts traced;
+no further case. Those are the two cases the annual row (index 28) carried
+without a location. Weeks 1-41 of 2018 carry a zero cumulative and weeks 43-44
+stay at 2, so Ghana's entire 2018 cholera experience is now dated to one week.
+
+--------------------------------------------------------------------------------
+2019
+--------------------------------------------------------------------------------
+Twenty-seven issues of GWER Volume 4 recovered; the cholera cumulative is zero in
+every one, including week 49 (week ending 8 December 2019). The single 2019 case
+in the WER annual table (index 29) must therefore fall in week 50, 51 or 52.
+
+=== BATCH 6 | PHASE 3 (deep archival extraction + verification) | GHA ===
+Gap targeted : sub-national resolution for the 1970-72 El Tor epidemic - the
+               period Agent 2 recorded as surviving "only as place names without
+               numbers".
+Queries:
+  B6-01 build a column-anchored region-table parser over the -layout text
+  B6-02..B6-05 four refinement passes (dot-leader labels, letter-spaced labels,
+        "(excl. PA)" continuation lines, block separation on the second "Regions"
+        header, and a number regex that does not swallow digits glued to dot
+        leaders)
+  B6-06 dry-run the parser over 18 candidate WER issues -> 104 candidate rows
+  B6-07 VERIFICATION: render WER 1971;46(46) p.6 and read the Ghana table
+        -> THE PARSER WAS WRONG. Central Region 29.VIII-4.IX.1971 is printed as
+        2 and the OCR had rendered it 1. One bad cell in six regions.
+  B6-08 decision: do not commit any OCR-derived regional value; re-verify every
+        block against the scan
+  B6-09..B6-12 locate the exact page of each Ghana regional block by matching the
+        full-document layout line against per-page layout text, render at 190 dpi,
+        crop the Ghana column using the text-column offset, and montage
+  B6-13 read montage 1 (WER 46/39, 46/40, 46/44)
+  B6-14 read montage 2 (WER 46/49, 47/01 block a, 47/01 block b)
+  B6-15 read montage 3 (WER 47/05, 47/06, 47/12)
+  B6-16 read montage 4 (WER 47/17, 47/23, 47/33, 47/37, 47/48)
+  B6-17 transcribe every value by hand from the scans, including the SECOND
+        period block on each page, which the parser had skipped entirely
+  B6-18 register the 14 WER issues (47/48 already existed as index 147)
+  B6-19 emit and commit the rows
+  B6-20 re-run py/validate_quality.py GHA
+
+Sources found: 14 WER issues with Ghana regional weekly tables
+Registered   : metadata 172-184 (plus reuse of 147)
+Rows added   : 151 -> ./data/GHA/cholera_data_ai.csv indices 306-456
+  Coverage: 22 distinct weekly/period windows between 4 July 1971 and 30
+  September 1972, at REGION level, for Ashanti, Brong-Ahafo, Central, Eastern,
+  Greater Accra, Northern, Volta and Western. Rows with zero cases were not
+  entered; rows where deaths exceeded cases were not entered.
+Successful queries: 14/20
+Yield        : 70%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+METHOD WARNING FOR WHOEVER WORKS THE WER NEXT
+  pdftotext -layout on a WER scan is good enough to FIND a table and to read its
+  headings. It is NOT good enough to read its digits. Measured on this material
+  the per-cell digit error rate was of the order of one cell per page, and the
+  errors are silent: they produce plausible small integers. Every number in this
+  batch was read from a rendered page image. The four blocks that could not be
+  located on a page (WER 1971;46(14), 1972;47(10), 1972;47(15), 1972;47(20))
+  were LEFT OUT rather than committed from OCR; they hold roughly a further 20
+  region-weeks and remain available to a future agent.
+
+=== BATCH 7 | PHASE 3 | GHA ===
+Gap targeted : sub-national resolution 1972-1974 (Central, Western, Greater Accra,
+               Eastern, Volta, Ashanti weekly notifications).
+Queries:
+  B7-01..B7-04 locate the Ghana regional block on a rendered page for WER
+        1972;47(20), 1973;48(04), 48(05), 48(09), 48(17), 48(21), 48(22), 48(37),
+        48(49), 48(51) and 1974;49(01), 49(08), 49(09), 49(12), 49(22), 49(23),
+        49(32) by exact line match against per-page layout text
+  B7-05..B7-09 render at 190 dpi, crop the Ghana column, montage in five groups
+  B7-10 read montage 1 (48/04, 48/05, 48/09, 48/22)
+  B7-11 read montage 2 (48/37, 48/49, 48/51)
+  B7-12 read montage 3 (49/01, 49/08, 49/09)
+  B7-13 read montage 4 (49/12, 49/22, 49/23)
+  B7-14 read montage 5 (49/32, 47/20, 48/07, 48/17, 48/21)
+  B7-15 transcribe every value by hand from the scans
+  B7-16 resolve IRIS handles and WER publication dates for the 17 issues
+  B7-17 register the sources
+  B7-18 emit the rows
+  B7-19 commit
+  B7-20 re-validate
+Sources found: 17 WER issues
+Registered   : metadata 185-201
+Rows added   : 87 -> indices 457-543
+  Coverage: 26 further period windows between 12 November 1972 and 4 May 1974,
+  at region level. The 1973-74 tail of the epidemic is Central and Western
+  Regions almost exclusively, with occasional Greater Accra, Eastern and Volta.
+Successful queries: 14/20
+Yield        : 70%
+Decision     : CONTINUE
+
+=== BATCH 8 | PHASE 3 | GHA ===
+Gap targeted : the 1990-91 epidemic, listed by Agent 2 as surviving "only as
+               place names without numbers".
+Queries:
+  B8-01 dump every Ghana block in WER volume 66 (1991)
+  B8-02 identify four numeric notification entries and two register entries
+  B8-03 CHECK THE TABLE TITLE of WER 1991;66(11), where Ghana appears against
+        the number 1732 -> it is "ACQUIRED IMMUNODEFICIENCY SYNDROME (AIDS) -
+        DATA AS AT 1 MARCH 1991". NOT cholera. Discarded. A country name next to
+        a number inside a WER issue is not a cholera datum.
+  B8-04 sweep WER volume 65 (1990) for any further Ghana cholera counts -> none;
+        65(48) remains the only 1990 figure
+  B8-05..B8-08 render and crop WER 1991;66(29), 66(31), 66(40), 66(48)
+  B8-09 read the montage -> 66/29 and 66/40 verified
+  B8-10 re-crop 66/31 and 66/48 -> both verified
+  B8-11..B8-15 register the five 1991 sources and commit
+Sources found: 5 WER issues
+Registered   : metadata 202-206
+Rows added   : 4 -> indices 544-547
+  1991-01-01..1991-06-30  6493 / 181
+  1991-07-01..1991-07-05   220 / 6
+  1991-08-30..1991-09-19   831 / 41
+  1991-10-11..1991-11-15   792 / 14
+  plus 4 presence rows (Accra District/Greater Accra District, Central, Upper
+  East and Volta Regions on the infected-area register at 27 September 1991)
+Successful queries: 4/20
+Yield        : 20%
+Decision     : CONTINUE
+
+=== BATCH 9 | PHASE 3 | GHA ===
+Gap targeted : 1992-2000 - the whole decade held exactly one JHU annual row per
+               year and nothing finer.
+Queries:
+  B9-01 IRIS: enumerate WER "[full issue]" items for volumes 67-75 (1992-2000)
+        -> 455 issues
+  B9-02 bulk TEXT download all 455
+  B9-03 cholera-section-scoped Ghana grep -> 55 issues
+  B9-04 read the first 28 contexts
+  B9-05 read the remaining 27 contexts
+  B9-06..B9-10 locate and crop the Ghana line on 27 candidate pages
+  B9-11 read montage 1 (67/01-02, 68/38, 69/24, 69/44, 70/03, 70/28, 70/45)
+  B9-12 read montage 2 (71/06, 71/31, 71/35, 71/44, 72/05, 72/08, 72/13)
+  B9-13 read montage 3 (72/45, 73/08, 73/22, 73/33, 73/40, 74/02)
+  B9-14 read montage 4 (74/25, 74/34, 75/08, 75/25, 75/32)
+  B9-15 second verification pass for the four figures above 1000 cases
+        (73/45, 73/47, 74/25, 75/08)
+  B9-16 extract the "Notifications received from ... to <date>" header per issue
+  B9-17 register 22 sources
+  B9-18 emit rows
+  B9-19 commit
+  B9-20 re-validate (exit 0)
+Sources found: 22 WER issues with a Ghana cholera notification
+Registered   : metadata 207-228
+Rows added   : 22 -> indices 548-569
+  1991 : 16.XI-13.XII            425 / 18
+  1993 : 1.V-23.VIII              22 / 2
+  1994 : 1.I-31.V 1341/28 ; 1.IV-30.IX 425/17
+  1995 : 1.III-15.VI 418/7 ; IX-XI 915/16
+  1996 : 11.V-26.VII 395/18 ; 27.VII-26.IX 438/14 ; 27.IX-31.XII 271/1
+  1997 : 1.I-27.II 61/4 ; 1.III-15.IX 259/7 ; 16.IX-31.XII 59/1
+  1998 : 1-30.IV 40/2 ; 8.V-30.VII 83/9 ; 19.IX-1.X 1485/42 ; 2-22.X 1142/28 ;
+         23.X-7.XII 545/15
+  1999 : 1.I-8.V 2985/71 ; 27.VI-10.VII 957/26 ; 25.IX-31.XII 1663/24
+  2000 : 1.I-8.V 705/2 ; 9.V-24.VI 490/6
+Successful queries: 14/20
+Yield        : 70%
+Decision     : CONTINUE
+
+Entries deliberately NOT committed from this batch, and why
+  WER 1995;70(45) "-30.IX" 2347/44, WER 1996;71(31) "...-10.V" 71/0 and
+  WER 1997;72(05) "...-30.X" 443/37 all print an END date with the start given
+  as "..." (data not yet received). Inventing a TL for them would put a
+  fabricated period into the time series, and in the 72(05) case the number is
+  smaller than the sum of the two fully-dated periods it would have to contain.
+  They are recorded here and left out of the CSV.
+  WER 1998;73(40) "18.IX" 131/12 is a single notification DATE, not a period,
+  and was left out for the same reason.
+  WER 1999;74(36) reports 269 cases and 9 deaths in Builsa District, Upper East
+  Region as at 23 August 1999. Index 125 already carries Builsa 1999-07-01..
+  1999-08-23 from another source; this is corroboration, not a new row.
+
+=== BATCH 10 | PHASE 3 (broken-link recovery) | GHA ===
+Gap targeted : sub-national coverage 1998-2013, and the dead domain
+               plateformecholera.info that Agent 2 flagged.
+Queries:
+  B10-01 WebSearch: Ghana 1982 1983 cholera epidemic regional distribution
+  B10-02 WebFetch PMC12585563 (2025 Ghana cholera systematic review) -> no
+        year-by-year table, nothing before 2000
+  B10-03 Internet Archive CDX for plateformecholera.info -> 2975 captures
+  B10-04 recover /attachments/article/326/Ghana.pdf -> web.archive.org truncates
+        the body at exactly 1 MiB and the PDF xref is unreadable; not recoverable
+        by this route
+  B10-05 recover the UNICEF Ghana cholera factsheet PDF (870 KB, under the cap)
+  B10-06 extract its Table I (regional totals 1998-2013) and Figure 1 caption
+  B10-07 register the source; commit nine regional rows
+  B10-08 RETRACT all nine, one step later - see below
+  B10-09 extract the complete Ghana infected-area register chronology 1992-2000
+        from the 455 WER issues of volumes 67-75 -> 69 entries
+  B10-10 second, stricter sweep of those 455 issues for Ghana cholera COUNTS
+        missed by the first pass -> one new entry, WER 1999;74(26)
+  B10-11 locate, render and read WER 1999;74(26) p.8
+  B10-12 register it and commit the row
+Rows added   : 1 -> index 590 (Ghana 1-21.VI.1999, 55 cases, 3 deaths)
+               9 added and then retracted (indices 581-589)
+Successful queries: 2/20
+Yield        : 10%
+Decision     : CONTINUE
+
+WHY NINE SOURCED ROWS WERE WITHDRAWN AFTER BEING ADDED
+UNICEF/Plateforme Cholera Table I gives, for 1998-2013 cumulatively:
+    Greater Accra 27 953 / 120   (53.4% of cases, 8 outbreaks, mean 65 weeks)
+    Ashanti        5 146 /  99   ( 9.8%, 10 outbreaks, 12 weeks)
+    Central        5 032 /   0   ( 9.6%,  9 outbreaks, 35 weeks)
+    Eastern        4 194 /   8   ( 8.0%,  9 outbreaks, 26 weeks)
+    Upper East     3 688 /   5   ( 7.0%,  5 outbreaks,  8 weeks)
+    Volta          2 703 /   9   ( 5.2%, 13 outbreaks, 15 weeks)
+    Western        1 702 /   6   ( 3.2%, 10 outbreaks, 16 weeks)
+    Brong-Ahafo      997 /  13   ( 1.9%,  6 outbreaks, 11 weeks)
+    Northern         954 /   3   ( 1.8%,  8 outbreaks,  8 weeks)
+    Total 52 369 cases / 263 deaths; "Missing data for 2003, 2006, 2008 and 2009".
+    National narrative: "Between 1998 and 2013, epidemiological surveillance
+    reported 55 784 cases with 1 095 fatalities (CFR approx. 2%)".
+They are real and sourced, but each row would span 192 months, so
+py/analyze_effective_gaps.py would credit sixteen years of regional coverage to
+a single descriptive figure, and py/build_weekly_timeseries.py cannot read the
+caveat in processing_notes. The printed death column is also not credible
+(Central Region 5032 cases, 0 deaths). They are recorded here instead, and the
+tombstones with this reasoning are in ./data/GHA/retracted_rows_ai.csv.
+
+GHANA ON THE WHO INFECTED-AREA REGISTER, 1992-2000 (presence, no counts)
+  1992 Accra Region (Accra District, Greater Accra District), Central, Upper
+       East, Volta - varying month to month
+  1993 Volta (Jun); Accra (Jul, Aug); Accra + Ashanti + Central + Upper East +
+       Volta (Oct)
+  1994 the register churns actively: Upper West alone in February, then Accra,
+       Ashanti, Central, Eastern, Volta and Western together in April, May, July
+       and October
+  1995 Eastern + Volta (Apr); Upper West (May, Jun); Central + Eastern + Volta +
+       Western (Jun); all seven plus Accra (Jul); Accra alone (Aug, Sep, Dec)
+  Apr 1996 onward the listing FREEZES at eight units - Accra Region with Accra
+       District and Greater Accra District, Ashanti, Central, Eastern, Upper
+       East and Volta - and is reprinted unchanged in every monthly register
+       examined through 24 August 2000. That is the same staleness signature as
+       1986-1989 and it means the post-1996 register carries no information
+       about where transmission actually was. No presence rows were created from
+       it; the WER count series for those years is better evidence and is in the
+       CSV.
+
+=== BATCH 11 | PHASE 3 (grey literature, citation chains) | GHA ===
+Gap targeted : 1970-1999 outside the WER - Ghanaian journals, theses, ProMED,
+               institutional archives.
+Queries:
+  B11-01 WebSearch: "Ghana Medical Journal" cholera 1971 1972 Accra El Tor
+  B11-02 PubMed (MCP) : cholera AND Ghana, publication date 1970-1995
+        -> SIX papers exist in the whole 26-year window and NOT ONE contains a
+        case count. Songsore & Goldstein 1995 (Accra HEADLAMP feasibility);
+        Nakano et al. 1990 (Noguchi, enteropathogens, V. cholerae NOT isolated);
+        Bosompra 1989 (health information); Minami & Yokota 1973 (pre-epidemic
+        cholera immunity); Salles, Tribedi & Marbell 1972 (cholera agglutinins,
+        doi unavailable); Wurapa 1971, Ghana Medical Journal 10(1):1-2,
+        "The challenge of the cholera epidemic to West Africa" - a two-page
+        editorial. Attribution: retrieved from PubMed.
+  B11-03 WebSearch restricted to promedmail.org / reliefweb.int for Ghana
+        cholera 1996-1999 -> the September 1999 northern outbreak figures
+        (Builsa 1220 cases / 27 deaths and Kassena Nankana 81 / 8 as at
+        12 September 1999) are already in the file as indices 32 and 33.
+        Independent corroboration, no new row.
+  B11-04 Internet Archive: WHO Ghana country-office Situation Report on Cholera,
+        2 November 2016 -> recovered and extracted
+  B11-05 register it and commit the interim cumulative
+Rows added   : 1 -> index 591 (Cape Coast Metropolis, cumulative 172 cases /
+               0 deaths as at 2 November 2016)
+Successful queries: 1/20
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Decision     : CONTINUE to the final batch
+
+FINDING WORTH RECORDING AS A NEGATIVE: the indexed biomedical literature on
+Ghanaian cholera between 1970 and 1995 contains no case counts at all. Six
+PubMed records, none quantitative. Everything numeric this agent found for
+1970-2000 came from the WER. Ashitey, G. A. (1994) "An Epidemiology of disease
+control in Ghana 1901-1990" (Ghana Universities Press), cited by the 2021
+University of Ghana thesis, is the one promising source that is not online and
+would have to be obtained physically.
+
+=== BATCH 12 | PHASE 3 (close out) | GHA ===
+Gap targeted : the three 1971-72 regional blocks batch 6 had to leave out because
+               the page could not be located automatically.
+Queries:
+  B12-01 new page locator: scan every page of WER 1971;46(14), 1972;47(10) and
+        1972;47(15) for a GHANA token whose next eight lines contain at least two
+        Ghanaian region names and at least two digits
+  B12-02..B12-04 render, crop, montage
+  B12-05 read the montage and transcribe
+  B12-06..B12-08 register the three sources
+  B12-09 commit
+  B12-10 final py/validate_quality.py GHA
+Sources found: 3
+Registered   : metadata 232-234
+Rows added   : 22 -> indices 592-613
+  1971-02-07..1971-02-13 : Ashanti 5/1, Western 89/4
+  1972-01-02..1972-01-29 : four weeks x Ashanti, Central, Eastern, plus
+                           Greater Accra, Volta and Western in the last two
+  1972-02-20..1972-03-04 : two weeks x Ashanti, Central, Eastern, Western
+Successful queries: 5/20
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Decision     : STOP - twelve batches executed, the protocol ceiling.
+
+================================================================================
+AGENT 4 CLOSING SUMMARY - GHANA
+================================================================================
+Batches   : 12 (the ceiling). Yields, in percent, batch 1 to 12:
+            0, 60, 45, 0, 30, 70, 70, 20, 70, 10, 5, 25
+            The 3-consecutive-batches-below-5% condition was never met.
+Rows      : ./data/GHA/cholera_data_ai.csv went from 193 to 592 rows.
+            399 rows added, 10 rows retracted (1 falsified zero, 9 withdrawn by
+            this agent as unsafe multi-year aggregates).
+Presence  : ./data/GHA/cholera_presence_ai.csv went from 2 to 26 rows.
+Sources   : ./data/GHA/metadata_ai.csv went from 107 to 234 entries.
+            6 of those (152-157) are marked Superseded - see the batch 4
+            citation-integrity note.
+Validation: python py/validate_quality.py GHA -> ERROR 0, WARN 29, exit 0.
+
+WHERE THE 399 ROWS LANDED (by TL year)
+  1970 19 | 1971 114 | 1972 84 | 1973 42 | 1974 39 | 1975 15 | 1977 10 |
+  1978 25 | 1979 1 | 1980 2 | 1981 1 | 1982 7 | 1983 1 | 1984 2 | 1985 1 |
+  1990 1 | 1991 5 | 1993 1 | 1994 2 | 1995 2 | 1996 3 | 1997 4 | 1998 5 |
+  1999 9 | 2000 2 | 2016 1 | 2017 3 | 2018 3 | 2019 1
+  398 of the 592 rows in the file now have a TL before 2000. Before this agent
+  ran, the AI layer had FOUR: three 1987-89 annual zeros and one 1999 national
+  row, plus three 1999 Upper East district rows and one 1997-2001 Ashanti
+  aggregate. Ghana's pre-2000 AI coverage was eight rows; it is now 398.
+
+WHAT REMAINS GENUINELY UNOBTAINABLE
+  * 1986-1989 case counts. The WER carries none - not one Ghanaian cholera
+    figure appears in volumes 61 to 64. PubMed carries none. Ghana's own MoH
+    annual reports for those years are not digitised. Ashitey, G. A. (1994)
+    "An Epidemiology of disease control in Ghana 1901-1990", Ghana Universities
+    Press, is the one source likely to settle it and is print-only.
+  * 1976 entirely: no Ghanaian entry survives in WER volume 51 that can be
+    dated with confidence (the period strings are not decodable).
+  * 1992: no Ghanaian cholera notification appears in WER volume 67 after
+    issue 1-2 (which reports November-December 1991).
+  * Sub-national detail for 1977-1990. Ghana reported to WHO at NATIONAL level
+    only from 1975 onward; the region-by-region table stops after WER
+    1974;49(32). Every Ghanaian figure from 1975 to 2000 in this file is
+    national, with five district exceptions (Lawra, Kpandu, Berekum, Sunyani,
+    Builsa) that the WER named individually.
+  * 1998-2013 regional splits exist (UNICEF Table I) but only as 16-year
+    cumulative totals, which cannot safely be entered as rows.
+
+ADVICE TO THE NEXT AGENT WORKING THE WER
+  1. Enumerate "[full issue]" items through the IRIS DSpace API, not articles.
+  2. Use the OCR TEXT bundle to FIND pages. Never to read digits.
+  3. Read digits off a rendered page at 190 dpi or better.
+  4. Check the table title before believing a country-plus-number pair. WER
+     1991;66(11) puts Ghana next to 1732 and it is an AIDS table.
+  5. Never infer an IRIS handle from numeric adjacency. Look it up.
+
+APPENDIX: SUPERSEDED 2026-05-14 LOG
+The previous Agent 4 run for Ghana is reproduced verbatim below. It executed
+30 queries in 2 batches, added 0 rows, and concluded "Discovery saturation
+reached for obscure sources". It recorded "1986-1989 gap confirmed as reporting
+gap in WHO records", which this run confirms, and "CDC/MMWR regional reports
+didn't disaggregate by country in 1980s", which this run did not re-test.
+--------------------------------------------------------------------------------
 === AGENT 4 INITIALIZATION ===
 Country: Ghana (GHA)
 Start Time: 2026-05-14
@@ -61,3 +815,5 @@ metadata_ai.csv: 23 sources (no new sources added)
 Discovery saturation reached for obscure sources
 
 End Time: 2026-05-14
+--------------------------------------------------------------------------------
+END OF AGENT 4 LOG

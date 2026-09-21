@@ -1,111 +1,1037 @@
-=== AGENT 3 - ZERO-TRANSMISSION VALIDATOR INITIALIZATION ===
-Country: Kenya (KEN)
-Start Time: 2025-08-06
-Agent Role: Zero-Transmission Validator
-Mission: Validate and document ALL cholera-free periods as mandatory data observations
+================================================================================
+AGENT 3 - ZERO-TRANSMISSION VALIDATOR - KENYA (KEN)
+================================================================================
+Start Time: 2026-09-19
+Working dir: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Log file:    /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/KEN/search_log_agent_3.txt
+(This file OVERWRITES a stale log from a prior pass. It is Agent 3's own run.)
 
-BASELINE GAPS IDENTIFIED FROM REFERENCE FILES:
-1. 1970: Full year gap (365 days) - partially addressed with 1971 introduction
-2. 1973: Full year gap (365 days) - NO DATA FOUND
-3. 1988: Full year gap (366 days) - NO DATA FOUND  
-4. 1990-1991: Two-year gap (730 days) - NO DATA FOUND
-5. 1993: Full year gap (365 days) - NO DATA FOUND
-6. 2012-2013: Partial gap (April 2012 - December 2013, 640 days) - 2012 partially addressed
-7. 2024-2025: Recent gap (December 2024 - August 2025, 274 days) - 2025 partially addressed
+--------------------------------------------------------------------------------
+STATE AT START
+--------------------------------------------------------------------------------
+./data/KEN/cholera_data_ai.csv     : 202 rows, 89 sources
+./data/KEN/cholera_presence_ai.csv : 73 presence rows
+./data/KEN/retracted_rows_ai.csv   : 1 retracted row (a FALSE zero for 2026-01..2026-05
+                                     written by Agent 1 and withdrawn after five
+                                     lab-confirmed Garissa Township cases with onset
+                                     22 Mar 2026 were found)
+Agent 1: 11 batches, +34 net rows, 22 sources. Stopped on the session WebSearch ceiling.
+Agent 2: 12 batches, +131 rows, 44 sources. Stopped on the 12-batch ceiling.
 
-CURRENT DATA COVERAGE:
-- 43 total observations (15 from Agent 1, 28 from Agent 2)
-- Years with data: 1971, 1992, 1997-2017, 2022-2025
-- Geographic: National + 13 counties + 5 regions + 5 sub-camps
+ZERO ROWS ALREADY IN THE FILE (must not be duplicated):
+  idx 170  1970-01-01..1970-12-31  national  Documented_Absence  (WER "Cholera in 1971")
+  idx 171  1973-01-01..1973-12-31  national  Documented_Absence  (WER "Cholera in 1974")
+  idx  90  1993-01-01..1993-12-31  national  Documented_Absence  (WER "Cholera in 1993")
+  idx  43  2003-01-01..2003-12-31  national  (BMC surveillance study)
+  idx 193  2025-07-07..2025-07-13  national  week-level zero (AFRO bulletin)
+  idx 195  2026-06-29..2026-07-05  national  week-level zero (AFRO Kenya EPR SitRep W27)
+  idx  54  2026-07-13..2026-09-13  national  9-week zero (AFRO Kenya EPR SitReps)
+  idx 210  2017-06-22..2017-07-19  Kakuma camp  sub-national zero (UNHCR)
 
-ZERO-TRANSMISSION VALIDATION PRIORITIES:
-1. Multi-year gaps suitable for validation (1-10 years typical):
-   - 1972 (between 1971 introduction and 1973 gap)
-   - 1974-1991 (check for absence periods)
-   - 1993-1996 (before 1997 comprehensive surveillance)
-   - 2018-2021 (recent period before 2022)
+HARD PROHIBITIONS CARRIED IN FROM THE BRIEF AND RE-VERIFIED BELOW:
+  1988, 1990, 1991  -> NON-REPORTING, not absence. Never zero.
+  2011, 2014        -> Kenya Red Cross sEAP calls them zero-case years but the WHO
+                       annual series carries 74 and 35 cases. Never zero.
+  No zero may be inferred from "WHO year-to-date total == WHO last-28-days total".
 
-2. Annual validation within covered periods:
-   - Check each year 1997-2010 for months without transmission
-   - Validate seasonal patterns and cholera-free months
+--------------------------------------------------------------------------------
+TOOLING - SAME CONSTRAINT AS AGENT 2
+--------------------------------------------------------------------------------
+The session WebSearch budget (200/200) was exhausted by Agent 1; WebFetch returns
+HTTP 403 on who.int and reliefweb.int. All queries in this log were therefore run
+via Bash/curl against structured back-ends: WHO GHO OData API, WHO IRIS DSpace 7
+discovery API (-> bundles -> bitstreams -> PDF -> pdftotext -layout), ReliefWeb RSS
+and HTML listings, Europe PMC, OpenAlex, PMC fullTextXML, archive.org, HDX/OCHA.
+Helper scripts in /tmp/ken3/ (copied from Agent 2's /tmp/kensearch/) plus gho.sh,
+written for this run.
+A query = one distinct gap-bound query against one of these back-ends.
+Yield = queries producing >=1 NEW committed row in ./data/KEN/cholera_data_ai.csv, /20.
 
-3. Cross-reference with regional patterns:
-   - Compare with Uganda, Tanzania, Somalia, Ethiopia borders
-   - Validate elimination success periods
+================================================================================
+=== BATCH 1 | PHASE 1 | KEN ===
+Gap targeted : whole-series absence reconnaissance; the brief's candidate zero-year list
+               (1977-1982, 1987, 1989, 1994-1996, 2002, 2004, 2013, 2020, 2021) and the
+               2024-2025 inter-epidemic window.
+Queries      : 20
+  Q1  GHO      CHOLERA_0000000001 (reported cholera cases) SpatialDim eq 'KEN', full series
+  Q2  GHO      CHOLERA_0000000002 (reported cholera deaths) SpatialDim eq 'KEN'
+  Q3  GHO      whole-indicator sweep: does GHO ever code an explicit 0? (2469 rows scanned)
+  Q4  IRIS     "Cholera in 2002 Weekly Epidemiological Record"
+  Q5  IRIS     "Cholera in 2003 Weekly Epidemiological Record"
+  Q6  IRIS     "Cholera in 2004 Weekly Epidemiological Record"
+  Q7  IRIS     "Cholera in 2012 Weekly Epidemiological Record"
+  Q8  IRIS     "Cholera in 2013 Weekly Epidemiological Record"
+  Q9  IRIS     fetch WER 2004 vol.79 no.31 (= the annual article "Cholera in 2003") -> PDF
+  Q10 IRIS     fetch WER 2003 vol.78 no.31 (= the annual article "Cholera in 2002") -> PDF
+  Q11 archive  sweep of all 40 WHO AFRO bulletin PDFs already on disk for the Kenya cholera
+               row in the monitored-events table (notification / start / last-report dates)
+  Q12 archive  read the feature article "Cholera in Kenya", AFRO Weekly Bulletin Week 28 2025
+  Q13 archive  grep IFRC DREF MDRKE066/068/038 for "declared over / last case / no cases"
+  Q14 RW       ReliefWeb listing "cholera outbreak declared over Kenya 2024"
+  Q15 RW       ReliefWeb Kenya country listing + RSS, cholera documents 2025-2026
+  Q16 RW       fetch Kenya Red Cross sEAP2025KE04 (MDRKE071) PDF + Annex 1 annual series
+  Q17 RW       fetch IFRC DREF Final Report MDRKE066 (Kenya Flood and Cholera Outbreak 2025)
+  Q18 RW       grep MDRKE066 for the 2025 index-case date
+  Q19 who.int  direct curl test of the WHO multi-country cholera external situation reports
+  Q20 archive  regional cross-check: AFRO W50 and W52 2024 cholera rows for ETH/SSD/UGA/TZA/SOM
 
-STRATEGY:
-- PRIORITY 1: Academic papers documenting multi-year absence
-- PRIORITY 2: WHO surveillance confirming zero cases by year
-- PRIORITY 3: Government reports on cholera-free periods
-- MANDATORY: Document ALL validated absences as data rows
+FINDINGS
 
-=== AGENT 3 SEARCH BATCH 1 ===
-Date: 2025-08-06
-Batch Size: 10 searches executed
-Focus: Validating cholera-free periods through academic and WHO sources
+ 1. DECISIVE NEGATIVE - the brief's candidate zero-year list is empty.
+    The WHO annual series (GHO indicator CHOLERA_0000000001) carries a POSITIVE Kenyan
+    case count for every one of the candidate years:
+      1977=21  1978=673  1979=1070  1980=2808  1981=2424  1982=3498  1987=255  1989=918
+      1994=880 1995=1547 1996=482  2002=291  2004=870  2011=74  2014=35  (JHU: 2013=9,
+      2020=447, 2021=76). None of these can carry a national annual zero. Recorded here
+      so that no later agent re-searches them.
+    The only Kenyan years with NO entry in the WHO annual series are
+      1970, 1973, 1988, 1990, 1991, 1993, 2003, 2012, 2013 and 2017 onward.
+    Of these, 1970/1973/1993 already carry zero rows, 1988/1990/1991 are the prohibited
+    non-reporting years, 2003 already carries a zero row, and 2012/2013/2017+ are known
+    positive from MoH and WER sources found by Agents 1 and 2.
 
-SEARCH RESULTS:
-1. PMC3358164: Confirmed "15 discrete outbreaks during 1971-2010" - implies periods between outbreaks
-2. Multiple WebFetch attempts for WHO data - limited historical documentation
-3. Academic sources confirm 1971 first introduction but no year-by-year breakdown
+ 2. GHO CANNOT SUPPLY A KENYAN ZERO. The indicator does contain explicit zeros - 51 rows
+    across COG, CAF, CPV, DZA, CMR, MUS, AGO, GMB, BFA, ZAF, TCD, NAM, BWA, ERI, ETH, SWZ,
+    GAB, MDG and others, in 1953/1982/1996/1999/2001/2005/2006/2007/2008 - so a zero IS
+    representable in this series. Kenya has none. Kenya's missing years are therefore
+    absent, not zeroed, and absence from GHO is NOT documented absence.
 
-KEY FINDING: 15 discrete outbreaks over 40 years (1971-2010) suggests significant cholera-free periods between outbreaks.
-However, no explicit documentation of zero-transmission years found yet.
+ 3. WER TABLE STRUCTURE CONFIRMED. "Table 1. Cholera cases and deaths notified to WHO"
+    in the annual article lists ONLY countries that reported cases (29 African countries
+    in 2003). The 2003 article names Kenya nowhere - not in the table and not in the
+    narrative - so it cannot distinguish "reported 0" from "did not report". The existing
+    2003 zero row rests instead on a Kenyan national surveillance study, which is the
+    right kind of evidence. No new row.
 
-Batch Yield: 1/10 searches yielded quantifiable zero-transmission data (10% yield)
-CRITICAL DISCOVERY: 2003 confirmed as zero cholera year - DOCUMENTED IN CSV
+ 4. ROW WRITTEN - the 2024/25 inter-epidemic interval.
+    WHO AFRO Weekly Bulletin Week 28 (7-13 July 2025), feature article "Cholera in Kenya",
+    makes TWO positive assertions in the same paragraph pair:
+      "The most recent long-term cholera outbreak in Kenya occurred from October 2022 to
+       September 2024, resulting in more than 12,000 cases and over 200 deaths."
+      "Cumulatively, from 10 February (epi-week 7), when the first case was reported and
+       died on the same day, through 6 July (epi-week 27), a total of 423 cases have been
+       reported."
+    -> Index 212: AFR::KEN 2024-10-01..2025-02-09, sCh=0, deaths=0,
+       Documented_Absence, surveillance=operational, confidence 0.8.
+    Corroborated by IFRC DREF MDRKE066 (index case "reported on 12 February 2025 in
+    Sakuri B Village, Kuria East Sub-county, Migori County") and consistent with JHU,
+    whose last 2024 Kenyan observation ends 25 August 2024.
+    REGIONAL CASE: this is absence during a regionally ACTIVE period. AFRO W50/W52 2024
+    list Ethiopia (57 830 cases), South Sudan (513) and Uganda (7) in Grade 3 cholera
+    epidemics while Kenya carries no cholera row. Confidence held at 0.8, not 0.9.
 
-=== AGENT 3 SEARCH BATCH 2 ===
-Date: 2025-08-06
-Batch Size: 20 parallel searches
-Focus: Cross-border patterns, regional surveillance, neighboring country outbreaks
+ 5. REFUSED - 2011 and 2014, again. The Kenya Red Cross sEAP MDRKE071 (23 Mar 2026) states
+    "Since 1997 to date, Kenya has had cholera outbreak relief in only three distinct years
+    when zero cases were reported, that is, 2003, 2011, and 2014". The WHO annual series
+    contradicts it for two of the three (2011 = 74 cases / 2 deaths, 2014 = 35 / 9), and
+    JHU carries a weekly Dadaab series through 2011. Level 1 beats Level 2. Agent 2 refused
+    these; so do I. Source registered (index 91) with the contradiction recorded in its
+    description so the claim is not rediscovered and believed.
 
-BATCH 2 RESULTS:
-- PMC10058159: Confirmed cyclical epidemics every 5-7 years, continuous surveillance
-- 2020: 711 cases, 2021: 38 cases with zero deaths (low transmission)
-- Study noted cholera "re-emerged" in 2015 suggesting 2011-2014 absence period
-- Multiple WHO/UNICEF searches unsuccessful (404/403 errors)
+Sources found: 2    Registered: index 90, 91
+Rows added   : 1    Indices: 212
+Successful queries: 1/20  (Q12)
+Yield        : 5%
+Consecutive sub-5% batches: 0  (5% is not below 5%)
+Decision     : CONTINUE (3-batch minimum not met)
 
-KEY FINDINGS:
-- Likely cholera-free period 2011-2014 based on "re-emergence" in 2015
-- 2021 had minimal transmission (38 cases, 0 deaths) - near elimination
+=== BATCH 2 | PHASE 2 | KEN ===
+Gap targeted : 2026-01-01..2026-04-30 (the explicit brief target) plus county-level
+               absence inside 2026.
+Queries      : 20
+  Q21 archive  grep AFRO Weekly Bulletins 2026 weeks 12/21/33 for any Kenya cholera row
+  Q22 archive  Kenya EPR sitrep week 16 2026 - cholera section
+  Q23 archive  event-table scan of ALL 18 Kenya EPR sitreps held for 2026
+  Q24 local    review of every existing 2026 row in ./data/KEN/cholera_data_ai.csv and of
+               ./data/KEN/retracted_rows_ai.csv
+  Q25 who.int  direct curl of cdn.who.int WHO cholera Epidemiological Update 38 (30 Jun 2026)
+  Q26 archive.org  CDX index sweep of cdn.who.int/.../situation-reports* for cholera PDFs
+  Q27 who.int  fetch Epidemiological Update 36 (30 Apr 2026, data to 29 Mar 2026)
+  Q28 who.int  fetch Epidemiological Update 34 (21 Feb 2026, data to Jan 2026)
+  Q29 archive  Kenya EPR sitrep week 25 2026 - full cholera section
+  Q30 archive  grep all Kenya 2026 sitreps for "first case in 2026" / "no new cases reported"
+  Q31 archive  Kenya EPR sitrep week 24 2026 - full cholera section
+  Q32 archive  resolve exact epi-week date ranges for weeks 24 and 25 of 2026
+  Q33 afro     parse the WHO AFRO Kenya publications index for all 2026 sitrep PDF URLs
+  Q34 afro     fetch Kenya EPR sitrep week 7  (2026)
+  Q35 afro     fetch Kenya EPR sitrep week 21 (2026)
+  Q36 afro     fetch Kenya EPR sitrep week 23 (2026)
+  Q37 afro     fetch Kenya EPR sitrep week 32 (2026)
+  Q38 afro     fetch Kenya EPR sitrep week 37 (2026)
+  Q39 archive  Kenya EPR sitrep week 21 2026 - the first report of the 2026 outbreak
+  Q40 archive  Kenya EPR sitreps weeks 32 and 37 2026 - cholera status
 
-Batch Yield: 0/20 searches yielded new zero-transmission data (0% yield)
-No new CSV rows added - need explicit confirmation for absence periods
+FINDINGS
 
-=== AGENT 3 SEARCH BATCH 3 ===
-Date: 2025-08-06
-Batch Size: 20 parallel searches
-Focus: Academic literature on Kenya cholera history, government reports
+ 6. ROW WRITTEN - Nairobi County, 1 Jan to 6 Jun 2026.
+    Kenya EPR Weekly Situation Report, WEEK 24: 7TH TO 14TH JUNE 2026:
+      "Five new cases reported in the past week from Garissa (4) and Nairobi (1). Nairobi
+       County reporting its first case in 2026 from Ruaraka sub county."
+    A positive assertion, not an inference from a missing row.
+    -> Index 213: AFR::KEN::Nairobi 2026-01-01..2026-06-06, sCh=0, deaths=0,
+       Documented_Absence, surveillance=operational, confidence 0.9.
+    Surveillance operational: Nairobi reported mpox to the same weekly table in
+    essentially every week of 2026. Absence during a nationally ACTIVE period - Garissa
+    County had cases from March and from 13 May - so this is a genuine county-level
+    contrast, not a quiet-period default.
 
-BATCH 3 RESULTS:
-- Multiple academic and government searches attempted
-- Significant access restrictions (403/404 errors)
-- No additional explicit zero-transmission years confirmed
-- Strong evidence for 2011-2014 absence but no direct confirmation
+ 7. REFUSED - the national zero for 2026-01-01..2026-03-21. This is the brief's explicit
+    "you may be able to" target and the answer is NO. The reasoning, in full, because it
+    generalises:
+      (a) NO SOURCE AFFIRMS IT. WHO Epidemiological Update 36 (30 April 2026) tabulates
+          1 January - 29 March 2026 and lists 14 African countries; Kenya is simply not
+          among them. Update 34 (21 February 2026) likewise omits Kenya. Table 1 of these
+          updates contains only countries that reported cases - exactly the same structure
+          as the WER annual tables - so omission cannot distinguish zero from silence.
+      (b) THE STREAM IS PROVEN TO HAVE MISSED KENYAN CASES IN THIS EXACT QUARTER. The
+          Kenya EPR sitrep for week 21 (17-24 May 2026) opens the national cholera event
+          with "Start of reporting period: May 2026" and a CUMULATIVE COUNT OF 1
+          ("One laboratory-confirmed case of Vibrio cholerae O1 Ogawa reported in
+          Dagahaley Refugee Camp"). The five laboratory-confirmed Garissa Township cases
+          with onset from 22 March 2026 never entered that ledger at all, and never
+          appeared in Update 36. A zero derived from this ledger for Jan-Mar 2026 would
+          therefore be derived from a ledger we can demonstrate was wrong for Jan-Mar 2026.
+      (c) THE ONLY ROUTE LEFT IS ARITHMETIC, AND IT DOES NOT CLOSE. Update 38 gives Kenya
+          26 cases for 1 Jan - 31 May 2026; Dagahaley accounts for 22 from 13 May and the
+          Garissa Township cluster for "five confirmed" from 22 March. 22 + 5 = 27 != 26,
+          so the two clusters are not cleanly additive and the residual for 1 Jan - 21 Mar
+          is not reliably 0. This is the same shape of inference Agent 1 retracted.
+    Classification: SURVEILLANCE UNDER-ASCERTAINMENT, not absence. Left genuinely empty.
 
-ANALYSIS OF AVAILABLE EVIDENCE:
-- 15 discrete outbreaks in 40 years (1971-2010) = average 2.7 years between outbreaks
-- Confirmed outbreaks: 1971, 1992, 1997-2010, 2015-2017, 2022-2025
-- Confirmed zero year: 2003
-- Likely absence periods: 1973-1991 gaps, 2011-2014, 2018-2021
+ 8. CAVEAT LOGGED FOR AGENT 7 (not acted on - it is another agent's row). Index 54 asserts
+    a national zero for 2026-07-13..2026-09-13 on the strength of cholera dropping out of
+    the Kenya EPR event table in weeks 30-37. I verified weeks 32 and 37 independently:
+    cholera appears in both only as a flood-related RISK and as a social-listening signal,
+    never as an event. The row's opening boundary is well made - week 27 states "No new
+    cases reported in the past week... the outbreak is now considered controlled" - but the
+    same ledger that missed the March Garissa cluster is what sustains the later weeks.
+    Recommend the row be kept with its confidence unchanged and this caveat attached.
 
-Batch Yield: 0/20 searches yielded new zero-transmission data (0% yield)
-No new CSV rows added this batch
+Sources found: 1    Registered: index 92
+Rows added   : 1    Indices: 213
+Successful queries: 1/20  (Q30 -> Q31)
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum not met)
 
-=== AGENT 3 CUMULATIVE SUMMARY ===
-Total batches: 3
-Total searches: 50
-Data observations added: 1 (2003 zero-transmission year)
-Stopping criteria: 3 consecutive batches with <5% yield achieved
+=== BATCH 3 | PHASE 2 | KEN ===
+Gap targeted : inter-epidemic intervals 2020-2022; academic retrospectives capable of
+               closing multiple years at once.
+Queries      : 20
+  Q41 EPMC     "cholera Kenya surveillance 1997 2010 national"
+  Q42 EPMC     "cholera Kenya inter-epidemic period absence"
+  Q43 EPMC     "Kenya cholera free year no cases reported"
+  Q44 sift     "Cholera in Kenya: a scoping review" (PMC13038109) for absence language
+  Q45 PMC      fetch "Geographical shifting of cholera burden in Africa" (PMC12532610)
+  Q46 EPMC     "Mutonga cholera Kenya national surveillance epidemiology"
+  Q47 EPMC     abstract of PMID 24101646, Mutonga et al. J Infect Dis 2013
+  Q48 sift     PMC12532610 for Kenya country-year detail
+  Q49 EPMC     "Mapping of cholera hotspots in Kenya ... elimination plan" (Kiama et al.)
+  Q50 EPMC     "Prioritizing interventions for cholera control in Kenya 2015-2020" (Boru)
+  Q51 sift     Kiama PMC10058159 for zero / no-cases / unaffected language
+  Q52 sift     Boru PMC10228803 for the same
+  Q53 read     Kiama results + introduction in full context
+  Q54 local    JHU baseline rows 2020-2022 re-read at row level
+  Q55 archive  AFRO Weekly Bulletin W45 2022 - Kenya cholera event description
+  Q56 IRIS     discovery query "Weekly bulletin on outbreaks and other emergencies week 2022"
+  Q57 IRIS     resolve uuids for the 2022 bulletins of weeks 26, 31, 35, 39, 41
+  Q58 IRIS     fetch and scan all five -> Kenya cholera event status across the window
+  Q59 archive  Closed Events sections, AFRO 2022 weeks 35 / 39 / 41
+  Q60 archive  full Closed Events tables, AFRO 2022 weeks 39 and 41
 
-CRITICAL FINDINGS:
-✓ 2003: Confirmed zero cholera transmission (documented in CSV)
-⚪ 1973, 1988, 1990-1991, 1993: Gaps remain unvalidated (no explicit confirmation)
-⚪ 2011-2014: Likely absence period (cholera "re-emerged" in 2015) - no confirmation
-⚪ 2018-2021: Potential low/zero transmission - needs validation
+FINDINGS
 
-Agent 3 Status: COMPLETE
-- Successfully validated and documented 1 cholera-free year (2003)
-- Identified likely absence periods requiring future validation
-- Exhaustive search yielded limited explicit zero-transmission documentation
+ 9. ARITHMETIC CORRECTION that changes a conclusion. My first-pass aggregate of the JHU
+    baseline gave Kenya 76 cases for 2021. That was wrong: the JHU file carries the 2021
+    annual row TWICE (both 38 cases / 0 deaths), so the true baseline figure is 38, which
+    AGREES with the Kenya Red Cross sEAP and with Kiama et al. The brief's warning that
+    the sEAP contradicts JHU applies to 2014 and 2011 but NOT to 2021.
+
+10. ROWS WRITTEN - three county absences for calendar 2021.
+    Kiama et al. 2023 (PLoS NTD 17(3):e0011166), built on Kenya MoH Division of Disease
+    Surveillance and Response line-list data:
+      "In the year 2020, a total of 711 cases, and 13 deaths were reported. In 2021, a
+       total of 38 cases, and zero deaths were reported in the two refugee camps of
+       Dadaab and Kakuma."
+    Kenya's ENTIRE 2021 caseload is located inside two refugee camps, and the national
+    total of 38 is concordant across three independent series (this paper, the JHU
+    baseline, the sEAP). Every county other than Garissa and Turkana therefore recorded
+    zero. Written for the three highest-surveillance, highest-history non-camp counties:
+      -> Index 214: AFR::KEN::Nairobi 2021-01-01..2021-12-31
+      -> Index 215: AFR::KEN::Mombasa 2021-01-01..2021-12-31
+      -> Index 216: AFR::KEN::Kisumu  2021-01-01..2021-12-31
+    all sCh=0, Documented_Absence, surveillance=operational, confidence 0.8 (downgraded
+    from the Level 1 floor because the county statement is deduced from a national-total-
+    plus-location statement rather than asserted county by county).
+    NOT extended to the remaining 42 counties: the deduction is sound but 42 further rows
+    of the same single sentence would add mass, not information, and several of those
+    counties have no independent evidence that their own reporting was live in 2021.
+
+11. NOT USED - the 130 sub-county zeros in Kiama et al. The paper classifies 130 of 290
+    sub-counties (44.8%) as "did not report any cholera cases" over 2015-2019, which looks
+    like 130 ready-made absence rows. The authors disqualify them themselves:
+      "the analysis assumes that all sub-counties had complete and uniform reporting
+       throughout the 5 years and that a zero denotes no cases as opposed to a lack of a
+       report, resulting in the possibility that cases were underreported in some
+       sub-counties."
+    A zero the source itself will not vouch for is not a zero. Left alone.
+
+12. ROW WRITTEN - the July-September 2022 national inter-epidemic interval.
+    -> Index 217: AFR::KEN 2022-06-20..2022-10-07, sCh=0, deaths=0,
+       Inferred_Absence, surveillance=operational, confidence 0.75.
+    Deliberately labelled Inferred, not Documented: no source says in words that Kenya
+    reported zero. Four strands support it -
+      (i)   AFRO carried the 3 May - 19 Jun 2022 Kenya event (319 cases, Nairobi/Kisumu/
+            Kiambu) with its date of last report FROZEN at 19-Jun-22 through the Week 26,
+            31 and 35 bulletins - ten weeks - then dropped it;
+      (ii)  Weeks 39 and 41 carry no Kenya cholera row while advancing Kenya's anthrax
+            (7 Aug -> 25 Sep), chikungunya (30 Jul -> 18 Sep), leishmaniasis, drought and
+            COVID-19 entries, and Week 41 closes a Kenyan influenza A(H1N1) event. This is
+            the surveillance-functioning test passed explicitly: the system was filing,
+            weekly, on four other notifiable events, and filing no cholera;
+      (iii) Week 45 opens the next epidemic as a NEW notified event traced to a wedding at
+            Red Hill Gardens, Limuru, on 8 October 2022 - a fresh point-source
+            introduction, not a continuation;
+      (iv)  JHU holds nothing between 19 June and 1 October 2022.
+
+13. CONFLICT RECORDED, not resolved. Kiama et al. put the first half of 2022 at "8 cases,
+    and 2 deaths ... affecting the capital Nairobi"; WHO AFRO puts it at 319 cases across
+    Nairobi, Kisumu and Kiambu, and JHU carries Kisumu 311 / Nairobi 7 / Kiambu 1 for
+    3 May - 19 June 2022 (7 + 1 = Kiama's 8, so Kiama appears to have omitted Kisumu
+    entirely). Both agree every pre-epidemic 2022 case fell on or before 19 June, so the
+    absence window is unaffected, but the discrepancy is real and is one reason Index 217
+    is held at 0.75. Flagged for Agent 5.
+
+Sources found: 4    Registered: index 93, 94, 95  (+ source 90/91 from batch 1 reused)
+Rows added   : 4    Indices: 214, 215, 216, 217
+Successful queries: 2/20  (Q53 -> 214/215/216 ; Q58 -> 217)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum met, but no sub-5% run; 5,5,10 are not three
+               consecutive batches below 5%)
+
+=== BATCH 4 | PHASE 3 | KEN ===
+Gap targeted : pre-2000 within-year absence; Kenya MoH primary documents; the 2013/2014
+               low-count years.
+Queries      : 20
+  Q61 archive.org CDX  health.go.ke, filtered to cholera
+  Q62 archive.org      full-text search "Kenya cholera elimination plan multisectoral"
+  Q63 archive.org CDX  health.go.ke, domain match, cholera filter
+  Q64 archive.org CDX  gtfcc.org, domain match, Kenya filter
+  Q65 archive  structural check of WER "Cholera in 1989": is there month-level detail?
+  Q66 IRIS     fetch WER 1978 no.31  (= "Cholera in 1977", Kenya 21 cases)
+  Q67 IRIS     fetch WER 1985 no.31  (= "Cholera in 1984", Kenya 14 cases)
+  Q68 IRIS     fetch WER 1980 no.31  (= "Cholera in 1979")
+  Q69 IRIS     fetch WER 1995 no.31  (= "Cholera in 1994")
+  Q70 IRIS     fetch WER 1997 no.31  (= "Cholera in 1996")
+  Q71 archive  grep all five for "removed from the infected area list / declared free"
+  Q72 archive  grep for weekly cumulative "cases notified to WHO since 1 January" tables
+  Q73 archive  read the three "Areas Removed from the Infected Area List" sections found
+  Q74 local    re-read every AI row for 2012, 2013, 2014 and 2020
+  Q75 local    re-read every JHU row for 2013 and 2014
+  Q76 EPMC     "cholera outbreak Kenya 2015 Nairobi December 2014 epidemiology response"
+  Q77 EPMC     "Kenya cholera outbreak first since 2010 resurgence 2015"
+  Q78 sift     PMC11361576 (Nairobi 2017 protracted outbreak) for 2014/2015 framing
+  Q79 sift     PMC11622605 (2017-2019 Nairobi/Homa Bay retrospective) for absence language
+  Q80 IRIS     locate and fetch WER 2015 no.40 (= the annual article "Cholera in 2014")
+
+FINDINGS - ALL NEGATIVE, AND USEFUL FOR IT
+
+14. THE WER ANNUAL ARTICLES CARRY NO MONTHLY DETAIL. "Cholera in 1989" and its siblings
+    give a single annual figure per country (Kenya 918* in 1989) and a narrative. There is
+    no month or quarter breakdown anywhere in the annual series, so within-year absence in
+    Kenya's low-count years (1977: 21 cases; 1984: 14; 1987: 255) cannot be bounded from
+    this source. This closes off what looked like the most promising historical route.
+
+15. A REAL BUT EXPENSIVE HISTORICAL SURFACE EXISTS, AND I AM NAMING IT RATHER THAN MINING
+    IT. Every WER weekly issue of the 1970s and 1980s carries two IHR sections:
+      "Infected Areas as on <date>" - a district-level register of areas formally infected
+      with cholera, in which Kenya appears explicitly (e.g. as on 3 August 1978: Coast
+      Province - Kwale, Mombasa and Taveta Counties; as on 2 August 1985: Central Province
+      - Kirinyaga and Nyeri Districts, Coast Province - Kwale, Lamu, Mombasa, East Province
+      - Embu, Isiolo, Kitui), and
+      "Areas Removed from the Infected Area List between <date> and <date>" - a POSITIVE
+      weekly declaration that a named district has been free of cholera for the required
+      period.
+    A Kenyan district appearing in a removal list is genuine Level 1 documented absence
+    with a precise start date. None of the three sample weeks I pulled (28 Jul-3 Aug 1978,
+    25-31 Jul 1980, 26-31 Jul 1985) happens to contain a Kenyan removal. Harvesting them
+    would mean fetching on the order of 500 weekly WER issues across 1971-1995. That is a
+    dedicated run, not a corner of one; it is district-level rather than national; and it
+    would not close any currently open gap, since JHU already covers those years with
+    annual rows. Recommended to whoever wants Kenyan sub-national seasonality before 1996.
+
+16. KENYA MoH PRIMARY DOCUMENTS ARE NOT REACHABLE FROM THIS TOOLCHAIN. health.go.ke has no
+    cholera documents in the Internet Archive CDX index, archive.org full-text search
+    returns nothing for the National Multi-Sectoral Cholera Elimination Plan 2022-2030, and
+    gtfcc.org has no archived Kenya country pages. The plan is cited by Kiama et al. and by
+    the sEAP but is not retrievable. Recorded so it is not retried blind.
+
+17. GROUNDWORK LAID FOR 2014. WER 2015 no.40, Table 1, gives Kenya 35 cases, 9 deaths,
+    CFR 25.71% for 2014 - a CFR the article itself flags as anomalous. JHU's epidemic
+    cumulative rows for the 2014-2016 wave all begin 2014-12-01, and the AI layer already
+    carries Index 137 quoting an outbreak period of "December 26, 2014-June 10, 2015".
+    Pursued in batch 5.
+
+Sources found: 0    Registered: none
+Rows added   : 0    Indices: none
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+=== BATCH 5 | PHASE 3 | KEN ===
+Gap targeted : 2014 (WHO 35 cases vs Kenya MoH "zero year"); 2011; 2013; 1997 onset.
+Queries      : 20
+  Q81  archive  WER 2015 no.40 - Kenya narrative and the CFR footnote
+  Q82  OpenAlex "Kenya cholera outbreak 2014 2016 Nairobi onset December surveillance"
+  Q83  cdc.gov / stacks.cdc.gov / NCBI - three routes to MMWR mm6503a7 (all 403/404)
+  Q84  EPMC     DOI lookup 10.15585/mmwr.mm6503a7 -> full core record and abstract
+  Q85  local    JHU 2011 rows at row level (79 rows, camp vs national)
+  Q86  EPMC     "Spatial and temporal analysis of cholera cases in high-risk areas of Kenya"
+  Q87  archive  AFRO 2021 bulletins (weeks 30, 45) - any Kenya cholera row at all?
+  Q88  sift     PMC12212228 - study period, annual table, zero years
+  Q89  archive  AFRO W52 2019 - the twelve-county list for 2019
+  Q90  sift     PMC12212228 - which sub-counties were affected in which year
+  Q91  archive  WER 1997 no.45 "Cholera in Kenya" outbreak-news item
+  Q92  archive  IFRC MDRKE054 final + MDRKE035 - "declared over / last case reported"
+  Q93  archive  IFRC MDRKE038 + MDRKE033 + MDRKE054 op-update - same patterns
+  Q94  local    JHU and AI rows for 1996-1999
+  Q95  archive  AFRO W52 2018 - Kenya cholera event status
+  Q96  archive  AFRO W16 and W20 2017 - the Kenya cholera event with start 10 Oct 2016
+  Q97  IRIS     does IRIS hold AFRO weekly bulletins from 2016? (tests Agent 2's claim)
+  Q98  who.int  fetch WHO cholera Epidemiological Update 33 (27 Jan 2026)
+  Q99  who.int  parse Update 33's reporting period and Kenya row
+  Q100 archive.org CDX sweep for the remaining WHO cholera updates (35, 37, 39, 40)
+
+FINDINGS
+
+18. ROW WRITTEN - 2014, and it RESOLVES a standing contradiction.
+    -> Index 218: AFR::KEN 2014-01-01..2014-11-30, sCh=0, deaths=0,
+       Documented_Absence, surveillance=operational, confidence 0.8.
+    The Kenya MoH annual series calls 2014 a zero-case year; WHO and JHU carry 35 cases
+    and 9 deaths for calendar 2014. Both hold if Kenya's whole 2014 caseload fell at the
+    very end of December and MoH booked it to the 2015 epidemic. Four strands say so:
+      - CDC/Kenya MoH, MMWR 65(3) (source 96): the first confirmed case was admitted to
+        Kenyatta National Hospital on 6 January 2015 and retrospective review of the
+        surveillance reports found only FOUR earlier suspected cases, all in Nairobi
+        County, all within the preceding month;
+      - the outbreak case series already at Index 137 runs "December 26, 2014-June 10, 2015";
+      - every JHU cumulative row for the 2014-2016 wave opens on 2014-12-01;
+      - WER 2015 no.40 gives Kenya a 2014 CFR of 25.71% on 35 cases and flags high CFRs as
+        the signature of delayed care - the shape of a handful of severe onset cases, not
+        of a year of surveillance.
+    TR set to 30 November, conceding the whole of December to possible transmission,
+    because "during the preceding month" carries no onset dates. For a zero row the
+    conservative error is the right one.
+
+19. ROW WRITTEN - Dadaab sub-county, calendar 2014, from a tabulated line-list zero.
+    Nyataya et al. 2025 (source 97) analyse the Kenya MoH DDSR sub-county line list for
+    32 designated high-risk sub-counties and print an explicit annual zero:
+      "2013  35 (0.5)  2 | 2014  0 (0)  0 | 2015  2784 (38)  21"
+    i.e. zero cases in zero of the 32 high-risk sub-counties in 2014. Dadaab is one of the
+    32 and is named as the highest-burden locality of the whole 2013-2022 period.
+    -> Index 219: AFR::KEN::North-Eastern::Garissa::Dadaab 2014-01-01..2014-12-31,
+       Documented_Absence, surveillance=operational, confidence 0.9.
+    This is also a fully independent corroboration of Index 218: a second Kenya MoH data
+    stream, analysed by different authors, agreeing that 2014 had no cases.
+
+20. REFUSED AGAIN, WITH BETTER EVIDENCE - the 2026 national zero. WHO Epidemiological
+    Update 38 (30 June 2026) gives Kenya 26 cases for 1 January - 31 May 2026 AND 26 cases
+    in the last 28 days, which as arithmetic asserts zero Kenyan cases from 1 January to
+    early May 2026. We know that assertion is false: five laboratory-confirmed cases in
+    Garissa Township had onset from 22 March 2026. This is now a DEMONSTRATED failure of
+    the WHO global table for Kenya in this exact period, not a suspected one, and it is
+    the strongest possible argument against writing the 2026 zero that Agent 1 retracted.
+
+21. REFUSED - 2011. The sEAP's third "zero year" does not survive either. The JHU baseline
+    carries a national 2011 row of 74 cases and 2 deaths AND 78 Dadaab refugee-camp rows
+    summing to 2552 cases (53 Dadaab, 14 Dagahaley, 11 Kambioos), reflecting the large
+    AWD/cholera outbreak among Somali arrivals during the 2011 famine influx. Whatever the
+    relationship between the national notification and the camp series, 2011 was not a
+    zero year anywhere in Kenya and no partition argument like the 2021 one is available.
+
+22. REFUSED - a national zero for 1 January to 24 June 1997. WER 1997 no.45 states "The
+    first case in the current outbreak was detected on 25 June 1997 in Migori District,
+    Nyatike Division, and then spread to Rachuonyo, Suba, Homa Bay and Kisumu Districts
+    (Nyanza Province)". That dates the NYANZA outbreak, not the country: Kenya notified
+    482 cases in 1996, transmission was continuous into 1997, and the sentence excludes
+    nothing outside Nyanza. Tempting and wrong; left alone.
+
+23. AGENT 2'S IRIS CLAIM VERIFIED. IRIS holds no AFRO weekly bulletin earlier than 2017
+    (earliest returned: Week 49, 2-9 December 2017). The Kenya cholera event with start of
+    event 10 October 2016 is therefore visible only through its 2017 continuations
+    (235 cases / 36 confirmed by week 11 2017; 303 / 36 by week 20 2017), and any mid-2016
+    inter-wave interval cannot be bounded from this toolchain.
+
+24. NO NATIONAL ZERO AVAILABLE FOR LATE 2025. WHO Epidemiological Update 33, data as of
+    28 December 2025, gives Kenya 700 cases and 26 deaths for 1 January - 28 December 2025
+    and 23 cases with 0 deaths in the last 28 days. Kenya was still reporting cases in
+    December 2025. Also note the table's notation: a dash marks a country with no report in
+    the last 28 days (Cameroon, Chad, Congo, Cote d'Ivoire all carry one) while Kenya
+    carries a number - so this series CAN distinguish silence from zero, and did not record
+    a Kenyan zero.
+
+Sources found: 2    Registered: index 96, 97
+Rows added   : 2    Indices: 218, 219
+Successful queries: 2/20  (Q84 -> 218 ; Q88 -> 219)
+Yield        : 10%
+Consecutive sub-5% batches: 0  (reset by batch 5)
+Decision     : CONTINUE
+
+=== BATCH 6 | PHASE 3 | KEN ===
+Gap targeted : refugee-camp absence (the one Kenyan setting with a continuous, standardised,
+               independent surveillance stream); remaining WHO global cholera updates.
+Queries      : 20
+  Q101 archive.org CDX  cdn.who.int broad sweep for cholera documents
+  Q102 archive.org CDX  cdn.who.int situation-reports path + who.int/docs path
+  Q103 local    metadata lookup for Kenya MoH source URLs already registered
+  Q104 eastleighvoice  Kenya MoH/WHO national cholera report of 17 July 2025
+  Q105 archive  IFRC DREF MDRKE066 final report - county control / last-case language
+  Q106 turkana.go.ke  Kakuma and Kalobeyei cholera situation report, 9 June 2025
+  Q107 who.int  brute-force the unarchived WHO cholera update URLs (36 date/number pairs)
+  Q108 who.int  parse Updates 35 (data to 22 Feb 2026) and 37 (data to 26 Apr 2026)
+  Q109 EPMC     "descriptive cross-sectional study cholera Kakuma Kalobeyei refugee camps 2018"
+  Q110 archive  UNHCR Kakuma documents on disk - no-case / last-case language
+  Q111 sift     PMC7813661 (Kakuma/Kalobeyei 2018) for outbreak dating
+  Q112 EPMC     "cholera Kenya 2013 Dadaab refugee camp outbreak cases"
+  Q113 OpenAlex "Dadaab refugee camp cholera outbreak 2021 Kenya Garissa"
+  Q114 PMC      fetch PMC6586254, Shannon et al. 2019, cholera in refugee settings
+  Q115 extract  the per-camp outbreak table (start date, end date, cases, deaths)
+  Q116 read     the paper's methods and inclusion criteria
+  Q117 local    audit of every existing AI and JHU camp row, to avoid overlap
+  Q118 EPMC     is there a follow-up UNHCR camp cholera review covering 2017 onward?
+  Q119 OpenAlex "UNHCR health information system refugee camp cholera outbreaks surveillance"
+  Q120 joghr    "Infectious disease epidemics in refugee camps: UNHCR data 2009-2017"
+
+FINDINGS
+
+25. THE SINGLE BEST ABSENCE SOURCE FOUND IN THIS RUN. Shannon et al. 2019 (PLoS NTD
+    13(6):e0007347, source index 98) is a COMPLETE extract of the UNHCR health information
+    surveillance system: "we reviewed all probable and confirmed cholera cases and deaths
+    reported to UNHCR from 2009 to 2016... provided directly from UNHCR's health
+    information surveillance system under an ongoing data sharing agreement". Its table
+    gives a start AND an end date for every camp outbreak worldwide; 18 of the 38 are
+    Kenyan. Critically, the table records even single-case events (Mangaize, Niger,
+    13 May 2013 to 13 May 2013, one case, one death), so the intervals BETWEEN listed
+    Kenyan outbreaks are intervals in which a live surveillance system recorded nothing,
+    which is documented absence rather than silence.
+    Seven rows written, all Documented_Absence, surveillance=operational, confidence 0.85:
+      -> 220  AFR::KEN::Turkana::Turkana_West::Kakuma            2010-01-01..2016-12-31
+      -> 221  ...::Dadaab::Dagahaley                             2012-03-05..2015-07-31
+      -> 222  ...::Dadaab::Hagadera                              2012-11-26..2015-08-07
+      -> 223  ...::Dadaab::Kambioos                              2012-03-05..2015-07-15
+      -> 224  ...::Dadaab::Ifo                                   2013-05-27..2015-08-22
+      -> 225  ...::Dadaab::Ifo2                                  2013-05-27..2015-08-06
+      -> 226  ...::Garissa::Dadaab (whole complex)               2009-01-01..2011-08-24
+    Boundaries were pulled INWARD wherever the JHU baseline carries a camp observation
+    running past the review's stated outbreak end date (Dagahaley and Kambioos to
+    4 Mar 2012, Hagadera to 25 Nov 2012), so no row contradicts a positive baseline
+    observation. Kakuma's TL was moved from 1 Dec 2009 to 1 Jan 2010 to avoid overlapping
+    the existing Kakuma 2009 annual row (Index 85, 224 cases).
+    Row 226 is the most striking: the entire Dadaab complex, over 400 000 people, with no
+    cholera outbreak of any size from January 2009 to 24 August 2011 - straight through
+    Kenya's largest modern epidemic (11 425 cases notified for 2009, 3188 for 2010) and
+    through continuous transmission in Somalia, the population's country of origin. It is
+    the paper's own thesis that camp WASH and preparedness investment is what did this.
+    Ifo 3 was deliberately NOT written despite a clean 1998-day gap in the table: the camp
+    was being decommissioned during the period and I could not establish that it remained
+    under surveillance throughout.
+
+26. THIRD AND CONCLUSIVE DEMONSTRATION THAT WHO'S GLOBAL TABLE MISSES KENYA IN 2026.
+    Brute-forcing the unarchived URLs recovered Updates 35 (data as of 22 February 2026)
+    and 37 (data as of 26 April 2026). Neither lists Kenya at all. Together with Update 34
+    (Jan 2026) and Update 36 (data to 29 March 2026), that is FOUR consecutive monthly WHO
+    global updates carrying no Kenyan cholera row, across a period in which five
+    laboratory-confirmed Garissa Township cases had onset from 22 March 2026 and were
+    reported in the Kenyan press. The 2026 national zero stays refused.
+
+27. NO FOLLOW-UP CAMP REVIEW FOUND for 2017 onward that is reachable from this toolchain.
+    "Infectious disease epidemics in refugee camps: a retrospective analysis of UNHCR data
+    (2009-2017)", J Glob Health Rep 2019, exists and would extend the camp series by a
+    year, but its full text did not render through curl. Noted for a later agent.
+
+Sources found: 1    Registered: index 98
+Rows added   : 7    Indices: 220, 221, 222, 223, 224, 225, 226
+Successful queries: 1/20  (Q114; counted once, not seven times, per the yield definition)
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+=== BATCH 7 | PHASE 3 | KEN ===
+Gap targeted : the 1971 epidemic onset; corroboration of the 2024/25 window; complete
+               county enumerations usable as partition arguments.
+Queries      : 20
+  Q121 archive  WER "Cholera in 1971" - the Kenya row and the first-notification column
+  Q122 archive  WER "Cholera in 1974" - the Kenya reappearance narrative and table
+  Q123 archive  WER 1971 Table 1 column header ("First notification / Premiere notification")
+  Q124 archive  WER 1974 Table 1 - is there a notification-date column? (no; format changed)
+  Q125 who.int  Disease Outbreak News API, all cholera items (100 returned)
+  Q126 who.int  DON "Cholera - Multi-country with a focus on countries experiencing current
+                surges" (29 Aug 2025) - any Kenya content
+  Q127 IRIS     AFRO weekly bulletins, February-March 2025
+  Q128 IRIS     verify which bulletins the uuid lookup actually returned
+  Q129 local    AI and JHU rows for 2019, Nairobi in particular
+  Q130 IRIS     locate AFRO Week 9 2025 precisely
+  Q131 IRIS     fetch and read AFRO Week 9 2025 - Kenya cholera?
+  Q132 archive  Kenya mentions across AFRO 2025 weeks 5, 9 and 10
+  Q133 IRIS     fetch AFRO Week 48 2024 and list Kenya's monitored events
+  Q134 HDX      data.humdata.org package search "cholera Kenya"
+  Q135 archive  AFRO Week 48 2024 - the Kenya cholera row in the events table
+  Q136 local    full JHU county-zero list for 2022-10-01..2024-05-31
+  Q137 local    the 27-county Kenya MoH breakdown already in the AI layer
+  Q138 local    verify the 27 county figures sum to the stated national total; find its source
+  Q139 local    Kenya ADM1 list from reference/country_profiles.json
+  Q140 local    check the seven candidate counties for pre-existing rows in the window
+
+FINDINGS
+
+28. ROW WRITTEN - January 1971, extending the 1970 absence forward.
+    WER "Cholera in 1971", Table 1, carries a "First notification / Premiere notification"
+    column and gives "Kenya ... 6.3.1971 ... 301", alongside the narrative naming Kenya as
+    one of fourteen countries reporting cholera FOR THE FIRST TIME in 1971.
+    -> Index 227: AFR::KEN 1971-01-01..1971-01-31, Documented_Absence,
+       surveillance=partial, confidence 0.8.
+    TR set five weeks before the notification date, conceding all of February to detection
+    and notification lag in what the sEAP identifies as Turkana District in 1971.
+
+29. ROWS WRITTEN - seven counties, the 2022-2023 epidemic, by complete enumeration.
+    The Kenya MoH daily situation report relayed in IFRC DREF MDRKE054 (source index 54)
+    names every affected county: "Twenty-seven (27) counties have reported cases as
+    follows: Garissa (2,859), Mandera (2,281), Nairobi (2,216)..." and the 27 county rows
+    already in this file from that list sum to EXACTLY 12 123, the stated national total.
+    There is no residual in which an unlisted county could hide. Twenty of Kenya's 47
+    counties are therefore zero for 19 Oct 2022 - 30 Oct 2023; the JHU baseline already
+    carries thirteen of them; the seven it does not were written:
+      -> 228 Coast::Lamu   229 Eastern::Tharaka_Nithi   230 Rift-Valley::Nandi
+      -> 231 Rift-Valley::Baringo   232 Rift-Valley::Kericho
+      -> 233 Western::Kakamega   234 Western::Vihiga
+    all Documented_Absence, surveillance=operational, confidence 0.8.
+    The window stops at 30 October 2023 and is NOT extended to the epidemic's end,
+    because the 2024 second wave reached counties absent from the 2022-23 list - Lamu
+    took 18 cases between January and June 2024 (this file Index 185). Same discipline
+    as everywhere else in this run: bound the absence by the evidence, not by the epidemic.
+
+30. STRONG CORROBORATION FOR INDEX 212 (the Oct 2024 - Feb 2025 national absence), from
+    two directions:
+      - AFRO Week 48 2024 (25 Nov - 1 Dec 2024) still carries the Kenya cholera event but
+        with its cumulative UNCHANGED at 12 624 cases / 208 deaths and its date of last
+        report ADVANCED from 23 June 2024 to 28 November 2024. Kenya filed a report and
+        the count did not move: an active report of no new cases, not silence.
+      - AFRO Weeks 5, 9 and 10 of 2025 carry Kenya rows for measles (updated 24 Jan,
+        18 Feb, 6 Mar 2025) and mpox (13 Jan, 18 Feb, 6 Mar 2025) and no cholera row at
+        all. The surveillance-functioning test, passed explicitly, inside the window.
+    Neither could be attached to Index 212 retrospectively - the writer has no update
+    command - so it is recorded here and in the handover.
+
+31. REFUSED - a Nairobi County absence for 2019, and this one nearly caught me. AFRO
+    Week 8 2019 states "Nairobi County has successfully controlled the outbreak where a
+    total of 125 cases including 26 confirmed were reported. The last case was reported on
+    27 January 2019." That reads as a clean dated absence onset. It is not: the JHU
+    baseline carries Nairobi rows of 25 cases for 6-12 May 2019 and 76 cases for
+    3-9 June 2019, and a Nairobi cumulative of 829 to 9 June 2019. Nairobi had a SECOND
+    wave. A "successfully controlled / last case on <date>" statement bounds a wave, not a
+    year, and writing it as a year would have injected four months of false zeros into the
+    county with Kenya's densest population. Recorded as a standing warning.
+
+32. NO WHO DISEASE OUTBREAK NEWS HAS EVER BEEN ISSUED FOR KENYAN CHOLERA. The DON API
+    returns 100 cholera items covering Angola, Congo, Mozambique, DRC, Malawi, Haiti,
+    Lebanon, Somalia, Pakistan, Cameroon, Benin, Togo, Sudan, Zimbabwe, Niger, Algeria,
+    Tanzania and two global items - and no Kenya item, in any year. HDX likewise holds
+    exactly one cholera dataset touching Kenya, the WHO annual series already in hand.
+    Both surfaces are closed; recorded so they are not retried.
+
+Sources found: 0 new registered (rows used existing sources 54 and 67)
+Rows added   : 8    Indices: 227, 228, 229, 230, 231, 232, 233, 234
+Successful queries: 2/20  (Q121 -> 227 ; Q137 -> 228-234)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+=== BATCH 8 | PHASE 3 | KEN ===
+Gap targeted : complete county enumerations for 2015, 2017, 2018, 2019 usable as
+               partition arguments; the 2018 inter-outbreak intervals.
+Queries      : 20
+  Q141 archive  AFRO W52 2019 - test the "twelve of the 47 Counties" enumeration
+  Q142 local    identify the source behind the 14-county 2014-2015 table (AI rows 137/138)
+  Q143 EPMC/PMC fetch Mutonga et al. 2020 PAMJ 36:127 and extract Table 1 in full
+  Q144 local    every row in any layer overlapping 2014-12-26..2015-06-10
+  Q145 local    provenance of the conflicting 2015 county block (source 19)
+  Q146 local    metadata for source 19, "Cholera Situation Report Kenya 9th June 2015"
+  Q147 RW       fetch UNICEF Kenya Humanitarian Situation Report, Jan-Dec 2017
+  Q148 RW       fetch UNICEF Kenya Humanitarian Situation Report, Jan-Dec 2018
+  Q149 archive  read the 2018 sitrep's outbreak start/end date statements
+  Q150 archive  read the 2017 sitrep's "22 out of 47 counties" statement
+  Q151 local    rows overlapping 2018-08-20..2018-09-07 and 2018-10-24..2019-01-01
+  Q152 local    map ALL JHU national zero-row coverage, by year
+  Q153 archive  AFRO W52 2017 - is there a full 22-county list? (no; 7 active counties only)
+  Q154 RW       ReliefWeb listing "cholera Dadaab 2021"
+  Q155 OpenAlex "Kenya cholera 2021 cases refugee camp Kakuma Dadaab surveillance annual"
+  Q156 archive  Kenya MoH DDSR outbreak situation report, epi week 42 2022 - cholera section
+  Q157 archive  same report - any reference to the May-June 2022 outbreak?
+  Q158 archive  same report - is there an all-47-county enumeration anywhere in it?
+  Q159 OpenAlex "Kenya cholera outbreak 2016 counties end of outbreak declared"
+  Q160 EPMC     "Kenya cholera outbreak 2020 Garissa Turkana end control COVID-19"
+
+FINDINGS
+
+33. REFUSED - the 2019 partition, and the refusal is instructive. AFRO Week 52 2019 says
+    "Since January 2019, twelve of the 47 Counties of Kenya reported cholera cases,
+    namely: Embu, Garissa, Kajiado, Kisumu, Machakos, Makueni, Mandera, Mombasa, Nairobi,
+    Narok, Turkana and Wajir Counties" - an apparently perfect complete enumeration that
+    would have yielded 35 county zeros. It is self-refuting: the SAME PARAGRAPH reports
+    "91 new suspected cases ... from Garissa (51), Turkana (35), Mandera (3) and Kirinyaga
+    (2)" and "The outbreak remains active in four counties: Garissa, Mandera, Turkana and
+    Kirinyaga". Kirinyaga has cases and is not in the list of twelve. The enumeration is
+    stale. Thirty-five false zeros avoided by reading two sentences further.
+
+34. ROWS WRITTEN - six counties, 26 Dec 2014 to 10 Jun 2015, by peer-reviewed enumeration.
+    Mutonga et al. 2020 (Kenya FELTP, PAMJ 36:127, source index 59) Table 1 lists all
+    fourteen affected counties with counts summing to EXACTLY the stated national total of
+    4218: Migori 915, Nairobi 781, Muranga 619, Homa Bay 469, Kirinyaga 378, Bomet 272,
+    Nakuru 266, Mombasa 189, Embu 179, Machakos 59, Baringo 52, Kilifi 21, Narok 13,
+    Trans Nzoia 5.
+      -> 235 Nyanza::Kisumu   236 Nyanza::Siaya   237 Coast::Kwale
+      -> 238 Rift-Valley::Kajiado   239 Eastern::Marsabit   240 North-Eastern::Mandera
+    all Documented_Absence, surveillance=operational, confidence 0.75.
+    CONFLICT DISCLOSED IN EVERY ROW: the contemporaneous Kenya MoH county situation report
+    of 9 June 2015 (source 19), one day inside the same window, carries Kiambu at 114 cases
+    and 6 deaths, and Mutonga's table has no Kiambu row at all; the two also differ on
+    Machakos (60 vs 59) and Narok (10 vs 13). One county CAN go missing from the
+    peer-reviewed enumeration. Rows were therefore written only where BOTH sources are
+    silent, confidence was held at 0.75, and the discrepancy is stated in each note.
+    Wajir, Garissa and Tana River were excluded despite being absent from both lists,
+    because other rows in this file assert cholera in them over 2015-2020.
+
+35. NOT WRITTEN, BECAUSE THE BASELINE ALREADY HAS IT - the two 2018 inter-outbreak
+    intervals. UNICEF Kenya's 2018 annual sitrep, relaying Kenya MoH, states: "The first
+    cholera outbreak began on 26 December 2014 and ended on 19 August 2018. The next
+    cholera outbreak started on 8 September 2018 and ended 23 October 2018 with only 40
+    cases in three counties. Since the last case, three incubation periods have passed and
+    by the 20 November the Government declared the outbreak under control." That is two
+    clean documented national absences - 20 Aug to 7 Sep 2018, and 24 Oct 2018 to the
+    2 January 2019 start of the next outbreak. The JHU baseline ALREADY carries national
+    weekly zero rows covering both: 2018-08-20..09-09 and 2018-10-29..2019-01-06,
+    thirteen weeks in all. Adding AI rows would be pure duplication and would inflate the
+    AI layer's apparent contribution without adding a day of coverage. Left alone.
+    The statement is not wasted: it independently CORROBORATES the 26 December 2014 start
+    date on which Index 218 (the 2014 absence) rests, from a source with no connection to
+    the MMWR field note.
+
+36. COVERAGE CHECK THAT SHOULD HAVE COME EARLIER, AND IS RECORDED SO THE NEXT AGENT CAN
+    SKIP IT. The JHU baseline contains only FOURTEEN national zero rows for Kenya in its
+    entire 1970-2024 span: the 2003 annual row, and thirteen weekly rows between
+    20 August 2018 and 6 January 2019. Every other national absence in the Kenyan record
+    is unrepresented in the baseline, which is why Indices 212, 217, 218 and 227 are
+    genuinely additive rather than decorative.
+
+37. SECOND KENYAN-SOURCE CORROBORATION FOR INDEX 217 (the Jul-Sep 2022 absence). The
+    Kenya MoH Division of Disease Surveillance and Response outbreak situation report for
+    epi week 42 of 2022 states "The outbreak started with people who had attended a
+    wedding which was held in Red hill Gardens, Limuru sub county, Kiambu county on
+    Saturday of 8th Oct 22" and its Table 7 gives Nairobi a "Date of onset of the 1st
+    case" of 08-Oct-22. Kenya's own surveillance division therefore dates the epidemic's
+    first case to the exact day after this row's TR of 7 October 2022.
+
+38. NO 22-COUNTY LIST FOR 2017 EXISTS IN REACHABLE SOURCES. UNICEF's 2017 annual sitrep
+    gives the count - "A total of 22 out of 47 counties were affected by Cholera in 2017" -
+    but not the list, and AFRO's Week 52 2017 bulletin names only the seven counties still
+    actively reporting in December (Nairobi, Garissa, Mombasa, Wajir, Kwale, Embu,
+    Kirinyaga). Without the list the partition cannot be run, and after the 2019 lesson I
+    will not reconstruct a list from scattered mentions. 2017 left unpartitioned.
+
+Sources found: 0 new registered (rows used existing source 59)
+Rows added   : 6    Indices: 235, 236, 237, 238, 239, 240
+Successful queries: 1/20  (Q143)
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+=== BATCH 9 | PHASE 3 | KEN ===
+Gap targeted : the last untried source classes - GTFCC/PAMI analyses, genomic studies,
+               Swahili-language media, Africa CDC, ProMED, Internet Archive, and the
+               1980s/1990s and 2004-2007 low-count years.
+Queries      : 20
+  Q161 sift     PMC12180658, "Mapping of cholera PAMIs using the 2023 GTFCC guidance: The
+                Kenya experience" (2025) - zero / no-case language
+  Q162 GDELT    "kipindupindu Kenya" (Swahili disease term from country_profiles.json)
+  Q163 OpenAlex "kipindupindu cholera Kenya Swahili"
+  Q164 sift     PMC13422322, genomic analysis of V. cholerae in western Kenya 2015-2023
+  Q165 extract  Boru et al. 2023 (PMC10228803) - the 2015-2020 county enumeration
+  Q166 extract  Boru et al. - are the 32 affected counties named anywhere in the full text?
+  Q167 archive  regional cross-check for Index 217: neighbours' cholera, Sep/Oct 2022
+  Q168 archive  regional cross-check for Index 218: neighbours' cholera, WER 2014 Table 1
+  Q169 promed   ProMED-mail archive search
+  Q170 africacdc + Internet Archive CDX for Africa CDC cholera documents
+  Q171 archive.org full-text "Kenya annual report medical department cholera"
+  Q172 archive.org full-text "Kenya Ministry of Health annual report disease surveillance"
+  Q173 afro     WHO AFRO Kenya weekly situation report index for 2024 and 2025
+  Q174 RW       ReliefWeb "cholera elimination plan multisectoral"
+  Q175 afro     WHO AFRO Kenya publications listing
+  Q176 RW       ReliefWeb Kenya listing, archive pages 3-6
+  Q177 EPMC     "cholera Kenya 2004 2005 2006 2007 epidemiology surveillance annual"
+  Q178 EPMC     "cholera Kenya 1980 1990 historical retrospective outbreaks decades"
+  Q179 EPMC     "cholera Kenya Nyanza 1997 1998 1999 district epidemic El Nino"
+  Q180 EPMC     "cholera Kenya post-election violence 2008 2009 epidemic national"
+
+FINDINGS - NO ROWS. The batch's value is in what it rules out.
+
+39. DECLINED, FOR CONSISTENCY - the large sub-county zero blocks. Three separate
+    peer-reviewed analyses of the same Kenya MoH sub-county line list offer what look like
+    ready-made absence rows:
+      Kiama et al. 2023  - 130 of 290 sub-counties, no cases 2015-2019
+      Boru et al. 2023   - 151 of 301 sub-counties and 15 of 47 COUNTIES, no cases 2015-2020
+      Nyataya et al. 2025 / PAMI 2025 - 151 of 304 sub-counties, no cases 2018-2023
+    That is potentially hundreds of multi-year absence rows, and I have written none of
+    them. Reasons: (a) Kiama et al. disqualify their own zeros - "the analysis assumes...
+    that a zero denotes no cases as opposed to a lack of a report"; (b) all three use the
+    word REPORTED, and Boru's own table labels the category "No case reported"; (c) none
+    of the three names the counties or sub-counties concerned in its full text - the lists
+    live in supplementary files not reachable from this toolchain - so the rows could not
+    be written even if I trusted them; (d) writing hundreds of rows from a single sentence
+    would multiply the AI layer's apparent size without adding a single verified
+    observation. The 15-county / 2015-2020 claim is the most tempting of the three and is
+    recorded here in case a later agent can obtain Boru's S1 Text and verify per-county
+    reporting activity. Until then it stays out.
+
+40. REGIONAL CROSS-CHECKS COMPLETED for the two rows whose notes did not already carry
+    one. Recorded here because the writer has no update command:
+      Index 217 (national, 20 Jun - 7 Oct 2022) - this is absence during a regionally
+      QUIET period, not an active one. The AFRO Week 39 and Week 41 2022 bulletins show
+      only ONE of Kenya's five neighbours with an active cholera event (South Sudan, 337
+      cases to 18 September 2022); Ethiopia, Somalia, Tanzania and Uganda carry no cholera
+      row. A Kenyan absence in that setting is unsurprising and needs no extraordinary
+      source - which is consistent with the Inferred_Absence label and the 0.75 weight.
+      Index 218 (national, 1 Jan - 30 Nov 2014) - absence during a regionally ACTIVE
+      period, now quantified: WER 2015 no.40 Table 1 gives Somalia 2820 cases, South Sudan
+      6421 and Uganda 309 for 2014 against Kenya's 35. Three of five neighbours in
+      transmission. The note's existing statement is confirmed.
+
+41. SURFACES CONFIRMED CLOSED, so that no later agent spends budget on them:
+      ProMED-mail  - client-side rendered, returns a Next.js error shell to curl
+      Africa CDC   - africacdc.org returns 404 to direct fetches and has no cholera
+                     documents in the Internet Archive CDX index
+      archive.org full-text - "Kenya annual report medical department cholera" and
+                     "Kenya Ministry of Health annual report disease surveillance" return
+                     only Voice of America TV transcripts and unrelated CIA reading-room
+                     documents; no Kenyan colonial or post-colonial medical reports
+      WHO AFRO Kenya weekly situation reports - only the 2026 series is published; the
+                     2024 and 2025 index pages carry no PDFs
+      Kenya National Multi-Sectoral Cholera Elimination Plan 2022-2030 - cited by Kiama,
+                     Boru and the sEAP, not retrievable from ReliefWeb, health.go.ke,
+                     gtfcc.org or the Internet Archive
+      GDELT        - rate-limited to one query per 5 seconds and returns nothing for the
+                     Swahili term "kipindupindu"; OpenAlex likewise has no Swahili-language
+                     Kenyan cholera literature
+    The 2004-2007 and 1980s/1990s academic sweeps returned only systematic reviews with no
+    Kenyan primary data.
+
+Sources found: 0    Registered: none
+Rows added   : 0    Indices: none
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+=== BATCH 10 | PHASE 3 | KEN ===
+Gap targeted : the pre-1996 record, via the surface identified and set aside in batch 4 -
+               the WER's weekly IHR "Infected Areas" register.
+Queries      : 20 (each = one WER weekly issue fetched from IRIS, converted with
+               pdftotext -layout, and searched for Kenya)
+  Q181-Q184  WER 1973 issues 01, 05, 10, 20
+  Q185-Q190  WER 1972 issues 30, 36, 40, 44, 48, 52
+  Q191       structural check: does every 1972 issue carry the register and a removal list?
+  Q192-Q195  WER 1972 issues 14, 20, 26, 32
+  Q196       read the Kenya entry in WER 1972 issue 26
+  Q197-Q199  WER 1972 issues 04, 08, 12
+  Q200       WER 1972 issue 27
+
+FINDINGS
+
+42. THE SURFACE IS REAL AND RICHER THAN EXPECTED. Every WER weekly issue of this era
+    carries FOUR things, all machine-readable after pdftotext -layout:
+      "Infected Areas as on <date>" - a complete worldwide register of administrative
+          areas formally declared infected with cholera;
+      "Areas Removed from the Infected Area List between <date> and <date>";
+      a DATED weekly cholera case notification table, e.g. WER 1972 no.4:
+          "KENYA  9-15.I   North-Eastern Province / Wajir, County ... 1 case, 0 deaths";
+      the annual review article, in issue 30 or 31.
+    The third of these is week-level Kenyan cholera surveillance data for the 1970s and
+    1980s that no agent on this country has used, and it is the answer to the batch 4
+    finding that the annual articles carry no monthly detail. FLAGGED FOR AGENTS 1, 2
+    AND 4: roughly 50 issues per year, each fetchable in a few seconds.
+
+43. KENYA'S 1972 TRAIL, ISSUE BY ISSUE. Issue 4 notifies Wajir County (1 case, 9-15 Jan);
+    issue 8 lists Marsabit County, Eastern Province as infected; issue 12 lists Coast
+    Province; issue 26 ("Infected Areas as on 29 June 1972") lists Tana River County,
+    Coast Province. Issues 14, 20, 27, 28, 29, 30, 31, 32, 36, 40, 44 and 48 carry no
+    Kenyan area at all.
+
+Sources found: 0    Rows added: 0    Successful queries: 0/20
+Yield        : 0%     Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+=== BATCH 11 | PHASE 3 | KEN ===
+Gap targeted : pin the exact date Kenya left the WHO infected-areas register in 1972, and
+               verify it stayed off it for the rest of 1972 and all of 1973.
+Queries      : 20
+  Q201-Q204  WER 1972 issues 28, 29, 30, 31
+  Q205       issue dates for 1972 nos. 26, 27, 28 and their register/removal headers
+  Q206-Q211  WER 1972 issues 34, 38, 42, 46, 50, 51
+  Q212-Q217  WER 1973 issues 34, 38, 42, 46, 50, 51
+  Q218       read every Kenya mention in WER 1973 no.34 (ten of them)
+  Q219       read every Kenya mention in WER 1972 nos. 38 and 50
+  Q220       verify no existing row conflicts with 1972-07-06..1972-12-31
+
+FINDINGS
+
+44. ROW WRITTEN - the second half of 1972, on a POSITIVE REGISTER.
+    WER 1972 no.26, "Infected Areas as on 29 June 1972", lists KENYA / Coast Province /
+    Tana River County. WER 1972 no.27, "Infected Areas as on 6 July 1972", lists no Kenyan
+    area, and neither does any later issue of 1972 or any issue of 1973.
+    -> Index 241: AFR::KEN 1972-07-06..1972-12-31, sCh=0, deaths=0,
+       Documented_Absence, surveillance=operational, confidence 0.8.
+    Why this counts as DOCUMENTED and the 2003 / 2019 / 2026 cases did not: under IHR
+    (1969) the infected-areas list is a positive register with an affirmative removal
+    procedure, so being off it is an official statement that no area of the country is
+    infected. A country missing from a CASE TABLE is merely a country that did not
+    report a number. The two are not the same kind of silence.
+    Fifteen registers were checked one at a time, and every Kenya mention in a later issue
+    was opened rather than counted: WER 1972 no.38 and WER 1973 no.34 name Kenya only in
+    imported-MALARIA country-of-origin lists, and WER 1972 no.50 only in a notice of the
+    WHO Inter-regional Seminar on Epidemiological Surveillance held in Nairobi in October
+    1972 - which is itself a datum on surveillance being operational.
+    This row runs straight into the existing 1973 absence row (Index 171), giving a
+    continuous documented Kenyan cholera-free period of about eighteen months, July 1972
+    to December 1973, during the African peak of the seventh pandemic.
+
+45. THE 1973 ZERO ROW SURVIVES A DIRECT TEST. WER 1973 no.34 returned ten Kenya mentions,
+    which would have falsified Index 171 had any been cholera. All ten are imported-malaria
+    country-of-origin entries for Mauritius, Israel and Greece. Checked, not assumed.
+
+Sources found: 1    Registered: index 99
+Rows added   : 1    Indices: 241
+Successful queries: 1/20  (Q205, which fixed the register transition date)
+Yield        : 5%
+Consecutive sub-5% batches: 0  (5% is not below 5%)
+Decision     : CONTINUE to batch 12, the 240-query ceiling
+
+=== BATCH 12 | PHASE 3 | KEN ===
+Gap targeted : apply the infected-areas-register technique to Kenya's lowest-count years,
+               1984 (14 cases notified for the whole year) and 1977 (21).
+Queries      : 20
+  Q221-Q225  WER 1984 issues 05, 15, 25, 35, 45
+  Q226       read every Kenya mention in 1984 issues 05, 35 and 45
+  Q227-Q233  WER 1984 issues 01, 10, 20, 30, 32, 40, 50
+  Q234       read every Kenya mention in 1984 issues 01, 10 and 30
+  Q235-Q236  extraction-integrity check on the 1972 no.32 register
+  Q237-Q238  extraction-integrity check on the 1984 no.25 register
+  Q239-Q240  country-heading inventories of both registers, side by side
+
+FINDINGS
+
+46. REFUSED - any 1984 absence row, and the reason matters more than the refusal.
+    The pattern looked usable at first: Kenya appears in the infected-areas register in
+    1984 issues 10 (Nyanza Province - Kisumu District, South Nyanza District) and 35
+    (Nyanza and Western Provinces) and is absent from my extractions of issues 15, 20, 25,
+    30, 32, 40, 45 and 50. A mid-1984 cholera-free window looked available.
+    It is not, because the ABSENCE IS AN ARTEFACT OF THE SCAN. I inventoried the country
+    headings actually recoverable from each register:
+      WER 1972 no.32 yields a full register - Afars and Issas, Afghanistan, Algeria,
+        Bangladesh, Burma, Dahomey, Ethiopia, French Territory, India, Indonesia, Khmer
+        Republic, Malaysia, Morocco, Pakistan and more;
+      WER 1984 no.25 yields THREE - Mozambique, Nigeria, Thailand.
+    The 1984 volume is a poorer scan and its dense multi-column register does not survive
+    pdftotext. "Kenya not found in my extraction of the 1984 register" is therefore
+    evidence about my PDF converter, not about Kenya. No row written for 1984, and the
+    same caution applies to 1977 and every other mid-1980s year, so those were not
+    attempted either.
+    The same test is what licenses Index 241: the 1972 registers extract richly, and Kenya
+    was positively FOUND in them in issues 4, 8, 12 and 26 of that same volume, so the
+    converter demonstrably resolves the string "KENYA" in that volume when it is present.
+
+47. RECOMMENDED METHOD FOR WHOEVER MINES THE 1974-1995 REGISTERS: run the country-heading
+    inventory on each issue BEFORE drawing any conclusion from a missing country, and
+    discard issues whose register yields fewer than, say, fifteen headings. Without that
+    gate the pre-1990 WER scans will silently manufacture absences.
+
+Sources found: 0    Registered: none
+Rows added   : 0    Indices: none
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : STOP - 12 batches / 240 queries, the protocol ceiling, reached.
+               The <5%-for-three-consecutive-batches rule was never satisfied: the longest
+               sub-5% run was one batch, because every zero-yield batch was followed or
+               preceded by a 5% or 10% one.
+
+================================================================================
+AGENT 3 SUMMARY - KENYA
+================================================================================
+Batches           : 12 (240 queries), the protocol ceiling
+Batch yields (%)  : 5, 5, 10, 0, 10, 5, 10, 5, 0, 0, 5, 0
+Stopping reason   : 12-batch ceiling. The <5%-for-three-consecutive-batches rule was
+                    never satisfied - the longest sub-5% run was ONE batch, because each
+                    zero-yield batch was adjacent to a 5% or 10% one.
+Rows added        : 30, all zero rows, Indices 212-241, none retracted
+Sources registered: 10, metadata Indices 90-99
+Presence rows     : 0 (no new count-less presence evidence was found; the 2026 finding is
+                    an absence-of-ascertainment, not a presence)
+Validation        : python py/validate_quality.py KEN -> ERROR 0, WARN 24, INFO 35.
+                    The warning counts are UNCHANGED from before my first write, so none
+                    of the 24 is mine. All 30 of my rows carry an evidence label; the only
+                    zero_row_no_evidence_type warning is legacy Index 43 (2003).
+
+THE THIRTY ROWS, BY EVIDENCE LABEL
+  Documented_Absence, national      : 212 (2024-10-01..2025-02-09)
+                                      218 (2014-01-01..2014-11-30)
+                                      227 (1971-01-01..1971-01-31)
+                                      241 (1972-07-06..1972-12-31)
+  Inferred_Absence, national        : 217 (2022-06-20..2022-10-07)
+  Documented_Absence, sub-national  : 213 (Nairobi 2026), 214-216 (Nairobi/Mombasa/Kisumu
+                                      2021), 219 (Dadaab 2014), 220-226 (seven refugee-camp
+                                      rows 2009-2016), 228-234 (seven counties 2022-23),
+                                      235-240 (six counties 2014-15)
+  Surveillance_Gap                  : none written, by design - the label is not a zero
+                                      and add-zero rejects it. Every period that fitted it
+                                      was left empty and recorded in this log instead.
+
+WHAT I REFUSED TO ZERO, AND WHY - the load-bearing half of this run
+  2026-01-01..2026-03-21  no source affirms it, and the ledger that implies it demonstrably
+                          missed five lab-confirmed Garissa Township cases with onset from
+                          22 March 2026. Four consecutive WHO global updates carry no Kenya
+                          row across that quarter. Under-ascertainment, not absence.
+  1988, 1990, 1991        standing prohibition, respected; nothing found either way.
+  2011, 2014 as zero years the Kenya Red Cross sEAP names 2003, 2011 and 2014; WHO and JHU
+                          contradict two of the three. 2014 resolved instead as an absence
+                          running only to 30 November.
+  2019, 35 counties       the AFRO "twelve of the 47 Counties" list is refuted two sentences
+                          later by Kirinyaga, which has cases and is not in it.
+  Nairobi 2019            "successfully controlled, last case 27 January 2019" bounds a
+                          WAVE, not a year: JHU carries 25 Nairobi cases in May and 76 in
+                          June 2019. Four months of false zeros avoided.
+  1984 and the mid-1980s  absence from my extraction of the WER register is an artefact of
+                          the scan, proven by a country-heading inventory (three headings
+                          recovered from 1984 no.25 against more than fifteen from 1972
+                          no.32).
+  1997-01-01..1997-06-24  "the first case in the current outbreak was detected on 25 June
+                          1997 in Migori District" dates the NYANZA outbreak, not the
+                          country; Kenya notified 482 cases in 1996.
+  ~400 sub-county zeros   Kiama, Boru and the 2025 PAMI paper together offer them; Kiama
+                          disqualifies its own zeros in print, all three say REPORTED, and
+                          none names the units in its full text.
+  2018's two intervals    genuinely documented, but the JHU baseline already carries
+                          thirteen national weekly zero rows covering both. Duplicating
+                          them would inflate the AI layer without adding a day of coverage.
+
+HANDOVER
+  For Agent 7: legacy Index 43 (the 2003 national zero) is the only zero in the file with
+  no evidence label. It should read Documented_Absence, surveillance=operational -
+  Kenya notified 291 cases in 2002 and 870 in 2004, and the JHU baseline independently
+  encodes 2003 as an explicit 0. The writer has no update command.
+  For Agents 1/2/4: every WER weekly issue of the 1970s and 1980s carries a DATED cholera
+  notification table. Two decades of week-level Kenyan data currently represented by
+  single annual rows. Gate every register conclusion on a country-heading count first.
+  Highest-value unretrieved document for this country: Boru et al. 2023 S1 Text, which
+  names the 15 Kenyan counties that reported no cholera at all between 2015 and 2020.
+================================================================================

@@ -1,165 +1,824 @@
 === AGENT 1 INITIALIZATION ===
 Country: Kenya (KEN)
-Start Time: 2025-08-06 13:19:21
-Agent 1 Status: INITIALIZED
+Start: 2026-09-19 21:02:46
+Status: INITIALIZED
 
-=== AGENT 1 SEARCH BATCH 1 ===
-Date: 2025-08-06 13:24:35
-Gap Targets: 1970, 1973, 1988, 1990-1991, 1993, 2012-2013, 2024-2025
-Batch Size: 20 parallel queries
-Focus: Systematic gap-targeted searches WHO/Academic/NGO sources
+=== ORCHESTRATOR PRE-RUN RECONCILIATION (2026-09-19) ===
+Pre-existing AI layer found for KEN: 38 rows / 23 sources (earlier workflow pass).
+Treated as pre-existing data per unattended-runner policy; reconciled, not re-owned.
 
-BATCH 1 RESULTS:
-- Successful queries resulting in data: 5/20 (25% yield)
-- New rows added to cholera_data_ai.csv: 5
-- New sources added to metadata_ai.csv: 5
-- Gap periods partially addressed: 2009, 2015, 2022
-- Notable discoveries: 1997-2010 surveillance data, refugee camp outbreaks
+DECISION 1 - REMOVED PROHIBITED ROW.
+  ./data/KEN/cholera_data_ai.csv Index 13 (AFR::KEN, 2023-02-01..2023-08-31,
+  sCh=2200000, source "Kenya Cholera Vaccination Program 2023") recorded an OCV
+  campaign denominator ("2.2 million people ... vaccinated") in the sCh column.
+  CLAUDE.md PROHIBITED ENTRIES forbids vaccination counts as cases, and
+  py/build_weekly_timeseries.py would have rendered 2.2M suspected cholera cases
+  across 30 weeks of 2023. Row deleted. Rejected alternative: retaining it with a
+  lower confidence_weight - the value is not a case count at any weight.
+  Backup of the pre-edit file: /tmp/KEN_ai_backup_prefix.csv
+  Metadata Index 13 left in place (orphan source, no longer cited).
+  AI row count after repair: 37.
 
-=== AGENT 1 SEARCH BATCH 2 ===
-Date: 2025-08-06 13:30:16
-Batch Size: 20 parallel queries (many API restricted)
-Focus: Historical gaps 1970s-1990s, cross-validation
+DECISION 2 - CARRIED FORWARD, NOT BLOCKED.
+  attribution_review.csv holds one unresolved item: data Index 16
+  (AFR::KEN::Nyanza::Migori) cites metadata Index 16 titled "Kenya Homa Bay
+  County 2015 Outbreak". This is tracked legacy attribution debt (see MEMORY).
+  Referred to Agent 5 / Agent 7 for resolution against the source; not a blocker.
 
-BATCH 2 RESULTS:
-- Successful queries resulting in data: 4/20 (20% yield)
-- New rows added to cholera_data_ai.csv: 4
-- New sources added to metadata_ai.csv: 4
-- Gap periods addressed: 1971 (addresses 1970), 1992, 2008
-- Notable discoveries: First Kenya cholera introduction 1971, 1992 epidemic, regional breakdown
-- API restrictions encountered for multiple searches
+REMAINING EFFECTIVE GAPS AT WORKFLOW START (reference/effective_surveillance_gaps_detailed.csv):
+  1970-01-01..1970-12-31  365d historical
+  1973-01-01..1973-12-31  365d historical
+  1988-01-01..1988-12-31  366d historical
+  1990-01-01..1991-12-31  730d historical  <- longest
+  1993-01-01..1993-12-31  365d historical
+  2012-04-01..2012-08-31  153d modern
+  2012-12-01..2013-12-31  396d modern
+  2025-06-01..2026-09-19  476d recent
+Baseline coverage: 84.4% (575/681 months), 8 gap periods.
 
-=== AGENT 1 SEARCH BATCH 3 ===
-Date: 2025-08-06 13:34:47
-Batch Size: 20 parallel queries (most API restricted)
-Focus: Remaining gaps, geographical expansion, seasonal patterns
 
-BATCH 3 RESULTS:
-- Successful queries resulting in data: 3/20 (15% yield)
-- New rows added to cholera_data_ai.csv: 3
-- New sources added to metadata_ai.csv: 3
-- Gap periods addressed: 2012 (partial 2012-2013 gap)
-- Notable discoveries: North Eastern province patterns, seasonal analysis
+================================================================================
+=== AGENT 1 (BASELINE COLLECTOR) SEARCH RUN - START 2026-09-19 ===
+================================================================================
+Pre-run state read: ./data/KEN/cholera_data_ai.csv = 37 rows, 23 metadata sources.
+                    ./data/KEN/cholera_presence_ai.csv = 6 presence rows.
+Baseline cross-check (./data/KEN/cholera_data_jhu.csv): the JHU layer carries
+"WHO Annual Cholera Report" national rows for 1971,1972,1974-1987,1989,1992,
+1994,1995 but has NO row for 1970,1973,1988,1990,1991,1993 - exactly six of my
+eight target gaps. This tells me the gaps are WER-annual-summary shaped, so the
+WHO Weekly Epidemiological Record annual "Cholera in {year}" country tables are
+the single highest-value target of this run. Plan: Phase 1 batches 1-4 hit the
+WER/GHO/official layer plus the recent 2025-2026 gap, Phase 2 batches 5-8 go
+gap-by-gap with academic + humanitarian + Swahili, Phase 3 batches 9-12 do
+citation chains and archives.
 
-=== AGENT 1 CUMULATIVE PROGRESS ===
-Total batches completed: 3
-Total queries executed: 60
-Total data observations added: 12
-Overall yield: 20% (12/60)
-Gap status: 1970✓, 1973⚪, 1988⚪, 1990-1991⚪, 1992✓, 1993⚪, 2012✓
+=== BATCH 1 | PHASE 1 (broad discovery: WHO/official + historical + humanitarian) | KEN ===
+Gaps targeted : 1990-01-01..1991-12-31 (730d), 2025-06-01..2026-09-19 (476d),
+                1988, 1993, 1970, 1973 (365-366d each), 2012-12..2013-12 (396d)
+Queries (20):
+  01 WHO Weekly Epidemiological Record "Cholera in 1993" number of cases deaths Kenya Africa
+  02 WHO Weekly Epidemiological Record "Cholera in 1991" countries reporting cases deaths Africa table
+  03 WHO Global Health Observatory cholera Kenya number of reported cases 2012 2013
+  04 Kenya cholera outbreak 2025 cumulative cases deaths counties WHO AFRO situation report
+  05 Kenya cholera 1990 1991 epidemic cases deaths surveillance
+  06 "Cholera in 1993" Weekly Epidemiological Record PMC full text country table
+  07 "Cholera in 1988" Weekly Epidemiological Record WHO annual summary cases deaths by country
+  08 Kenya cholera 1993 outbreak cases deaths report
+  09 Kenya cholera scoping review PLOS Global Public Health outbreaks history 1971 2024
+  10 Kenya cholera outbreak 2026 cases deaths Ministry of Health
+  11 [SW] kipindupindu Kenya mlipuko 2025 wizara ya afya visa vifo
+  12 Kenya cholera situation report June July August 2025 ReliefWeb cases deaths
+  13 IFRC DREF MDRKE066 Kenya flood cholera outbreak 2025 final report cases deaths
+  14 Kenya cholera 2013 Dadaab Kakuma refugee camp outbreak cases UNHCR
+  15 afro.who.int Kenya Health Emergencies weekly situation report 2026 cholera Dagahaley Nairobi
+  16 Kenya cholera outbreak July August September 2026 cases counties
+  17 WHO AFRO Weekly Bulletin Outbreaks Emergencies Kenya cholera 2025 cumulative cases deaths since
+  18 Kenya cholera outbreak Nairobi Turkana Kisumu Mombasa 2025 total cases deaths October
+  19 Kenya Ministry of Health annual health statistics report cholera cases 1988 1990 1991 1993
+  20 "cholera" Kenya 1970 1971 Turkana first outbreak El Tor cases number reported
 
-=== AGENT 1 SEARCH BATCH 4 ===
-Date: 2025-08-06 13:42:29
-Batch Size: 20 parallel queries (heavily API restricted)
-Focus: Zero-transmission validation, intervention programs, elimination strategy
+KEY NEGATIVE RESULT (important for later agents - do not re-run these):
+  The WHO Global Health Observatory annual cholera series (fetched as CSV via the
+  Our World in Data mirror of it, both cases and deaths, full 1949-2024 span) has
+  NO Kenya record at all for 1970, 1973, 1988, 1990, 1991 or 1993 - and also none
+  for 2003, 2012 or 2013. Kenya rows jump 1972 -> 1974, 1987 -> 1989, 1989 -> 1992,
+  1992 -> 1994, 2002 -> 2004, 2011 -> 2014. This is the same series JHU ingested,
+  so the six historical gaps are NOT a JHU ingestion defect: Kenya simply filed no
+  annual cholera notification to WHO in those years. The WER annual "Cholera in
+  {year}" tables therefore cannot close these gaps, because Kenya is absent from
+  them. Closing 1988/1990/1991/1993 requires NON-WHO sources (national MoH
+  archives, contemporaneous literature, regional/DTIC military-medical
+  surveillance digests), and 2012/2013 requires Kenya IDSR/DDSR bulletins.
+  Fetched: ourworldindata.org/grapher/number-reported-cases-of-cholera.csv?country=KEN
+           ourworldindata.org/grapher/number-of-reported-cholera-deaths.csv?country=KEN
+  Also checked and found NOT usable for the historical gaps:
+    - PMC10058159 (PLOS NTD Kenya hotspot mapping): gives 2015/2016/2020/2021/2022
+      figures only; for the earlier era it gives outbreak PERIODS not annual counts.
+    - PLOS Glob Public Health 2026 Kenya scoping review (pgph.0006011, pulled as PDF
+      and text-extracted): bibliometric, no pre-1997 annual counts.
+    - WHO cholera-cases-and-deaths dashboards: only 2000-present.
+    - ECDC cholera monthly (26 Aug 2026 edition): lists Kenya only under "Since
+      27 July 2026, no updates have been reported by ... Kenya" - no numbers.
 
-BATCH 4 RESULTS:
-- Successful queries resulting in data: 2/20 (10% yield)
-- New rows added to cholera_data_ai.csv: 2
-- New sources added to metadata_ai.csv: 2
-- Gap periods addressed: 2023, 2022-2030 elimination framework
-- Notable discoveries: OCV vaccination programs, national elimination strategy
+Sources found: 1 usable   Registered: index 24
+Rows added   : 3   Indices: 45, 46, 47
+  45 AFR::KEN                   2026-05-13..2026-06-28  sCh=40 cCh=2  (national, PRIMARY)
+  46 AFR::KEN::Garissa::Dadaab  2026-05-13..2026-06-28  sCh=39        (subset)
+  47 AFR::KEN::Nairobi::Ruaraka 2026-05-13..2026-06-28  sCh=1         (subset)
+  Extraction route worth reusing: the afro.who.int Kenya weekly PDFs are image-heavy
+  and WebFetch returns them as binary garbage. They text-extract cleanly with
+  `pdftotext -layout` on the file WebFetch saves to disk. All later agents should
+  use that route rather than discarding the PDF.
+Successful queries: 1/20  (query 10 -> WHO AFRO Kenya EPR Week 26 bulletin)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Decision     : CONTINUE (3-batch minimum not yet met)
 
-=== AGENT 1 SEARCH BATCH 5 ===
-Date: 2025-08-06 14:35:12
-Batch Size: 20 parallel queries (majority API restricted)
-Focus: Remaining gaps 1973, 1988, 1990-1991, 1993, 2013
-Note: Continuing search as stopping criteria not met (no consecutive batches <5% yield)
+=== BATCH 2 | PHASE 1 (WHO/official global sitrep series + historical alternatives) | KEN ===
+Gaps targeted : 2025-06-01..2026-09-19 (476d, recent), 2012-04..2013-12 (549d combined,
+                modern), 1988/1990-1991/1993 (historical, via non-WHO routes)
+Queries (20):
+  01 CDC MMWR "Cholera Worldwide" 1989 1990 cases reported by country Africa table
+  02 "Dynamics of Cholera Outbreaks in Great Lakes Region of Africa 1978-2008" Kenya annual cases districts
+  03 Kenya Ministry of Health IDSR weekly epidemiological bulletin 2013 cholera cases
+  04 Kenya cholera outbreak 1991 Machakos Kitui Mombasa district hospital epidemic
+  05 apps.dtic.mil disease occurrence worldwide cholera Kenya 1991 1993 cases Armed Forces Medical Intelligence
+  06 Kenya cholera 1993 1994 Mombasa Kwale coastal outbreak epidemic report cases
+  07 "Kenya" cholera outbreak 2012 cases deaths Tana River Dadaab Garissa report
+  08 Kenya cholera 2025 July August September cases Nairobi county outbreak update
+  09 WHO multi-country outbreak of cholera external situation report 30 31 32 October November December 2025
+  10 WHO multi-country cholera epidemiological update 35 36 37 2026 country table cases deaths
+  11 WHO AFRO Monthly Regional Cholera Bulletin October November December 2025 Kenya cases deaths
+  12 Kenya cholera outbreak November December 2025 counties cases deaths news
+  13 Kenya cholera January February March April 2026 cases outbreak counties
+  14 WHO multi-country outbreak cholera epidemiological update 39 40 July August 2026
+  15 Kenya cholera Dagahaley refugee camp May June 2026 outbreak cases MSF UNHCR
+  16 Kenya cholera 2012 outbreak cases deaths national total reported
+  17 "no cholera cases" OR "cholera-free" Kenya 2013 surveillance year reported
+  18 Kenya cholera 1988 outbreak district cases reported East African Medical Journal
+  19 [SW] kipindupindu Kenya 2026 Garissa Dadaab visa vya kipindupindu
+  20 (Kenya cholera 2013 Dadaab/Kakuma follow-up - UNHCR briefing note, 403 on fetch)
 
-BATCH 5 RESULTS:
-- Successful queries resulting in data: 0/20 (0% yield)
-- New rows added to cholera_data_ai.csv: 0
-- New sources added to metadata_ai.csv: 0
-- Discoveries: Limited information on 1988 antimicrobial resistance study, 1992 epidemic reference, surveillance system context
-- API restrictions: 12/20 queries blocked by API policy violations
+MAJOR FIND - the WHO global multi-country cholera sitrep/epi-update series.
+  Each issue carries a Table 1 with a per-country row (cumulative year-to-date AND a
+  last-28-days window). These PDFs are image-heavy; WebFetch cannot read them, but
+  `pdftotext -layout` on the saved file parses the table perfectly. Kenya rows found:
+    SitRep 29 (28 Aug 2025): 1 Jan-27 Jul 2025 = 425 cases, 20 deaths, CFR 4.7%;
+                             last 28 days = 7 cases, 0 deaths
+    SitRep 32 (26 Nov 2025): 1 Jan-26 Oct 2025 = 537 cases, 25 deaths, CFR 4.7%;
+                             last 28 days = 111 cases, 5 deaths, CFR 4.5%
+    Update 33 (27 Jan 2026): 1 Jan-28 Dec 2025 = 700 cases, 26 deaths, CFR 3.7%;
+                             last 28 days = 23 cases, 0 deaths
+    Update 34 (21 Feb 2026): Kenya NOT listed among the 19 affected countries
+    Update 38 (30 Jun 2026): 1 Jan-31 May 2026 = 26 cases, 0 deaths;
+                             last 28 days = 26 cases, 0 deaths  -> implies zero
+                             cases 1 Jan-3 May 2026
+  The 537/25 snapshot (SitRep 32 cumulative) was deliberately NOT written as a row:
+  it is a redundant third overlapping cumulative for 2025. Agent 5 may use it for
+  cross-validation. From July 2026 WHO moved this monthly update into the Weekly
+  Epidemiological Record, so #39/#40 do not exist under the old numbering - that is
+  the route to the remaining Jul-Sep 2026 window.
 
-KEY FINDINGS (no quantitative data for CSV):
-- 1988: Study on antimicrobial resistant cholera strains (1982-1985 isolates)
-- 1990-1991: No specific data found, only reference to 1992 epidemic
-- 1993: No specific surveillance data found
-- 2013: Surveillance system assessment study, devolution context
-- Pattern: 5-7 year cyclical epidemics established
+NEGATIVE RESULTS worth not repeating:
+  - MMWR "Cholera - Worldwide, 1989" (cdc.gov/mmwr/preview/mmwrhtml/00001634.htm) gives
+    only REGIONAL aggregates (Africa 1988: 23 186 cases / 12 countries; 1989: 35 606 /
+    16 countries). No country breakdown. Kenya not mentioned.
+  - "Factors associated with cholera in Kenya, 2008-2013" (PMC5837167) reports only the
+    pooled total "Between 2008 and 2013 an estimated 17,917 cholera cases were reported
+    nationally" - no year-by-year split, so it cannot close 2012 or 2013.
+  - EID "Dynamics of cholera outbreaks in Great Lakes region 1978-2008" has a per-country
+    yearly figure (Fig 5) but as a graphic; no numeric table located.
+  - Swahili queries returned no Kenyan-language cholera reporting with numbers; note that
+    Swahili search engines conflate kipindupindu (cholera) with measles in summaries.
 
-=== AGENT 1 CUMULATIVE PROGRESS (BATCH 5) ===
-Total batches completed: 5
-Total queries executed: 100
-Total data observations added: 14
-Overall yield: 14% (14/100)
-Yields by batch: B1=25%, B2=20%, B3=15%, B4=10%, B5=0%
-Note: First batch with 0% yield - need 2 more consecutive <5% batches to stop
+Sources found: 4 usable   Registered: index 25, 26, 27, 28
+Rows added   : 6   Indices: 48, 49, 50, 51, 52, 53
+  48 AFR::KEN 2025-01-01..2025-07-27  sCh=425 deaths=20
+  49 AFR::KEN 2025-06-30..2025-07-27  sCh=7   deaths=0   (28-day window)
+  50 AFR::KEN 2025-01-01..2025-12-28  sCh=700 deaths=26  (FULL-YEAR 2025, PRIMARY)
+  51 AFR::KEN 2025-09-29..2025-10-26  sCh=111 deaths=5   (28-day window)
+  52 AFR::KEN 2025-12-01..2025-12-28  sCh=23  deaths=0   (28-day window)
+  53 AFR::KEN 2026-01-01..2026-05-03  sCh=0   deaths=0   ZERO, Documented_Absence
+Successful queries: 4/20  (queries 08, 09, 10, 12)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum not yet met; yield strong)
 
-=== AGENT 1 SEARCH BATCH 6 ===
-Date: 2025-08-06 14:48:23
-Batch Size: 20 parallel queries (many API restricted)
-Focus: Climate patterns, drought-cholera connections, regional context, WASH factors
+=== BATCH 3 | PHASE 1->2 (close the recent gap; probe 2012-13 and historical) | KEN ===
+Gaps targeted : 2025-06-01..2026-09-19 (recent), 2012-04..2013-12 (modern),
+                1970/1973/1988/1990-91/1993 (historical)
+Queries (20):
+  01 Kenya cholera 2013 2014 2015 subcounty spatio-temporal analysis annual cases high-risk areas
+  02 "National surveillance data on the epidemiology of cholera in Kenya 1997-2010" annual cases by year table
+  03 WHO Weekly Epidemiological Record cholera Kenya 2012 2013 annual global cholera report
+  04 afro.who.int Kenya situation report week 30 31 32 2026 cholera cumulative
+  05 Kenya cholera reported cases 1990 1991 Africa countries list WHO surveillance 1992
+  06 "Cholera Annual Report 2013" WHO 47 countries data Kenya reported cases
+  07 Kenya cholera cases 2011 2012 74 cases WHO weekly epidemiological record decrease
+  08 Kenya cholera epidemic 1992 1993 thousands victims Nairobi Rift Valley report
+  09 Kenya cholera outbreak 2026 over ended declared cases total counties September
+  10 IRIN background brief cholera epidemic western Kenya cases deaths
+  11 Kenya cholera 1973 1974 outbreak cases reported WHO notification
+  12 Kenya cholera outbreak April May June July August 2012 cases reported counties
+  13 Kenya cholera 1993 Wajir Mandera Turkana drought famine outbreak deaths
+  14 Kakuma refugee camp Kenya cholera outbreak 2012 2013 cases UNHCR health report
+  15 Kenya cholera 1990 1991 1992 1993 annual cases Kenya health information system historical series
+  16 cholera Africa 1970 1971 spread Horn of Africa Ethiopia Somalia Kenya first cases country dates
+  17 Kenya national cholera elimination plan 2022-2030 annual reported cases figure 1971 2021 trend
+  18 WHO African region cholera 2013 56329 cases 22 countries Kenya reported
+  19 Kenya cholera 1988 1989 1990 cases reported annual epidemiological data Africa
+  20 "Kenya" cholera outbreak 1994 1995 1996 Nyanza Migori districts cases deaths report
 
-BATCH 6 RESULTS:
-- Successful queries resulting in data: 1/20 (5% yield)
-- New rows added to cholera_data_ai.csv: 1 (2025 outbreak: 256 cases, 13 deaths)
-- New sources added to metadata_ai.csv: 1
-- API restrictions: 5/20 queries blocked
-- Key findings: 2025 outbreak data, 1973 drought documented (no specific cholera data), El Niño patterns, WASH surveillance context
+RECENT GAP (2025-06-01..2026-09-19) NOW SUBSTANTIALLY CLOSED. Downloaded and
+text-extracted the WHO AFRO Kenya EPR weekly situation reports individually:
+  Week 26 (21-28 Jun 2026): cholera LISTED, 40 cases, 2 counties, Protracted 3
+  Week 28 (05-12 Jul 2026): cholera LISTED, 40 cases / 2 confirmed / 1 death /
+                            CFR 2.5% - this RESOLVES the Week 26 self-contradiction
+  Week 30 (20-26 Jul 2026): cholera ABSENT from the ongoing-emergency table
+  Week 33 (09-16 Aug 2026): cholera ABSENT ("No major cholera" signals)
+  Week 37 (07-13 Sep 2026): cholera ABSENT - most recent issue published
+Week 37 is the latest Kenya bulletin on afro.who.int; Week 38 is not yet posted.
 
-=== AGENT 1 CUMULATIVE PROGRESS (BATCH 6) ===
-Total batches completed: 6
-Total queries executed: 120
-Total data observations added: 15
-Overall yield: 12.5% (15/120)
-Yields by batch: B1=25%, B2=20%, B3=15%, B4=10%, B5=0%, B6=5%
-Note: Two consecutive low-yield batches (0%, 5%) - need 1 more <5% batch to stop
+TRAP DOCUMENTED SO A LATER AGENT DOES NOT FALL INTO IT.
+  Several search summaries assert "Kenya experienced a large increase in cholera
+  cases in 1991 (3.8x) and 1992 (2.8x)". Tempting: with 1992 known to be 3388,
+  that back-solves to 1991 ~1210 and 1990 ~318, which would appear to close two
+  gap years. It is WRONG. Fetching the primary source (EID 17(11), Bompangue
+  Nkoko et al., "Dynamics of cholera outbreaks in Great Lakes region of Africa,
+  1978-2008") shows the sentence reads "We found a large increase in cholera for
+  8 years ... 1982 (1.9x), 1991 (3.8x), 1992 (2.8x), 1994 (25.8x) ..." and refers
+  to the ENTIRE six-country Great Lakes region, not Kenya. That paper gives no
+  Kenya-only annual numbers at all. Do not derive 1990/1991 from it.
 
-=== AGENT 1 SEARCH BATCH 7 ===
-Date: 2025-08-06 14:57:42
-Batch Size: 20 parallel queries (11 API restricted)
-Focus: Historical archives, medical journals, university research, surveillance reports
+LEAD FOR AGENT 3 (zero-transmission validator) - DO NOT LET THIS DROP.
+  The same EID paper states: Rwanda "and part of Kenya and Uganda ... have also
+  reported cases of cholera nearly every year since 1991 (except for 3 years for
+  Kenya and 2 years for Rwanda and Uganda)." The years with no Kenya record in
+  the WHO/GHO annual series over 1991-2008 are exactly three: 1991, 1993 and
+  2003. 2003 is already documented as a true zero year in this dataset (Index 43,
+  BMC surveillance study, "Cholera cases ranged from zero in 2003"). That makes
+  1991 and 1993 strong candidates for genuine zero years rather than mere
+  reporting gaps. I did NOT write zero rows for them: "did not report cases to
+  WHO" is not by itself "had no cases", Kenya's own national surveillance series
+  (Mutonga et al., JID 2013) begins only in 1997 so it cannot adjudicate, and
+  CLAUDE.md forbids dressing a reporting gap as an absence. Agent 3 should try to
+  settle it against a Kenyan national source.
+  Corroborating fragment, same direction: IRIN background brief on the 1997
+  western Kenya epidemic states "The last epidemic in Nyanza was in 1974,
+  although some cases were reported in 1992" - i.e. no Nyanza epidemic in 1990,
+  1991 or 1993 (regional, not national).
 
-BATCH 7 RESULTS:
-- Successful queries resulting in data: 0/20 (0% yield)
-- New rows added to cholera_data_ai.csv: 0
-- New sources added to metadata_ai.csv: 0
-- API restrictions: 11/20 queries blocked
-- Key findings: Lake Victoria environmental reservoir, 1992-1993 humanitarian crisis context, but no quantitative data
+Sources found: 2 usable   Registered: index 29, 30
+Rows added   : 1   Indices: 54
+  54 AFR::KEN 2026-07-13..2026-09-13 sCh=0 deaths=0 ZERO, Documented_Absence
+Rows revised : 1   Index 45 (deaths '' -> 1, TR 2026-06-28 -> 2026-07-12) via
+  py/revise_observation.py, citing metadata Index 29 in the appended note. Chose
+  revision over retract-and-replace so that Indices 46 and 47, whose notes point
+  at Index 45 as the parent national row, do not end up with dangling references.
+Successful queries: 1/20  (query 04)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Decision     : CONTINUE - 3-batch minimum now met, but the stop rule is not:
+               yields are 5%, 20%, 5% and none is BELOW 5%. Two live leads:
+               (a) a UNC thesis "Cholera prevention and control in Kenya"
+               (Cowman), likely to carry a long annual series;
+               (b) plateformecholera.info, which mirrors the WHO Weekly
+               Epidemiological Record annual cholera issues as PDFs.
 
-=== AGENT 1 FINAL SUMMARY ===
-Completion Date: 2025-08-06 14:58:15
-Status: COMPLETED - Stopping criteria met (3 consecutive batches <5% yield)
+=== BATCH 3 ADDENDUM - RETROACTIVE YIELD CORRECTION ===
+Batch 3 was logged at 1/20 = 5%. On extraction during Batch 4, batch-3 query 20
+("Kenya cholera outbreak 1994 1995 1996 Nyanza Migori districts cases deaths
+report") turned out to have surfaced the source that closed the 2012 and 2013
+gaps. Corrected Batch 3 yield: 2/20 = 10% (queries 04 and 20). The two rows
+(Indices 55 and 56) are counted against Batch 3, NOT Batch 4, so they are not
+double-counted. Corrected batch_yields series: [5, 20, 10, ...].
 
-STOPPING CRITERIA MET:
-- Batch 5: 0% yield
-- Batch 6: 5% yield  
-- Batch 7: 0% yield
-✓ Three consecutive batches with <5% data observation yield
+=== BATCH 4 | PHASE 2/3 (historical gaps: national archives, genomics, MMWR) | KEN ===
+Gaps targeted : 1970, 1973, 1988, 1990-1991, 1993 (all historical)
+Queries (20):
+  01 plateformecholera.info WHO epidemiological records cholera annual archive 1990 1991 1993 PDF
+  02 "Characterization of Vibrio cholerae O1 isolates ... Kenya between 1975 and 2017" years isolates
+  03 Genomic history seventh pandemic cholera Africa Kenya isolates 1988 1990 1991 1993 wave
+  04 Kenya Somali refugee camps cholera 1991 1992 1993 Liboi Ifo Dadaab outbreak MSF epidemic
+  05 Kenya Statistical Abstract notifiable diseases cholera reported cases 1988 1990 1991 1993
+  06 Kenya cholera outbreak 1993 1994 news report deaths epidemic archive
+  07 "cholera" Kenya 1991 epidemic Nairobi Kibera outbreak WHO report cases deaths
+  08 knbs.or.ke Statistical Abstract 1994 1996 notifiable diseases cholera cases Kenya
+  09 Kenya cholera "1974 to 1989" outbreaks reported every year case fatality rate
+  10 Kenya National Bureau of Statistics statistical abstract archive 1992 1994 1995 pdf download list
+  11 cholera sub-Saharan Africa country year dataset 1970-2011 annual cases database download Kenya
+  12 Kenya cholera 1990 1991 1992 1993 Ministry of Health division disease surveillance annual report
+  13 "Mapping the burden of cholera in sub-Saharan Africa" Lessler country annual cases 1970-2011 Kenya
+  14 cholera 1970 Africa first introduction countries Guinea Ethiopia Somalia Kenya spared 1971
+  15 WHO Weekly Epidemiological Record 1974 "cholera in 1973" countries reported cases Africa
+  16 Kenya cholera Turkana Lodwar outbreak 1971 1973 1974 cases deaths report
+  17 MMWR "Cholera in 1973" worldwide international notes countries cases table CDC
+  18 stacks.cdc.gov MMWR cholera worldwide 1988 1990 1991 international notes country cases Africa
+  19 WHO African region cholera annual report 1990 1991 1993 Kenya Uganda Tanzania cases deaths table
+  20 Kenya cholera 1990 1991 outbreak ProMED / archive follow-ups from the above
 
-CUMULATIVE STATISTICS:
-- Total batches: 7 (140 queries)
-- Total data rows added: 15
-- Total sources discovered: 15
-- Overall data observation yield: 10.7% (15/140)
-- Yields by batch: B1=25%, B2=20%, B3=15%, B4=10%, B5=0%, B6=5%, B7=0%
+ROUTES EXHAUSTED FOR THE SIX HISTORICAL GAP YEARS - do not re-run these:
+  1. KENYA NATIONAL STATISTICS. Downloaded the Kenya Statistical Abstract series
+     directly from knbs.or.ke (1990, 1991, 1994, 1995, 1996, 1998, 1999, 2000,
+     2001; 1992/1993/1997 return HTTP 404) and text-extracted all of them.
+     The 1990 edition is the ONLY one with a cholera line item: Table 186(a)
+     "NOTIFIABLE DISEASES - NAIROBI CITY, 1980-1986" (Nairobi only, and ends at
+     1986). From 1991 onward the public-health chapter carries only registered
+     medical personnel, health institutions/beds, and an outpatient morbidity
+     table whose disease list has NO cholera row - cholera is subsumed in
+     "Diarrhoeal diseases". So KNBS cannot close 1988/1990/1991/1993.
+     URL pattern if anyone wants to re-check:
+     https://www.knbs.or.ke/wp-content/uploads/2023/09/{YEAR}-Statistical-Abstract.pdf
+     (note: the KNBS TLS chain fails WebFetch's verification; `curl -k` works.)
+  2. CDC MMWR INTERNATIONAL NOTES. "Cholera - Worldwide" of 5 Jan 1974
+     (stacks.cdc.gov/view/cdc/183312) covers 1973 but gives only "13 countries in
+     Africa ... have reported the disease" with NO country table and no mention of
+     Kenya. "Cholera - Worldwide, 1989" (mmwrhtml/00001634.htm) gives only
+     regional aggregates. The one MMWR that DOES carry a country table is
+     "Cholera in 1975 - Worldwide" (stacks.cdc.gov/view/cdc/1094), whose Kenya
+     row reads 1,093 - which exactly matches the value already in the JHU
+     baseline for 1975, confirming the table is the same WHO series and therefore
+     will not contain Kenya for the years WHO has no Kenya record.
+  3. GENOMICS. Weill et al., "Genomic history of the seventh pandemic of cholera
+     in Africa" (Science 2017) was downloaded in full from the Cambridge
+     repository and text-searched: the main text does not mention Kenya even
+     once. Any Kenyan isolate years live only in the supplementary tables.
 
-SURVEILLANCE GAPS STATUS:
-✓ 1970: Addressed with 1971 first cholera introduction
-✓ 1992: Major epidemic documented (reference only, no quantitative data)
-✓ 2008: Post-election violence outbreak documented
-✓ 2009: National outbreak data (11,425 cases, 264 deaths)
-✓ 2012: Drought-related outbreak documented
-✓ 2025: Recent outbreak (256 cases, 13 deaths)
-⚪ 1973, 1988, 1990-1991, 1993, 2013: Gaps remain despite exhaustive searching
+UNVERIFIED CLAIM - DO NOT PROPAGATE.
+  Multiple search-engine summaries assert "Wave three of the seventh pandemic
+  entered Kenya around 1988-1991", attributed to the Weill 2017 Science paper.
+  I fetched that paper and it contains no mention of Kenya at all, so the claim
+  could not be verified against its supposed primary source. It was NOT recorded
+  as presence evidence. If a later agent wants it, the supplementary materials of
+  science.aad5901 are the place to check, not the article text.
 
-KEY DISCOVERIES:
-- First cholera introduction: 1971 in Turkana District
-- Comprehensive surveillance: 1997-2010 (68,522 cases, 2,641 deaths)
-- Refugee camp outbreaks: Dadaab 2015-2016 (1,797 cases), 2022 (504 cases)
-- Regional patterns: North Eastern province, Nyanza 1997-1998 (14,275 cases)
-- Environmental factors: Lake Victoria as cholera reservoir
-- Intervention programs: OCV campaigns 2023 (2.2M vaccinated)
-- Elimination strategy: 2022-2030 national plan
-- Recent surveillance: 2025 outbreak (256 cases, 13 deaths, CFR 5.2%)
+Sources found: 1 usable   Registered: index 32
+Rows added   : 0
+Presence rows: 1 -> ./data/KEN/cholera_presence_ai.csv
+  AFR::KEN 1988-01-01..1988-12-31, source 32 (Mwaura et al. 2017): "From 1974 to
+  1989, outbreaks were reported every year with an average case fatality rate of
+  3.6%." Cholera was PRESENT in Kenya in 1988; no count is recoverable. This
+  matters for gap classification - 1988 must not be written up as a zero year.
+  Per CLAUDE.md a count-less source cannot enter cholera_data_ai.csv, so this
+  correctly contributes 0 to yield.
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (need 3 consecutive sub-5% batches; only 1 so far).
+               Pivoting away from the historical gaps, which now look genuinely
+               unavailable, toward sub-national detail in the 2025-2026 and 2012
+               periods where sources demonstrably exist.
 
-CHALLENGES ENCOUNTERED:
-- Significant API restrictions (37 of 140 queries blocked)
-- Limited historical data availability for 1970s-1980s
-- Surveillance system gaps before 1997
-- Documentation primarily focused on major outbreaks post-1997
+=== BATCH 5 | PHASE 2/3 (sub-national detail in periods where sources exist) | KEN ===
+Gaps targeted : 2025-06-01..2026-09-19 (recent), 2012 (modern, sub-national)
+Queries (20):
+  01 WHO AFRO Monthly Regional Cholera Bulletin 2025 Kenya cases deaths country table
+  02 Kenya cholera 2025 county breakdown Nairobi Kisumu Migori Kwale Mombasa Turkana cases deaths
+  03 Dadaab refugee camp cholera 2012 outbreak cases Hagadera Ifo Dagahaley number reported
+  04 Kenya Red Cross DREF cholera 2025 operational update counties cases deaths MDRKE066
+  05 Narok County Kenya cholera outbreak October November 2025 cases deaths
+  06 Kenya cholera "since 1 October 2025" 231 cases 13 deaths three counties Narok
+  07 Kenya cholera Narok Trans Mara outbreak total cases deaths November December 2025 final
+  08 Kenya cholera Kisumu Nairobi Kwale county 2025 outbreak cases deaths situation report
+  09 Kenya National Public Health Institute cholera 2026 weekly epidemiological bulletin cases
+  10 Africa CDC Kenya cholera 2025 2026 epidemic intelligence weekly report cases deaths
+  11 Kenya cholera June 2025 379 cases 18 deaths seven counties Kisumu Turkana Nairobi Migori Kwale Mombasa
+  12 Narok cholera Kilgoris Trans Mara West 2025 cases deaths total outbreak toll
+  13 Kenya cholera April 2025 97 cases 6 deaths Duale Migori Kisumu Nairobi confirmed
+  14 Kenya cholera Homa Bay county 2025 cases outbreak reported
+  15 ReliefWeb Kenya cholera 2026 situation report cases counties Garissa Nairobi
+  16 Garissa Township Iftin ward cholera March 2026 confirmed cases Kenya outbreak
+  17 Kenya cholera outbreak March April 2026 Garissa county cases health ministry news
+  18 Parrot Times Garissa hospital cholera confirmed case 2026 awareness
+  19 health.go.ke Garissa cholera response WHO supplies handover 2026 cases outbreak
+  20 [SW] kipindupindu Garissa Kenya 2026 visa vilivyothibitishwa ugonjwa
 
-Agent 1 baseline collection COMPLETE. Ready for Agent 2 deployment.
+*** THE MOST CONSEQUENTIAL RESULT OF THIS AGENT'S RUN: A ZERO ROW I WROTE WAS
+    WRONG, AND I RETRACTED IT. ***
+  In Batch 2 I wrote Index 53 = zero transmission, 2026-01-01..2026-05-03,
+  Documented_Absence, confidence 0.90. It was inferred arithmetically: WHO
+  Epidemiological Update 38 gives Kenya 26 cases year-to-date at 31 May 2026 AND
+  26 cases in the last 28 days, so on its face zero cases before 4 May.
+  Batch 5 found that this is false. The Star (Kenya), 2 April 2026, reports
+  "Five cases have already been confirmed in Garissa Township subcounty",
+  including an 11-year-old from Dekaburey, Iftin ward, onset 22 March 2026,
+  laboratory-confirmed 25 March 2026, with no travel history. Corroborated
+  independently by Parrot Times (Garissa County Teaching and Referral Hospital
+  response) and by the Kenya Ministry of Health, whose own site records a
+  national rapid assessment team dispatched by the Health Cabinet Secretary
+  handing over WHO-donated cholera supplies in Garissa on 30 MARCH 2026 - six
+  weeks before the outbreak the WHO series dates to May.
+  Why WHO missed it: the WHO/KNPHI national series dates the 2026 outbreak to
+  May 2026 in Dagahaley camp, DADAAB sub-county. The March cluster was in
+  GARISSA TOWNSHIP sub-county - a different sub-county - and evidently never
+  entered the national notification stream that Update 38 aggregates.
+  Action: Index 53 retracted via py/revise_observation.py --delete; tombstone in
+  ./data/KEN/retracted_rows_ai.csv. Had it survived,
+  py/build_weekly_timeseries.py would have rendered roughly 18 weeks of
+  sCh=0 false negatives into the MOSAIC model input.
+  GENERALISABLE LESSON for every other country in this pipeline: deriving a zero
+  period from "WHO year-to-date == WHO last-28-days" is UNSAFE. It silently
+  assumes the national notification stream is complete, which is exactly the
+  assumption this project exists because it is false. Do not use that inference
+  without a local-language / national-media check over the same window.
+
+TRAP: SEARCH SUMMARIES CROSS-ATTRIBUTE DISEASES IN THE KENYA WHO BULLETINS.
+  These bulletins tabulate mpox, measles, dengue, polio and cholera side by side,
+  and search-engine summarisation repeatedly assigned the wrong disease's numbers
+  to cholera. Observed false attributions, all corrected by extracting the PDFs
+  directly: "cholera ... 1,583 cases in Garissa" (that is DENGUE); "cholera 456
+  cases, 77 confirmed, since November 2025" (that is MEASLES); "three deaths
+  across 19 counties in 2026" and "207 cases from nineteen counties" (both MPOX).
+  Always `pdftotext -layout` the bulletin; never trust the snippet.
+
+Sources found: 4 usable   Registered: index 33, 34, 35, 36, 37
+Rows added   : 14   Indices: 57-63, 64-69, 70
+  57 AFR::KEN::Migori              2025-02-21..2025-03-12 sCh=42 cCh=8 deaths=1
+  58 ::Migori::Kuria_East          2025-02-21..2025-03-12 sCh=21 deaths=1
+  59 ::Migori::Kuria_West          2025-02-21..2025-03-12 sCh=16 deaths=0
+  60 ::Migori::Suna_West           2025-02-21..2025-03-12 sCh=3  deaths=0
+  61 ::Migori::Suna_East           2025-02-21..2025-03-12 sCh=2  deaths=0
+  62 AFR::KEN::North-Eastern       2012-01-01..2012-09-28 sCh=80
+  63 ::North-Eastern::Garissa::Dadaab 2012-01-01..2012-09-28 sCh=18 deaths=0
+  64-69 six county rows for 2025-01-01..2025-06-17 (Kisumu 99/7, Turkana 89/1,
+        Nairobi 69/2, Migori 53/1, Kwale 48/3, Mombasa 21/4) - these sum EXACTLY
+        to the independently stated national 379/18, and the trajectory is
+        consistent with WHO's 425/20 at 27 July 2025
+  70 ::Garissa::Garissa_Township   2026-03-22..2026-04-02 cCh=5
+Rows retracted: 1 (Index 53, above)
+Rows revised : 1 (Index 51 confidence 0.9 -> 0.8, conflict with WHO AFRO
+  country-office figure of 231 cases / 13 deaths since 1 Oct 2025 recorded in the
+  note rather than written as a competing overlapping row)
+Successful queries: 4/20  (queries 02, 03, 08, 15)
+Yield        : 20%
+Consecutive sub-5% batches: 0 (reset by this batch)
+Decision     : CONTINUE - stop rule not met.
+
+=== BATCH 6 | PHASE 3 (county/refugee-settlement detail across the recent gap) | KEN ===
+Gaps targeted : 2025-06-01..2026-09-19 (recent) - the only gap with live sources left
+Queries (20):
+  01 Narok cholera October 2025 "45" cases five deaths 21 discharged Trans Mara West hospital
+  02 Kenya cholera January February 2026 cases counties outbreak reported
+  03 Kenya cholera Kakuma Kalobeyei Turkana 2025 outbreak cases refugees UNHCR
+  04 turkana.go.ke cholera situation report Kakuma Kalobeyei 2025 cases confirmed deaths
+  05 Kakuma Kalobeyei cholera 2025 "74" cases "30" laboratory confirmed one death May 18
+  06 Narok cholera Lucy Kashu press briefing 45 affected five deaths 21 discharged 19 admitted
+  07 Kakuma Kalobeyei cholera November December 2025 total cases deaths Turkana county report
+  08 Kenya cholera August September 2025 cases counties update Ministry of Health
+  09 Kenya cholera 2026 Wajir Mandera Tana River Kilifi Nairobi Kibra cases outbreak
+  10 WHO multi-country cholera external situation report 31 29 October 2025 pdf download
+  11 IFRC GO field report Kenya cholera outbreak Nairobi October 2025 cases deaths epidemic
+  12 Kenya cholera outbreak latest news September 2026 cases counties health
+  13 Kenya cholera Turkana West 122 cases 39 confirmed culture Kakuma Kalobeyei July 2025
+  14 Kenya cholera 1988 1990 1991 1993 Lancet BMJ East African Medical Journal outbreak report
+  15 Kenya cholera retrospective district hospital admissions 1990 1993 Nyanza Kisumu study
+  16 [SW] kipindupindu Kenya milipuko 1990 1991 1993 historia ya ugonjwa
+  17 Kenya cholera Busia Kilifi Mombasa 2026 oral cholera vaccination campaign outbreak cases
+  18 Kenya cholera Bomet Kisii Nyamira 2025 outbreak cases reported county
+  19 Kenya cholera Bomet county 2025 six cases outbreak operational update IFRC
+  20 Kenya cholera 2025 Nyamira Kisii Homa Bay cases deaths county health department
+
+THE 2025 NATIONAL SERIES IS NOW RECONSTRUCTED MONTH BY MONTH FROM WHO TABLE 1.
+Every issue was downloaded and text-extracted individually:
+  27 Jul 2025 : 425 / 20   (last 28 days:   7 cases, 0 deaths)   SitRep 29
+  31 Aug 2025 : 426 / 20   (last 28 days:   1 case,  0 deaths)   SitRep 30
+  28 Sep 2025 : 426 / 20   (NO UPDATE FILED - row flagged with the section symbol,
+                            last-28-days columns blank)          SitRep 31
+  26 Oct 2025 : 537 / 25   (last 28 days: 111 cases, 5 deaths)   SitRep 32
+  28 Dec 2025 : 700 / 26   (last 28 days:  23 cases, 0 deaths)   Update 33
+  31 May 2026 :  26 /  0   (last 28 days:  26 cases, 0 deaths)   Update 38
+September 2025 is a NON-REPORTING month, not a cholera-free one. Per CLAUDE.md no
+zero row was written for it and none should be: Surveillance_Gap is not a valid
+zero label. It is left genuinely empty.
+
+Sources found: 5 usable   Registered: index 38, 39, 40, 41, 42
+Rows added   : 5   Indices: 71, 72, 73, 74, 75
+  71 ::Turkana::Turkana_West  2025-05-18..2025-06-08 sCh=74  cCh=30 deaths=1
+     (Turkana COUNTY GOVERNMENT situation report - an official sub-national
+      surveillance product, the strongest non-WHO source found for this period)
+  72 ::Turkana::Turkana_West  2025-05-18..2025-07-17 sCh=122 cCh=39
+  73 ::Mombasa::Jomvu         2025-01-01..2025-07-17 sCh=32  deaths=5 (CFR 15.6%)
+  74 AFR::KEN::Narok          2025-09-29..2025-10-06 sCh=45  deaths=5
+  75 AFR::KEN                 2025-08-04..2025-08-31 sCh=1   deaths=0 (28-day window)
+Presence rows: 1 -> ./data/KEN/cholera_presence_ai.csv
+  ::Turkana::Turkana_West 2025-11-15..2025-11-22 - a November 2025 Kakuma/Kalobeyei
+  resurgence reported only as "more than fifty cases in just a few days", a lower
+  bound rather than a count, so it cannot become a data row.
+CROSS-SOURCE CONSISTENCY, worth recording because it is unusually good here:
+  Turkana West runs 74 (8 Jun, county govt) -> 89 (17 Jun, national MoH county
+  breakdown) -> 122 (17 Jul, WHO-backed national report) across three independent
+  sources; and the national frame runs 379/18 (17 Jun, MoH) -> 423/20 (17 Jul,
+  MoH/WHO) -> 425/20 (27 Jul, WHO global) - agreement to within two cases.
+Successful queries: 4/20  (queries 01, 03, 04, 08)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE - stop rule not met (yields 5,20,10,0,20,20).
+
+=== BATCH 7 | PHASE 3 (sub-county detail; WER archive; national statistics) | KEN ===
+Gaps targeted : 2025-06-01..2026-09-19; final attempts at the six historical years
+Queries (20):
+  01 Homa Bay county cholera 2025 36 cases Suba South Sindo Wadianga outbreak
+  02 iris.who.int Weekly Epidemiological Record cholera annual 1989 1991 1994 PDF download archive
+  03 Kenya cholera 2026 February March April cases reported counties Ministry of Health Kenya news
+  04 Kisumu county cholera 2025 outbreak sub-counties cases deaths ended May
+  05 Nairobi county cholera 2025 sub-counties cases deaths Kamukunji Embakasi Mathare outbreak
+  06 Kwale county cholera 2025 outbreak cases deaths sub-county Msambweni Lunga Lunga
+  07 Kenya cholera Kakuma December 2025 January 2026 cases Turkana county situation report update
+  08 Kenya cholera 1970 WHO annual report Africa no cases Kenya reported 1970
+  09 iris.who.int AFRO Cholera Monthly bulletin June July August 2025 pdf
+  10 Kenya cholera 2013 Dadaab Garissa five cases confirmed year surveillance
+  11 iris.who.int "Cholera in 1991" OR "Cholera in 1993" WER bitstream pdf handle
+  12 afro.who.int monthly regional cholera bulletin June 2025 Kenya cases deaths country table
+  13 Kenya cholera Wajir Mandera Tana River Marsabit Baringo 2025 2026 cases outbreak sub-counties
+  14 Kenya cholera 2025 end of year total cases deaths summary counties annual
+  15 WHO Kenya Emergency Bulletin June 2025 cholera cases counties pdf afro
+  16 Kenya cholera Dadaab 2011 60 cases 10 laboratory confirmed one death refugee camp
+  17 cholera Africa 1990 1991 1992 1993 country table cases deaths review Kenya Uganda Tanzania Rwanda
+  18 Kenya cholera Fafi Baringo Marsabit Garissa 2026 sub-counties cases reported outbreak
+  19 Kenya cholera Bomet county 2025 six cases outbreak operational update IFRC (carried over)
+  20 Kenya cholera 2025 Nyamira Kisii Homa Bay cases deaths county health department (carried over)
+
+NOTHING COMMITTED. Everything found was either outside a gap, already recorded,
+a duplicate of an earlier snapshot, or misattributed. Specifically:
+  - Homa Bay "36 cases, Suba South, Sindo market 18, Wadiang'a 12" is from MAY
+    2023, not 2025. Checked and rejected; 2023 is not a gap year for Kenya.
+  - Kisumu 32 cases / 4 deaths (8 Apr 2025) and Nairobi 49 suspected / 12
+    confirmed / 1 death (early 2025) are earlier snapshots of counties already
+    recorded at their later, larger values (Indices 64 and 66).
+  - Dadaab 2011: 60 cases, 10 laboratory-confirmed, 1 death (UN News, Nov 2011).
+    Real, but 2011 is fully covered by the JHU baseline (79 rows). Not added.
+  - WHO IRIS is closed to this toolchain: item pages and bitstream URLs both
+    return HTTP 403 to WebFetch, and curl retrieves only an HTML interstitial,
+    not the PDF. The WER annual cholera issues and the AFRO monthly cholera
+    bulletins hosted there could not be opened by any route tried.
+  - No OCR is available in this environment (no tesseract/ocrmypdf), so the
+    image-only PDFs - notably the GTFCC PAMI country report for Kenya - remain
+    unreadable.
+
+TRAP RECURRENCE (third time). A search summary for query 18 confidently reported
+"Of the 480 cases reported, 85 are laboratory-confirmed" and gave Garissa
+sub-county cholera figures of Dadaab 1,099 / Fafi 661 / Lagdera 85 / Garissa
+Township 43. The 480/85 pair is the MEASLES row of the Week 28 Kenya bulletin,
+which I had already extracted directly; the sub-county figures do not correspond
+to any cholera table in that bulletin. None of it was used.
+
+Sources found: 0 new usable
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (need 3 consecutive sub-5%).
+
+=== BATCH 8 | PHASE 3 (institutional APIs, citation chains, document digs) | KEN ===
+Gaps targeted : 2025-06-01..2026-09-19 (recent); 1990/1991/1993 presence classification
+Queries (20):
+  01-03 Kenya cholera 2025 DREF MDRKE066 final report cases counties Red Cross reached /
+        Kenya cholera 2026 Nairobi Lucky Summer Ruaraka first case June /
+        UNICEF Kenya humanitarian situation report 2025 cholera cases counties
+  04-05 Kenya cholera Narok case fatality rate 9 percent DREF Nairobi outbreak declared 2025 /
+        Kenya cholera 2025 December total cases counties Narok Nairobi outbreak update news
+  06-08 Kenya Narok cholera 55 suspected six confirmed five deaths CFR 9.1 percent /
+        Kenya cholera 23 November 2025 241 cases three counties Narok Nairobi Migori deaths /
+        IFRC GO field report Kenya cholera outbreak Nairobi October 2025 cases deaths epidemic
+  09-13 Kenya cholera Migori second wave October November 2025 /
+        Kenya cholera Nairobi November December 2025 confirmed cases sub-counties second wave /
+        IFRC GO field report Kenya cholera 2026 Garissa Dadaab epidemic emergency /
+        KEMRI Kenya cholera outbreak reports 1990 1991 1993 isolates investigation /
+        Kenya cholera outbreak years list history 1971 1974 1980 1983 1985 1997 2007 review table
+  14-17 Bundi 2019 Vibrio cholerae Kenya wave T6 T10 1990 1999 2014 transmission events /
+        Kenya cholera 2026 outbreak IFRC DREF emergency Garissa Dadaab cases May June /
+        Kajiado Narok cholera October 2025 high alert cases outbreak spread /
+        Kenya cholera outbreak Nairobi October 2025 declared cases deaths Kibra Embakasi sub-counties
+  18-20 MSF Kenya cholera Dagahaley 250 patients five deaths "31 March" treatment centre year /
+        msf.org Kenya cholera outbreak heavy rains flooding Dadaab Dagahaley response date /
+        Kenya cholera Bomet county 2025 six cases outbreak operational update IFRC
+
+NEW EXTRACTION ROUTE THAT WORKS AND SHOULD BE REUSED FOR EVERY COUNTRY:
+  go.ifrc.org pages are client-side rendered and return nothing to a fetcher, but
+  the IFRC GO REST API is open and returns full structured records:
+      https://goadmin.ifrc.org/api/v2/field-report/{id}/?format=json
+      https://goadmin.ifrc.org/api/v2/event/{id}/?format=json
+  (note: goadmin.ifrc.org works; go-api.ifrc.org returned empty.) Field-report
+  records carry epi_cases / epi_confirmed_cases / epi_num_dead plus a narrative
+  description, with `other_sources` naming the originating authority. Field report
+  17950 is sourced to "Ministry of Health."
+
+A CONFLICT ADJUDICATED RATHER THAN LEFT OPEN.
+  WHO AFRO Kenya's country office published "over 231 cases and 13 deaths ...
+  since 1 October 2025". The case count is fine; the DEATH count is not. WHO
+  Table 1 gives Kenya 20 deaths to 27 Jul, 25 to 26 Oct and 26 to 28 Dec 2025, so
+  deaths from 1 October to year end total about 6. Two sources agree with ~6:
+  IFRC/Kenya MoH report 5 deaths in Narok as at 21 Oct 2025, and a 23 Nov 2025
+  national update gives 6 deaths across Narok, Nairobi and Migori since 1 Oct.
+  The "13 deaths" looks like an erroneous carry-over of the "256 cases and 13
+  deaths" pair published for the February-April 2025 wave. Index 51's confidence
+  was restored from 0.80 to 0.90 and the reasoning appended to its notes.
+
+Sources found: 2 usable   Registered: index 43, 44
+Rows added   : 2   Indices: 76, 77
+  76 AFR::KEN::Narok           2025-09-17..2025-10-21 sCh=115 deaths=5 (IFRC/MoH)
+  77 ::Nairobi::Roysambu       2025-10-21..2025-10-21 cCh=1 (start of Nairobi's
+     second 2025 wave; patient admitted at Kenyatta University Teaching, Referral
+     and Research Hospital)
+Rows revised : 2   Index 51 (confidence 0.80 -> 0.90, conflict adjudicated);
+                   Index 74 (confidence 0.50 -> 0.45, superseded by Index 76,
+                   retained as a nested earlier snapshot for consistency with how
+                   the Turkana West pair 71/72 is handled)
+Presence rows: 3 -> ./data/KEN/cholera_presence_ai.csv
+  AFR::KEN for 1990, 1991 and 1993, citing Bundi et al. 2019 (Microbiol Immunol
+  63(9):350-358), which places the T6 transmission event in Kenya 1990-1999 and
+  the T10 event in Kenya 1990-2014 on the basis of 146 sequenced isolates.
+  THIS IS THE KEY CLASSIFICATION RESULT FOR THE HISTORICAL GAPS: cholera was
+  demonstrably circulating in Kenya in 1990, 1991 and 1993. Those three years are
+  REPORTING gaps, not disease-free years, and must never be written as zeros -
+  which also settles the open question raised in the Batch 3 log about whether
+  the "3 years Kenya did not report since 1991" were true zeros. They were not.
+Checked and rejected: MSF "more than 250 patients ... five people died since the
+  first case was reported on 31 March" in Dagahaley is from 18 MAY 2018, not
+  2026. 2018 is fully covered by the JHU baseline (110 rows). Not added.
+Successful queries: 1/20  (the IFRC GO field report query)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%, so the counter resets)
+Decision     : CONTINUE.
+
+=== BATCH 9 | PHASE 3 (cross-border, outbreak closures, final historical attempts) | KEN ===
+Gaps targeted : 2025-06-01..2026-09-19; 1988/1990-91/1993
+Queries (20):
+  01-05 Kenya cholera Jan/Feb 2026 Garissa Nairobi / Kenya cholera Dec 2025 Narok Nairobi Migori /
+        Uganda Tanzania cross-border cholera Kenya 2025 2026 Busia Migori Isebania /
+        Somalia Ethiopia cross-border cholera Kenya Mandera Wajir 2025 2026 /
+        Kenya cholera 1988 1990 1991 1993 WHO African Region bulletin Brazzaville archive
+  06-10 Kenya cholera Wajir 2023 2024 nine deaths 125 hospitalised /
+        Kenya cholera 7-1-7 Early Action Review Migori County 2025 /
+        Kenya cholera 2026 Jul-Sep Garissa Nairobi outbreak closed declared over /
+        Kenya cholera 1997 1998 1999 annual cases deaths 26901 1362 districts /
+        "Kenya" cholera 1992 Homa Bay district deaths outbreak epidemic report
+  11-15 Kenya cholera Early Action Protocol MDRKE071 2025 anticipatory action /
+        Kenya cholera 2024 annual total cases deaths counties /
+        Kenya surveillance system 1990s cholera reporting notification WHO gap structural adjustment /
+        Kenya cholera Turkana Kakuma 2012 2013 cases refugee camp /
+        "cholera" Kenya 1993 reported cases WHO number annual epidemiological
+  16-20 Kenya cholera 2026 Kibra Nairobi confirmed cases /
+        Kenya cholera outbreak 2026 Aug-Sep latest weekly situation report /
+        Kenya cholera 1980s 1990s annual table WHO Kenya Uganda Tanzania comparison /
+        Kenya cholera Narok Trans Mara outbreak declared over Dec 2025 final total /
+        Kenya cholera Migori Kuria 2025 cross-border Tanzania Tarime AFENET
+
+NO NEW ROWS, BUT ONE EXISTING ROW MATERIALLY IMPROVED.
+  Registered metadata Index 45, the 7-1-7 Early Action Review of the Migori
+  outbreak (medRxiv 2025.07.29.25332335), and used it to revise Index 67:
+  interval narrowed from 2025-01-01..2025-06-17 to the true outbreak window
+  2025-02-10..2025-04-08, cCh added (16), confidence raised 0.60 -> 0.80. The
+  review's suspected-case total (53) and death count (1) match the Ministry of
+  Health county breakdown of 17 June exactly, so the narrowing changes no counts.
+  A revision is not a new row, so this batch's yield is correctly 0%.
+
+CONTEXT FOR THE HISTORICAL GAPS - a mechanism, not a number.
+  Kenya's Structural Adjustment Programmes began in 1988 and accelerated after
+  1991; public-facility consultations fell from 0.6 per person in 1990 to 0.4 in
+  1996 and per-capita public health spending from US$12 (1990) to US$6 (2002).
+  That is a plausible mechanism for why Kenya filed no cholera notification to
+  WHO in 1988, 1990, 1991 and 1993 while, per Bundi et al. 2019, the T6 and T10
+  transmission events were demonstrably circulating in the country. The gaps are
+  a collapse of REPORTING, not of transmission. This does not produce a case
+  count and no row was written from it.
+
+OPEN ITEM HANDED TO AGENT 5 - a genuine attribution conflict, deliberately not
+resolved by me because resolving it wrongly would misattribute a national figure
+to one county:
+  Education News (27 Jan 2026), reporting the Narok health department's
+  declaration that the outbreak was over after 28 days with no new cases, says
+  the outbreak "began in late September 2025" and saw "over 240 reported cases
+  and at least six deaths" in Trans Mara West and South - and then, in the same
+  article, "seven people lost their lives to cholera".
+  But a 23 November 2025 national update attributes 241 cases and 6 deaths since
+  1 October to THREE counties (Narok, Nairobi and Migori) combined, and the best
+  county-level source for Narok (IFRC citing the Kenya MoH, this file Index 76)
+  gives Narok 115 cases / 5 deaths as at 21 October 2025.
+  So "over 240" may be the three-county total misattributed to Narok alone. It is
+  a lower bound from a Level 4 outlet that contradicts itself on deaths, so no row
+  was written. What IS solid and worth carrying forward: the Narok outbreak was
+  declared over in January 2026 after 28 case-free days, which bounds its end.
+
+Sources found: 1 usable   Registered: index 45
+Rows added   : 0
+Rows revised : 1 (Index 67)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE.
+
+=== BATCH 10 | PHASE 3 (technical/genomic, linguistic, archives, open data) | KEN ===
+Gaps targeted : all remaining; deliberately spread across the query categories that
+                had been least used (technical, linguistic, archival, open data)
+Queries (20):
+  01-05 web.archive.org WHO WER cholera 1991 1994 annual table Kenya /
+        Kenya cholera environmental surveillance Lake Victoria V. cholerae water 2025 2026 /
+        Kenya cholera genomic sequencing 2022 2023 isolates Nairobi western Kenya /
+        [SW] kipindupindu Kenya kaunti 2025 visa vipya vifo ripoti ya wizara /
+        Kenya cholera newspaper archive 1991 1993 Daily Nation Standard epidemic
+  06-10 Kenya cholera Tana River Garsen West 32 cases flooding year /
+        2026 Kenya floods cholera cases counties waterborne disease /
+        Kenya cholera 2026 Tana River Galole Kilifi confirmed /
+        Kenya cholera ProMED mail archive 2025 2026 /
+        Kenya cholera dataset github repository county line list open data
+  11-15 Kenya cholera Isiolo Samburu Marsabit Baringo 2025 2026 /
+        Kenya cholera 1974 1975 1976 1980 1982 1985 outbreak district historical /
+        Kenya cholera school prison institutional outbreak 2025 2026 /
+        Kenya cholera week 11 March 2025 EPR bulletin counties /
+        Kenya cholera Mandera West Pokot Homa Bay Samburu Marsabit five new counties
+  16-20 Kenya cholera 2026 Kakuma Kalobeyei Turkana Jan-Feb county government /
+        "cholera endemicity as a systems failure" STAMP-CAST Kakuma Dadaab /
+        Kenya cholera GTFCC PAMI priority areas annual incidence counties /
+        Turkana high alert cross-border migration cholera measles 2025 South Sudan /
+        Kenya cholera Mombasa Jomvu 2025 outbreak cases deaths coastal
+
+Everything surfaced was already held, out of gap, or a bound rather than a count:
+  - Taifa Leo (Swahili) "visa 34 vya kipindupindu ... Garsen Magharibi 32, Garsen
+    ya Kati 2" in Tana River is dated 4 MAY 2024, not 2025/2026. 2024 is covered
+    by the JHU and WHO baselines. Checked the date precisely before rejecting.
+  - Kakuma May 2025 sub-camp detail ("seven cases confirmed from 16 samples ...
+    Kakuma 1 one, Kakuma 2 two, Kakuma 3 one, Kalobeyei four") does not add up
+    (1+2+1+4=8 against a stated 7) and is nested inside Index 71. Not added.
+  - Mombasa "four deaths, mainly Kibarani slums" is superseded by Index 73
+    (Jomvu sub-county, 32 cases / 5 deaths to 17 July 2025).
+  - Genomic work (2022-2023 Nairobi isolates, western Kenya 2015-2023, Lake
+    Victoria environmental strains) is rich but reports isolate counts, not
+    population case counts, so none of it is eligible for cholera_data_ai.csv.
+  - No Kenyan cholera line-list or open dataset exists publicly; the PAMI work
+    confirms the data sits in the MoH IDSR system and is released only as
+    published analyses.
+
+Sources found: 0 new usable
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE - one more batch decides it.
+
+=== BATCH 11 (PARTIAL) | PHASE 3 (sub-county resolution) | KEN ===
+Queries issued and answered (5):
+  01 Kenya cholera September 2026 latest cases Kenya National Public Health Institute
+  02 Kenya cholera Garissa March April 2026 outbreak total cases Township Iftin
+  03 Kenya cholera Kisumu Nyando Muhoroni 2025 sub-county cases deaths outbreak
+  04 Kenya cholera Kwale Msambweni Lunga Lunga 2025 sub-county cases deaths
+  05 Kenya cholera Dadaab Dagahaley 2026 UNHCR IRC MSF response cases refugee
+Queries refused: 5 - the session's WebSearch budget was exhausted mid-batch
+  ("this session has used its web search budget (200 of 200 WebSearch calls)").
+
+Rows added : 2   Indices: 78, 79 (from query 03)
+  78 ::Kisumu::Nyando    2025-03-14..2025-05-31 sCh=65 deaths=5
+  79 ::Kisumu::Muhoroni  2025-03-14..2025-05-31 sCh=18 deaths=1
+  Kwale's split (Lunga Lunga - Jasini village on the Tanzanian border - plus
+  Msambweni) is described qualitatively with only a county total of 48 cases /
+  4 culture-confirmed / 3 deaths, so no sub-county rows were possible there.
+Successful queries: 1/5
+Decision   : STOP - hard environmental limit, not a yield decision.
+
+================================================================================
+=== AGENT 1 RUN COMPLETE ===
+================================================================================
+STOPPING REASON: the session's hard WebSearch ceiling of 200 calls was reached
+during batch 11. This is an environmental limit, not the <5%-yield criterion.
+Batches completed: 10 full (20 queries each) + 1 partial (5 queries).
+Batch yields (%): 5, 20, 10, 0, 20, 20, 0, 5, 0, 0, and 20 for the partial batch.
+The <5% stopping criterion was never satisfied: the longest sub-5% run was two
+consecutive batches (9 and 10), and batch 11 produced rows before the budget ran
+out. The 3-batch minimum was exceeded more than threefold.
+
+HONEST BOOKKEEPING NOTE: the per-batch query lists above sum to about 205, while
+the platform's hard counter recorded exactly 200 WebSearch calls. The ~5-query
+discrepancy is mine - during execution a small number of document fetches were
+tallied as queries in the running count. The platform figure of 200 is the
+authoritative total. Per-batch yields are unaffected in any material way.
+
+GAP OUTCOMES (against the eight gaps assigned at start):
+  2025-06-01..2026-09-19 (476d, recent)  SUBSTANTIALLY CLOSED. Continuous national
+      coverage reconstructed: 2025 full year 700/26, plus discrete Aug, Oct and Dec
+      2025 windows; county detail for Turkana West, Narok, Nairobi, Mombasa/Jomvu,
+      Kisumu sub-counties; the May-July 2026 Garissa/Nairobi outbreak (40 cases,
+      1 death); and the previously unrecorded March 2026 Garissa Township cluster.
+      Residual: Sept 2025 (a WHO non-reporting month, correctly left empty),
+      Jan-Feb 2026, and 14-19 Sept 2026 (after the last published bulletin).
+  2012-04-01..2012-08-31 (153d) and 2012-12-01..2013-12-31 (396d, modern) CLOSED.
+      National 2012 = 339 cases / 24 deaths and 2013 = 5 cases / 0 deaths, from
+      Kenya MoH DSRU data via Cowman 2015. Sub-national 2012 added for
+      North-Eastern province (80) and Dadaab (18).
+  1970-01-01..1970-12-31 (365d, historical)   NOT CLOSED.
+  1973-01-01..1973-12-31 (365d, historical)   NOT CLOSED.
+  1988-01-01..1988-12-31 (366d, historical)   NOT CLOSED (presence established).
+  1990-01-01..1991-12-31 (730d, historical)   NOT CLOSED (presence established).
+  1993-01-01..1993-12-31 (365d, historical)   NOT CLOSED (presence established).
+
+WHY THE FIVE HISTORICAL GAPS ARE PROBABLY UNCLOSABLE FROM OPEN SOURCES.
+Kenya filed no annual cholera notification to WHO for 1970, 1973, 1988, 1990,
+1991 or 1993, so those years are absent from the WHO/GHO series, from Our World
+in Data, and from the JHU baseline that derives from them - this was verified
+directly against the full 1949-2024 series. Every alternative route was tried and
+documented above: WER annual issues via IRIS (403 to every method), the Bulletin
+of WHO reprints via PMC and Europe PMC (page-image scans, non-OA, CAPTCHA-walled
+to curl), CDC MMWR international notes (regional aggregates only, no country
+table), the Kenya Statistical Abstract series 1990-2001 downloaded and text-
+searched (cholera is a line item only in the 1990 edition, Nairobi only, ending
+1986), Kenyan MoH and KEMRI material, genomic papers, and newspaper archives.
+No OCR tooling exists in this environment, which blocks the remaining image-only
+PDFs. What WAS established is the classification: Bundi et al. 2019 place the T6
+transmission event in Kenya 1990-1999 and T10 1990-2014 from 146 sequenced
+isolates, and Mwaura et al. 2017 state outbreaks were reported every year from
+1974 to 1989. Cholera was circulating. These are REPORTING gaps and must never be
+written as zeros. Presence rows are filed for 1988, 1990, 1991 and 1993.
+=== ORCHESTRATOR GATE LOG ===
+Agent 1: 11 batches, yields 5/20/10/0/20/20/0/5/0/0/20 %, +34 net rows, +22 sources.
+  Stopped on the session WebSearch ceiling (200 calls), not the yield rule. ACCEPTED.
+Agent 2: 12 batches (ceiling), +131 rows, +44 sources. Ran via Bash/curl back-ends after
+  WebSearch exhaustion. ACCEPTED.
+Agent 3: 12 batches (ceiling), +30 rows (all validated absences), +10 sources. ACCEPTED.
+Agent 4: 12 batches (ceiling), +225 rows, +21 sources. ACCEPTED.
+Agent 5: 7 batches, yields 10/10/15/20/0/15/15 %, +342 rows, +9 sources.
+  UNDER-PERFORMED: stopped at 7 of 12 batches on a 15% final-batch yield; the stopping
+  criterion (3 consecutive batches <5%, or 12 batches) was never met, and named leads
+  remained open. REDEPLOYED ONCE (2026-09-20) for batches 8-12 with the six specific
+  items it left unfinished: the same_period_conflict warning, the unproven 2020
+  AFRO-vs-annual mechanism, the unsourced West Pokot row (Index 19), the WER 2002-2007
+  IHR sweep, the 1991-93 Somali refugee-camp literature, and the 2017/2019/2024/2025
+  county tables.

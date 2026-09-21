@@ -1,373 +1,1055 @@
-=== AGENT 7 INITIALIZATION ===
-Country: Uganda (UGA)
-Start Time: 2026-05-14 10:45:00
-Agent 7 Status: INITIALIZED
-Role: Quality Auditor (Final Gatekeeper)
+================================================================================
+AGENT 7 - QUALITY AUDITOR - UGANDA (UGA)
+================================================================================
+Country      : Uganda (UGA)
+Agent        : 7 (cholera-quality-auditor), the final agent of the workflow
+Start        : 2026-09-19 20:12:00
+End          : 2026-09-19 20:47:00
+Status       : COMPLETED
+Working dir  : /Users/johngiles/MOSAIC/ai-cholera-data-mining
+This log      : ./data/UGA/search_log_agent_7.txt  (overwrites the stale
+                2026-05-14 02:59 file from the previous run)
+Report        : ./data/UGA/search_report.txt  (executive summary; separate
+                deliverable, written 20:42)
 
-=== BASELINE GAP CONTEXT LOADED ===
-Source files:
-  - ./reference/baseline_surveillance_gaps_coverage.csv
-  - ./reference/baseline_surveillance_gaps_detailed.csv
-  - ./reference/baseline_surveillance_gaps_annual.csv
+SCOPE NOTE. Agent 7 has no query budget and no stopping criterion, and collects
+no new observations. The 3-batch floor and the 12-batch ceiling do not apply.
+Everything below is validation, verification and repair. Nothing outside
+./data/UGA/ was modified. py/analyze_effective_gaps.py, update_dashboard.sh,
+py/update_dashboard_data.py and every git command were deliberately NOT run,
+because countries were processing in parallel and those are shared or
+committing operations. Confirmed afterwards: ./reference/effective_surveillance_
+gaps_*.csv all still carry their 19:39 timestamps, i.e. untouched by this agent.
 
-Uganda Baseline (JHU + WHO integrated):
-  - Total months in surveillance period: 668
-  - Months with data: 467
-  - Months missing: 201
-  - Baseline coverage: 69.9%
-  - Data years present: 1971, 1975, 1978-1980, 1982, 1987, 1991-1992, 1994-2020, 2022-2024
-  - Missing years: 1970, 1972-1974, 1976-1977, 1981, 1983-1986, 1988-1990, 1993, 2021, 2025
+INHERITED STATE READ IN FULL BEFORE ANY EDIT
+  ./data/UGA/search_log_agent_1.txt   542 lines
+  ./data/UGA/search_log_agent_2.txt   377 lines
+  ./data/UGA/search_log_agent_3.txt  1080 lines
+  ./data/UGA/search_log_agent_4.txt   685 lines
+  ./data/UGA/search_log_agent_5.txt   684 lines
+  ./data/UGA/search_log_agent_6.txt   930 lines
+  ./data/UGA/cholera_data_ai.csv      199 rows (indices 2-200)
+  ./data/UGA/metadata_ai.csv          115 sources
+  ./data/UGA/cholera_presence_ai.csv   35 presence records
+  ./data/UGA/workflow_state.json      Agents 1-6 completion entries
+  /tmp/UGA_pre.json                   run-start validator snapshot (45 rows)
 
-Baseline gap periods (consolidated):
-  1) 1970-01-01 to 1970-12-31 (12 mo) - pre-cholera era
-  2) 1972-01-01 to 1974-12-31 (36 mo) - Amin regime
-  3) 1976-01-01 to 1977-12-31 (24 mo) - Amin regime
-  4) 1981-01-01 to 1981-12-31 (12 mo) - Obote II
-  5) 1983-01-01 to 1986-12-31 (48 mo) - NRA bush war
-  6) 1988-01-01 to 1990-12-31 (36 mo) - post-civil-war reconstruction
-  7) 1993-01-01 to 1993-12-31 (12 mo) - reporting gap
-  8) 2021-01-01 to 2021-12-31 (12 mo) - COVID-19 era
-  9) 2024-12-01 to 2025-08-31 (9 mo) - current period
 
-Total baseline gap days: 6,118 days
-Total gaps with ≥6 months missing data: 17 years
+################################################################################
+PHASE 0 - BASELINE VALIDATION AND TOOL DISCOVERY
+################################################################################
 
-=== STAGE 0: CRITICAL CSV FORMAT VALIDATION ===
-Executed first per Agent 7 protocol.
+V1  python py/validate_quality.py UGA --json /tmp/UGA_audit.json   [20:13:09]
+    -> Validated 1 country | 199 data rows | 115 metadata sources
+       ERROR 0   WARN 107   INFO 20
+       54 national_subnational_overlap, 18 multiyear_aggregate,
+       13 notes_missing_quote, 9 same_period_conflict,
+       8 CFR_high_flagged_for_review, 4 reporting_date_blank,
+       1 period_single_day; 17 INFO metadata_unused.
 
-cholera_data_ai.csv:
-  ✓ Exactly 14 columns, correct names, correct order
-  ✓ 46 data rows
-  ✓ Index column sequential 1..46
-  ✓ All TL dates valid YYYY-MM-DD
-  ✓ All TR dates valid YYYY-MM-DD
-  ✓ All reporting_date valid YYYY-MM-DD
-  ✓ All Location codes follow AFR::{ISO}[::ADM]+ pattern
-  ✓ Source_index integrity: all 28 unique source_index values exist in metadata
-  ✓ Source name matching: 0 mismatches (46/46 rows match exactly)
-  ✓ TL ≤ TR for all rows (0 violations)
-  ✓ Deaths ≤ sCh for all rows (0 violations)
-  ✓ Confidence weights in valid range [0.80-0.95]
-  ✓ No NaN/None/null/\r/\n contamination
-  ✓ Strict CSV DictReader parse: PASS (46 rows)
-  ✓ source_database column populated for all rows ('AI')
+V2  Inspected py/add_observation.py load() / locked() / save() helpers.
+    -> save() refuses a row carrying a key the header lacks, refuses ragged
+       rows, takes a microsecond-stamped backup and writes through a temp file.
+       This is the sanctioned read-modify-write path.
 
-metadata_ai.csv:
-  ✓ Exactly 15 columns, correct names, correct order
-  ✓ 30 metadata rows
-  ✓ Index column sequential 1..30
-  ✓ All required fields populated (Source, URL, Description, Date_Range, etc.)
-  ✓ Reliability_Level distribution: 28 Level 1, 2 Level 2
-  ✓ All Validation_Status = "Validated"
-  ✓ Strict CSV DictReader parse: PASS (30 rows)
-  Note: Metadata indices 21 (UNIPH V. cholerae Isolates 2014-2023) and 30
-        (Uganda Cholera Elimination Journey SSRN preprint) are contextual
-        reference sources used for cross-validation but did not yield
-        unique quantitative rows beyond what other sources already provided.
-        They remain documented in metadata for traceability.
+V3  Searched the repository for an existing retirement convention:
+      grep -rn "retire|retired|superseded|quarantin" py/*.py
+    -> FOUND py/revise_observation.py, a tool my brief did not mention. It is
+       the repository's established editor for EXISTING rows: --delete retracts
+       a row and writes a full tombstone to data/{ISO}/retracted_rows_ai.csv;
+       --confidence, --tl, --tr, --location, --append-note, --set-evidence and
+       --meta-index --set-description cover the rest. It imports
+       add_observation.py's own load/locked/save, so a revision is exactly as
+       safe as an insert, and it re-checks the arithmetic invariants after.
+    -> Confirmed the convention is already in use: ./data/TGO/retracted_rows_ai.csv
+       exists with 29 tombstones. Option (1) of my brief therefore applies and
+       no ad-hoc ./data/UGA/retired_rows_ai.csv was created.
 
-CRITICAL CSV FORMAT VALIDATION: ALL CHECKS PASSED — NO CORRECTIONS NEEDED
+V4  VERIFIED THAT A RETRACTED ROW CANNOT REACH THE WEEKLY BUILDER.
+    Read py/build_weekly_timeseries.py. Its only data inputs are:
+      line 224  f = data_dir / f"cholera_data_{src}.csv"   for src in (jhu, who)
+      line 307  f = data_dir / f"cholera_data_{src}.csv"   (load_national_rows)
+      line 386  for src_name, src_label in [("ai","AI"),("jhu","JHU"),("who","WHO")]
+    The national series is built from Location == "AFR::{ISO}" rows in those
+    three files only. retracted_rows_ai.csv matches no such pattern and is
+    never opened. py/analyze_effective_gaps.py has the same property
+    (LAYER_FILES maps only the three cholera_data_*.csv names).
+    A --delete therefore removes the row from the builder's world; it is not a
+    soft flag. This was verified by reading the input path rather than by
+    running the builder, which has no per-country CLI (main() loops over all 40
+    MOSAIC countries and rewrites every cholera_weekly_{ISO}.csv and every
+    timeseries PNG) and would have touched other countries' outputs mid-run.
 
-=== STAGE 1: AUTOMATED EPIDEMIOLOGICAL VALIDATION ===
+V5  python py/repair_data_integrity.py --dry-run UGA
+    -> "TOTAL: 0 change(s)". No mechanical defect of its known classes remains;
+       ./data/UGA/attribution_review.csv does not exist and was never needed.
 
-CFR Range Validation (target 0.1-15%):
-  Range observed: 0.0% to 27.78%
-  Mean CFR (non-zero): ~2.9%
-  Median CFR: ~2.07%
-  Entries with CFR = 0.0% (zero-death documented outbreaks): 6 rows (rows 11, 12, 22, 24, 25, 27, 29, 40, 46)
-    - Justified: zero-transmission entry (1970) and small contained outbreaks
-      with effective rapid response and no deaths reported.
-  Entries with CFR > 15%: 1 row
-    - Row 45 (Butabika Hospital nosocomial 2008): CFR = 27.78% (5/18)
-      JUSTIFIED: Nosocomial outbreak in a closed mental hospital ward with severely
-      vulnerable patients (mental illness, limited mobility, mass exposure via
-      shared institutional food/water). Documented in peer-reviewed AJTMH study
-      (Kayiwa et al. 2015, PMC4559692). Confidence weight 0.95 retained.
-      Processing note flagged context appropriately.
-  Entries with CFR > 5% in multi-year aggregates: 1 row
-    - Row 32 (2002-2003 El Nino aggregate): CFR = 10.28% (95/924)
-      JUSTIFIED: Multi-year humanitarian/conflict-context aggregate during El Nino
-      rains. Confidence weight reduced to 0.9 per multi-year CFR aggregation rule
-      (note: processing_notes references "0.7" — actual value 0.9 is appropriate
-      given that the study itself is peer-reviewed and the entry covers a clearly
-      bounded 2-year disaster period). All other multi-year aggregates have
-      confidence ≤0.85.
+V6  Snapshotted both CSVs to /tmp/uga7/snap/ before any write:
+      data_before.csv  md5 644dd3a92939c14a4a371e44279af449  (200 lines)
+      meta_before.csv  md5 05965f9fb88dcc63029612ffe50f3b52  (116 lines)
 
-Temporal Logic Validation:
-  ✓ TL ≤ TR: 46/46
-  ✓ reporting_date ≥ TR where present: 46/46
-  ✓ No future-dated entries beyond 2025-08-31 collection horizon
-  ✓ Seasonal patterns align with known Uganda rainy-season cholera epidemiology
+V7  FALSE START, RECORDED FOR HONESTY. The first retirement batch was written as
+    a zsh script using an unquoted $R variable holding the command. zsh does not
+    word-split unquoted variables, so all eight invocations failed with "no such
+    file or directory" while the script's trailing echo printed
+    "=== 8 zero retirements done ===". I checked the md5 of
+    ./data/UGA/cholera_data_ai.csv immediately: unchanged at
+    644dd3a92939c14a4a371e44279af449, i.e. nothing had happened. All subsequent
+    work was driven from Python with explicit argv lists and per-call return
+    codes. A success message is not evidence of success.
 
-Mathematical Consistency:
-  ✓ Deaths ≤ sCh: 46/46
-  ✓ cCh ≤ sCh where both reported: 10/10
-  ✓ CFR calculations verified to ±0.1% accuracy (manual recompute matched in all 41 rows where calculable)
 
-Geographic Validation:
-  ✓ All Location codes follow AFR::{ISO}[::Province][::District] hierarchy
-  ✓ National rows: 13/46 (AFR::UGA)
-  ✓ Sub-national rows: 33/46 (AFR::UGA::Province or AFR::UGA::Province::District)
-  ✓ Multi-Provincial: 1 row (AFR::UGA::Multi_Provincial — row 44, 2013 cross-district outbreak)
-  ✓ All sub-national locations are real Uganda administrative units (Kampala,
-    Moroto, Moyo, Kasese, Kayunga, Namayingo, Elegu, Rukungiri, Hoima, Wakiso,
-    Kyangwali, Bidibidi, Adjumani, Kyegegwa, Isingiro, Kisoro, Bududa,
-    Bulambuli, Mbale)
+################################################################################
+PHASE 1 - VERIFICATION FETCHES
+################################################################################
+Every fetch below was made to check a claim in an agent log or in a row's
+processing_notes against the primary document. None was made to discover new
+data. All used a browser User-Agent; the IRIS and PMC endpoints return HTML
+shells or 403 to a bare curl.
 
-Stage 1 Validation Pass Rate: 46/46 (100%)
+F1  IRIS handle resolution, metadata source 51's URL
+      GET https://iris.who.int/server/api/pid/find?id=hdl:10665/220864
+    -> 200. name = "CHOLERA IN THE FIRST FOUR MONTHS OF 1976 = LE CHOLERA
+       PENDANT LES QUATRE PREMIERS MOIS DE 1976", uuid
+       84574431-fa3c-4308-8c3c-090c994d0514.
+       CONFIRMS Agent 6's citation defect: a four-month article is the cited URL
+       for data row 68's twelve-month zero.
 
-=== STAGE 2: CROSS-REFERENCE VALIDATION ===
+F2  IRIS bundle + bitstream walk for that item
+      /server/api/core/items/{uuid}/bundles       -> ORIGINAL, TEXT, THUMBNAIL
+      /server/api/core/bundles/{uuid}/bitstreams  -> WER5122_171-171.PDF
+                                                     (106,125 bytes, one page)
+      /server/api/core/bitstreams/{uuid}/content  -> downloaded
+      pdftotext -layout wer1976_22.pdf            -> 77 lines
 
-Major outbreaks (>1000 cases) — 2+ source confirmation status:
-  Row 2 (1997-98 Kampala 6228 cases): Cross-confirmed by Wamala 2013 PLOS NTD
-    (national 1998 total ~50000) and Nsubuga 2003 EAMJ (Kampala subset). Internal
-    consistency verified. Double-counting prevention documented in row 3 notes.
-  Row 3 (1998 national 50000 cases): Wamala 2013 PLOS NTD; WHO WER 1999
-    (consistent with regional Lake Victoria pandemic wave reaching DRC, Tanzania,
-    Kenya simultaneously). Cross-border pattern: VALIDATED.
-  Row 5 (2020 national 1361 cases): Bwire 2023 AJTMH scorecard + corroborated
-    by row 4 Moroto District subset (Okori 2022 PLOS GPH).
-  Row 7 (2020-2021 combined 1534 cases): Bwire 2023 BMC ID — overlap with
-    rows 5+6 documented in processing notes (1361+173=1534 internally consistent).
-  Row 23 (Kyangwali 2018 refugee 2122 cases): Isabirye 2020 PMC + WHO AFRO
-    Weekly Bulletin 2018 + UNHCR situation reports. CROSS-CONFIRMED.
-  Row 33 (2007-2011 aggregate 7615 cases): Bwire 2013 JID + WHO annual
-    reporting forms. Internally consistent with row 34 (2011 = 229 cases).
-  Row 35 (2012 national 6226 cases): Pande 2018 PLOS NTD + WHO WER 2013.
-    CROSS-CONFIRMED.
+F3  FULL-TEXT READ OF WER 51(22), 28 May 1976, p.171 - THE ARITHMETIC THAT
+    SETTLED ROW 68.
+    Both sentences quoted in row 68's processing_notes appear VERBATIM, so the
+    quote is honest and was not fabricated. But the document's figures are
+    FOUR-MONTH figures, not annual ones. Verbatim:
+      "As of 30 April 1976, the presence of cholera had been notified by a
+       total of 13 countries, six in Africa and seven in Asia."
+      "The total number of cases reported during the current period - 8132 -
+       also shows a considerable drop as compared with the same period of 1975
+       (14 939 cases) and 1974 (24 996 cases)."
+      "In 1976, the great majority of cases (7 774) and deaths (450) were
+       reported from Asia, with Africa accounting for only 357 cases and 27
+       deaths."
+    ARITHMETIC: 7,774 (Asia) + 357 (Africa) = 8,131, against the same
+    paragraph's stated period total of 8,132 - a one-case rounding/OCR
+    difference. The two numbers are the SAME quantity. The parallel French
+    column removes all doubt: "Pour l'annee en cours, la grande majorite des cas
+    (7 774) et des deces (450) se sont produits JUSQU'ICI en Asie" - "so far",
+    in a bulletin dated 28 May 1976. So the phrase "In 1976" in the English
+    sentence denotes 1 January to 30 April 1976, and a document published on
+    28 May 1976 was never capable of stating a full-year total.
+    CONSEQUENCE: row 68's full-year extent does NOT rest on this document.
 
-Pattern Recognition:
-  ✓ Lake Victoria/Albert/Edward outbreak clustering (fishing villages 2011-2015,
-    Hoima, Kasese, Wakiso, Rukungiri) consistent with known cholera ecology
-  ✓ Refugee settlement outbreaks (Kyangwali, Bidibidi, Adjumani, Nakivale,
-    Kyegegwa, Isingiro, Kisoro) consistent with South Sudan/DRC influx pattern
-  ✓ Cross-border transmission (Moyo 2014, Elegu 2024) consistent with regional
-    epidemiology and South Sudan outbreak timing
-  ✓ 2021+ "endogenous cholera elimination" claim (Bwire 2025 SSRN) consistent
-    with observed low 2021 caseload and 2024-2025 outbreaks being clearly
-    refugee/cross-border imported
+F4  ENUMERATION OF THE 1976 WEEKLY NOTIFICATION CORPUS, which is what metadata
+    51's Source NAME already described and what row 68's claim actually rests on
+      GET /server/api/discover/search/objects
+          ?query=%22DISEASES%20SUBJECT%20TO%20THE%20REGULATIONS%22%201976
+          &size=100   (pages 0-3)
+    -> 200, totalElements 372. Filtering titles matching
+       "Notifications Received from .* 1976" across four pages yields
+       49 DISTINCT WEEKLY NOTIFICATION ITEMS, e.g.
+         10665/220667  9-15 January 1976
+         10665/220731  20-26 February 1976
+         10665/220759  12-18 March 1976
+         10665/220852  14-20 May 1976
+         10665/220857  21-26 May 1976
+         10665/220876  4-10 June 1976
+         10665/221001  20-26 August 1976
+         10665/221117  12-18 November 1976
+         10665/221165  10-16 December 1976
+    Agent 1 reported "all 50 retrievable" items; I recover 49 with a strict
+    title regex. The corpus is real and Agent 1's scan is corroborated.
+    A further probe confirmed a candidate URL returns 200 before it was written:
+      https://iris.who.int/search?query=DISEASES%20SUBJECT%20TO%20THE%20REGULATIONS%201976  -> 200
+      the REST discover query above                                                          -> 200
+      https://iris.who.int/handle/10665/220667                                               -> 200
 
-Duplication Detection:
-  ✓ Documented overlaps with explicit double-counting warnings:
-    - Row 2 (Kampala 1997-98) ⊂ Row 3 (national 1998)
-    - Row 4 (Moroto 2020) ⊂ Row 5 (national 2020)
-    - Row 7 (combined 2020-21) = Row 5 + Row 6 (annual disaggregation)
-    - Row 22 (Katwe 2015 sub-outbreak) ⊂ Row 21 (Kasese 2015 district)
-    - Row 40 (Nakivale 2021) ≈ Row 6 (national 2021 173 cases — Nakivale
-      accounts for all 2021 national cases per cross-validation)
-    - Row 23 (Kyangwali 2018) and Row 43 (national 2018 partial) are
-      separate outbreaks per processing_notes
-  ✓ All processing_notes include explicit double-counting warnings per CLAUDE.md
-  ✓ No silent duplicate observations detected
-  ✓ Sub-outbreak relationships (Katwe ⊂ Kasese district) documented
+F5  NCBI esummary for PMC3855006 (metadata source 1)
+      GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi
+          ?db=pmc&id=3855006&retmode=json
+    -> title  "The burden of cholera in Uganda."
+       authors ['Bwire G', 'Malimbo M', 'Maskery B', 'Kim YE', 'Mogasale V',
+                'Levin A']
+       pubdate 2013, PLoS neglected tropical diseases
+    CONFIRMS Agent 2's flag: the metadata label "Wamala et al. 2013" misnames
+    the first author. Wamala JD is a co-author of other Ugandan cholera papers,
+    not of this one.
 
-Stage 2 Cross-Reference Pass Rate: 46/46 (100%)
+F6  PubMed 12862150 (metadata source 5), via https://r.jina.ai/
+    -> 200. "Epidemiology of cholera outbreak in Kampala, Uganda",
+       "D Legros et al. East Afr Med J. 2000 Jul."
+       Objective: "To provide epidemiological description of the cholera
+         outbreak which occurred in Kampala between December 1997 and March 1998."
+       Setting: "Kampala city, Uganda."
+       Results: "Between December 1997 and March 1998, 6228 cases of cholera
+         were reported, of which 1091 (17.5%) were children under five years of
+         age. The overall attack rate was 0.62% ... The case fatality ratio
+         among hospitalised patients was 2.5%."
+    TWO DEFECTS CONFIRMED AT ONCE: the metadata label "Nsubuga et al. 2003 EAMJ"
+    is wrong on author AND year, and the 6,228 figure is a KAMPALA CITY count,
+    not the national total data row 2 was coding it as.
 
-=== STAGE 3: EXPERT PLAUSIBILITY VALIDATION ===
+F7  Cross-check of F6 against an independent citation: the reference list of
+    PMC3855006 (fetched in F8) prints
+      "2. Legros, McCormick, Mugero, Skinnider, Bek'obita, et al. (2000)
+       Epidemiology of cholera outbreak in Kampala, Uganda. East African
+       Medical Journal 77: 347-349. PMID 12862150."
+    Two independent sources agree. The correction is safe.
 
-Epidemiological Plausibility:
-  ✓ Outbreak durations 7-180 days — all within plausible range
-  ✓ Attack rates not directly computable (no population denominators) but
-    case totals plausible given population sizes of administrative units
-  ✓ Cross-border pattern with South Sudan/DRC well documented in literature
-  ✓ Seasonal pattern (rainy season peaks April-July, October-December)
-    consistent with East African cholera epidemiology
+F8  PMC5370135 full text via https://r.jina.ai/  (Nkoko et al. 2017 PLOS NTD)
+    -> 200, 69,325 bytes. Table 1 "Description of cholera outbreaks in fishing
+       villages in Uganda, 2011-2015" recovered in full, 10 outbreak rows plus
+       the footnote. Verbatim rows used for the quote repairs are transcribed in
+       PHASE 3 below.
+    ALSO RECOVERED, and decisive for a defect nobody had reported:
+      "Overall, cholera outbreaks lasted an average of 35 days (5 weeks) with a
+       range of 8-90 days. Fewer cholera cases occurred during January-March,
+       while April-May had the highest proportion of total cases (22.5%). The
+       majority of the outbreaks occurred during the rainy season (82.4%) with a
+       big peak during the months of April-June and a smaller peak during
+       September-November of each year."
+    AND the footnote that confirms Agent 5's row-17 split-denominator finding:
+      "*Incomplete line list: total number of cases = 60 and deaths = 2
+       according to the outbreak report. With n = 26, the attack rate is 0.6 per
+       mille, whereas using the total number of cases (n = 60), the attack rate
+       is 1.4 per mille. CFR was calculated using the total number of cases and
+       deaths (2/60)."
 
-Historical Context Validation:
-  ✓ 1970-1971 first-introduction documented (7th pandemic reached Uganda 1971)
-  ✓ 1997-1998 Lake Victoria pandemic wave well documented across region
-  ✓ 2002-2003 El Nino rains aggregate plausible
-  ✓ 2018 Kyangwali refugee influx from DRC well documented in literature
-  ✓ 2023 Kayunga riverine source contamination documented in UNIPH
-  ✓ 2024-2025 Elegu/Kyangwali importation from South Sudan documented
+F9  PMC8045616 full text via https://r.jina.ai/  (AJTMH 2021 refugee settlements)
+    -> 200, 53,648 bytes. Table 1 and Table 2 recovered verbatim.
+       Table 2: 2016 | 25 districts | 2,316 (64) | 156 (0)
+                2017 |  3 districts |   265  (5) |   1 (0)
+                2018 | 11 districts | 2,754 (59) | 1,129 (29)
+                2019 |  6 districts |   326  (5) | 210 (1)
+       Timing sentence: "The outbreaks occurred late in the year in 2016,
+       whereas in 2018, they occurred early in the year, and in 2019, they
+       occurred midyear."
+    This reproduces Agent 6's H16 reconciliation exactly (AJTMH is 349% HIGH
+    against WHO in 2016 and 38% LOW in 2018 - opposite directions, so no
+    definitional story survives) and Agent 5's nested-denominator verdict on
+    Kyangwali (997 refugee + 1,125 host community = 2,122).
 
-Source Credibility:
-  ✓ 28 Level 1 sources (peer-reviewed journals, WHO AFRO, Uganda UNIPH/MOH)
-  ✓ 2 Level 2 sources (ReliefWeb situation reports — established UN OCHA)
-  ✓ 0 Level 3/4 sources — no news/social media reliance
-  ✓ All 30 sources have working URLs verified by previous agents
-  ✓ Citation depth: 28 Primary, 2 Primary (Cross_References indicate PMC IDs)
+F10 PMC10160876 full text via https://r.jina.ai/  (Bwire et al. 2023 scorecard)
+    -> 200. Table 1 verbatim:
+       "| Characteristics | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | Total |"
+       "| Number of cases | 1,270 | 2,316 | 265 | 2,754 | 359 | 1,361 | 173 | 8,498 |"
+    This is the document data row 5's own note named while the row cited a
+    different source. It supplies both the 2020 value (1,361) and the 2021 value
+    (173), and it independently confirms 265 for 2017.
 
-Methodology Transparency:
-  ✓ All 46 processing_notes include exact source quotes per CLAUDE.md template
-  ✓ CFR calculations explicitly shown in notes
-  ✓ Interpretive decisions documented (e.g., suspected vs confirmed)
-  ✓ Double-counting warnings explicit for all overlap relationships
+F11 FULL URL SWEEP, ALL 115 METADATA SOURCES, re-run by me rather than inherited
+    from Agent 5. Browser UA, 8-way parallel, curl -L --max-time 45.
+    -> 200: 104   203: 3   403: 4   000: 4   404: ZERO
+       403 (bot-blocking): idx 19 academic.oup.com, 30 papers.ssrn.com,
+           56 pesacheck.org, 67 unicef.org
+       000 (incomplete TLS chain on the Ugandan ministry library server):
+           idx 60, 61, 68, 72 - all library.health.go.ug
+    RETRY OF ALL EIGHT BY AN ALTERNATE ROUTE:
+       idx 60, 61, 68, 72 with curl -k  -> 200, 200, 200, 200
+       idx 19, 30, 56, 67 via r.jina.ai -> 200, 200, 200, 200
+    CONCLUSION: zero dead URLs in ./data/UGA/metadata_ai.csv. This independently
+    reproduces Agent 5's Part B result on a later sweep, and confirms that the
+    one genuine 404 Agent 4 found (the retired WHO GHO indicator-details path,
+    cited by 13 rows) was correctly repointed to the live GHO API endpoint.
 
-Stage 3 Expert Validation Pass Rate: 46/46 (100%)
+F12 JHU BASELINE URL CHECK (Part D). Four of the 55 URLs in
+    ./data/UGA/metadata_jhu.csv probed -> 404, 404, 404, 404. Then probed the
+    repository roots:
+      https://github.com/InstituteforDiseaseModeling/jhu_cholera_data -> 404
+      https://github.com/HopkinsIDD/jhu_cholera_data                  -> 404
+    and read /Users/johngiles/MOSAIC/jhu_cholera_data/.git/config:
+      url = git@github.com:InstituteforDiseaseModeling/jhu_cholera_data.git
+    See PHASE 6 for the corrected diagnosis.
 
-=== STAGE 4: FINAL INTEGRATION VALIDATION ===
 
-Completeness Assessment:
-  ✓ Dual-reference indexing intact (source_index ↔ Index, source ↔ Source)
-  ✓ All required cholera_data_ai.csv columns populated
-  ✓ All required metadata_ai.csv columns populated
-  ✓ No orphan references (all source_index → valid metadata Index)
+################################################################################
+PHASE 2 - PART A: EXECUTION OF THE REPAIR LIST
+################################################################################
+MECHANISM. Every row change below was made by
+  python py/revise_observation.py UGA --agent 7 --index N ... --reason "..."
+driven from a Python script with explicit argv lists, checking the return code
+of each call. No CSV was opened in a text editor. Each retirement writes the
+complete original row, all 14 columns unchanged, to
+./data/UGA/retracted_rows_ai.csv with two extra columns, retracted_on and
+retracted_reason, and removes it from ./data/UGA/cholera_data_ai.csv.
 
-JHU Format Compatibility:
-  ✓ Column structure matches JHU baseline schema (Location, TL, TR, deaths,
-    sCh, cCh, CFR, reporting_date)
-  ✓ Date format YYYY-MM-DD throughout
-  ✓ Integer columns are integers or empty (no NaN strings)
-  ✓ AFR::{ISO} location codes consistent with JHU/WHO baseline files
+--- A1. RETIREMENTS (15) --------------------------------------------------
+Executed 20:19-20:20. All 15 returned exit 0.
 
-Quality Score Distribution (confidence_weight):
-  0.95: 24 rows (52.2%)
-  0.90: 15 rows (32.6%)
-  0.85: 6 rows (13.0%)
-  0.80: 1 row (2.2%)
-  Mean: 0.917, Median: 0.95
-  Distribution is appropriately skewed toward high-quality Level 1 sources.
+FALSE ZEROS - the period is NON-REPORTING, not absence. Retiring them prevents
+py/build_weekly_timeseries.py rendering a hard, wrong negative for MOSAIC.
 
-Documentation Completeness:
-  ✓ All 7 agent search logs present (1-7)
-  ✓ search_report.txt to be created by Agent 7
-  ✓ Workflow status documented across all logs
+  [OK] Index 57  1981 national zero
+       Ugandan districts appear under CHOLERA in all 11 monthly WHO
+       infected-areas lists of 1981 - Bugishu; Bukedi (Tororo); Busoga D.: Mbale
+       Municipality; Sebei (Kapchorwa); Teso (Kumi); Nile Province South Nile
+       D.: Padyere; Gulu; Kitgum; North Karamoja (Kotido) - verified twice
+       independently, by Agent 3 by line scan and by Agent 5 by word
+       bounding-box column geometry. Bracketed by 1,539 cases notified in 1980
+       and 190 in 1982. Surveillance gap, not absence. Geography preserved in
+       ./data/UGA/cholera_presence_ai.csv.
+  [OK] Index 60  1985 national zero
+       Uganda filed NO notifiable-disease return of any kind with WHO for 1985 -
+       measles, pertussis, diphtheria, polio and neonatal tetanus all null in
+       WHO GHO WHS3_* - and appears in none of the 51 weekly WER IHR issues of
+       that year, while Kenya, Burundi, Rwanda, Tanzania, Zaire and Somalia
+       appear repeatedly in the same issues. All five land neighbours notified
+       cholera. Nobody was looking.
+  [OK] Index 65  1993 national zero - REVERSES AGENT 3
+       Kasese District sits under CHOLERA in 10 of the 12 monthly WHO
+       infected-areas lists of 1993 (7 Jan to 18 Nov), established by word
+       bounding-box column geometry by Agents 4 and 5, which separates it from
+       the Uganda/Nebbi PLAGUE entries printed in the same documents. Agent 3
+       had rated this the best-supported zero of the set; Agents 4, 5 and 6 all
+       concur it must go. The row's own quoted evidence says cholera was "not
+       REPORTED" - a statement about notification, not about disease. WHO writes
+       "reported 0" when it means zero (Cholera 2022, WER 98(38) Table 2) and
+       "did not report" when it means silence.
+  [OK] Index 59  1984 national zero
+       Cited article self-refuting. WER 60(20), 17 May 1985: "reports from other
+       sources indicate the presence of cholera in several countries that have
+       failed to report the disease in accordance with the International Health
+       Regulations (1969). This attitude is unfortunate as it can lead to
+       exaggerated retaliatory measures by neighbouring countries." Uganda's
+       1984 return was PARTIAL (measles and polio only); 4 of 5 neighbours
+       infected; the same instrument had just produced proven false negatives
+       for Uganda in 1981 and 1983. Confidence reduction was the wrong remedy -
+       the builder renders the row as sCh=0 for 52 weeks whatever its weight.
+  [OK] Index 62  1988 national zero
+       WER 64(19), 12 May 1989: "allowance must be made for the failure to
+       report cholera by a number of countries and the incompleteness of the
+       figures reported by others." Return ~4% complete: 1,666 measles cases
+       nationally against 43,016 in 1983 and 36,511 in 1992, with 40% more
+       people; Burundi, a fifth of Uganda's size, reported 33,261 the same year.
+       3 of 5 neighbours infected.
+  [OK] Index 63  1989 national zero - AND EXPLICITLY NOT UPGRADED
+       WER 65(19), 11 May 1990: "As in previous years, there was strong evidence
+       that cholera occurred in several countries which failed to declare the
+       disease." Agents 3 and 5 had recommended promoting this row to
+       Documented_Absence at confidence 0.85. A row cannot be Documented_Absence
+       on a document that documents the opposite. Uganda's 1989 return is the
+       worst of the whole series - 660 measles cases for about 17 million people
+       against Kenya's 86,727 - and 4 of 5 neighbours notified cholera, Rwanda
+       resolving a single case.
+  [OK] Index 64  1990 national zero
+       WER 66(19), 1991: "Evidence was again received of the presence of cholera
+       in a number of other countries which failed to declare it." Return ~6%
+       complete (2,637 measles cases); 2 of 5 neighbours infected. The
+       counter-argument is recorded in the tombstone: Uganda notified 5 cases
+       with 0 deaths in a single week of November 1991, real sensitivity eleven
+       months later. The correct response to "it might have worked by late 1990"
+       is an empty period, not an asserted zero.
+  [OK] Index 61  1986 national zero - RETIRED, NOT NARROWED
+       ADJUDICATION BETWEEN TWO AGENTS. Agent 5 recommended narrowing to
+       TR 1986-12-20 and keeping the row at 0.60. Agent 6 superseded that and
+       recommended retirement. I adjudicated in favour of Agent 6. Uganda filed
+       no disease return of any kind for 1985, 1986 or 1987; WER 62(20),
+       15 May 1987 carries the explicit "failed to notify the disease ...
+       International Health Regulations" warning; 4 of 5 neighbours infected;
+       and the one attested Ugandan event of the window - row 137, 21 Dec 1986
+       to 7 Mar 1987, 140 cases and 50 deaths - ran at 35.7% case fatality,
+       meaning the system detected only mass mortality. Narrowing would have
+       preserved 354 days of asserted zero from a system proven to detect only
+       catastrophe.
 
-Stage 4 Integration Pass Rate: 46/46 (100%)
+SUPERSEDED OR ERRONEOUS COUNTS
 
-=== OVERALL VALIDATION SUMMARY ===
-Stage 1 (Automated): 46/46 (100%)
-Stage 2 (Cross-Reference): 46/46 (100%)
-Stage 3 (Expert): 46/46 (100%)
-Stage 4 (Integration): 46/46 (100%)
-OVERALL VALIDATION PASS RATE: 100% (≥95% target met)
+  [OK] Index 47  2025-06-01..2025-06-29 national 248 / 0 deaths (WHO AFRO)
+       Demonstrated data-entry regression. AFRO's own weekly monitored-events
+       tracker carried Uganda's cholera event at 26 -> 120 -> 120 -> 227 total
+       cases across weeks 27, 28, 29 and 30 of 2025 while the End-of-reporting-
+       period cell never moved off 2 July 2025 and the narrative count FELL from
+       "37 cases registered and two deaths" to "13 cases registered and two
+       deaths". A cumulative that rises with no advance in the reporting cut-off,
+       alongside a falling narrative, is a transcription regression, not
+       transmission. Uganda's own UNIPH field investigations (rows 73, 74) put
+       the whole June-July 2025 episode at 36 cases and 1 death. Superseded by
+       row 187 (2025 national annual 255 / 0).
+  [OK] Index 51  2025-06-30..2025-07-27 national 99 (WHO HQ sitrep 29)
+       A faithful reading of the last-28-days cell and not wrong in itself, but
+       it covers the same episode as retired row 47; together they implied 347
+       cases for June-July against a field count of 36. Superseded by row 187.
+  [OK] Index 70  Adjumani 21 cases - WHO AFRO week-26 2025 interim snapshot.
+       Superseded by row 73 (19 cases, 4 culture-confirmed and 15 probable,
+       1 death, 2 Jun - 10 Jul 2025), the UNIPH field investigation with a line
+       list and an unmatched case-control study.
+  [OK] Index 71  Moyo 5 cases - WHO AFRO week-26 2025 interim snapshot.
+       Superseded by row 74 (17 culture-confirmed, 0 deaths, 5 Jun - 8 Jul 2025).
+  [OK] Index 3   1998 national "almost 50,000", CFR estimated from a stated
+       4-7% range, NO death count. A secondary paraphrase. Superseded by row 122,
+       WHO's official IHR annual notification of 49,514 cases and 2,064 deaths
+       (WER 74(31)), confirmed exactly against the live GHO series by Agent 5.
+       Row 122's own notes already declared that it supersedes this row.
+  [OK] Index 35  2012 national 6,226 cases, no deaths, no reporting_date.
+       Superseded by row 125 (6,226 cases with 135 deaths, Uganda MoH Prevention
+       and Control of Cholera Guidelines 2017). 2012 is Uganda's largest cholera
+       year since 1998 and the dataset now carries its mortality.
+  [OK] Index 17  Hoima 2013 - SPLIT DENOMINATOR.
+       The row stores sCh=26 from Nkoko et al. 2017's explicitly incomplete line
+       list while its notes adopt the paper's 3.3% CFR, which is 2/60; its stored
+       CFR of 7.69 is 2/26. Numerator and denominator come from different
+       populations. Superseded by row 189 (60 cases / 2 deaths / CFR 3.33), which
+       uses the outbreak-report totals the paper's own footnote supplies (see F8).
 
-Zero unresolved data integrity issues.
-Zero unresolved formatting issues.
+  RESULT: retired 15, failed 0. ./data/UGA/retracted_rows_ai.csv created with
+  15 tombstones, each carrying retracted_on = 2026-09-19 and a one-paragraph
+  retracted_reason.
 
-=== GAP-FILLING IMPACT ASSESSMENT ===
+--- A2. BYTE-LEVEL DIFF VERIFICATION ----------------------------------------
+Immediately after the retirements, compared ./data/UGA/cholera_data_ai.csv
+against /tmp/uga7/snap/data_before.csv cell by cell:
 
-Baseline gap periods addressed (9 total):
+    before rows                                   199
+    after rows                                    184
+    removed indices    3,17,35,47,51,57,59,60,61,62,63,64,65,70,71  (exactly the
+                                                   intended set, asserted)
+    added indices                                 [] (none)
+    CELLS CHANGED AMONG THE 184 SURVIVING ROWS    [] -> ZERO
+    tombstone indices                             identical 15
+    TOMBSTONE CELLS DIFFERING FROM THE ORIGINAL   [] -> ZERO
+    tombstone extra columns                       ['retracted_on',
+                                                   'retracted_reason']
 
-  GAP 1: 1970-01-01 to 1970-12-31 (12 mo, pre-cholera era)
-    STATUS: VALIDATED ABSENCE
-    Mechanism: Row 46 documents zero-transmission with Wamala 2013 PLOS NTD
-    citing first Uganda cholera report in 1971 (757 cases).
-    Evidence type: Documented_Absence (pre-pandemic).
-    Confidence: 0.9 (peer-reviewed academic source).
+No surviving row's Index or Source text moved by a single byte.
 
-  GAP 2: 1972-01-01 to 1974-12-31 (36 mo, Amin regime)
-    STATUS: REMAINING (re-classified as surveillance gap, not zero-transmission)
-    Agent 3 finding: Literature confirms Uganda "reported cholera every 2-4
-    years" during 1971-1993 — indicating reporting failures rather than disease
-    absence. Coding as zero-transmission would misrepresent the data.
-    Future priority: Wayback Machine WHO WER archives, missionary records.
+--- A3. NARROWINGS (2) -------------------------------------------------------
+  [OK] Index 69  AFR::UGA::Lamwo   TR '2025-07-07' -> '2025-03-23'
+       The Gavi figure of 107 cases is a cumulative-to-date envelope published on
+       7 July 2025 by the Lamwo district health officer, not a transmission
+       window. WHO AFRO's weekly tracker holds the national January event static
+       at 122 cases from 9 March through the 23 March cut-off, then falling to
+       116 as the window extends to 6 April while confirmed rise 64 -> 79
+       (reclassification, not new cases), then the event vanishes at week 23. The
+       April and May 2025 AFRO monthlies both read "The last report from the
+       country was as of 23 March 2025" and the June bulletin states "There were
+       no cases reported in May." At its old extent this row spread Lamwo cases
+       across April and May 2025, which rows 49 and 48 document as national
+       zeros; narrowed, those two rows are corroborated rather than contradicted.
+       Counts unchanged at 107 / 1. CFR recomputed by the tool to 0.93,
+       unchanged. reporting_date 2025-07-07 still >= the new TR.
+  [OK] Index 58  1983 zero        TL '1983-01-01' -> '1983-03-25'
+       Uganda's cholera-infected districts were on WHO's list as at 27 January
+       and 24 February 1983 and struck off in "Areas Removed from the Infected
+       Area List between 18 and 24 March 1983 ... UGANDA - OUGANDA Eastern
+       Province Bugishu District Bukedi (Tororo) District Busoga D.: Mbale
+       Municipality Sebei (Kapchorwa) District Teso (Kumi) District Northern
+       Province Gulu District Kitgum District North Karamoja District". Only
+       25 March onward can be asserted. Uganda then does not reappear on the
+       cholera list for the rest of the decade, and its 1983 return was filed
+       and included an explicit reported ZERO for diphtheria.
 
-  GAP 3: 1976-01-01 to 1977-12-31 (24 mo, Amin regime)
-    STATUS: REMAINING (surveillance gap)
-    Same rationale as Gap 2.
+--- A4. RE-WEIGHTINGS AND RE-LABELLINGS (12 changed, 2 confirmed unchanged) --
+  [OK] Index 66  1972 zero   confidence '0.7' -> '0.80'; label KEPT at
+       Inferred_Absence. Agents 3 and 5 recommended Documented_Absence at 0.85;
+       Agent 6 rejected it and I agree - no source states that Uganda had no
+       cholera in 1972, only that Uganda did not notify any. Confidence rises on
+       three grounds: the 1971 epidemic was notified from its first day
+       (23 May 1971, 757 cases); Uganda made IHR SMALLPOX notifications through
+       the same legal channel in 1972; and WHO's own 1972 annual describes a
+       global lull. Only 1 of 5 neighbours infected (Kenya, 51 cases).
+  [OK] Index 67  1973 zero   confidence '0.7' -> '0.80'; label KEPT at
+       Inferred_Absence. The strongest of the five surviving 1970s zeros: NOT ONE
+       East African country notified cholera in 1973. Regional pressure 0 of 5.
+  [OK] Index 56  1977 zero   confidence '0.7' -> '0.75'; surveillance status KEPT
+       at "partial". Agents 3 and 5 recommended "operational" at 0.80; Agent 6
+       rejected it and I agree - Uganda had no national HMIS in the 1970s (the
+       literature dates the roll-out to 1996-97 and IDSR adoption to 2000).
+  [OK] Index 55  1974 zero   NO CHANGE, audited and confirmed at 0.70 / partial.
+       The Agent 3/5 "operational" upgrade is rejected and the rejection is now
+       written into the row.
+  [OK] Index 68  1976 zero   NO CHANGE to weight or status; see A5 for the
+       citation resolution appended to it.
+  [OK] Index 53  2026-01-01..2026-05-31 zero  confidence '0.8' -> '0.60'
+  [OK] Index 54  2026-06-01..2026-08-16 zero  confidence '0.8' -> '0.60'
+       Both rest on Uganda's non-appearance from a WHO table, and WHO's own
+       current table disclaims that inference: WER 2026;101(35), data as of
+       26 July 2026, Table 1 footnote - "Missing data in this report do not imply
+       the absence of cholera or AWD cases or deaths in the respective country."
+       Agents 3, 5 and 6 independently recommended this reduction. Not on my
+       brief's list; applied because it is conservative (lowering a weight never
+       manufactures data) and because it aligns the stored value with what
+       py/build_weekly_timeseries.py applies anyway (INFERRED_ZERO_MAX = 0.6).
+  [OK] Index 120 2016 national 1,156 / 25  confidence '0.9' -> '0.50'
+       Row 127 (WHO WER 92(36), 516 / 11) made primary. Note my brief described
+       this row as "the 2,316 figure"; it is not - row 120 holds 1,156/25 and the
+       2,316 is the AJTMH figure that was deliberately never added as a row. The
+       intent was unambiguous from Agent 6's H16 and was executed as intended.
+  [OK] Indices 14, 15, 16, 18, 19, 20  confidence '0.95' -> '0.80'
+       See PHASE 3, the Nkoko date defect.
 
-  GAP 4: 1981-01-01 to 1981-12-31 (12 mo, Obote II)
-    STATUS: REMAINING (surveillance gap)
-    Same rationale as Gap 2.
+--- A5. ROW 68 CITATION DEFECT - DECISION AND RECORD -------------------------
+DECISION: RE-CITE, DO NOT NARROW. Documented on both the row and the source.
 
-  GAP 5: 1983-01-01 to 1986-12-31 (48 mo, NRA bush war)
-    STATUS: REMAINING (surveillance gap — health system collapse documented)
-    Same rationale; conflict severely disrupted reporting infrastructure.
+Reasoning. Metadata index 51's Source NAME already read "WHO Weekly
+Epidemiological Record 1976 cholera notification record (50 weekly Diseases
+Subject to the Regulations tables plus four-month review)" and its Description
+already described the 50-table scan - Agent 1 had registered the corpus
+correctly. The defect was in the URL alone, which pointed at the four-month
+review (F1) and therefore did not reach the evidence the claim rests on. My
+fetches settled the two open questions: F3 proved the four-month article cannot
+support a full-year claim (7,774 + 357 = 8,131 against its own stated
+four-month total of 8,132, with "Pour l'annee en cours ... jusqu'ici" in the
+French column), and F4 proved the 49-item weekly corpus exists and is
+enumerable. Narrowing row 68 to 1976-04-30 would have discarded the stronger
+eight months of evidence in favour of the weaker document. So:
 
-  GAP 6: 1988-01-01 to 1990-12-31 (36 mo, post-civil-war reconstruction)
-    STATUS: REMAINING (surveillance gap during reconstruction period)
+  [OK] metadata 51 URL, changed by /tmp/uga7/fix_url51.py, a script importing
+       add_observation.py's load() / locked() / save():
+         old https://iris.who.int/handle/10665/220864
+         new https://iris.who.int/server/api/discover/search/objects
+             ?query=%22DISEASES%20SUBJECT%20TO%20THE%20REGULATIONS%22%201976&size=100
+       The script asserts exactly one row has Index 51, asserts its URL is the
+       expected old one, changes ONLY that cell, and re-asserts Index and Source
+       byte-identical for all 115 metadata rows before writing. Output:
+       "Index and Source columns verified byte-identical for all 115 metadata rows".
+  [OK] metadata 51 Description rewritten via
+       py/revise_observation.py --meta-index 51 --set-description, separating
+       PRIMARY EVIDENCE (the 49-50 weekly tables) from SUPPORTING ONLY, AND
+       EXPLICITLY NOT A FULL-YEAR SOURCE (10665/220864), and recording the
+       8,131-vs-8,132 arithmetic.
+  [OK] data row 68 processing_notes appended with the same finding, so a reader
+       of the row does not have to open the metadata to learn it. The row stays
+       at 1976-01-01..1976-12-31.
 
-  GAP 7: 1993-01-01 to 1993-12-31 (12 mo)
-    STATUS: REMAINING (surveillance gap)
 
-  GAP 8: 2021-01-01 to 2021-12-31 (12 mo, COVID-19 era)
-    STATUS: FILLED
-    Filled by: Row 6 (national 173 cases — Bwire 2023 AJTMH scorecard)
-              Row 40 (Nakivale Refugee 173 cases, Nov-Dec 2021 — Mugisha 2025
-                       PLOS GPH; refugee settlement accounts for entire national total)
-              Row 7 (2020-2021 combined 1534 cases, 14 deaths — Bwire 2023 BMC ID)
-    Days addressed: 365/365 (100%)
+################################################################################
+PHASE 3 - PART B: FULL QUALITY AUDIT
+################################################################################
 
-  GAP 9: 2024-12-01 to 2025-08-31 (9 mo partial, current period)
-    STATUS: FILLED (partial — through 2025-03-03)
-    Filled by: Row 12 (Elegu Border January 16-Feb 5, 2024: 13 cases)
-              Row 13 (national 2025-01-01 to 2025-03-03: 139 cases, 3 deaths
-                       — WHO AFRO Monthly Cholera Bulletin February 2025)
-    Days addressed: ~93 of 274 (~34%); March-August 2025 still gap.
+--- B1. THREE DEFECTS FOUND THAT WERE NOT ON THE REPAIR LIST -----------------
 
-GAP-FILLING SUCCESS METRICS:
-  - Gaps filled with quantitative data: 2/9 (22.2%)
-  - Gaps validated as absence: 1/9 (11.1%)
-  - Gaps remaining (re-classified as surveillance gaps): 6/9 (66.7%)
-  - Days addressed: 731 of 6,118 (12.0%)
-  - Key insight: 6 historical gaps (1972-1993) re-classified as surveillance
-    failures rather than zero-transmission per peer-reviewed evidence
-    (Wamala et al. 2013), preventing inappropriate zero-coding.
+DEFECT 1 - ROW 5 CITES A 2013 PAPER FOR A 2020 FIGURE.
+  Found by a systematic scan I wrote for the purpose: for every row, compare the
+  row's TR year against the latest year in its source's Date_Range. One hit in
+  184 rows:
+    row 5  TR=2020-12-31 > source 1 latest year 2010
+           (Burden of Cholera in Uganda, Bwire et al. 2013)
+  A second scan - rows whose processing_notes name a PMC identifier different
+  from their cited source's URL - returned two rows: row 5 (names PMC10160876)
+  and row 40 (names PMC10160876 only as corroboration, its own quote correctly
+  from source 25; no defect).
+  Verified against F10: the scorecard's Table 1 2020 cell is 1,361, exactly this
+  row's value. Re-pointed source_index '1' -> '2' and the source cell to
+  "Uganda Cholera Elimination Scorecard (Bwire et al. 2023 AJTMH)".
 
-Coverage Enhancement (months):
-  Baseline coverage: 467/668 months = 69.9%
-  Months newly addressed with AI data: ~24 months (2002-2003 aggregate, 2021
-    annual, 2024-2025 Q1, plus enhanced 2007-2011 historical aggregate)
-  Estimated post-enhancement coverage: ~491/668 = 73.5%
-  Coverage delta: +3.6 percentage points
+DEFECT 2 - METADATA INDEX 1 MISNAMES ITS FIRST AUTHOR.
+  "Burden of Cholera in Uganda (Wamala et al. 2013 PLOS NTD)" ->
+  "Burden of Cholera in Uganda (Bwire et al. 2013 PLOS NTD)".
+  Evidence F5: NCBI esummary for PMC3855006 gives Bwire G, Malimbo M, Maskery B,
+  Kim YE, Mogasale V, Levin A. The URL was and is correct.
 
-Beyond gap-filling, the AI agents added 35 NEW district-level outbreak
-observations that enrich the surveillance data within already-covered baseline
-periods (e.g., 2011-2015 Lake fishing village outbreaks, 2015-2018 refugee
-settlement outbreaks, 2023 Kayunga/Namayingo specific outbreaks). These
-enhancements provide critical sub-national granularity for MOSAIC modeling
-even where the baseline showed some national-level coverage.
+DEFECT 3 - METADATA INDEX 5 MISNAMES BOTH AUTHOR AND YEAR.
+  "Kampala Cholera Outbreak Epidemiology (Nsubuga et al. 2003 EAMJ)" ->
+  "Kampala Cholera Outbreak Epidemiology (Legros et al. 2000 EAMJ)".
+  Evidence F6 and F7: PubMed 12862150 and the reference list of PMC3855006 both
+  give Legros, McCormick, Mugero, Skinnider, Bek'obita et al. (2000), East
+  African Medical Journal 77:347-349.
 
-=== AGENT EFFECTIVENESS ASSESSMENT ===
+  MECHANISM FOR DEFECTS 1-3. py/revise_observation.py has no verb for
+  source_index or Source, so /tmp/uga7/fix_citations.py did it, importing
+  add_observation.py's load/locked/save. It renames in metadata_ai.csv AND in
+  every citing row's source cell in the same pass, so the dual-reference pair
+  cannot drift between the two writes. It asserts the metadata Index list and
+  every URL unchanged, and asserts that no data cell outside {source,
+  source_index} of the touched rows changed. Output:
+    metadata Index 1 Source renamed; metadata Index 5 Source renamed
+    data row 5 source_index '1' -> '2' and source relabelled
+    data row 46 source relabelled for src 1
+    data row 2  source relabelled for src 5
+    dual-reference re-check over 184 rows: CLEAN
+  Both metadata Descriptions were then rewritten to record the correction and
+  the evidence for it, so the fix is discoverable and not silent.
 
-Agent 1 (Baseline Collector): 40 observations, 25 sources — HIGH effectiveness
-  Discovered the foundational peer-reviewed Uganda cholera literature
-  (Wamala 2013, Bwire 2023, Nkoko 2017, Isabirye 2020) plus UNIPH/WHO bulletins.
-  Filled 2021 and 2024-2025 contemporary gaps.
+--- B2. ROW 2: A KAMPALA CITY COUNT CODED AS NATIONAL ------------------------
+  [OK] Index 2  Location 'AFR::UGA' -> 'AFR::UGA::Kampala'
+  Evidence F6: the abstract's Setting field reads "Kampala city, Uganda" and its
+  Objective describes "the cholera outbreak which occurred in Kampala". The
+  row's own note already conceded "this is a Kampala-specific outbreak" while
+  also asserting "National-level data" - self-contradictory.
+  WHY IT MATTERS: py/build_weekly_timeseries.py builds the national series from
+  AFR::UGA rows ONLY, so 6,228 Kampala cases were competing with the true
+  national series for the 1997-98 epidemic - rows 149-156 and 123-124, which
+  tile it from WHO's own IHR notifications, and row 122, which carries the
+  official annual of 49,514 / 2,064.
+  Relationship documented on the row: row 80 (Kampala, 70 cases and 3 deaths as
+  at 19 December 1997, WER 72(51/52)) is an early cut-off of the same Kampala
+  outbreak, not an independent event; do not sum them.
 
-Agent 2 (Geographic Expansion): +5 observations, +4 sources — MODERATE effectiveness
-  Added Kampala/Mbale 2015-2016, 2018 multi-district, 2013 Hoima/Nebbi/Buliisa,
-  Butabika 2008 nosocomial.
+--- B3. LOCATION LEGALITY ----------------------------------------------------
+  Scanned all sub-national Locations against reference/country_profiles.json.
+  The profile's adm1 list holds only 38 entries against Uganda's ~135 districts,
+  so it is not usable as a whitelist; I checked the 15 non-matching units by
+  hand. Eleven (Bududa, Bulambuli, Butaleja, Kibaale, Kisoro, Kitgum, Kween,
+  Kyegegwa, Lamwo, Rukungiri, Sironko) are real districts merely absent from the
+  truncated profile list. Multi_Provincial is explicitly permitted by CLAUDE.md.
+  Three genuinely put a sub-district place name in the ADM1 slot:
+  [OK] Index 24  'AFR::UGA::Bidibidi' -> 'AFR::UGA::Yumbe::Bidibidi'
+       Bidibidi is a refugee settlement; the cited table's own District name
+       column reads "Yumbe" (F9).
+  [OK] Index 12  'AFR::UGA::Elegu' -> 'AFR::UGA::Amuru::Elegu'
+       Elegu is the Uganda-South Sudan border crossing in Amuru District.
+  [--] Index 23  'AFR::UGA::Kyangwali' FLAGGED AND DELIBERATELY NOT RE-CODED.
+       Two reasons, both written into the row. First, Agent 5 established that
+       the 2,122 figure is the WHOLE district outbreak, refugees plus host
+       community (997 + 1,125 = 2,122 exactly, from AJTMH Tables 1 and 2, F9),
+       not the settlement alone. Second, the district identity changed
+       mid-outbreak: the outbreak ran February to May 2018 in what was then
+       HOIMA District, and Kikuube was carved out of Hoima in July 2018, which
+       is why AJTMH writes the district as "Kikube (Hoima)". Re-coding to either
+       name alone would assert something the source does not. Left for a future
+       agent with the MoH district-boundary history.
 
-Agent 3 (Zero-Transmission Validator): +1 observation, +1 source — TARGETED effectiveness
-  Critical contribution: row 46 documents 1970 pre-cholera absence AND
-  correctly identifies 1972-1993 gaps as surveillance failures (NOT
-  zero-transmission), preventing data misrepresentation.
+--- B4. AN UNDISCLOSED DATE DEFECT IN THE NKOKO 2017 ROWS --------------------
+  Nobody had reported this. Rows 14, 15, 16, 18, 19 and 20 all begin on
+  1 JANUARY of their outbreak year, and in every case TR = TL + the duration
+  Table 1 publishes. Checked against the table (F8): it gives an outbreak
+  DURATION IN DAYS and NO calendar start date.
+    row 14  duration 32 days, TL..TR = 2011-01-01..2011-02-01  (32 days)
+    row 15  duration 53 days, TL..TR = 2011-01-01..2011-02-22  (53 days)
+    row 16  duration 90 days, TL..TR = 2012-01-01..2012-03-31  (91 days)
+    row 18  duration 29 days, TL..TR = 2014-01-01..2014-01-29  (29 days)
+    row 19  duration 76 days, TL..TR = 2015-01-01..2015-03-17  (76 days)
+    row 20  duration 25 days, TL..TR = 2015-01-01..2015-01-25  (25 days)
+  The windows are placeholders, and they are probably in the WRONG SEASON: the
+  same paper states that "Fewer cholera cases occurred during January-March,
+  while April-May had the highest proportion of total cases (22.5%)" and that
+  the peak is April-June with a second peak September-November (F8).
+  ATTEMPTED RECOVERY, FAILED: checked ./data/UGA/cholera_data_jhu.csv for
+  sub-annual dates on Rukungiri 2011 and Kasese 2011 - JHU holds only
+  2011-01-01..2011-12-31 annual rows (Kasese 106 and 107, Rukungiri 123 twice).
+  No calendar dates exist in any layer.
+  ACTION: the counts are sound Level-1 peer-reviewed figures; only the placement
+  in time is not. Confidence cut 0.95 -> 0.80 on all six and the defect written
+  into each row's processing_notes so a modeller knows the weekly placement is
+  unattested. I did NOT invent dates, and I did NOT widen the rows to full-year
+  (which would have discarded the attested duration in exchange for a
+  seasonality that is equally unattested for these specific outbreaks).
 
-Agent 4 (Obscure Source Explorer): 0 new observations
-  Historical archive access barriers prevented filling 1970s-1990s gaps.
+--- B5. QUOTE REPAIR - 12 ROWS, ALL VERBATIM, NONE FABRICATED ---------------
+  13 notes_missing_quote warnings stood at the start of this phase. One was on
+  row 17, which had already been retired, leaving 12. Every one of the 12 was
+  repaired by re-fetching the cited paper and transcribing the table row
+  character for character. NO QUOTE WAS INVENTED, PARAPHRASED OR RECONSTRUCTED
+  FROM MEMORY; every string below was copied out of the fetch in F8 or F9.
 
-Agent 5 (Cross-Reference Integrator): 0 new observations
-  Alternative query permutations confirmed saturation of available web sources.
+  From Nkoko et al. 2017 Table 1 (F8), header transcribed onto each row:
+    row 14  "| 1 | 2011 | Rukungiri | 316,400 | 123 | 3 (2.4%) | Bwambara |
+             123 (100%) | 29300 (9.3%) | 4.2 | 32 | 9.3% |"
+    row 15  "| 2 | 2011 | Kasese | 721,400 | 69 | 4 (5.8%) | Nyakiyumbu |
+             69 (100%) | 31340 (4.3%) | 2.2 | 53 | 4.3% |"
+    row 16  "| 3 | 2012 | Hoima | 548,800 | 909 | 17 (1.9%) | Kigorobya |
+             331 (36.4%) | 65410 (11.9%) | 5.1 | 90 | 47.4% | ... Buseruka |
+             266 (29.3%) ... Kyangwali | 224 (24.6%) ... Kabwoya | 82 (9.0%)"
+    row 18  "| 6 | 2014 | Namayingo | 223,229 | 109 | 2 (1.8%) | Mutumba |
+             102 (93.6%) | 42311 (19.0%) | 2.4 | 29 | 33.1% | ... Buhemba |
+             7 (6.4%)"
+    row 19  "| 9 | 2015 | Hoima | 598,409 | 282 | 8 (2.8%) | Buseruka |
+             194 (68.8%) | 44855 (7.5%) | 4.4 | 76 | 35.5% | ... Kabwoya |
+             59 (20.9%) ... Kyangwali | 28 (9.9%)"
+    row 20  "| 10 | 2015 | Wakiso | 2,068,533 | 146 | 6 (4.1%) | Bussi |
+             145 (99.3%) | 17548 (0.8%) | 8.6 | 25 | 0.8% |"
+  From AJTMH 2021 Table 1 (F9):
+    row 24  "| Bidibidi | Yumbe | 2016 | 55 | 0 | 0.00 | 227,909 | 0.02 |"
+    row 25  "| Pagirinya | Adjumani | 2016 | 101 | 0 | 0.00 | 204,987 | 0.05 |"
+    row 26  "| Kyaka II | Kyegegwa | 2018 | 132 | 1 | 0.76 | 79,842 | 0.17 |"
+    row 27  "| Kyaka II | Kyegegwa | 2019 | 37 | 0 | 0.00 | 101,050 | 0.04 |"
+    row 28  "| Nakivale | Isingiro | 2019 | 134 | 1 | 0.75 | 117,894 | 0.11 |"
+    row 29  "| Nyakabande Reception Centre | Kisoro | 2019 | 39 | 0 | 0.00 | - | - |"
+  Each AJTMH row additionally carries the paper's own coarse timing sentence and
+  the Table 2 national-versus-refugee totals, so the settlement scope is
+  explicit and cannot be mistaken for a district count.
 
-Agent 6 (Gap Context Investigator): 0 new observations
-  Confirmed remaining 1970s-1990s gaps are surveillance failures requiring
-  offline archive access (out of scope for web-based collection).
+--- B6. REPORTING DATES RECOVERED (3) ----------------------------------------
+  [OK] row 5   '' -> '2023-05-08'  PMC release date of the Bwire et al. 2023
+       scorecard, the earliest date on which the 1,361 figure was public.
+  [OK] row 6   '' -> '2023-05-08'  same source, 2021 cell = 173.
+  [OK] row 34  '' -> '2018-01-16'  publication date of Pande et al., PLOS Negl
+       Trop Dis 12(1):e0006118. This remains the ONLY national figure for 2011
+       in any layer - Uganda has no 2011 record in WHO's notification series at
+       all, itself a demonstrated false negative of that instrument.
+  The fourth reporting_date_blank was on row 35, retired.
 
-Most effective agent type for Uganda: Agent 1 (baseline academic literature
-collection) — accounted for ~87% of observations and ~83% of sources.
+--- B7. DOUBLE-COUNTING STATEMENTS (54 rows) ---------------------------------
+  Reproduced the validator's own rule (py/validate_quality.py lines 615-653: a
+  group is documented only when EVERY row in it matches
+  "do not sum|national total|provincial subset|includes provinces not
+  individually listed|not additive|primary count"). 53 groups existed, 3
+  documented, 50 not. 53 rows lacked the phrase - considerably more than the 13
+  my brief listed, because the rule is all-or-nothing per group and rows added
+  by Agents 3, 4 and 5 lacked it too (148-156, 187, 133-135, 73-75).
+  36 rows received a standalone AGENT 7 DOUBLE-COUNTING STATEMENT; 18 more had
+  the sentence folded into another Agent 7 repair note on the same row. Eleven
+  rows got row-specific wording rather than boilerplate, because boilerplate
+  would have been misleading:
+    row 148  one of eleven consecutive dated windows tiling the 1997-99
+             epidemic; the windows are increments and must not be summed with
+             row 122, the annual they add up to
+    row 187  2025 annual; its deaths=0 is what the WHO table prints and is
+             contradicted by row 73, so it is a reporting artefact
+    row 7    a 2020-2021 multi-year row that is an alternative rendering of
+             rows 5 and 6, not additional cases
+    row 32   924/95 for 2002-03 is almost certainly a STUDY-DISTRICT SUBSET
+             against WHO's official 6,651/262 (rows 138, 139); now annotated as
+             not-to-be-used as a national total
+    rows 133-135  Karamoja sub-national absence rows that must not be read as
+             national absence - Uganda notified cholera nationally in every year
+             of 1998-2010
+    rows 73, 74, 4, 44  outbreak-specific relationships spelled out
+  RESULT: all 52 remaining overlap groups now validate as INFO "documented"; the
+  54 WARN national_subnational_overlap findings are cleared.
 
-=== DASHBOARD COMPATIBILITY VERIFICATION ===
+--- B8. SAME-PERIOD CONFLICTS - ADJUDICATED, NOT SUPPRESSED (12 rows) --------
+  Six pairs remain after the retirements. Each now carries an explicit
+  primary / non-primary designation. Nothing was averaged and no row was deleted
+  to make a warning go away.
+    2013  row 196 (748/27, WHO GHO)      PRIMARY; row 118 (751, no deaths) not.
+                                          0.4% apart; 196 carries mortality.
+    2015  row 119 (sCh 1,270/29) and row 198 (cCh 137)  NOT A CONFLICT -
+                                          different metrics; confirmed cases are
+                                          a subset of suspected. 10.8%
+                                          confirmation is ordinary. Both primary,
+                                          for their own metric.
+    2016  row 127 (516/11, WER)          PRIMARY; row 120 (1,156/25, MoH)
+                                          down-weighted to 0.50 and retained.
+    2017  row 190 (265/5, AJTMH/MoH)     PRIMARY; row 128 (252/0, WER) not -
+                                          WHO's 0 deaths is contradicted by two
+                                          independent Ugandan sources that both
+                                          give 265 with 5 deaths (F9, F10).
+    2018  row 129 (sCh 4,440/90) and row 199 (cCh 109)  NOT A CONFLICT -
+                                          different metrics.
+    2020  row 130 (1,521/18, WER)        PRIMARY; row 5 (1,361, no deaths) not.
+  NOTE THAT 2016 AND 2017 POINT OPPOSITE WAYS, DELIBERATELY. The rule applied
+  throughout, and written into row 190, is: prefer the figure Uganda's own most
+  recent published analysis stands behind. For 2016 that analysis (Bwire et al.
+  2026 PLOS GPH Figure 1) plots ~510 and abandons the ministry's 1,156; for 2017
+  and 2020 the Ugandan sources agree with each other and with the figure chosen.
 
-CSV files re-read via strict csv.DictReader: SUCCESS (46 + 30 rows)
-14-column data file structure: VERIFIED
-15-column metadata file structure: VERIFIED
-All dates parseable: VERIFIED
-No corruption characters: VERIFIED
-Dual-reference integrity: VERIFIED
+--- B9. OTHER WARN CLASSES REVIEWED, ALL INTENTIONAL -------------------------
+  18 multiyear_aggregate  row 33 (2007-2011 national) and rows 101-117 (17 MoH
+     HMIS district aggregates, 2011-2016). All are what the sources publish and
+     all are already capped at confidence 0.70 by the writer. Row 33 additionally
+     re-annotated: Agent 2's "JHU district sums = 7,690, 99% reconciled"
+     justification is ARITHMETICALLY WRONG and must not be repeated - Agent 5
+     decomposed it and it sums overlapping renderings of the same outbreaks
+     (Moroto 2010 appears four times: summary 610, weekly 542, daily 541, and a
+     separate 220). The valid corroboration is the WHO annual series:
+     276+3,726+1,095+2,341 = 7,438 for 2007-2010, plus row 34's 229 for 2011,
+     gives 7,667 against 7,615 - 0.7% apart.
+   8 CFR_high_flagged_for_review  rows 137, 160, 165, 166, 169, 172, 173, 191
+     (plus 45 and 170, which sit below the validator's reporting threshold).
+     Every one is a WHO official notification pair for 1978-1994 at confidence
+     0.70. Not arithmetic errors - the signature of an era in which Uganda
+     notified mainly the dying, which WHO states itself in WER "Cholera in 1991":
+     the persistently high African CFR "probably, to some extent, reflects
+     incomplete reporting of cases, with a tendency to report only the most
+     severe". Row 45 (Kampala 2008, 5/18 = 27.8%) is a nosocomial outbreak in a
+     psychiatric referral hospital and is documented as such.
+   1 period_single_day  row 179, one imported case notified 2 January 1975.
+     Agent 4 confirmed WHO's "i" marker against the JHU project's own raw file
+     /Users/johngiles/MOSAIC/jhu_cholera_data/data/Uganda/ObservationCollection342.csv,
+     which has an sCh_imported column recording all three of Uganda's 1975 cases
+     as imported.
 
-Dashboard update script (update_dashboard.sh) should run without CSV
-parsing errors.
+--- B10. ORPHANED METADATA -------------------------------------------------
+  27 sources are cited by no live data row (INFO only). Five (84, 86, 87, 89,
+  104) are cited by ./data/UGA/cholera_presence_ai.csv. Eight (40, 42, 43, 44,
+  45, 46, 47, 48) are the WER annual articles behind the retracted zeros: I
+  rewrote each Description with an AGENT 7 RETRACTION NOTICE quoting that
+  article's own non-reporting caveat verbatim and stating "DO NOT re-derive a
+  {year} Ugandan zero from this document", so a future agent cannot silently
+  rebuild the same false zero from the same source. The remaining 14 are
+  corroborating or negative-result sources deliberately registered without
+  producing a row. No source was deleted; every tombstone's source_index still
+  resolves.
 
-=== AGENT 7 COMPLETION SUMMARY ===
-Total Validation Stages: 4 (all PASSED)
-Overall Validation Pass Rate: 100% (46/46 rows, 30/30 sources)
-Zero unresolved data integrity issues.
-Zero CSV formatting issues.
-Gap-Filling Effectiveness: 2 filled + 1 validated absence + 6 re-classified
-  as surveillance gaps (preventing misrepresentation) out of 9 baseline gaps.
-Coverage Improvement: +3.6 percentage points (69.9% → ~73.5%)
-Quality Distribution: 93.3% Level 1 sources, mean confidence weight 0.917
 
-Final deliverables verified:
-  ✓ cholera_data_ai.csv (14 cols, 46 rows)
-  ✓ metadata_ai.csv (15 cols, 30 rows)
-  ✓ search_log_agent_1.txt through search_log_agent_7.txt (all 7 present)
-  ✓ search_report.txt (created by Agent 7)
-  ✓ Dual-reference indexing system intact
+################################################################################
+PHASE 4 - THE 26-CHECK FOUR-STAGE VALIDATION SWEEP
+################################################################################
+Written and run against all 184 surviving rows, independent of
+py/validate_quality.py. Result: ALL CHECKS PASS.
 
-AGENT 7 STATUS: COMPLETE
-WORKFLOW STATUS: UGANDA (UGA) CHOLERA SURVEILLANCE DATA ENHANCEMENT COMPLETED
-End Time: 2026-05-14 10:55:00
+  rows=184  sources=115  retracted=15  presence=35
+
+  Stage 1/4 structure and dual reference
+    PASS  cholera_data_ai.csv has the 14 mandated columns in order
+    PASS  every source_index resolves to a metadata Index
+    PASS  every source name matches its metadata Source exactly
+    PASS  no duplicate data Index
+    PASS  metadata Index is 1..115 with no gaps or duplicates
+    PASS  source_database == 'AI' on every row
+  Stage 2 date logic
+    PASS  TL <= TR on every row
+    PASS  reporting_date >= TR wherever present
+    PASS  reporting_date populated on every row
+    PASS  no TR in the future
+    PASS  all dates ISO YYYY-MM-DD
+  Stage 2 epidemiological bounds
+    PASS  deaths <= sCh everywhere
+    PASS  cCh <= sCh everywhere
+    PASS  every row carries at least one case/death value
+    PASS  CFR arithmetic matches deaths/sCh to 0.05 percentage points
+    PASS  confidence_weight within 0.1-1.0
+  Stage 2 location legality
+    PASS  every Location is under AFR::UGA
+    PASS  no prohibited non-geographic Location categories
+          (Vaccination, OCV, Training, Health_Workers, Demographics, Age_,
+           Laboratory_, Surveillance_)
+  Stage 3/4 documentation and de-duplication
+    PASS  every row carries a "Source states"/"Source confirms" quote
+    PASS  no exact duplicate rows
+    PASS  no retracted Index survives in the live file
+    PASS  every tombstone carries a date and a reason
+    PASS  every tombstone's source still resolves in metadata
+  Zero-row labelling
+    PASS  every zero row carries a canonical "Evidence type:" token
+    PASS  no zero row labelled Surveillance_Gap
+    PASS  surveillance status recorded on the zero rows
+          (row 46, the legacy 1970 pre-introduction row, excepted)
+
+  SEPARATE CHECK - what the weekly builder will actually read. Re-implemented
+  build_weekly_timeseries.py's canonical evidence parser (first
+  "Evidence type: X" token, falling back to a substring scan) and ran it over
+  all 17 surviving zero rows. Every one resolves as intended:
+    46 documented | 48 documented | 49 inferred  | 52 documented
+    53 inferred   | 54 inferred   | 55 inferred  | 56 inferred
+    58 inferred   | 66 inferred   | 67 inferred  | 68 inferred
+    72 documented | 133/134/135 inferred | 200 inferred
+  This matters because several of my appended notes contain the string
+  "Documented_Absence" inside sentences explaining why the label was NOT
+  promoted; the canonical-token rule means none of them flips a label.
+
+
+################################################################################
+PHASE 5 - AGENT VERIFICATION (WORKFLOW STATE AUDIT)
+################################################################################
+Read via workflow_state.read_workflow_state('UGA').
+
+  agent  batches  queries  rows  sources  yields (%)
+    1      12       240      29     29    10 15 55 10 5 5 10 0 5 15 0 0
+    2       7       140      51     14    10 20 25 10 10 20 5
+    3       8       160      33     18    0 0 25 5 0 0 0 25
+    4       6       120      27     20    20 25 0 10 0 25
+    5       6       120      13      3    5 5 0 10 10 5
+    6       4        80       1      1    0 0 0 5
+  total    43       860     154     85
+
+  FINDING 1. THE 3-BATCH FLOOR WAS CLEARED BY ALL SIX AGENTS. The minimum was
+    Agent 6 at 4 batches. No agent stopped at batch 1 or 2.
+  FINDING 2. NO AGENT REPORTED A YIELD ABOVE 100%. The maximum single-batch
+    yield was 55% (Agent 1, batch 3). No agent counted rows instead of queries.
+  FINDING 3. NO AGENT CLAIMED A ROW IT DID NOT ADD. Verified by intersecting
+    each agent's claimed index range against the union of the live file and the
+    tombstone file:
+      agent 1  claimed 29, range 47-75    present 29  (12 later retired)
+      agent 2  claimed 51, range 76-126   present 51
+      agent 3  claimed 33, range 127-159  present 33
+      agent 4  claimed 27, range 160-186  present 27
+      agent 5  claimed 13, range 187-199  present 13
+      agent 6  claimed  1, range 200-200  present  1
+    All 199 pre-audit indices are accounted for: 184 live + 15 retracted.
+    Sources reconcile exactly: 30 at run start + 29 + 14 + 18 + 20 + 3 + 1 = 115.
+  FINDING 4. ONLY AGENTS 3 AND 6 MET THE FORMAL STOPPING CRITERION of three
+    consecutive sub-5% batches. Agent 1 ran to the 12-batch ceiling.
+    AGENTS 2, 4 AND 5 STOPPED ON JUDGEMENT, NOT ON THE CRITERION. All three said
+    so explicitly in their own logs rather than presenting it as saturation,
+    which is the right way to do it, but it should be recorded: Agent 4's final
+    batch returned 25% and Agent 2's second-most-productive batch was its sixth
+    of seven. Both plausibly stopped with yield still on the table.
+  FINDING 5. ROW COUNT IS A BAD MEASURE OF TWO OF THESE AGENTS. Agent 6 added
+    one row; its contribution was classification, and it is the reason eight
+    false zeros are now retracted. Agent 5 added 13 rows but adjudicated ten
+    conflicts, identified the AFRO "227" transcription regression, found the
+    row-17 split denominator and demolished Agent 2's JHU-sum reconciliation.
+  FINDING 6. TWELVE OF THE FIFTEEN RETIREMENTS ARE AGENT 1 ROWS. This is not
+    carelessness - eleven were historical zeros written before Agents 3-6 built
+    the evidence that overturned them, and Agent 1 itself flagged the 2025
+    conflict and requested exactly the retirements that were made. The pipeline
+    worked as designed; the design simply puts the correction three agents
+    downstream of the error, and in the interim the dashboard showed 99.9%.
+
+
+################################################################################
+PHASE 6 - PART D: DEFECTS OUTSIDE THE AI LAYER (REPORTED, NOT FIXED)
+################################################################################
+
+D1. THE WHO BLANK-sCh ZERO-FILL DEFECT IS ALREADY FIXED IN THE BUILDER.
+    My brief stated that ./data/UGA/cholera_data_who.csv has ~60 weekly rows for
+    late 2023-2024 with blank sCh that py/build_weekly_timeseries.py zero-fills
+    into unlabelled absences. The file does carry 74 such national weekly rows,
+    spanning 2023-07-31 to 2025-03-23. But the builder no longer zero-fills them.
+    load_national_rows() sets has_count=False for a blank sCh, and BOTH
+    downstream loops skip such rows outright:
+      weekly loop      "if not r['has_count']: continue   # blank sCh = no count
+                        reported; not an observation"
+      non-weekly loop  "if not r['has_count']: continue   # blank sCh = no count
+                        = no information; do NOT emit a zero"
+    Empirically confirmed against the existing ./data/UGA/cholera_weekly_UGA.csv:
+    of the 74 weeks from 2023-08-01 to 2024-12-31, 66 are JHU fourier_country_k2
+    and 8 are WHO observed. NOT ONE is a documented_zero or an inferred_zero.
+    NO ACTION NEEDED, and a future run should not spend effort on it.
+
+D2. A REAL BUILDER DEFECT FOUND WHILE CHECKING D1 - ROWS WITH A COUNT BUT NO
+    sCh ARE SILENTLY DISCARDED.
+    has_count is keyed on sCh ALONE, so a row carrying only cCh, or only deaths,
+    is dropped rather than used. Scanned all three UGA layers for national rows
+    with a blank sCh but a non-blank cCh or deaths:
+      AI  row 197  2023-01-01..2023-12-31  cCh 65   <-- MATERIAL LOSS
+      AI  row 198  2015-01-01..2015-12-31  cCh 137
+      AI  row 199  2018-01-01..2018-12-31  cCh 109
+      JHU row 1314 2018-04-09..2018-04-18  deaths 0
+      JHU row 1479 2018-02-11..2018-04-24  deaths 44
+    The 2023 loss is the serious one. WHO's own annual states that Uganda "did
+    not report cholera data to WHO for 2023", so row 197 is the ONLY national
+    figure for that year anywhere - 65 culture-confirmed cases from Uganda's
+    National Microbiology Reference Laboratory - and MOSAIC currently receives
+    nothing for it. Suggested fix, for the pipeline owner and not for a country
+    agent: treat a row as informative when ANY of sCh, cCh or deaths is present,
+    and disaggregate on whichever is available. NOT FIXED HERE - py/ is outside
+    this agent's write scope.
+
+D3. THE JHU 404 DIAGNOSIS IN MY BRIEF IS WRONG, AND THE CORRECT ONE MATTERS.
+    All 55 URLs in ./data/UGA/metadata_jhu.csv do return HTTP 404. But the stated
+    cause - ".csv stripped, UID truncated to 3 digits" - is not what the file
+    contains. Every URL ends in a full "ObservationCollectionNNNNN.csv"
+    (e.g. .../ObservationCollection4903.csv, .../ObservationCollection20872.csv,
+    .../ObservationCollection20944.csv), and I matched all 55 filenames against
+    /Users/johngiles/MOSAIC/jhu_cholera_data/data/Uganda/: 55 of 55 exist
+    locally, zero mismatches. They 404 because
+    github.com/InstituteforDiseaseModeling/jhu_cholera_data is a PRIVATE
+    repository - the repository ROOT returns 404 to anonymous HTTP too (F12).
+    Nothing is malformed and no data is lost; the citations are simply not
+    publicly resolvable. A future agent told to "fix the truncated UIDs" would
+    find nothing to fix and might mangle working URLs trying.
+
+D4. JHU APPARENT DUPLICATION FOR 1999 AND 2000. ./data/UGA/cholera_data_jhu.csv
+    sums to 10,234 cases / 458 deaths for 1999 and 6,131 / 341 for 2000, against
+    WHO's official 5,179 / 228 and 2,807 / 172 - almost exactly double in both
+    years (Agent 3 finding F30). Separately, JHU renders the Moroto 2010 outbreak
+    four times over. DO NOT TREAT JHU SUB-NATIONAL SUMS AS AN INDEPENDENT
+    RECONSTRUCTION FOR ANY UGANDAN YEAR.
+
+D5. THE JHU 2022 NATIONAL ZERO, LEFT STANDING. Defensible on Agent 6's analysis
+    (WHO's 2022 annual affirmatively lists Uganda as a zero-reporter; the nine
+    AFRO countries reporting cholera in 2022 do not include Uganda; Uganda's own
+    2026 elimination paper plots the 2022 bar flat). It sits in direct tension
+    with presence rows 2-5 of ./data/UGA/cholera_presence_ai.csv, which record
+    significant HMIS district clusters (Local Moran's I = 0.070, Z = 2.01,
+    p = 0.045 - a statistic that cannot be computed on an all-zero surface). The
+    two come from different instruments, IDSR notification versus HMIS
+    aggregates. Both retained WITH the explanation attached; neither silently
+    reconciled.
+
+
+################################################################################
+PHASE 7 - COVERAGE MEASUREMENT
+################################################################################
+METHOD. py/analyze_effective_gaps.py was NOT run. Instead its analyse()
+function was imported and called for UGA alone, which writes nothing:
+    sys.path.insert(0,'py'); import analyze_effective_gaps as A
+    A.analyse("UGA","Uganda", layers, date.today(), 7)
+The pre-run state was reconstructed by pointing A.DATA at a private copy under
+/tmp/uga7/prerun/ containing the two read-only baselines plus
+./data/UGA/.backup_cholera_data_ai_20260919-153821833312.csv, which is the
+45-row file as it stood before Agent 1's first insert. That reconstruction
+returns 72.7% / 495 of 681 / 7 gaps, reproducing the orchestrator's recorded
+pre-run figures EXACTLY, which validates the method.
+
+  layer / state                        rows  coverage   months    gaps  ai_only
+  JHU + WHO baseline only                 -    69.2%   471/681       9        0
+  pre-run (45 legacy AI rows)            45    72.7%   495/681       7       23
+  after Agents 1-6, before this audit   199    99.9%   680/681       1      208
+  FINAL, after this audit               184    85.3%   581/681       6      109
+
+  AI-layer net contribution over the JHU+WHO baseline: +16.1 percentage points,
+  +110 months, 109 country-months where the AI layer is the only source.
+  months_with_positive_cases 460 -> 481.
+  Recency: latest observation 2026-08-28 (22 days stale), latest POSITIVE
+  observation 2025-12-31. Baseline-only recency was 2025-03-30, 538 days stale.
+
+  THE 14.6-POINT DROP FROM 99.9% TO 85.3% IS THE COST OF THIS AUDIT AND IS
+  REPORTED AS SUCH. 99 of the 208 AI-only months were the eight false annual
+  zeros. The headline the workflow would otherwise have published was wrong.
+
+  SIX GAPS OPEN AT COMPLETION
+    1981-01-01..1981-12-31    365d  historical  RE-OPENED by this audit
+    1983-01-01..1983-03-31     90d  historical  RE-OPENED (narrowing of row 58)
+    1984-01-01..1986-12-31   1096d  historical  RE-OPENED
+    1988-01-01..1990-12-31   1096d  historical  RE-OPENED
+    1993-01-01..1993-12-31    365d  historical  RE-OPENED
+    2026-09-01..2026-09-19     19d  recent      publication lag; at day
+                                                resolution the true uncovered
+                                                window is 2026-08-29..2026-09-19,
+                                                22 days. Left empty on purpose.
+  ASSESSMENT. For the five historical gaps - about 8.5 years - my judgement is
+  that the data does not exist in any public source. Four agents attacked them
+  by different routes: the complete WER annual and weekly archive read in column
+  geometry, the WHO GHO API (which holds no Uganda value for any of them), the
+  vaccine-preventable-disease return series, PubMed 1970-1999 (seven Uganda
+  cholera records in total, none with a count for 1980-1992), the Uganda MoH's
+  own National Cholera Plan, the Karamoja famine literature, the 1985
+  refugee-camp literature, colonial Protectorate reports and regional media.
+  Nothing. If a count exists it is in paper Ugandan MoH annual medical reports
+  of the 1980s, which are not digitised.
+
+
+################################################################################
+FINAL VALIDATION
+################################################################################
+  python py/validate_quality.py UGA --json /tmp/UGA_post.json
+  -> Validated 1 countries | 184 data rows | 115 metadata sources
+     ERROR 0   WARN 33   INFO 79     exit code 0
+
+                            run start   after 1-6   FINAL
+     ERROR                      0          0          0
+     WARN                      25        107         33
+     INFO                       2         20         79
+
+  74 warnings cleared: 54 national_subnational_overlap, 13 notes_missing_quote,
+  4 reporting_date_blank, 3 same_period_conflict.
+  33 remain, every one reviewed and intentional:
+     18 multiyear_aggregate         genuinely what the sources publish, capped 0.70
+      8 CFR_high_flagged_for_review WHO notification pairs, 1978-1994, capped 0.70
+      6 same_period_conflict        all now carry primary/non-primary designations;
+                                    two of the six are sCh-vs-cCh, not conflicts
+      1 period_single_day           the 1975 imported case, independently verified
+  python py/repair_data_integrity.py --dry-run UGA -> TOTAL: 0 change(s)
+  ./data/UGA/attribution_review.csv -> not created; nothing required judgement.
+
+
+################################################################################
+AGENT 7 COMPLETION SUMMARY
+################################################################################
+Batches executed        : n/a - Agent 7 has no query budget and collects no rows
+Verification fetches    : 12 primary-document fetches (F1-F12) plus a 115-URL
+                          sweep and 8 alternate-route retries
+Rows retired            : 15  -> ./data/UGA/retracted_rows_ai.csv
+Rows narrowed           :  2  (69, 58)
+Rows re-weighted        : 12  (2 more audited and confirmed unchanged)
+Rows annotated          : 54 with double-counting statements; 12 adjudicated
+                          primary/non-primary; 74 of 184 carry an Agent 7 stamp
+Quotes recovered        : 12, all verbatim; NONE fabricated
+Reporting dates added   :  3
+Locations corrected     :  3 (rows 2, 24, 12); 1 flagged unguessed (row 23)
+Citations corrected     :  1 source_index, 2 Source labels, 1 URL,
+                          11 metadata Descriptions
+Dead URLs remaining     :  0 of 115
+Coverage                : 72.7% -> 85.3% (baseline-only 69.2%)
+Gaps open at completion :  6
+Validator               : ERROR 0, WARN 33, INFO 79, exit 0
+Files modified          : ./data/UGA/cholera_data_ai.csv
+                          ./data/UGA/metadata_ai.csv
+                          ./data/UGA/retracted_rows_ai.csv  (created)
+                          ./data/UGA/search_report.txt
+                          ./data/UGA/search_log_agent_7.txt
+                          ./data/UGA/workflow_state.json
+                          - nothing outside ./data/UGA/
+Not run                 : py/analyze_effective_gaps.py, update_dashboard.sh,
+                          py/update_dashboard_data.py, all git commands
+Agent 7 status          : COMPLETE
+################################################################################
