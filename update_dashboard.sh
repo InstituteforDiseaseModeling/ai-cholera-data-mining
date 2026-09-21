@@ -91,6 +91,17 @@ if ! python py/generate_country_status_page.py; then
 fi
 echo "✅ Country status table updated"
 
+# Structural gate. The dashboard has been published broken twice: once
+# truncated from 10 MB to 164 KB by a runaway regex, once with an unterminated
+# CSS rule that swallowed the rest of the stylesheet. Both times every string in
+# the page was correct and only the structure was wrong, so nothing noticed.
+echo ""
+echo "🔎 Validating dashboard structure..."
+if ! python py/validate_dashboard.py; then
+    echo "❌ ERROR: dashboard failed structural validation - NOT publishing"
+    exit 1
+fi
+
 # Generate coverage barplot with error handling
 echo ""
 echo "📊 Generating coverage barplot..."
