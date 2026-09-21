@@ -47,14 +47,15 @@ LOG="logs/handoff_$(date +%Y%m%d-%H%M%S).log"
 
   out="logs/full_run_$(date +%Y%m%d-%H%M%S).out"
   echo "relaunching -> $out"
-  # caffeinate -i prevents idle sleep for the life of the run. A multi-day
-  # unattended job that pauses when the lid closes will not complete.
+  # -dims, not -i: -i blocks only user idle sleep and the machine took a
+  # 'Maintenance Sleep' regardless while on battery. -s is honoured only on AC
+  # power, so an unattended run needs the laptop plugged in.
   if command -v caffeinate >/dev/null; then
-    nohup caffeinate -i bash run_all_countries.sh --unattended --publish-progress \
-      --parallel "${PARALLEL:-4}" > "$out" 2>&1 &
+    nohup caffeinate -dims bash run_all_countries.sh --unattended --publish-progress \
+      --parallel "${PARALLEL:-1}" > "$out" 2>&1 &
   else
     nohup bash run_all_countries.sh --unattended --publish-progress \
-      --parallel "${PARALLEL:-4}" > "$out" 2>&1 &
+      --parallel "${PARALLEL:-1}" > "$out" 2>&1 &
   fi
   echo "relaunched as pid $!"
 } >> "$LOG" 2>&1

@@ -1,73 +1,464 @@
-=== AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST INITIALIZATION ===
-Country: Malawi (MWI)
-Start Time: 2025-08-07
-Agent Focus: Systematic district and provincial-level cholera data extraction
+================================================================================
+AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - MALAWI (MWI)
+================================================================================
+Start Time : 2026-09-21
+Working dir: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Log file   : /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/MWI/search_log_agent_2.txt
+(This file overwrites a stale August-2025 log. Everything below is this run.)
 
-TARGET GAPS FOR GEOGRAPHIC EXPANSION:
-1. 1998-1999 outbreak (25,000 cases) - Need district breakdown
-2. 2001-2002 outbreak (33,546 cases) - Need district breakdown
-3. 2008-2009 outbreak (5,751 cases) - Need district breakdown
-4. 2011-2012 outbreak (1,806 cases) - Need district breakdown
+MISSION
+  Convert Malawi's national totals into district (ADM1) resolution. National
+  coverage is ~92%; sub-national resolution is the thin layer.
 
-PRIORITY DISTRICTS:
-- Lake Malawi: Mangochi, Salima, Nkhotakota, Nkhata Bay, Karonga
-- Lake Chilwa: Machinga, Zomba, Phalombe
-- Urban centers: Lilongwe, Blantyre, Mzuzu, Zomba City
-- Border districts: Nsanje, Chikwawa, Mwanza, Chitipa
+STATE READ BEFORE FIRST QUERY
+  ./data/MWI/cholera_data_ai.csv    139 rows (Index 1-143), 42 district-level
+  ./data/MWI/metadata_ai.csv         91 sources (Index 1-91)
+  ./data/MWI/cholera_presence_ai.csv  2 rows
+  ./data/MWI/retracted_rows_ai.csv    2 tombstones
+  ./data/MWI/workflow_state.json     Agent 1: 12 batches, 95 rows, 60 sources
+  ./data/MWI/search_log_agent_1.txt  handover notes (PHIM wp-json media API,
+                                     IRIS DSpace REST, ReliefWeb via curl)
+  ./reference/effective_surveillance_gaps_detailed.csv (READ ONLY, not regenerated)
+  ./reference/country_profiles.json  28 ADM1 districts
 
-EXISTING DISTRICT DATA:
-- 2009-2010: Machinga, Zomba, Phalombe
-- 2015-2016: Nsanje, Machinga
-- 2022-2023: Lilongwe, Blantyre, Nkhata Bay, Nkhotakota, Rumphi, Mangochi
+DISTRICT COVERAGE ALREADY PRESENT (before this run)
+  2009-10 Lake Chilwa : Machinga, Zomba, Phalombe
+  2015 / 2015-16      : Nsanje (Feb-Mar 2015), Machinga (Dec 2015-Jan 2016)
+  2022-23 epidemic    : Lilongwe, Blantyre, Nkhata_Bay, Nkhotakota, Rumphi,
+                        Mangochi, Nsanje (single day only)   <- 7 of 29
+  2024-25 season      : Chitipa, Karonga, Machinga, Balaka, Mzimba_North,
+                        Lilongwe, Thyolo
+  2025-26 season      : 18 districts across PHIM wk15/wk20/wk22 snapshots
+  NOT district-resolved at all: 1973-74, 1988, 1990-93 refugee camps,
+                        1998-99, 2001-02 (Lilongwe only), 2008-09, 2017-18
 
-Beginning systematic district-level searches...
+TARGETS, IN PRIORITY ORDER
+  1. 2022-23 epidemic full 28/29-district tables (PHIM/MoH sitreps, UNICEF,
+     OCHA, IFRC DREF, WHO AFRO, ReliefWeb)
+  2. 2023-24 and 2024-25 season district tables in PHIM IDSR bulletins
+  3. Historical district concentration: 1998-99, 2001-02, 2008-09, 2015-16,
+     2017-18 (academic literature carries district tables)
+  4. 1990-93 Mozambican refugee camp epidemics by host district
+  5. Karonga / Nkhata Bay / Likoma lakeshore cross-border
+  6. Unmined sources ALREADY in metadata: Index 65 (PHIM wk25 2026 PDF) and
+     Index 66 (PHIM wk21 2026 PDF) are registered but no rows drawn from them;
+     Index 64 (wk22) yielded only the 4 changed districts.
 
-EOF < /dev/null
-=== AGENT 2 SEARCH BATCH 1 ===
-Queries Executed: 20 queries targeting district-level data for 1998-1999, 2001-2002, 2008-2009, 2011-2012 outbreaks
-Results: 
-- Found confirmation of 2011/2012 outbreak affecting 10/13 southern districts (1,806 cases, 38 deaths)
-- Found DHIS2 was not implemented until 2012 (after 2009 outbreak)
-- Confirmed Lake Chilwa districts data for 2009 already in dataset
-- API restrictions limited many searches
-CSV Updates: 0 new rows (need to fetch specific sources for detailed district data)
-Data Observation Yield: 0% (0/20 queries resulted in new CSV rows)
+================================================================================
+=== BATCH 1 | PHASE 1 (broad discovery: 2022-23 epidemic district tables + PHIM archive) | MWI ===
+Gap targeted : sub-national resolution of the 2022-23 epidemic (2022-03-03..2023-06-30)
+               and of the 2025-26 season (2025-11-01..2026-01-20). Neither is a
+               temporal gap - national coverage exists - but neither has ADM1 depth.
+Queries (20):
+   1 curl phim.health.gov.mw/wp-json/wp/v2/media?search=cholera&per_page=100
+   2 curl phim.health.gov.mw/wp-json/wp/v2/media?search=Situation
+   3 curl phim.health.gov.mw/wp-json/wp/v2/media?search=SITREP
+   4 curl phim.health.gov.mw/wp-json/wp/v2/media?search=Weekly
+   5 curl phim.health.gov.mw/wp-json/wp/v2/media?search=Epidemiological
+   6 curl+pdftotext PHIM CHOLERA WEEKLY EPIDEMIOLOGICAL REPORT EPI-WEEK 21, 2024
+   7 curl+pdftotext PHIM CHOLERA WEEKLY EPIDEMIOLOGICAL REPORT EPI-WEEK 20, 2024
+   8 curl+pdftotext PHIM Malawi Cholera Situation Update, 20 January 2026
+   9 WebSearch "Malawi cholera situation report 2023 district cases deaths table
+     Lilongwe Blantyre Mangochi Chikwawa Nsanje cumulative"
+  10 WebSearch "UNICEF Malawi cholera situation report 2023 districts affected
+     cases deaths breakdown"
+  11 curl journals.plos.org "Determinants of cholera fatalities in Malawi" (PGPH 2025)
+  12 curl pmc.ncbi.nlm.nih.gov/articles/PMC10551271 (JS wall, 20 KB shell only)
+  13 curl ebi.ac.uk/europepmc/.../PMC10551271/fullTextXML   <- the workaround
+  14 ReliefWeb API v1 (HTTP 410, decommissioned)
+  15 ReliefWeb API v2 (HTTP 403, appname must now be pre-approved)
+  16 Wayback CDX  url=phim.health.gov.mw  matchType=domain
+  17 Wayback CDX  url=phim.health.gov.mw/wp-content/uploads*
+  18 WebSearch "OCHA Malawi cholera situation report 2023 'cases and deaths by
+     district' table all 29 districts"
+  19 WebSearch "Malawi cholera 2023 district level data Chikwawa Nsanje Zomba
+     Thyolo Mulanje Phalombe cases deaths epidemic"
+  20 curl reliefweb.int DREF MDRMW017 Operation Update #1 page + attachment PDF
+Sources found: 4    Registered: metadata index 92, 93, 94, 95
+Rows added   : 47   Indices 144-190
+  144-148  Miggo et al. 2023 (already-registered index 13): Mangochi 8,438/123,
+           Balaka 4,278/102, Salima 3,570/99, Machinga 2,358/86, Dedza 2,053/79
+           cumulative to the MoH daily bulletin of 29 Mar 2023
+  149-170  PHIM Situation Update 20 Jan 2026: 22 districts, 2025-11-01..2026-01-20
+  171-172  PHIM cholera wk21 2024: Karonga 1, Nsanje 4 confirmed, 20-26 May 2024
+  173-174  PHIM cholera wk20/21 2024 national season cumulatives (273 and 278
+           confirmed, 3 deaths, from 1 Nov 2023)
+  175-190  IFRC DREF MDRMW017 Op Update #1: 16 districts cumulative to 17 Mar 2023
+Successful queries: 5/20  (queries 6, 7, 8, 13, 20)
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
 
-Moving to WebFetch approach for known PMC articles...
-EOF < /dev/null
-=== AGENT 2 SEARCH BATCH 2 ===
-Queries Executed: 20 queries targeting district breakdowns for major outbreaks
-Results:
-- Confirmed 2011/2012 affected 10/13 southern districts (but no individual district counts found)
-- Found 2022-2023 district data in PMC article (Balaka: 4,278 cases; Salima: 3,570; Dedza: 2,053 - but wrong year)
-- Confirmed 2009 UNICEF response but no district-specific data beyond Lake Chilwa
-- Multiple API restrictions limiting searches
-CSV Updates: 0 new rows (no new district-level data for target years found)
-Data Observation Yield: 0% (0/20 queries resulted in new CSV rows)
+NOTES / METHOD
+  * ReliefWeb's JSON API is no longer open: v1 returns 410 and v2 returns 403
+    unless the appname has been approved. Agent 1's "ReliefWeb serves to curl"
+    note still holds for the HTML report pages and for /attachments/<uuid>/*.pdf,
+    which is the route used here. Future agents: scrape the report page for the
+    attachment href, then curl that.
+  * The PHIM WordPress media API indexes by FILENAME, not by content. The 2024
+    cholera-specific weekly reports are only findable under search=Weekly or
+    search=Epidemiological, not under search=cholera, because the filename reads
+    "PHIM_ CHOLERA WEEKLY EPIDEMIOLOGICAL REPORT" with an underscore. Sweep
+    several search terms.
+  * PHIM's 2022-23 daily cholera bulletins are NOT in the Wayback CDX for
+    phim.health.gov.mw/wp-content/uploads - only two 2024 cholera PDFs are
+    archived. The 2022-23 district tables have to be recovered from the
+    organisations that quoted them (IFRC, OCHA, UNICEF, WHO), not from PHIM.
+  * PMC article pages are behind a JS wall; EuropePMC's REST fullTextXML
+    endpoint returns the same article cleanly and is the better route.
 
-Continuing with academic database searches...
-EOF < /dev/null
-=== AGENT 2 SEARCH BATCH 3 ===
-Queries Executed: 20 queries for academic sources and surveillance databases
-Results:
-- Many API restrictions (14/20 queries blocked)
-- Confirmed 2001-2002 affected 26/29 districts but no individual counts
-- Found 2008-2009 Lake Chilwa data already in dataset (Machinga 220, Zomba 324)
-- Confirmed 2011-2012 affected 10/13 southern districts (no breakdown)
-- Weekly cholera bulletins found but for 2023 only
-CSV Updates: 0 new rows (no new district-level data for target years)
-Data Observation Yield: 0% (0/20 queries resulted in new CSV rows)
+=== BATCH 2 | PHASE 1-2 (humanitarian + academic district tables) | MWI ===
+Gap targeted : ADM1 depth for the 2022-23 epidemic and for the 2014/15 outbreak
+Queries (21-40):
+  21 pdftotext OCHA Malawi Cholera & Floods Flash Appeal 2023 (revised March)
+  22 WebSearch "Weekly Regional Cholera Bulletin" Malawi 2023 district cases deaths
+  23 python slice of the Flash Appeal "Distribution of Cholera cases by District"
+  24 curl+pdftotext UNICEF Malawi Cholera Flash Update 04, 23 January 2023
+  25 pdftotext UNICEF Flash Update 04 pages 2-3
+  26 WebSearch Malawi cholera 2017 2018 Karonga Nkhata Bay Lilongwe OCV districts
+  27 WebSearch Malawi cholera 2015 2016 floods Nsanje Chikwawa Zomba Phalombe
+  28 EuropePMC fullTextXML PMC4907756 (Msyamboza et al., PAMJ 2016)
+  29 WebSearch "Chikwawa" "Nsanje" 693 cases 11 deaths eight districts 2015
+  30 curl plateformecholera.info/malawi-cholera-fact-sheet  -> DEAD: the domain is
+     now a squatted e-commerce page. Do not cite the Cholera Platform live site.
+  31 grep the PAMJ XML for the 693/374/225/65 district split
+  32 WebSearch Malawi cholera 2018 "13 districts" 904 cases 30 deaths
+  33 EuropePMC REST search, malformed field syntax (0 hits)
+  34 EuropePMC REST search  query="cholera AND Malawi AND (district OR districts)"
+  35 EuropePMC fullTextXML PMC13375130 and PMC13507534 (no district counts)
+  36 curl 3 ReliefWeb report pages, scraped for /attachments/<uuid>/*.pdf hrefs
+  37 curl+pdftotext Cholera & TC Freddy Response Dashboard June 2023, UNICEF
+     Humanitarian Situation Reports No.1 and No.2
+  38 pdftotext UNICEF SitRep No.1 district passage
+  39 pdftotext UNICEF SitRep No.1 chart value strip (numbers, names missing)
+  40 pdftoppm page 3 at 170 dpi -> read the chart's district axis from the image
+Sources found: 2    Registered: metadata index 96 (UNICEF SitRep No.1); reused
+               existing index 6 (PAMJ) and index 20 (UNICEF Flash Update 04)
+Rows added   : 25   Indices 191-215
+  191-193  UNICEF Flash Update 04: Mangochi 5,942/96, Blantyre 4,406/154,
+           Lilongwe 3,472/226 cumulative to 22 Jan 2023
+  194-200  PAMJ 2016: full 8-district split of the 2014/15 outbreak
+           (Chikwawa 374, Blantyre 65, Ntcheu 10, Mwanza 9, Lilongwe 7,
+           Phalombe 2, Dedza 1; Nsanje 225 already at Index 10)
+  201-215  UNICEF SitRep No.1: 15 districts cumulative to 12 Mar 2023
+Successful queries: 3/20  (queries 24, 31, 40)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
 
-Three consecutive batches with 0% yield. Stopping criteria met.
+METHOD UNLOCK - READ THE CHARTS, NOT JUST THE TEXT
+  Humanitarian sitreps put the district table in a bar chart. pdftotext recovers
+  the VALUES (they are text) but drops the district axis labels (vector text in a
+  rotated group), so the numbers arrive as an unlabelled strip. Rendering the page
+  with `pdftoppm -f N -l N -r 170 -png file.pdf out` and reading the PNG recovers
+  the axis. This turned a 6-district text mention into a 15-district table. It is
+  extraction, not inference; the mapping was then independently corroborated
+  against the IFRC DREF list five days later. Recommend this for every country.
 
-SUMMARY OF AGENT 2 EFFORTS:
-Total Queries: 60 (3 batches of 20)
-Total CSV Additions: 0 new rows
-Key Finding: District-level data for 1998-1999, 2001-2002, 2008-2009, and 2011-2012 appears to be aggregated at national level in available sources. The detailed district breakdowns may only exist in internal Ministry of Health surveillance systems not accessible through public sources.
+DISCREPANCIES FOUND, NOT FIXED (for Agent 5 / Agent 7)
+  * Index 10 (Nsanje 225 cases / 3 deaths, TR 2015-03-31, source index 6). The
+    cited source says Nsanje had "176 cholera cases and 3 deaths" by the end of
+    March 2015 and reaches 225 only at the 14 June 2015 close of the outbreak.
+    The TR on Index 10 looks wrong; it should be 2015-06-14.
+  * Index 18 (Nkhotakota 1,115 cases / 49 deaths, Nov 2022, source index 20).
+    Source index 20 is the UNICEF Malawi Flash Update of 23 January 2023; the PDF
+    was retrieved in full this batch and contains no 1,115 or 49 anywhere. Its
+    only Nkhotakota content is about RRT training. Attribution looks wrong.
+  * PHIM weekly national cases for 2023 wk1-10 (3,200 / 3,860 / 4,480 / 4,244 /
+    4,958 / 3,861 / 3,357 / 3,031 / 2,753 / 1,658, deaths 109/121/135/133/161/
+    130/84/79/65/22) differ from the WHO dashboard weekly series already in
+    ./data/MWI/cholera_data_who.csv (wk1 3,552/105; wk2 3,931/92). Not written -
+    national-level conflict, belongs to Agent 5.
 
-Districts confirmed affected but without specific counts:
-- 2001-2002: 26 of 29 districts affected (33,546 total cases)
-- 2011-2012: 10 of 13 southern districts affected (1,806 total cases)
-- 2008-2009: National total 5,751 cases (Lake Chilwa districts already documented)
+=== BATCH 3 | PHASE 2 (targeted: PHIM bulletin maps + the definitive district table) | MWI ===
+Gap targeted : (a) the complete ADM1 table for the 2022-23 epidemic, (b) the
+               2025-26 season snapshots Agent 1 left partly mined
+Queries (41-60):
+  41 pdftoppm page 6 of the OCHA Flash Appeal + visual read of the district map
+  42 pdfinfo/pdftotext Malawi Cholera & TC Freddy Response Dashboard, June 2023
+  43 curl PHIM IDSR Bulletin wk21 2026 and wk25 2026 PDFs
+  44 pdftotext wk21 2026 section 5.3
+  45 curl+pdftotext PHIM IDSR wk22 2026 and wk20 2026 section 5.3 (comparison)
+  46 pdftotext wk25 2026 annex index
+  47 page-locate Annex 7 and render it
+  48 pdftoppm 500 dpi two-crop render + visual read of Annex 7 choropleth
+  49 extraction pass: complete the wk22 2026 district snapshot
+  50 WebSearch cholera Mozambican refugee camps Malawi 1990-1992 MMWR districts
+  51 WebSearch Malawi cholera 2008 2009 outbreak district cases deaths
+  52 PubMed metadata for PMID 1995929, 9207730, 7721533
+  53 EuropePMC fullTextXML PMC2808810 (not deposited)
+  54 EuropePMC fullTextXML PMC3588220 (not deposited)
+  55 curl PMC3588220 HTML + EuropePMC search "Lake Chilwa" AND cholera
+  56 EuropePMC fullTextXML PMC6249704, PMC6189868, PMC7945304
+  57 WebSearch WHO AFRO Weekly Regional Cholera Bulletin Malawi district table
+  58 curl nature.com/articles/s41467-024-50484-w (full article HTML)
+  59 curl nature.com/articles/s41467-024-50484-w/tables/1
+  60 extraction pass: 28 district rows from Nature Communications Table 1
+Sources found: 2    Registered: metadata index 97 (OCHA Flash Appeal), 98
+               (Nature Communications Table 1); mined the already-registered but
+               previously unused index 64 (wk22 2026) and index 65 (wk25 2026)
+Rows added   : 70   Indices 216-285
+  216-217  OCHA Flash Appeal: Mangochi 8,479 cases and Lilongwe 558 deaths at
+           12 Apr 2023
+  218-243  PHIM wk25 2026 Annex 7 map: 26 districts, 2025-11-01..2026-06-22.
+           The best sub-national snapshot in the Malawi file.
+  244-257  PHIM wk22 2026: the 14 districts Agent 1 did not take, completing the
+           18-district snapshot at 2026-05-31
+  258-285  Nature Communications Table 1: ALL 28 DISTRICTS for the 2022-23
+           epidemic, cleaned PHIM surveillance extract of 20 May 2023
+Successful queries: 4/20  (queries 41, 45, 48, 59)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum met; yields 25/15/20 percent, nowhere
+               near the 3-consecutive-sub-5-percent stop)
 
-EOF < /dev/null
+THE FIND OF THE RUN
+  Nature Communications 15:6291 (2024), Table 1, reached at
+  https://www.nature.com/articles/s41467-024-50484-w/tables/1 - Nature serves
+  each table at a /tables/N endpoint as clean HTML. It is the complete 28-district
+  case, death, population, incidence and CFR table for the 2022-23 epidemic,
+  taken from the PHIM national cholera surveillance database. Genomics papers
+  routinely carry the epidemiological denominator table that the humanitarian
+  reporting never publishes in machine-readable form. Search for the GENOMICS
+  paper when you want the DISTRICT TABLE.
+
+GEOGRAPHIC ARITHMETIC RESOLVED (required by the Agent 2 brief)
+  Nature Table 1 sums to 59,557 cases / 1,732 deaths against the same paper's
+  national 59,156 / 1,771. District CASES exceed the national by 401 (0.7%).
+  Resolution: they are different extracts of the same PHIM database - the table
+  on 20 May 2023, the national total on 30 May 2024. The table is the CLEANED
+  line list: Mangochi (8,479 -> 8,182), Balaka (4,193 -> 4,111) and Rumphi
+  (1,049 -> 932) all FALL relative to the real-time daily bulletins quoted by
+  IFRC and OCHA, while every other district rises. Kept the district table as
+  the final geographic attribution and kept the 2023 sitrep snapshots as the
+  within-epidemic trajectory; both are labelled in processing_notes.
+
+NOT WRITTEN, AND WHY
+  * PHIM IDSR wk21 2026 prints a district list - Balaka 1, Blantyre 24,
+    Chiradzulu 5, Mulanje 5, Chikwawa 46, Zomba 1, Thyolo 12, Nsanje 15,
+    Phalombe 44 - summing to 153, which matches none of the quantities in the
+    surrounding text (2,713 total / 690 confirmed / 299 lab-confirmed / 391
+    epi-linked / 5 deaths) and is NOT monotone against the wk20 and wk22 lists
+    (Blantyre 180 -> 24 -> 240). The list is not interpretable; no rows written.
+    Flagged for Agent 5.
+  * District deaths from the wk25 2026 Annex 7 right-hand panel: confirmed
+    facility deaths read as Blantyre 3, Zomba 1, Mulanje 1, Chikwawa 1 = 6 where
+    the bulletin text states 5. Does not reconcile; deaths left empty on all 26
+    rows and the map content recorded in processing_notes.
+  * The OCHA Flash Appeal district map is a five-class choropleth with no printed
+    values - unlike the UNICEF and PHIM figures, it cannot be read into numbers.
+
+FURTHER LEGACY ATTRIBUTION FLAG (Agent 7)
+  Index 1 (AFR::MWI national, 1990-08-23..1990-12-15, 1,931 cases / 68 deaths,
+  Swerdlow et al. 1997) is a single-camp outbreak recorded at national level. The
+  camp is Nyamithuthu, which the PAMJ 2016 OCV paper (metadata index 6) lists in
+  its Table 1 as a health-facility catchment area of NSANJE district. Index 1
+  should be AFR::MWI::Nsanje. Not duplicated here, because a second row carrying
+  the same 1,931 would be summed by any district-level aggregation.
+
+=== BATCH 4 | PHASE 2 (earlier seasons: 2017/18, 2018/19, 2023/24) | MWI ===
+Gap targeted : seasons with a national number but no district resolution at all -
+               2017/18, 2018/19, 2023/24 - plus the 2001/02 and 1998/99 epidemics
+Queries (61-80):
+  61 curl https://cholera.health.gov.mw/surveillance  -> TIMES OUT (30 s, no
+     response). This is the PHIM cholera surveillance portal the Nature
+     Communications authors used; it is not reachable from here.
+  62 WebSearch Malawi cholera outbreak 2017 2018 Karonga Rumphi Nkhata Bay
+     Likoma Mzimba Lilongwe district weekly epidemiological bulletin 904
+  63 curl reliefweb.int/report/malawi/malawi-cholera-season-update (Govt. Malawi)
+  64 curl cdc.gov/mmwr/volumes/67/wr/pdfs/mm6719a5-H.pdf (returns an HTML
+     interstitial, not the PDF)
+  65 full-text extraction of the Government of Malawi season update
+  66 pdftotext scan of UNICEF SitRep No.2 for a district chart
+  67 pdftoppm + visual read of UNICEF SitRep No.2 page 3 (no district chart)
+  68 WebSearch Malawi cholera epidemic 2001 2002 district distribution ... 33546
+  69 WebSearch Karonga district Malawi cholera cross-border Tanzania Kyela Songwe
+  70 WebFetch afro.who.int WHO urges Karonga District Health Office ... (2018)
+  71 curl medrxiv 2023.08.22.23294324v1.full.pdf (HTML wrapper, not the PDF)
+  72 WebFetch wwwnc.cdc.gov/eid/article/31/6/24-0930_article
+  73 page-locate Figure 6 in the PHIM cholera weekly, epi-week 21 2024
+  74 pdftoppm page 5 at 200 dpi + visual read of Figure 6
+  75 WebSearch Chichewa: kolera Malawi zigawo milandu imfa unduna wa zaumoyo
+  76 WebSearch Malawi cholera 1998 1999 outbreak districts ... 25000 cases
+  77 WebFetch journals.lww.com IJS Global Health empirical assessment (HTTP 402)
+  78 WebFetch afro.who.int Reaching the Hardest to Reach: Chitipa and Karonga
+  79 py/validate_quality.py MWI (mid-run check)
+  80 py/revise_observation.py precedence annotations on the flagged overlaps
+Sources found: 2    Registered: metadata index 99 (Govt. Malawi Cholera Season
+               Update), 100 (WHO AFRO Karonga, Jan 2018)
+Rows added   : 21   Indices 286-306
+  286      National 2017/18 season: 939 cases / 32 deaths (20 facility, 12
+           community), 13 districts - the full season, where Index 28 held only
+           the mid-season 904/30
+  287      National 2018/19 season: 26 cases (18 culture-confirmed) / 1 death.
+           A season with NO prior observation in this file.
+  288      Blantyre index case, 4 Dec 2018, Ndirande Health Centre, 1 case 1 death
+  289      Lilongwe last confirmed case of the season, 29 Oct 2019, Nathenje HC
+  290      Documented_Absence 2019-11-01..2020-01-07, surveillance operational
+  291      Karonga 193 cases / 4 deaths to 19 Jan 2018 (2017/18 index district)
+  292-306  THE COMPLETE 15-DISTRICT TABLE FOR THE 2023/24 SEASON
+Successful queries: 3/20  (queries 63, 70, 74)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+SECOND CHART-READ WIN
+  PHIM's Cholera Weekly Epidemiological Report for epi-week 21 2024, Figure 6
+  ("Distribution of cholera cases and deaths in affected districts, 01 November
+  2023 - 26 May 2024") carries an embedded data table that pdftotext returns
+  nothing for. Rendered at 200 dpi it reads cleanly, and the 15 districts sum to
+  278 cases and 3 deaths - EXACTLY the national cumulative the same report prints
+  in words, and exactly the 15 districts it names. Parts equal whole. The 2023/24
+  season went from zero sub-national resolution to a complete, closed breakdown.
+
+HOUSEKEEPING DONE THIS BATCH
+  * Index 290's reporting_date was left blank by add-zero; corrected to
+    2020-01-08 with py/revise_observation.py.
+  * The three national/sub-national overlap WARNs that py/validate_quality.py
+    reports for Malawi (2008-01-01..2009-12-31, 2009-05-01..2010-05-31 and
+    2014-01-01..2015-12-31) were all caused by PRE-EXISTING rows carrying no
+    precedence statement. Index 4, 5, 6, 7, 8, 9, 10 and 21 were annotated with
+    the machine-checkable phrasing via py/revise_observation.py. The substantive
+    finding underneath: Index 6/7/8 (Machinga, Zomba, Phalombe) belong to the
+    2009/10 Lake Chilwa outbreak (national total Index 5), not to the 2008/09
+    season (Index 4) whose calendar window they merely overlap; and Index 21
+    (Machinga, Dec 2015-Jan 2016) belongs to the 2015/16 outbreak, not to the
+    2014/15 one at Index 9.
+
+CONFLICT FOUND, NOT WRITTEN (Agent 5)
+  WHO AFRO photo-story of 24 December 2024 states "the northern districts of
+  Karonga and Chitipa recorded 62 cases and two deaths between September and
+  November 2024", and separately "Chitipa had registered eight suspected and
+  confirmed cases" and "42 suspected cases were reported from 6 health
+  facilities in Karonga". The PHIM IDSR bulletins already in this file give
+  Chitipa 61 and Karonga 49 for 2024-08-26..2024-11-24 (Index 30, 31). 62
+  combined versus 110 combined is a large disagreement, and the 8/42 figures
+  carry no date at all, so no row can be written from them.
+
+=== BATCH 5 | PHASE 3 (systematic PHIM bulletin sweep) | MWI ===
+Gap targeted : (a) a district TIME SERIES through the 2025/26 season rather than
+               isolated snapshots, (b) the 2026-08-06..2026-09-21 gap Agent 1
+               deliberately left open
+Queries (81-100):
+   81 PHIM media API, search=IDSR and search=Bulletin merged -> 63 bulletin PDFs
+   82-86 curl PHIM IDSR Epi Bulletins, epi-weeks 33, 34, 35, 36, 37 of 2026
+   87-90 curl PHIM IDSR Epi Bulletins, epi-weeks 29, 30, 31, 32 of 2026
+   91 pdftotext week-range headers for epi-weeks 29-32
+   92 locate the Annex 6 cholera map page in the epi-week 34 bulletin
+   93 pdftoppm 500 dpi + visual read of the epi-week 34 district map
+   94 pdftotext priority-disease Table 1 for epi-weeks 35, 36, 37
+   95-97 curl PHIM IDSR Bulletins, epi-weeks 10, 13, 17 of 2026
+   98-100 extraction passes for epi-weeks 10, 13 and 17
+Sources found: 9    Registered: metadata index 101-109
+Rows added   : 50   Indices 307-356
+  307-312  Six weekly national Documented_Absence rows, 3 August to 13 September
+           2026, one per bulletin
+  313      Revised 2025/26 season cumulative: 3,013 cases / 319 confirmed /
+           25 deaths to 23 August 2026
+  314-327  Epi-week 10 2026: 14 districts, confirmed, to 8 March 2026
+  328-341  Epi-week 13 2026: 14 districts, confirmed, to 29 March 2026
+  342-356  Epi-week 17 2026: 15 districts, confirmed, to 26 April 2026
+Successful queries: 9/20  (82, 83, 84, 85, 86, 90, 95, 96, 97)
+Yield        : 45%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+AGENT 1'S OPEN GAP IS CLOSED
+  Agent 1's handover states "PHIM published no bulletin after wk32 and no PDF
+  after wk27" and left 2026-08-06..2026-09-21 unasserted. That is no longer
+  true: PHIM has since posted epi-weeks 29, 30, 31, 32, 33, 34, 35, 36 and 37
+  of 2026 as PDFs, the last on 20 September 2026. Every one reports zero cholera,
+  and the priority-disease table in the same weeks carries hundreds of cases of
+  bloody diarrhoea, typhoid and SARI, so surveillance was plainly running. Six
+  weekly Documented_Absence rows now cover 2026-08-03 to 2026-09-13. Only
+  2026-09-14..2026-09-21 remains open, one unpublished epi-week. AGENT 3: this
+  removes most of what was handed to you; re-read before re-searching.
+
+A DEFINITIONAL REVISION WORTH KNOWING ABOUT
+  The epi-week 34 bulletin restates the 2025/26 season death toll as 25 (13
+  facility + 12 community) where epi-week 33, published ten days earlier, said 5.
+  The 5 was facility deaths among laboratory-confirmed cases; 25 adds community
+  and suspected-case deaths. A third number, the printed CFR of 0.43 percent, is
+  13/3,013. Existing rows carrying 5 are not wrong, they use the narrow
+  definition. Recorded at Index 313 with all three definitions spelled out.
+
+DISTRICT TIME SERIES NOW AVAILABLE FOR THE 2025/26 SEASON
+  2026-01-20 (22 districts, suspected)  Index 149-170
+  2026-03-08 (14 districts, confirmed)  Index 314-327   <- new
+  2026-03-29 (14 districts, confirmed)  Index 328-341   <- new
+  2026-04-12 (14 districts, confirmed)  Index 79-92   (Agent 1)
+  2026-04-26 (15 districts, confirmed)  Index 342-356   <- new
+  2026-05-17 (18 districts, confirmed)  Index 74-75, 94-109 (Agent 1)
+  2026-05-31 (18 districts, confirmed)  Index 112-115 + 244-257
+  2026-06-22 (26 districts, susp+conf)  Index 218-243
+  Every one of the new snapshots sums EXACTLY to the national confirmed
+  cumulative printed in the same sentence (111, 168, 239), so each is exhaustive.
+
+NOT DUPLICATED
+  The epi-week 34 Annex 6 map ("as of 23 August 2026") is value-for-value
+  identical to the epi-week 25 map ("as of 22 June 2026") already extracted at
+  Index 218-243 - every district unchanged. Republishing it is evidence that no
+  district recorded a new case between 22 June and 23 August 2026, which the
+  weekly zeros already state. Adding 26 identical rows would have been clutter
+  and a double-counting hazard, so none were written.
+
+=== BATCH 6 | PHASE 3 (2024/25 season district time series) | MWI ===
+Gap targeted : the 2024/25 outbreak, which had only two district snapshots in the
+               file (epi-week 47 2024 and epi-week 8 2025)
+Queries (101-120):
+  101-111 curl PHIM IDSR bulletins: epi-weeks 37, 43, 44, 45, 46 and 50 of 2024
+          and epi-weeks 7, 9, 10, 11 and 13 of 2025
+  112 pdftotext cholera-paragraph extraction across all eleven bulletins
+  113 pdftotext full district list from epi-week 50 of 2024
+  114-120 extraction passes, one per usable snapshot
+Sources found: 8    Registered: metadata index 110-117
+Rows added   : 47   Indices 357-403
+  epi-week 37 2024 (to 15 Sep 2024)  Chitipa 27/1, Lilongwe 1, Machinga 1,
+                                     Karonga 1 + national 30/1
+  epi-week 43 2024 (to 27 Oct 2024)  Chitipa 49/1, Karonga 41/1
+  epi-week 44 2024 (to 03 Nov 2024)  Chitipa 52/2, Karonga 41/4, Thyolo 1
+  epi-week 45 2024 (to 10 Nov 2024)  6 districts + national 115/10
+  epi-week 46 2024 (to 17 Nov 2024)  6 districts + national 124/10
+  epi-week 50 2024 (to 15 Dec 2024)  10 districts + national 190/11
+  epi-week 7  2025 (to 16 Feb 2025)  5 districts + national 298/14
+  epi-week 10 2025 (to 09 Mar 2025)  5 districts + national 306/15
+Successful queries: 8/20  (101, 102, 103, 104, 105, 106, 107, 109)
+Yield        : 40%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+ARITHMETIC: five of the eight snapshots close exactly
+  epi-week 37 2024: 4 districts = 30 cases, and 1/30 = the printed CFR of 3.33%
+  epi-week 45 2024: 6 districts = 115 cases / 10 deaths = the printed national
+  epi-week 46 2024: 6 districts = 124 cases / 10 deaths = the printed national
+  epi-week 50 2024: 10 districts = 190 cases / 11 deaths = the printed national
+  epi-week 10 2025: 5 districts = 306 cases / 15 deaths = the printed national
+  epi-week 7 2025 falls one case short (297 of 298) - the missing case is the
+  Lilongwe 1 that earlier bulletins list and this one stops listing. Parts never
+  exceed the whole anywhere in this batch.
+
+TWO NATIONAL SERIES RUNNING IN PARALLEL, AND WHY NO NATIONAL ROW WAS WRITTEN
+FOR EPI-WEEKS 43 AND 44 OF 2024
+  Those two bulletins report the 2024/25 district figures under a national
+  sentence that counts a DIFFERENT series: "Cumulatively, Malawi has registered
+  378 cholera cases with 7 deaths (CFR: 1.85%) since 1st November 2023" (wk43)
+  and "381 ... with 8 deaths ... since 1st November 2023" (wk44). That is the
+  2023/24 season running total, not the 2024/25 outbreak. From epi-week 45
+  onwards PHIM switches its national sentence to the 2024/25 outbreak (115, 124,
+  190, 298, 306). Writing 378 or 381 against a TL of 2024-08-26 would have
+  silently merged two seasons, so only district rows were taken from those two.
+
+OTHER OBSERVATIONS RECORDED IN THE ROW NOTES
+  * PHIM's stated confirmation date for the 2024/25 outbreak changes between
+    bulletins: "confirmed on August 26, 2024" (wks 37-50 of 2024) versus
+    "confirmed on 8 September 2024" (wks 7 and 10 of 2025). 26 August is used
+    throughout for continuity with Index 29-37.
+  * Karonga's deaths go 1 -> 4 between epi-weeks 43 and 44 with its case count
+    unchanged at 41: retrospective attribution of community deaths, not new
+    transmission.
+  * Mulanje 1 (epi-week 45) becomes Thyolo 1 (epi-week 46) with the national
+    total moving consistently, suggesting the two were transposed in one of the
+    bulletins. Both are recorded as printed.
+  * Epi-weeks 9, 11 and 13 of 2025 reprint the epi-week 8 / epi-week 10 figures
+    unchanged; no rows were written from them.
+

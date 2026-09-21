@@ -59,10 +59,32 @@ def newest_file(d):
     return best
 
 
+def power_source():
+    """('AC'|'Battery'|None, battery_percent or None).
+
+    Worth reporting because it is the difference between a run that finishes and
+    one that silently stops. This machine is configured `sleep 0` on AC but
+    `sleep 10` on battery, and on 2026-09-21 it took a Maintenance Sleep at
+    10:29 while unplugged, killing four countries' network mid-run. caffeinate
+    cannot override that: its -s assertion is honoured only on AC power.
+    """
+    try:
+        out = subprocess.run(["pmset", "-g", "ps"], capture_output=True,
+                             text=True, timeout=5).stdout
+    except Exception:
+        return None, None
+    src = "AC" if "'AC Power'" in out else ("Battery" if "'Battery Power'" in out else None)
+    m = re.search(r"(\d+)%", out)
+    return src, (int(m.group(1)) if m else None)
+
+
 def collect():
     now = time.time()
+    src, pct = power_source()
     st = {
         "generated_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
+        "power_source": src, "battery_percent": pct,
+        "on_battery": src == "Battery",
         "runner_alive": False, "runner_pid": None, "runner_elapsed_minutes": None,
         # Countries run up to PARALLEL at a time, so this is a list. The
         # singular keys below are the first entry, kept so anything reading the
@@ -163,8 +185,19 @@ def html(st):
     else:
         active_tbl = "<small>none</small>"
 
+    if st["on_battery"]:
+        pct = f' ({st["battery_percent"]}%)' if st["battery_percent"] else ""
+        pwr = ('<b style="color:#b3261e">ON BATTERY' + pct + '</b>'
+               ' &mdash; this machine sleeps after 10 min unplugged and the run '
+               'stops with it. caffeinate cannot prevent that on battery. Plug it in.')
+    elif st["power_source"] == "AC":
+        pwr = 'AC power <small>(sleep disabled on AC, so the run can continue)</small>'
+    else:
+        pwr = None
+
     body = "".join([
         row("Status", f'<b style="color:{colour}">{badge}</b>'),
+        row("Power", pwr),
         row("Countries complete", f'{st["countries_done"]} of {st["countries_total"]}'
                                   f' &nbsp;<small>{", ".join(st["done"]) or "none yet"}</small>'),
         row(f'In progress ({len(st["active"])})', active_tbl),

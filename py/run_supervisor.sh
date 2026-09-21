@@ -68,8 +68,18 @@ PY
     out="logs/full_run_$(date +%Y%m%d-%H%M%S).out"
     echo "$(date '+%Y-%m-%d %H:%M:%S')  no runner, $left left - launching (parallel=$PARALLEL) -> $out"
     rm -f STOP reference/.runner.pid
+    # -dims, not just -i. `caffeinate -i` blocks only *user idle* sleep, and on
+    # 2026-09-21 the machine took a 'Maintenance Sleep' anyway at 10:29 while on
+    # battery and stayed down until the lid was opened at 11:16. Four countries
+    # lost their network mid-run, reported "Agent 2 was interrupted before it
+    # started", and exited after one agent each.
+    #
+    # Note -s is honoured only on AC power. On battery this machine is set to
+    # `sleep 10`, so nothing here can keep it awake: the laptop has to be
+    # plugged in for an unattended run. run_status.py reports the power source
+    # so that is visible remotely.
     if command -v caffeinate >/dev/null; then
-      nohup caffeinate -i bash run_all_countries.sh --unattended --publish-progress \
+      nohup caffeinate -dims bash run_all_countries.sh --unattended --publish-progress \
         --parallel "$PARALLEL" > "$out" 2>&1 &
     else
       nohup bash run_all_countries.sh --unattended --publish-progress \
