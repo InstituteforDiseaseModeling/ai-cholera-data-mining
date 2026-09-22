@@ -6,6 +6,37 @@ This script converts WHO cholera surveillance data from ees-cholera-mapping
 into the standardized metadata.csv and cholera_data.csv format used by
 the AI cholera data mining workflow.
 
+KNOWN DEFECT - 2026 ROWS ARE SHIFTED ONE WEEK EARLY. NOT YET FIXED.
+--------------------------------------------------------------------
+week_to_date_range() below converts a WHO *week number* to ISO week N of that
+year. WHO's own epi-week numbering is not ISO week numbering, and for 2026 it
+is offset by one. Confirmed 2026-09-22 against WHO's cholera_adm0_week
+FeatureServer, whose `date_wk` field gives the true week start:
+
+    WHO epiwk 17 -> date_wk 2026-04-27 -> ISO week 18, cases 56
+    WHO epiwk 18 -> date_wk 2026-05-04 -> ISO week 19, cases 860
+    WHO epiwk 19 -> date_wk 2026-05-11 -> ISO week 20, cases 910
+
+So a WHO row for week 18 lands on ISO week 18 when it belongs on ISO week 19.
+data/NGA/cholera_data_who.csv shows 855 at ISO W18 where the true value is 56,
+a roughly fifteenfold overstatement, and every 2026 week is displaced.
+
+Measured offset of (ISO week - WHO epiwk) by year for NGA:
+    2023: 0    2024: 0    2025: 0    2026: +1
+so the defect is confined to 2026 at present, but it will recur in any year
+where the two numbering schemes diverge.
+
+Blast radius: 318 WHO baseline rows across 19 countries, of which 306 reach
+data/{ISO}/cholera_weekly_{ISO}.csv as observed weeks - the most recent and
+most model-relevant data in the series.
+
+The fix is to read `date_wk` from the source rather than deriving dates from
+the week number. That requires the upstream extract in ees-cholera-mapping to
+carry date_wk, which the current cholera_country_weekly.csv does not: it has
+only country, year, week, cases_by_week, deaths_by_week. Regenerating the
+baselines also has to contend with this converter's append/duplicate behaviour
+(delete data/{ISO}/cholera_data_who.csv before re-running, or rows multiply).
+
 Usage:
     python py/convert_who_to_workflow.py
 """
