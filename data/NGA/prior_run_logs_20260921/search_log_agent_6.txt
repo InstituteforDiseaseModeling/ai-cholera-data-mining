@@ -1,0 +1,393 @@
+================================================================================
+AGENT 6 - GAP CONTEXT INVESTIGATOR - NIGERIA (NGA)
+================================================================================
+Start:   2026-09-21
+Agent:   6 of 7 (gap-context-investigator)
+Mandate: Characterisation, not collection. For every remaining gap >= 6 months,
+         decide: was there no cholera, or was nobody reporting?
+Note:    This file OVERWRITES a stale log dated 2025-07-23 which belonged to a
+         previous run (and was in fact a quality-audit log, not a gap-context
+         log). Nothing from that run is carried forward.
+
+TOOLING CONSTRAINT DECLARED UP FRONT
+  The session-wide WebSearch allowance was exhausted 200/200 by Agents 1-3.
+  Every action below is direct HTTP/API retrieval: WHO GHO OData, WHO IRIS
+  DSpace REST, Europe PMC REST, PubMed E-utilities, WHO AFRO ArcGIS,
+  archive.org CDX, ncdc.gov.ng, reliefweb.int website. Where I report a route
+  as closed, that is a budget/ access fact, not evidence of saturation.
+
+--------------------------------------------------------------------------------
+PRE-SEARCH: LOCAL GAP RECOMPUTATION (py/analyze_effective_gaps.py NOT run -
+            that file is shared and the runner owns it; gaps recomputed for
+            NGA only via /tmp scripts replicating its exact logic)
+--------------------------------------------------------------------------------
+Inputs: ./data/NGA/cholera_data_jhu.csv (75,745 rows)
+        ./data/NGA/cholera_data_who.csv (175 rows)
+        ./data/NGA/cholera_data_ai.csv  (1,378 rows)
+Window: 1970-01-01 .. 2026-09-21 (681 months)
+
+RESULT 1 - EFFECTIVE GAPS, ALL RESOLUTIONS (the standard metric)
+  months covered 680/681 = 99.9%
+  gaps >= 180 days: NONE
+  only gap of any length: 2026-09-01 .. 2026-09-21 (21 days)
+  => By the standard effective-gap metric Nigeria has NO remaining gap >= 6
+     months. Baseline (JHU+WHO only) had 2 such gaps, 1974 and 1990; both were
+     closed this run by Agents 1 and 3.
+
+RESULT 2 - THE STANDARD METRIC IS FLATTERING. Decomposition:
+  national rows only (AFR::NGA)            680/681 months, 0 gaps >= 180d
+  national rows with POSITIVE counts only  668/681 months, 1 gap  (1990)
+  sub-national rows only (ADM1 and below)  282/681 months, 12 gaps >= 180d
+  months covered by rows of span <= 186d   228/681
+  months covered by rows of span <=  62d   208/681
+
+  452 of the 680 covered months are covered ONLY by rows longer than six
+  months - overwhelmingly the JHU national ANNUAL totals, one row per year for
+  1970-2008. 472 months have no observation finer than a quarter. Nigeria's
+  99.9% is an annual-resolution 99.9%.
+
+RESULT 3 - NATIONAL ANNUAL SERIES, presence by year (JHU + AI):
+  Every year 1970-2024 carries a POSITIVE national count except two:
+    1974 - 776 cases (WER 1975;50(29)), closed by Agent 1, row 43
+    1990 - explicit reported zero (WER 1991;66(42)), Agent 1 row 55,
+           corroborated by Agent 3 against WHO GHO
+  There is therefore exactly ONE candidate zero-transmission year in Nigeria's
+  entire 1970-2026 record. Every other empty stretch in this dataset is a
+  RESOLUTION gap or a GEOGRAPHY gap, not an absence gap. This single fact
+  reframes the whole assignment and is the most important thing in this log.
+================================================================================
+
+=== BATCH 1 | PHASE 1 (health-system state) | NGA ===
+Target: NOT a gap period. The discriminator itself - did Nigeria report OTHER
+        notifiable diseases to WHO during the eras where cholera data is thin
+        or absent? A country reporting measles/polio/diphtheria but no cholera
+        was LOOKING and finding nothing. A country reporting none of them had
+        no notification system, and its cholera silence means nothing.
+Route:  WHO GHO OData (ghoapi.azureedge.net). WebSearch unavailable.
+
+Actions (20):
+  A1   GHO /Indicator contains 'measles'                    -> WHS3_62
+  A2   GHO /Indicator contains 'polio'                      -> WHS3_49
+  A3   GHO /Indicator contains 'diphtheria'                 -> WHS3_41
+  A4   GHO /Indicator contains 'pertussis'                  -> WHS3_43
+  A5   GHO /Indicator contains 'tetanus'                    -> WHS3_46, WHS3_56
+  A6   GHO /Indicator contains 'yellow fever'               -> API error, none
+  A7   GHO /Indicator contains 'meningitis'                 -> WHS3_47, MENING_1/2/3
+  A8   GHO /Indicator contains 'cholera'                    -> CHOLERA_0000000001/2
+  A9   GHO WHS3_62 measles, NGA, all years                  -> 52 values 1974-2025
+  A10  GHO WHS3_49 polio, NGA                               -> 39 values 1980-2018
+  A11  GHO WHS3_41 diphtheria, NGA                          -> 51 values 1974-2025
+  A12  GHO WHS3_43 pertussis, NGA                           -> 51 values 1974-2025
+  A13  GHO WHS3_46 total tetanus, NGA                       -> 51 values 1974-2025
+  A14  GHO WHS3_56 neonatal tetanus, NGA                    -> 51 values 1989-2025
+  A15  GHO WHS3_47 meningitis, NGA                          -> 0 values (indicator
+                                                               carries no NGA data)
+  A16  GHO WHS3_40 cholera (legacy code), NGA               -> 0 values
+  A17  GHO CHOLERA_0000000001 cases, NGA                    -> 45 values 1970-2016
+  A18  GHO CHOLERA_0000000002 deaths, NGA                   -> 45 values 1970-2016
+  A19  GHO CHOLERA_..0001 cases, NGA+BEN+NER+TCD+CMR+GHA+
+       TGO+BFA+MLI (regional context)                       -> multi-country pull
+  A20  GHO CHOLERA_..0002 deaths, same 9 countries          -> full 1985-1999 panel
+
+FINDINGS - this is the highest-information batch of the run.
+
+  (1) NIGERIA'S NOTIFICATION RELATIONSHIP WITH WHO IS UNBROKEN 1974-2025.
+      Measles is reported in EVERY year 1974-2025 with no missing year, 52 of
+      52. Diphtheria, pertussis and total tetanus likewise run 1974-2025 with
+      only scattered blanks. There is NO era in which Nigeria went silent to
+      WHO across all notifiable diseases. A blanket "surveillance collapse"
+      story for Nigeria is therefore NOT supportable at the national
+      notification level, in any decade, including the structural-adjustment
+      1980s-90s.
+
+  (2) 1990 IS A TRUE ZERO, AND THIS PROVES IT FROM AN INDEPENDENT AXIS.
+      In 1990 Nigeria reported to WHO: measles 115,682; polio 1,873;
+      diphtheria 1,768; pertussis 42,929; total tetanus 2,703; neonatal
+      tetanus 1,060 - and cholera absent from the GHO series, with WER
+      1991;66(42) stating positively that Nigeria "had reported no cases of
+      cholera" in 1990. The 1990 measles count (115,682) is the HIGHEST since
+      1986 and nearly 3.5x the 1989 figure, so the notification machinery was
+      not merely alive in 1990, it was performing better than in the years
+      either side. This is a country that was looking and did not find cholera.
+      Agent 1's row 55 (Documented_Absence) is LICENSED. Third independent
+      corroboration, after Agent 1's WER and Agent 3's GHO-zeros check.
+
+  (3) REGIONAL CONTEXT CONFIRMS 1990 WAS A GENUINE TROUGH, NOT LOCAL SILENCE.
+      GHO cholera DEATHS, West/Central Africa:
+        1989  NGA 61   NER 22   CMR 2    MLI --   TCD --   BEN --   GHA --
+        1990  NGA --   CMR 0    GHA 60   every other neighbour blank
+        1991  NGA 7654 TCD 1344 CMR 491  GHA 409  NER 367  BEN 259  TGO 81
+      1990 is the quiet year immediately BEFORE the 1991 West African wave
+      that killed 7,654 in Nigeria alone. Cameroon files an explicit 0. The
+      regional pattern is quiet-then-explosion, and Nigeria's 1990 zero sits
+      in the quiet. Had Nigeria been silent while neighbours burned, the zero
+      would be a reporting artefact; the opposite is the case.
+
+  (4) THE GHO CHOLERA SERIES STOPS AT 2016 - A WHO-SIDE ARTEFACT, NOT NIGERIAN
+      NON-REPORTING. GHO carries Nigerian cholera 1970-2016 and nothing after,
+      yet Nigeria reported 45,037 cases in 2018 and 19,730 in 2024 through
+      NCDC and the WHO dashboard. Anyone treating GHO as the canonical
+      Nigerian series will read 2017-2026 as absence. It is not. Recorded here
+      because it is a trap for downstream users.
+
+  (5) 1974's GHO BLANK IS ALSO A WHO-SIDE ARTEFACT. GHO has no 1974 cholera
+      value for Nigeria, but reports measles 115,634 and pertussis 31,177 for
+      the same year, and WER 1975;50(29) prints 776 cholera cases. Agent 1's
+      closure of 1974 is consistent with a functioning 1974 system.
+
+  (6) REPORTING COMPLETENESS WAS VOLATILE EVEN WHILE NEVER ZERO. Measles runs
+      182,591 (1984) -> 33,678 (1989) -> 115,682 (1990) -> 12,393 (1995) ->
+      217,151 (1999) -> 704 (2006). Swings of 20-300x in a disease whose true
+      incidence cannot move that fast. Conclusion: Nigerian notification in
+      1974-2006 was CONTINUOUS but of WILDLY VARYING COMPLETENESS. That
+      licenses "surveillance operational" for absence purposes but forbids
+      treating any single-year national total as a clean incidence estimate.
+
+  (7) NCDC IS DEMONSTRABLY REPORTING IN 2023-2025, so the thinness of our
+      2023-2025 sub-national cholera data is a PUBLICATION-FORMAT problem, not
+      a surveillance failure: GHO shows Nigerian diphtheria 14,163 (2023),
+      10,595 (2024), 15,273 (2025) and measles 20,143 / 14,999 / 21,270 for
+      the same years. The machine that counts cases is running. What stopped
+      in March 2025 was the dedicated cholera SITREP, a document, not a system.
+
+Sources found: 0 new registrable (GHO already metadata index in NGA set)
+Rows added   : 0
+Successful actions: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (batch 1 of a mandatory 3 minimum; this is a
+               classification agent and a 0% yield here is the expected and
+               correct outcome - the batch produced the single most decisive
+               piece of evidence in the run)
+
+=== BATCH 2 | PHASE 1 (surveillance-system institutional history) | NGA ===
+Target: The regime changes that define the eras. When did Nigeria acquire a
+        system capable of producing the sub-annual, sub-national data whose
+        absence we are classifying?
+Route:  Europe PMC REST, WHO IRIS DSpace REST. WebSearch unavailable.
+
+Actions (20):
+  A1  EPMC "integrated disease surveillance" + Nigeria + evaluation   10 hits
+  A2  EPMC "Nigeria Centre for Disease Control" + surveillance 2015-24 151 hits
+  A3  EPMC Nigeria + "notifiable disease" + reporting                  4 hits
+  A4  EPMC SORMAS + Nigeria                                            7 hits
+  A5  EPMC cholera + Nigeria + (1970|1971|historical|retrospective)   22 hits
+  A6  EPMC cholera + Nigeria + under-reporting                         0 hits
+  A7  EPMC Borno + (insurgency|conflict) + surveillance               21 hits
+  A8  EPMC Nigeria + health system + structural adjustment             0 hits
+  A9  EPMC resolve DOI 10.1186/s41043-025-01096-7   -> PMC12482021
+  A10 EPMC resolve DOI 10.1186/s13031-025-00705-w   -> PMC12482565
+  A11 EPMC resolve PMID 35526017                    -> PMC9077905
+  A12 EPMC fullTextXML PMC12482021 (five-decade Nigerian cholera review)
+  A13 EPMC fullTextXML PMC12482565 (EWARS Borno 2016-2021 evaluation)
+  A14 EPMC fullTextXML PMC9077905  (surveillance under armed conflict, Borno)
+  A15 EPMC poliovirus + Borno + undetected                             5 hits
+  A16 EPMC DHIS2 + Nigeria                                             0 hits
+  A17 EPMC Nigeria + HMIS + data quality                               0 hits
+  A18 IRIS discover "Nigeria integrated disease surveillance response annual
+      report"                                      -> IDSR regional guidelines
+  A19 IRIS discover "Nigeria joint external evaluation IHR core capacities"
+                                                   -> hdl 10665/259382 (2017)
+  A20 IRIS discover "Nigeria weekly epidemiological record cholera 1990"
+                                                   -> WER vol.65 issues listed
+
+THE ERA TIMELINE THIS ESTABLISHES (this is the spine of the classification):
+
+  1970-1974  WER "Diseases Subject to the Regulations" notification regime.
+             Nigeria filed weekly returns naming states/provinces/divisions.
+             This is why Agents 4 and 5 could build a sub-national weekly
+             series for exactly these five years and for no later year.
+             SURVEILLANCE: operational at weekly sub-national resolution.
+  1975-1990  The WER state-level table for Nigeria was DISCONTINUED after 1974
+             and never returned (established by Agents 4 and 5 on evidence).
+             National annual notification to WHO CONTINUES unbroken (Batch 1:
+             measles, diphtheria, pertussis, tetanus every year). So the
+             system did not die; the PUBLICATION MEDIUM for sub-national
+             detail did.
+             SURVEILLANCE: operational at ANNUAL NATIONAL resolution only.
+  1991-2000  Same regime. Completeness volatile (Batch 1 finding 6).
+  2001-2002  IDSR ADOPTED. "Since 2001, Nigeria has collected information on
+             epidemic-prone and other diseases of public health importance
+             through the Integrated Disease Surveillance and Response system
+             (IDSR)" (Ajumobi et al., BMC Health Serv Res 2014, PMID 25391377).
+             "Nigeria and thirty-two of the forty-seven nations in the WHO
+             African region had included cholera in their IDSR reporting as of
+             2002" (Ogunniyi et al. 2025, PMC12482021). Cholera becomes a
+             formally notifiable IDSR condition in 2002.
+  2011      NCDC established.
+  2016-08   EWARS deployed in Borno - but only FOUR of 27 LGAs at launch.
+  2019-08   EWARS reaches 341 facilities across 25 of 27 LGAs.
+  2021-2025 NCDC tabular cholera sitrep era (the source of most of this
+             dataset's sub-national structure). ENDS at week 9, March 2025.
+
+THE DECISIVE CONFLICT FINDING - WHY NORTHEAST SILENCE IS NOT ABSENCE:
+  "wild poliovirus (WPV) was detected in 2016 and linked to transmission of
+   lineages last detected in 2011, representing FIVE YEARS OF UNDETECTED
+   TRANSMISSION due to the ongoing conflict in the state" (Nasir et al., Confl
+   Health 2022, PMC9077905). WHO had removed Nigeria from the WPV-endemic list
+   in 2015 after one year without detection - a documented, subsequently
+   falsified declaration of absence, in this exact geography, over this exact
+   period, for a disease under FAR more intensive surveillance than cholera.
+  Corroborated: Ticha et al. 2023 (PMID 38370102) reconstructs LGA-level
+  inaccessibility in Borno and Yobe; MMWR 2017 (PMID 28233765) confirms the
+  Aug-Sep 2016 WPV detections after the July 2014 "last case".
+  Also: "many settlements in Guzamala, Ngala, Dikwa, Monguno and Kala-Balge
+  LGAs, as well as THE ENTIRETY OF MARTE AND ABADAM LGAs, remained
+  inaccessible for several years" (PMC12482565).
+  CONSEQUENCE FOR THIS DATASET: no zero row may EVER be written for Borno,
+  Yobe or Adamawa, at any administrative level, for 2009-2016 - and only with
+  named-source care after that. Absence of a cholera report from northeast
+  Nigeria in that window carries no evidentiary weight whatsoever. If polio
+  circulated for five years undetected under active AFP surveillance with
+  house-to-house campaigns, cholera certainly could.
+  EWARS did not fix this cleanly either: reporting timeliness 2016-2021 ranged
+  6-85%, median 65.5% (PMC12482565).
+
+PEER-REVIEWED STATEMENT ON THE 1970-2010 RECORD (licenses the resolution
+classification below):
+  "data from 1970 to 2010 remain incomplete due to under-reporting, limited
+   diagnostic capacity, and weak surveillance systems, particularly in rural
+   areas... the absence of a centralized data reporting system. Additionally,
+   SMALLER OR SPORADIC OUTBREAKS OFTEN GO UNRECORDED until they escalate into
+   larger epidemics" (Ogunniyi et al. 2025, PMC12482021).
+  This is the authority for treating 1975-2000 sub-annual silence as
+  non-reporting rather than absence.
+
+DATA NOT EXTRACTED, DELIBERATELY: PMC12482021 Tables 1 and 2 print national
+  annuals that CONFLICT with the JHU/NCDC primaries already in this file
+  (2010: 41,787 vs 44,456; 2019: 1,583 vs 2,486; 2022: 23,763 vs 17,834;
+  2023: 3,683 vs 1,804; 2024: 19,452 vs 19,730) and its death counts for
+  1970-71, 2001, 2008-09, 2016, 2017 and 2018 are NOT observations - the paper
+  states they were back-calculated from a printed CFR. Adding them would
+  manufacture same-period conflicts out of arithmetic. Rejected on the
+  protocol's conflict rule (prefer WHO/government primary over secondary
+  compilation). Recorded here instead.
+
+Sources found: 4 useful (PMC12482021, PMC12482565, PMC9077905, PMID 38370102)
+Rows added   : 0
+Successful actions: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE (mandatory 3-batch minimum not yet reached)
+
+=== BATCH 3 | PHASE 2 (health-system state, quantified; and the 2026 lag) | NGA ===
+Target: (a) WHO's own scored assessment of Nigerian surveillance capacity;
+        (b) an LGA-resolved, year-by-year map of where surveillance was
+            physically impossible in the north-east;
+        (c) fourth-route re-verification of the 2026-08-24.. publication lag.
+Route:  WHO IRIS DSpace REST, Europe PMC, WHO AFRO ArcGIS FeatureServer,
+        ncdc.gov.ng, reliefweb.int website.
+
+Actions (20):
+  A1  IRIS pid/find hdl:10665/259382 (JEE Nigeria 2017)  -> uuid adb3c5ac
+  A2  IRIS core/items/{uuid}/bundles                     -> ORIGINAL pdf 1.4 MB
+  A3  GET bitstream 65fab72e.../content                  -> jee_nga.pdf
+  A4  pdftotext -layout jee_nga.pdf; index scores        -> 219 kB text
+  A5  Extract the D.2 "Real-time surveillance" narrative + scores
+  A6  EPMC EXT_ID:38370102                               -> PMC10874094
+  A7  EPMC fullTextXML PMC10874094                       -> 34 kB
+  A8  Extract LGA-level inaccessibility chronology
+  A9  ArcGIS cholera_adm0_week query (field 'Year')      -> HTTP 400, bad field
+  A10 GET https://ncdc.gov.ng/                           -> HTTP 522 (19.8 s)
+  A11 GET https://ncdc.gov.ng/diseases/sitreps           -> HTTP 522
+  A12 ArcGIS cholera_adm0_week ?f=json (schema)          -> field names
+  A13 ArcGIS NGA epiyr=2026 order by epiwk DESC          -> caps at wk 33
+  A14 ArcGIS epiyr=2026 outStatistics max(epiwk),count   -> max=33, n=679
+  A15 ArcGIS epiyr=2026 AND epiwk>33, all countries      -> 0 features
+  A16 IRIS discover "Weekly Bulletin on Outbreaks and other Emergencies"
+  A17 GET reliefweb.int/updates?...disaster-type filter  -> HTTP 200
+  A18 GET reliefweb.int/updates?search=cholera+Nigeria   -> HTTP 200, 14 items
+  A19 IRIS locate WER 2026 vol.101 no.36-37 bitstream    -> resolved
+  A20 GET the OCHA regional cholera feature, 10 Sep 2026 -> Borno figure found
+
+(a) WHO's OWN 2017 SCORING OF NIGERIAN SURVEILLANCE (JEE, WHO/WHE/CPI/REP/2017.46,
+    mission 11-20 June 2017). This is the Level-1 answer to "was the system
+    working", for the modern era, in WHO's own words:
+      D.2.1 indicator- and event-based surveillance   score 3 / 5
+      D.2.2 interoperable electronic real-time report score 2 / 5
+      D.2.3 analysis of surveillance data             score 3 / 5
+      D.2.4 syndromic surveillance                    score 3 / 5
+    QUANTIFIED PERFORMANCE, verbatim: "The weekly surveillance reporting
+    indicators currently stand at 75% and 80% timeliness and completeness
+    respectively AT STATE LEVEL and 90% and 95% respectively AT NATIONAL LEVEL
+    against the target of 80% for both indicators."
+      => In 2017 Nigeria's IDSR was ~95% complete nationally and ~80% complete
+         at state level. National-level zero inference is defensible from the
+         IDSR era onward; STATE-level zero inference carries a standing ~20%
+         false-negative risk even in a good year, before conflict.
+    Other verbatim constraints on the era:
+      - IDSR implementation began "with the polio surveillance sites only";
+        a listed weakness is extending surveillance "to non-polio reporting
+        sites". The IDSR denominator is a polio-network denominator.
+      - "Data entry in 15 LGAs is done into the mobile electronic system called
+        mSERS" - 15 of 774 LGAs electronic in 2017; everything else is SMS and
+        paper collated by hand.
+      - "There are plans to include the IDSR reporting into the national DHIS 2
+        platform" - DHIS2 integration was still only PLANNED in mid-2017.
+      - "the surveillance systems are heavily dependent on donor-funded
+        programmes"; "no integration of indicator and laboratory based
+        surveillance at any reporting tiers".
+      - "Surveillance coverage is low and needs to be extended to include
+        tertiary health facilities, private sector health facilities".
+
+(b) WHERE SURVEILLANCE WAS PHYSICALLY IMPOSSIBLE - LGA-RESOLVED, 2010-2020
+    (Forbi et al., Pan Afr Med J 2023;45(Supp 2):2, PMC10874094; reconstruction
+    from polio field-staff recall, validated against vaccinator GPS tracking
+    and satellite population imagery):
+      2010-2011  ALL Borno and Yobe LGAs accessible.
+      2012       five Borno LGAs inaccessible (Dikwa, Gubio, Gwoza, Monguno,
+                 Nganzai); later that year NINE Borno LGAs >50% inaccessible.
+      2013       Damaturu (Yobe) briefly >50% inaccessible; build-up in Bama,
+                 Damboa, Gwoza.
+      2014-2016  "general inaccessibility in LGAs in both states". PEAK.
+      to 2017    in affected YOBE LGAs.
+      to 2020    in BORNO.
+      Protracted-inaccessibility Borno LGAs: Bama, Chibok, Damboa, Dikwa,
+      Gubio, Gwoza, Kala/Balge, Mobbar, Ngala, Guzamala, Kukawa, Marte, Abadam.
+      Protracted-inaccessibility Yobe LGAs: Gulani, Gujba.
+      NEVER LOST: Borno - Bayo, Biu, Kwaya Kusar, Shani, Hawul, Maiduguri
+      Metropolitan; Yobe - the other 11 LGAs.
+      Scale: ~468,800 children <5 trapped in inaccessible areas in Dec 2016;
+      157,000 still trapped in Dec 2017.
+    This is the authoritative map of WHERE a Nigerian zero is forbidden and
+    WHEN. It is LGA-resolved and it distinguishes the six Borno LGAs that
+    never went dark from the thirteen that did.
+
+(c) THE 2026 LAG IS A GLOBAL WHO PUBLICATION CAP, NOT NIGERIAN SILENCE.
+    New, decisive evidence beyond what Agents 1 and 5 had:
+      cholera_adm0_week, epiyr=2026, max(epiwk) OVER ALL COUNTRIES = 33.
+      Records with epiwk>33 in 2026, ALL COUNTRIES = ZERO (679 country-weeks
+      in 2026, none past week 33).
+    Nigeria is not being withheld; the service itself stops at week 33 for the
+    entire world. Nigeria's last published week is wk33, 17-23 Aug 2026,
+    cumulative 118,267 cases / 1,810 deaths. The gap therefore begins
+    2026-08-24, exactly as Agent 5 recorded.
+    ncdc.gov.ng returned HTTP 522 again, on both the root and /diseases/sitreps
+    - a THIRD session with the same result. Classification: unreachable source,
+    not absent data.
+
+NEW MATERIAL FOUND - OCHA, 10 September 2026 (published INSIDE the lag window):
+  "Borno State alone has recorded more than 59,000 suspected and confirmed
+   cases and over 300 deaths as of late August."
+  This is a bounded restatement, not a count, and it lands on the SAME period
+  as existing row 34 (Borno 2026-05-01..2026-08-31, 55,452 / 308, UNICEF). It
+  is therefore CORROBORATION, not a new observation, and adding it would
+  manufacture a same-period conflict out of a ">" sign. Handled by annotation
+  in Batch 4, not by a new row. But it does one important thing: it is
+  independent confirmation that Borno transmission was ONGOING through late
+  August 2026, which is a further reason the 2026-08-24.. gap must not receive
+  a zero row.
+
+Sources found: 2 registrable (JEE 2017; Forbi 2023). OCHA piece held for B4.
+Rows added   : 0
+Successful actions: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 3
+Decision     : CONTINUE. The 3-batch minimum is now satisfied and the formal
+               stopping criterion (3 consecutive batches <5%) is ALSO met - but
+               I am NOT stopping on it, because the criterion is measuring the
+               wrong thing for this agent. Yield counts committed rows; this
+               agent's product is classification. Two deliverables in the brief
+               (the dual-stream guidance and the per-state census) are not yet
+               written. Continuing to batch 5 and stopping on completion of the
+               mandate, stated plainly rather than dressed as saturation.

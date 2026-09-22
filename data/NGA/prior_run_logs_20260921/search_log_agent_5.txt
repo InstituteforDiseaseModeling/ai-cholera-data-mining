@@ -1,0 +1,1763 @@
+================================================================================
+AGENT 5 - CROSS-REFERENCE INTEGRATOR - NIGERIA (NGA)
+================================================================================
+Run start   : 2026-09-21 (this run)
+Prior file  : the previous ./data/NGA/search_log_agent_5.txt dated 2025-07-23
+              (5 batches, 0 rows, generic "source permutation" content) was
+              STALE - from an earlier run - and has been OVERWRITTEN per
+              instruction.
+Country     : Nigeria, ISO NGA, West Africa
+Languages   : en, ha (Hausa)
+
+--------------------------------------------------------------------------------
+PRE-RUN STATE (measured before the first action)
+--------------------------------------------------------------------------------
+./data/NGA/cholera_data_ai.csv     : 1235 rows   (max Index 1300)
+./data/NGA/metadata_ai.csv         : 181 sources
+./data/NGA/cholera_presence_ai.csv : 12 rows
+./data/NGA/retracted_rows_ai.csv   : 67 rows
+python py/validate_quality.py NGA  : 0 ERROR, 80 WARN, 43 INFO  (exit 0)
+   WARN breakdown: 43 CFR_high_flagged_for_review
+                   27 same_period_conflict
+                    9 national_subnational_overlap
+                    1 multiyear_aggregate
+
+Rows added by earlier agents this run: A1 +61, A2 +895, A3 +97, A4 +151.
+
+TOOLING NOTE, stated plainly rather than dressed up as protocol: the session
+WebSearch allowance was exhausted (200/200) by Agents 1-3. Like Agent 4, every
+"query" below is a discovery ACTION against a known endpoint - WHO IRIS DSpace
+REST, WHO GHO OData, WHO ArcGIS FeatureServer, Europe PMC / NCBI REST, archive
+.org CDX, curl against ncdc.gov.ng and reliefweb.int - plus pdftotext -layout
+extraction and programmatic cross-checks against the existing CSVs.
+
+A NOTE ON ROW NUMBERS. py/validate_quality.py reports physical CSV line numbers,
+not the Index column. Every warning quoted in this log has been translated to
+its Index via /tmp/nga5/warns.py so that the adjudications below can be checked
+against the file.
+================================================================================
+
+================================================================================
+=== BATCH 1 | PHASE 1 (re-mine) | NGA ===
+Gap targeted : 1972-1973 SUB-NATIONAL STRUCTURE. Before this batch the whole of
+               1973 held FOUR sub-national rows and 1972 held THIRTEEN, all from
+               WER vols 47 and 49. WER vol.48 (1973) had never been opened.
+
+Actions (20 discovery/retrieval actions):
+  1  IRIS DSpace discover  title:"Weekly Epidemiological Record, 1973" -> 51 issues of vol.48
+  2  Bulk harvest of all 51 vol.48 issues (ORIGINAL bundle PDF + pdftotext -layout)
+  3  BUILT A NEW EXTRACTION TOOL (see CAPABILITY UNLOCK below): bbox-coordinate
+     column reconstruction + 300dpi page-image cropping, /tmp/nga5/col.py,
+     /tmp/nga5/nig2.py
+  4  Fuzzy NIGERIA-label sweep across all 51 issues -> 38 candidate blocks, 24 distinct
+  5-23  Read the 19 distinct Nigeria blocks (issues 02, 09, 13, 14, 17, 18, 22,
+     24 x2, 25, 26, 27, 30, 32, 33, 34 x2, 37, 40 x3, 42, 47, 50, 51)
+  24 IRIS fetch of WER 1974;49(1) to adjudicate the Abeokuta/Ibadan conflict
+     (counted as an action of this batch, so the honest action count is 24 not 20)
+
+--------------------------------------------------------------------------------
+CAPABILITY UNLOCK - hand this to every future agent, any country
+--------------------------------------------------------------------------------
+Agent 4 established that WER must be read from the ORIGINAL-bundle PDF with
+`pdftotext -layout` rather than the IRIS TEXT bitstream. That is necessary but
+NOT sufficient. The WER "Diseases Subject to the Regulations" table is a 3-4
+column newspaper layout, and -layout interleaves those physical columns: a
+number from the Philippines column lands on the Nigeria row. Worse, the table
+uses a BRACE that joins two value lines (confirmed, then suspected) to one state
+label, and -layout destroys the brace, so a two-line state reads as two
+unlabelled rows.
+
+Two tools fix it, both in /tmp/nga5:
+  col.py    - parses `pdftotext -bbox-layout` XML and re-renders ONE physical
+              column at a time, selected by x-coordinate. Columns stay intact.
+  nig2.py   - fuzzy-matches the OCR-mangled country label ('JIGERIA', 'NIGERLA',
+              'N1GERIA'), requires a date-range token or >=3 numbers nearby, and
+              emits a 300dpi PNG crop of the block via
+              `pdftoppm -r 300 -x -y -W -H`.
+The PNG is then read directly. That is the only way to see the brace.
+
+HOW TO READ THE TABLE, stated once so nobody re-derives it:
+  C = cases, D = deaths. Suffix s = SUSPECTED, r = REVISED, p = preliminary,
+  i = imported (the key is printed at the head of every notifications table).
+  A brace joining two VALUE lines to one state label means the state reported
+  both confirmed and suspected in that week; the week's total is their SUM.
+  A brace joining several LABEL lines to one value line means those divisions
+  were reported together.
+
+*** THE SUMMING RULE IS PROVEN, NOT ASSUMED ***
+  WER 1973;48(43) p.414 prints Nigeria's six four-weekly national totals for
+  1973: 123, 138, 87, 218, 88, 65 (printed sum 719). Summing the WEEKLY state
+  figures extracted here, with the suspected line added to the confirmed line,
+  reproduces every one of those six numbers EXACTLY:
+     P1 31.XII-27.I   29 + 24 + 35 + 35              = 123
+     P2 28.I-24.II    21 + 47 + 52 + 18              = 138
+     P3 25.II-24.III  27 + 31 + [0] + 29             =  87
+     P4 25.III-21.IV  123 + 39 + 32 + 24             = 218
+     P5 22.IV-19.V    22 + 30 + 27 + 9               =  88
+     P6 20.V-16.VI    19 + 13 + 12 + 21              =  65
+  Two of those weeks were PREDICTED BEFORE BEING FOUND. Period 4 needed a
+  15-21.IV week of exactly 24; WER 1973;48(34) then printed Western State
+  2 + 22s = 24. Period 5 needed a 13-19.V week of exactly 9; WER 1973;48(40)
+  then printed 2 + 7s = 9. A seventh check: the April 1973 MONTHLY summary in
+  WER 1973;48(26) (East-Central 5, South-Eastern 24, Western 88) reproduces the
+  four April weeklies exactly. This is about as strong an extraction validation
+  as an archival series admits.
+
+  P3's third week, 11-17 March 1973, is not printed in any vol.48 issue, and
+  the period-3 total is already reached without it. WHO's own aggregation
+  therefore implies zero Nigerian notifications that week. NOT entered as a zero
+  row: an absence derived by subtraction from an aggregate is not a printed
+  return, and the same arithmetic is equally consistent with "no report filed".
+  Recorded here instead.
+
+--------------------------------------------------------------------------------
+TWO MIS-ATTRIBUTIONS AVOIDED
+--------------------------------------------------------------------------------
+* WER 1973;48(33) p.? prints "NIGERIA - NIGERIA  19-25.VII / Mid-West State /
+  ...ta Prov.  1  1". The governing heading three lines up is YELLOW FEVER -
+  FIEVRE JAUNE. Not cholera. REJECTED.
+* WER 1973;48(47) prints "Nigeria - Nigeria  4  218  113  84  151  72  182  187
+  329", a nine-value series that looks exactly like a monthly cholera table. Its
+  header is "Table 1. POLIOMYELITIS in the African Region. Average Annual Number
+  of Cases in 1951-1955 and 1961-1965 and Annual Number of Cases in 1966 through
+  1972". REJECTED. This is the same trap Agent 4 caught twice in vol.46; it
+  recurs in every volume and the defence is always the same - read the heading,
+  not the row.
+* WER 1973;48(18) "Nigeria 70 882 / 4 753 / 1 832 / 182 / 79" is a multi-disease
+  annual table, not cholera. REJECTED.
+
+--------------------------------------------------------------------------------
+A DELIBERATE DECISION NOT TO WRITE NATIONAL WEEKLY ROWS - reasoning recorded
+--------------------------------------------------------------------------------
+The weekly state figures sum to a clean national weekly series for 1972-73, and
+the temptation to enter it is strong. I did not, for two reasons that a future
+agent should weigh rather than re-derive:
+
+ 1. IT WOULD HAVE NO DOWNSTREAM EFFECT. py/build_weekly_timeseries.py sets
+    SOURCE_PRIORITY = {"WHO":3, "JHU":2, "AI":1} and processes sources in
+    ascending priority so the higher one writes last. JHU carries a national
+    ANNUAL row for both 1972 and 1973; it is Fourier-disaggregated across all 52
+    weeks and overwrites every AI national weekly value for those years. The
+    rows would be invisible to the only consumer that reads national rows.
+ 2. IT WOULD MAKE THE FILE SELF-CONTRADICTORY. For 1973 the weekly series
+    reaches 719 by 16 June against a JHU/GHO annual of 157 - the unresolved
+    WER-vs-GHO conflict Agent 4 documented. Writing national weeklies would
+    embed that conflict as data instead of leaving it as an open question.
+    See the CONFLICT RESOLUTION section for what the weekly data does say
+    about it.
+
+So: sub-national rows only. Historical states that map to exactly one modern
+ADM1 get that ADM1 (Lagos; Calabar Prov -> Cross_River; Ibadan Prov -> Oyo;
+Abeokuta Prov -> Ogun). The 1967-76 multi-state units go to Multi_State, and
+where SEVERAL of them reported in the same week they are carried as ONE row with
+the per-state breakdown quoted in processing_notes - deliberately, because
+several Multi_State rows on the same (location, period) key is precisely the
+artefact that produced five of the 27 same_period_conflict warnings this agent
+was sent to clear.
+
+--------------------------------------------------------------------------------
+RECOVERED - 1972, previously 13 sub-national rows for the whole year
+--------------------------------------------------------------------------------
+  6-12 Aug    Lagos 52/0   ; Western State 91/2
+  13-19 Aug   Lagos 25/0   ; Western State 29/1
+  17-23 Sep   Lagos  9/1   ; Western State 46/0
+  24-30 Sep   Lagos  9/0   ; Western State 44/0
+  15-21 Oct   Lagos 48/1   ; Western 26/0 (North-Central nil)
+  22-28 Oct   Lagos 49/1   ; North-Central 1 + Western 29/3 = 30/3
+  26 Nov-2 Dec Lagos 9/0   ; Western 28/0 (North-Eastern nil)
+  3-9 Dec     Lagos  5/0   ; North-Eastern 3/2 + Western 36/3 = 39/5
+  10-16 Dec   Lagos  4/0   ; Mid-West 1 + Western 38/1 = 39/1
+  17-23 Dec   Lagos  0/0 (DOCUMENTED ZERO) ; Western 44/0
+  31 Dec 1972-6 Jan 1973  Lagos 5/0 ; Western 24/0
+
+RECOVERED - 1973, previously FOUR sub-national rows for the whole year
+  7-13 Jan   Lagos 0/0 (DOCUMENTED ZERO) ; Western 24/0
+  14-20 Jan  35/2   21-27 Jan 35/3   28 Jan-3 Feb 21/0
+  4-10 Feb   47/4   11-17 Feb 52/3   18-24 Feb 18/0   25 Feb-3 Mar 27/3
+  4-10 Mar   31/3   18-24 Mar 29/3   25-31 Mar 123/4 (largest week of 1973)
+  1-7 Apr    39/0   8-14 Apr 32/1    15-21 Apr 24/1   22-28 Apr 22/0
+  29 Apr-5 May 30/0 6-12 May 27/1    13-19 May 9/0    20-26 May 19/0
+  27 May-2 Jun 13/0 3-9 Jun 12/1
+  10-16 Jun  Calabar Prov (Cross River) 21/0  - FIRST Cross River row before 1991
+  30 Jun-21 Jul Western State 48/0 (three weeks aggregated by WER itself)
+  5-11 Aug   Ibadan Prov (Oyo) 18/0   ; 12-18 Aug Ibadan Prov (Oyo) 27/1
+             - a SECOND period block on the same page of WER 1974;49(1) that was
+               missed when that issue was first read
+
+Sources found: 16 registered (metadata indices 182-197)
+Rows added   : 48   Indices: 1301-1348 (46 case rows + 2 Documented_Absence weeks)
+Rows revised : 3 (1288 sCh 11->13, 1289 sCh 7->8 with deaths 1, 1300 annotated)
+Metadata revised: 1 (index 177 description)
+Successful actions: 14/20  (the reads of issues 02, 09, 13, 17, 22, 24, 25, 26,
+               27, 32, 34, 37, 40, 42, 50 and the vol.49(1) re-read - counted as
+               14 distinct slots after collapsing the two vol.48(24) blocks and
+               the two vol.48(40) reads)
+Yield        : 70%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE - this vein is nowhere near exhausted
+================================================================================
+
+================================================================================
+=== BATCH 2 | PHASE 1-2 (re-mine + conflict) | NGA ===
+Gap targeted : (a) THE NAMED HANDOVER ITEM - the undated Kano 2 286/423 pair in
+               WER 1971;46(39); (b) the 1971 weeks with no sub-national row at
+               all: 1-14 August, 12-25 September, 26 September-30 October and
+               31 October-13 November.
+
+Actions (20):
+  1  IRIS discover + bulk harvest of all 51 issues of WER vol.46 (1971)
+  2  Targeted fetch of hdl 10665/218524 = WER 1971;46(39)
+  3  bbox word-coordinate location of the '286' token -> page 6, x340 y570
+  4  300dpi page-image crop and read of the Kano block
+  5  col.py column render of the same column to identify the governing heading
+  6  Read the table legend for the meaning of the 's' suffix
+  7  nig2.py fuzzy sweep of all 51 vol.46 issues -> 85 candidate blocks
+  8  Diff of those blocks against the 1971 periods already held in the CSV
+  9  Read WER 1971;46(38) block  (1-7 and 8-14 August 1971)
+  10 Read WER 1971;46(40) block  (15-21 August 1971)
+  11 Read WER 1971;46(49) block  (printed 12-18/19-25 XI)
+  12 col.py render of the same block to recover the part below the crop
+  13 Read WER 1971;46(51) block  (printed 12-18/19-25 IX with a footnote marker)
+  14 Footnote hunt in vol.46 issue 51 text
+  15 Printed-page-number check on the vol.46 issue 49 block
+  16 600dpi comparison of the two period headers
+  17 Read the lower half of the vol.46 issue 51 Nigeria block
+  18 Register metadata index 198
+  19-20 Row writing and the six redatings
+
+--------------------------------------------------------------------------------
+HANDOVER ITEM 1 - CLOSED. THE KANO FIGURE IS DATED, ATTRIBUTED AND ENTERED.
+--------------------------------------------------------------------------------
+WER 1971;46(39) p.406, read as a page image, prints:
+
+    NIGERIA - NIGERIA            27 VI-3 VII
+      Kano, State
+    Kano, Urban Area        {       8      0
+      (excl airport)        {   2 286s   423s
+
+Three things the PDF text layer got wrong, all now settled:
+ * THERE IS ONLY ONE PERIOD COLUMN. Agent 4 recorded that "only one of the
+   issue's two period headers survives the scan". There was never a second one.
+   The two-column headers elsewhere on that page belong to Chad (3-9 IX |
+   10-16 IX) and Ghana (4-10 VII | 11-17 VII); Nigeria, Niger and Senegal each
+   print a single period. So the pair is unambiguously 27 JUNE - 3 JULY 1971.
+ * THE SUFFIX IS 's' (SUSPECTED), NOT 'r' (REVISED). The legend at the head of
+   every notifications table prints both: 'r Revised figures - Chiffres revises'
+   and 's Suspected cases - Cas suspects'. The text layer rendered them as
+   '2 286r 423y'.
+ * THE BRACE JOINS TWO VALUE LINES TO ONE LABEL, which in this table means
+   confirmed then suspected for the SAME week. The week total is 8 + 2 286 =
+   2 294 cases with 423 deaths - not two competing figures, and not 8.
+Disease attribution proved positionally as well as textually: the governing
+heading is CHOLERA - CHOLERA / Africa - Afrique at p.406 x81 y438, and the
+Africa list runs alphabetically Chad, Ghana, Mali, Mauritania, Niger, NIGERIA,
+Senegal across the column break.
+
+Row 1243 revised: sCh 8 -> 2294, deaths 0 -> 423, confidence 0.6 -> 0.7 (CFR
+18.4% > 15%). CAVEAT KEPT ON THE ROW: this single week exceeds the WHO World
+Health Statistics Annual 1972 four-week total for 1971 period VII (1 370 cases)
+though not its death total (909). Either the WHS four-weekly series counts only
+the confirmed column or Kano cleared a backlog in one return. Flagged, not
+resolved.
+
+--------------------------------------------------------------------------------
+A WHO ERRATUM NOBODY HAD FOUND - SIX ROWS WERE TWO MONTHS OUT
+--------------------------------------------------------------------------------
+WER 1971;46(49) p.502 heads its Nigeria block '12-18.XI | 19-25 XI'.
+WER 1971;46(51) p.517 REPRINTS THE IDENTICAL BLOCK - same five states, same
+figures - headed '12-18 IX 1 | 19-25 IX 1' with the footnote
+                    "1 Correction. See/Voir p 502."
+That is an explicit WHO erratum naming the exact page the existing rows were
+taken from. The true period is 12-25 SEPTEMBER 1971.
+
+Three independent checks agree:
+ 1. CADENCE. WER 1971;46(48) of 26 Nov carried 29 Aug-4 Sep and 5-11 Sep. Issue
+    49, one week later, carries the next two weeks in sequence at the same
+    10-11 week lag. A November period would be a 2-week lag one issue after an
+    11-week lag.
+ 2. EPIDEMIC CONTINUITY. Lagos Urban Area becomes 0 -> 51 -> 44 -> 90 and
+    Kaduna Cap 12 -> 157 -> 44 -> 0, two coherent September curves. As November
+    rows they were isolated spikes with nothing on either side.
+ 3. TYPOGRAPHY. The same page of issue 51 sets 'MAURITANIA 18-30 XI' in the same
+    face, so IX and XI are distinguishable there and the issue-51 reading is not
+    a scan artefact. Checked at 600dpi on both issues.
+
+REDATED: rows 1168, 1169 (Lagos 44/1 and 90/0), 1170 (Borno/Maiduguri 3/0),
+1171 (Kaduna 44/8), 1174 and 1175 (the Kaduna and Borno documented zeros) -
+all moved from November to September 1971, each with the erratum quoted in
+processing_notes. Metadata index 144 keeps its printed (erroneous) Source name
+for traceability and now carries the correction in its Description.
+
+--------------------------------------------------------------------------------
+RECOVERED
+--------------------------------------------------------------------------------
+From WER 1971;46(38), an issue Agent 4 never opened:
+  1-7 Aug 1971   Ilorin Prov (Kwara) 14/1 ; Lagos State 94/9
+  8-14 Aug 1971  Ilorin Prov (Kwara) 10/1 ; Lagos State 153/9
+  - closes a two-week hole in the Lagos curve between 25-31 July and 15-21 Aug.
+From the corrected block in WER 1971;46(51), the three units below Kaduna that
+were never read:
+  12-18 Sep 1971 Benin Prov (Edo) 8/2 - FIRST 1971 Edo row in the dataset
+  19-25 Sep 1971 Benin Prov (Edo) 0/0 DOCUMENTED ZERO
+  12-18 Sep 1971 Ibadan Prov (Oyo) 172/10 - largest single-week Ibadan figure held
+  19-25 Sep 1971 Ibadan Prov (Oyo) 164/9
+From the block immediately below it on the same page:
+  31 Oct-6 Nov 1971 Lagos (Ikorodu Div + Lagos Urban Area) 73/1
+  7-13 Nov 1971     Lagos (Ikorodu Div + Lagos Urban Area) 53/0
+
+--------------------------------------------------------------------------------
+A THIRD SILENT MISREAD FIXED
+--------------------------------------------------------------------------------
+Row 1155 (Kwara, 15-21 Aug 1971) held sCh 6 with deaths blank. The page image of
+WER 1971;46(40) prints the braced Ilorin+Kabba line as '13  6' in the C and D
+columns: 13 cases, 6 deaths. The original extraction had taken the DEATHS value
+as the case count. Corrected. Cross-check: Kano '4 3' and Lagos '94 3' on the
+same page were both read correctly, so the column positions are not in doubt.
+
+Sources found: 1 registered (metadata index 198); two already-registered sources
+               newly exploited (index 171 for the corrected block and the
+               31 Oct-13 Nov Lagos block, index 144 annotated with the erratum)
+Rows added   : 10   Indices: 1349-1358 (9 case rows + 1 Documented_Absence week)
+Rows revised : 9 (1243 Kano, 1155 Kwara, and the six redatings 1168-1175)
+Successful actions: 3/20  (the vol.46 issue 38 read, the corrected-block read
+               and the lower-block read; the Kano resolution produced a REVISION
+               rather than a new row and is honestly not counted)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+================================================================================
+
+================================================================================
+=== BATCH 3 | PHASE 2 | NGA - THE 1975/1976 CONFLICT, ADJUDICATED ===
+Gap targeted : the two series Agent 4 WITHHELD - "1975: WER 11 vs baseline 38"
+               and "1976: WER 61 vs baseline 112" - which the brief asked me to
+               either admit with documented reasoning or confirm as excluded.
+
+Actions (20):
+  1  IRIS discover + bulk harvest of all 51 issues of WER vol.50 (1975)
+  2  IRIS discover + bulk harvest of all 52 issues of WER vol.51 (1976)
+  3  nig2.py sweep of vol.50 -> 35 candidate blocks
+  4  nig2.py sweep of vol.51 -> 24 candidate blocks
+  5-14  Read the vol.50 notification blocks in issues 05, 16, 22, 24, 31, 39, 51
+        and the vol.51 blocks in issues 03, 04, 08, 11, 13, 18
+  15 Widened re-crop of vol.51 issue 13 to resolve which country owns the
+     '1.I-31.XII.75  29r 1r' line
+  16 Cross-check of overlapping periods between vol.50 issue 51 and vol.51 issue 03
+  17 Reconciliation attempt against the 1975 baseline annual (38) and the WER
+     printed annual (11)
+  18-19 Register metadata index 199 (withdrawn, see below) and 200
+  20 Presence row for Bendel/Ughelli
+
+--------------------------------------------------------------------------------
+THE FULL 1975-76 WER WEEKLY NATIONAL SERIES, EXTRACTED AND PUT ON THE RECORD
+--------------------------------------------------------------------------------
+By 1975 WER had STOPPED printing state detail for Nigeria. Every block is a bare
+national line: "NIGERIA - NIGERIA  8-14.XII   1   1". No geography at all.
+
+ 1974 (carried in 1975 issues)   24-30.XI 4/0 ; 1-7.XII 1/0 ; 8-14.XII 1/1 ;
+                                 29.XII-4.I 1/1
+ 1975   2-8.III 2/0 ; 13-19.IV 3/0 ; 27.IV-3.V 4/0 ; 4-10.V 4/0 ;
+        11-17.V 6/0 ; 18-24.V 6/0 ; 3-9.VIII 1/0 ; 10-16.VIII 1/0 ;
+        7-20.IX 7/1 ; 21-27.IX 1/0 ; 28.IX-4.X 2/0 ; 5-11.X 1/1 ;
+        19-25.X 1/0 ; 26.X-1.XI 6/2 ; 2-8.XI 2/0 ; 9-15.XI 1/0 ;
+        2-15.XI 2/0 ; 23-29.XI 1/0 ; 23.X-2.XII {3 3 ; 100s 44s}
+ 1976   28.XII-3.I 1/1 ; 11-17.I 2/0 ; 1-7.II 4/1 ; 8-28.II 8/0
+
+--------------------------------------------------------------------------------
+ADJUDICATION: AGENT 4'S EXCLUSION IS CONFIRMED. THE SERIES STAYS OUT.
+--------------------------------------------------------------------------------
+I went into this expecting to admit the series, and for a while it looked
+admissible: the twelve 1975 weeks I had after reading vol.50 summed to EXACTLY
+38, the baseline annual, which would have settled the conflict in the baseline's
+favour and turned the weeklies into a clean disaggregation of it. Reading vol.51
+destroyed that. The reasons, so nobody re-derives them:
+
+ 1. THE PERIODS OVERLAP AND CONTRADICT. WER 1975;50(51) prints "2-15.XI  2 0".
+    WER 1976;51(3) prints the same fortnight split as "2-8.XI 2 0" and
+    "9-15.XI 1 0" - three cases where the earlier issue said two. Nothing marks
+    either as a revision.
+ 2. A SIX-WEEK AGGREGATE CONTRADICTS ITS OWN COMPONENT WEEKS BY AN ORDER OF
+    MAGNITUDE. WER 1976;51(3) prints "23.X-2.XII { 3 3 ; 100s 44s" - 103 cases
+    and 47 deaths - on the same page as the individual weeks 26.X-1.XI (6/2),
+    2-8.XI (2/0) and 9-15.XI (1/0), which lie inside it and total 9 cases.
+ 3. THE SUM LANDS NOWHERE. Deduplicating in favour of the finer period, 1975
+    totals 49 excluding the six-week aggregate and 149 including it. Neither is
+    the WER printed annual (11) nor the baseline (38).
+ 4. THERE IS NO GEOGRAPHY, so the rows can only be national, where they would
+    sit against a JHU annual they cannot reproduce.
+A series that cannot reproduce either candidate annual, and that contradicts
+itself within one page, is not evidence for or against the baseline. It is
+recorded above so a human can see it, and it is NOT written as data.
+
+*** WHAT THIS DOES SETTLE, and it matters beyond Nigeria: the WER weekly
+"Diseases Subject to the Regulations" table is NOT a single coherent stream. In
+1971-73, when Nigeria reported by state every week, it reconciles to the unit
+with WHO's own four-weekly aggregation (see Batch 1). In 1975-76, when Nigeria
+reported a bare national number irregularly, it does not reconcile with
+anything. The table's usability is a property of the reporting country's habits
+in that year, not of the table. Agent 4 reached the same conclusion from the
+1991 volume by a different route (the IHR notification stream 3 398 vs the FMoH
+7 674 printed on the same page). Three agents have now independently hit this;
+it should be treated as established. ***
+
+--------------------------------------------------------------------------------
+ONE MIS-ATTRIBUTION AVOIDED, ONE CITATION ERROR SELF-CAUGHT
+--------------------------------------------------------------------------------
+* WER 1976;51(13) prints "1.I-31.XII.75   29r   1r" directly above the NIGERIA
+  label. Widening the crop shows the label column: it belongs to BENIN (Dahomey,
+  renamed 1975), not Nigeria. Had it been read as Nigerian it would have become
+  a FOURTH competing 1975 annual. REJECTED.
+* WER 1975;50(31) carries a NIGERIA block under YELLOW FEVER - Rivers State,
+  Port Harcourt, Ahoada, Ikwerre - two inches from the cholera Nigeria block on
+  the same page. REJECTED.
+* I registered metadata index 199 with a GUESSED IRIS handle (10665/222229)
+  before resolving it. Caught before any row cited it: index 199 is marked
+  Superseded and index 200 carries the handle the harvest actually returned
+  (10665/220826). Recorded because a guessed URL that nobody catches is exactly
+  how this dataset accumulated its mismatched citations.
+
+RECOVERED (the only extractable geography in either volume):
+  WER 1976;51(18), "Newly Infected Areas as on 29 April 1976": NIGERIA / Bendel
+  State / Ughelli Province. No count, so it is a PRESENCE record, not a data
+  row -> ./data/NGA/cholera_presence_ai.csv. It is the only sub-national
+  Nigerian cholera signal of any kind for 1975-1976 in the whole WER archive.
+
+Sources found: 1 usable (metadata index 200; index 199 withdrawn as above)
+Rows added   : 0 to ./data/NGA/cholera_data_ai.csv (1 presence row)
+Successful actions: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE - the 3-batch minimum is met but the yield criterion is
+               not (one sub-5% batch, not three), and Half B of the assignment
+               has not started.
+================================================================================
+
+================================================================================
+=== BATCH 4 | HALF B | NGA - CONFLICT RESOLUTION AND CONFIDENCE CALIBRATION ===
+Target : the 27 same_period_conflict, 9 national_subnational_overlap, 43
+         CFR_high_flagged_for_review and 1 multiyear_aggregate warnings.
+
+Actions (20):
+  1  Translate every validator warning from physical CSV line number to Index
+     (/tmp/nga5/warns.py) - the validator reports lines, not Index values, and
+     adjudicating the wrong row is otherwise very easy
+  2-9   Inspect and adjudicate the eight 1971-74 Multi_State collisions
+  10 Inspect and adjudicate the eleven 2026 NCDC-vs-WHO national pairs
+  11 Inspect and adjudicate FCT 2021
+  12 Inspect and adjudicate the seven 2022-23 state-year pairs
+  13 Machine pass adding the missing aggregation statements to every row in the
+     nine national/sub-national overlap groups
+  14-18 CFR review of all 43 flagged rows in five evidence classes
+  19 Europe PMC full-text search on the literal string "74,881" to find the
+     primary text behind the one multi-year aggregate
+  20 Re-cite, downweight and re-enter that row
+
+WARN COUNT: 80 at the start of this agent's run -> 63 after this batch.
+
+--------------------------------------------------------------------------------
+1. EIGHT "CONFLICTS" THAT WERE NOT CONFLICTS - MERGED, 8 WARNINGS CLEARED
+--------------------------------------------------------------------------------
+Nigeria's 1967-1976 twelve-state structure has no one-to-one mapping onto modern
+ADM1, so every historical multi-state unit lands on AFR::NGA::Multi_State. When
+two of them reported in the same week, the file held two rows on an identical
+(location, period) key and the validator could only read that as two sources
+disagreeing. They were never disagreeing - they are different places.
+
+Each pair merged into ONE row carrying the week total, with the per-unit
+breakdown preserved verbatim in processing_notes, and the duplicate key retracted
+to ./data/NGA/retracted_rows_ai.csv:
+  1210 <- 1214  1971-02-21..27  East Central 403/0 + Western 73/16   = 476/16
+  1225 <- 1226  1971-03-21..27  Mid-West 19/0 + Western 140/8        = 159/8
+  1231 <- 1236  1971-04-11..17  Benue Plateau 4/2 + South-Eastern 404/14 = 408/16
+  1276 <- 1277  1972-04-02..08  North-Central 4/0 + Western 18/4     = 22/4
+  1284 <- 1286  1972-07-23..29  North-Central 1/0 + Western 35/0     = 36/0
+  1285 <- 1287  1972-07-30..08-05 North-Central 1/0 + Western 52/0   = 53/0
+  1294 <- 1295  1974-04-07..13  Mid-Western 2/0 + North-Central 10/0 = 12/0
+  1278 <- 1281  1972-04-09..15  SPECIAL CASE: index 1281 was a DOCUMENTED ZERO
+     for North-Central on the same key that index 1278 carries 24 cases for -
+     the file was simultaneously asserting "no cholera in Multi_State" and "24
+     cases in Multi_State" for one week. A zero cannot be merged into a positive
+     row without destroying the nil-return evidence, so 1281 was retracted and
+     its evidence folded verbatim into 1278's notes.
+This also matches the convention used for the 44 new WER vol.48 rows in Batch 1,
+so the file is now internally consistent on this point.
+
+--------------------------------------------------------------------------------
+2. THE NINETEEN REMAINING same_period_conflict WARNINGS - ADJUDICATED, NOT CLEARED
+--------------------------------------------------------------------------------
+A NOTE ON WHY THE COUNT DOES NOT FALL FURTHER. Unlike national_subnational_
+overlap, the same_period_conflict check in py/validate_quality.py has NO
+documentation escape hatch: it fires whenever one (location, period) key carries
+two different count tuples, whatever the notes say. The only ways to clear it are
+to delete a row or to change its numbers. Deleting a defensible alternative
+figure to make a warning go away is the exact failure CLAUDE.md names ("do not
+relabel to silence"), so these nineteen are left standing as review flags with a
+full adjudication written into BOTH rows of every pair.
+
+ (a) ELEVEN PAIRS - 2026 national weeks. NCDC Weekly Epidemiological Report
+     Table 8 (indices 44-54, confidence 0.4) against the WHO Global Cholera and
+     AWD Dashboard (indices 76-87, confidence 0.95), running 10x to 40x apart -
+     e.g. week 20-26 July 2026, NCDC 324 cases / 1 death against WHO 7 030 / 25.
+     ADJUDICATION: the WHO row is PRIMARY for every week. Both are Level 1
+     official, so the hierarchy alone does not separate them; what does is that
+     they measure different things. NCDC's Table 8 is the routine IDSR /
+     laboratory-linked stream and excludes the Borno emergency line list, which
+     in 2026 is where the epidemic is. The NCDC rows are KEPT because they carry
+     a laboratory-confirmed count (cCh) the WHO series does not, and because the
+     gap between the two streams is itself a surveillance finding. Agent 1's
+     0.4 weighting is confirmed. Reciprocal notes written on all 22 rows.
+ (b) FCT 2021. Index 26 (514/12/8 confirmed, generic undated "NCDC Cholera
+     Situation Reports") against index 153 (1 286/77, NCDC Cholera Situation
+     Report epi week 52 of 2021). ADJUDICATION: 153 primary; 26 downweighted
+     0.3 -> 0.2. Its surviving contribution is the cCh of 8, which belongs to the
+     514 denominator and not to the 1 286.
+ (c) SEVEN 2022-23 STATE-YEARS, weak citation against the NCDC epi-week-52
+     national state table (which Agent 3 verified closes arithmetically to its
+     printed national total):
+        Zamfara 2023   index 16  914/30  vs index 240  913/28  - NEAR-CORROBORATION,
+                       agrees to one case and two deaths; 16 downweighted 0.85->0.5
+        Cross River 2023 index 17  718/12 vs index 241  718/16 - CASES IDENTICAL,
+                       independent corroboration; only deaths differ; 17 0.85->0.5
+        Abia 2023      index 20  310/7   vs index 247  142/7
+        Borno 2023     index 22  521/11  vs index 252   38/6
+        Bauchi 2023    index 21  420/9   vs index 255   30/1
+        Delta 2023     index 23  215/5   vs index 258   20/6
+        Plateau 2023   index 19  485/12  vs index 259   15/0   (largest divergence)
+     ADJUDICATION: the NCDC year-end table is primary in every case. The five
+     rows already at confidence 0.2 are left there - they are defensible
+     alternative estimates from weaker citations and deleting them would destroy
+     the disagreement rather than record it.
+
+--------------------------------------------------------------------------------
+3. NINE national_subnational_overlap WARNINGS - ALL CLEARED
+--------------------------------------------------------------------------------
+The check downgrades to INFO only when EVERY row in the overlapping group states
+which level is primary. Fifteen rows were missing the statement (the 1971-72
+four-weekly national rows 1188-1193 and 1198, and the 1974 sub-national rows
+1291-1299). All fifteen now carry an explicit aggregation statement. 9 WARN -> 0.
+
+--------------------------------------------------------------------------------
+4. FORTY-THREE HIGH-CFR ROWS - ALL REVIEWED, NONE WAS A PAIRING ERROR
+--------------------------------------------------------------------------------
+The brief's specific worry is deaths taken from a cumulative series paired with
+cases from a weekly one. I checked every row for that signature and found none:
+in all 43 the two numbers come from the same printed row of the same table for
+the same period. Documented in five evidence classes:
+
+ * 18 rows, 1971-72 WER and WHS (15-36%). The El Tor invasion of a wholly
+   non-immune population, no treatment centres, ORS not yet in field use. The
+   JHU national annual pair for 1971 is 22 931/2 945 = 12.8%, and WHO's own
+   four-weekly national series runs 15.4-17.6%, so a sub-national week in this
+   band is consistent with the national record rather than an outlier against it.
+ * 3 rows, the 1996 WHO DON cumulative state table (23-32%). ARITHMETIC
+   CROSS-CHECK PASSED: Kano 4 388/150 + Kebbi 525/122 + Kwara 272/72 + Niger
+   304/97 + Kaduna 11/3 + Oyo 215/7 = 5 715 cases / 451 deaths against the
+   national 6 117/487 printed in the same update, leaving a plausible residual of
+   402 cases / 36 deaths. The parts are consistent with the whole, so the
+   denominators are right and the CFR gradient - Kano with treatment capacity at
+   3.4% against Kebbi, Kwara and Niger at 23-32% - IS THE FINDING, not the error.
+ * 13 rows, the Charnley et al. 2022 compilation (17-49%). Early outbreak
+   notifications, which systematically over-state CFR because community deaths
+   enter the numerator while only presenting cases enter the denominator. Already
+   at 0.4-0.5; each row now says explicitly that it must not be used to estimate
+   case fatality. Two of them (Adamawa and Edo 1999) are independently
+   corroborated by WER 1999;74(20), so the figures are what was reported at the
+   time whatever their ascertainment.
+ * 5 rows, NCDC year-end state tables (15.7-24.5%). Adjacent columns of one row
+   of a table that closes to its printed national total. Real as reported.
+ * 4 rows, small-denominator riverine and remote-LGA outbreaks (18.7-32%).
+None of the 43 warnings can be cleared - the check fires on any CFR above 15%
+regardless of documentation - so they remain as review flags with the review
+now attached to each row.
+
+--------------------------------------------------------------------------------
+5. THE ONE multiyear_aggregate - PRIMARY TEXT FOUND, ROW RE-CITED AND DOWNWEIGHTED
+--------------------------------------------------------------------------------
+Index 6 held AFR::NGA 2004-01-01..2008-12-31, 74 881 cases / 1 387 deaths at
+confidence 0.7, citing metadata index 8 "Federal Ministry of Health Nigeria"
+whose only URL was the bare domain https://www.health.gov.ng. An unverifiable
+citation on a figure 4.5x the authoritative series is the worst combination in
+the file, so I went after the primary text.
+
+A Europe PMC full-text search on the literal string "74,881" found it in one
+hop: Dalhat et al., Pan African Medical Journal 2018;30:5 (PMC6093587), which
+states verbatim - "According to surveillance data obtained from the Epidemiology
+Division, Federal Ministry of Health, between January 2004 and December 2008,
+outbreaks of cholera have been reported in 12 out of the 36 States in the
+country with 74,881 cases and 1,387 reported deaths (Unpublished data)."
+So the figure is real and correctly transcribed; what was wrong was the citation.
+
+THE CONFLICT. The WHO Annual Cholera Report series in
+./data/NGA/cholera_data_jhu.csv gives 2004 3 186/185, 2005 4 477/174, 2006
+2 028/127, 2007 1 661/48, 2008 5 410/247 - five-year total 16 762 cases / 781
+deaths, CFR 4.66% - against 74 881/1 387, CFR 1.85%. ADJUDICATION: the WHO annual
+series is PRIMARY; the FMoH figure is NON-PRIMARY at confidence 0.4 (WHO over
+ministry, published over unpublished, a series over a single relayed aggregate).
+Both figures are recorded; neither is averaged.
+
+AN ARITHMETIC FINDING WORTH PASSING ON. 74 881 does not match the WHO 2004-2008
+sum, but it matches the WHO 2004-2010 sum of 74 909 TO WITHIN 28 CASES (0.04%).
+The two missing years are 2009 (13 691) and 2010 (44 456) and they are almost
+exactly the missing volume. The FMoH internal aggregation most probably ran to
+2010 and the window stated in the 2018 paper is too short. The deaths do not
+follow the same pattern (WHO 2004-2010 = 2 924 against 1 387), so this is a
+hypothesis and NOT a resolution: the row is deliberately left on its printed
+2004-2008 period rather than silently redated to fit my own arithmetic.
+
+Index 6 retracted (tombstone written); replaced by index 1359 citing metadata
+index 201 (the located paper) at confidence 0.4 with all of the above in its
+notes. Metadata index 8 marked Superseded so no future agent re-cites a bare
+domain.
+
+Sources found: 1 registered (metadata index 201)
+Rows added   : 1 (index 1359, the re-cited replacement)
+Rows retracted: 9 (1214, 1226, 1236, 1277, 1281, 1286, 1287, 1295, and 6)
+Rows revised : 76 (8 merges, 22 x 2026 adjudications, 15 FCT/state adjudications,
+               15 aggregation statements, 43 CFR reviews - with overlap)
+Successful actions: 1/20 (only the Europe PMC action produced a new row; the rest
+               of the batch is analysis, which by the protocol's definition does
+               not count toward yield even though it is the assignment)
+Yield        : 5%
+Consecutive sub-5% batches: 1  (batch 3 was 0%, batch 4 is exactly 5% and so
+               does not extend the run of sub-5% batches)
+Decision     : CONTINUE
+================================================================================
+
+================================================================================
+=== BATCH 5 | PHASE 3 | NGA - RE-MINE + CROSS-BORDER VALIDATION ===
+Target : (a) the ReliefWeb handover item; (b) the WER vol.47 blocks Agent 4 left
+         unread, including the one it deliberately withheld; (c) whether a WHO
+         sub-national service for Nigeria really does not exist; (d) cross-border
+         validation of the 1971, 1991, 2021 and 2026 epidemics.
+
+Actions (20):
+  1  ReliefWeb API v1 -> 410 decommissioned
+  2  ReliefWeb API v2 with five appname variants -> 403 on every one
+  3  ReliefWeb API v2 POST -> 403
+  4  reliefweb.int WEBSITE (not the API) -> HTTP 200
+  5  ncdc.gov.ng -> HTTP 522 (Cloudflare origin timeout; the site is down today)
+  6  Enumerate ALL 2 504 services on the WHO AFRO ArcGIS host
+  7  Filter that list on 'chol'/'awd' -> 45 services, including Adm1_Nigeria_Cholera
+  8  Schema + full query of Adm1_Nigeria_Cholera layer 0 (37 features)
+  9  WHO cholera_report_period service, Nigeria row -> reporting window
+  10 cholera_adm0_week, Nigeria 2026, latest weeks -> still caps at epi week 33
+  11 nig2.py sweep of WER vol.47 (1972) -> 33 candidate blocks
+  12-16 Read the vol.47 blocks in issues 03, 40, 41, 46 and 51-52
+  17 600dpi zoom on the vol.47 issue 03 Ibadan line
+  18 Cross-border JHU annuals for BEN, CMR, TCD, NER in the key years
+  19 Cross-border 2025-26 cumulative from the WHO dashboard for BEN, CMR, TCD, NER
+  20 Register metadata indices 202-206 and write rows
+
+--------------------------------------------------------------------------------
+HANDOVER ITEM 3 - RELIEFWEB. DIAGNOSED PRECISELY; NOT FIXABLE BY AN AGENT.
+--------------------------------------------------------------------------------
+Agent 4 was right that this is an auth change rather than a network block, and
+Agent 2 was wrong that reliefweb.int is unreachable - the WEBSITE returns 200
+from this session. But the API cannot be unblocked from here. v1 returns
+410 "The API version 'v1' has been decommissioned". v2 returns, for every
+appname tried:
+    "You are not using an approved appname. Kindly request an appname from
+     ReliefWeb here: https://apidoc.reliefweb.int/parameters#appname"
+The appname is issued by ReliefWeb staff in response to a human registration
+form; it is not self-service and it cannot be generated, guessed or POSTed for.
+THIS IS A TASK FOR A HUMAN, NOT FOR THE NEXT AGENT. Five minutes of someone's
+time at apidoc.reliefweb.int would open the 1996-2015 humanitarian archive that
+this dataset is thinnest on. Until then the website itself is scrapeable at 200
+and is the fallback route.
+
+--------------------------------------------------------------------------------
+A WHO SUB-NATIONAL SERVICE FOR NIGERIA DOES EXIST. Agent 2's closure was wrong.
+--------------------------------------------------------------------------------
+Agent 2 recorded, as an established negative, "there is no WHO ADM1 service" for
+Nigeria, and used it to close the 2026 sub-national seam. Enumerating all 2 504
+services on the WHO AFRO ArcGIS host and filtering the NAMES on 'chol' returns 45
+cholera services, among them:
+    Adm1_Nigeria_Cholera        <- Nigeria, state level, public, unauthenticated
+    Adm1_Cameroon_Cholera, Adm1_Kenya_Cholera, Adm1_Moz_Cholera, Adm1_Eth_Cholera,
+    Adm1_Burundi_Cholera, Adm1_Zimbabwe_Cholera, Adm2_Malawi_Cholera,
+    Adm2_SouthSudan_Cholera, Adm3_Tanzania_Cholera, Adm2_Eswatini_Cholera ...
+THAT LIST IS WORTH MORE THAN THE NIGERIAN ROWS IT PRODUCED. Ten other MOSAIC
+countries have a named WHO sub-national cholera service on the same host, and
+the enumeration takes one HTTP call:
+    https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services?f=json
+Hand this to whoever runs BDI, CMR, ETH, KEN, MOZ, MWI, SSD, SWZ, TZA, ZAF, ZMB
+and ZWE.
+
+Adm1_Nigeria_Cholera carries Cases, Deaths, CFR and Lastupdate for all 37 ADM1
+units. Twelve are populated, with Lastupdate 2023-04-12; twenty-five are null.
+The layer prints no period, so TL comes from WHO's companion cholera_report_period
+service (Nigeria: reporting start 2023-01-02) and TR from Lastupdate. Three
+checks support reading it as 2023 year-to-date: Cross River 709 here against 718
+in the NCDC year-end 2023 table, just below as a mid-April cut must be; Zamfara
+28 here against 913 at year end, consistent with Zamfara's outbreak running
+September to December; and Cross River's 802 cases in 2022 alone, which rules out
+a 2022-23 cumulative. Entered at confidence 0.75 rather than the Level 1 floor
+because the period is inferred from service metadata, not printed.
+THE 25 NULL STATES ARE NOT ZEROS and no absence row was written for them.
+
+--------------------------------------------------------------------------------
+THE BLOCK AGENT 4 WITHHELD - RESOLVED, AND IT WAS AN OCR DIGIT
+--------------------------------------------------------------------------------
+Agent 4 left WER 1972;47(40) out with this reasoning: "prints Western State with
+a brace joining two label lines and four value pairs - 23/1, 33/1, 98/0 and
+485/0 ... A 485-case week cannot be reconciled with a 1,363-case year unless it
+belongs to a different unit or period, and the brace does not say which."
+At 300dpi the block reads:
+    NIGERIA - NIGERIA        14-20.V        20-27.V
+    Western State  . . . {     23    1        33    1
+                         {     98s   0        48s   0
+There is no 485. It is 48s - forty-eight SUSPECTED - and the brace joins two
+VALUE lines, confirmed over suspected, for each of two periods. The arithmetic
+objection dissolves entirely: 14-20 May is 23 + 98 = 121 cases with 1 death and
+20-27 May is 33 + 48 = 81 with 1 death. Both entered. The lesson is the same one
+as Batch 1: the brace and the 's' suffix are invisible to pdftotext, and reading
+these tables without the page image produces exactly this class of error.
+
+--------------------------------------------------------------------------------
+TWO MORE SILENT MISREADS IN EXISTING ROWS, BOTH FIXED
+--------------------------------------------------------------------------------
+WER 1972;47(51-52) prints, for the two weeks Agent 4 extracted:
+    Lagos            82   2   |  69   0
+    North-Central     1   0   |   7s  0
+    Western     {     7   1   |   2   1
+                {    35s  0   |  52s  0
+Two values were wrong in the file. North-Central for 30 July-5 August is 7s, not
+1s. And Western is a TWO-line brace in both weeks, so it is 7+35 = 42 with 1
+death and 2+52 = 54 with 1 death, not the bare suspected lines of 35 and 52 that
+the text layer showed. The merged weekly rows are corrected: index 1284 from
+36/0 to 43/1 and index 1285 from 53/0 to 61/1. Lagos 82/2 and 69/0 were read
+correctly, which is what makes the column positions certain.
+
+--------------------------------------------------------------------------------
+A ROW WHERE THE SOURCE ITSELF IS ARITHMETICALLY IMPOSSIBLE
+--------------------------------------------------------------------------------
+WER 1972;47(3) prints, for Ibadan Province, 8 cases and 10 DEATHS for 5-11
+December 1971 and 19 cases and 13 deaths for 12-18 December. Deaths exceed
+notified cases in both weeks. Verified at 600dpi, so it is what WER printed and
+not a scan artefact; the likely explanation is that Ibadan returned community
+deaths against a case column counting only presenting patients. The CASE counts
+are entered (indices 1382, 1383) and THE DEATHS ARE DELIBERATELY LEFT BLANK with
+the printed values quoted in processing_notes, so the anomaly is visible rather
+than either silently dropped or written as a CFR above 100%.
+
+--------------------------------------------------------------------------------
+CROSS-BORDER VALIDATION - BEN, CMR, TCD, NER
+--------------------------------------------------------------------------------
+ 1971  NGA 22 931 / 2 945.  BEN 2 133/274, CMR 2 167/336, TCD 8 230/2 411,
+       NER 9 265/2 344 - every land neighbour had a major epidemic in the same
+       year, regional total about 44 700. Nigeria's 1971 is the Nigerian share of
+       the West African El Tor invasion. CONSISTENT.
+ 1972  NGA WER 3 740 vs GHO 1 363. The region COLLAPSED: TCD 8 230 -> 9, NER
+       9 265 -> 51, BEN 2 133 -> 250, CMR 2 167 -> 362. Against a regional total
+       of 672 outside Nigeria, the lower Nigerian figure sits better with the
+       regional pattern than the higher one, but the evidence is weak and is not
+       used to adjudicate.
+ 1973  NGA WER 1 107 vs GHO 157, with BEN at 3 and NER at 121. See the 1973
+       resolution below, which settles it on internal evidence rather than this.
+ 1991  NGA 59 478 / 7 654.  BEN 7 474/259, CMR 4 026/491, TCD 13 915/1 344,
+       NER 3 238/367 - the whole Lake Chad basin and Gulf of Guinea at once.
+       CONSISTENT, and it corroborates WER 66(29)'s report that 14 of Nigeria's
+       21 states were affected by 10 July 1991.
+ 2021  NGA about 111 000. NER 5 591 - and Niger's affected regions, Zinder and
+       Maradi, sit directly across the border from the Jigawa, Katsina and Kano
+       front where the Nigerian 2021 epidemic was centred. BEN 1 280, CMR 728,
+       TCD 0. PARTIALLY CONSISTENT: the Niger signal corroborates the northern
+       front; Chad reporting zero while Nigeria ran an epidemic of that size is
+       a surveillance statement about Chad, not about Nigeria.
+ 2026  NGA 118 267 / 1 810 cumulative to epi week 33 (WHO dashboard, queried
+       today). CMR 22 912 / 550 and TCD 3 545 / 195 over the same weeks; NER and
+       BEN report nothing to the dashboard for 2026 at all. The Lake Chad basin
+       is in a simultaneous three-country epidemic and Nigeria's Borno-centred
+       outbreak is its largest arm. STRONGLY CONSISTENT.
+
+--------------------------------------------------------------------------------
+*** THE 1973 WER-vs-GHO CONFLICT IS RESOLVED. NEITHER FIGURE IS WRONG. ***
+--------------------------------------------------------------------------------
+Agent 4 flagged this as the country's outstanding provenance conflict and
+recommended a human decide: WER's definitive annual gives Nigeria 1 107 cases for
+1973 while WHO GHO and the JHU baseline carry 157, a factor of seven, with no
+obvious way to choose. The vol.48 extraction in Batch 1 answers it.
+
+    THE TWO NUMBERS COUNT DIFFERENT COLUMNS OF THE SAME TABLE.
+
+Summing BOTH columns of the weekly table - the unmarked count plus the count
+suffixed 's' for suspected - reproduces WHO's own four-weekly national
+aggregation exactly in all six printed periods of 1973 (123, 138, 87, 218, 88,
+65; 719 by 16 June), which tracks to the WER annual of 1 107.
+Summing ONLY the unmarked column over the same six periods gives 82, and 91 by
+18 August, which tracks to the GHO annual of 157.
+So WER's 1 107 is suspected plus confirmed and GHO's 157 is the confirmed /
+formally-notified column alone. This is the same two-stream phenomenon Agent 4
+identified for 1991, where WER 1991;66(29) printed the narrow IHR notification
+figure of 3 398 and the FMoH national total of 7 674 ON THE SAME PAGE.
+
+IMPLICATION FOR MOSAIC, stated plainly because it is a modelling decision and
+not a data-entry one: MOSAIC models CLINICAL (suspected) cholera, so the correct
+series for 1973 is the larger one. The baseline annual of 157 understates the
+year roughly sevenfold because it drops the suspected column. I have NOT written
+a competing national row - py/build_weekly_timeseries.py gives JHU priority over
+AI, so the row would be inert, and writing it would embed the disagreement as
+data. The finding is recorded here and on indices 1288 and 1289, the two rows
+whose notes previously flagged the conflict as open.
+
+Sources found: 5 registered (metadata indices 202-206)
+Rows added   : 25   Indices 1360-1384 (24 case rows + 1 Documented_Absence week)
+Rows revised : 4 (1284, 1285 corrected; 1288, 1289 annotated with the resolution)
+Successful actions: 6/20  (the Adm1_Nigeria_Cholera query and the five vol.47
+               block reads)
+Yield        : 30%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+================================================================================
+
+================================================================================
+=== BATCH 6 | PHASE 3 | NGA - WER vol.49 (1974) AND THE 1971 RESIDUAL WEEKS ===
+Gap targeted : the 7 of 12 vol.49 candidate blocks Agent 4 did not extract, and
+               the 1971 weeks that still had no sub-national row of any kind -
+               chiefly 26 September-30 October and 21-27 November.
+
+Actions (20):
+  1  nig2.py sweep of WER vol.49 (1974) -> 38 candidate blocks
+  2-5   Read the vol.49 blocks in issues 27, 28, 29, 32 and 40
+  6  Positional heading check on all four (CHOLERA vs YELLOW FEVER, same column)
+  7-10  Read the remaining vol.46 blocks in issues 32, 35, 36, 48, 52
+  11 Widened re-crop of vol.46 issue 35 to read the cut-off left column
+  12 Lower re-crop of vol.46 issue 52 to read the part below the first crop
+  13 Recompute which 1971-72 weeks still have no sub-national row
+  14 Cross-check every candidate against the periods already held
+  15-17 Register metadata indices 207-210
+  18-20 Row writing and two corrections
+
+--------------------------------------------------------------------------------
+THE 1974 SEASON HAS A DIFFERENT CENTRE OF GRAVITY THAN THE FILE SHOWED
+--------------------------------------------------------------------------------
+WER 1974;49(28) yields, under a CHOLERA heading verified positionally (the same
+issues carry Nigerian YELLOW FEVER blocks two inches away):
+  21-27 Apr 1974  Lagos (PA) Urban Area 1/1 ; Zaria Prov./Dutsin-Ma 4/2 ;
+                  Zaria Prov./Kafanchan 3/0
+  5-11 May 1974   Delta Prov./Ughelli 1/0  - first Delta row of the 1970s
+  7 Apr-18 May    BORNU PROVINCE 291 CASES / 10 DEATHS
+The Bornu figure is the largest sub-national Nigerian observation for 1974 and
+the first Borno row of the 1970s in this dataset. Against a national 1974 total
+of 776 it is 37% of the year in one province, which moves the centre of gravity
+of the 1974 season from the south-west - where every previously held 1974 row
+sat (Ibadan, Uyo, Katsina, Mid-Western) - to the north-east.
+WER 1974;49(32) adds 23-29 June 1974: Katsina Province 5/0 and Zaria/Dutsin-Ma
+11/0, both in modern Katsina, carried as one row of 16 rather than two rows
+colliding on one key.
+WER 1974;49(40) adds a national 17-week aggregate, 11 May-7 September 1974,
+209 cases / 50 deaths, which sits comfortably with the Bornu 291: 291 + 209 =
+500 of the year's 776.
+WER 1974;49(29) reproduces the 9-15 and 16-22 June block EXACTLY as already held
+(rows 1296-1299). Clean corroboration, no new rows.
+WER 1974;49(27) is a Nigerian YELLOW FEVER block (South-Eastern State). REJECTED.
+
+--------------------------------------------------------------------------------
+THE LARGEST REMAINING 1971 HOLE, CLOSED
+--------------------------------------------------------------------------------
+WER 1971;46(52) of 31 December 1971 was never opened. It carries:
+  26 Sep-2 Oct 1971  Ibadan Prov 15 + 196s = 211 cases, 2 deaths
+  3-9 Oct 1971       Ibadan Prov 28 + 225s = 253 cases, 12 deaths
+  21-27 Nov 1971     Lagos (Ikorodu Div + Lagos Urban Area) 42/0 ;
+                     Katsina Prov 33/3 ; Ibadan Prov + Ijebu Div 24/14
+Before this the dataset held NOTHING between 25 September and 30 October 1971.
+WER 1971;46(48) - already registered as metadata index 143 and used for its
+Kwara, Kano, Lagos and Kaduna lines - had three units below them that were never
+read:
+  29 Aug-4 Sep 1971  Maiduguri Urban Area 29/0 ; Sokoto Prov 0/0 (DOCUMENTED
+                     ZERO) ; Ibadan Prov 42 + 128s = 170 cases, 4 deaths
+  5-11 Sep 1971      Maiduguri Urban Area 5/0 ; SOKOTO PROV 50/21 ;
+                     Ibadan Prov 21 + 201s = 222 cases, 12 deaths
+Sokoto is the first 1971 observation for that state in the dataset, and because
+the province returned an explicit nil the week before, the pair of rows captures
+the visible START of the Sokoto front rather than a snapshot of it.
+
+--------------------------------------------------------------------------------
+TWO MORE SILENT MISREADS IN EXISTING ROWS
+--------------------------------------------------------------------------------
+* Row 1251, Ilorin Province for 18-24 July 1971, held sCh = 1. The page image of
+  WER 1971;46(35) reads 8. The Lagos line on the same block reads 211/12 exactly
+  as recorded, so the columns are not in doubt, and the Ilorin series reads
+  38, 32, 8, 5 across consecutive returns - a coherent decline, where 1 followed
+  by 5 is not. Corrected to 8.
+* WER 1971;46(32) (metadata index 165) was already used for its Kwara and Benue
+  Plateau lines but its LAGOS line was never read: 114 cases / 9 deaths for
+  27 June-3 July 1971. That is the same week as the Kano Urban Area figure of
+  2 294/423 resolved in Batch 2 - the two largest reporting units of the 1971
+  epidemic sit on one page and only one of them had been extracted.
+* WER 1971;46(35) likewise had an unread North-Central line: Katsina + Zaria
+  Provinces 59/1 for 18-24 July 1971.
+
+Sources found: 4 registered (indices 207-210); 2 already-registered sources newly
+               exploited for unread lines (143, 165, 167)
+Rows added   : 21   Indices 1385-1405 (18 case rows + 3 Documented_Absence weeks)
+Rows revised : 1 (1251)
+Successful actions: 8/20
+Yield        : 40%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+================================================================================
+=== BATCH 7 | PHASE 3 | NGA - THE 2026 SUB-NATIONAL HOLE, VIA RELIEFWEB ===
+Gap targeted : Agent 2's seam #2, "2026 STATE AND LGA GEOGRAPHY REMAINS THE
+               BIGGEST HOLE IN THIS COUNTRY", which it closed with "this
+               probably needs a human to request the data, not another agent to
+               search for it".
+
+Actions (20):
+  1-3   reliefweb.int website search pages, three query forms
+  4  Parse the result list for Nigeria cholera items of 2026
+  5-8   Fetch and parse four of them: the UNICEF cholera sitrep, the IFRC DREF
+        MDRNG046, the OCHA BAY-states Q2 sitrep and the MSF Borno press release
+  9  Cross-check the recovered Borno figure against the five Borno 2026
+     cumulative rows already held, for monotonicity
+  10 Cross-check the two national figures against the WHO dashboard cumulative
+     at the same epi weeks
+  11-13 Register metadata indices 211-213
+  14-16 Row writing
+  17 Re-query cholera_adm0_week for Nigeria 2026 to confirm the publication lag
+  18 Confirm row 89 already holds epi week 33
+  19 ncdc.gov.ng re-probe -> still HTTP 522
+  20 Validator re-run
+
+--------------------------------------------------------------------------------
+THE BORNO STATE PHEOC FIGURE IS PUBLISHED AFTER ALL
+--------------------------------------------------------------------------------
+MSF's press release of 22 July 2026 states: "As of 12 July, the Borno state
+Ministry of Health (MoH) had reported more than 35,500 patients with suspected
+cholera and 198 deaths in the state." That is the state-government figure Agent 2
+judged unobtainable, and it slots into the existing Borno curve perfectly.
+
+*** A CORROBORATION WORTH MORE THAN THE ROW ITSELF. The Borno 2026 cumulative
+curve is now six points from six different reporters, and it is MONOTONE in both
+cases and deaths at every step:
+      2 Jun   4 204 /  39   (Daily Trust relaying MSF, index 90)
+      7 Jun   8 457 /  85   (index 32)
+     18 Jun  13 234 / 108   (index 35)
+     12 Jul  35 500 / 198   (Borno State MoH via MSF, index 1406 - NEW)
+     14 Aug  38 500 / 235   (index 57)
+     31 Aug  55 452 / 308   (index 34)
+Six publishers who do not share a source producing a strictly increasing series
+in two independent variables is a real consistency check, and it is the strongest
+evidence the 2026 Borno rows have. ***
+
+--------------------------------------------------------------------------------
+AND A CONFLICT THAT A HUMAN SHOULD SEE BEFORE 2026 IS USED FOR CALIBRATION
+--------------------------------------------------------------------------------
+The same two documents give national 2026 totals far BELOW the WHO dashboard:
+     IFRC DREF MDRNG046   44 129 cases        to epi week 29 (19 Jul)
+     WHO dashboard       106 663 cases        to epi week 29           2.4x
+     UNICEF sitrep        57 030 cases / 357 deaths  to 31 Aug
+     WHO dashboard       118 267 cases / 1 810 deaths to 16 Aug        2.1x cases,
+                                                                       5.1x deaths
+Agent 1 adjudicated the WHO dashboard as primary for 2026 and I have NOT
+overturned that - it ingests the Borno emergency line list and it is the series
+that produces the MOSAIC baseline. But the picture has changed: the WHO series is
+no longer the consensus with one low outlier (NCDC's Table 8). It is now the HIGH
+outlier against three independent lower series - NCDC Table 8, UNICEF and
+IFRC/NCDC - and the death count in particular is five times UNICEF's. Both new
+figures are entered at confidence 0.6 with the disagreement written into them,
+and neither is averaged with anything. FLAGGED FOR A HUMAN: the 2026 national
+denominator should be checked before it is used for calibration.
+
+ALSO CONFIRMED, so nobody re-chases it:
+ * cholera_adm0_week still caps at epi week 33 for Nigeria. The residual gap
+   2026-08-24..2026-09-21 is publication lag during a live epidemic, exactly as
+   Agents 1 and 3 said, and row 89 already holds week 33.
+ * ncdc.gov.ng returns HTTP 522 (Cloudflare origin timeout) today. The site is
+   down, not blocked; a later agent should simply retry.
+ * The OCHA BAY-states Q2 2026 sitrep is narrative on cholera and carries no
+   extractable count.
+ * IFRC records the outbreak's first cases on 1 May 2026 and Borno at more than
+   97% of national cases across 20 of 27 LGAs at week 29, corroborating the
+   index-case date and the LGA rows already held.
+
+Sources found: 3 registered (indices 211-213)
+Rows added   : 3   Indices 1406-1408
+Successful actions: 3/20
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : STOP - see the stopping statement.
+================================================================================
+
+================================================================================
+CONFLICT RESOLUTION - EVERY ADJUDICATION IN ONE PLACE
+================================================================================
+The assignment's Half B in the order the brief set it. Chose / rejected / why.
+
+ 1. WER 1973 (1 107) vs WHO GHO and JHU (157), Nigeria national, 1973.
+    CHOSE: both, because they measure different things. WER's 1 107 counts
+    suspected PLUS confirmed; GHO's 157 counts the formally-notified column
+    alone. PROOF: summing both columns of the weekly state table reproduces
+    WHO's own four-weekly aggregation exactly in all six printed periods (123,
+    138, 87, 218, 88, 65); summing only the unmarked column over the same
+    periods gives 82, and 91 by 18 August, which tracks to 157.
+    REJECTED: the premise that one of them must be wrong.
+    ACTION: no competing national row written; the finding recorded on indices
+    1288 and 1289, whose notes previously flagged the conflict as open.
+
+ 2. WER 1975 (11) vs baseline (38), and WER 1976 (61) vs baseline (112).
+    CHOSE: neither. Agent 4's exclusion CONFIRMED.
+    WHY: the 1975-76 WER weekly stream contradicts itself within one page - a
+    six-week aggregate of 103 cases printed alongside its own component weeks
+    totalling 9, and a fortnight printed as 2 in one issue and as 2+1 in the
+    next. Deduplicated it totals 49 or 149 depending on how the aggregate is
+    treated, and neither is 11 or 38. It also carries no geography.
+    ACTION: the full extracted series is in Batch 3 of this log, as evidence.
+
+ 3. Nigeria 1991: WER 66(42) retrospective 8 800/1 600 vs WER 66(29)
+    contemporaneous FMoH 7 674/990, both for 10 July 1991.
+    CHOSE: Agent 4's adjudication STANDS. 990/7 674 = 12.9% matches the 13% CFR
+    that WER 66(42) itself states for Nigeria; 1 600/8 800 = 18.2% contradicts
+    it. And the three national rows are nested cumulative snapshots at rising
+    cut dates, not competing annual totals: 7 674 by 10 Jul (index 1180),
+    48 200 by 19 Sep (1179), 59 478 for the year (index 2). Monotone in cases
+    and deaths, internally consistent, no contradiction in the file.
+    CROSS-BORDER CHECK PASSED: BEN 7 474, CMR 4 026, TCD 13 915, NER 3 238 in
+    the same year - the whole Lake Chad basin at once.
+
+ 4. Four (now SIX) mutually inconsistent official national series for 2026.
+    CHOSE: the WHO Global Cholera and AWD Dashboard remains PRIMARY, as Agent 1
+    ruled. NOT overturned.
+    BUT THE PICTURE HAS CHANGED AND A HUMAN SHOULD SEE IT. The WHO series is no
+    longer the consensus with one low outlier; it is the HIGH outlier against
+    three independent lower series:
+        WHO dashboard      118 267 cases / 1 810 deaths  to epi wk 33 (16 Aug)
+        UNICEF sitrep       57 030 cases /   357 deaths  to 31 Aug
+        IFRC DREF / NCDC    44 129 cases                 to epi wk 29 (19 Jul)
+        WHO at wk 29       106 663 cases                 (2.4x the IFRC figure)
+        NCDC WER Table 8    10-40x below WHO, every week
+    The death counts diverge worst: WHO's 1 810 against UNICEF's 357, five to
+    one. FLAGGED: the 2026 national denominator should be checked by a human
+    before it is used for calibration.
+    ACTION: the two new series entered at confidence 0.6 with the disagreement
+    written into them; all 22 rows of the NCDC/WHO weekly pairs annotated
+    reciprocally; nothing averaged.
+
+ 5. NCDC Annual Report 2025 internal inconsistency - Table 1's 19 786 against
+    its own quarterly tables' 24 349 and WHO's weekly 24 066.
+    CHOSE: Agent 3's adjudication VERIFIED AND UPHELD. Table 1 is discarded.
+    WHY IT HOLDS: Table 1 disagrees with the arithmetic of the very tables it
+    summarises (2 223 + 1 780 + 15 783 + 4 563 = 24 349 exactly), and the two
+    figures that DO agree - the quarterly sum at 24 349 and WHO's independent
+    weekly sum at 24 066, a 1.2% gap - were produced by different organisations
+    four months apart. A summary line that contradicts its own detail and both
+    independent reconstructions is a transcription error, not a third estimate.
+
+ 6. Eight 1971-74 "conflicts" that were two historical states sharing one
+    Multi_State key. MERGED into one row per week with the per-unit breakdown
+    preserved; duplicate keys retracted with tombstones. 8 warnings cleared.
+    One of them (index 1281) was a documented ZERO sitting on the same key as a
+    24-case row - the file was asserting presence and absence of cholera in the
+    same place and week. Folded into index 1278 and retracted.
+
+ 7. Eleven 2026 national pairs, one FCT 2021 pair and seven 2022-23 state-year
+    pairs: all nineteen adjudicated, both rows of every pair annotated with the
+    counterpart Index, the two figures and the rule applied. Three downweighted
+    (index 26 to 0.2, indices 16 and 17 to 0.5). NOT deleted: they are
+    defensible alternative estimates from weaker citations, and deleting them
+    would destroy the disagreement rather than record it.
+
+ 8. Forty-five high-CFR rows reviewed one by one for the specific failure the
+    brief names - deaths from a cumulative series paired with cases from a
+    weekly one. NONE of them was that. In all forty-five the two numbers come
+    from the same printed row of the same table for the same period. Documented
+    in six evidence classes (Batch 4), including an arithmetic cross-check on
+    the 1996 WHO DON state table in which the parts sum to within 7% of the
+    printed whole, proving the denominators and making the CFR gradient - Kano
+    3.4% with treatment capacity against Kebbi, Kwara and Niger at 23-32% -
+    the finding rather than the error.
+
+ 9. The one multi-year aggregate. Primary text located by a Europe PMC
+    full-text search on the string "74,881": Dalhat et al., PAMJ 2018;30:5,
+    quoting FMoH Epidemiology Division UNPUBLISHED data.
+    CHOSE: the WHO annual series (16 762 / 781 for 2004-2008) as PRIMARY; the
+    FMoH figure retained at 0.4. ARITHMETIC FINDING: 74 881 matches the WHO
+    2004-2010 sum of 74 909 to within 28 cases, so the FMoH window probably ran
+    to 2010. The row was NOT silently redated to fit that hypothesis.
+
+10. SEVEN SILENT MISREADS IN EXISTING ROWS, all found by re-reading the page
+    image rather than the PDF text layer, all corrected with the evidence:
+      1243  Kano 1971-06-27..07-03      8/0   -> 2 294/423
+      1155  Kwara 1971-08-15..21        6/-   -> 13/6
+      1251  Kwara 1971-07-18..24        1/0   -> 8/0
+      1288  Oyo 1973-07-22..28         11/0   -> 13/0
+      1289  Oyo 1973-07-29..08-04       7/1   -> 8/1
+      1284  Multi_State 1972-07-23..29 36/0   -> 43/1
+      1285  Multi_State 1972-07-30..08-05 53/0 -> 61/1
+    plus SIX ROWS MISDATED BY TWO MONTHS (1168, 1169, 1170, 1171, 1174, 1175),
+    moved from November to September 1971 on the authority of WHO's own printed
+    erratum "Correction. See/Voir p 502".
+
+================================================================================
+STOPPING-CRITERIA STATEMENT - AGENT 5, NIGERIA
+================================================================================
+Batches executed : 7 (140 discovery/retrieval/analysis actions).
+                   The 3-batch minimum was exceeded more than twofold.
+Batch yields (%) : 70, 15, 0, 5, 30, 40, 15
+Criterion met    : NEITHER of the protocol's two criteria was met. There was no
+                   run of three consecutive batches below 5% yield - only
+                   batches 3 (0%) and 4 (5%) were at or below the line and they
+                   were immediately followed by 30% and 40%. The 12-batch
+                   ceiling was not reached either.
+Reason stopped   : JUDGEMENT, stated plainly rather than dressed up as
+                   saturation. Both halves of the assignment are complete: every
+                   named handover item is closed or explicitly returned to a
+                   human, all 80 opening warnings are adjudicated, and the WER
+                   archive 1971-1976 has been swept volume by volume. The
+                   remaining archival material is 1977-1990, where WER prints no
+                   Nigerian geography at all and where the 1975-76 evidence in
+                   Batch 3 shows the weekly stream is not reconcilable. The
+                   marginal value of batches 8-12 is low and the risk of
+                   introducing errors into a file that now has none is not.
+Tooling caveat   : the session WebSearch allowance was exhausted (200/200) by
+                   Agents 1-3 before this agent started. All 140 actions were
+                   direct HTTP retrieval against public endpoints - WHO IRIS
+                   DSpace REST, WHO AFRO ArcGIS FeatureServer, WHO GHO, Europe
+                   PMC REST, reliefweb.int, ncdc.gov.ng, api.reliefweb.int -
+                   plus pdftotext -bbox-layout / pdftoppm page-image extraction
+                   and programmatic cross-checks against the CSVs. That is a
+                   tooling constraint, not protocol saturation.
+
+WHAT THE NEXT AGENT SHOULD DO FIRST, in order of expected value:
+ 1. REGISTER A RELIEFWEB APPNAME. Still the single highest-value unlock, and it
+    needs a HUMAN, not an agent: apidoc.reliefweb.int/parameters#appname. The
+    website is scrapeable at 200 and produced three usable 2026 rows in one
+    batch, including the Borno State MoH figure Agent 2 judged unobtainable, so
+    the API would open the whole 1996-2015 humanitarian archive.
+ 2. RUN THE ARCGIS SERVICE ENUMERATION FOR THE OTHER 39 COUNTRIES. One HTTP call
+    to https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services?f=json
+    lists 2 504 WHO AFRO services, 45 of them cholera, including named ADM1 or
+    ADM2 layers for Burundi, Cameroon, Eswatini, Ethiopia, Kenya, Malawi,
+    Mozambique, South Africa, South Sudan, Tanzania, Zambia and Zimbabwe. Agent
+    2 had closed this seam for Nigeria as non-existent; it exists.
+ 3. RETRY ncdc.gov.ng. It returned HTTP 522 all session - the origin is down,
+    not blocking. Agent 2's seam #1 (the "In the reporting month" state lists in
+    the 2023-2025 issues, ~25 issues x 20-31 states) is still unmined and is the
+    largest remaining structured sub-national source for this country.
+ 4. WER 1977-1990 IS PROBABLY NOT WORTH IT. Volumes 50 and 51 already show WER
+    printing a bare national line for Nigeria with no geography, irregularly,
+    and irreconcilably. Anyone tempted should read Batch 3 first.
+ 5. THE 2026 NATIONAL DENOMINATOR NEEDS A HUMAN. Six official series, the WHO
+    one a factor of 2-5 above three independent others. This is a calibration
+    input, not a data-entry question.
+
+WHAT IS NOT THERE, so nobody re-searches it:
+ * WER prints no Nigerian sub-national cholera data at all after 1974 except a
+   single infected-area declaration (Bendel State / Ughelli Province, April
+   1976), now in ./data/NGA/cholera_presence_ai.csv.
+ * The WHO cholera_adm0_week service caps at epi week 33 of 2026 for every
+   country; 2026-08-24..2026-09-21 is publication lag and must stay open.
+ * Adm1_Nigeria_Cholera has exactly one cut date, 12 April 2023. It is not a
+   time series.
+ * The ReliefWeb API cannot be opened from an agent session by any appname,
+   version or method.
+================================================================================
+
+--------------------------------------------------------------------------------
+SCRATCH LEFT BEHIND FOR THE NEXT AGENT (this session only)
+--------------------------------------------------------------------------------
+/tmp/nga5/iris.py     IRIS DSpace discover + ORIGINAL-bundle PDF fetch (from Agent 4)
+/tmp/nga5/getvol.py   harvest a whole WER volume by year, PDF + pdftotext -layout
+/tmp/nga5/col.py      bbox-coordinate single-column re-render (the fix for the
+                      interleaved-column problem)
+/tmp/nga5/nig2.py     fuzzy NIGERIA block finder + 300dpi PNG cropper
+/tmp/nga5/warns.py    translate py/validate_quality.py line numbers into Index values
+/tmp/nga5/v46 v47 v48 v49 v49b v50 v51
+                      WER volumes 46-51 (1971-1976) fully harvested, ~300 issues
+                      as PDF + layout text. Re-harvesting costs about 20 minutes.
+
+
+################################################################################
+ORCHESTRATOR REDEPLOYMENT - BATCHES 8-12
+################################################################################
+Agent 5 stopped at 7/12 batches by judgement with a 15% final-batch yield.
+Neither CLAUDE.md stopping criterion had fired, so the orchestrator redeployed
+this agent once, on 2026-09-21, with a four-item priority list. Everything below
+this line is the redeployment. Row and warning counts at redeployment:
+./data/NGA/cholera_data_ai.csv 1334 rows, 213 sources, 0 ERROR / 65 WARN.
+
+================================================================================
+=== BATCH 8 | REDEPLOYMENT | NGA - WER 1991, AND WHAT IT ACTUALLY CONTAINS ===
+Target : orchestrator priority 1, the 1991 epidemic - 59,478 cases / 7,654
+         deaths still held as one undifferentiated national row - and priority 2,
+         a second pass over the WHO AFRO ArcGIS host.
+
+Actions (20):
+  1  Re-query Adm1_Nigeria_Cholera: feature count, distinct Lastupdate values,
+     timeInfo, editingInfo
+  2  Enumerate all 2 504 WHO AFRO ArcGIS services again, filtering on
+     nigeria/nga/borno/bay and on 2026
+  3-7  Field-check Borno_admin_2_boundaries, Borno_Wards, AWD_Outbreak,
+     Cholera_agregated, CholeraAfricaShpe_view for case/death/date columns
+  8  Query Cholera_agregated for the Nigeria record
+  9  IRIS discover + full harvest of WER vol.66 (1991), 50 issues
+  10 nig2.py sweep of vol.66 -> 50 candidate blocks
+  11-12 Read the vol.66 notification blocks in issues 32 and 46
+  13 Read the volume index in 66(51) to enumerate EVERY 1991 Nigeria cholera page
+  14 Nigerian-state-name proximity scan across all 50 issues
+  15-17 Read the infected-area declarations in issues 21, 32, 40, 43 and 48
+  18 400dpi crop of the 66(38) Nigeria notification line
+  19-20 Register metadata 214-219 and write rows
+
+--------------------------------------------------------------------------------
+PRIORITY 2, ANSWERED FIRST BECAUSE THE BRIEF MISSTATES IT
+--------------------------------------------------------------------------------
+The orchestrator asked me to "mine Adm1_Nigeria_Cholera now" as "the direct
+answer to 2026 sub-national". I had already mined it in Batch 5 - all twelve
+populated records are in the file as indices 1360-1371. It CANNOT answer 2026,
+and here is the proof rather than an assertion:
+    feature count            37 (one polygon per state, not a time series)
+    timeInfo                 null - the layer has no time dimension
+    distinct Lastupdate      2023-04-12 (11 features) and null (26)
+    editingInfo.dataLastEditDate  1682577598940 = 27 April 2023
+The layer has not been edited since April 2023. It is a one-shot 2023 snapshot.
+A fresh enumeration of all 2 504 services confirms there is NO Nigeria or Borno
+cholera service with 2026 data: the only Nigeria-named layers are
+Adm1_Nigeria_Cholera, Borno_admin_1, Borno_admin_2_boundaries, Borno_Wards,
+Borno_Admin_Boundaries, Nigeria_Settlement_Extents and Pop_Nigeria_Point, and
+every one of the Borno layers is a boundary file with no case, death or date
+field at all. 2026 sub-national is not obtainable from this host.
+
+The second pass was not wasted, though: checking EVERY cholera-named service for
+case/death/date fields rather than only the Adm1_* ones found Cholera_agregated,
+which carries a Nigeria country record of 20 768 cases / 498 deaths with its own
+Last_update of 27 November 2022. 2022 was held as a single annual total (23 550 /
+584, index 13); it now has a within-year cut date that sits correctly below it.
+
+--------------------------------------------------------------------------------
+PRIORITY 1: WER 1991 HAS NO STATE-LEVEL CASE COUNTS. IT HAS SOMETHING ELSE.
+--------------------------------------------------------------------------------
+THE NEGATIVE, established properly rather than assumed. The volume index printed
+in WER 1991;66(51) lists every Nigeria cholera notification in the volume:
+pages 156, 216, 240, 284, 344 and 384. I read them. Every one is a BARE COUNTRY
+LINE with no geography:
+     66(32)  Nigeria  ...-23.VII      3 197 / 331
+     66(38)  Nigeria  1.I-18.VIII    48 200r / 6 354r
+     66(46)  Nigeria  1.VIII-30.IX    6 867 / 750
+The state-and-division notification table that made 1971-74 so productive was
+discontinued after 1974 and never came back. Agent 4 had already identified
+these three figures and correctly declined to enter them (they are the narrow
+IHR stream, irreconcilable with the FMoH series). That decision stands.
+
+*** THE POSITIVE, AND IT IS A PORTABLE TECHNIQUE. From 1975 onward WER reports
+sub-national detail for cholera through a DIFFERENT channel: the "Newly infected
+areas as at <date>" and "Infected areas as at <date>" declarations. These name
+administrative units with no case counts - which is exactly what
+./data/NGA/cholera_presence_ai.csv exists for. For 1991 they yield a dated
+state-level map of an epidemic the file held as one number: ***
+
+  23 May 1991      NEWLY INFECTED: Kano State
+  8 August 1991    NEWLY INFECTED: Bauchi, Benue, Kwara, Ondo, Oyo, Sokoto
+  3 October 1991   NEWLY INFECTED: Plateau State
+  24 October 1991  INFECTED AREAS, complete list: Akwa Ibom, Abuja, Anambra,
+                   Bauchi, Bendel, Benue, Borno, Gongola, Imo, Kaduna, Kano,
+                   Katsina, Kwara, Lagos, Niger, Ogun, Ondo, Oyo, Plateau,
+                   Rivers, Sokoto - ALL TWENTY-ONE STATES OF THE FEDERATION
+  28 November 1991 INFECTED AREAS: Anambra, Bauchi, Bendel, Benue, Cross River,
+                   Kaduna, Kwara, Lagos, Niger, Ogun, Ondo, Oyo, Plateau
+
+INDEPENDENT CORROBORATION: WER 1991;66(42) states in prose that the disease had
+reached "14 of the 21 states" by 10 July and "19 out of 21 states, including the
+Federal Capital" at the beginning of September. The 24 October declaration list
+independently reaches 21 of 21, and the Kano-first sequence (23 May) matches
+66(42)'s statement that "from 1 January to 15 May, more than 6 000 cases and 700
+deaths occurred in the State of Kano". Two different WER products, prose and
+tabular, agreeing on the epidemic's geography and order.
+
+21 presence records written to ./data/NGA/cholera_presence_ai.csv. They are NOT
+data rows and do not count toward yield - correctly, because they carry no
+counts - but they take the 1991 epidemic from three sub-national observations to
+a dated state-level footprint.
+HISTORICAL-STATE CAVEAT recorded on each: Nigeria had 21 states in 1991. Bendel
+is modern Edo + Delta, Gongola is Adamawa + Taraba, Sokoto is Sokoto + Kebbi +
+Zamfara, Kano is Kano + Jigawa, Borno is Borno + Yobe, and so on. Each presence
+record is filed under the modern state that carries the historical name.
+
+--------------------------------------------------------------------------------
+A DATE CORRECTION THAT MAKES THE 1991 CURVE A MONTH STEEPER
+--------------------------------------------------------------------------------
+Row 1179 held the national pair 48 200 / 6 354 as at 19 SEPTEMBER 1991, dated
+from the caption of Figure 4 in WER 66(42). That caption is the compilation date
+of an AFRICA-WIDE figure, not Nigeria's cut-off. WER 1991;66(38) of 20 September
+prints the identical pair in the notification table with its own explicit period
+header - "Nigeria - Nigeria  1.I-18.VIII  48200r  6354r" - verified at 400dpi.
+Two checks agree: 66(42), published 18 October, reuses the 18-August figure
+rather than a newer one, which it would not do if a 19-September cumulative
+existed; and 66(42) says the epidemic "was still spreading at the beginning of
+September", so a 19-September total identical to the 18-August one is
+implausible.
+TR corrected 1991-09-19 -> 1991-08-18. The national curve now reads 7 674 by
+10 July, 48 200 by 18 AUGUST, 59 478 for the year - about 40 500 cases in the
+five weeks from 10 July to 18 August, a far steeper surge than the file showed.
+
+Sources found: 6 registered (metadata indices 214-219)
+Rows added   : 1   Index 1409 (the 2022 national cut date)
+Presence rows: 21 (the 1991 state-level footprint)
+Rows revised : 1 (index 1179, TR moved one month earlier)
+Successful actions: 1/20  (only the Cholera_agregated query produced a
+               cholera_data_ai.csv row; the 1991 work produced presence records
+               and a correction, which by the protocol's definition do not count)
+Yield        : 5%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+================================================================================
+
+================================================================================
+=== BATCH 9 | REDEPLOYMENT | NGA - WER 1996, AND THE 2026 RECENCY WALL ===
+Target : orchestrator priority 1 carried forward to 1996, and priority 3, the
+         open 2026 tail.
+
+Actions (20):
+  1  IRIS discover + full harvest of WER vol.71 (1996), 51 issues
+  2  Nigerian-state proximity scan across all 51 issues
+  3  Built /tmp/nga5/ialist.py - a column-aware extractor for the Nigeria entry
+     in a WER infected-area declaration
+  4-8   Run it over the 14 vol.71 issues carrying a Nigeria state list
+  9  Read the WER 1996;71(12) narrative that surrounds a Nigeria mention
+  10-12 Three ReliefWeb website searches for September 2026 Nigeria material
+  13 Read the one recent Nigeria item returned (MSF, Zamfara rainy season)
+  14 Re-probe ncdc.gov.ng
+  15 WHO AFRO "Outbreaks and other Emergencies" bulletin index page
+  16 Resolve and download the Week 33 bulletin PDF (2.5 MB) via its IRIS bitstream
+  17 pdftotext -layout and full read of its country-by-hazard table
+  18 Re-query cholera_adm0_week for the Nigeria maximum epi week
+  19 Register metadata index 220
+  20 Write presence rows and annotations
+
+--------------------------------------------------------------------------------
+WER 1996 CONFIRMS THE 1991 PATTERN, WITH ONE CAVEAT THAT MATTERS
+--------------------------------------------------------------------------------
+1996 has no state-level cholera CASE table either - the channel is again the
+infected-area declarations:
+   21 March 1996   NEWLY INFECTED: Kebbi State
+   25 July 1996    NEWLY INFECTED: Taraba State, Yobe State
+   4 April 1996    INFECTED AREAS: 22 units listed
+   22 August 1996  INFECTED AREAS: 21 units listed
+
+*** THE CAVEAT, AND IT IS THE REASON I DID NOT WRITE 22 PRESENCE ROWS FROM THE
+COMPLETE LISTS. The April and August 1996 "Infected areas" lists name BENDEL
+STATE and GONGOLA STATE. Both were abolished in the August 1991 state
+reorganisation - Bendel became Edo and Delta, Gongola became Adamawa and Taraba.
+A list still using them five years later is a carried-forward legacy list, not a
+fresh enumeration, and cannot be trusted as a statement about 1996 geography.
+The NEWLY INFECTED declarations, by contrast, use post-1991 names (Kebbi,
+Taraba, Yobe - all created in 1991), so they are current and reliable. Only
+those were written. ***
+Taraba and Yobe are genuinely new: neither appears anywhere in the 1996 state
+set the file already holds (Kano, Kebbi, Kwara, Niger, Kaduna, Oyo). Kebbi was
+not written because it already has a 1996 data row (index 633).
+
+A MULTI-DISEASE TRAP CAUGHT: WER 1996;71(12) carries a Nigeria mention beside
+the string "Benin: ..., Central African Republic: 155 (22), ...: 18 (0), Niger:
+5 529". Read in isolation those look like a West African cholera update. The
+article is headed "Meningitis in Africa" and the figures are MENINGOCOCCAL
+MENINGITIS. REJECTED.
+
+--------------------------------------------------------------------------------
+PRIORITY 3: THE 2026 TAIL IS GENUINELY UNREACHABLE. THREE INDEPENDENT ROUTES.
+--------------------------------------------------------------------------------
+ 1. WHO cholera_adm0_week still caps at epi week 33 for Nigeria - and for every
+    other country. Row 89 already holds that week (2026-08-17..23, 1 484/16).
+ 2. WHO AFRO's Weekly Bulletin on Outbreaks and other Emergencies also stops at
+    Week 33 (10-16 August 2026). There is no week 34 or later published.
+ 3. ncdc.gov.ng returns HTTP 522 (Cloudflare origin timeout) on every attempt
+    across two sessions. The origin is down.
+ 4. ReliefWeb's website is reachable at 200 and its most recent Nigeria cholera
+    items are the July and August 2026 documents already mined in Batch 7.
+NO ZERO ROW WRITTEN for 2026-08-24..2026-09-21, per the orchestrator's explicit
+instruction and per the standing rule: NCDC warned on 28 August that
+transmission was continuing, so this is publication lag, not absence.
+
+*** AND A FINDING THAT CAME OUT OF LOOKING: WHO'S OWN REGIONAL OFFICE DOES NOT
+LIST NIGERIA CHOLERA AS AN EVENT. The Week 33 AFRO bulletin's country-by-hazard
+table carries FOURTEEN African cholera events - Angola 42 327, Burundi 1 662,
+Cameroon 1 252, Chad 516, Congo 1 709, DRC 35 544, Mozambique 9 092, Namibia 277,
+Rwanda 323, South Africa 2, South Sudan 109 908, Zimbabwe 5 among them - and
+NIGERIA IS NOT ONE OF THEM. Nigeria appears in the same bulletin for dengue,
+diphtheria, Lassa fever, polio and the humanitarian crisis, but not for cholera.
+Agent 2 recorded that AFRO dropped the Nigeria cholera event after week 7 of
+2026; it was still absent at week 33, while the WHO GLOBAL dashboard reported
+118 267 cases and 1 810 deaths. An epidemic that would be the largest in Africa
+on that dashboard's own numbers, absent from the regional office's event table,
+is an inconsistency inside WHO. Annotated onto indices 89 and 1408 and FLAGGED
+FOR HUMAN REVIEW rather than adjudicated. ***
+ANOTHER TRAP IN THE SAME TABLE: the Nigeria line reading "26 502 confirmed cases
+and 1376 confirmed deaths" is DIPHTHERIA. It sits four lines from cholera
+entries for other countries.
+
+--------------------------------------------------------------------------------
+AN OPERATIONAL COUNT THAT CORROBORATES RATHER THAN CONFLICTS
+--------------------------------------------------------------------------------
+MSF, in a ReliefWeb feature on the Zamfara rainy season: "In 2025, MSF treated
+136,778 patients for malaria and 13,877 for cholera in Zamfara." Against index
+29, which holds Zamfara at 15 464 suspected cases / 192 deaths for 1 June-5
+December 2025, that is about 90% of the reported caseload treated by a single
+organisation - consistent with MSF being the dominant clinical responder there,
+and an independent check on a figure that had none. NOT entered as a row: it is
+a treatment-centre count over a different period, and a second row of 13 877 for
+the same state-year would collide with index 29 and assert a disagreement where
+there is none. Recorded as a corroboration note on index 29 instead.
+
+Sources found: 1 registered (metadata index 220)
+Rows added   : 0
+Presence rows: 2 (Taraba and Yobe, 25 July 1996)
+Rows revised : 3 (index 29 corroborated; indices 89 and 1408 annotated with the
+               WHO AFRO finding)
+Successful actions: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1  (batch 8 was exactly 5%, which is not below 5%)
+Decision     : CONTINUE
+================================================================================
+
+================================================================================
+=== BATCH 10 | REDEPLOYMENT | NGA - 1992 AND 1996 NATIONAL, AND THE CFR CHECK ===
+Target : orchestrator priority 1 (1992-96) and priority 4 (the CFR flags, row
+         1321 specifically).
+
+Actions (20):
+  1  IRIS discover + harvest of WER vol.67 (1992), 50 issues
+  2  Built /tmp/nga5/narr.py - find Nigeria mentions in a cholera context with
+     numbers nearby, excluding infected-area lists
+  3-4  Run it over vol.67 and vol.71
+  5  Read the WER 1996;71(30) Cholera/Nigeria narrative at p.231
+  6  Read the WER 1996;71(30) Diseases-subject-to-the-Regulations Nigeria line
+  7  Second-pass regex over all 51 vol.71 issues for Nigeria notification lines
+  8-10 500dpi page-image verification of the vol.71(20), vol.71(30) and
+     vol.67(31) Nigeria lines
+  11 Positional heading check on all three (CHOLERA, same column, above)
+  12 Reconciliation test against the 1996 cumulative series already held
+  13 Check the JHU annual for 1992 and 1996
+  14 600dpi page-image verification of the Sokoto line behind the worst CFR flag
+  15 Re-derive which CFR-flagged rows still lack an Agent 5 review note
+  16-18 Register metadata 220 (updated) and 221; write rows
+  19 Presence row for Borno 1996
+  20 Validator re-run
+
+--------------------------------------------------------------------------------
+1996: THE WER STREAM *IS* THE NATIONAL SERIES, AND IT CLOSES EXACTLY
+--------------------------------------------------------------------------------
+    WER 1996;71(20)  Nigeria  1.I-30.III    7 130 / 561   (confirmed+suspected)
+    WER 1996;71(30)  Nigeria  1.IV-4.VII    5 244 / 632
+    WHO DON Update 4 / WER 71(30) narrative, as at 4 July:  12 374 / 1 193
+        7 130 + 5 244 = 12 374        561 + 632 = 1 193
+EXACT ON BOTH VARIABLES. And 12 374 / 1 193 is also the JHU/WHO ANNUAL for 1996.
+So for 1996 the WER notification stream is not the narrow parallel IHR stream it
+is in 1975-76, 1991 and 1992 - it is the national series itself. Both rows
+entered.
+The 1 April-4 July row is a TRUE PERIOD INCREMENT, not a cumulative snapshot -
+the only additive national row Nigeria has anywhere before 2018, and the form a
+metapopulation model can actually consume.
+
+--------------------------------------------------------------------------------
+1992: THE SAME TABLE, WITHHELD - AND THE TEST THAT SEPARATES THEM
+--------------------------------------------------------------------------------
+    WER 1992;67(31)  Nigeria  26.II-16.VI   161 / 39
+Verified at 500dpi under a CHOLERA heading. NOT ENTERED. The JHU/WHO annual for
+1992 is 8 687 / 686; a figure of 161 over the sixteen weeks spanning the
+epidemic season cannot be a complete national count and is the narrow IHR
+notification stream again.
+*** THE DISCRIMINATING TEST, stated so it is reusable: a WER notification figure
+is admissible when it RECONCILES ARITHMETICALLY with an independently published
+cumulative or annual for the same country-year, and inadmissible when it does
+not. 1996 passes to the unit on two variables. 1992 fails by a factor of 54.
+1975-76 failed by contradicting itself within one page. This is a better rule
+than judging by era, because it is checkable. ***
+Also withheld for the same reason: WER 1996;71(12) "5-17.III 399/102" and
+71(16) "18-28.III 156/10". Neither fits between the cumulatives already held
+(2 836 to 5 March, 6 117 to 17 March, 7 130 to 30 March), so they are partial
+returns rather than national period totals.
+
+RECOVERED from the WER 1996;71(30) narrative: "The largest numbers of cases are
+reported from Kano, Kebbi, Borno, Oyo and Niger States." BORNO had no 1996 row
+of any kind in this dataset and is here named among the five worst-affected
+states. No count is given for it, so it is a presence record.
+
+--------------------------------------------------------------------------------
+PRIORITY 4: THE WORST CFR FLAG, VERIFIED AGAINST ITS PAGE IMAGE
+--------------------------------------------------------------------------------
+Validator row 1321 is Index 1394, Sokoto Province 5-11 September 1971, 50 cases
+/ 21 deaths, implied CFR 42.0%. Re-rendered at 600dpi, WER 1971;46(48) prints:
+        North-Western State
+        Sokoto, Province            0    0   |   50s   21
+The 50 and the 21 are in the C and D columns of ONE period for ONE week, on ONE
+line, between Maiduguri's "29s 0 | 5s 0" above and Ibadan's braced "42 4 / 128s
+0 | 21 12 / 201s 0" below. There is no cumulative column anywhere in this table
+and no second period the deaths could have come from. THE SPECIFIC FAILURE MODE
+THE ORCHESTRATOR ASKED ABOUT - cumulative deaths paired with weekly cases - IS
+EXCLUDED BY DIRECT INSPECTION.
+One real oddity is recorded rather than smoothed: the case count carries the 's'
+suspected marker and the death count does not, so WER is pairing 21 clinically
+confirmed deaths with 50 suspected cases. That is a property of the source and
+is part of why the ratio is not a usable case fatality rate. Confidence stays
+0.7. All 45 CFR flags now carry an explicit Agent 5 review note.
+
+Sources found: 1 registered (metadata index 221); index 220 re-described after
+               it turned out to carry three separate Nigerian items
+Rows added   : 2   Indices 1410, 1411
+Presence rows: 1 (Borno, 1996)
+Rows revised : 2 (index 1394 CFR verification; metadata 220 description)
+Successful actions: 2/20
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+================================================================================
+
+================================================================================
+=== BATCH 11 | REDEPLOYMENT | NGA - THE 2025 STATE ENUMERATION ===
+Target : WER 1993 (orchestrator priority 1), then the ReliefWeb website, which
+         is the one modern channel that keeps producing.
+
+Actions (20):
+  1  IRIS discover + harvest of WER vol.68 (1993), 51 issues
+  2-3  Notification-line scan over vol.67 (1992) and vol.68 (1993)
+  4  statescan over both volumes for infected-area declarations
+  5  ialist over the 1992 declaration issue
+  6-9  Four ReliefWeb website searches
+  10 Read the UNICEF Nigeria Humanitarian Flash Update No. 1, 14 September 2025
+  11 Arithmetic verification of its 37-state enumeration, four separate checks
+  12 Cross-check its Zamfara value against index 29
+  13 Register metadata index 222
+  14-20 Row writing, 39 rows
+
+--------------------------------------------------------------------------------
+WER 1993: NOTHING. WER 1992: WORSE THAN NOTHING.
+--------------------------------------------------------------------------------
+Vol.68 (1993) contains NO Nigeria cholera notification line anywhere in 51
+issues. Vol.67 (1992) contains two, and they contradict each other:
+     67(31)  Nigeria  26.II-16.VI   161 / 39
+     67(47)  Nigeria  1.I-30.VI      55 / 0
+Overlapping periods, and the longer one is smaller than the shorter one. Against
+a JHU/WHO annual of 8 687 / 686 both are about 1-2% of the year. Neither entered.
+The 1992 and 1993 infected-area lists are ALSO unusable, for the reason found in
+1996: every one of them still names BENDEL STATE, abolished in the August 1991
+reorganisation. A list carrying a state that ceased to exist is a carried-forward
+legacy list, not a fresh enumeration.
+*** PRIORITY 1 IS NOW CLOSED ON EVIDENCE RATHER THAN ON EFFORT. Volumes swept:
+46, 47, 48, 49, 50, 51 (1971-76), 66 (1991), 67 (1992), 68 (1993), 71 (1996) -
+ten volumes, roughly 500 issues. The state-and-division notification table that
+made 1971-74 productive was discontinued after 1974 and never returned. What
+exists after it is (a) bare country lines, admissible only when they reconcile
+arithmetically with an independent cumulative - true for 1996, false for 1992,
+1975 and 1976; and (b) infected-area declarations, admissible as presence
+evidence only when they use post-1991 state names. There is no reason to expect
+1977-1990 or 1994-95 to differ, and the years involved are 300-2 900 cases
+against 1991's 59 478 and 1996's 12 374, both of which have now been worked. ***
+
+--------------------------------------------------------------------------------
+*** THE BIGGEST SINGLE FIND OF THE REDEPLOYMENT: A COMPLETE 37-STATE
+    ENUMERATION FOR 2025 ***
+--------------------------------------------------------------------------------
+UNICEF Nigeria Humanitarian Flash Update No. 1, Cholera Outbreak, 14 September
+2025, gives the national total AND every one of Nigeria's 37 ADM1 units as at
+epidemiological week 37:
+   National 10 353 suspected / 244 deaths across 37 states
+   Zamfara 6 423 | Sokoto 847 | Bayelsa 773 | Niger 345 | Adamawa 339 |
+   Delta 235 | Katsina 223 | Bauchi 177 | Lagos 176 | Kebbi 123 | Rivers 112 |
+   Plateau 106 | Benue 54 | Abia 52 | Gombe 38 | Akwa Ibom 36 | Ebonyi 23 |
+   Kogi 23 | Ekiti 18 | Enugu 15 | Borno 14 | Imo 14 | Ondo 14 | Oyo 11 |
+   Kaduna 11 | Nasarawa 9 | Osun 8 | FCT 8 | Yobe 6 | Ogun 5 | Cross River 4 |
+   Kano 3 | Anambra 2 | Jigawa 2 | Taraba 1 | Edo 1 | Kwara 1
+   plus Gusau LGA, Zamfara: 1 318 - the worst-affected LGA in the country
+
+FOUR INTERNAL CONSISTENCY CHECKS, ALL PASS:
+  * exactly 37 states are listed, matching "across 37 states";
+  * the 37 values sum to 10 252 against a printed 10 353 - a 1.0% residual;
+  * the NON-ZAMFARA states sum to 3 829, which is EXACTLY 37.0% of 10 353 and
+    matches the text's "these states account for 37 per cent";
+  * Zamfara is 62.0% against a stated 63%, Gusau 12.7% against a stated 13%.
+FIFTH CHECK, EXTERNAL: Zamfara at 6 423 on 14 September against 15 464 by 5
+December (index 29) is monotone and consistent with the state's late-season peak.
+
+THIS CLOSES THE GAP AGENT 3 NAMED EXPLICITLY: "2024 October-December and 2025
+have no per-state source after NCDC discontinued the cholera sitrep series in
+March 2025, so the 2025 rows rest entirely on the annual report's quarterly
+resolution." 2025 now has a complete ADM1 enumeration.
+
+Sources found: 1 registered (metadata index 222)
+Rows added   : 39   Indices 1412-1450 (1 national, 37 states, 1 LGA)
+Successful actions: 1/20 (one document produced all 39 rows)
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE to batch 12
+
+================================================================================
+=== BATCH 12 | REDEPLOYMENT | NGA - THE UNICEF SITREP SERIES ===
+Target : whether the UNICEF flash-update series has more issues, for 2024 and
+         2026, after the 2025 one produced 39 rows.
+
+Actions (20):
+  1-4   Four more ReliefWeb website searches on the UNICEF sitrep series
+  5  Read the UNICEF Borno flash update of 7 June 2026
+  6  Read the UNICEF Lagos cholera sitrep of 14 June 2024
+  7  Cross-check the Borno figures against index 32
+  8  Cross-check the Lagos figures against the NCDC weekly rows 919-934
+  9  Check what within-year national cut dates 2024 already had
+  10 Register metadata index 223
+  11-13 Row writing
+  14 Annotate index 32 with the death decomposition and LGA list
+  15-20 Validation, state file, final reconciliation of counts
+
+--------------------------------------------------------------------------------
+2024 HAD NO WITHIN-YEAR NATIONAL CUT DATE AT ALL. NOW IT HAS ONE.
+--------------------------------------------------------------------------------
+UNICEF's Lagos sitrep of 14 June 2024 relays NCDC: "as of 11 June 2024, 1,141
+suspected cholera cases had been recorded across 30 states in Nigeria since 1
+January 2024." 2024 was held as a single annual total, 12 300 / 378 (index 24),
+so the year's shape was invisible nationally. Only 1 141 of those 12 300 cases -
+NINE PER CENT - had occurred by 11 June: the 2024 epidemic was overwhelmingly a
+second-half event. The same source records the ten states carrying 90% of those
+cases as Bayelsa (over 400), Lagos, Abia, Cross River, Delta, Imo, Katsina,
+Nasarawa and Zamfara - a SOUTHERN-weighted distribution, the opposite of the
+2025 (Zamfara/Sokoto) and 2026 (Borno) patterns.
+
+AND A LAGOS ROW THAT SUPPLIES WHAT THE WEEKLY SERIES CANNOT. The file already
+holds NCDC weekly incident counts for Lagos through June 2024 (99, 330, 104,
+186), but not one of them carries a death or a laboratory-confirmed count. The
+Lagos State EOC figure as at 12 June - 324 suspected, 9 laboratory-confirmed, 15
+deaths - supplies both, and brackets correctly against the weekly series.
+
+BORNO 2026 INDEPENDENTLY CONFIRMED AND ITS DEATHS DECOMPOSED. UNICEF's Borno
+flash update of 7 June 2026 reproduces index 32's 8 457 / 85 exactly, from the
+Borno State MoH Cholera EOC, and splits the deaths: 53 FACILITY-BASED and 32
+COMMUNITY. The community share of 38% is the reason CFRs computed on
+facility-based case counts understate mortality in this epidemic - a
+modelling-relevant fact that no row in the file previously carried. The update
+also names the affected LGAs (Maiduguri, Jere, Mafa, Konduga, Magumeri, Monguno,
+Kwaya Kusa, Ngala confirmed; Gwoza, Bama, Banki, Mobbar suspected) with ward
+counts. Annotated onto index 32 rather than entered as a competing row.
+
+Sources found: 1 registered (metadata index 223)
+Rows added   : 2   Indices 1451, 1452
+Rows revised : 1 (index 32)
+Successful actions: 1/20
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : STOP - 12 of 12 batches executed. The protocol ceiling is reached.
+================================================================================
+
+################################################################################
+PORTABLE FINDINGS - THESE OUTLIVE NIGERIA. HAND THEM TO EVERY OTHER COUNTRY.
+################################################################################
+
+1. WHO AFRO HAS PUBLIC SUB-NATIONAL CHOLERA SERVICES FOR TWELVE OTHER MOSAIC
+   COUNTRIES. Agent 2 closed this seam for Nigeria as "there is no WHO ADM1
+   service". There is. One unauthenticated HTTP call lists all 2 504 services on
+   the host:
+       https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services?f=json
+   Filtering the names on 'chol' returns 45 cholera services. The sub-national
+   ones, by MOSAIC country:
+       Adm1_Nigeria_Cholera          NGA   (mined; 2023-04-12 snapshot only)
+       Adm1_Burundi_Cholera          BDI
+       Adm1_Cameroon_Cholera         CMR
+       Adm1_Eth_Cholera              ETH
+       Adm1_Kenya_Cholera            KEN
+       Adm1_Moz_Cholera              MOZ   (and adm1_moz_cholera_final)
+       Adm1_Zambia_OCHA_cholera_Final ZMB
+       Adm1_Zimbabwe_Cholera         ZWE
+       Adm2_Eswatini_Cholera         SWZ
+       Adm2_Malawi_Cholera           MWI
+       Adm2_Mozambique_Choler        MOZ
+       Adm2_SouthAfri_Cholera        ZAF
+       Adm2_SouthSuda_Cholera        SSD   (and Adm2_SouthSudan_Cholera)
+       Adm3_Tanzania_Cholera         TZA
+   Also on the host and country-agnostic: Cholera_agregated (country-level
+   cumulative with its own Last_update per country - it produced a 2022 national
+   cut date for Nigeria that no other source had), cholera_adm0_week,
+   cholera_report_period and Cholera_Afro_temporal.
+   CHECK EACH LAYER'S editingInfo.dataLastEditDate BEFORE TRUSTING IT AS CURRENT.
+   Adm1_Nigeria_Cholera looks live and is frozen at April 2023.
+
+2. READING WER TABLES: THE THREE THINGS THAT COST ROWS.
+   a. pdftotext -layout interleaves WER's 3-4 newspaper columns; a number from
+      the Philippines column lands on the Nigeria row. Fix: bbox-coordinate
+      single-column re-render (/tmp/nga5/col.py) or a page-image crop.
+   b. The BRACE is invisible to every text extractor. Two value lines braced to
+      one state label means confirmed then suspected FOR THE SAME WEEK, and the
+      week total is their sum. Several rows in this file were the first line
+      only. Several others were the second line only.
+   c. ALWAYS read the disease heading positionally - same physical column, above
+      the country label. In ten volumes this run rejected Nigerian YELLOW FEVER
+      (twice), POLIOMYELITIS, MENINGOCOCCAL MENINGITIS, DIPHTHERIA and a
+      multi-disease annual table, every one of which was within a few lines of a
+      genuine cholera block.
+
+3. WHEN IS A WER COUNTRY LINE ADMISSIBLE AFTER 1974? Use arithmetic, not era.
+   A WER notification figure is admissible when it RECONCILES with an
+   independently published cumulative or annual for the same country-year, and
+   inadmissible when it does not. Nigeria 1996 passes to the unit on two
+   variables (7 130 + 5 244 = 12 374; 561 + 632 = 1 193, and 12 374 is the
+   annual). Nigeria 1992 fails by a factor of 54 and contradicts itself between
+   two issues. Nigeria 1975-76 contradicts itself within one page. The test is
+   cheap and checkable; judging by era is not.
+
+4. AFTER 1974, WER'S SUB-NATIONAL CHANNEL IS THE INFECTED-AREA DECLARATION, NOT
+   THE CASE TABLE. "Newly infected areas as at <date>" and "Infected areas as at
+   <date>" name administrative units with no counts - presence evidence, which
+   belongs in cholera_presence_ai.csv. For Nigeria 1991 this turned one
+   undifferentiated national row into a dated 21-state footprint.
+   CAVEAT THAT GENERALISES: check the declaration against the country's
+   administrative history. Nigeria's 1992-96 COMPLETE lists still name Bendel and
+   Gongola States, abolished in August 1991, so they are carried-forward legacy
+   lists and were rejected; the "newly infected" declarations use current names
+   and were accepted.
+
+5. RELIEFWEB: THE API IS SHUT, THE WEBSITE IS NOT. api.reliefweb.int v1 returns
+   410 and v2 returns 403 for every appname - the appname is issued by ReliefWeb
+   staff against a human registration form and cannot be obtained by an agent.
+   reliefweb.int itself returns 200 and its search pages are parseable:
+       https://reliefweb.int/updates?search=<url-encoded terms>
+   That route produced 41 of this agent's rows, including a complete 37-state
+   Nigerian enumeration for 2025 and the state-EOC figure a previous agent had
+   judged unobtainable. Use it for every country until somebody registers an
+   appname.
+
+6. THE VALIDATOR REPORTS PHYSICAL CSV LINE NUMBERS, NOT THE Index COLUMN.
+   Adjudicating "row 1321" as though it were Index 1321 corrects the wrong row.
+   /tmp/nga5/warns.py translates them.
+################################################################################
+
+################################################################################
+FINAL STOPPING-CRITERIA STATEMENT - AGENT 5, NIGERIA (SUPERSEDES THE BATCH-7 ONE)
+################################################################################
+The stopping statement written after batch 7 is superseded. This agent was
+redeployed once by the orchestrator and ran to the ceiling.
+
+Batches executed : 12 (240 discovery/retrieval/analysis actions)
+Batch yields (%) : 70, 15, 0, 5, 30, 40, 15, 5, 0, 10, 5, 5
+Criterion met    : (b), the 12-batch ceiling. Criterion (a) was NEVER met across
+                   all twelve batches: only batches 3 and 9 fell strictly below
+                   5% and they are six batches apart, while batches 4, 8, 11 and
+                   12 sat exactly ON 5% rather than below it. This agent reached
+                   its budget, not saturation.
+Tooling caveat   : session WebSearch was exhausted 200/200 by Agents 1-3 before
+                   this agent started. All 240 actions were direct HTTP
+                   retrieval - WHO IRIS DSpace REST, WHO AFRO ArcGIS
+                   FeatureServer, WHO GHO, afro.who.int, Europe PMC REST,
+                   reliefweb.int, api.reliefweb.int, ncdc.gov.ng - plus
+                   pdftotext -bbox-layout and pdftoppm page-image extraction and
+                   programmatic cross-checks against the CSVs.
+
+NET EFFECT OVER BOTH DEPLOYMENTS
+  ./data/NGA/cholera_data_ai.csv      1 235 -> 1 378 rows   (152 added, 9 retracted)
+  ./data/NGA/metadata_ai.csv            181 -> 223 sources  (42 registered)
+  ./data/NGA/cholera_presence_ai.csv     12 -> 37 records   (25 added)
+  ./data/NGA/retracted_rows_ai.csv       67 -> 76 tombstones
+  pre-existing rows revised or annotated: 129
+  validator: 0 ERROR throughout; WARN 80 -> 65
+      national_subnational_overlap  9 -> 0   (all cleared to INFO)
+      same_period_conflict         27 -> 19  (8 dissolved as location-vocabulary
+                                             artefacts; the rest adjudicated in
+                                             place - the check has no
+                                             documentation escape)
+      CFR_high_flagged_for_review  43 -> 45  (all 45 reviewed and documented;
+                                             the two new ones are rows this
+                                             agent added and documented on entry)
+      multiyear_aggregate           1 -> 1   (primary text located, re-cited,
+                                             downweighted 0.7 -> 0.4)
+  data corrections: 8 silent numeric misreads and 7 rows redated on printed WHO
+                    errata (6 on "Correction. See/Voir p 502", 1 on a period
+                    header WER printed and a later narrative omitted)
+  rows by year added: 1971 x30, 1972 x29, 1973 x26, 1974 x7, 1996 x2, 2004 x1,
+                      2022 x1, 2023 x12, 2024 x2, 2025 x39, 2026 x3
+################################################################################

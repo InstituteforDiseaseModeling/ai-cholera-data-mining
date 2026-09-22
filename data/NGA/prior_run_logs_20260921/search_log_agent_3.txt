@@ -1,0 +1,1219 @@
+================================================================================
+AGENT 3 - ZERO-TRANSMISSION VALIDATOR - NIGERIA (NGA)
+================================================================================
+Run start   : 2026-09-21
+Working dir : /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Log file    : ./data/NGA/search_log_agent_3.txt
+Data file   : ./data/NGA/cholera_data_ai.csv
+Metadata    : ./data/NGA/metadata_ai.csv
+Presence    : ./data/NGA/cholera_presence_ai.csv
+
+NOTE ON OVERWRITE: the previous ./data/NGA/search_log_agent_3.txt was a stale
+2025-07-23 file (2 batches, 0 rows, no in-run work from the current run). It was
+checked before overwriting and contained nothing from this run. Overwritten.
+
+STATE AT START
+  cholera_data_ai.csv  : 986 rows
+  metadata_ai.csv      : 135 sources
+  cholera_presence_ai.csv : 11 rows
+  Existing zero rows   : 2
+    row 55  AFR::NGA        1990-01-01..1990-12-31  Documented_Absence, partial,
+            conf 0.9, WER 1991;66(42)   [Agent 1 - do not duplicate]
+    row 568 AFR::NGA::Enugu 2026-01-01..2026-09-09  conf 0.55, NCDC DG statement
+            [Agent 2]
+
+EFFECTIVE GAPS AT START (./reference/effective_surveillance_gaps_detailed.csv)
+  1974-01-01..1974-12-31  365d historical  -> CLOSED by Agent 1 (776 cases, WER
+                                              1975;50(29)). NOT a zero year.
+  1990-01-01..1990-12-31  365d historical  -> CLOSED by Agent 1 as validated
+                                              Documented_Absence (row 55).
+  2026-05-01..2026-09-21  144d recent      -> 05-01..08-16 filled with a live
+                                              65,690-case epidemic. 08-17..09-21
+                                              is publication lag with NCDC
+                                              warning transmission continues.
+                                              NOT a zero-transmission candidate.
+
+ASSIGNMENT-SPECIFIC TARGETS
+  (1) National annual reported-zero years in the WER/GHO era, 1970-2000.
+  (2) Sub-national (ADM1) documented absence from full NCDC state tables.
+  (3) Inter-epidemic national lulls with explicit zero statements.
+
+NOTE ON TOOLING: the session-wide WebSearch allowance (200 calls) was already
+exhausted by Agents 1 and 2 before this agent started; a test call returned
+"this session has used its web search budget (200 of 200 WebSearch calls)".
+This agent therefore ran entirely on direct HTTP retrieval and public APIs
+(WHO GHO OData, WHO ArcGIS FeatureServer, WHO IRIS DSpace REST, Europe PMC
+REST, PubMed E-utilities, ncdc.gov.ng PDFs) via curl, plus pdftotext -layout.
+That is a tooling constraint, NOT protocol saturation. ReliefWeb's API is dead
+for v1 (HTTP 410) and network-blocked otherwise, matching Agent 2's finding.
+
+================================================================================
+=== BATCH 1 | PHASE 1 | NGA — WHO/OFFICIAL AUTHORITATIVE SERIES ===
+================================================================================
+Gap targeted : national reported-zero years across 1970-2000 (assignment target 1),
+               plus the source inventory for ADM1 absence work.
+Queries (20):
+   1 WHO GHO OData CHOLERA_0000000001 (reported cases) filtered SpatialDim='NGA'
+   2 WHO GHO OData CHOLERA_0000000002 (reported deaths) NGA
+   3 WHO GHO OData CHOLERA_0000000003 (CFR) NGA
+   4 WHO GHO OData CHOLERA_0000000001 filtered Value eq '0' (global) — does the
+     series record explicit zeros at all, or only omit non-reporters?
+   5 WHO ArcGIS cholera_adm0_week FeatureServer, iso_3_code='NGA', full series
+   6 ncdc.gov.ng/diseases/sitreps?cat=7 archive index (93 issues enumerated)
+   7 NCDC Cholera Sitrep Epi Week 52, 2021 (full-year state table) [PDF]
+   8 NCDC Cholera Sitrep Epi Week 52, 2022 (full-year state table) [PDF]
+   9 NCDC Cholera Sitrep Epi Week 52, 2023 (full-year state table) [PDF]
+  10 NCDC Cholera Sitrep Epi Week 39, 2024 (state table) [PDF]
+  11 NCDC Cholera Sitrep Epi Week 9, 2025 (state table) [PDF]
+  12 "as at" / data-cutoff line extraction across those five issues
+  13 arithmetic-closure test: does each state table sum to its national total?
+  14 contradiction pre-check of every candidate zero state-year against all
+     three data layers (JHU + WHO + AI)
+  15 WHO IRIS DSpace REST /server/api/discover/search/objects?query=cholera in 1974
+  16 WHO ArcGIS service directory (2,504 services) grepped for cholera services
+  17 Adm1_Nigeria_Cholera FeatureServer metadata
+  18 Adm1_Nigeria_Cholera layer 0 sample records
+  19 Adm1_Nigeria_Cholera all 37 ADM1 records — explicit-zero test
+  20 REGIONAL CROSS-CHECK (mandated): WHO GHO cholera 1987-1993 for the four land
+     neighbours BEN, CMR, TCD, NER plus GHA, TGO, BFA, MLI
+
+RESULTS
+
+ [1-3] WHO GHO gives Nigeria a complete annual cholera series for 1970-2016 with
+       exactly two years missing: 1974 and 1990. Every other year carries a
+       POSITIVE case count (1975:38, 1976:112, 1977:376, 1978:197, 1979:293,
+       1980:138, 1981:107, 1982:248, 1983:178, 1984:1667, 1985:30, 1986:91,
+       1987:1290, 1988:137, 1989:1078, 1992:8687, 1993:4160, 1994:2859,
+       1995:1059, 1996:12374, 1997:1322, 1998:3464, 1999:26358, 2000:2799).
+       2017 onward is absent from GHO entirely (WHO moved to other products).
+
+ [4] METHODOLOGICALLY DECISIVE. The GHO cholera indicator DOES record explicit
+     zeros: 51 country-years across 35 countries carry Value="0", 39 of them in
+     AFRO (AGO 2005, BFA 2006/2008, BWA 2005/2006, CAF 2005/2006, CMR 2008,
+     ERI 2005/2006, ETH 1982, MDG 1996, MOZ 1996, TCD 2007, ZAF 2006 ...).
+     NIGERIA HAS NO EXPLICIT ZERO IN ANY YEAR OF THE SERIES.
+     => ASSIGNMENT TARGET 1 IS CLOSED NEGATIVELY. The candidate years named in
+        the brief (1975-1989, 1992-1998) are all positive-count years in WHO's
+        own annual series. There are no further national reported-zero years for
+        Nigeria to find in the WER/GHO era. The only two candidate years are
+        1974 and 1990, and both were already resolved by Agent 1 (1974 = 776
+        cases from WER 1975;50(29); 1990 = documented zero, row 55).
+
+ [5] REJECTED CANDIDATE — 26 "zero" weeks in WHO's own weekly service.
+     cholera_adm0_week returns 190 Nigeria records (2023 wk1 - 2026 wk33) of
+     which 26 have cases=0, ALL of them in 2023: weeks 20, 22-25, 27-29, 31-33,
+     35-42, 44, 46-51.
+     These are NOT zero-transmission weeks. They are reporting-cadence
+     artifacts: cum_case does not move across each run of zeros and then jumps
+     by the whole accumulated amount in the next reported week, and cum_case
+     even DECREASES from 1917 (wk20) to 1851 (wk21), which a true cumulative
+     cannot do. Cross-checked against NCDC's own 2023 monthly table, which
+     reports cases in EVERY month of 2023 including August 205 (wks 31-34),
+     September 374 (wks 35-39), October 197 (wks 40-43), November 103
+     (wks 44-47) and December 52 (wks 48-52) — precisely the months WHO renders
+     as zero. NO ZERO ROWS WRITTEN. This is the single largest trap in the
+     Nigeria file: naively ingesting cholera_adm0_week would have produced 26
+     false national zero-weeks.
+
+ [15] WHO IRIS DSpace REST API works (WebFetch against iris.who.int is 403, the
+      REST API is not). "CHOLERA IN 1974 = LE CHOLÉRA EN 1974" resolves to
+      handle 10665/220437, the source Agent 1 cites for Nigeria 1974 = 776.
+      Noted for the record: GHO omits 1974 while WER 1975;50(29) reports a
+      figure. This is GHO incompleteness, not a contradiction, and Agent 1's
+      row 43 rests on the stronger primary source. No action.
+
+ [16-19] REJECTED SOURCE — WHO ArcGIS "Adm1_Nigeria_Cholera".
+      A state-level Nigeria cholera service exists, but it is a single
+      undated snapshot (Lastupdate = 2023-04-12 for every populated row) in
+      which 25 of 37 states have Cases = NULL and only 12 carry a value
+      (sum 1,070). It contains NO explicit zero. NULL is missing, not zero, and
+      the accumulation period is unbounded, so nothing in it can support an
+      absence claim. NO ROWS WRITTEN.
+
+ [20] REGIONAL CROSS-CHECK FOR THE 1990 NATIONAL ABSENCE (row 55).
+      1990 reported cases: BEN none, CMR 16, TCD none, NER none, TGO none,
+      BFA none, MLI none, GHA 2,937. 1991: NGA 59,478, TCD 13,915, GHA 13,172,
+      BEN 7,474, CMR 4,026, NER 3,238, TGO 2,396, BFA 537.
+      => Nigeria's 1990 zero falls in a REGIONALLY QUIET period, not during a
+      neighbouring epidemic, immediately before the 1991 West African wave.
+      Per the agent brief this is the weaker-evidence-required case, and the
+      evidence held is an explicit WHO WER statement. Row 55 CORROBORATED and
+      left unchanged at confidence 0.9 / surveillance=partial. Not duplicated.
+
+Sources found: 3 new institutional routes (GHO OData, IRIS DSpace REST,
+               ArcGIS service directory); 0 new metadata registrations in this
+               batch (the five NCDC full-year sitreps were already registered by
+               Agent 2 as indices 47, 49, 50, 51, 52 and were reused).
+Rows added   : 25 — indices 1034-1058, committed after the Batch 2 corroboration
+               sweep completed. Attributed to this batch because queries 7-11
+               are the queries that produced them.
+Successful queries: 5/20  (q7, q8, q9, q10, q11)
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+================================================================================
+=== BATCH 2 | PHASE 1-2 | NGA — ADM1 ABSENCE CORROBORATION + ACADEMIC ===
+================================================================================
+Gap targeted : sub-national (ADM1) validated absence (assignment target 2).
+               Before committing any complement-derived zero, prove the state is
+               absent from EVERY issue of the year, not just the year-end one.
+Queries (20):
+  21 parse ncdc.gov.ng sitrep archive into a structured list (93 issues, 2017-2025)
+  22 bulk retrieve + pdftotext -layout all 2021/2022/2023 issues (49 of 53 usable)
+  23 corpus sweep: does "Anambra" appear in any 2021 issue?
+  24 corpus sweep: "Edo" 2021
+  25 corpus sweep: "Imo" 2021
+  26 corpus sweep: "Ebonyi" 2022
+  27 corpus sweep: "Edo" 2022
+  28 corpus sweep: "Enugu" 2022
+  29 corpus sweep: "Ogun" 2022
+  30 corpus sweep: "Akwa Ibom" 2023
+  31 corpus sweep: "Enugu" 2023
+  32 corpus sweep: "FCT" 2023
+  33 corpus sweep: "Lagos" 2023 + context disambiguation of every hit
+  34 corpus sweep: "Nasarawa" 2023
+  35 corpus sweep: "Yobe" 2023
+  36 narrative state-count reconciliation across the five full-year issues
+  37 ReliefWeb API v1 POST — HTTP 410, API retired
+  38 ReliefWeb API v1/v2 GET — empty response, host network-blocked (matches
+     Agent 2's finding); ReliefWeb is unavailable to this pipeline
+  39 Europe PMC REST: "cholera AND Yobe AND Nigeria"
+  40 Europe PMC REST: TITLE:"Spatiotemporal Dynamics of Cholera Outbreaks in
+     Yobe State" — core record, abstract, DOI
+
+RESULTS
+
+ ARITHMETIC CLOSURE. Every one of the five NCDC full-year state tables sums
+ EXACTLY to its own printed national total:
+   2021 Table 5: 34 units sum to 111,062 = printed national total
+   2022 Table 6: 33 units sum to  23,763 = printed national total
+   2023 Table 7: 31 units sum to   3,683 = printed national total
+   2024 Table 7 (wk1-39): 36 units sum to 10,837 = printed national total
+   2025 Table 7 (wk1-9):  25 units sum to  1,149 = printed national total
+ The column header is literally "States Reporting cases in {YEAR}", and the
+ tables list states holding as little as ONE case (2023: Anambra 1, Imo 1,
+ Ekiti 1, Edo 1). The enumeration is therefore exhaustive of any-case states,
+ and unlisted units contributed exactly zero. Narrative counts reconcile once
+ FCT is counted separately: "reported from 33 states and FCT in 2021" (34),
+ "from 32 states plus FCT in 2022" (33), "from 31 states" in 2023 (31).
+
+ CORPUS SWEEP RESULT. Across 27 NCDC issues in 2021 and 11 each in 2022 and
+ 2023, every candidate state is named in ZERO issues of its year. The only
+ string hits were PDF text-collapse false positives, which were individually
+ opened and dismissed:
+   - "Edo" 2021 -> inside "wer edonei nZamfara(2)andAdamawa(2)"
+   - "Edo" 2022 -> inside "edongoingt i"
+   - "Lagos" 2023 (11 hits) -> every one is the wrapped continuation of
+     "CPHL Yaba-Lagos", the national reference laboratory named in the
+     Laboratory response-activity cell. Lagos never appears as a reporting
+     state in any 2023 issue.
+ This is the collapsed-text hazard Agents 1 and 2 warned about, encountered and
+ handled.
+
+ [39-40] Goni et al. 2025, "Spatiotemporal Dynamics of Cholera Outbreaks in Yobe
+ State, Northeast Nigeria, 2020-2024" (Research Square rs-8385237/v1).
+ Registered as metadata index 136. NOTE FOR THE RECORD: Agent 2 recorded this
+ paper as paywalled. It is not — the full text is free and was retrieved.
+ Verbatim: "There were outbreaks in 2021, 2022 and 2024 ... However, no
+ outbreaks were recorded in 2020 and 2023." and "As earlier noted, no cases
+ were reported in 2020 and 2023." Internally closed: 3,973 (2021) + 2,297
+ (2022) + 522 (2024) = 6,792 = the stated study total.
+ Yobe 2023 is therefore DOUBLE-SOURCED (NCDC government table + academic study
+ using the state's own line list) and Yobe 2020 is newly documented from a
+ period for which NCDC published no cholera sitrep at all.
+
+Sources found: 1 registered — index 136 (Goni et al. 2025).
+Rows added   : 2 — indices 1032 (Yobe 2020) and 1033 (Yobe 2023),
+               Documented_Absence / partial / confidence 0.9.
+Successful queries: 1/20  (q39 — the Europe PMC discovery query; q40 and the
+               follow-up full-text retrieval refined the same two rows and are
+               not double-counted. The 13 corpus sweeps corroborated rows whose
+               yield is credited to Batch 1, and are not counted again here.)
+Yield        : 5%
+Consecutive sub-5% batches: 0  (5% is not strictly below 5%)
+Decision     : CONTINUE
+
+================================================================================
+=== BATCH 3 | PHASE 2 | NGA — EXTENDING THE ADM1 METHOD BACK TO 2017-2019 ===
+================================================================================
+Gap targeted : ADM1 absence for 2017, 2018, 2019 — the years with the largest
+               state-level holes. 2018 in particular: 42,466 cases from an
+               apparently exhaustive "20 States" list implies 17 zero units.
+Queries (20):
+  41 bulk retrieve + extract all 16 NCDC cholera sitreps for 2017/2018/2019
+  42 scan those 16 for state-count and national-total statements
+  43 full text dump of Cholera Outbreak Sitrep Serial 23, Epi Week 43, 2018
+  44 arithmetic-closure test on the 2018 Table 1 state column
+  45 contradiction check: the 17 candidate 2018 zero states vs all three layers
+  46 re-verification of all 27 already-committed rows using interval-overlap
+     logic rather than TL-year matching
+  47 JHU layer temporal density profile by year
+  48 POSITIVE CONTROL on the contradiction matcher (Lagos 2024)
+  49 ncdc.gov.ng/reports/weekly archive (the separate IDSR bulletin series)
+  50 enumerate 428 Weekly Epidemiological Report issues 2016-2026 by year
+  51 NCDC WER Vol 13 No 49, 2023 — cholera section
+  52 NCDC WER 2023 week 39 — cholera section
+  53 NCDC WER Vol 8 No 43, 9 Nov 2018 — cholera section
+  54 derive the 2018 wk1-43 ADM1 reporting set from the JHU/IDSR weekly layer
+  55 cross-year ADM1 set comparison, JHU/IDSR vs NCDC lists, 2017-2024
+  56 NCDC 2019 National Monthly Update Serial 01 (June) and Serial 05 (October)
+  57 JHU/IDSR 2019 ADM1 enumeration
+  58 NCDC WER Vol 9 No 52, 2019 — cholera year-to-date block
+  59 2018 sitrep vs WER national-total comparison
+  60 registration + commit of the surviving 2018 rows
+
+RESULTS
+
+ *** REJECTED — 17 candidate ADM1 zeros for 2018, and the method that produced
+ them. *** The NCDC Cholera Outbreak Sitrep Serial 23 (wk43 2018) reads
+ "42,466 suspected cases ... reported from 20 States (Adamawa, Anambra, Bauchi,
+ Borno, Ebonyi, FCT, Gombe, Jigawa, Kaduna, Kano, Katsina, Kebbi, Kogi, Kwara,
+ Nasarawa, Niger, Plateau, Yobe, Sokoto and Zamfara)", which looks like a closed
+ enumeration implying 17 zero units. It is not.
+   (a) Its own Table 1 sums to 42,446, twenty short of the printed 42,466 — the
+       table is NOT arithmetically closed, unlike every 2021-2025 table.
+   (b) Its minimum listed value is 10 cases; no single-case state appears.
+   (c) The JHU/IDSR weekly layer carries positive 2018 cholera rows for NINE of
+       the seventeen: Abia, Bayelsa, Cross River, Ekiti, Enugu, Lagos, Osun,
+       Oyo, Taraba.
+   (d) DECISIVE: NCDC's own routine IDSR bulletin for the SAME WEEK — Weekly
+       Epidemiological Report Vol 8 No 43, section 3.2 — reports "Between weeks
+       1 and 43 (2018), 48,686 suspected Cholera cases ... from 239 LGAs (29
+       States)". Same institute, same week: 48,686 cases / 29 states in the
+       IDSR product vs 42,466 / 20 states in the outbreak sitrep. 20 + the 9
+       contradicted states = 29 exactly.
+ The cholera sitrep's state list is an OUTBREAK-AFFECTED list, not an any-case
+ list. Its complement is not a zero set. Writing those 17 rows would have
+ asserted absence in Lagos, Oyo, Enugu and six other states that demonstrably
+ reported cholera that year.
+
+ *** SURVIVING FROM 2018 — 8 ADM1 zeros, closed by a different route. ***
+ The WER's "29 States" is a Level 1 count, and the JHU/IDSR weekly layer
+ independently yields exactly 29 distinct ADM1 units with a positive 2018
+ wk1-43 value. Complement = exactly 8: Akwa Ibom, Benue, Delta, Edo, Imo, Ogun,
+ Ondo, Rivers. A narrative count and a week-by-week dataset agreeing on 29/8 is
+ a genuine closure. Surveillance evidence in the same bulletin: 87% timeliness
+ and 99% completeness of state reporting.
+
+ *** REJECTED — all ADM1 zero candidates for 2019. *** NCDC's National Monthly
+ Update Serial 05 names seven states for 2019 ("1583 suspected cases ... from
+ seven States (Adamawa, Bayelsa, Ebonyi, Delta, Kano, Katsina and Plateau)"),
+ which would imply 30 zero units. The JHU/IDSR layer shows FOURTEEN ADM1 with
+ positive 2019 values (adds Abia, Borno, Edo, Enugu, FCT, Ondo, Rivers), and
+ NCDC WER Vol 9 No 52 records cholera in Kaduna in week 52 2019 — a fifteenth,
+ present in neither list. There is no Level 1 state count for 2019 to close
+ against and both candidate enumerations are demonstrably short. Left empty.
+
+ *** REJECTED — all ADM1 zero candidates for 2017 and 2020. *** WER Vol 8 No 43
+ gives 2017 wk1-43 as "3642 suspected cases ... from 70 LGAs (19 States)" but
+ the JHU layer holds only 5 ADM1 for 2017, so the complement cannot be closed.
+ For 2020 the JHU layer holds no ADM1 rows at all and NCDC published no cholera
+ sitrep, so there is nothing to close against. (Yobe 2020 survives only because
+ the Goni et al. study states its absence explicitly — see Batch 2.)
+
+ *** RE-VERIFICATION OF THE 27 ROWS ALREADY COMMITTED. *** All 27 re-checked
+ with interval-overlap logic: no contradicting baseline row. A POSITIVE CONTROL
+ was then run and FAILED — the matcher finds no Lagos 2024 rows in JHU even
+ though Lagos had a 4,667-case epidemic that year — proving JHU's 2022-2024
+ coverage is sparse and NCDC-derived, so for those years it is a
+ no-contradiction check and NOT independent corroboration. Stated plainly so
+ the next agent does not over-read it. For 2021 the check IS independent and
+ strong: JHU yields exactly 34 ADM1 for 2021, the same 34 NCDC lists, complement
+ exactly Anambra/Edo/Imo. Rows 1034-1036 are double-validated. For 2022/2023/
+ 2024 the JHU set is a strict subset of the NCDC set, consistent and
+ non-contradicting.
+
+Sources found: 1 registered — index 137 (NCDC WER Vol 8 No 43, 9 Nov 2018).
+Rows added   : 8 — indices 1059-1066 (Akwa Ibom, Benue, Delta, Edo, Imo, Ogun,
+               Ondo, Rivers; 2018-01-01..2018-10-28; Documented_Absence /
+               partial / 0.8).
+Successful queries: 2/20  (q53 the WER retrieval, q54 the IDSR set derivation)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE — minimum 3 batches met but no batch has fallen below
+               5%, so the stopping criteria are not satisfied.
+
+================================================================================
+=== BATCH 4 | PHASE 2-3 | NGA — IDSR WEEKLY ZEROS + ACADEMIC ABSENCE SWEEP ===
+================================================================================
+Gap targeted : (a) national weekly zero returns in NCDC's IDSR bulletin series,
+               (b) assignment target 3, inter-epidemic national lulls,
+               (c) further state-level retrospective studies of the Yobe kind.
+Queries (20):
+  61 harvest NCDC Weekly Epidemiological Report issues for 2023 and 2024
+  62 parse the weekly Cholera panel out of 47 harvested issues
+  63 validate the single zero week found against NCDC's own monthly table
+  64 NCDC National Cholera Situation Report Week 36, 2017 — state-count statement
+  65 same report — search for a per-state table
+  66 Europe PMC FULL_TEXT: field-syntax probe (invalid, corrected)
+  67 Europe PMC: "cholera-free" Nigeria
+  68 Europe PMC: "no cholera cases" Nigeria state
+  69 Europe PMC: RESULTS:"no cases were reported" cholera Nigeria
+  70 Europe PMC fullTextXML PMC13076490 (Lagos One Health 2026) + absence scan
+  71 Europe PMC fullTextXML PMC12482021 (five-decade review) + absence scan
+  72 extraction of Lagos "Table 1 Major cholera outbreaks in Lagos State 2010-2025"
+  73 Europe PMC DOI lookup 10.1371/journal.pntd.0011312 (Charnley et al. 2023)
+  74 Europe PMC fullTextXML PMC10174485 (Charnley 2023 PLOS NTD) + absence scan
+  75 Europe PMC: cholera Bayelsa Nigeria retrospective/spatiotemporal/trend
+  76 same for Adamawa
+  77 same for Zamfara
+  78 same for Cross River
+  79 same for Kano
+  80 same for Bauchi
+
+RESULTS
+
+ *** REJECTED — the only national zero week in the IDSR series, 2023 week 39. ***
+ Across 47 parsed NCDC Weekly Epidemiological Report issues (2023 wk27-49,
+ 2024 wk2-13 and wk40-52) exactly one week reports zero cholera nationally:
+ week 39 of 2023 — "Suspected 0, Confirmed 0, Deaths 0, State: 0, LGA: 0" with
+ the key point "There were no suspected cases of Cholera reported for the week".
+ This is a zero RETURN, not a zero week, and it cannot be promoted to a zero
+ row. NCDC's own cholera monthly report assigns 374 cases to September 2023
+ (epi weeks 35-39) while the IDSR weekly returns for those same five weeks sum
+ to 76+71+43+27+0 = 217. About 42% of that month's cases reached the system
+ after their epi week, so a zero weekly return does not establish that the week
+ was case-free. Nigeria is endemic with near-continuous transmission and a
+ single-week national absence claim cannot rest on a reporting-lagged return.
+ Same failure mode as the 26 WHO cholera_adm0_week zeros rejected in Batch 1.
+ NO ROW WRITTEN.
+
+ *** REJECTED — all ADM1 zero candidates for 2017 (confirmed). *** The National
+ Cholera Situation Report Week 36, 2017 states "From week 1-36, a total of
+ 5,264 suspected and 115 confirmed cases with 140 deaths have been reported from
+ 16 states and the FCT so far in 2017", i.e. 17 reporting units and 20 implied
+ zeros — but it never names the 16, contains no per-state table, and the JHU
+ layer holds only 5 ADM1 for 2017. The complement is unidentifiable. Left empty.
+
+ *** REJECTED as absence evidence — Lagos "Table 1 Major cholera outbreaks in
+ Lagos State (2010-2025)". *** The table lists 2010, 2017, 2020-2021, 2024 and
+ 2025 and omits 2022 and 2023. That omission is NOT evidence of a Lagos zero:
+ NCDC records 47 Lagos cases in 2022, which the table also omits, proving it is
+ a major-outbreak filter rather than a completeness list — structurally the same
+ trap as the 2018 "affected States" list. Lagos 2023 (row 1044) therefore stands
+ on the NCDC week-52 2023 table alone, at confidence 0.8, and this log records
+ that it is single-sourced. The paper is weakly consistent with it and does
+ corroborate NCDC's Lagos figure for early 2025 ("the NCDC report documented
+ only three cases in Lagos State").
+
+ No absence statements in the five-decade review (PMC12482021) or in Charnley
+ et al. 2023 PLOS NTD (PMC10174485); the latter confirms that the 2018-2019
+ NCDC case-based line list is the substrate of the dense JHU 2018 layer used in
+ Batch 3, which supports the 29/8 derivation.
+
+ The state-level literature seam is close to exhausted: six state-specific
+ Europe PMC queries return the same set of national review articles. The Yobe
+ study found in Batch 2 appears to be the only Nigerian state-level
+ retrospective that explicitly reports zero years.
+
+Sources found: 0 new registrations.
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+
+================================================================================
+=== BATCH 5 | PHASE 2 | NGA — NCDC ANNUAL REPORT SERIES (ADM1 ABSENCE) ===
+================================================================================
+Gap targeted : sub-national (ADM1) validated absence, assignment target 2, for
+               the years the cholera-sitrep series cannot reach — 2025 beyond
+               epi week 9 (the series ends there), and 2017/2019/2020 which have
+               no usable per-state cholera table.
+NOTE: this batch mined material the previous session of this run downloaded at
+16:13 but never analysed (/tmp/nga3/ann/1-6.pdf). WebSearch remains budget-
+exhausted (re-tested at the start of this session: "200 of 200 WebSearch calls").
+All 20 actions below are direct HTTP retrieval, pdftotext -layout extraction or
+programmatic cross-checks against the committed layers. Tooling constraint, not
+protocol saturation.
+Queries (20):
+  81 ncdc.gov.ng/reports/annualreports index harvest, 6 PDFs mapped to titles
+  82 bulk download + pdftotext -layout of all 6 NCDC annual/biennial reports
+  83 identify each report by cover and cholera-mention density
+  84 ann/4 = NCDC Annual Report 2025 — cholera occurrence scan (122 mentions)
+  85 extract "Priority Disease Outbreaks: Q1 January - March" cholera row
+  86 extract "Priority Disease Outbreaks: Q2 April - June" cholera row
+  87 extract "Priority Disease Outbreaks: Q3 July - September" cholera row
+  88 extract "Priority Disease Outbreaks: Q4 October - December" cholera row
+  89 extract summary "Table 1 Priority Disease Epidemiological Overview"
+  90 extract the disease-burden ranking table (Rank 2 Cholera 24,349)
+  91 union/closure test of the four quarterly state lists against Table 1
+  92 SUPERSET VALIDATION of Q1 list against the NCDC week-9 2025 sitrep table
+  93 arithmetic re-check of the week-9 2025 state column (sums to 1,149)
+  94 contradiction check of all 37 candidate quarter-state pairs vs JHU+WHO+AI
+  95 pdfinfo publication date of the 2025 annual report
+  96 ann/6 = 2023/24 NCDC Biennial Report — cholera scan
+  97 ann/2 = NCDC Annual Report 2018 — cholera scan
+  98 ann/5 = NCDC Annual Report 2019 — cholera scan
+  99 ann/3 = NCDC Annual Report 2020 — cholera scan
+ 100 ann/1 = NCDC Annual Report Aug 2016-Jul 2017 — cholera scan
+
+RESULTS
+
+ *** MAJOR NEW SOURCE — NCDC Annual Report 2025 (registered index 138,
+ published 2026-06-02, 219pp). *** It carries four quarterly "Priority Disease
+ Outbreaks" tables whose cholera row prints, verbatim, the full list of
+ "States Reporting (Suspected)". This is an any-suspected-case enumeration, not
+ an outbreak-affected list, and it is the ONLY per-state cholera source that
+ reaches past epi week 9 of 2025 — NCDC's dedicated cholera sitrep series ends
+ there. Lists as printed:
+   Q1 Jan-Mar 29 units, 2,223 cases -> 8 units silent
+   Q2 Apr-Jun 29 units, 1,780 cases -> 8 units silent
+   Q3 Jul-Sep 29 units, 15,783 cases -> 8 units silent
+   Q4 Oct-Dec 24 units, 4,563 cases -> 13 units silent
+
+ EXHAUSTIVENESS TESTS — the 2018 trap is what these are guarding against, so
+ they were run before any row was written:
+  (a) DECISIVE SUPERSET TEST. All 25 units in the independently derived NCDC
+      week-9 2025 sitrep state table appear in the Q1 list, and the Q1 list adds
+      exactly four more — Zamfara, Ebonyi, FCT and Jigawa — which is precisely
+      the set whose first cases must fall in weeks 10-13 (3-31 March). Two
+      different NCDC products, perfect nesting, no crossing. Contrast the 2018
+      sitrep list rejected in Batch 3, which was contradicted by nine states.
+  (b) DETECTION FLOOR. The week-9 table that the Q1 list contains lists
+      single-case states (Adamawa 1, Sokoto 1, Taraba 1, Yobe 1) and all four
+      appear in the Q1 list. The quarterly lists therefore resolve to one case.
+      In the same annual tables, Dengue Q1 is 3 states / 31 cases and Rabies is
+      1 state / 10 cases — a low floor, not a major-outbreak filter.
+  (c) ARITHMETIC. 2,223+1,780+15,783+4,563 = 24,349, which is exactly the
+      cholera figure in the report's own disease-burden ranking table.
+  (d) CONTRADICTION CHECK. All 37 candidate quarter-state pairs tested by
+      interval overlap against JHU + WHO + AI: ZERO contradicting positive rows.
+      Zamfara (15,464 cases, 2025-06-01..2025-12-05, Agent 2) is correctly
+      absent from every candidate set.
+
+ *** CONFLICT RECORDED, NOT SILENCED. *** The same report's summary "Table 1"
+ prints cholera as 19,786 cases and "36" states affected. Neither agrees with
+ its own quarterly tables (24,349 cases; union of the four lists = 37 units,
+ i.e. every state and FCT reported cholera at some point in 2025, so there is
+ NO annual 2025 ADM1 zero). The report is internally inconsistent in its
+ narrative too ("94,237 suspected cases" on p24 vs "95,478" on p27). Per the
+ CLAUDE.md conflict rules the more specific, arithmetically closed quarterly
+ tables are taken as primary; the discrepancy is written into every row's
+ processing_notes and confidence is held at 0.8, below the Level 1 ceiling.
+
+ *** REJECTED — no annual 2025 ADM1 zero. *** The union of the four quarterly
+ lists is all 37 units. Table 1's "36" is not corroborated and was not used to
+ manufacture a full-year zero for some unidentified state.
+
+ *** REJECTED — NCDC Annual Report 2020, "CHOLERA - 36". *** This reads like a
+ 36-state count and is not: it is Figure 4, "Samples tested at NRL Gaduwa,
+ Abuja and CPHL, Lagos", i.e. 36 cholera SAMPLES tested in 2020, sitting in a
+ list next to SARS-COV-2 161,885 and DIPHTHERIA 3. The 2020 report contains no
+ cholera case or state table at all. Exactly the mis-attribution hazard Agents
+ 1 and 2 flagged. NO ROW WRITTEN. 2020 remains closeable only for Yobe (row
+ 1032, Goni et al.).
+
+ *** REJECTED — NCDC Annual Report 2019. *** Its cholera numbers are 375
+ samples tested at NRL and a count of RRT deployments. No case or state table.
+ 2019 stays as rejected in Batch 3.
+
+ *** REJECTED — NCDC Annual Report 2018. *** Cholera appears only as 11 RRT
+ deployments and 3,872 event-based-surveillance signals, plus a laboratory
+ network table. No state case table, so no independent corroboration of the
+ 29-state/8-zero derivation committed in Batch 3; that derivation still rests
+ on WER Vol 8 No 43 plus the JHU/IDSR weekly layer.
+
+ *** REJECTED — NCDC Annual Report 2016-17 and the 2023/24 Biennial Report. ***
+ Both are programmatic. The 2017 report gives "A total of 1,978" in narrative
+ and no state table; the Biennial's cholera section covers NSPACC, OCV and TWG
+ activity only. 2017 stays unclosed (third independent confirmation).
+
+ ROWS WRITTEN — 22 new ADM1 absence rows, indices 1086-1107, all
+ Documented_Absence / surveillance=operational / confidence 0.8, each carrying
+ the mandatory "Provincial subset - DO NOT SUM with the national row" note.
+ Contiguous quarters were merged into single rows per CLAUDE.md rather than
+ written quarter-by-quarter:
+   2025-04-01..2025-06-30  Jigawa, Kebbi, Nasarawa, Osun, Rivers      (1086-1090)
+   2025-04-01..2025-09-30  Taraba                                     (1091)
+   2025-04-01..2025-12-31  Bayelsa                                    (1092)
+   2025-07-01..2025-09-30  Akwa Ibom, Delta, Ebonyi                   (1093-1095)
+   2025-07-01..2025-12-31  Cross River, Edo, Kwara                    (1096-1098)
+   2025-10-01..2025-12-31  Anambra, Benue, FCT, Imo, Kaduna, Kogi,
+                           Nasarawa, Oyo, Yobe                        (1099-1107)
+
+ ROWS EXTENDED, NOT DUPLICATED — 8 existing week-9 rows, via
+ py/revise_observation.py, with the annual report appended as a second source:
+   1047 Anambra, 1048 Cross River, 1050 Edo, 1053 Kaduna, 1055 Kwara,
+   1056 Ogun, 1057 Plateau : TR 2025-03-02 -> 2025-03-31
+   1054 Kano               : TR 2025-03-02 -> 2025-06-30 (silent in Q1 AND Q2)
+ The other four week-9 zeros (1049 Ebonyi, 1051 FCT, 1052 Jigawa, 1058 Zamfara)
+ were deliberately NOT extended: the Q1 list names all four, so their first 2025
+ cases fall in weeks 10-13 and their absence genuinely ends 2025-03-02.
+
+Sources found: 1 registered — index 138 (NCDC Annual Report 2025).
+Rows added   : 22 (indices 1086-1107). Rows revised: 8.
+Successful queries: 3/20  (q86, q87, q88 — the three quarterly extractions that
+               produced new rows. q85 produced only extensions of existing rows,
+               which are not new rows, and is NOT counted.)
+Yield        : 15%
+Consecutive sub-5% batches: 0  (reset by this batch)
+Decision     : CONTINUE
+
+================================================================================
+=== BATCH 6 | PHASE 3 | NGA — NCDC IDSR WEEKLY CORPUS, ZERO-WEEK ADJUDICATION ==
+================================================================================
+Gap targeted : (a) assignment target 3, national inter-epidemic lulls, across the
+               parts of the NCDC Weekly Epidemiological Report corpus NOT parsed
+               in Batches 3-4 (2021, 2022, 2025, 2026); (b) adjudication of the
+               2025 national-total conflict opened in Batch 5.
+Queries (20):
+ 101 parse the full 109-issue NCDC WER corpus cholera panel (2021-2026)
+ 102 scan every parsed issue for a national zero week
+ 103 2021 wk1 zero candidate — verbatim Year-to-date block
+ 104 2021 wk2 zero candidate — verbatim Year-to-date block
+ 105 reconstruct the full 2021 weekly + YTD cholera series (27 issues)
+ 106 NCDC 2021 wk52 sitrep — look for a monthly distribution table
+ 107 JHU/IDSR finalised weekly layer, 2021 epi week 1 — contradiction test
+ 108 JHU/IDSR finalised weekly layer, 2021 epi week 2 — contradiction test
+ 109 JHU/IDSR finalised weekly layer, 2021 epi week 3 — control
+ 110 enumerate 2025 WER issues wk16-52 with their cholera YTD blocks
+ 111 NCDC WER Vol 15 No 52 (27 Jan 2026) — 2025 national year-to-date total
+ 112 three-way adjudication: annual-report quarterly sum vs WER wk52 vs Table 1
+ 113 WHO Cholera Surveillance Dashboard weekly national 2025 — independent sum
+ 114 enumerate 2026 WER issues (weeks 9, 14-19)
+ 115 2026 WER week 15 — national zero-week candidate
+ 116 2026 WER YTD vs WHO weekly 2026 — ascertainment comparison
+ 117 NCDC cholera sitrep archive — any 2024 issue later than week 39?
+ 118 national 2025/2026 row inventory across JHU + WHO + AI
+ 119 2022 WER issues (weeks 18-32) — zero-week scan
+ 120 2023/2024 WER re-scan — confirm wk39 2023 is the only zero week
+
+RESULTS
+
+ *** REJECTED — 2021 epi weeks 1 and 2, the strongest-looking national zero
+ candidates in the whole corpus. *** NCDC WER Vol 11 No 1 and No 2 print, for
+ cholera, "Suspected 0, Confirmed 0, Deaths 0, State: 0, LGA: 0" AND a
+ year-to-date 2021 cumulative of 0 — while the adjacent comparison column shows
+ 2020 running at 33 then 52 for the same weeks, proving the panel does print
+ non-zero values there and that the 0 is a reported value, not a blank. It is
+ still wrong. The finalised JHU/IDSR weekly layer already in this repository
+ carries a NATIONAL row of 682 suspected cases for 2021-01-04..2021-01-10 (epi
+ week 1) and 178 for 2021-01-11..2021-01-17 (epi week 2), decomposed across
+ Jigawa 136, Katsina 113, Kano 92, Benue 64, Kaduna 49, Bauchi 47, Nasarawa 39,
+ Bayelsa 19, Lagos 19, Taraba 4, Oyo 3 in week 1 alone. NCDC's own footnote in
+ later 2021 issues — "*Outbreak data added to routine data", appearing at weeks
+ 11, 15, 16, 17, 18, 19, 45 and 46 — names the mechanism: the routine IDSR
+ return is completed retrospectively. NO ROWS WRITTEN.
+
+ *** REJECTED — 2026 epi week 15. *** NCDC WER Vol 16 No 15 prints cholera as
+ "0 suspected, 0 confirmed, 0 deaths, State: 0, LGA: 0" for week 15 of 2026.
+ The WHO Cholera Surveillance Dashboard row already in
+ ./data/NGA/cholera_data_who.csv (Index 171) records 8 suspected cases for
+ 2026-04-06..2026-04-12, which is that exact week. Independent, already-held
+ contradiction. NO ROW WRITTEN.
+
+ *** THE GENERAL FINDING, stated so the next agent does not have to rediscover
+ it: NCDC runs TWO parallel cholera ascertainment streams and only one of them
+ can support absence claims. *** The routine IDSR stream (Weekly
+ Epidemiological Report) reports 2026 year-to-date at week 19 as 503 cases,
+ while WHO and the AI layer record 910-6,020 cases PER WEEK across May-June
+ 2026 — an order-of-magnitude under-capture. For 2025 the same stream reports
+ 476 cases at week 19 where the cholera sitrep stream reports 1,149 by week 9
+ alone. Every national zero week found anywhere in this pipeline — the 26 WHO
+ cholera_adm0_week zeros (Batch 1), NCDC WER 2023 wk39 (Batch 4), NCDC WER 2021
+ wk1-2 and 2026 wk15 (this batch) — comes from a sparse or lagged stream. Four
+ independent instances of the same failure mode, zero survivors. Absence
+ evidence for Nigeria must come from the cholera-sitrep / annual-report stream,
+ which is the MORE complete one; using the sparser stream to assert absence is
+ exactly backwards.
+
+ *** CONFLICT FROM BATCH 5 — RESOLVED, and it resolves in favour of the rows
+ written there. *** Four independent 2025 national totals:
+     NCDC Annual Report 2025, sum of the four quarterly tables : 24,349 / 548 d
+     WHO Cholera Surveillance Dashboard, sum of 53 weekly rows : 24,066 / 545 d
+     NCDC WER Vol 15 No 52, published 27 Jan 2026              : 21,873 / 481 d
+     NCDC Annual Report 2025, summary Table 1                  : 19,786 / 548 d
+ The quarterly sum agrees with the INDEPENDENT, non-NCDC WHO weekly series to
+ within 1.2% on cases and 3 on deaths. The WER figure is lower and was published
+ four months earlier, consistent with ordinary late reporting. Table 1's 19,786
+ is lower than NCDC's own January figure, which late reporting cannot produce,
+ and its death count (548) matches the quarterly tables exactly while its case
+ count does not — the signature of a stale case figure left in an otherwise
+ updated row. Table 1 is discarded; the quarterly tables underpinning rows
+ 1086-1107 are corroborated. Its "36 states affected" is likewise discarded, so
+ the union of 37 stands and there is NO annual 2025 ADM1 zero.
+
+ *** NOT WRITTEN, DELIBERATELY — a national 2025 annual row. *** The adjudicated
+ total (24,349 suspected / 213 confirmed / 548 deaths) would be a defensible new
+ observation, and it would have counted toward this batch's yield. It is not
+ written: ./data/NGA/cholera_data_who.csv already holds a COMPLETE 53-week
+ national 2025 series summing to 24,066, and laying an annual aggregate over a
+ complete weekly series is a double-counting hazard of exactly the kind
+ CLAUDE.md warns about. The figure is recorded here instead.
+
+ *** 2024 CANNOT BE EXTENDED. *** The NCDC cholera sitrep archive's newest 2024
+ issue is Week 39 (26 September 2024) — confirmed by enumerating the archive
+ index. Row 1046 (Enugu, 2024-01-01..2024-09-29, confidence 0.7) therefore stays
+ bounded at week 39 and is NOT extended to the full year. No 2024 Q4 state
+ source exists: the 2023/24 Biennial Report has no epidemiological tables
+ (Batch 5) and the WER gives only weekly state COUNTS, never names.
+
+ *** NO OTHER ZERO WEEKS EXIST. *** Across all 109 parsed issues (2021 n=27,
+ 2022 n=15, 2023 n=22, 2024 n=41, 2025 n=4 machine-parsed of 35 present,
+ 2026 n=7) the complete set of national cholera zero weeks is: 2021 wk1, 2021
+ wk2, 2023 wk39, 2026 wk15. All four rejected above. 2022 contains none.
+
+Sources found: 0 new registrations.
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE — the 3-batch minimum is long past, but stopping needs
+               3 consecutive sub-5% batches and Batch 5 reset the counter.
+
+================================================================================
+=== BATCH 7 | PHASE 2-3 | NGA — NCDC "IN THE REPORTING MONTH" STATE LISTS ===
+================================================================================
+Gap targeted : month-resolution ADM1 absence. Agent 2 logged these blocks as
+               "deliberately not extracted" because, as INCIDENCE, they would
+               overlap its committed weekly rows. That objection does not apply
+               to zeros, which cannot double-count — so the seam was reopened.
+Queries (20):
+ 121 survey the 65-issue pdfs/ corpus for "In the reporting month" blocks
+ 122-130 extract the nine 2023 monthly blocks (wk13, 17, 21, 26, 30, 34, 39,
+               47, 52) with their per-state counts
+ 131 internal arithmetic test of all nine blocks (states listed vs states
+               printed; per-state sum vs printed total)
+ 132 attribution-coverage test against the final 2023 national total
+ 133 per-state closure test, nine monthly blocks vs the final Table 7 cumulative
+ 134 extract the 2023 week-52 Table 7 state column (31 states, 3,683)
+ 135 extract the 2022 week-52 Table 6 state column (33 states, 23,763)
+ 136 extract the 2024 week-39 Table 7 state column (36 states, 10,837)
+ 137 same-document closure test on the 2022 December block
+ 138 same-document closure test on the 2024 September block
+ 139 determine 2023 NCDC epi-week boundaries from committed weekly rows
+ 140 contradiction check of the surviving candidates across JHU + WHO + AI
+
+RESULTS
+
+ *** REJECTED — the monthly-block method in general, quantitatively. *** Three
+ independent defects, any one of which is disqualifying:
+  (a) ATTRIBUTION. The nine 2023 monthly blocks together attribute 1,020 cases
+      of the year's final 3,683 — 28%. January, February and October have no
+      block at all. A state's silence in the blocks therefore says almost
+      nothing about whether it was case-free.
+  (b) BROKEN ARITHMETIC. Three of the nine blocks fail their own printed
+      totals: April (wk17) prints "5 states ... 98 suspected cases" but lists
+      SIX states summing to 47 — and 98 is the previous block's total, i.e. a
+      copy-paste; July (wk30) prints 77 and sums 70; September (wk39) prints
+      319 and sums 318. Contrast the 2021-2025 year-end state tables, every one
+      of which closes exactly (Batch 2).
+  (c) REVISION IN BOTH DIRECTIONS. September 2023 is 319 in the contemporaneous
+      wk39 block but 374 in the year-end monthly table — 17% of that month
+      arrived late. And Plateau's monthly figures sum to 17 against a final
+      annual total of 15, so the blocks can be revised DOWN as well as up. They
+      are not a partition of the year.
+ No month-level ADM1 zero may be derived by comparing a monthly block against a
+ different document.
+
+ *** SURVIVING — a narrow SAME-DOCUMENT CLOSURE that is immune to (c). ***
+ Within the single week-52 2023 issue, the reporting-month block and the
+ full-year Table 7 share one data cutoff ("As of 31st December 2023"). For three
+ states the December figure equals the full-year cumulative EXACTLY:
+      Taraba  14 = 14      Kogi  2 = 2      Edo  1 = 1
+ Because both numbers come from the same snapshot, no later revision can be
+ hiding in the gap: the state's entire 2023 burden fell inside the December
+ reporting month (epi weeks 48-52 = 2023-11-27..2023-12-31) and epi weeks 1-47
+ were case-free. Epi-week boundaries were verified against the Monday-Sunday
+ weekly rows already committed for 2023 (…, 2023-11-20..2023-11-26 = wk47,
+ 2023-12-25..2023-12-31 = wk52).
+ TL is set to 2023-01-02, the start of NCDC epi week 1 of 2023, NOT 1 January:
+ a case on 1 January 2023 falls in NCDC's 2022 epi week 52 and is counted in the
+ 2022 totals — Taraba in fact has 11 cases in the row for 2022-12-26..2023-01-01.
+ Starting at 1 January would have asserted absence over a day that belongs to a
+ positive week in the source's own accounting.
+
+ *** THE SAME TEST APPLIED TO 2022 AND 2024 YIELDS NOTHING, and that is
+ reassuring rather than disappointing. *** Both blocks close arithmetically
+ (2022 December: 8 states sum to exactly 219; 2024 September: 19 states sum to
+ exactly 1,938) so both were testable, and in neither does ANY state's
+ reporting-month figure equal its cumulative. The test is discriminating, not
+ permissive.
+
+ *** CONTRADICTION CHECK. *** No positive row in any layer overlaps
+ 2023-01-02..2023-11-26 for Taraba, Kogi or Edo. The only overlapping rows are
+ the three 2023 ANNUAL state totals already in this file (Index 260 Taraba 14,
+ 265 Kogi 2, 267 Edo 1, all 2023-01-01..2023-12-31). The new rows are nested
+ inside those and REFINE them — they localise the same cases to the last five
+ epi weeks. To make sure the pair can never be misread as a contradiction, a
+ cross-reference note was appended to Index 260, 265 and 267 naming the new row.
+
+Sources found: 0 new registrations (source index 50, the NCDC week-52 2023
+               sitrep, was already registered by Agent 2 and was reused).
+Rows added   : 3 — indices 1108 (Taraba), 1109 (Kogi), 1110 (Edo),
+               2023-01-02..2023-11-26, Documented_Absence / operational / 0.8.
+               Rows revised: 3 (cross-references on 260, 265, 267).
+Successful queries: 1/20  (q133, the per-state closure test, is the analytical
+               step that produced all three rows; the nine extraction queries
+               that fed it produced none on their own and are not counted.)
+Yield        : 5%
+Consecutive sub-5% batches: 1  (5% is not STRICTLY below 5%, so the counter from
+               Batch 6 is neither incremented nor reset by this batch; it stands
+               at the single sub-5% batch recorded in Batch 6.)
+Decision     : CONTINUE
+
+================================================================================
+=== BATCH 8 | PHASE 3 | NGA — SAME-DOCUMENT CLOSURE SWEEP, WHOLE SITREP CORPUS ==
+================================================================================
+Gap targeted : generalise the Batch 7 closure test across every NCDC cholera
+               sitrep that carries BOTH a reporting-month block and a
+               cumulative-to-date state table, 2021-2025.
+Queries (20):
+ 141 inventory the 65 extracted sitrep texts by year and week against the
+     93-issue archive index
+ 142 looser detector for the reporting-month block (19 issues carry one)
+ 143 build a cumulative-state-table parser keyed on the CFR column
+     (CFR always carries a decimal point, the "% change" columns never do —
+     that one property is what makes the table machine-readable)
+ 144-162 run the closure test issue by issue across all 19 issues plus the five
+     separately held year-end texts
+ 163 hand-verify every surviving closure against the raw PDF text
+ 164 2022 week-17 and week-26 cumulative tables (parse check)
+ 165 2023 week-21 cumulative table — 22 states as of 28 May 2023
+ 166 locate the week-26 2022 cumulative state table in the JHU layer
+ 167 final contradiction check of the four survivors across JHU + WHO + AI
+ 168 verify Niger's 2022 annual total in the week-52 2022 Table 6
+ 169 check Niger against the July and December 2022 reporting-month lists
+ 170 registration check — all four sources already in metadata_ai.csv
+
+RESULTS
+
+ The sweep produced seven candidate closures. Four survived; three were killed
+ by cross-checks. The rule that emerged, and that the next agent should reuse:
+ a mid-year closure is admissible ONLY if a LATER document confirms it. A
+ closure resting on one contemporaneous snapshot is the same object as the
+ zero weekly returns rejected four times already.
+
+ *** ACCEPTED (4 rows) ***
+  1111 Niger   2022-01-03..2022-05-01 (epi wks 1-17)
+  1112 Niger   2022-05-30..2022-12-31 (epi wks 22-52)
+       Niger's ENTIRE 2022 burden is one case. The week-21 2022 sitrep gives it
+       a cumulative of 1 and attributes it to May (wks 18-21). The week-26 2022
+       cumulative table (JHU Index 75518) still shows 1; the week-52 2022
+       Table 6 still shows 1. The FINAL annual equals the May figure, so nothing
+       can be hiding on either side of it. Niger is also absent from the July
+       and December 2022 reporting-month lists.
+  1113 Jigawa  2022-01-03..2022-07-03 (epi wks 1-26)
+       Week-30 2022 cumulative = 4 = its July figure. Corroborated twice more:
+       the week-26 2022 cumulative state table in the JHU layer (21 states)
+       omits Jigawa, and the week-21 2022 narrative list of the thirty states
+       that had reported cholera in 2022 omits Jigawa. Jigawa then recorded 417
+       cases in 2022, every one from July onward — so this row dates the onset
+       of a substantial state epidemic, which is exactly what a metapopulation
+       model needs.
+  1114 Adamawa 2023-01-02..2023-05-28 (epi wks 1-21)
+       Week-26 2023 cumulative = 2 = its June figure, AND the earlier week-21
+       2023 sitrep's own cumulative table (22 states as of 28 May 2023) omits
+       Adamawa. Later document confirms earlier. Adamawa reached 62 by year end.
+
+ *** REJECTED — Ekiti 2022, and it is worth stating why in full. *** The
+ week-30 2022 sitrep gives Ekiti a cumulative of 1 and attributes that 1 to
+ July, which looks like a clean closure. It is not: the week-26 2022 cumulative
+ state table already in the JHU layer (Index 75517) gives Ekiti 2 cases as of
+ 26 June. NCDC's cumulative for Ekiti therefore runs 2 (wk26) -> 1 (wk30) -> 4
+ (year end). A cumulative cannot decrease. The same pathology as the WHO
+ cholera_adm0_week cum_case falling from 1917 to 1851 in Batch 1. NO ROW.
+
+ *** REJECTED — Ekiti 2022 via the week-35 issue, on a second and independent
+ ground: that issue's monthly block is textually corrupt. *** It reads "In the
+ reporting month,11 states reported 1677 suspected cases - Yobe (853), Borno
+ (333), Jigawa (247), Gombe (133), Borno (160), Ekiti (1), Gombe (3), Jigawa
+ (4), Kaduna (14), Kano (171), Katsina (115), Kebbi (1), Plateau (11), Sokoto
+ (12), Yobe (4) and Zamfara (11)" — it claims 11 states but lists 16 entries,
+ Borno, Gombe, Jigawa and Yobe each appear TWICE, the listed values sum to 2,073
+ against a printed 1,677, and the tail from "Ekiti (1)" onward is VERBATIM the
+ previous month's July list. It is a copy-paste of the wk30 block. NO ROW.
+
+ *** REJECTED — Kaduna 2022 epi weeks 1-17. *** Week-21 2022 cumulative = 4 =
+ its May figure, which passes the same-document test. But nothing confirms it:
+ no week-17 cumulative table could be parsed, and Kaduna went 4 (wk21) -> 17
+ (wk26) -> 31 (year end), so the figure was demonstrably still moving. A single
+ contemporaneous snapshot in a rising series is precisely the evidence class
+ this agent has rejected four times. NO ROW.
+
+ *** REJECTED — Kogi and Nasarawa, week-9 2025. *** The last cholera sitrep ever
+ published (the series ended in March 2025) closes for Kogi (12 = 12) and
+ Nasarawa (5 = 5) against its February reporting month. It is nonetheless a
+ superseded snapshot: the NCDC Annual Report 2025 puts Q1 at 2,223 cases against
+ the 1,149 this sitrep records for weeks 1-9, so roughly half of Q1 is not in
+ it, and both states appear in the annual report's Q1 list. The sitrep is not
+ the final word on early 2025 and cannot carry a weeks-1-4 absence claim.
+
+ *** THE PARSER NOTE, so the next agent does not repeat the work. *** The
+ regex for the monthly blocks misses the trailing "X and Y reporting (1) case
+ each" construction, so the automated sweep under-counts states in some blocks
+ (it found 8 of the 11 in the 2023 wk52 block, missing Edo). Under-counting can
+ only cause MISSED closures, never false ones, and every survivor was
+ hand-verified against the raw PDF text before being written.
+
+Sources found: 0 new registrations — all four sources were already registered
+               by Agent 2 (indices 102, 49, 59, 111) and were reused.
+Rows added   : 4 — indices 1111-1114, Documented_Absence / operational / 0.8.
+Successful queries: 2/20  (q144-162 as the sweep that produced the candidates,
+               counted once, and q166 the JHU week-26 2022 table that converted
+               Jigawa and Niger from single- to multi-document and killed Ekiti.)
+Yield        : 10%
+Consecutive sub-5% batches: 0  (reset)
+Decision     : CONTINUE
+
+================================================================================
+=== BATCH 9 | PHASE 3 | NGA — 2021 EPIDEMIC FADE-OUT DATING BY CUMULATIVE SERIES
+================================================================================
+Gap targeted : ADM1 absence in 2021, the largest epidemic year in the modern
+               record (111,062 cases, 34 of 37 units affected, only 3 annual
+               zeros available). Annual zeros are exhausted for 2021, so the
+               remaining absence information is WITHIN the year: when did each
+               state's outbreak stop? For a metapopulation model a dated
+               fade-out is worth as much as an annual zero.
+Method       : 2021 has 27 sitrep issues, enough to build a per-state CUMULATIVE
+               TIME SERIES. If a state's cumulative reaches its final full-year
+               value at week N and is then unchanged in every later issue, it
+               recorded no cases after week N. Requiring the value to hold
+               across several later documents is what distinguishes this from
+               the single-snapshot claims rejected in Batches 4, 6 and 8.
+Queries (20):
+ 171 parse cumulative state tables from all 27 NCDC 2021 sitreps (11 parse
+     cleanly: weeks 34, 35, 36, 37, 40, 41, 43, 47, 50, 51, 52)
+ 172 verify the week-52 table: 34 states summing to 111,062
+ 173-183 build the per-state cumulative series for all 34 states
+ 184 flat-tail test with a minimum of 3 confirming later issues
+ 185 monotonicity audit of the series (detects the revision noise)
+ 186 derive 2021 epi-week boundaries from the JHU weekly layer (wk1 = 4-10 Jan)
+ 187 contradiction check of all 10 survivors across JHU + WHO + AI
+ 188 POSITIVE CONTROL on the contradiction matcher, Oct-Dec 2021
+ 189 enumerate every weekly state row committed for Nov-Dec 2021 (rows 806-836)
+ 190 registration check against metadata_ai.csv
+
+RESULTS
+
+ *** POSITIVE CONTROL PASSED, so the contradiction test is meaningful. *** The
+ matcher does find weekly rows after October 2021 — Katsina 261, Zamfara 137,
+ Gombe 70, Adamawa 34, Sokoto 33 in week 40 and so on. This matters: the
+ equivalent control FAILED for 2022-2024 in Batch 3, which is why those years
+ got a weaker no-contradiction check. For 2021 the check is real.
+
+ *** ACCEPTED — 10 dated fade-outs (rows 1115-1124). *** Each state's final
+ 2021 total, the week by which it was already reached, and the number of later
+ issues that hold it unchanged:
+   FCT     1,286  by wk34, flat across 10 later issues -> zero 2021-08-30..12-31
+   Enugu     127  by wk34, flat across 10            -> zero 2021-08-30..12-31
+   Kogi      151  by wk35, flat across  9            -> zero 2021-09-06..12-31
+   Kano   12,116  by wk40, flat across  6            -> zero 2021-10-11..12-31
+   Delta     578  by wk40, flat across  6            -> zero 2021-10-11..12-31
+   Ebonyi    175  by wk40, flat across  6            -> zero 2021-10-11..12-31
+   Sokoto  8,477  by wk43, flat across  4            -> zero 2021-11-01..12-31
+   Niger   2,821  by wk43, flat across  4            -> zero 2021-11-01..12-31
+   Jigawa 15,141  by wk47, flat across  3            -> zero 2021-11-29..12-31
+   Kaduna  2,132  by wk47, flat across  3            -> zero 2021-11-29..12-31
+ Confidence 0.85 where 6 or more later issues confirm, 0.8 where 3 or 4 do.
+ Note what these say: Kano's 12,116-case epidemic and Jigawa's 15,141-case
+ epidemic both had a hard stop, and the date is now in the file.
+
+ *** INDEPENDENT CROSS-CHECK, from a different part of the source family. ***
+ The rows above rest on the CUMULATIVE tables. The reporting-week state case
+ lines committed by Agent 2 for November and December 2021 (rows 806-836) are a
+ separate extraction from the same PDFs, and they name Adamawa, Nasarawa,
+ Taraba, Yobe, Zamfara, Oyo, Benue, Gombe, Ondo, Borno, Kwara, Lagos, Rivers,
+ Akwa Ibom, Abia and Ekiti — and not one of the ten states above. Two
+ independent readings of the corpus agree.
+
+ *** REJECTED — Oyo 2021. *** Oyo passes the naive flat-tail test (201 by wk47,
+ flat across 3) but its series runs 209 (wk40) -> 209 (wk41) -> 200 (wk43) ->
+ ... -> 201 (wk52). The cumulative DECREASES, so the final value was reached
+ through a downward revision rather than by the outbreak stopping, and "reached
+ by wk47" is an artifact. Oyo also appears with 7 cases in the week-47 reporting
+ line (row 811). NO ROW. Two other states show the same small downward noise
+ early in their series (Kano 10,195 -> 10,187; Jigawa 8,929 -> 8,911) but their
+ tails are clean, which is exactly what the flat-tail requirement is for.
+
+ *** NOTE ON PARSE COVERAGE. *** Only 11 of the 27 2021 issues yielded a
+ machine-readable cumulative table; the other 16 use a layout the CFR-anchored
+ row parser does not match. This can only cost coverage (fewer confirming
+ issues, hence a more conservative "reached by" week), never create a false
+ fade-out, because every accepted state is confirmed by at least three
+ SUCCESSFULLY parsed later issues.
+
+Sources found: 0 new registrations — source index 47, the NCDC week-52 2021
+               sitrep holding the final annual values, was already registered;
+               every confirming issue is named by week number in each row's
+               processing_notes.
+Rows added   : 10 — indices 1115-1124.
+Successful queries: 2/20  (q171 the corpus-wide cumulative-table parse, and
+               q184 the flat-tail test that selected the survivors.)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+================================================================================
+=== BATCH 10 | PHASE 3 | NGA — FADE-OUT DATING EXTENDED TO 2018, 2019, 2022, 2023
+================================================================================
+Gap targeted : apply the Batch 9 cumulative-series method to every other year
+               with a multi-issue sitrep corpus.
+Queries (20):
+ 191-193 parse cumulative state tables from the 2018 (13 issues), 2019 (2) and
+         2022 (11) sitrep sets
+ 194 same for 2023 (11 issues)
+ 195-204 build per-state cumulative series and run the flat-tail test, 2022
+ 205-208 same for 2023
+ 209 monotonicity audit of both years
+ 210 cross-check every survivor against the same year's reporting-month lists
+ 211 contradiction check of all 12 survivors across JHU + WHO + AI
+ 212 derive 2022 and 2023 epi-week boundaries from committed weekly rows
+ 213 check overlap against the annual zeros and Batch 7-8 rows already committed
+
+RESULTS
+
+ *** 2018 AND 2019 YIELD NOTHING — the format predates the table. *** No
+ cumulative state table could be parsed from any of the 13 issues of 2018 or
+ either issue of 2019; those issues carry narrative state lists only. This is
+ the same structural limitation that defeated 2017 and 2019 in Batches 3 and 4,
+ now confirmed from a third direction. The method needs the tabular era, which
+ begins in 2021.
+
+ *** ACCEPTED — 12 dated fade-outs. ***
+ 2022 (cumulative tables at weeks 21, 30, 35, 43, 52; source index 49)
+   1126 Rivers  50 by wk21, flat 4 -> zero 2022-05-30..12-31
+   1128 Kwara   30 by wk21, flat 4 -> zero 2022-05-30..12-31
+   1129 Oyo      2 by wk21, flat 4 -> zero 2022-05-30..12-31
+   1125 Kebbi   54 by wk30, flat 3 -> zero 2022-08-01..12-31
+   1127 Lagos   47 by wk30, flat 3 -> zero 2022-08-01..12-31
+ 2023 (tables at weeks 9, 13, 17, 21, 26, 30, 34, 39, 47, 52; source index 50)
+   1130 Cross River 718 by wk17, flat 7 -> zero 2023-05-01..12-31
+   1131 Anambra       1 by wk17, flat 7 -> zero 2023-05-01..12-31
+   1132 Ekiti         1 by wk21, flat 6 -> zero 2023-05-29..12-31
+   1133 Imo           1 by wk21, flat 6 -> zero 2023-05-29..12-31
+   1134 Sokoto       22 by wk26, flat 5 -> zero 2023-07-03..12-31
+   1135 Kwara         2 by wk30, flat 3 -> zero 2023-07-31..12-31
+   1136 Kaduna       27 by wk34, flat 3 -> zero 2023-08-28..12-31
+ Cross River is the most consequential: 718 cases, the second largest state
+ burden of 2023, and the series shows it stopping dead at week 17 and holding
+ through seven further issues.
+
+ *** REJECTED — Osun 2022 and Delta 2022, both on the decreasing-series rule. ***
+ Osun runs 4 (wk21) -> 3 (wk30) -> 3 -> 3 -> 3. Delta is far worse: 61 (wk21) ->
+ 1 (wk30) -> 1 -> 1 -> 1, a 98% drop in a quantity that cannot fall. Delta's
+ 2022 annual is printed as 1 while its week-21 cumulative was 61; one of the two
+ is simply wrong and nothing can be built on either. NO ROWS. (Recorded here as
+ a data-quality warning for whoever uses the Delta 2022 annual figure.)
+
+ *** REJECTED — the "zero before first appearance" variant. *** Kwara is absent
+ from every 2023 cumulative table up to week 26 and then appears with 2 at week
+ 30, which invites a "Kwara zero in weeks 1-26" row. It was NOT written: a
+ cumulative cannot distinguish two cases newly occurring in weeks 27-30 from two
+ cases backfilled into earlier weeks, so the pre-appearance window rests on a
+ single contemporaneous snapshot — the evidence class rejected throughout this
+ run. Only Kwara's post-week-30 window was written. The same restraint was
+ applied to every other late-appearing state.
+
+ *** CORROBORATION OF A BATCH 8 ROW BY A DIFFERENT METHOD. *** Niger 2022 comes
+ out of the cumulative-series analysis with a value of 1 in all five tables,
+ flat from week 21 — reproducing row 1112 (Niger, epi weeks 22-52) without using
+ the reporting-month block that produced it. A corroboration note was appended
+ to row 1112. Two independent derivations agreeing is the strongest internal
+ evidence this run has produced for the method itself.
+
+Sources found: 0 new registrations (indices 49 and 50 reused).
+Rows added   : 12 — indices 1125-1136. Rows revised: 1 (corroboration on 1112).
+Successful queries: 2/20  (q195-204 the 2022 flat-tail test and q205-208 the
+               2023 flat-tail test, each counted once.)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
+================================================================================
+=== BATCH 11 | PHASE 3 | NGA — 2024 SITREP SERIES, FADE-OUT DATING ===
+================================================================================
+Gap targeted : ADM1 absence in 2024. Before this batch 2024 had exactly ONE
+               absence row in the whole file (Enugu, 2024-01-01..2024-09-29,
+               the single unit missing from the week-39 state table) against
+               10,837 cases in 36 reporting units. The 2024 sitrep series had
+               never been downloaded — only the week-39 issue was in hand.
+Queries (20):
+ 214 enumerate all 2024 issues in the NCDC cholera sitrep archive index
+ 215-236 download and pdftotext -layout 22 issues (weeks 4, 8, 12, 17 and every
+         week 22-39); parse the cumulative state table from each
+ 237 verify the final week-39 table (36 states, 10,837 = printed national total)
+ 238 flat-tail test with monotonicity audit
+ 239 cross-check every survivor against the week-39 September reporting-month list
+ 240 contradiction check + positive control against the committed 2024 weekly rows
+
+RESULTS
+
+ *** THE BEST-CORROBORATED SERIES IN THE COUNTRY. *** 22 issues parsed cleanly,
+ 18 of them consecutive weeks (22-39). That density is what makes the flat-tail
+ test sharp here: several states are confirmed by 8-11 successive documents.
+
+ *** ACCEPTED — 11 dated fade-outs (rows 1137-1147). ***
+   Benue     23 by wk28, flat 11 -> zero 2024-07-15..09-29
+   Nasarawa  23 by wk30, flat  9 -> zero 2024-07-29..09-29
+   Taraba     9 by wk31, flat  8 -> zero 2024-08-05..09-29
+   Plateau    1 by wk31, flat  8 -> zero 2024-08-05..09-29
+   Kwara     16 by wk32, flat  7 -> zero 2024-08-12..09-29
+   Bayelsa  513 by wk34, flat  5 -> zero 2024-08-26..09-29
+   Abia     159 by wk34, flat  5 -> zero 2024-08-26..09-29
+   Ondo      41 by wk34, flat  5 -> zero 2024-08-26..09-29
+   Ogun     133 by wk35, flat  4 -> zero 2024-09-02..09-29
+   Osun      49 by wk35, flat  4 -> zero 2024-09-02..09-29
+   Niger     17 by wk35, flat  4 -> zero 2024-09-02..09-29
+ Bayelsa is the notable one: a 513-case state outbreak with a fade-out date now
+ attached to it.
+
+ *** WINDOWS BOUNDED BY THE SOURCE, NOT BY THE EVIDENCE. *** Every 2024 row
+ stops at 2024-09-29. NCDC published no cholera sitrep after Week 39 of 2024 and
+ the 2023/24 Biennial Report has no epidemiological tables (Batch 5), so nothing
+ is asserted about October-December 2024. Extending these rows to 31 December
+ would have been an easy way to inflate coverage and would have been a fiction.
+
+ *** TWO INDEPENDENT CROSS-CHECKS, BOTH PASSED. ***
+  (a) The week-39 issue's own September reporting-month list names 19 states —
+      Adamawa, Jigawa, Lagos, Kano, Bauchi, Borno, Yobe, Katsina, Kebbi, Oyo,
+      Ebonyi, Kaduna, Edo, Sokoto, FCT, Akwa-Ibom, Zamfara, Imo, Kogi — and
+      contains NONE of the eleven.
+  (b) POSITIVE CONTROL then contradiction check: the AI layer holds 86 weekly
+      state rows WITH CASES for July-September 2024, covering 26 states
+      including Abia, Bayelsa, Kwara, Niger, Ogun and Taraba. The matcher
+      therefore has ample opportunity to fire, and it returns no positive row
+      for any of the eleven inside its own window.
+
+ *** REJECTED — Rivers 2024. *** Passes the naive flat-tail test (166 by wk35,
+ flat across 4) but its series falls from 74 at week 32 to 73 at week 34 before
+ jumping to 166 at week 35. A decreasing cumulative disqualifies it under the
+ rule applied to Oyo 2021, Osun 2022 and Delta 2022. NO ROW.
+
+Sources found: 0 new registrations (index 51, the week-39 2024 sitrep holding
+               the final cumulative values, was already registered; the 21
+               confirming issues are named by week number in the notes).
+Rows added   : 11 — indices 1137-1147.
+Successful queries: 2/20  (q215-236 the download-and-parse sweep, counted once,
+               and q238 the flat-tail test that selected the survivors.)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE — one batch remains before the 12-batch ceiling.
+
+================================================================================
+=== BATCH 12 | PHASE 3 | NGA — 2018 SERIES, ACADEMIC SWEEP, INTEGRITY AUDIT ===
+================================================================================
+Gap targeted : (a) extend fade-out dating to 2018, the last year with a
+               multi-issue sitrep corpus; (b) close out the academic absence
+               seam; (c) re-audit every row this agent has written.
+Queries (20):
+ 241 inspect the 2018 sitrep table structure (Table 1 has a per-state
+     "Total cases reported" column, so a series IS constructible)
+ 242-252 parse cumulative state tables from 11 of the 13 2018 issues
+     (weeks 25, 28, 30, 31, 35, 36, 37, 38, 39, 40, 43)
+ 253 flat-tail test for 2018 — produced 10 candidates
+ 254 POSITIVE CONTROL and contradiction check against the JHU/IDSR 2018 weekly
+     layer (594 weekly rows with cases, July-October 2018)
+ 255 alias-aware integrity re-audit of all 97 rows written by this agent
+ 256 Europe PMC: "cholera-free" AND Nigeria
+ 257 Europe PMC: "no cases were reported" AND cholera AND Nigeria
+ 258 Europe PMC: "absence of cholera" / "free of cholera" AND Nigeria
+ 259 Europe PMC core record + abstract, PMC13543290 (Adamawa 2021 investigation)
+ 260 WHO IRIS DSpace REST spot-check of the WER annual cholera series
+
+RESULTS
+
+ *** REJECTED — the ENTIRE 2018 fade-out set, on direct evidence, and this is
+ the most important finding of the batch because it validates the method used
+ in Batches 9-11 by showing what failure looks like. *** The 2018 series yields
+ 10 apparently clean fade-out candidates. Tested against NCDC's own routine
+ IDSR weekly data in the JHU layer, SIX are flatly contradicted:
+     Bauchi  frozen at 9,405 from wk37, but IDSR records Bauchi cases in
+             weeks 40, 41, 42 and 43 (1, 2, 11, 5)
+     Kaduna  frozen at 401 from wk35, but IDSR records cases in EIGHT later
+             weeks (11, 3, 7, 2, 4, 12, 4 ...)
+     Kebbi   frozen at 198 from wk37, IDSR records 3 cases in week 41
+     Ebonyi  frozen at 182 from wk35, IDSR records cases in weeks 36 and 37
+     Kogi    frozen at 102 from wk30, IDSR records 2 cases in week 41
+     Jigawa  frozen at 15 from wk28, IDSR records 10 in wk29 and 32 in wk32
+ A 60% false-positive rate disqualifies the remaining four (Niger, Plateau,
+ FCT, Anambra) as well; they are not evidence, they are the four that happen
+ not to have been caught. NO 2018 ROWS WRITTEN.
+ WHY 2018 FAILS WHERE 2021-2024 SUCCEED, stated so the rule is portable: the
+ 2018 cholera sitrep is an incomplete parallel stream. Its Table 1 does not
+ close arithmetically (42,446 against a printed 42,466), its lowest listed
+ value is 10 cases so it has no single-case floor, and Batch 3 already showed
+ it reporting 42,466 cases from 20 states in the same week that NCDC's IDSR
+ bulletin reported 48,686 from 29. A cumulative that stops moving in an
+ incomplete stream means the stream stopped updating, not that transmission
+ stopped. The 2021-2025 year-end tables, by contrast, close EXACTLY to their
+ printed national totals and list single-case states (Batch 2), and their
+ positive controls pass. Completeness of the stream is the precondition for
+ the fade-out method; it is not optional.
+
+ *** INTEGRITY RE-AUDIT OF ALL 97 AGENT 3 ROWS — CLEAN. *** Every row was
+ re-tested by interval overlap against JHU + WHO + AI with ALIAS-AWARE name
+ matching, after this batch exposed a matcher gap: an earlier test searched for
+ "FCT" while the JHU layer spells it "Federal Capital Territory" and
+ "Municipal Area Council", so FCT rows had not really been tested. With aliases
+ for FCT, Akwa Ibom and Cross River added: 0 contradictions across all 97 rows,
+ and 0 rows whose state has no fine-resolution data anywhere in the corpus —
+ i.e. the test had a genuine opportunity to fire on every single row.
+
+ *** ACADEMIC SEAM CLOSED. *** Europe PMC returns ZERO hits for "cholera-free"
+ together with Nigeria. The hits for "no cases were reported", "absence of
+ cholera" and "free of cholera" are all phrase matches inside papers about
+ other countries (chiefly Cameroon) or generic reviews. Combined with the six
+ state-specific searches in Batch 4 and the five here, the peer-reviewed
+ literature contains exactly one Nigerian state-level absence statement: Goni
+ et al. 2025 on Yobe (rows 1032-1033, found in Batch 2).
+
+ *** REJECTED — Adamawa, January-June 2021. *** PMC13543290, "Cholera outbreak
+ investigation in Adamawa state, Nigeria, June 2021 - December 2021", analyses
+ the State line list for 30 June - 01 December 2021 and reports 1,332 cases.
+ The window is tempting as an absence bound for January-June 2021. It is not
+ one: NCDC's 2021 annual for Adamawa is 1,701, so roughly 369 Adamawa cases sit
+ OUTSIDE the paper's window. The study period is a study period, not a
+ statement of absence — the same outbreak-filter trap as the 2018 "20 States"
+ list and the Lagos "major outbreaks" table. NO ROW.
+
+ *** ASSIGNMENT TARGET 1 RE-CONFIRMED FROM A SECOND DIRECTION. *** The WHO IRIS
+ DSpace REST API remains reachable (1,927 hits for the WER annual series;
+ "CHOLERA IN 1985 = LE CHOLERA EN 1985" resolves to handle 10665/225862), so the
+ WER annual cholera tables are accessible and Batch 1's negative closure rests
+ on a live source. Nigeria carries a POSITIVE reported case count in every year
+ of the WHO annual series from 1970 to 2016 except 1974 and 1990, and the series
+ demonstrably does record explicit zeros for other countries (51 country-years).
+ There are no further national reported-zero years for Nigeria to find.
+
+Sources found: 0 new registrations.
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : STOP — 12-batch ceiling (240 queries) reached.
+
+================================================================================
+STOPPING-CRITERIA STATEMENT
+================================================================================
+Batches executed : 12 (240 discovery actions). The 3-batch minimum was exceeded
+                   fourfold.
+Batch yields (%) : 25, 5, 10, 0, 15, 0, 5, 10, 10, 10, 10, 0
+Criterion met    : the 12-batch ceiling. The <5%-yield criterion was NOT met:
+                   only Batches 4, 6 and 12 fell strictly below 5% and they were
+                   never consecutive (Batch 5 and Batch 8 each reset the
+                   counter). This agent did not saturate; it reached its budget.
+Tooling caveat   : the session-wide WebSearch allowance was already exhausted
+                   (200/200) by Agents 1 and 2 before this agent started, and
+                   was re-tested and re-confirmed exhausted at the start of this
+                   session. All 240 actions were direct HTTP retrieval and
+                   public APIs (WHO GHO OData, WHO ArcGIS FeatureServer, WHO
+                   IRIS DSpace REST, Europe PMC REST, PubMed E-utilities,
+                   ncdc.gov.ng sitrep/WER/annual-report PDFs) plus pdftotext
+                   -layout extraction and programmatic cross-checks. That is a
+                   tooling constraint, NOT protocol saturation, and it is stated
+                   plainly rather than dressed up as saturation.
+What remains     : (1) 2024 October-December and 2025 have no per-state source
+                   after NCDC discontinued the cholera sitrep series in March
+                   2025, so the 2024 rows stop at epi week 39 and 2025 rests
+                   entirely on the annual report's quarterly resolution;
+                   (2) 2026 ADM1 absence is not derivable at all — the epidemic
+                   is live, publication lags, and no state enumeration exists;
+                   (3) pre-2021 sub-national absence is not derivable: the
+                   tabular sitrep era begins in 2021 and the 2017-2019 products
+                   are narrative and demonstrably incomplete;
+                   (4) 2026-08-17..2026-09-21 remains open and MUST stay open —
+                   it is publication lag during an active epidemic, not absence.
