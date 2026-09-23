@@ -12,11 +12,11 @@
 **AI-enhanced data mining for cholera surveillance data to fill missing observations in WHO African Region historical records through systematic multi-agent search, validation, and integration workflows.**
 
 <div align="center">
-  <a href="https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/">
+  <a href="https://docs.idmod.org/ai-cholera-data-mining/">
     <img src="./dashboard/dashboard-preview.png" alt="MOSAIC Dashboard Preview" width="250" style="box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='scale(1.025)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.3)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)';">
   </a>
   <br>
-  <strong><a href="https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/">🔗 View Live Dashboard</a></strong>
+  <strong><a href="https://docs.idmod.org/ai-cholera-data-mining/">🔗 View Live Dashboard</a></strong>
 </div>
 
 ---
@@ -142,7 +142,7 @@ The methodology employs a systematic 6-agent workflow designed for comprehensive
 
 **Secondary Products**:
 
-- **[Interactive dashboard](https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/)**: Real-time progress tracking across all countries \
+- **[Interactive dashboard](https://docs.idmod.org/ai-cholera-data-mining/)**: Real-time progress tracking across all countries \
 - **Timeline visualizations**: Coverage plots showing data enhancement impact \
 
 **MOSAIC Framework Integration**:

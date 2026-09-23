@@ -197,7 +197,7 @@ else
     echo "🚀 Pushing dashboard updates to GitHub..."
     if git push; then
         echo "✅ Dashboard successfully updated on GitHub!"
-        echo "🌐 Live dashboard available at: https://InstituteforDiseaseModeling.github.io/ai-cholera-data-mining/"
+        echo "🌐 Live dashboard available at: https://docs.idmod.org/ai-cholera-data-mining/"
     else
         echo "❌ ERROR: Failed to push to GitHub"
         echo "   Dashboard updated locally, but remote push failed"

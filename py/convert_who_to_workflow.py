@@ -6,36 +6,27 @@ This script converts WHO cholera surveillance data from ees-cholera-mapping
 into the standardized metadata.csv and cholera_data.csv format used by
 the AI cholera data mining workflow.
 
-KNOWN DEFECT - 2026 ROWS ARE SHIFTED ONE WEEK EARLY. NOT YET FIXED.
---------------------------------------------------------------------
-week_to_date_range() below converts a WHO *week number* to ISO week N of that
-year. WHO's own epi-week numbering is not ISO week numbering, and for 2026 it
-is offset by one. Confirmed 2026-09-22 against WHO's cholera_adm0_week
-FeatureServer, whose `date_wk` field gives the true week start:
+WHO EPI-WEEKS ARE NOT ISO WEEKS - dates come from WHO, not from arithmetic
+--------------------------------------------------------------------------
+This script used to turn a WHO week number into ISO week N of the same year.
+WHO's epi-week numbering is its own, and for 2026 it is offset by one, so every
+2026 row landed a week early: data/NGA/cholera_data_who.csv showed 855 cases at
+ISO week 18 where the true value for that week is 56.
 
-    WHO epiwk 17 -> date_wk 2026-04-27 -> ISO week 18, cases 56
-    WHO epiwk 18 -> date_wk 2026-05-04 -> ISO week 19, cases 860
-    WHO epiwk 19 -> date_wk 2026-05-11 -> ISO week 20, cases 910
+Week start dates are now read from reference/who_epiweek_calendar.json, cached
+from the date_wk field of WHO's own cholera_adm0_week FeatureServer by
+py/fetch_who_epiweek_calendar.py. Measured offset (ISO week - WHO epiwk) over
+5,118 service records: 2023 = 0, 2024 = 0, 2025 = 0, 2026 = +1.
 
-So a WHO row for week 18 lands on ISO week 18 when it belongs on ISO week 19.
-data/NGA/cholera_data_who.csv shows 855 at ISO W18 where the true value is 56,
-a roughly fifteenfold overstatement, and every 2026 week is displaced.
+If the calendar file is missing, or lacks the week being converted, the old
+arithmetic is used and a warning is logged - correct for 2023-2025, a week early
+for 2026. Refresh the calendar when new weeks appear upstream.
 
-Measured offset of (ISO week - WHO epiwk) by year for NGA:
-    2023: 0    2024: 0    2025: 0    2026: +1
-so the defect is confined to 2026 at present, but it will recur in any year
-where the two numbering schemes diverge.
+The 336 already-generated rows carrying the old dates were repaired once by
+py/fix_who_week_shift.py.
 
-Blast radius: 318 WHO baseline rows across 19 countries, of which 306 reach
-data/{ISO}/cholera_weekly_{ISO}.csv as observed weeks - the most recent and
-most model-relevant data in the series.
-
-The fix is to read `date_wk` from the source rather than deriving dates from
-the week number. That requires the upstream extract in ees-cholera-mapping to
-carry date_wk, which the current cholera_country_weekly.csv does not: it has
-only country, year, week, cases_by_week, deaths_by_week. Regenerating the
-baselines also has to contend with this converter's append/duplicate behaviour
-(delete data/{ISO}/cholera_data_who.csv before re-running, or rows multiply).
+STILL TRUE: this script APPENDS. Delete data/{ISO}/cholera_data_who.csv before
+re-running, or rows multiply.
 
 Usage:
     python py/convert_who_to_workflow.py
@@ -113,8 +104,48 @@ def load_country_mapping():
         logger.error(f"Failed to load country mapping: {str(e)}")
         return {}
 
+def _load_who_calendar():
+    """WHO epi-week -> week-start date, cached from WHO's own date_wk field.
+
+    Built by py/fetch_who_epiweek_calendar.py. Without it we fall back to
+    treating a WHO week number as an ISO week number, which is wrong whenever
+    the two schemes diverge - in 2026 by a full week.
+    """
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                     'reference', 'who_epiweek_calendar.json')
+    try:
+        with open(p) as fh:
+            return json.load(fh).get('weeks', {})
+    except (OSError, ValueError):
+        logger.warning("⚠️  reference/who_epiweek_calendar.json not readable; "
+                       "falling back to ISO week numbering, which mis-dates any "
+                       "year where WHO's epi-weeks differ from ISO weeks "
+                       "(2026 is one). Run py/fetch_who_epiweek_calendar.py.")
+        return {}
+
+
+WHO_CALENDAR = _load_who_calendar()
+_FALLBACK_WEEKS = set()
+
+
 def week_to_date_range(year, week):
-    """Convert year and week number to date range (TL, TR)."""
+    """Convert a WHO year and epi-week number to a date range (TL, TR).
+
+    Prefers WHO's own published week-start date. WHO epi-weeks are NOT ISO
+    weeks: for 2026, WHO week N begins on the Monday of ISO week N+1, so
+    deriving the date arithmetically placed every 2026 row a week early.
+    """
+    key = f"{int(year)}-{int(week):02d}"
+    start = WHO_CALENDAR.get(key)
+    if start:
+        tl = datetime.strptime(start, "%Y-%m-%d")
+        return tl.strftime("%Y-%m-%d"), (tl + timedelta(days=6)).strftime("%Y-%m-%d")
+
+    if key not in _FALLBACK_WEEKS:
+        _FALLBACK_WEEKS.add(key)
+        logger.warning(f"⚠️  no WHO calendar entry for {key}; deriving the date "
+                       f"from the week number, which may be off by a week")
+
     try:
         # Get the first day of the year
         jan1 = datetime(year, 1, 1)
