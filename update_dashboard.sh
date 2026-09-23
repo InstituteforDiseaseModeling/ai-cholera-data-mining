@@ -171,6 +171,12 @@ echo "🔄 Committing dashboard updates to GitHub..."
 # Safely add dashboard files to git (only if they exist)
 safe_git_add "dashboard/completion_checklist.csv"
 safe_git_add "dashboard/dashboard.html"
+# Regenerated above by generate_country_status_page.py. It was missing from this
+# list, so the standalone page was rebuilt on every run and published only when
+# someone happened to `git add -A` by hand - the live copy had drifted hours
+# behind the dashboard it links to. (run_status.html is published separately, by
+# the heartbeat in py/run_status.py.)
+safe_git_add "dashboard/country_status.html"
 # Figures are now in ./figures/dashboard/ and tracked separately
 safe_git_add "figures/dashboard/"
 # Stage weekly CSVs (generated per-country by build_weekly_timeseries.py)
