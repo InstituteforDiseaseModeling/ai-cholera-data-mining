@@ -16,6 +16,7 @@ Exits 0 always - a parsing failure must not stop the run resuming.
 """
 import re
 import sys
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -31,12 +32,25 @@ PAT = re.compile(
 # The stated time is in the account's timezone; this machine is set to the same
 # zone, so no conversion is applied. A buffer avoids retrying a second early.
 BUFFER_SECONDS = 120
-MAX_WAIT = 8 * 24 * 3600
+# Never advise a wait longer than this. A wrong estimate should cost one
+# wasted probe, not a day of silence.
+MAX_WAIT = 3600
+
+
+# A block message is only evidence about *now* if it is recent. The session
+# message carries no date ("your session limit resets 10am"), so a week-old log
+# still parses to a plausible-looking time today. That is how the 40-country run
+# went quiet for six days: the supervisor read a 7-day-old message, computed a
+# long wait from it, and slept - while the limit had almost certainly cleared
+# days earlier. Anything older than this is ignored and we retry instead.
+MAX_MESSAGE_AGE_SECONDS = 12 * 3600
 
 
 def newest_block_message():
-    logs = sorted(ROOT.glob("logs/run_*/*.log"), key=lambda p: p.stat().st_mtime,
-                  reverse=True)
+    cutoff = time.time() - MAX_MESSAGE_AGE_SECONDS
+    logs = sorted((p for p in ROOT.glob("logs/run_*/*.log")
+                   if p.stat().st_mtime >= cutoff),
+                  key=lambda p: p.stat().st_mtime, reverse=True)
     for p in logs[:40]:
         try:
             text = p.read_text(errors="ignore")

@@ -59,9 +59,17 @@ PY
     # the manifest; ten of those per window is noise, not information. The CLI
     # states when the limit resets, so wait for that moment and retry once.
     wait_s="$(python3 py/limit_reset.py 2>/dev/null | head -1)"
+    # Cap the wait. The reset-aware sleep was meant to avoid wasted probes, but
+    # it made the run go silent for six days: limit_reset.py trusted a 7-day-old
+    # "resets 10am" message, computed a long wait from it, and this loop slept
+    # through it while machine sleep suspended the timer on top. A wrong estimate
+    # must cost one wasted probe, never a day. limit_reset.py now also ignores
+    # stale messages; this is the belt to that braces.
     if [[ "${wait_s:-0}" =~ ^[0-9]+$ ]] && (( wait_s > 0 )); then
-      echo "$(date '+%Y-%m-%d %H:%M:%S')  spend limit in force; sleeping $((wait_s/60)) min until it resets"
+      (( wait_s > 3600 )) && wait_s=3600
+      echo "$(date '+%Y-%m-%d %H:%M:%S')  spend limit in force; sleeping $((wait_s/60)) min then retrying"
       sleep "$wait_s"
+      echo "$(date '+%Y-%m-%d %H:%M:%S')  woke from spend-limit wait"
       continue
     fi
 

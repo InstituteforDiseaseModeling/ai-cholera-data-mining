@@ -37,10 +37,23 @@ mkdir -p logs
 
 # Stop once the run is over. Two consecutive misses rather than one, so a brief
 # gap between countries does not end the heartbeat early.
-misses=0
+#
+# Every CHECKPOINT_EVERY ticks it also commits in-progress country data and a
+# light dashboard rebuild, so rows reach the repo and the live dashboard while a
+# country is still running rather than only when it ends (~5 h later). Agents
+# write through temp-file-and-rename, so each committed file is a whole
+# snapshot; a mid-country commit is simply superseded by the next one.
+CHECKPOINT_EVERY="${CHECKPOINT_EVERY:-3}"
+misses=0; tick=0
 while true; do
+  tick=$((tick+1))
   if [[ "$PUBLISH" -eq 1 ]]; then
     python3 py/run_status.py --publish >> "$LOG" 2>&1
+    if (( CHECKPOINT_EVERY > 0 && tick % CHECKPOINT_EVERY == 0 )); then
+      python3 py/with_lock.py dashboard -- python3 py/update_dashboard_data.py >> "$LOG" 2>&1
+      python3 py/publish.py data/ reference/ dashboard/ \
+        -m "Run checkpoint: in-progress data + dashboard - $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG" 2>&1
+    fi
   else
     python3 py/run_status.py >> "$LOG" 2>&1
   fi

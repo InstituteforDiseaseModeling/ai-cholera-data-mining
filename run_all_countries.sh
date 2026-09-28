@@ -134,12 +134,15 @@ srccount () { csvcount "data/$1/metadata_ai.csv"; }
 # data lives in data/{ISO}/ and needs no lock; this does.
 refresh_dashboard () {   # $1 = "light" | "full"
   if [[ "$1" == "full" ]]; then
-    # Heavy: weekly series for all 40, heatmaps, barplot, then commit+push.
+    # Heavy: weekly series for all 40, heatmaps, barplot. Built without
+    # update_dashboard.sh --publish: that path runs its own git add/commit/push
+    # outside py/publish.py's lock, and with several countries in flight it
+    # races the per-country data commits and the heartbeat checkpoints.
+    python3 py/with_lock.py dashboard -- bash update_dashboard.sh \
+      >> "$LOGDIR/_dashboard.log" 2>&1
     if [[ $PUBLISH -eq 1 ]]; then
-      python3 py/with_lock.py dashboard -- bash update_dashboard.sh --publish \
-        >> "$LOGDIR/_dashboard.log" 2>&1
-    else
-      python3 py/with_lock.py dashboard -- bash update_dashboard.sh \
+      python3 py/publish.py dashboard/ figures/dashboard/ data/ reference/ \
+        -m "Auto-update dashboard data - $(date '+%Y-%m-%d %H:%M:%S') (after ${2:-run end})" \
         >> "$LOGDIR/_dashboard.log" 2>&1
     fi
   else
@@ -269,6 +272,8 @@ run_country () {
 
     timeout "$TIMEOUT_SECS" claude -p "$iso" \
         --agent workflow-orchestrator \
+        --model claude-opus-5-5 \
+        --effort max \
         --permission-mode "$PERMISSION_MODE" \
         --max-turns "$MAX_TURNS" \
         >> "$log" 2>&1 </dev/null
@@ -331,6 +336,15 @@ run_country () {
   # so a parallel sibling never reads them mid-rebuild.
   python3 py/with_lock.py gaps -- python3 py/analyze_effective_gaps.py \
     >> "$LOGDIR/_dashboard.log" 2>&1
+
+  # The country's own data. --publish-progress used to push only dashboard/ and
+  # the manifest, leaving data/{ISO}/ - the actual product, and the
+  # workflow_state.json a retry resumes from - uncommitted on whichever machine
+  # ran it. Commit it the moment the country ends, whatever its status.
+  if [[ $PUBLISH -eq 1 ]]; then
+    echo "  .. $iso data: $(python3 py/publish.py "data/$iso/" reference/ \
+      -m "Country data: $iso $st (+$((ra-rb)) rows, +$((sa-sb)) sources) - $(date '+%Y-%m-%d %H:%M:%S')")"
+  fi
 
   echo "$iso" >> "$LOGDIR/.completed"
   cnt=$(wc -l < "$LOGDIR/.completed" | tr -d ' ')
