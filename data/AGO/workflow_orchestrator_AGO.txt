@@ -1,0 +1,222 @@
+================================================================================
+WORKFLOW ORCHESTRATOR BRIEF - ANGOLA (AGO) - run of 2026-09-29 (Opus 5.5 cycle)
+File: ./data/AGO/workflow_orchestrator_AGO.txt   (read this before your first query)
+================================================================================
+
+0. RUN CONTEXT - READ FIRST
+--------------------------------------------------------------------------------
+* The runner (run_all_countries.sh) is running AGO IN PARALLEL with COG, RWA, MRT.
+  This session started 2026-09-29 16:10 and is killed by `timeout` at 00:10.
+  All seven agents must fit inside that window, so each agent has a wall-clock
+  budget (section 6). The budget is an extra stop condition layered on top of
+  the CLAUDE.md stopping rule; the 3-batch (60-query) minimum still applies.
+* Nobody is watching. Never stop to ask a question. Decide, log the decision
+  and the rejected alternative, and continue.
+
+1. OPERATIONAL OVERRIDES (these beat anything in the agent .md or template)
+--------------------------------------------------------------------------------
+DO NOT run  `python py/analyze_effective_gaps.py`  (any flags). It rewrites the
+   SHARED ./reference/effective_* and baselineonly_* files that the other three
+   countries' agents are reading. The runner regenerates them when AGO exits.
+   Instead use the read-only in-memory helper:
+       python3 /tmp/AGO_orch/ago_coverage.py
+DO NOT run  `py/build_weekly_timeseries.py`, `update_dashboard.sh`,
+   `py/update_dashboard_data.py`, or anything that rebuilds all 40 countries.
+   To see how the weekly builder will treat AGO rows, use the read-only preview:
+       python3 /tmp/AGO_orch/ago_weekly_preview.py 2026 2026     (year range)
+DO NOT git add / commit / push. The runner commits data/AGO when the country ends.
+DO NOT edit py/ scripts, reference/ files, baseline files (cholera_data_jhu.csv,
+   cholera_data_who.csv), or any other country's data directory.
+DO NOT hand-edit ./data/AGO/cholera_data_ai.csv or ./data/AGO/metadata_ai.csv.
+   New rows/sources  : python py/add_observation.py {register-source|add|add-zero|add-presence} AGO ...
+   Existing rows     : python py/revise_observation.py AGO --index N ... --reason "..."
+                       (--append-note, --confidence, --sch/--deaths/--cch, --tl/--tr,
+                        --location, --set-evidence, --delete [writes tombstone to
+                        ./data/AGO/retracted_rows_ai.csv]; --meta-index/--set-description
+                        for metadata descriptions)
+Tools: WebSearch / WebFetch are deferred tools - load them first with
+   ToolSearch query "select:WebSearch,WebFetch".
+   reliefweb.int returns HTTP 403 to WebFetch but 200 to curl with a desktop
+   browser User-Agent (article body is in div.rw-article__content).
+   PDFs: curl -L -A "Mozilla/5.0 ..." -o /tmp/AGO_orch/x.pdf URL && pdftotext -layout.
+   Put scratch files under /tmp/AGO_orch/ (country-specific; do not use bare /tmp names).
+Validator: `python py/validate_quality.py AGO` must exit 0 before you report done.
+   Its "row N" is the CSV LINE number (header = line 1), i.e. DataFrame position
+   N-2. Look up the Index column; row N is NOT Index N.
+State: record your run with py/workflow_state.write_agent_state(...) with
+   batch_yields in PERCENT units (0-100). Yield = queries that produced >=1
+   committed row / 20. Never above 100.
+Log: ./data/AGO/search_log_agent_{N}.txt - create it fresh at your start
+   (overwrite). Older logs are preserved as
+   ./data/AGO/search_log_agent_{N}_legacy_{date}.txt - read them to avoid
+   repeating work, never write to them.
+
+2. STARTING STATE (measured by the orchestrator at 16:15)
+--------------------------------------------------------------------------------
+./data/AGO/cholera_data_ai.csv   331 rows (Index max 351)   ./data/AGO/metadata_ai.csv 120 sources
+validate_quality.py AGO : ERROR 0, WARN 21, INFO 97
+   13 notes_missing_quote, 4 reporting_date_blank, 2 zero_row_no_evidence_type,
+   1 multiyear_aggregate (Index 11), 1 same_period_conflict (Index 8 vs 105)
+Effective coverage (JHU+WHO+AI) : 99.7%  (679/681 months), months_ai_only 251
+Baseline-only coverage (JHU+WHO): 62.6%  (426/681 months), 7 gap periods
+Only formal effective gap       : 2026-08-01..2026-09-29 (60 d, recent)
+Latest observation              : 2026-08-15 (45 d stale)
+
+Prior work (2026-09-21 run, recorded incomplete_2of7):
+  Agent 1: 12 batches, +127 rows - see ./data/AGO/search_log_agent_1_legacy_20260921.txt
+           and ./data/AGO/workflow_state_pre_opus55_2026-09-29.json
+  Agent 2: batch 1 logged (+90 rows, sources 113-117); it then added ~61 more rows
+           (Index 291-351, sources 118 ANGOP 15 Apr 2025, 119 ANGOP 24 Jan 2025,
+           120 ANGOP 14 Feb 2025) WITHOUT logging them before the session died.
+           These are pre-existing data: verify and reconcile, do not duplicate.
+
+3. WHY 99.7% IS WEAKER THAN IT LOOKS - THE REAL TARGETS
+--------------------------------------------------------------------------------
+Coverage counts a month as covered if >50% of its days sit inside ANY row, so a
+handful of long rows carries a lot of it. The weekly series MOSAIC actually
+consumes is built from NATIONAL rows only, priority WHO > JHU > AI; for AI rows
+a <=7-day row is "observed", longer rows are Fourier-spread, and when several AI
+rows overlap a week the HIGHER sCh wins.
+
+(A) 2026 WEEKLY SERIES IS INFLATED ~5x IN WEEKS 21-28 (verified).
+    WHO baseline weekly data stops at ISO week 20 (2026-05-17). After that the
+    builder spreads the 19-month cumulative rows Index 100 (2025-01-05..2026-08-15,
+    42 327) and 101 (2025-01-07..2026-07-25, 41 741) and they beat the genuine
+    increment rows (176, 180, 95). Builder currently emits ISO wk21-28 =
+    1007, 909, 798, 677, 552, 429, 312, 208 (total ~4 890).
+    WHO's own dashboard (ArcGIS FeatureServer behind the WHO global cholera
+    dashboard, same source as cholera_data_who.csv) gives for WHO epiwk 20-32:
+      epiwk date_wk(Mon)  cases deaths      epiwk date_wk(Mon) cases deaths
+       20   2026-05-18     436   10          27   2026-07-06      42   1
+       21   2026-05-25     273    6          28   2026-07-13      38   1
+       22   2026-06-01     187    8          29   2026-07-20     164   0
+       23   2026-06-08     163    4          30   2026-07-27     280   2
+       24   2026-06-15     105    7          31   2026-08-03     140   1
+       25   2026-06-22      19    1          32   2026-08-10     120   1
+       26   2026-06-29      16    0
+    Query: https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services/cholera_adm0_week/FeatureServer/0/query
+           ?f=json&where=adm0_name='ANGOLA' AND epiyr>=2026&outFields=*&orderByFields=epiyr,epiwk&returnGeometry=false
+    (fields: epiyr, epiwk, date_wk [ms epoch, Monday], cases, deaths, cum_case, cum_death)
+    cholera_report_period layer says ANGOLA data run 2025-01-06..2026-08-16.
+    WEEK-DATE CAVEAT: the repo standardised on date_wk as WHO's week start
+    (./reference/who_epiweek_calendar.json; cholera_data_who.csv already uses it:
+    epiwk 19 -> 2026-05-11). But WHO sitrep period totals match these weeks about
+    6 days LATER than date_wk (e.g. "14 Jun-12 Jul: 303" = epiwk 23-26;
+    "12 Jul-9 Aug: 524" = epiwk 27-30), and the AFRO bulletin dates the 280-case
+    week 2-8 Aug. Use date_wk..date_wk+6 for TL/TR (consistency with the WHO
+    baseline file and the calendar), and state the ~6-day offset in processing_notes.
+    Weekly national AI rows for these weeks outrank every Fourier-spread AI row and
+    repair the inflation. NOTE Index 97 (2026-08-02..08-08, 280) and 98
+    (2026-08-09..08-15, 142) already exist from the AFRO bulletin: do not create a
+    second row for the same week under a different date frame without saying which
+    is primary; prefer adding epiwk 20-29 and 32, and record 30/31 as corroboration
+    of 97/98 in their notes.
+
+(B) ZERO ROWS THAT CARRY TOO MUCH WEIGHT
+    Index 58  AFR::AGO 1997-01-01..2005-12-31 sCh=0, conf 0.95, "decade-long absence".
+              ONE row covering 9 years, including the 1998-2002 civil war. Evidence
+              is "Angola not mentioned in WER 1998/2000/2002". Not-listed is not a
+              positive assertion of absence. Must be tested: ReliefWeb/OCHA/ProMED/
+              MSF 1997-2005 for ANY cholera report in Angola; WHO DON Feb/Mar 2006
+              wording ("first outbreak since ..."). JHU has a 2005 zero row.
+    Index 27  AFR::AGO 2019-01-01..2022-12-31 sCh=0, conf 0.5, NO evidence label.
+              CONTRADICTED for 2019: JHU has 56 rows / 367 cases in 2019. Must be
+              re-scoped/split and labelled (JHU also has zero rows for 2020 and 2021;
+              AI Index 111 is 2021 documented absence).
+    Index 25  AFR::AGO 2023 zero conf 0.5 and Index 60 2023-01-01..2024-05-02 zero
+              conf 0.5 - overlapping, weak; WER "Cholera, 2023" annual report should
+              settle 2023. Index 112 = 2024 documented absence.
+    Index 102 1976 zero, Inferred_Absence, conf 0.6 - between 1975 (JHU 88 cases) and
+              1977 (JHU 726 / AI Index 14 = 262): independence-war year; is it a
+              surveillance gap? Henriques FF 1976, Anais IHMT 4(1-4):87-96 (PMID 1032481).
+    Index 74-83 1970 and 1978-1986 per-year "Documented_Absence" conf 0.8 from "Angola
+              not listed in WER annual table". Civil-war era, surveillance "partial".
+    Index 106 1993 "Documented_Absence" conf 0.9 from WER 1993 "Cholera was not
+              reported in 1993 from ... Angola" - 1992 had 3 608 cases and 1994 3 443,
+              and 1993 was the most intense phase of the war. "Not reported" may be
+              non-reporting, not absence.
+
+(C) CONFLICTS / DEFECTIVE ROWS (Agent 5 owns resolution; others: do not add to them)
+    Index 8   AFR::AGO 2006 sCh=240 000 conf 0.3 vs Index 105 (67 257 / 2 722, GHO)
+              and Index 127 (2006-02-13..2007-02-28, 75 627). 240 000 is not a case count
+              any WHO source gives; probably "people at risk/affected". Validator WARN.
+    Index 11  AFR::AGO 1987-04-01..1996-12-31 16 000/1 460 conf 0.4 - the 1987 epidemic
+              smeared over 10 years; superseded by Index 84 (1987-04-08..12-31, 16 222 /
+              1 460) and the JHU/AI annual rows 1988-1996. Validator WARN.
+    Index 14  1977 AI 262 vs JHU 1977 726.  Index 21  2011 AI 2 284/181 vs JHU 2011 rows.
+    Index 100, 101, 196 cross-year cumulative national rows (see A).
+    Location spellings: canonical AI form is underscores, no accents, current names
+      (Cuanza_Sul, Cuanza_Norte, Lunda_Norte, Lunda_Sul, Icolo_e_Bengo, Uige, Huila,
+      Bie). Stray: AFR::AGO::Kwanza_Sul (2 rows), Kwanza_Norte (1), Uíge (1).
+    Validator WARNs to clear: notes_missing_quote (CSV lines 15-25, 42, 43),
+      reporting_date_blank (lines 33, 34, 35, 41), zero_row_no_evidence_type (lines 27,
+      42), multiyear_aggregate (line 12 = Index 11), same_period_conflict (line 86 vs 9).
+    ./data/AGO/attribution_review.csv lists Index 64/65 - both already retracted on
+      2026-09-21 as false zeros (see ./data/AGO/retracted_rows_ai.csv); resolution
+      column is still blank.
+
+(D) GRANULARITY GAPS (coverage "credited" but only by annual national totals)
+    1971-1977  JHU annual only (1972 268, 1973 263, 1974 934, 1975 88, 1977 726) + AI.
+    1987-1996  JHU/AI annual only, apart from Luanda 1991-92 fragments. The 1987
+               epidemic (16 222 cases) has no epidemic curve. WER weekly
+               notification tables (IRIS scans) list country counts week by week.
+    2007-2015  mostly annual national totals (2007 18 422, 2008 10 511, 2009 2 019,
+               2010 1 484, 2011, 2012 1 215, 2013 6 655, 2014 213).
+    Sub-national: 2006 provincial split is percentage-derived for 4 provinces only;
+      2007-2015 provincial nearly empty; H2-2025 and 2026 provincial series sparse
+      (2025 wk 13/14/15/17/18 weekly tables and cumulative snapshots at 10 May,
+      23 May, 21 Jun exist; Sep and Dec 2025 partial; 2026 Jan/Apr/May partial).
+
+(E) RECENT: 2026-08-16 onward. WHO dashboard ends 2026-08-16. Anything for
+    late August / September 2026 would come from MINSA (minsa.gov.ao, "Boletim
+    Informativo da Colera"), ANGOP, Jornal de Angola, WHO AFRO weekly bulletins,
+    ECDC CDTR, Africa CDC weekly briefs, WHO multi-country external sitrep.
+
+4. COUNTRY PROFILE (from ./reference/country_profiles.json - authoritative)
+--------------------------------------------------------------------------------
+Name Angola, ISO2 AO, Central Africa. Neighbours: COD, COG, ZMB, NAM.
+ADM1 (current, 21 since the 2024/25 reform): Bengo, Benguela, Bie, Cabinda, Cuando,
+  Cubango, Cuanza Norte, Cuanza Sul, Cunene, Huambo, Huila, Icolo e Bengo, Luanda,
+  Lunda Norte, Lunda Sul, Malanje, Moxico, Moxico Leste, Namibe, Uige, Zaire.
+ADM1 pre-2025 (18): ... Cuando Cubango (single), Bengo (incl. Icolo e Bengo),
+  Moxico (incl. Moxico Leste). Use legacy units for pre-2025 periods.
+Cities: Luanda, Huambo, Lobito, Benguela, Lubango, Cabinda, Malanje.
+Languages: pt, en. Terms: "colera"/"cólera", "diarreia aguda aquosa", "surto de colera".
+Ministry domains: minsa.gov.ao, inis.gov.ao.
+Season: rainy season Oct-Apr; Luanda peri-urban outbreaks; 2006 and 2025 major epidemics.
+Border provinces: Cabinda/Zaire/Uige (COD, COG), Lunda Norte/Lunda Sul/Moxico (COD, ZMB),
+  Cunene/Cuando Cubango (NAM, ZMB).
+
+5. AGENT ASSIGNMENTS (who owns what, to avoid duplicated searching)
+--------------------------------------------------------------------------------
+A1 baseline   : (A) WHO dashboard weekly rows epiwk 20-32; (E) the recent gap;
+                institutional sub-annual national series 2007-2015 (WHO DON, AFRO,
+                ReliefWeb/OCHA, IFRC DREF, UNICEF); WER annual reviews for any year
+                whose national total is unverified.
+A2 geographic : 2006 provincial/municipal breakdown; H2-2025 and 2026 provincial series
+                (MINSA daily bulletin narrative text, ANGOP daily reporting, AFRO weekly
+                bulletins); 2007-2015 provincial outbreaks; border provinces; log and
+                reconcile the unlogged prior Agent-2 rows Index 291-351.
+A3 zero       : (B) Index 27, 25, 60 (2019-2024) first; then the positive-assertion
+                test of Index 58 (1997-2005); label every zero row; add-zero only on
+                positive evidence.
+A4 obscure    : (D) 1971-1977 and 1987-1996 sub-annual series (WER weekly notification
+                tables on IRIS, Portuguese colonial/IHMT literature, memoria-africa.ua.pt);
+                1976; ProMED/ReliefWeb 1997-2005 archives (any cholera in Angola?);
+                1977 262-vs-726.
+A5 cross-ref  : (C) all conflicts; cumulative-vs-increment arithmetic; quotes/reporting
+                dates for the WARN rows; location-spelling normalisation; re-mine the
+                registry (esp. WHO multi-country sitreps, AFRO bulletins, GHO).
+A6 context    : classify 1976, 1978-1986, 1993, 1997-2005, 2019-2023, Sep-2026 as
+                Documented / Inferred / Surveillance_Gap with health-system and conflict
+                evidence; revise labels/confidence accordingly.
+A7 audit      : validator to exit 0, repair, attribution_review resolution, impact
+                measurement with /tmp/AGO_orch/ago_coverage.py, ./data/AGO/search_report.txt.
+
+6. WALL-CLOCK BUDGETS (hard deadline 00:10; leave margin)
+--------------------------------------------------------------------------------
+A1 ~65 min | A2 ~60 | A3 ~50 | A4 ~60 | A5 ~55 | A6 ~45 | A7 ~45.
+When you reach your budget: finish the batch in hand, validate, write state, log
+"STOP - orchestrator wall-clock budget" with the batch count, and return. Never
+stop before 3 full batches (60 queries).
+================================================================================

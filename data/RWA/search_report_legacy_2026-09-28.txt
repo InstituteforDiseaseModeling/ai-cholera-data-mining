@@ -1,0 +1,243 @@
+RWANDA (RWA) - AI CHOLERA SURVEILLANCE ENHANCEMENT - SEARCH REPORT
+Agent 7 (Quality Auditor), run window 2, 2026-09-28 20:20-20:50 local.
+Replaces the May 2026 report, kept at ./data/RWA/search_report_legacy_2026-05-15.txt
+Audit log: ./data/RWA/search_log_agent_7.txt | State: ./data/RWA/workflow_state.json
+
+1. BOTTOM LINE
+- The AI layer is effectively Rwanda's whole cholera record. There is no JHU
+  file, and the WHO baseline (./data/RWA/cholera_data_who.csv, 59 weekly rows,
+  2025-03-17..2026-05-03) covers 13 of 681 months (1.9%). With the AI layer,
+  coverage is 605/681 months (88.8%), and the AI layer is the ONLY source for
+  590 of them.
+- NOT finished. 19 gap periods (76 months) remain open. Coverage FELL in this
+  window, from 89.7% to 88.8%, because false zeros were retracted.
+- The agents' work was uneven. Agents 5 and 6 ran below the 60-query minimum,
+  and Agent 4 met it only nominally. 29 of the 73 zero rows are
+  Inferred_Absence (weight 0.7), not documented absences.
+- Validator: exit 0 before and after this audit. ERROR 0, WARN 0, INFO 106.
+  No ./data/RWA/attribution_review.csv is pending.
+
+2. WHAT THE AI LAYER HOLDS (./data/RWA/cholera_data_ai.csv, ./data/RWA/metadata_ai.csv)
+- Rows: 321 live (max Index 335).
+  * 248 case rows and 73 zero rows. The zeros split into 44 Documented_Absence
+    and 29 Inferred_Absence.
+  * 191 national rows and 130 sub-national rows.
+  * 6 presence-only rows sit in ./data/RWA/cholera_presence_ai.csv.
+  * 13 retracted rows are tombstoned in ./data/RWA/retracted_rows_ai.csv (list
+    in Appendix L).
+- Sources: 197 in total, 25 of them backing no data row (Appendix K).
+  * By level: 191 Level 1, 4 Level 2, 2 Level 3, 0 Level 4.
+  * 2 are Superseded.
+- Row accounting holds.
+  * The cycle started with 11 rows (git cf1c3ad). A1-A6 claim 323 added rows
+    (131+99+52+10+2+29). 11 + 323 = 334 = 321 live + 13 retracted.
+  * No agent claimed rows it did not add, and no agent reported a yield above
+    100%.
+  * Only 4 of the 11 cycle-start rows survive (Index 2, 5, 10, 11).
+
+3. COVERAGE (effective gap analysis recomputed in memory at 20:21; the
+   runner-owned ./reference/effective_* files were not touched)
+   Stage                          rows  sources  coverage          gaps  AI-only months
+   Baseline only (JHU+WHO)          -       -     1.9%  (13/681)     2        0
+   Cycle start (git cf1c3ad)       11      12    15.6% (106/681)     3       92
+   Window-2 start (13:04)         181      86    89.7% (611/681)    12      596
+   Now                            321     197    88.8% (605/681)    19      590
+- Against the baseline, the AI layer closed 592 of 668 missing months and
+  18,022 of 20,330 gap-days (88.6%).
+- The gap COUNT rose from 2 to 19. The baseline has one 55-year hole
+  (1970-01..2025-03) plus 151 days in 2026. The AI layer split the hole into
+  18 smaller gaps and cut the 2026 gap to 28 days.
+- 475 months contain positive cases. The latest observation is the week of
+  2026-08-31..09-06.
+- Read 88.8% with care. Most coverage before 2010 comes from annual national
+  totals (WHO GHO/WER 1978-2012) and one 1970-77 pre-introduction absence row
+  (Index 64). Those rows give annual burden, not seasonality.
+
+4. WHY COVERAGE FELL (89.7% -> 88.8%): A CORRECTION, NOT DATA LOSS
+- Five whole-year national zeros (2017, 2019, 2020, 2022, 2023) rested only on
+  WHO silence. Rwanda's own RBC bulletins and the WER tables refuted them, and
+  they were retracted:
+  * 2017: the Ngarama outbreak, 39 suspected cases.
+  * 2019: a confirmed case at Mibilizi.
+  * 2020: culture-confirmed outbreaks.
+  * 2022 and 2023: WER listings of 24 and 207 cases.
+- The 2018 and 2024 zeros stay, because they rest on explicit WER zero
+  listings.
+- Row 6 was retracted too. It was a misdated "2018-2024" aggregate that masked
+  2019-2020; its source is an August 2015 RBC assessment.
+- The months those rows falsely covered are now either filled with real
+  evidence or openly empty.
+
+5. GAPS STILL OPEN (19 periods, 76 months) AND WHETHER THE DATA EXISTS
+- 1990 and 2002 (12 months each) are surveillance gaps.
+  * Rwanda made no WHO return in either year (metadata 87, 88).
+  * 2002 was an epidemic year on every border while Rwanda was reporting
+    meningitis.
+  * Correctly left empty. Any data is probably on paper only, so online odds
+    are low.
+- 2010-01..04: cholera was present (MoH FY2009-10 report, source 165) but no
+  counts were found.
+- 2010-06..2011-10 and 2011-12: no recognised outbreak, and surveillance was
+  operating.
+  * The evidence is omission only (sources 83, 168, 166/84), so rightly no
+    zero rows were added.
+  * No weekly records were found. Probably near-zero, but UNPROVEN.
+- 2013-01..02; 2014-05..2015-01; 2015 Mar, May-Jun, Sep-Oct and Dec: RBC
+  bulletins and Annex-1 tables not recovered for these weeks. The bulletins
+  exist, so FILLABLE.
+- 2017 Feb, Jun-Jul, Oct-Dec; 2019 Feb, Jun-Jul, Nov-Dec; 2020-03: RBC
+  bulletins not recovered or not read. FILLABLE.
+- 2026-09-01..28: a REPORTING LAG mid-outbreak, not an absence.
+  * The last two weeks had 73 and 24 cases.
+  * The Africa CDC report of 13 Sep still shows a stale "Rwanda (29: 0)".
+
+6. VALIDATOR STATUS, FIXES AND OPEN ISSUES
+- Validator history: 0 ERROR / 17 WARN at window-2 start, now 0 / 0 / 106
+  INFO. Agents 3 and 5 cleared the WARNs. The INFO items are 81 documented
+  national/sub-national overlaps and 25 unused metadata entries.
+- Fixed (py/revise_observation.py, counts unchanged, validator still exit 0):
+  * Pre-2006 prefecture Locations moved to the dataset convention: Index 173
+    and 242 to AFR::RWA::Western::Gisenyi, Index 238 and 248-251 to
+    AFR::RWA::Western::Cyangugu.
+  * Index 243 (Kigali 1997) was left at province level with a note. "Kigali
+    prefecture" there is ambiguous between Kigali-Ville and Kigali-Rural.
+- Spot-checked on the RENDERED page (Appendix I). All five held up: Agent 6
+  zeros 307 and 330, Agent 3's refuting case 261/262, and single-case rows
+  274 and 291.
+  * The PDF text layers do carry a hidden "Cholera: 1 suspected case" line.
+  * Any text-only extraction will therefore invent a case in every bulletin.
+- Open issues, left on purpose:
+  (a) Metadata 6 Date_Range still reads 2018-2024; the source is from Aug
+      2015. No tool edits metadata, and Agent 5 changed only the prose.
+  (b) The 2016 Rubavu presence row is superseded by rows 220-223. It is
+      redundant but harmless.
+  (c) Rows 2 and 236 record the same Dec 2005 - Jan 2006 Kigali (Masaka)
+      outbreak at two levels. Both are marked "do not sum", so aggregate only
+      one.
+  (d) Row 162 (Nkamira, May 2012, single source) is missing from the FY2011-12
+      outbreak table (sources 84/166). It needs a second source.
+  (e) Rows 182 (312 sCh, 2025) and 70 (54 cCh, 2025) restate as totals the
+      WHO baseline weekly series, which sums to exactly 312 over the same
+      weeks. py/build_weekly_timeseries.py keeps one source per week (WHO >
+      JHU > AI), so it overwrites them rather than stacking them. A consumer
+      that sums rows across layers would double-count (Appendix J).
+- Correction to the orchestrator brief: metadata 166 (MoH FY2011-12) WAS mined
+  by Agent 6. It confirms rows 160/161.
+  * Reports already read: 2004, 2008, and FY2009-10 to FY2011-12.
+  * Never read: 2000-2003, 2005-2007, and 2012/13-2015/16.
+
+7. AGENT PERFORMANCE (workflow_state + logs; yields in % per 20-query batch)
+- A1: 16 batches (12 at the ceiling + 4); 131 rows; the most productive.
+  Found the 2017 Ngarama outbreak and the 2013-15 weekly zeros.
+- A2: 11 batches (saturated at 6; +5 before the deadline); 99 rows. Wayback
+  recovered 1997-99, 1998 commune, 2016 and 2021 district detail.
+- A3: 7 batches; 52 rows, 9 of them unlogged and later reconciled. Retracting
+  the 5 false zeros was the key quality fix of the cycle.
+- A4: 3 batches, the third partial, so the minimum was met in name only. Host
+  sleep froze it twice. 10 rows; best find the 1987 Gisenyi commune detail.
+  It registered sources 164-167; Agent 6 later mined 166.
+- A5: BELOW MINIMUM, 1 batch (20/60 queries). 11 adjudications (8
+  retractions, 6 revisions) and 2 rows.
+- A6: BELOW MINIMUM, 0 batches. Classified the gaps and added 29
+  Inferred_Absence zeros (rows 307-335).
+- A5 and A6 ran concurrently to recover lost time. Neither was a full-depth
+  pass.
+
+8. WHAT A FUTURE RUN SHOULD TRY
+- Mine the MoH/MINISANTE annual reports on web.archive.org for 2000-2003,
+  2005-2007 and 2012/13-2015/16.
+- Read the RBC bulletins for the open 2013-2015, 2017, 2019 and 2020 months.
+  Use the RENDERED page only, never the text layer.
+- Re-check September 2026 once WHO, RBC and Africa CDC publish. Get Africa CDC
+  weekly reports in text form; current issues are image-only.
+- Run Agents 5 and 6 at full depth. Upgrade the 29 Inferred_Absence zeros to
+  Documented_Absence, or drop them.
+- Pursue 1990 and 2002 through WHO AFRO or country-office archives. Do not
+  zero-fill them.
+- Run on AC power with the lid open, and restart py/run_supervisor.sh (it
+  stopped at 15:30).
+
+=====================================================================
+9. METRICS APPENDIX
+A. Validator: python py/validate_quality.py RWA --json /tmp/RWA_audit.json
+   exit 0 | 321 rows | 197 sources | ERROR 0 | WARN 0 | INFO 106
+   (national_subnational_overlap 81, all documented; metadata_unused 25).
+   Re-run after the fixes (/tmp/RWA_audit_after.json): exit 0, same counts.
+   Agent 7 revised the Location of Index 173, 242, 238 and 248-251, and
+   appended a note to 243. No rows were added, deleted or re-weighted.
+
+B. Rows by decade of TL (case/zero): 1970s 3/1 | 1980s 15/0 | 1990s 30/1 |
+   2000s 14/5 | 2010s 84/46 | 2020s 102/20
+
+C. Zero rows by year (Documented/Inferred): 1970 1/0 | 1998 1/0 | 2000 1/0 |
+   2005 4/0 | 2013 16/0 | 2014 3/0 | 2015 5/0 | 2017 3/0 | 2018 1/1 |
+   2019 0/17 | 2020 0/11 | 2024 1/0 | 2025 6/0 | 2026 2/0. There are no
+   Surveillance_Gap zero rows.
+
+D. Confidence weights: mean 0.86, median 0.90, range 0.40-0.95.
+   0.31-0.60: 3 | 0.61-0.70: 47 | 0.71-0.80: 21 | 0.81-0.90: 232 | 0.91-1.00: 18
+
+E. Geography: 191 national, 130 sub-national. Top units: Western::Rusizi 34,
+   Nyamasheke 19, Rubavu 16, Rutsiro 12, Karongi 7, Eastern::Gatsibo 5.
+   Pre-2006 prefectures now sit under their modern province
+   (Western::Gisenyi 4, Western::Cyangugu 5, plus Ruhengeri and Butare commune
+   rows). The one exception is Index 243 (AFR::RWA::Kigali, 1997).
+
+F. CFR above 5%: 21 rows, all at 15% or below. Mostly WHO annual totals
+   1978-1999 and 2006, plus rows 2/236 (14.7%).
+
+G. Open gaps (days): 1990 (365); 2002 (365); 2010-01..04 (120);
+   2010-06..2011-10 (518); 2011-12 (31); 2013-01..02 (59);
+   2014-05..2015-01 (276); 2015-03 (31); 2015-05..06 (61); 2015-09..10 (61);
+   2015-12 (31); 2017-02 (28); 2017-06..07 (61); 2017-10..12 (92);
+   2019-02 (28); 2019-06..07 (61); 2019-11..12 (61); 2020-03 (31);
+   2026-09-01..28 (28). Total 2,308 days.
+   Years with 6 or more months missing: 1990 (12), 2002 (12), 2010 (11),
+   2011 (11), 2014 (8), 2015 (7), 2017 (6).
+
+H. Batches and yields (%)
+   A1 16 [15,10,5,10,10,20,10,0,10,10,5,0 | 0,25,0,10]   rows 131  src 87
+   A2 11 [10,10,5,0,0,0 | 20,5,0,15,0]                   rows  99  src 34
+   A3  7 [0 | 20,20,10,0,10,5]                           rows  52  src 23
+   A4  3 [0,15,10 (partial)]                             rows  10  src  9
+   A5  1 [0]  BELOW MINIMUM                              rows   2  src  0
+   A6  0 []   BELOW MINIMUM                              rows  29  src 30
+
+I. Rendered-page spot-checks (Wayback PDFs rendered with pdftoppm and
+   viewed; all VERIFIED)
+   - Row 307, May 2020 monthly (src 169): no cholera on the page; the text
+     layer has the hidden "Cholera: 1 suspected case".
+   - Row 330, 2019 week 18 (src 192): no cholera on the page; the text layer
+     has the hidden line twice.
+   - Row 261/262, 2019 week 33 (src 142): "Cholera : one confirmed case from
+     Mibilizi DH" is visible.
+   - Row 291, 2022 week 23 (src 154): "Cholera: 1 Suspected Cases" is visible
+     in the national list.
+   - Row 274, April 2020 monthly (src 147): "Cholera : one suspected case from
+     Saint Francois (Rusizi) health center" is visible.
+
+J. Cross-layer check against ./data/RWA/cholera_data_who.csv
+   - The WHO weekly sum for 2025-03-17..11-30 is 312, equal to row 182.
+     The weekly builder (try_insert, SOURCE_PRIORITY WHO 3 > JHU 2 > AI 1)
+     replaces AI week slots with WHO rows, so rows 182 and 70 are overwritten
+     in the national weekly series rather than added to it.
+   - AI zero rows 174-181 fall only on WHO weeks with an empty sCh, and agree
+     with WHO's published zeros.
+   - The seam at 2026-05-04 chains exactly: 370 in the baseline + 37 in row 42
+     = 407, WHO's cum_case.
+
+K. Unreferenced metadata (25)
+   - Backing only retracted rows: 1, 3, 4, 12, 21, 35, 57.
+   - Backing only presence rows: 7, 56, 85, 163, 167.
+   - Superseded: 155, 156.
+   - Corroboration, context or negative evidence: 8, 9, 19, 84, 87, 88, 89,
+     160, 161, 166, 168.
+
+L. Retracted rows, by index
+   - Five false whole-year zeros: 8 (2022), 9 (2023), 102 (2019), 103 (2017),
+     104 (2020).
+   - 6: misdated 2018-2024 aggregate.
+   - 1 and 65: preliminary counts, superseded by 238 and 239.
+   - 3, 4 and 12: redundant cumulative snapshots.
+   - 80: RDT-positive but culture-negative, per the source.
+   - 109: GIDEON figure nested inside the WER 2007 row 113.
