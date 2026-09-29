@@ -1,46 +1,138 @@
-=== AGENT 5 INITIALIZATION ===
-Country: Rwanda (RWA)
-Start Time: 2026-05-15 13:15:00
-Agent 5 Status: INITIALIZED
+=== AGENT 5 (CROSS-REFERENCE INTEGRATOR) - RWANDA (RWA) ===
+Session: run window 2, 2026-09-28
+Start Time: 2026-09-28 20:01 PDT
+Mode: TIME-BOXED (host clamshell sleep froze workflow ~3h40m; hard deadline 20:33 local)
+Scope: conflict resolution / revision of EXISTING rows FIRST (C1-C11 from orchestrator); search only as time allows.
+Parallel: Agent 6 runs concurrently and owns gap classification, presence rows and new zero rows. Agent 5 does NOT delete Agent 6 rows.
+Tools: py/revise_observation.py (revisions, tombstones), py/add_observation.py (new rows). No hand edits.
 
-Objective: Cross-Reference Integrator - Permute successful sources, validate across references
-Baseline: 11 CSV rows, 11 metadata sources
+=== ADJUDICATION LOG (conflict resolution first; no query batches yet) ===
+[20:02] C1 ROW 6 -> RETRACTED (tombstone in ./data/RWA/retracted_rows_ai.csv).
+  AFR::RWA 2018-01-01..2024-12-31, 265 sCh, source 6 (RBC community assessment).
+  Primary doc (metadata 83, RBC Cholera Outbreak Inventory) dates the 15 outbreaks / 265 cases to 2010-04-21..Nov 2015.
+  As stored it masked 2019-2020 and Fourier-spread invented national cases over 2018-2024. Re-dating to 2010-2015
+  as a national row would spread a 6-year aggregate over 2010-2015 and falsely close those gaps. Rows 159-172
+  (source 83, sum 275 sCh) already hold the per-outbreak/per-district detail. Nothing lost.
+  metadata Index 6 Description corrected (2010-2015). NOTE: metadata 6 Date_Range column still reads
+  '2018-01-01 to 2024-12-31' - revise_observation.py has no verb for Date_Range; left for Agent 7/tooling (no hand edit).
+[20:02] C2 ROW 208 -> cCh set to 1 (week-14 2017 bulletin: 'among them one case has been confirmed'; matches row 215).
+[20:02] C3 PRELIMINARY vs FINAL:
+  Row 1 (Cyangugu 2900/55, 1998-05-01..10-22, WHO DON prelim) -> RETRACTED; superseded by row 238
+    (Cyangugu 3220/74, 1998-02-23..11-08, WHO EHA SitRep 10/98 final). Both figures verbatim noted on row 238.
+  Row 65 (Ruhengeri 140/5, 1999-10-14..31, WHO DON prelim) -> RETRACTED; superseded by row 239 (253/16, 11 Oct-5 Nov).
+  Rows 228-230 (communes 80/2 + 53/3 + 7/0 = 140/5, same prelim SitRep) KEPT as labelled dated subset, conf 0.85->0.75.
+  Row 239 annotated with supersession.
+[20:03] C4 ROW 80 -> RETRACTED. Source (metadata 35, RBC bulletin wk36 2023): '13 cases of cholera confirmed by RDT ...
+  The culture results from those samples were negative'. All samples culture-negative -> source rules them out;
+  as an observed <=7-day national row it would have injected 13 refuted cases into 2023 wk36.
+[20:04] C5 2008/2009:
+  Row 38 (GHO 2008 national 23/0) conf 0.9 -> 0.5; conflict recorded verbatim on rows 38, 302 (Rubavu 40/3), 303 (Musanze 194/4):
+  MoH Annual Report 2008 district counts (234/7 in two districts) exceed the WHO national figure ~10x. Both Level 1;
+  'more specific geography over less' + primary government document favour MoH. NOT averaged; NO summed national row created
+  (no source states a 2008 national total other than 23). 302/303 kept at 0.75.
+  2009: row 39 (GHO 67/0) == row 304 (Rusizi/Bugarama 67/0, MoH report) -> corroboration noted on both.
+[20:04] C6 2025: rows 3 (233 by 1 Jun) and 4 (308 by 3 Aug) RETRACTED. Cumulative 'since 1 January' snapshots that the builder
+  Fourier-spread into Jan-mid-Mar 2025 (true record = rows 255-258: wk6 1 susp, wk7 1 susp, wk9 1 imported confirmed).
+  WHO weekly cumulative at the same dates = 245 and 281; WHO final = 312 (row 182). Final over preliminary; no averaging.
+  Re-dating rejected: would contradict source wording and produce rows that can never win a week (WHO > AI).
+  Row 182 KEPT as corroboration (== WHO weekly sum 312), annotated 'National total - includes provinces not individually listed',
+  with both retracted snapshot values recorded verbatim.
+[20:04] C7 2007: row 109 (GIDEON Jan-Feb 599/13, Level 2, conf 0.75) RETRACTED; row 113 (WER 2007 1453/21, Level 1, conf 0.95) kept
+  as primary with 'National total - includes provinces...' phrase. The sources agree (599 subset of 1453) but the per-week
+  winner-takes-all builder produced ~1,830 national cases. Remainder row (854) rejected as a cross-source derived number.
+[20:06] C8 ROW 12 -> RETRACTED. WHO epi update #37: 'Since 01 January 2026 and as of 10 May 2026, 29 cases have been reported'.
+  WHO weekly dashboard (priority WHO > AI) = 58 for 2026-01-05..05-03; district rows (other sources) give >=66 by 10 May
+  (Western 18 Jan-Mar row 5; Rusizi 35 + Rubavu 13 for 20 Apr-10 May rows 115/126). Lagged snapshot; could only affect
+  week 2026-05-04..05-10 with a ~1.5-case Fourier share, biased low. WebFetch of the WHO item page (1 fetch, not a
+  search query) found no Rwanda breakdown/case definition outside the PDF. Not averaged.
+[20:06] C10 national_subnational_overlap WARNs (7) cleared by appending verbatim primary-level statements to rows
+  5, 11, 175, 179, 180, 181, 192. Checked consistency while doing so: row 5 Western 18 (1 Jan-23 Mar 2026) == WHO weekly
+  11+5+1+1 = 18 (weeks 2026-01-12..02-22), so national zero rows 179/180/181 are consistent; row 149 Western 14
+  (2025-06-30..08-17) == WHO weekly 3+5+3+2+1 = 14 (to 08-03), so zero row 175 (08-04..08-17) is consistent.
+  Validator after C1-C8/C10: exit 0, ERROR 0, WARN 1 (notes_missing_quote).
+[20:08] C9 DISTRICT-ONLY PERIODS:
+  2020 Oct-Dec: monthly RBC bulletins give a routine national summary box AND outbreak-investigation totals.
+   ADDED row 305: AFR::RWA 2020-12-01..12-31, 12 sCh, source 147 (Dec 2020 national summary: 'Cholera : 12 suspected cases from
+     Nkombo health center of Gihundwe DH'; same construction as national monthly rows 274/275). conf 0.7, lower bound.
+   ADDED row 306: AFR::RWA 2020-10-07..10-31, 43 sCh / 2 cCh / 1 death, source 144 (Oct 2020 bulletin: Nkombo is the only cholera
+     reported nationally; within-source conflict recorded verbatim: summary box 'six suspected cases' vs investigation
+     'In total 43 cases and one death'; investigation total used as the more complete figure; not averaged). conf 0.7, lower bound.
+   November 2020: NO national row (bulletin gives only routine summary 6 and the multi-month Rubavu total 172, Oct 15-Dec 7).
+   Rubavu (row 268, source 145) NOT summed into any national row (cross-source summation prohibited).
+   Rows 267, 268, 273 annotated with do-not-sum links.
+  2023 Jan-Mar: NO national row. Source 150 presents 90 as a Western Province cumulative, not national; national series for
+   Jan-Mar 2023 already carried by annual row 60 (WER 207). Row 278 annotated.
+[20:11] C11 HIDDEN-TEXT SPOT-CHECK: downloaded the 4 bulletins (metadata 115, 120, 142, 146) to /tmp/a5_rwa/, rendered page 1
+  with pdftoppm -png -r 100 and viewed the PNGs. All four rows are supported by VISIBLE text:
+   row 208/215 (2017 wk14): 'Five cases of cholera were notified from Ngarama hospital among them one case has been confirmed' - PASS
+   row 213 (2021 wk6): 'Cholera : one suspected case from Nkombo health center of Gihundwe DH.' - PASS (rendered header misprints
+     'January'; file name/ISO week/Ebola item confirm 8-14 Feb 2021)
+   row 261 (2019 wk33): 'one of cholera' + 'Cholera : one confirmed case from Mibilizi DH' - PASS
+   row 269 (2019 wk39): 'seven suspected case ... two were Vibrio Cholerae Ogawa Positive' + 'Cholera : 7 suspected case' - PASS
+  Confirmed the hidden layers exist (pdftotext shows 'Cholera: 1 suspected case', '814 cases were reported', 'week 43 ... 327',
+  and in the 2021 wk6 file '7 suspected case', 'five cases', 'Ngarama'). No retraction needed. Notes appended to 208, 213, 215, 261, 269.
+[20:11] STEP-4 ARITHMETIC CHECKS (national annual vs district rows, same year; CFR scan):
+  2008: parts 234 > national 23 (handled in C5).  2009: 67 == 67 (corroboration, C5).
+  2012: NEW CONFLICT - RBC inventory (metadata 83) rows 161-164 = 13+8+52+11 = 84 cases vs WHO GHO 2012 national 9 (row 40).
+    Row 40 conf 0.9 -> 0.5; conflict recorded verbatim on rows 40 and 161-164; no national row derived; not averaged.
+  2016: district 148 <= national 355 OK. 2021: 1 <= 74 OK. 2023: district 117 <= national 207 OK.
+  2020: district 227 (three different bulletins) with no national annual row - national monthly rows 274, 275, 305, 306 only.
+  2025: row 70 (WHO annual 54 cCh, blank sCh) - builder treats blank sCh as no information (checked build_weekly_timeseries.py),
+    so it does not zero-fill Jan-mid-Mar 2025 after the retraction of rows 3/4.
+  No row with CFR > 15% remains in ./data/RWA/cholera_data_ai.csv.
 
-=== BATCH 1 EXECUTION: CROSS-REFERENCE SEARCHES ===
-Queries Executed: 20 queries permuting successful sources
-Key Results:
-- 1998 Cyangugu 2900 cases confirmed via multiple WHO references (no update needed)
-- 2006 Kigali/Masaka 68 cases confirmed: UNICEF and Red Cross intervention documented
-- 2025 308 cases confirmed via WHO AFRO sitrep (no update needed)
-- ECDC geographical distribution Dec 2024-Dec 2025: Rwanda not broken out country-by-country
-- Cross-reference: Rwanda started cholera in March 2025, previous year no cases at that time
+=== BATCH 1 | PHASE 2 (cross-reference validation) | RWA ===
+  Time         : 20:11-20:12 PDT (after conflict resolution C1-C11 was complete)
+  Gap targeted : corroboration of single-source/conflicted rows: 2020 Oct-Dec (rows 267/268/273/305/306), 2008 (302/303),
+                 2012 (40 vs 161-164), 2026 (row 12 context), 1998 (238); plus 2013-2016, 2021, 2023 district context
+  Queries      : 20
+    1 Rwanda cholera outbreak Rubavu Gisenyi November 2020 cases deaths            [humanitarian/official]
+    2 Rwanda cholera Nkombo Rusizi October 2020 outbreak confirmed                   [official]
+    3 Rwanda cholera 2008 Musanze Nyundo outbreak cases                              [historical]
+    4 Rwanda cholera 2012 Rutsiro Rubavu outbreak cases                              [historical]
+    5 "Rwanda" cholera 2012 reported cases weekly epidemiological record Table        [WHO/official]
+    6 choléra Rwanda 2020 Rubavu Rusizi cas décès épidémie                           [linguistic FR]
+    7 Rwanda cholera 2026 cases Rusizi Nyamasheke WHO epidemiological update May 2026 [WHO/official]
+    8 Rwanda cholera 1998 Cyangugu 3,220 cases 74 deaths                              [historical]
+    9 "Cholera outbreak claims 10 lives in Rwanda"                                    [humanitarian]
+   10 indwara ya kolera Rusizi Nkombo 2020                                            [linguistic RW]
+   11 kolera Rubavu Gisenyi abarwayi 2020                                             [linguistic RW]
+   12 Rwanda Biomedical Centre monthly epidemiological bulletin November 2020 cholera Gisenyi [official]
+   13 Rwanda cholera 2013 Nkombo outbreak cases Rusizi district                       [official]
+   14 Rwanda cholera 2015 Nyamasheke outbreak cases deaths                            [official]
+   15 Goma Gisenyi cholera cross-border 2020 Rwanda DRC North Kivu cases              [regional]
+   16 Rwanda cholera 2016 outbreak districts cases 355                                [official]
+   17 Rwanda cholera 2021 outbreak cases district Rusizi Rubavu                       [official]
+   18 Vibrio cholerae Rwanda genomic surveillance Lake Kivu isolates 2019 2020 study  [technical/academic]
+   19 Rwanda cholera 2014 Nyamasheke Rusizi outbreak cases week                       [official]
+   20 Rwanda Iwawa island cholera 2023 cases                                          [official]
+  Sources found: 0 new with extractable counts. Hits were already registered (ReliefWeb 2006 Masaka = metadata 2;
+                 WHO DON 22 Oct 1998 = metadata 1; RBC community assessment = metadata 6) or carried no Rwanda counts
+                 (WHO epi update #38 page, EID Lake Tanganyika genomics, Goma cross-border reviews). travelhealth.net
+                 (Mar 2026: 'more than 17 cases ... including 8 laboratory-confirmed' in Rusizi/Nyamasheke) corroborates row 5 (18/8).
+                 No independent second source found for 2020 Rubavu (row 268) or 2008 Musanze (row 303): both stay single-source.
+  Registered   : none
+  Rows added   : 0 from queries (rows 305, 306 came from re-mining registered sources 147 and 144, not from a query)
+  Successful queries: 0/20
+  Yield        : 0%
+  Consecutive sub-5% batches: 1
+  Decision     : STOP after this batch - TIME-BOXED (deadline 20:33; Agent 7 must still run). 60-query minimum NOT met
+                 (20 of 60); the orchestrator was told in advance this window cannot meet it.
 
-Batch 1 Yield: 0/20 = 0% (0 consecutive)
+[20:12] Re-mining check: RBC Public Health Bulletin 'The persistent challenge of cholera in Africa' (Siamalube et al., Dec 2024,
+  rbc.gov.rw/publichealthbulletin/...3137cdc815....pdf) downloaded - Africa-wide commentary, no Rwanda counts; NOT registered.
 
-=== BATCH 2 EXECUTION: SOURCE PERMUTATION SEARCHES ===
-Queries Executed: 20 queries on WHO WER annual data, RBC reports, ECDC geographic data
-Key Results:
-- RBC Public Health Bulletin PDF inaccessible (binary format)
-- WHO AFRO monthly bulletins Aug-Nov 2025: Rwanda not broken out specifically
-- ECDC annual report 2021-2022: Rwanda not mentioned
-- RBC 2018-2021 annual cases: Not accessible in web search results
-
-Batch 2 Yield: 0/20 = 0% (1 consecutive)
-
-=== BATCH 3 EXECUTION: FINAL CROSS-REFERENCE ATTEMPTS ===
-Queries Executed: 20 queries on year-end 2025, ECDC data, RBC surveillance
-Key Results:
-- Year-end 2025 total: Not confirmed beyond 308 cases as of Aug 2025
-- ECDC geographical distribution: Rwanda appears in charts but no country-specific data
-- RBC surveillance 2025: Not accessible directly
-
-Batch 3 Yield: 0/20 = 0% (3 consecutive - STOPPING CRITERIA MET)
-
-=== AGENT 5 FINAL STATUS ===
-Completion Time: 2026-05-15 14:30:00
-New CSV Rows Added: 0
-Key Findings:
-- All existing data confirmed through cross-referencing
-- 2025 outbreak primarily in Rusizi/Nyamasheke districts (Western Province)
-- 2024 zero-transmission confirmed from multiple WHO sources
-- No conflicting data found in cross-references
+=== AGENT 5 SUMMARY (TIME-BOXED) ===
+End Time: 2026-09-28 20:13 PDT
+Batches: 1 (20 queries), batch_yields = [0] percent. 60-query minimum NOT met (20/60) - time-boxed by orchestrator.
+RETRACTED (tombstones in ./data/RWA/retracted_rows_ai.csv): 6, 1, 65, 80, 3, 4, 109, 12
+REVISED values/weights: 208 (cCh 1), 228/229/230 (conf 0.75), 38 (conf 0.5), 40 (conf 0.5)
+NOTES appended: 5, 11, 39, 113, 161-164, 175, 179, 180, 181, 182, 192, 213, 215, 238, 239, 261, 267, 268, 269, 273, 278, 302, 303, 304
+METADATA: Index 6 Description re-dated to 2010-2015 (Date_Range column still '2018-01-01 to 2024-12-31': no tool verb - for Agent 7)
+ADDED: 305 (AFR::RWA Dec 2020, 12 sCh, src 147), 306 (AFR::RWA 7-31 Oct 2020, 43 sCh/2 cCh/1 death, src 144) - both lower bounds
+Parallel Agent 6 rows 307-317 (2020 national zero rows Jan-Aug) checked: no overlap/conflict with 305/306.
+Validator: python py/validate_quality.py RWA -> exit 0, ERROR 0, WARN 0.
+LEFT FOR AGENT 7: (1) metadata 6 Date_Range; (2) November 2020 national gap (no single-source national figure);
+  (3) rows 2 and 236 (2006 Masaka 68/10, same source 2, Kigali province vs Kicukiro district) cross-level duplicate;
+  (4) weekly series ./data/RWA/cholera_weekly_RWA.csv not rebuilt after 8 retractions + 2 additions;
+  (5) 2008 and 2012 WHO national figures are documented under-reports (rows 38, 40 at 0.5) - consider in QA narrative.

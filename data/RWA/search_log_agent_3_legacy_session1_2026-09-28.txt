@@ -1,0 +1,104 @@
+================================================================================
+AGENT 3 - ZERO-TRANSMISSION VALIDATOR - RWANDA (RWA)
+================================================================================
+Start Time: 2026-09-28 (run replaces stale May-2025 log)
+Agent role : validate and document cholera-free periods; refuse zeros where
+             surveillance was not operating (Surveillance_Gap != zero).
+Dataset at start: ./data/RWA/cholera_data_ai.csv 172 rows, 85 sources
+                  ./data/RWA/cholera_presence_ai.csv 3 rows
+
+TARGETS (priority order)
+ T1  1990 and 2002 - the only two years with NO observation of any kind.
+     Decide: Documented/Inferred absence -> zero row, OR non-reporting ->
+     presence file + log only, leave genuinely empty.
+ T2  Independently verify pre-existing zero rows 8 (2022=0), 9 (2023=0) and
+     10 (2024=0) against primary WHO sources.
+ T3  Corroborate row 64 (1970-1977 pre-introduction absence) with a second
+     independent source.
+ T4  Any further year the WER/GHO AFFIRMATIVELY reports Rwanda as zero.
+
+STANDING RULES APPLIED
+ - GHO holds no explicit zero-value cholera records; a missing GHO year is
+   NON-REPORTING, never absence. Asymmetry respected throughout.
+ - A documented zero needs a source that says "no cases", not a source that
+   omits Rwanda.
+ - Regional cross-check against BDI / COD / TZA / UGA for every claimed zero.
+ - "Rwanda 2002, 506 cases, 72 deaths" is MENINGOCOCCAL disease (WHO DON
+   2002_09_04). Rejected by Agents 1 and 2; not to be resurrected.
+
+================================================================================
+=== BATCH 1 | PHASE 1 | RWA ===
+Gap targeted : 1990-01-01..1990-12-31 and 2002-01-01..2002-12-31 (the only two
+               calendar years with NO observation of any kind in the AI layer)
+Queries      : 20
+  1  WebSearch WHO WER "Cholera in 1990" annual review countries reporting
+  2  WebSearch WHO WER "Cholera in 2002" annual number of cases Africa table
+  3  WebSearch Rwanda cholera 1990 cases reported WHO
+  4  WebSearch Rwanda cholera 2002 no cases reported surveillance
+  5  WebFetch  CDC EID 17(11) Dynamics of Cholera Great Lakes 1978-2008 (full text)
+  6  API  GHO CHOLERA_0000000001 SpatialDim eq 'RWA'  (full Rwanda series)
+  7  API  GHO CHOLERA_0000000001 for BDI, COD, TZA, UGA, KEN (regional cross-check)
+  8  API  IRIS DSpace /server/api/discover/search/objects?query=cholera 2002  -> FAIL
+  9  WebSearch iris.who.int WER 2003 "Cholera, 2002" 78 269
+ 10  WebSearch WHO 2002 annual "number of cases and deaths" African region table
+ 11  HTTP  iris.who.int/handle/10665/232211..232215 probe -> FAIL (empty)
+ 12  WebFetch iris.who.int/handle/10665/232211 -> ECONNREFUSED
+ 13  WebSearch "Weekly Epidemiological Record" 2003 "vol. 78, 31" full issue
+ 14  WebFetch who.int/publications/m/item/WER-2003-78-31 -> HTTP 404
+ 15  WebSearch "Cholera in 1990" WER 1991 vol 66 Africa
+ 16  WebFetch who.int/publications/i/item/10665232226 -> HTTP 404
+ 17  WebSearch iris.who.int items "Cholera in 1990" "Le cholera en 1990"
+ 18  HTTP  iris.who.int/bitstream/handle/10665/228010/WER6619.PDF -> HTTP 000
+ 19  HTTP  connectivity test iris.who.int -> resolves to 54.174.254.19, conn refused
+ 20  WebFetch PMC2393471 + archive.org wayback availability for who.int/docstore/wer
+      PDFs -> Wayback returns HTTP 429 Too Many Requests
+
+Sources found: 0 registered (all findings corroborate existing sources)
+Rows added   : 0    Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch minimum; batch 1 was infrastructure discovery)
+
+FINDINGS (high value, no rows yet)
+ F1. DECISIVE NEGATIVE CONTROL. WHO GHO indicator CHOLERA_0000000001 for RWA
+     returns exactly 32 records: 1978-1989, 1991-2009, 2012, 2016. Every single
+     value is POSITIVE; there is not one zero-valued record. 1990 and 2002 are
+     the ONLY two years absent from the otherwise unbroken 1978-2009 run.
+     This confirms the standing asymmetry: a missing GHO year for Rwanda is
+     non-reporting or a zero that WHO did not store - it is NOT evidence of
+     absence, and cannot by itself support a zero row.
+ F2. CDC EID 17(11), verbatim: "This region also includes Rwanda and part of
+     Kenya and Uganda, which have also reported cases of cholera nearly every
+     year since 1991 (except for 3 years for Kenya and 2 years for Rwanda and
+     Uganda)." The article does NOT name Rwanda's two years, and gives no
+     year-by-year table. So the brief's "directly decisive" expectation does not
+     hold: the paper constrains the count, not the identity, of the missing
+     years. Against GHO, only ONE year (2002) is missing for Rwanda within
+     1991-2008, so the paper's second year cannot be reconstructed from GHO and
+     may be an artefact of the 2010-vintage WHO Global Health Atlas snapshot the
+     authors used. NOT usable as an absence source.
+ F3. CDC EID 17(11), verbatim: "According to the World Health Organization
+     (WHO), only 5 countries (Burundi, Cameroon, the Democratic Republic of the
+     Congo [DRC], Ghana, and Tanzania) have reported cases of cholera every year
+     since 1990." Rwanda is excluded from that list - consistent with either a
+     1990 zero or a 1990 non-report; it does not discriminate.
+ F4. REGIONAL CROSS-CHECK, from GHO, for the two target years:
+       1990  BDI 82   COD 468    TZA 2230   UGA no record   KEN no record
+       2002  BDI 577  COD 31658  TZA 11920  UGA 2274        KEN 291
+     2002 was a REGIONAL EPIDEMIC year on every Rwandan land border, with the
+     DRC figure (31658) driven largely by South Kivu directly across Lake Kivu -
+     the exact corridor that produced Rwanda's Rusizi/Nyamasheke/Rubavu
+     outbreaks in every other era. A Rwandan true zero in 2002 would therefore
+     require exceptionally strong affirmative evidence.
+     1990 sits in a regionally quiet period by comparison, and Rwanda's own
+     neighbouring years were 1989 = 1 case and 1991 = 679 cases, so a genuine
+     1990 zero is epidemiologically ordinary.
+ F5. BLOCKER. WHO IRIS (iris.who.int, 54.174.254.19) is refusing all connections
+     this run - WebFetch, curl and the DSpace REST API alike - and the Internet
+     Archive is returning HTTP 429. The WER annual cholera articles "Cholera in
+     1990" (WER 1991, 66(19), 133-136, handle 10665/228010; addendum 66(20), 146)
+     and "Cholera, 2002" (WER 2003, 78(31), 269-276) are identified but NOT
+     retrievable by this agent. Both remain the single best primary sources for
+     resolving 1990 and 2002 and should be retried by a later agent.
+

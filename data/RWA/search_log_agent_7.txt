@@ -1,115 +1,86 @@
-=== AGENT 7 INITIALIZATION ===
+=== AGENT 7 (QUALITY AUDITOR) - SESSION 2 LOG ===
 Country: Rwanda (RWA)
-Start Time: 2026-05-15 15:30:00
+Start Time: 2026-09-28 20:19:49
 Agent 7 Status: INITIALIZED
-Role: Quality Auditor - Final validation and search_report.txt creation
+Mode: Audit only (no query budget). Unattended run; hard deadline 20:55 local.
+Prior Agent 7 log (May 2026) preserved as ./data/RWA/search_log_agent_7_legacy_2026-05-15.txt
+Prior search report (May 2026) preserved as ./data/RWA/search_report_legacy_2026-05-15.txt
 
-=== QUALITY AUDIT PROTOCOL ===
+=== AUDIT STEP 1-2: VALIDATION & STATE (20:25:53) ===
+- python py/validate_quality.py RWA --json /tmp/RWA_audit.json -> exit 0; ERROR 0, WARN 0, INFO 106
+  INFO breakdown: national_subnational_overlap 81 (all marked 'documented'); metadata_unused 25.
+- ./data/RWA/attribution_review.csv: does not exist (nothing pending).
+- Independent recount of ./data/RWA/cholera_data_ai.csv: 321 rows (max Index 335); 248 case / 73 zero
+  (44 Documented_Absence, 29 Inferred_Absence); 191 national / 130 sub-national. Matches orchestrator brief.
+- ./data/RWA/metadata_ai.csv: 197 sources; Level 1 191 / Level 2 4 / Level 3 2 / Level 4 0; Superseded 2 (155,156).
+- Row accounting: cycle-start git cf1c3ad had 11 rows (Index 1-6, 8-12). 11 + 323 claimed by A1-A6
+  (131+99+52+10+2+29) = 334 = 321 live + 13 tombstoned in ./data/RWA/retracted_rows_ai.csv. Index 7 was
+  already absent at cycle start (quarantined to ./data/RWA/cholera_presence_ai.csv in an earlier cycle).
+  No agent claimed rows it did not add. No yield >100% reported.
+- 25 unreferenced metadata: retracted-row-only {1,3,4,12,21,35,57}; presence-only {7,56,85,163,167};
+  superseded {155,156}; corroboration/context/negative evidence {8,9,19,84,87,88,89,160,161,166,168}.
+- Workflow state read. Minimum-batch compliance: A1 16, A2 11, A3 7 OK; A4 3 (third partial -> nominal only);
+  A5 1 batch (20/60 queries) BELOW MINIMUM; A6 0 batches BELOW MINIMUM. A5/A6 ran concurrently (time-boxed).
+- FINDING vs orchestrator brief: metadata 166 (MoH Annual Report FY2011-12) WAS mined by Agent 6; its content
+  (Nyamasheke 24/10/2011 14 cases; Rubavu 13/2/2012 13 cases) corroborates existing rows 160/161 (source 83),
+  and source 84 records the same. Unread annual reports: 2000-2003, 2005-2007, 2012/13-2015/16.
+- FINDING: metadata 6 Date_Range still '2018-01-01 to 2024-12-31' (source is Aug-2015 RBC assessment; see
+  row 114 notes). No metadata-edit tool exists; left and reported.
+- FINDING: row 162 (Nkamira 8 cases May 2012, source 83) absent from FY2011-12 annual-report table that says
+  'no other cholera outbreak' - minor unresolved single-source conflict, reported.
 
-1. FILE STRUCTURE VERIFICATION
--------------------------------
-Files present and validated:
-- cholera_data_ai.csv: EXISTS (11 rows + header)
-- metadata_ai.csv: EXISTS (11 rows + header)
-- search_report.txt: CREATED (this report)
-- search_log_agent_1.txt through search_log_agent_6.txt: ALL PRESENT
-- cholera_data_who.csv: EXISTS (baseline WHO data)
-- metadata_who.csv: EXISTS
+=== AUDIT STEP 3: COVERAGE (20:25:53) ===
+- py/analyze_effective_gaps.py --prefix /tmp/... crashes (write_csv calls path.relative_to(ROOT)); nothing was
+  written to ./reference/ (git status of reference/ unchanged). Coverage instead computed in memory via
+  analyze_effective_gaps.analyse('RWA',...) with end date 2026-09-28:
+  JHU+WHO+AI: 681 months, 605 with data (88.8%), 76 missing, months_who 15, months_ai 605, months_ai_only 590,
+              months_with_positive_cases 475, 19 gap periods (2,308 days); latest obs 2026-09-06 (22 d stale)
+  JHU+WHO   : 13/681 (1.9%), 2 gap periods (1970-01-01..2025-03-31 20,179 d; 2026-05-01..2026-09-28 151 d)
+  => AI closed 592/668 missing months; 18,022/20,330 gap-days (88.6%). Orchestrator figures confirmed.
+- ./data/RWA/search_report.txt written (1-2 pages + appendix).
+- write_agent_state('RWA', agent_num=7, ...) written with 19 gaps_remaining.
 
-2. DATA FORMAT VALIDATION
---------------------------
-cholera_data_ai.csv columns verified:
-- Index: Sequential 1-11 ✓
-- Location: AFR::RWA format all correct ✓
-- TL/TR: YYYY-MM-DD format all correct ✓
-- deaths/sCh/cCh: Positive integers or empty ✓
-- CFR: 0-100 range ✓ (one high CFR documented in processing_notes)
-- reporting_date: YYYY-MM-DD format ✓
-- source_index: All match metadata indices ✓
-- source: All match metadata Source column exactly ✓
-- confidence_weight: 0.1-1.0 range ✓
-- source_database: All = 'AI' ✓
-
-3. INDEX SYSTEM INTEGRITY
---------------------------
-Metadata indices: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 (sequential, no gaps) ✓
-Data source_index references: 1, 2, 3, 4, 5, 6, 7, 10, 10, 10, 11 ✓
-All source_index values exist in metadata ✓
-Source name cross-references: All verified ✓
-
-4. EPIDEMIOLOGICAL VALIDATION
-------------------------------
-CFR values:
-- Row 1: 1.9% (Cyangugu 1998) - ACCEPTABLE
-- Row 2: 14.7% (Kigali 2006) - HIGH but DOCUMENTED with context
-- Row 3-4: 0.0% (2025) - ACCEPTABLE
-- Row 5: 0.0% (2026) - ACCEPTABLE
-- Row 8-10: 0.0% (zero-transmission) - VALIDATED
-
-Outbreak duration:
-- Row 1: ~6 months (May-Oct 1998) - ACCEPTABLE
-- Row 2: ~8 days (Dec 29 - Jan 6) - ACCEPTABLE (rapid containment)
-- Row 11: ~6 days (Nov 15-21 1996) - ACCEPTABLE (emergency situation)
-
-Population plausibility:
-- Row 1: 2900/7.5M Rwanda 1998 population = 0.04% attack rate - ACCEPTABLE
-- Row 2: 68/800,000 Kigali population = 0.008% attack rate - ACCEPTABLE
-- Row 4: 308/13.4M Rwanda 2025 population = 0.002% attack rate - ACCEPTABLE
-
-5. TEMPORAL LOGIC VALIDATION
------------------------------
-All TL < TR: VERIFIED ✓
-All reporting_date >= TR: VERIFIED ✓
-No future dates beyond 2026-05-15 (data collection date): VERIFIED ✓
-
-6. GEOGRAPHIC VALIDATION
--------------------------
-AFR::RWA - National ✓
-AFR::RWA::Cyangugu - Now Rusizi district ✓ (historical name used appropriately for 1998)
-AFR::RWA::Kigali - Provincial level ✓
-AFR::RWA::Western - Provincial level ✓
-
-7. DUPLICATION DETECTION
--------------------------
-Row 3 vs Row 4: Same start date (2025-01-01); Row 3 is subset period superseded by Row 4
-  - Processing notes updated to flag this: RESOLVED
-Row 6 vs Rows 8-10: Overlapping 2022-2024 period
-  - 265 cases (Row 6) concentrated 2018-2021; 2022-2024 confirmed zero-transmission (Rows 8-10)
-  - Processing notes updated: RESOLVED
-
-8. SOURCE AUTHENTICATION
--------------------------
-All 11 sources verified accessible:
-- WHO DON URLs: Active ✓
-- ReliefWeb: Active (403 from direct fetch but confirmed via search results) ✓
-- PMC/PubMed: Active ✓
-- ECDC: Active ✓
-- RBC government: Active (PDF binary format, URL confirmed) ✓
-
-9. CORRECTIONS MADE
---------------------
-- Row 7: Added note about no quantitative data (contextual documentation only)
-- Row 3: Added note about being superseded by Row 4
-- Row 6: Added clarification note about overlap with zero-transmission rows 8-10
-
-10. QUALITY FLAGS
------------------
-HIGH-QUALITY DATA (Rows 1, 4, 5, 8, 9, 10, 11): WHO Level 1 sources, validated
-MEDIUM-QUALITY DATA (Rows 2, 3): Level 2 sources, single source (ReliefWeb, PMC)
-AGGREGATE DATA (Row 6): Multi-year aggregate, confidence_weight appropriately reduced
-CONTEXTUAL ONLY (Row 7): No quantitative values, pattern documentation only
-
-=== AGENT 7 FINAL STATUS ===
-Completion Time: 2026-05-15 16:00:00
-Quality Audit: COMPLETED
-search_report.txt: CREATED
-Validation: ALL CHECKS PASSED
-Dashboard Update: Will be triggered by orchestrator after this agent completes
-
-SUMMARY STATISTICS FOR DASHBOARD:
-- Total AI observations: 11
-- Quantitative outbreak observations: 7 (with sCh or cCh values)
-- Zero-transmission validated: 3 years (2022, 2023, 2024)
-- Contextual documentation: 1 row (no quantitative values)
-- Time span covered: 1996-2026 (30 years documented)
-- Sources: 11 (82% Level 1, 18% Level 2)
+=== AUDIT STEP 5: FIXES & SPOT-CHECKS (20:28:20) ===
+- Location normalisation (py/revise_observation.py, counts unchanged, reason appended to processing_notes):
+  Index 173, 242: AFR::RWA::Gisenyi  -> AFR::RWA::Western::Gisenyi
+  Index 238, 248, 249, 250, 251: AFR::RWA::Cyangugu -> AFR::RWA::Western::Cyangugu
+  Index 243 (Kigali, 8-31 Dec 1997): LEFT as AFR::RWA::Kigali, note appended. 'Kigali prefecture' in 1997 is
+  ambiguous (Kigali-Ville vs Kigali-Rural, which spans four modern provinces); any finer code would be a guess.
+- Validator re-run: python py/validate_quality.py RWA --json /tmp/RWA_audit_after.json -> exit 0,
+  ERROR 0 / WARN 0 / INFO 106 (81 overlap-documented, 25 metadata_unused).
+- Rendered-page spot-checks (Wayback id_ PDFs -> /tmp/rwa7pdf, pdftoppm page 1 at 80 dpi, viewed as images):
+  * Row 307 (AFR::RWA 2020-05 Inferred_Absence, source 169, RBC monthly May 2020): rendered page lists food
+    poisoning, measles, mumps, dog bites, rubella, typhoid (+ left-column malaria/flu/NBD/pneumonia/shigellosis/
+    chicken pox); NO cholera. Text layer contains hidden '* Cholera: 1 suspected case'. VERIFIED.
+  * Row 330 (AFR::RWA 2019-04-29..05-05 Inferred_Absence, source 192, RBC weekly wk18 2019): rendered page lists
+    measles, dog bites, typhoid, viral conjunctivitis, food poisoning, rubella, meningococcal meningitis; NO
+    cholera. Text layer has the hidden template line twice. VERIFIED.
+  * Row 261/262 (2019 wk33 confirmed case, source 142; basis of Agent 3's 2019 zero retraction): rendered page
+    shows 'Cholera : one confirmed case from Mibilizi DH' and highlight 'one of cholera'. VERIFIED.
+- Report sections 6 and 9 updated with the fixes and spot-check results.
+- Additional rendered-page checks (20:30:32):
+  * Row 291 (AFR::RWA 2022-06-06..12, 1 sCh, source 154, wk23 2022): text layer has BOTH '* Cholera: 1 Suspected
+    Cases' and the hidden template '* Cholera: 1 suspected case'; rendered page 1 visibly lists 'Cholera: 1 Suspected
+    Cases' under 'II. Cases reported immediate & weekly at national level'. VERIFIED (not template residue).
+  * Row 274 (AFR::RWA 2020-04, 1 sCh, source 147 April URL): rendered page visibly prints 'Cholera : one suspected
+    case from Saint Francois (Rusizi) health center of Gihundwe DH'. VERIFIED.
+  * Scan: 21 rows mention the template phrase; all but 291 and 93 mention it only as a caution; 93 (2012) names a
+    facility (Nkombo) and predates the template era - not checked visually.
+- Cross-layer check vs ./data/RWA/cholera_data_who.csv (not covered by the validator):
+  * Row 182 (312 sCh 2025-03-17..11-24) = sum of WHO baseline weekly sCh over the same weeks (312); row 70 is the WER
+    2025 annual (54 cCh). Aggregate restatements - flagged in the report so the weekly builder does not stack them on
+    the weekly WHO rows. Not changed (they are correctly labelled national primary vs provincial within the AI layer).
+  * AI zero rows 174-181 sit only on WHO baseline weeks with empty sCh and agree with WHO dashboard zeros.
+  * Seam 2026-05-03/05-04: WHO baseline sum 370 + AI row 42 (37) = 407 = WHO cum_case at date_wk 2026-05-04. No
+    seam double count.
+=== AUDIT COMPLETE (2026-09-28 20:32:05) ===
+- Final validator run: python py/validate_quality.py RWA --json /tmp/RWA_audit_final.json -> exit 0 (0/0/106).
+- ./data/RWA/search_report.txt condensed to a ~2-page body (sections 1-8) plus metrics appendix A-L.
+- workflow_state agent 7 entry rewritten with fixes, verifications, flags and the 19 open gaps.
+- Not done (time): no web queries beyond the 5 rendered-page retrievals; metadata 6 Date_Range not editable by
+  tools; no git commit and no dashboard update (per orchestrator instruction).
+Agent 7 Status: COMPLETE
+- Addendum (20:32:44): checked py/build_weekly_timeseries.py merge logic. try_insert keeps one entry per ISO week,
+  replacing by SOURCE_PRIORITY (WHO 3 > JHU 2 > AI 1); AI is processed first, WHO last. The AI 2025 aggregates (rows
+  182, 70) are therefore overwritten by WHO weekly rows in the national weekly series, not stacked. Report flag (e)
+  and Appendix J softened accordingly; the risk remains only for consumers that sum rows across layers.

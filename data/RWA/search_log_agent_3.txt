@@ -1,83 +1,538 @@
-=== AGENT 3 INITIALIZATION ===
-Country: Rwanda (RWA)
-Start Time: 2026-05-15 10:45:00
-Agent 3 Status: INITIALIZED
+================================================================================
+AGENT 3 - ZERO-TRANSMISSION VALIDATOR - RWANDA (RWA)
+================================================================================
+Start Time: 2026-09-28 (run replaces stale May-2025 log)
+Agent role : validate and document cholera-free periods; refuse zeros where
+             surveillance was not operating (Surveillance_Gap != zero).
+Dataset at start: ./data/RWA/cholera_data_ai.csv 172 rows, 85 sources
+                  ./data/RWA/cholera_presence_ai.csv 3 rows
 
-Objective: Zero-Transmission Validation - Validate and document cholera-free periods
-Focus: WHO AFRO bulletins, surveillance gaps, absence documentation
+TARGETS (priority order)
+ T1  1990 and 2002 - the only two years with NO observation of any kind.
+     Decide: Documented/Inferred absence -> zero row, OR non-reporting ->
+     presence file + log only, leave genuinely empty.
+ T2  Independently verify pre-existing zero rows 8 (2022=0), 9 (2023=0) and
+     10 (2024=0) against primary WHO sources.
+ T3  Corroborate row 64 (1970-1977 pre-introduction absence) with a second
+     independent source.
+ T4  Any further year the WER/GHO AFFIRMATIVELY reports Rwanda as zero.
 
-Key Context:
-- CDC EID article: Rwanda had cholera "nearly every year since 1991 except 2 years"
-- WHO baseline: 0% coverage, all data from AI discovery
-- Target: Document absence periods with WHO surveillance evidence
+STANDING RULES APPLIED
+ - GHO holds no explicit zero-value cholera records; a missing GHO year is
+   NON-REPORTING, never absence. Asymmetry respected throughout.
+ - A documented zero needs a source that says "no cases", not a source that
+   omits Rwanda.
+ - Regional cross-check against BDI / COD / TZA / UGA for every claimed zero.
+ - "Rwanda 2002, 506 cases, 72 deaths" is MENINGOCOCCAL disease (WHO DON
+   2002_09_04). Rejected by Agents 1 and 2; not to be resurrected.
 
-=== BATCH 1 EXECUTION: ZERO-TRANSMISSION PERIOD SEARCHES ===
-Queries Executed: 20 queries targeting absence validation 2000-2024
-Key Results:
-1. 2024 ZERO-TRANSMISSION VALIDATED:
-   - WHO AFRO December 2024 bulletin: 18 affected countries listed, Rwanda NOT included
-   - Countries affected: Burundi, Cameroon, Comoros, DRC, Ethiopia, Ghana, Kenya, Malawi,
-     Mozambique, Niger, Nigeria, South Africa, South Sudan, Togo, Tanzania, Uganda, Zambia, Zimbabwe
-   - Rwanda systematically absent = confirmed zero-transmission 2024
+================================================================================
+=== BATCH 1 | PHASE 1 | RWA ===
+Gap targeted : 1990-01-01..1990-12-31 and 2002-01-01..2002-12-31 (the only two
+               calendar years with NO observation of any kind in the AI layer)
+Queries      : 20
+  1  WebSearch WHO WER "Cholera in 1990" annual review countries reporting
+  2  WebSearch WHO WER "Cholera in 2002" annual number of cases Africa table
+  3  WebSearch Rwanda cholera 1990 cases reported WHO
+  4  WebSearch Rwanda cholera 2002 no cases reported surveillance
+  5  WebFetch  CDC EID 17(11) Dynamics of Cholera Great Lakes 1978-2008 (full text)
+  6  API  GHO CHOLERA_0000000001 SpatialDim eq 'RWA'  (full Rwanda series)
+  7  API  GHO CHOLERA_0000000001 for BDI, COD, TZA, UGA, KEN (regional cross-check)
+  8  API  IRIS DSpace /server/api/discover/search/objects?query=cholera 2002  -> FAIL
+  9  WebSearch iris.who.int WER 2003 "Cholera, 2002" 78 269
+ 10  WebSearch WHO 2002 annual "number of cases and deaths" African region table
+ 11  HTTP  iris.who.int/handle/10665/232211..232215 probe -> FAIL (empty)
+ 12  WebFetch iris.who.int/handle/10665/232211 -> ECONNREFUSED
+ 13  WebSearch "Weekly Epidemiological Record" 2003 "vol. 78, 31" full issue
+ 14  WebFetch who.int/publications/m/item/WER-2003-78-31 -> HTTP 404
+ 15  WebSearch "Cholera in 1990" WER 1991 vol 66 Africa
+ 16  WebFetch who.int/publications/i/item/10665232226 -> HTTP 404
+ 17  WebSearch iris.who.int items "Cholera in 1990" "Le cholera en 1990"
+ 18  HTTP  iris.who.int/bitstream/handle/10665/228010/WER6619.PDF -> HTTP 000
+ 19  HTTP  connectivity test iris.who.int -> resolves to 54.174.254.19, conn refused
+ 20  WebFetch PMC2393471 + archive.org wayback availability for who.int/docstore/wer
+      PDFs -> Wayback returns HTTP 429 Too Many Requests
 
-2. 2023 ZERO-TRANSMISSION VALIDATED:
-   - WHO AFRO December 4 2023 bulletin: Rwanda not among affected countries
-   - WHO AFRO July 3 2023 bulletin: 14 countries listed, Rwanda NOT included
-   - Strong evidence of zero-transmission throughout 2023
+Sources found: 0 registered (all findings corroborate existing sources)
+Rows added   : 0    Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch minimum; batch 1 was infrastructure discovery)
 
-3. 2022 ZERO-TRANSMISSION LIKELY:
-   - WHO AFRO bulletins for 2022 do not mention Rwanda
-   - 14 affected countries listed in multiple bulletins, Rwanda consistently absent
-   - Inferred absence with high confidence
+FINDINGS (high value, no rows yet)
+ F1. DECISIVE NEGATIVE CONTROL. WHO GHO indicator CHOLERA_0000000001 for RWA
+     returns exactly 32 records: 1978-1989, 1991-2009, 2012, 2016. Every single
+     value is POSITIVE; there is not one zero-valued record. 1990 and 2002 are
+     the ONLY two years absent from the otherwise unbroken 1978-2009 run.
+     This confirms the standing asymmetry: a missing GHO year for Rwanda is
+     non-reporting or a zero that WHO did not store - it is NOT evidence of
+     absence, and cannot by itself support a zero row.
+ F2. CDC EID 17(11), verbatim: "This region also includes Rwanda and part of
+     Kenya and Uganda, which have also reported cases of cholera nearly every
+     year since 1991 (except for 3 years for Kenya and 2 years for Rwanda and
+     Uganda)." The article does NOT name Rwanda's two years, and gives no
+     year-by-year table. So the brief's "directly decisive" expectation does not
+     hold: the paper constrains the count, not the identity, of the missing
+     years. Against GHO, only ONE year (2002) is missing for Rwanda within
+     1991-2008, so the paper's second year cannot be reconstructed from GHO and
+     may be an artefact of the 2010-vintage WHO Global Health Atlas snapshot the
+     authors used. NOT usable as an absence source.
+ F3. CDC EID 17(11), verbatim: "According to the World Health Organization
+     (WHO), only 5 countries (Burundi, Cameroon, the Democratic Republic of the
+     Congo [DRC], Ghana, and Tanzania) have reported cases of cholera every year
+     since 1990." Rwanda is excluded from that list - consistent with either a
+     1990 zero or a 1990 non-report; it does not discriminate.
+ F4. REGIONAL CROSS-CHECK, from GHO, for the two target years:
+       1990  BDI 82   COD 468    TZA 2230   UGA no record   KEN no record
+       2002  BDI 577  COD 31658  TZA 11920  UGA 2274        KEN 291
+     2002 was a REGIONAL EPIDEMIC year on every Rwandan land border, with the
+     DRC figure (31658) driven largely by South Kivu directly across Lake Kivu -
+     the exact corridor that produced Rwanda's Rusizi/Nyamasheke/Rubavu
+     outbreaks in every other era. A Rwandan true zero in 2002 would therefore
+     require exceptionally strong affirmative evidence.
+     1990 sits in a regionally quiet period by comparison, and Rwanda's own
+     neighbouring years were 1989 = 1 case and 1991 = 679 cases, so a genuine
+     1990 zero is epidemiologically ordinary.
+ F5. BLOCKER. WHO IRIS (iris.who.int, 54.174.254.19) is refusing all connections
+     this run - WebFetch, curl and the DSpace REST API alike - and the Internet
+     Archive is returning HTTP 429. The WER annual cholera articles "Cholera in
+     1990" (WER 1991, 66(19), 133-136, handle 10665/228010; addendum 66(20), 146)
+     and "Cholera, 2002" (WER 2003, 78(31), 269-276) are identified but NOT
+     retrievable by this agent. Both remain the single best primary sources for
+     resolving 1990 and 2002 and should be retried by a later agent.
 
-4. 2020-2021: Insufficient evidence found (surveillance data not accessible)
-   - Rwanda had COVID-19 lockdowns that may have impacted cholera transmission
-   - No positive evidence of cholera found
 
-CSV Updates:
-- Row 8 added: 2022 zero-transmission (confidence 0.9)
-- Row 9 added: 2023 zero-transmission (confidence 0.9)
-- Row 10 added: 2024 zero-transmission (confidence 0.9)
-- Source 10 added: WHO AFRO Monthly Regional Cholera Bulletin December 2024
+================================================================================
+=== AGENT 3 RESUME - RUN WINDOW 2 - 2026-09-28 14:38:31 ===
+================================================================================
+Context: the Run-Window-1 deployment of this agent logged BATCH 1 (above, 0%)
+and was then killed by the account spend limit at ~12:24. Agents 1 and 2 have
+since run Session-2 redeployments (Agent 1: rows 183-212, sources 87-119;
+Agent 2: rows 213-251, sources 120-134). Dataset at resume:
+./data/RWA/cholera_data_ai.csv 250 rows (Index 1-251, Index 7 absent),
+./data/RWA/metadata_ai.csv 134 sources, ./data/RWA/cholera_presence_ai.csv 3 rows.
+Numbering continues from BATCH 2. Hard wall-clock deadline 15:55 local.
+Reference gap files READ ONLY (py/analyze_effective_gaps.py NOT run, per
+orchestrator override of protocol Step 0).
 
-Batch 1 Yield: 3/20 = 15%
+--- RECONCILIATION: rows 174-182 and metadata source 86 ---
+These 9 rows and 1 source were committed by the INTERRUPTED Run-Window-1 session
+of this agent AFTER Batch 1 was logged and BEFORE the spend-limit kill. No query
+record exists for them: the queries/fetches that produced them were never written
+to this log, so they are attributed to no batch and count toward NO batch yield.
+They DO count in this agent's rows_added (9) and sources_discovered (1).
+ Rows 174-181 (source 14, WHO cholera_adm0_week): national documented-zero weeks
+   174 2025-05-12..05-18   175 2025-08-04..08-17   176 2025-08-25..09-14
+   177 2025-09-22..09-28   178 2025-11-03..11-09   179 2025-12-01..2026-01-11
+   180 2026-01-26..02-08   181 2026-02-23..03-15
+   Orchestrator verification (accepted): each has cases=0 and a flat cum_case in
+   the WHO weekly dataset, and each falls on a week that
+   ./data/RWA/cholera_data_who.csv leaves BLANK, so none contradicts a positive
+   row; they turn baseline blanks into evidenced zeros.
+ Row 182 (source 86, WHO cholera_adm0_public_2025): 312 cases / 0 deaths,
+   2025-03-17..2025-11-24. Orchestrator verification: equals EXACTLY the sum of
+   the 2025 weekly rows in ./data/RWA/cholera_data_who.csv. Valid corroboration
+   but redundant as data; Agent 5 decides whether it stays as a row or becomes a
+   corroboration note. Its notes' claim about pre-2025-03-17 weekly zeros is
+   re-checked below (H3).
 
-=== BATCH 2 EXECUTION: HISTORICAL ABSENCE VALIDATION ===
-Queries Executed: 20 queries targeting 2000-2015 absence periods
-Key Results:
-- 2000-2009: Insufficient documentation of absence/presence
-- Rwanda had cholera nearly every year since 1991 (except 2 years per CDC EID)
-- Cannot confirm specific cholera-free years without direct WHO WER data
-- 2007-2009: No positive evidence found but absence not confirmed
-- WHO AFRO bulletins pre-2015 not accessible via web search
+--- HOUSEKEEPING (no yield) 14:39 ---
+ H2 reporting_date set to TR+1 on Agent 1's add-zero rows 183-193 and 195-199
+    (16 rows) via py/revise_observation.py (clears the 16 reporting_date_blank WARNs).
+ H3 Row 182 notes claim "the companion weekly dataset records 0 for every 2025
+    week before 2025-03-17": FALSE. Re-downloaded WHO cholera_adm0_week (arcgis
+    item 6d435a537d534bac95b072fd6d999355, 14:38): Rwanda has 77 records, the first
+    date_wk 2025-03-17 (epiwk 12, 8 cases). NO records exist for 2025 epiweeks 1-11.
+    A missing record is not a zero. Correction appended to row 182's notes.
+    Side check: all 8 spans of rows 174-181 re-verified against cases=0 weeks
+    (flat cum_case) in the same download. The dataset still ends 2026-08-31
+    (cum 917 = 312 for 2025 + 605 for 2026), so 2026-09 remains unpublished.
 
-Batch 2 Yield: 0/20 = 0%
+--- RETRACTIONS (evidence already in file; tombstones in ./data/RWA/retracted_rows_ai.csv) ---
+ R1 Index 8  (2022-01-01..12-31, sCh=0, conf 0.9, src 10 WHO AFRO Dec-2024 bulletin)
+    RETRACTED. It was built on Rwanda's omission from AFRO affected-country lists,
+    and omission is not absence. Refuted by WER Cholera 2022 Table 1 (row 61: 24
+    cases, 0 deaths; GHO/OWID match) and the 2022 week-23 national suspected
+    case. No source affirmatively reports a Rwandan zero for 2022.
+ R2 Index 9  (2023-01-01..12-31, sCh=0, conf 0.9, src 10) RETRACTED. Same
+    omission basis. Refuted by WER Cholera 2023 Table 1 (row 60: 207 cases, 1
+    death), RBC confirmed-case rows 73-82 and 138-141, and the Nyamasheke
+    culture-confirmed Inaba case (row 237). No affirmative 2023 zero exists.
+ R3 Index 103 (2017-01-01..12-31, Inferred_Absence 0.65, src 17 WER 2021
+    narrative) RETRACTED. Refuted by RBC ESR 2017 weeks 14-18: Ngarama DH,
+    Gatsibo, 39 suspected (rows 208-212 national, 215-219 district), and the
+    week-14 bulletin says "among them one case has been confirmed". It will be
+    replaced ONLY by the 2017 weeks that bulletins document as 0 (Batch 2 work).
 
-STOPPING CRITERIA:
-- Batch 1: 15% yield
-- Batch 2: 0% yield
-- Consecutive below 5%: 1 batch (need 3 to stop)
-- Total batches: 2/10
+=== BATCH 2 | PHASE 2 (targeted absence validation, RBC weekly series) | RWA ===
+Gap targeted : 2017-01-01..2017-12-31 (retracted row 103 -> bulletin-documented weeks only);
+               2025-01-01..2025-03-16 (Z8: Fourier spread of cumulative rows 3/4);
+               2024 / 2020 zero rows (Z3/Z5) - WER lookups
+Queries      : 20
+  1  HTTP  Wayback CDX rbc.gov.rw/IMG/pdf/2017/* + rbc.gov.rw/fileadmin/user_upload/mp3/*  [historical]
+  2  HTTP  connectivity probe: iris.who.int (000, still refused) / rbc.gov.rw (200)  [technical]
+  3  HTTP  live download of 14 RBC ESR 2017 bulletins (wk 1-7, 10-13, 19-21), all 200  [WHO/official]
+  4  pdftotext layer extraction + cholera grep -> hidden template residue detected  [technical]
+  5  Visual read, page 1 of 2017 wk1 (residue 'Cholera: 1 suspected case' NOT rendered)  [WHO/official]
+  6  Render + read Annex 2 (public p3 / private p4), 2017 wk1, column layout  [WHO/official]
+  7  200-dpi Sub Total crops, public+private, 2017 wk1-2  [WHO/official]
+  8  200-dpi Sub Total crops, 2017 wk3-4  [WHO/official]
+  9  200-dpi Sub Total crops, 2017 wk5-6 -> span wk1-6 complete -> ROW 252  [WHO/official]
+ 10  200-dpi Sub Total crops, 2017 wk7 (public Cholera = 1) and wk10  [WHO/official]
+ 11  200-dpi Sub Total crops, 2017 wk11-12  [WHO/official]
+ 12  200-dpi Sub Total crops, 2017 wk13 and wk19 (Grand Total incl. referral hospitals)  [WHO/official]
+ 13  200-dpi Sub Total crops, 2017 wk20-21 -> span wk19-21 complete -> ROW 254  [WHO/official]
+ 14  wk10 header re-crop + printed dates + wk7 lab narrative -> span wk10-13 -> ROW 253  [WHO/official]
+ 15  API  WHO GHO CHOLERA_0000000001 BDI/COD/TZA/UGA (regional 2017) - API now returns only
+      2016 per country (paging truncation); 2017 context stated qualitatively  [regional]
+ 16  WebSearch WER "Cholera, 2024" zero reporting Rwanda -> WER 100(36) 'Global situation report
+      for cholera, 2024' (who-wer10036-347-364) located; text not retrieved (IRIS down)  [WHO/official]
+ 17  WebSearch WER "Cholera, 2020" zero-cases list -> nothing usable  [WHO/official]
+ 18  HTTP  Wayback CDX rbc.gov.rw/fileadmin/user_upload/bulletin/2025/* (52) and /2024/* (42)  [historical]
+ 19  HTTP  live download RBC 2025 bulletins wk1-11 + cholera grep -> ROWS 255-258  [WHO/official]
+ 20  Narrative reads 2025 wk6, 7, 9, 11 + wk10 summary structure (omission format)  [WHO/official]
+Sources found: 5    Registered: index 135, 136, 137 (RBC 2017 series), 138 (RBC 2025 wk9), 139 (RBC 2025 wk6-7)
+Rows added   : 7    Indices: 252, 253, 254 (2017 Documented_Absence spans), 255, 256 (2025 wk9 imported
+               confirmed case, national + Rusizi), 257, 258 (2025 wk6, wk7 national suspected singletons)
+Successful queries: 4/20  (Q9 -> 252; Q13 -> 254; Q14 -> 253; Q19 -> 255-258)
+Yield        : 20%
+Consecutive sub-5% batches: 0 (run reset; Batch 1 was 0%)
+Decision     : CONTINUE (3-batch minimum; Batch 3 mandatory)
 
-Continuing to batch 3 per protocol...
+FINDINGS BATCH 2
+ B2-1 2017 (Z1). RBC ESR Annex 2 tables (image-only, read at 200 dpi, public AND private
+      Sub Totals) give Cholera = 0 in ISO weeks 1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 19, 20, 21.
+      Committed as THREE contiguous Documented_Absence rows (surveillance operational, conf 0.9):
+        252  2017-01-02..2017-02-12 (wk1-6)   public completeness 82.5-93.1 percent
+        253  2017-03-06..2017-04-02 (wk10-13) public completeness 91.3-94.4 percent
+        254  2017-05-08..2017-05-28 (wk19-21) post-Ngarama; public table incl. referral hospitals
+      EXCLUDED: wk7 (public Sub Total Cholera = 1; narrative "one suspected case of cholera was
+      notified from Gihundwe hospital. After lab result the case was not confirmed") - neither a
+      zero nor a case, left empty; wk8-9 (no bulletin archived); wk14-18 (Ngarama outbreak rows
+      208-212/215-219); wk22-52 (no 2017 bulletin archived under either path).
+      TRAP DOCUMENTED: every 2017 bulletin's page-1 TEXT LAYER contains "Cholera: 1 suspected case"
+      (twice) that is hidden template residue, NOT rendered on the page. A text-only reader would
+      invent 14 false cases. Wk10 is printed "from 3rd to 9th March" - a typo; ISO wk10 used.
+      REGIONAL CHECK 2017: EPIDEMIC. DRC's 2017 national epidemic (incl. North/South Kivu) and
+      Tanzania's 2015-2018 outbreak were active. The absence rows rest on national weekly tables
+      whose sensitivity is proven by the same series (wk7 suspected case, wk14-18 outbreak), not on
+      regional quiet.
+ B2-2 2025 PRE-OUTBREAK (Z8) - A DOCUMENTED ZERO FOR 2025-01-01..03-16 IS NOT SUPPORTABLE.
+      RBC 2025 bulletins wk1-11 (all live) show:
+        wk6  (3-9 Feb)   "1 suspected case of cholera reported by 1 health facility"  -> row 257 (0.7)
+        wk7  (10-16 Feb) "1 suspected case of cholera reported by 1 health facility"  -> row 258 (0.7)
+        wk9  (24 Feb-2 Mar) CONFIRMED IMPORTED CASE: 7-year-old girl, Nyarushishi Refugee Transit
+             Center (Rusizi), arrived from South Kivu 25 Feb, Gihundwe DH 26 Feb, RDT+, culture
+             V. cholerae Inaba; discharged 5 Mar -> rows 255 (national) + 256 (Rusizi), conf 0.95
+        wk11 (10-16 Mar) Kinunu HC (Rutsiro/Boneza) suspected cases, onset 16-17 Mar, RDT+ -> these
+             are the week-12 index cases already in row 128 (no new row).
+        wk1-5, 8, 10: cholera not mentioned; the summary lists only the IRDs reported that week, so
+             this is OMISSION, not an explicit zero -> at best Inferred_Absence, which LOSES to the
+             Fourier spread in py/build_weekly_timeseries.py. NO zero row written.
+      None of rows 255-258 is in WHO's series (first date_wk 2025-03-17; 2025 total 312).
+      FOR AGENT 5: the TL of cumulative rows 3/4 ('since 1 January 2025') remains the real fix for
+      the Fourier spread; rows 255/257/258 now override it only for wk6, 7, 9.
+      REGIONAL CHECK Q1 2025: EPIDEMIC (DRC/South Kivu source of the wk9 importation; Burundi,
+      Uganda (Lamwo, per RBC wk1 regional news), Tanzania active).
+ B2-3 WER annual articles for 2020 and 2024: IRIS still refuses connections; the 2024 article
+      (WER 100(36):347-364) is identified but its zero-reporting list is unread. Carried to Batch 3.
 
-=== BATCH 3 EXECUTION: ADDITIONAL CONFIRMATION SEARCHES ===
-Queries Executed: 10 additional targeted queries (supplementary)
-Results:
-- Confirmed 2024 zero-transmission through multiple source cross-reference
-- Rwanda not reporting in early 2025 bulletins (Jan-Feb 2025 = no cases)
-- Cases first appeared in March 2025 per WHO reports
+=== BATCH 3 | PHASE 2-3 (adjudication of existing zeros; archives) | RWA ===
+Gap targeted : zero rows 10 (2024), 63 (2018), 102 (2019), 104 (2020); 1990 (Z6); 2002 (Z7);
+               Jan 1998 / Jan 2000 (Z9)
+Queries      : 20
+  1  HTTP  RBC 2024 bulletins (29 via Wayback CDX /bulletin/2024/) download + cholera grep  [WHO/official]
+  2  WebFetch who.int/publications/i/item/who-wer10036-347-364 (WER 2024 landing page)  [WHO/official]
+  3  HTTP  IRIS bitstream probe (000) + Wayback availability for the WER 2024 PDF; 2024 wk50
+      context (South Sudan news) and NRL follow-ups  [historical]
+  4  WebSearch "Cholera, 2024" WER zero Rwanda cdn.who.int  [WHO/official]
+  5  HTTP  Wayback id_ download of WER 2024 PDF -> Table 2 zero-reporting list read (row 10 affirmed)  [WHO/official]
+  6  HTTP  Wayback availability + download WHO EHA repo/5363 (No.1/98) and repo/5381 (No.01/2000)
+      -> ROWS 259, 260  [historical]
+  7  HTTP  Wayback WER 1991 66(19) PDF (metadata 87 URL) -> returns HTML, not retrievable  [historical]
+  8  Python search of both SitRep texts for Rwanda/cholera/epidemic statements  [historical]
+  9  Read full Jan-2000 Rwanda passage + regional (Bukavu, Tanzania) + rows covering 1998/2000/1990  [WHO/official]
+ 10  API  WHO GHO CHOLERA_0000000001 COD 1990 and all-country 1990 list -> Zaire 468 (decisive, Z6)  [regional]
+ 11  HTTP  Wayback CDX rbc.gov.rw/fileadmin/user_upload/bulletin/2018/*, 2019/*, 2020/*  [historical]
+ 12  HTTP  bulk download 114 RBC 2018-2020 bulletins (2018 47 ok, 2019 51, 2020 16)  [WHO/official]
+ 13  pdftotext + cholera grep across 2018-2020 (residue filtered)  [technical]
+ 14  Narrative reads 2018 wk2/4/8, 2019 wk33-35 -> ROWS 261-266 (Z4)  [WHO/official]
+ 15  Visual read, 2019 wk33 page 1 (resolves 'Ubuzima polyclinic' text-layer interleave)  [WHO/official]
+ 16  2018 check for 'confirmed/positive/culture' wording near cholera (none)  [WHO/official]
+ 17  2019 wk36-52 and 2020 cholera grep -> 2019 Nkombo outbreak + 2020 outbreaks found  [WHO/official]
+ 18  2020 monthly bulletin mapping + Oct/Nov outbreak totals -> ROWS 267, 268  [WHO/official]
+ 19  2019 wk39-42 bulletin URLs + counts -> ROWS 269-272  [WHO/official]
+ 20  WebSearch (fr) Rwanda cholera 2002 "aucun cas"/"indemne" Cyangugu Gisenyi -> nothing  [linguistic]
+Sources found: 7    Registered: index 140, 141 (WHO EHA SitReps), 142, 143 (RBC 2019 wk33, wk34),
+               144, 145 (RBC Oct/Nov 2020 monthly), 146 (RBC 2019 wk39-42)
+Rows added   : 14   Indices: 259, 260 (Jan 1998 / Jan 2000 Documented_Absence), 261-266 (2019 wk33-35
+               Mibilizi, national + Rusizi), 267 (Rusizi Oct 2020 43/1 death), 268 (Rubavu Oct-Dec 2020
+               172/4 deaths), 269-272 (2019 wk39-42 national, Nkombo)
+Successful queries: 4/20  (Q6 -> 259-260; Q14 -> 261-266; Q18 -> 267-268; Q19 -> 269-272)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE check at 15:07 - 3-batch minimum met, not saturated; see STOP decision below.
 
-Batch 3 Yield: 0/20 = 0%
+ADJUDICATIONS BATCH 3
+ Z3 Row 10 (2024 zero) KEPT, now on an affirmative source: WER 'Global situation report for cholera,
+    2024' (WER 2025 100(36):347-364), Table 2 "Countries reported 0 cases and deaths in 2024, fulfilling
+    the public health surveillance service of 'zero reporting'", Africa list includes Rwanda. Quote
+    appended; label already Documented_Absence. RBC 2024 bulletins (wk1-15, 38-52; wk16-37 not archived)
+    show only unconfirmed suspects: wk1 3 at Gisenyi DH RDT-NEGATIVE; wk38, 46, 47 one each sent to NRL.
+    Regional: EPIDEMIC (DRC, Burundi); Uganda did not report to WHO for 2024.
+ Z5a Row 63 (2018 zero) KEPT, sanity-checked: 47/53 RBC 2018 bulletins show 4 unconfirmed suspects
+    (wk2 Nyundo HC, wk4 Kibogora DH, wk8 Kirinda + Rusizi HC), nothing confirmed. Note appended.
+ Z4 Row 102 (2019 zero) RETRACTED - refuted twice over: wk33 "Cholera : one confirmed case from
+    Mibilizi DH" (outbreak table: "Treated and cured One confirmed case"), wk34-35 3+2 suspected at
+    Mibilizi (sent for culture), wk38 1 suspected Bugarama HC, and a CULTURE-CONFIRMED Nkombo outbreak
+    wk39-42 ("two were Vibrio Cholerae Ogawa Positive"; 7, 11, 4, 5 cases). Rows 261-266, 269-272.
+    (Weeks 38 and 50 singletons not committed - time.) Rwanda filed no 2019 WHO return, so WHO's silence
+    was non-reporting.
+ Z5b Row 104 (2020 zero) RETRACTED - two culture-confirmed outbreaks WHO never recorded: Nkombo from
+    7 Oct 2020 "In total 43 cases and one death" (2 confirmed 16 Oct) -> row 267; Gisenyi DH (Kigufi,
+    Gisenyi, Nyundo HCs) "total of 172 cases including 2 confirmed and 4 deaths since 15th October 2020
+    up to 07th December 2020" -> row 268. Also Apr 2020 1 suspected (Saint Francois HC, Rusizi), Sep 2020
+    1 suspected (Kigeme DH), Dec 2020 12 suspected Nkombo - NOT committed (time); for Agent 5.
+    Single-source (RBC, Level 1) for both outbreaks; no national 2020 row exists now - Agent 5 to decide
+    national aggregation (different districts, overlapping dates).
+ Z6 1990 - NO ROW (decision final). WER 1991 "Seven countries that had experienced cholera in 1989
+    apparently remained free in 1990" is WHO's own inference from non-notification, and it is WRONG for
+    at least one of its seven: Zaire is absent from WER Table 2 (so counted among the seven by the same
+    set difference that places Rwanda there), yet WHO GHO holds COD 1990 = 468 cases. An omission-based
+    statement shown false for a member of the same set cannot carry a Rwandan zero, even an inferred
+    one; add the RPF invasion (Oct 1990, Q4 surveillance disrupted) and Rwanda's absence of any national
+    source. Classification: NON-REPORTING (Surveillance_Gap class) - log only, no zero row. Regional 1990:
+    moderate activity (BDI 82, COD 468, TZA 2230).
+ Z7 2002 - NO ROW. Absent from WER 2003 78(31) Table 1, no zero list, no narrative; French search found
+    nothing affirmative. Regional EPIDEMIC on every border (BDI 577, COD 31658, TZA 11920, UGA 2274).
+    Classification: SURVEILLANCE_GAP / non-reporting - log only; genuinely empty.
+ Z9 Jan 1998 -> ROW 259 (Documented_Absence, partial, 0.75 forced): WR Rwanda Jan-1998: cholera task
+    force "with daily reports" and "There was no threat of epidemic diseases"; corroborated by the
+    Cyangugu epidemic onset 1998-02-23 (rows 238, 244-247). Regional EPIDEMIC (DRC, Tanzania).
+    Jan 2000 -> ROW 260 (Documented_Absence, partial, 0.65 forced): "Situation, 01 - 31.01.2000 ...
+    No report of epidemic potential diseases during the month". Same WHO EHA series demonstrably
+    reported Rwandan cholera in 1997/1998/1999. Regional EPIDEMIC: Bukavu (across the Rusizi from
+    Cyangugu) 215 cases 27 Dec 1999-30 Jan 2000; Tanzania 755 in January 2000 -> lower confidence; retract
+    if any source places Rwanda's 1235 cases of 2000 in January.
+ Z9b Row 64 (1970-1977) second independent source: NOT found this run (no batch budget left for it);
+    carried forward.
 
-STOPPING CRITERIA MET: 2 consecutive batches < 5% yield
-Total batches: 3/10
+=== BATCH 4 | PHASE 3 (corroboration, residual singletons, recency, archives) | RWA ===
+Gap targeted : 2019/2020 outbreaks newly found in Batch 3 (second sources); 2020 residual months;
+               row 64 second source (Z9b); 2010-2015 (Z10); 2026-09 (recent)
+Queries      : 20
+  1  WebSearch Rwanda cholera Rubavu Gisenyi outbreak November 2020 -> no corroboration  [news]
+  2  WebSearch (rw) korera Rubavu Nkombo 2020 abarwayi RBC -> nothing  [linguistic]
+  3  WebSearch Nkombo island cholera Rusizi Oct 2019/2020 -> Ishywa 49-case mention (undated)  [news]
+  4  WebSearch cholera first appeared Rwanda 1978 Lake Kivu -> 'reached Rwanda in August 1978'
+      (Great Lakes literature already cited in row 64; NOT independent)  [academic]
+  5  RBC 2020 Apr/Sep/Dec monthly + 2019 wk38 narrative reads -> ROWS 273-276  [WHO/official]
+  6  WHO cholera_adm0_week re-download (still ends 2026-08-31) + RBC 2026 wk36-38 probes (none)  [WHO/official]
+  7  HTTP  Wayback CDX rbc.gov.rw/IMG/pdf/* (411 captures) for 2010-2015 bulletins  [historical]
+  8  WebSearch Goma/Nyiragongo cholera Oct-Nov 2020 (regional) -> Goma PCR-confirmed cholera
+      2020-2024 study (PMC13335272)  [regional]
+  9  WebSearch Bukavu South Kivu cholera Sep-Oct 2019 -> MSF: >1,200 treated since late July 2019  [regional]
+ 10  HTTP  Wayback 2010_epidemiologic_update.pdf -> HIV estimates (dead end)  [historical]
+ 11  WebSearch ProMED cholera Rwanda 2020 -> Water Access Rwanda Ishywa lead  [humanitarian]
+ 12  WebSearch (fr) cholera Rwanda Rusizi Nkombo 2019 Ogawa -> nothing Rwanda-specific  [linguistic]
+ 13  WebSearch WHO AFRO OEW 2020 Rwanda cholera Gisenyi -> nothing Rwanda-specific  [WHO/official]
+ 14  HTTP  Wayback RBC 2021 bulletins wk1-5 (cholera grep: none beyond residue)  [WHO/official]
+ 15  WebFetch warwanda.com Ishywa story -> ROW 277  [humanitarian]
+ 16  WebFetch RBC community assessment cholera executive summary (PDF unreadable via fetch)  [WHO/official]
+ 17  WebSearch (rw) icyorezo cya korera Rusizi 2019/2020 -> Kigali Today 'korera yagaragaye ku
+      Nkombo' lead  [linguistic]
+ 18  WebSearch Rwanda cholera 2010-2011 Rusizi Nyamasheke -> RBC inventory '10/15 outbreaks,
+      183/265 cases' (already known, metadata 83)  [academic]
+ 19  WebSearch Ishywa island cholera 2017 -> no second source  [news]
+ 20  WebSearch Rwanda 'no cholera'/'cholera-free' 2021/2022 -> nothing affirmative  [WHO/official]
+Sources found: 3    Registered: index 147 (RBC 2020 Apr/Sep/Dec monthly), 148 (RBC 2019 wk38), 149 (Water Access Rwanda)
+Rows added   : 5    Indices: 273 (Rusizi Dec 2020, 12 suspected), 274 (national Apr 2020, 1 suspected),
+               275 (national Sep 2020, 1 suspected), 276 (national 2019 wk38, 1 suspected), 277 (Rusizi/
+               Ishywa Aug-Sep 2017, 49 cases, conf 0.4)
+Successful queries: 2/20  (Q5 -> 273-276; Q15 -> 277)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (15:12; time allows one more full batch before wrap-up)
 
-=== AGENT 3 FINAL STATUS ===
-Completion Time: 2026-05-15 11:30:00
-Zero-Transmission Periods Documented:
-- 2022: Validated (WHO AFRO surveillance - Rwanda absent from affected countries)
-- 2023: Validated (WHO AFRO multiple bulletins confirm absence)
-- 2024: Validated (WHO AFRO December 2024 bulletin - explicit 18-country list)
-New CSV Rows Added: 3 (rows 8, 9, 10)
-New Sources Added: 1 (source 10)
+FINDINGS BATCH 4
+ B4-1 REGIONAL CROSS-CHECK for the new positives: 2019 Rusizi clusters coincide with the MSF-documented
+      South Kivu/Bukavu epidemic (from late July 2019); 2020 Rubavu outbreak coincides with Goma-area
+      PCR-confirmed cholera (2020-2024 study). Both are the classic Lake Kivu cross-border corridor.
+ B4-2 No second source found for the 2019 Nkombo/Mibilizi or 2020 Rusizi/Rubavu outbreaks in English,
+      French or Kinyarwanda news, ProMED or WHO AFRO in this batch; they remain single-source (RBC).
+ B4-3 2017: a further cluster, Ishywa island (Nkombo sector, Rusizi), 49 cases Aug-Sep 2017 (Level 3).
+      So 2017 had at least two separate foci (Ngarama Apr-May; Ishywa Aug-Sep). Agent 3's 2017 zero
+      spans (rows 252-254) do not touch Aug-Sep.
+ B4-4 2026-09 still unpublished (WHO weekly ends 2026-08-31; no RBC wk36+ bulletin).
+ B4-5 Z10 (2010-2015 inter-outbreak months): no weekly bulletin for the open months surfaced in the
+      Wayback IMG/pdf listing (411 captures); nothing documentable. No zero rows written.
+
+=== BATCH 5 | PHASE 3 (second-source corroboration; Z6/Z7 final checks) | RWA ===
+Gap targeted : second sources for 2019/2020/2025-wk9 positives; 1990 (Z6); 2002 (Z7)
+Queries      : 20
+  1  WebFetch Kigali Today 'Rusizi: ... korera yagaragaye ku Nkombo' -> HTTP 403  [linguistic]
+  2  WebFetch medRxiv 2021.10.25.21265347 (SSA outbreaks 2010-2019) -> HTTP 403  [academic]
+  3  WebSearch IFRC/UNICEF Rwanda cholera response Rubavu/Rusizi 2019-2020 -> nothing  [humanitarian]
+  4  WebSearch (rw) Kigali Today korera Rubavu Gisenyi Nyundo 2020 -> nothing  [linguistic]
+  5  curl Kigali Today article with browser UA -> Cloudflare challenge  [technical]
+  6  Wayback CDX for the Kigali Today article -> no captures  [historical]
+  7  WebSearch Nyarushishi transit center imported cholera Feb 2025 -> no second source  [humanitarian]
+  8  WebSearch Zheng et al. SSA 2010-2019 descriptive analysis -> PMC9439956 located  [academic]
+  9  WebSearch Africa CDC EI weekly report March 2025 Rwanda -> no Rwanda detail  [WHO/official]
+ 10  WebSearch (fr) cholera Rwanda Feb 2025 imported case -> Goma 420 cases 3-15 Feb 2025 (regional)  [linguistic]
+ 11  HTTP  ECDC CDTR week 10 2025 PDF -> corrupt (no trailer)  [WHO/official]
+ 12  WebFetch PMC9439956 -> redirect  [academic]
+ 13  WebSearch New Times cholera Rusizi Nkombo 2019 -> nothing  [news]
+ 14  WebSearch WER 'Cholera, 2019' zero list -> article located (WER 95(37)), text not retrieved  [WHO/official]
+ 15  pdftotext retry ECDC CDTR wk10 -> 'Couldn't find trailer dictionary'  [technical]
+ 16  WebFetch pmc.ncbi.nlm.nih.gov/PMC9439956 -> Rwanda NOT among the 25 countries analysed  [academic]
+ 17  WebSearch Rwanda cholera 1990 Cyangugu/Gisenyi/Kibuye -> nothing for 1990  [historical]
+ 18  WebSearch Rwanda cholera 2002 Cyangugu/Gisenyi/Kibuye -> only Burundi 2002 DON (from 17 Jun 2002)  [historical]
+ 19  WebSearch (rw) korera Ishywa Nkombo 2017 -> no second source (2013 Nkombo article only)  [linguistic]
+ 20  WebSearch 'Cholera in 1990' WER addendum Zaire -> 'Addendum: Cholera in 1990' WER 66(20):146 exists
+      (IRIS item 7b05687d...) - consistent with Zaire's 1990 cases being added after the main article  [historical]
+Sources found: 0    Registered: -
+Rows added   : 0    Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (15:20; deadline not passed; one more batch fits before wrap-up)
+NOTE: an unverified search-engine summary attributed 'Rwanda (250)' cases 'up to early March 2025' to
+      ECDC/Africa CDC; the ECDC PDF could not be parsed, so it is NOT used. If true it would conflict with
+      WHO's 2025-03-17 start - Agent 5 should verify (ECDC CDTR week 10 2025).
+
+=== BATCH 6 | PHASE 3 (RBC 2021-2023 archives; corroboration) | RWA ===
+Gap targeted : 2021-2023 weekly detail behind WER annual rows 60-62 (after retraction of zero rows 8/9);
+               second sources for new positives
+Queries      : 20
+  1  HTTP  Wayback CDX + bulk download RBC bulletins 2021 (21), 2022 (51), 2023 (52)  [historical]
+  2  cholera grep 2021-2022 (residue filtered)  [WHO/official]
+  3  cholera grep 2023  [WHO/official]
+  4  2023 wk9-13 outbreak paragraphs (Western Province / Kibogora / Karongi) -> ROWS 278-282  [WHO/official]
+  5  2021 wk50, 2022 wk23, 2023 wk14-24 singleton quotes + URLs -> ROWS 283-291  [WHO/official]
+  6  HTTP  Wayback CDX www.rbc.gov.rw 2018/2019/2020/2024 (no extra weeks; 2024 wk16-37 not archived)  [historical]
+  7  WebSearch Rwanda V. cholerae genomics 2019-2020 Rusizi/Rubavu -> nothing Rwanda-specific  [technical]
+  8  WebSearch Rwanda national cholera plan / GTFCC hotspots -> nothing Rwanda-specific  [technical]
+  9  WebSearch Burundi cholera Cibitoke 2019-2020 -> 795 cases 1 Jun-4 Oct 2019 (Cibitoke 194); BDI 1145
+      (2019), 277 (2020) - regional EPIDEMIC on the Rusizi border  [regional]
+ 10  WebSearch Rwanda cholera Feb-Mar 2023 Nyamasheke/Iwawa -> search summary claim, see Q16  [news]
+ 11  WebSearch (rw) korera Nyamasheke Kibogora 2023 -> nothing  [linguistic]
+ 12  WebSearch Rwanda OCV campaign 2023 -> nothing  [humanitarian]
+ 13  WebSearch ECDC cholera overview March 2023 Rwanda -> DRC Kivu risk statement only  [WHO/official]
+ 14  WebSearch (fr) cholera Rwanda mars 2023 Nyamasheke -> nothing  [linguistic]
+ 15  WebSearch UNHCR Mahama/Kiziba camps cholera -> none (Mahama typhoid 2015 only)  [humanitarian]
+ 16  WebFetch WHO AFRO Weekly Regional Cholera Bulletin 8 Mar 2023 -> Rwanda NOT mentioned  [WHO/official]
+ 17  WebFetch Burundi hotspots paper PMC8163194 -> no 'originated in Rwanda' sentence  [academic]
+ 18  WebSearch Iwawa rehabilitation centre cholera 2023 -> nothing  [news]
+ 19  WebSearch WHO AFRO bulletins Jan-Feb 2023 Rwanda -> Rwanda not listed  [WHO/official]
+ 20  WebSearch RBC 2024 bulletins wk20-30 cholera -> not archived/indexed  [WHO/official]
+Sources found: 5    Registered: index 150 (RBC 2023 wk9), 151 (RBC 2023 wk11-13), 152 (RBC 2023 wk14-24),
+               153 (RBC 2021 wk50), 154 (RBC 2022 wk23)
+Rows added   : 14   Indices: 278 (Western Province 2023-01-05..03-05, 90 sCh/10 cCh), 279, 280, 282
+               (Nyamasheke wk11 1, wk12 4/1 cCh, wk13 2), 281 (Karongi wk12 2), 283-289 (national 2023
+               wk14 1, wk15 3, wk17 1, wk18 1, wk20 1, wk22 1, wk24 3/1 cCh), 290 (2021 wk50 1), 291 (2022 wk23 1)
+Successful queries: 2/20  (Q4 -> 278-282; Q5 -> 283-291)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : STOP: orchestrator wall-clock deadline. It is ~15:23; a 7th full 20-query batch (8-15 min at
+               the observed pace, Wayback rate-limit risk) plus the mandatory validator run, state write and
+               log (10-15 min) would end within minutes of the 15:55 hard deadline, and the protocol forbids a
+               partial batch. 3-batch minimum met (6 run this deployment incl. Batch 1). NOT saturated
+               (last three yields 10, 0, 10).
+
+FINDINGS BATCH 6
+ B6-1 2023 (after retraction of zero row 9): a Feb-Apr 2023 Western Province outbreak that NO earlier
+      row recorded - RBC wk9: "In the last 2 months ... a total of 90 suspects were identified, and among
+      them, 10 cases were confirmed positive ... Rusizi district (4), Iwawa Rehabilitation center (3),
+      Nyamasheke district (2), Rubavu (1)"; Kibogora DH outbreak "Since 27th February 2023", 7 confirmed
+      by 26 Mar; Karongi suspects (wk10 all tested negative - not used; wk12 2 suspects at Kibuye RH used).
+      Plus national singletons wk14-22 and wk24 (1 confirmed + 2 suspected = Rubavu onset).
+      WHO AFRO's weekly bulletins of March 2023 did NOT list Rwanda during this outbreak - direct proof
+      that the AFRO-omission basis of retracted rows 8/9 was invalid.
+ B6-2 2022: only ONE cholera mention (wk23, 1 suspected) in 49 archived RBC weekly bulletins, versus WER
+      2022 = 24 cases (row 61). Unresolved - Agent 5.
+ B6-3 2021: wk6 Nkombo (row 213, existing) and wk50 Kibilizi DH (row 290) suspected singletons only, versus
+      WER 2021 = 74 cases (row 62); RBC 2021 bulletins archived only for wk1-8 and 40-50.
+ B6-4 CAUTION (for all agents): Debes et al. (Burundi hotspots, PMC8163194) tabulates Rwanda 2008-2018 as
+      '23, 0, 0, 0, 9, 0, 0, 0, 355, 0, 0' - its zeros are WHO NON-REPORTING years (2013-2015 and 2017 all
+      had RBC-documented cholera). Never use it as a zero source. Same trap as the GHO/AFRO omissions.
+ B6-5 Unverified search-engine summaries were wrong twice in this batch (AFRO 'Rwanda Jan-Feb 2023';
+      Burundi 'originated in Rwanda'); both were checked against the pages and discarded.
+
+CORRECTION 15:20:41: the STOP decision logged for Batch 6 was premature - the actual clock was 15:20, not ~15:23,
+leaving ~35 min: enough for one more full batch plus wrap-up. That decision is SUPERSEDED; Batch 7 follows.
+
+=== BATCH 7 | PHASE 3 (legacy archives; Z9b; recency) | RWA ===
+Gap targeted : 2017 wk22-52 (Ishywa period), 2014-2015 open months (Z10), 2019/2023 residual singletons,
+               row 64 second source (Z9b), 2026-09 (recent)
+Queries      : 20
+  1  HTTP  Wayback CDX rbc.gov.rw & www.rbc.gov.rw /fileadmin/user_upload/bulletin/2016|2017/* -> 0  [historical]
+  2  grep of IMG/pdf CDX (411) for other 2017 bulletins -> legacy root files only  [historical]
+  3  HTTP  Wayback id_ for 8 legacy root files -> JS cookie-challenge pages (fail)  [historical]
+  4  HTTP  live epidemiological_bulletin_for_week_42 / epi_bulletin_week_48 -> 2012 editions (not a gap)  [WHO/official]
+  5  2012 wk42 cholera lines: Kinunu/Biruyi (Rutsiro) Inaba outbreak - already in Agent 2's 2012 row  [WHO/official]
+  6  2019 wk50 + 2023 wk42-47 narrative reads -> ROWS 292-294  [WHO/official]
+  7  HTTP  live legacy wk51/wk52/bulletin_final_doc/rbc_week_14/wk18/wk19  [WHO/official]
+  8  year identification (2012, 2013, 2016)  [technical]
+  9  Visual read bulletin_final_doc p1: text layer says 'Week 43 ... Oct 2015' but the RENDERED page is
+      'Week 15, from 11-17, Apr 2016' - residue trap again; NO 2015 data  [WHO/official]
+ 10  WebSearch 'Cholera in Africa' 1970-71 countries affected (Goodgame & Greenough 1975)  [historical]
+ 11  WebSearch MMWR 'Cholera -- Worldwide' 1978/1979 Great Lakes  [historical]
+ 12  WebSearch Rwanda cholera September 2026 -> nothing new (Jan-Mar 2026 Rusizi/Nyamasheke only)  [news]
+ 13  WebSearch Rwanda cholera 2014/2015 Nkombo/Musanze/Nyamasheke -> nothing new  [news]
+ 14  WebFetch ReliefWeb 'Cholera outbreak claims 10 lives in Rwanda' -> HTTP 403  [humanitarian]
+ 15  WebSearch Rwanda cholera Dec 2011 / Jan-Feb 2013 -> nothing  [news]
+ 16  WebSearch WHO AFRO monthly cholera bulletin Aug 2026 -> not located  [WHO/official]
+ 17  WebSearch Rwanda cholera 2010 Rusizi/Bugarama -> TNH item '50 cases ... northwestern region ...
+      free of the disease for a decade' (no year)  [news]
+ 18  curl TNH node/246932 -> Cloudflare challenge  [technical]
+ 19  WebSearch TNH phrase -> undated; NOT usable  [news]
+ 20  WebSearch ECDC overview Sep 2026 -> 'since 27 July 2026, no updates have been reported by Rwanda'  [WHO/official]
+Sources found: 2 (+2 superseded)  Registered: 157 (RBC 2023 wk46-47), 158 (RBC 2019 wk50);
+               155, 156 registered with MALFORMED URLs (shell word-splitting) and immediately set to
+               Status=Superseded via py/revise_observation.py (no row cites them)
+Rows added   : 3    Indices: 292 (national 2023 wk46, 4 sCh/2 cCh), 293 (Nyamasheke 2023 wk46, 3/2),
+               294 (national 2019 wk50, 1 suspected, Nkombo HC)
+Successful queries: 1/20  (Q6 -> 292-294)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Decision     : STOP: orchestrator wall-clock deadline. 15:29 local; an 8th full batch plus validator,
+               state write and log cannot be completed with margin before 15:55; partial batches forbidden.
+               3-batch minimum met (7 batches this deployment, incl. Batch 1). NOT saturated.
+NOTES BATCH 7
+ * Z9b (row 64 second source): nothing independent AND affirmative. Goodgame & Greenough (Ann Intern
+   Med 1975) list the countries that officially reported cholera in 1970-71 (Rwanda absent) - an omission
+   list, not an affirmative absence; the '1977-1978 emergence' sentences trace to the CDC EID 17(11) /
+   Birmingham Lancet literature already cited in row 64. Row 64 left unchanged.
+ * ECDC's 'no updates reported by Rwanda since 27 July 2026' coexists with WHO weekly Rwanda cases of
+   48-88/week in Aug 2026: another proof that 'not reported' is not zero.
+
+================================================================================
+AGENT 3 RUN-WINDOW-2 SUMMARY - RWANDA (RWA)                [14:38-15:30 local]
+================================================================================
+Batches (this deployment): 1 (Run Window 1) + 2-7 = 7 batches, 140 queries
+Yields (percent): B1 0, B2 20, B3 20, B4 10, B5 0, B6 10, B7 5
+Stop: orchestrator wall-clock deadline (not saturated).
+Rows added (Run Window 2): 43 - Index 252-294
+  plus 9 rows from the interrupted Run-Window-1 session (174-182, reconciled, no batch credit)
+Sources registered (Run Window 2): 24 (135-154, 157, 158) + 2 superseded (155, 156);
+  plus source 86 from Run Window 1
+RETRACTED (tombstones in ./data/RWA/retracted_rows_ai.csv):
+  8   2022 zero  - omission-based; WER 2022 = 24 cases (row 61)
+  9   2023 zero  - omission-based; WER 2023 = 207; RBC Feb-Apr 2023 outbreak (rows 278-289) + Rubavu
+  102 2019 zero  - RBC: wk33 confirmed Mibilizi case; wk39-42 culture-confirmed Nkombo outbreak
+  103 2017 zero  - RBC: Ngarama outbreak wk14-18 (1 confirmed); Ishywa 49 cases Aug-Sep 2017 (row 277)
+  104 2020 zero  - RBC: Nkombo Oct 2020 (43 cases, 1 death, 2 confirmed); Gisenyi DH Oct-Dec 2020 (172, 4 deaths)
+KEPT with appended evidence: 10 (2024: WER 2024 Table 2 zero-report names Rwanda), 63 (2018: RBC
+  bulletins show only unconfirmed suspects), 182 (correction: no WHO weekly records before 2025-03-17)
+REVISED: 183-193, 195-199 reporting_date = TR+1
+NEW ZERO ROWS (Documented_Absence): 252, 253, 254 (2017 wk1-6, 10-13, 19-21, RBC annex tables, 0.9);
+  259 (Jan 1998, WHO EHA, 0.75, partial); 260 (Jan 2000, WHO EHA, 0.65, partial)
+DECISIONS: 1990 NO ROW (WHO 'apparently remained free' shown wrong for Zaire=468); 2002 NO ROW
+  (non-reporting in a regional epidemic year); 2025-01-01..03-16 NO ZERO (wk6-7 suspects, wk9 confirmed
+  imported case -> rows 255-258; other weeks omission only); 2010-2015 open months: NOTHING documentable.
+THE BIG LESSON FOR THIS COUNTRY: every whole-year Rwandan zero that rested on WHO silence (2017, 2019,
+  2020, 2022, 2023) was false; WHO's gaps were Rwanda not filing returns. RBC's own bulletins show cholera
+  in every one of those years. Only zero years with an explicit WHO zero-report survive (2018, 2024).
+CORRECTION 15:26:31: sources registered in Run Window 2 = 24 metadata entries (135-158): 22 active (135-154, 157, 158) + 2 superseded (155, 156). Validator after all changes: exit 0, ERROR 0, WARN 10, INFO 82. Final file state: ./data/RWA/cholera_data_ai.csv 288 rows (250 + 43 - 5 retracted), ./data/RWA/metadata_ai.csv 158 entries.

@@ -1,97 +1,457 @@
-=== AGENT 6 INITIALIZATION ===
+=== AGENT 6 (GAP CONTEXT INVESTIGATOR) INITIALIZATION ===
 Country: Rwanda (RWA)
-Start Time: 2026-05-15 14:30:00
+Start Time: 2026-09-28 20:02 (local)
+Mode: TIME-BOXED deployment (host clamshell sleep froze the workflow ~3h40m; hard deadline 20:33; runner kill ~21:04; Agent 7 must follow)
+Parallel agent: Agent 5 owns revisions/retractions of EXISTING rows. Agent 6 writes gap classifications, new presence rows, and evidence-backed zero rows only. No existing row is revised or deleted by this agent.
+Prior log: ./data/RWA/search_log_agent_6_legacy_2026-05-15.txt (May-2026 run; not continued)
+Gap list: orchestrator scratch analysis 15:30 (coverage 89.7%, 611/681 months). py/analyze_effective_gaps.py NOT re-run (orchestrator instruction).
 Agent 6 Status: INITIALIZED
 
-Objective: Gap Context Investigator - Characterize remaining temporal gaps (>=6 months)
-Focus: Determine if undocumented periods are non-reporting vs zero-transmission
+================================================================================
+CONTEXT READ (20:02-20:04)
+================================================================================
+Read: workflow_state (Agents 1-5, run_window_2 gate_log), ./data/RWA/cholera_data_ai.csv (297 data rows
+at 20:02), ./data/RWA/cholera_presence_ai.csv (6 rows), ./data/RWA/retracted_rows_ai.csv (8 tombstones:
+8, 9, 102, 103, 104 by Agent 3; 6, 1, 65 by Agent 5 in parallel - so row 6, the misdated 2018-2024
+aggregate, is ALREADY retracted and G7 (2019, 2020) is genuinely open).
+Key prior finding carried in: every whole-year zero that rested on WHO silence (2017, 2019, 2020, 2022,
+2023) turned out FALSE against the RBC bulletins. That is the empirical base rate for "silence = absence"
+in Rwanda, and it governs every classification below: omission alone is never treated as absence.
 
-Key Remaining Gaps:
-1. 1991-1995: Endemic period, no specific quantitative data (Rwanda had cholera nearly every year)
-2. 1999-2004: Post-1998 outbreak, pre-2005 outbreak (uncertain status)
-3. 2007-2017: Low-level endemic period (some data in RBC document: 265 cases over 6 years)
-4. 2019-2021: COVID period (status unclear)
+No web-search batches were run in this deployment (time-boxed; see STOPPING at the end). Work done =
+targeted document retrieval (curl/Wayback CDX) on the one untested lead (MoH annual reports), plus
+classification of every gap from the evidence already in the dataset and the other agents' logs.
 
-=== BATCH 1 EXECUTION: GAP CHARACTERIZATION ===
-Queries Executed: 20 queries targeting historical surveillance gaps
-Key Results:
-- Rwanda adopted IDSR system in 2002 (improving surveillance from that year)
-- WHO encourages "zero reporting" from member states
-- Rwanda not in WHO AFRO cholera bulletins for 2022-2024 (confirmed zero-transmission)
-- Data gaps in 2007-2009: Rwanda not statistically significant in subnational analyses
-- Limited subnational data found for 2011-2020 period
+Document retrievals (not search-engine queries):
+  R1 curl Wayback MoH Annual Report Jul 2011-Jun 2012 (metadata 166) -> 99-page PDF, pdftotext OK
+  R2 Wayback CDX moh.gov.rw/english/wp-content/uploads/* (collapse=urlkey) -> 254 URLs; found an
+     UNREGISTERED "MoH-annual-report-2010-2011.pdf" (snapshot 20120907033953) plus 2004/2005/2008 reports
+  R3 curl Wayback MoH Annual Report Jul 2010-Jun 2011 -> PDF, pdftotext OK (4283 lines)
+     REGISTERED as metadata Index 168 (context source; no data row)
 
-Gap Characterization:
-- 1999-2004: SURVEILLANCE GAP - Rwanda endemic but IDSR system only established 2002
-  Evidence: WHO reports cholera "nearly every year since 1991 except 2 years"
-  Cannot confirm zero-transmission or active cases without WHO WER access
-- 2007-2009: SURVEILLANCE GAP - Limited sub-national data, possible low-level cases
-- 2010-2017: PARTIALLY DOCUMENTED - RBC data shows 265 total cases over 6 years (2018-2024)
-- 2019-2021: UNCERTAIN - COVID impacted health system reporting, no direct evidence
+================================================================================
+G8  2026-09-01..2026-09-28 (28 days, recent)            CLASSIFICATION: REPORTING LAG
+================================================================================
+Dates      : the day after the last WHO weekly record (week starting 2026-08-31) to today.
+Evidence   : the WHO cholera_adm0_week series (metadata 14) ends mid-outbreak: 88, 49, 50, 73 and 24
+             suspected cases in the weeks starting 08-03, 08-10, 08-17, 08-24 and 08-31 (rows 55-59).
+             The district rows show active transmission in Rutsiro (89 sCh, 08-10..08-30, row 125) and
+             Rusizi (43 sCh, row 120) at the end of the series. The outbreak had NOT been declared over.
+             Agents 1, 2 and 3 each checked WHO AFRO, ECDC, Africa CDC and RBC weeks 36-39 today and found
+             nothing published after week 35 (Africa CDC's 13 Sep report carries a stale cumulative).
+Health sys : operating; the silence is publication latency (WHO weekly dataset, RBC bulletin posting),
+             not surveillance failure. Kivu shoreline importation from DRC was active in Aug 2026.
+Regional   : ongoing transmission on the DRC side of Lake Kivu throughout 2026 (see Agents 1-2).
+Verdict    : REPORTING LAG. Absence is NOT plausible: an outbreak running at 24-88 cases/week does not
+             stop between one week and the next without a declared end. This period must stay EMPTY in
+             the AI layer and must never receive a zero row; the weekly builder should treat it as
+             missing (NA), not 0.
+Confidence : HIGH (0.95) that this is lag rather than absence.
+Rows       : none (no source reports a September count; a presence row would need a source dated in
+             September that names ongoing cholera - none exists yet).
 
-Batch 1 Yield: 0/20 = 0% (0 consecutive)
+================================================================================
+G1  1990-01-01..1990-12-31 (12 months, historical)      CLASSIFICATION: SURVEILLANCE GAP
+================================================================================
+Dates      : whole calendar year 1990.
+Reporting  : Rwanda notified WHO every year 1978-1989, down to a single case in 1989 (row 24), so the
+             pre-war notification channel reported even trivial numbers. It then reported 679 cases /
+             35 deaths for 1991 (row 25). For 1990 there is NO return: absent from WER 1991 66(19)
+             Table 2 (metadata 87), and the WER of that era carried no zero-reporting list, so absence
+             from the table cannot distinguish "zero cases" from "no report".
+             The WER narrative ("seven countries that had experienced cholera in 1989 apparently
+             remained free in 1990") is WHO inferring freedom FROM THE MISSING NOTIFICATIONS; it names
+             no country, and it is demonstrably wrong for one of the seven (Zaire: GHO COD 1990 = 468).
+             It is therefore not independent evidence of anything.
+Health sys : functioning through September 1990; the RPF invasion from Uganda began 1 October 1990 in the
+             north-east (Mutara/Byumba), producing large-scale internal displacement in Q4 1990 and a
+             government on a war footing. Surveillance in the war zone and among the displaced was
+             almost certainly degraded for Oct-Dec. The 679 cases of 1991 (the first large epidemic
+             since 1987-88) show transmission capacity existed immediately afterwards.
+Regional   : active on three borders: BDI 82, COD (Zaire) 468, TZA 2,230 in 1990. Regional silence would
+             have supported quiet; regional activity with local silence points to reporting failure.
+Other dz   : no Rwandan notifiable-disease return for 1990 was located by any agent (Agents 1, 3, 4
+             searched WER, GHO, francophone sources; Agent 4 found no Rwandan francophone source).
+Verdict    : SURVEILLANCE GAP (non-reporting). A genuinely quiet Jan-Sep 1990 is plausible (1989 had
+             1 case), but it is not evidenced, and Q4 1990 fell in a war with displacement next to a
+             cholera-active region. No zero row; no presence row (no source confirms cholera in 1990).
+Confidence : MODERATE (0.6) in the classification. The underlying epidemiology (0 vs. a small number of
+             cases) cannot be resolved from anything found.
 
-=== BATCH 2 EXECUTION: HISTORICAL SURVEILLANCE SYSTEM GAPS ===
-Queries Executed: 20 queries on 2002-2003 IDSR, pre-2000 surveillance, cholera reporting
-Key Results:
-- Pre-2002: Rwanda surveillance less systematic (paper-based IDSR)
-- 2002 IDSR adoption: First major surveillance improvement
-- 2013 eIDSR: Full electronic surveillance with 100% facility coverage
-- WHO WER archives not accessible via web search (would need direct database access)
+================================================================================
+G2  2002-01-01..2002-12-31 (12 months, modern)          CLASSIFICATION: SURVEILLANCE GAP (cholera-
+                                                        specific non-reporting), leaning PRESENCE
+================================================================================
+Dates      : whole calendar year 2002.
+Reporting  : Rwanda is absent from WER 2003 78(31) Table 1 AND there is no zero-reporting list or
+             narrative naming it (metadata 88). Rwanda reported cholera to WHO in 2001 (157) and 2003
+             (GHO row), so 2002 is a one-year hole in an otherwise annual series.
+Health sys : the national notification system WAS working in 2002: WHO DON 2002_08_23a and 2002_09_04
+             carry a Rwandan meningococcal epidemic (506 cases / 72 deaths) notified to WHO. So the
+             country could, and did, report an epidemic-prone disease that year.
+Weighing   : "reporting meningitis but not cholera" is the argument for a true quiet year. Against it:
+             (1) a meningococcal epidemic with 72 deaths is an IHR-type emergency that is notified
+             as it happens (it produced two WHO DON notices); small cholera clusters on the Kivu shore did not, and in
+             2002 Rwanda had no weekly public cholera bulletin; (2) the annual WER return is a separate
+             administrative step from an emergency DON notification, and the years in which Rwanda's
+             WER return is missing but RBC bulletins later exist (2013-2015, 2017, 2019, 2020) ALL
+             turned out to contain cholera; (3) 2002 was an epidemic year on every border: BDI 577,
+             COD 31,658 (much of it in the Kivus, i.e. Bukavu/Goma, directly across from Cyangugu and
+             Gisenyi), TZA 11,920, UGA 2,274. Rwanda had reported cholera in every year 1998-2001 and
+             2003-2009 (national rows; Cyangugu/Kivu shore 1998 and 2004, Ruhengeri 1999) - the DRC
+             importation corridor did not close in 2002. The CDC EID Great Lakes review (presence row, metadata 7) says Rwanda reported cases
+             nearly every year 1991-2008 "except 2 years"; 1990 is outside that window, so the two
+             missing years inside 1991-2008 are plausibly 2002 and one other (the source does not name
+             them, so this cannot be used as absence either).
+Verdict    : SURVEILLANCE GAP for cholera specifically: the general system worked, but the cholera
+             return did not reach WHO, and the regional epidemic makes true absence unlikely. No zero
+             row. No presence row (no source actually documents Rwandan cholera in 2002).
+Confidence : MODERATE (0.6) that the gap reflects non-reporting rather than absence; LOW (0.4) that any
+             cholera actually occurred - the meningitis notifications keep a genuine quiet year open.
 
-Gap Characterization (updated):
-- 1999-2001: SURVEILLANCE GAP - Paper-based surveillance, underreporting likely
-- 2002-2012: IMPROVED SURVEILLANCE - IDSR adopted 2002, eIDSR in 2011-2013
-- 2013+: ELECTRONIC SURVEILLANCE - 100% facility coverage, reliable reporting
+================================================================================
+G3  2010-01..2010-04, 2010-06..2011-10, 2011-12  (4 + 17 + 1 months, modern)
+================================================================================
+NEW EVIDENCE THIS DEPLOYMENT (R1-R3 above):
+  * MoH Annual Report Jul 2010-Jun 2011 (metadata 168, newly found via Wayback CDX; never registered by
+    any agent). Section II.2.5 "Management of Epidemic Infectious Diseases": "Outbreak investigation and
+    outbreak management activities were implemented to control following epidemics for: measles,
+    typhoid fever, acute erespiratory illness, influenza, foodborne outbreak, suspected ebola, etc."
+    e-IDSR piloted in 5 DHs / 72 HCs; FELTP courses for all DH IDSR focal points; NRL outbreak
+    sampling with the TRAC Plus epidemiology unit. The string "cholera" occurs NOWHERE in the report
+    (0 hits in 4,283 text lines), whereas the FY2009-10 report (metadata 165) has a cholera section
+    and the FY2011-12 report (metadata 166) lists cholera outbreaks.
+  * MoH Annual Report Jul 2011-Jun 2012 (metadata 166) - now MINED and verified. p.43: "18 diseases under
+    surveillance ... On weekly basis, epidemiological bulletins were generated and distributed". Table
+    11 "Outbreak management and preparedness" (source: RBC Annual report 2011-2012), complete list:
+      24/10/2011 Cholera Nyamasheke 14/0 | 26/12/2011 Food poisoning Gisagara 117/0 |
+      13/2/2012 Cholera Rubavu 13/0 | 8/3/2012 Rubella Gicumbi 66/0 | 5/5/2012 Acute haemorrhagic
+      conjunctivitis country-wide >=1500/0 | 27/5/2012 Food poisoning Nyamagabe 129/0 |
+      6/6/2012 Influenza Rusizi prison 309/0
+    CRUCIAL CAVEAT: this table OMITS the culture-confirmed (V. cholerae Inaba) Nkamira refugee transit
+    centre outbreak of 29/5/2012 (8 cases, Rubavu), which the RBC inventory lists (row 162). So even a
+    national outbreak table from an operating system misses lab-confirmed cholera clusters. Omission
+    from such a table is NOT proof of absence. The two table entries duplicate rows 160 and 161 (same
+    counts, same onset dates) -> no new rows.
 
-Batch 2 Yield: 0/20 = 0% (1 consecutive)
+G3a 2010-01-01..2010-04-20 (Jan-Apr 2010)      CLASSIFICATION: PRESENCE WITH UNKNOWN COUNTS (timing
+                                               unresolved within FY2009-10)
+  Health sys : operating (TRAC Plus epidemiology unit + NRL; the MoH FY2009-10 report documents the
+               Bugarama/Rusizi outbreak of Sep-Oct 2009 in detail and 28 V. cholerae Inaba isolates from
+               Western Province at the NRL).
+  Evidence   : existing presence row (source 165, 2009-07-01..2010-06-30): cholera outbreaks in Rubavu,
+               Nyagatare, Musanze, Nyamasheke, Kamonyi and Rusizi during FY2009-10, counts only for
+               Rusizi. WHO GHO 2009 = 67 = exactly the Bugarama Sep-Oct 2009 outbreak (row 304), so the
+               other five district outbreaks never reached WHO's 2009 total. The RBC inventory (starts
+               2010) lists nothing before Rusizi/Nkombo on 21 Apr 2010 (row 159, 48 sCh). Most likely
+               the five other outbreaks fell in Jul-Dec 2009 (outside the inventory window), but a
+               Jan-Mar 2010 placement for some of them cannot be excluded.
+  Regional   : South Kivu (Bukavu, Uvira) endemic transmission, directly across from Rusizi.
+  Verdict    : PRESENCE WITH UNKNOWN COUNTS at fiscal-year resolution; within Jan-Apr 2010 itself the
+               single best guess is "no recognized outbreak", but a zero here would contradict a Level-1
+               presence row that spans it. No zero row; no new presence row (the existing one covers it).
+  Confidence : LOW-MODERATE (0.5).
 
-=== BATCH 3 EXECUTION: ADDITIONAL GAP CONTEXT ===
-Queries Executed: 20 queries on zero reporting, surveillance quality, WHO WER
-Key Results:
-- WHO annual reports publish zero-reporting from member states
-- Rwanda's limited subnational data noted in multiple academic studies
-- WHO WER annual cholera summaries not accessible via web search
-- Cannot determine specific years of zero-transmission vs surveillance gaps
+G3b 2010-06-01..2011-10-23 (17 months)         CLASSIFICATION: TRUE ABSENCE OF RECOGNIZED OUTBREAKS
+                                               with operating surveillance (sporadic suspected cases
+                                               unknown) - NOT written as a zero row
+  Health sys : OPERATING and detecting other epidemic-prone diseases in the same period: measles,
+               typhoid, ARI, influenza, foodborne outbreaks and a suspected Ebola alert were investigated
+               in FY2010-11 (metadata 168); IDSR/e-IDSR roll-out under way; NRL culturing outbreak
+               samples. This passes the "other notifiable diseases" test: the country was looking.
+  Evidence   : two national sources, both derived from the RBC/TRAC epidemic-response unit, record NO
+               cholera outbreak between the end of the Rusizi outbreak (~18 May 2010) and Nyamasheke
+               (onset 24 Oct 2011): the RBC line-list of "all" outbreaks 2010-Nov 2015 (metadata 83) and
+               the FY2010-11 MoH report (metadata 168, zero mentions of cholera). WHO: Rwanda absent from
+               the WER 2010 and 2011 tables and zero-reporting lists (Agent 1), i.e. silent, not zero.
+  Regional   : NOT quiet - DRC had continuous endemic transmission in the Kivus and a very large 2011
+               national epidemic; Burundi, Uganda and Tanzania report cholera in most years (their 2010-2011 figures were
+               not re-verified in this deployment). Regional
+               epidemic plus local silence would ordinarily point to reporting failure, but here the
+               local system is independently shown to be investigating outbreaks.
+  Why no zero: (1) the evidence is omission from outbreak lists, not a stated zero; (2) the sister table
+               for FY2011-12 demonstrably omits a lab-confirmed outbreak (Nkamira, May 2012); (3) the
+               2012-2014 weekly bulletins show 1-4 sporadic suspected cases in Nkombo/Rusizi in many weeks
+               that no outbreak inventory lists, so outbreak-list silence does not imply sCh = 0 week by
+               week, which is what a zero row asserts to the weekly builder; (4) Rwanda's base rate for
+               silence-as-absence is 0 of 5 (2017, 2019, 2020, 2022, 2023 zeros all failed).
+  Confidence : MODERATE (0.55) that no cholera OUTBREAK occurred; LOW (<0.3) that weekly suspected cases
+               were truly zero throughout. Best-available classification for modellers: "low/near-zero
+               incidence, unobserved at weekly resolution" - leave the cells NA, not 0.
 
-Batch 3 Yield: 0/20 = 0% (3 consecutive - STOPPING CRITERIA MET)
+G3c 2011-12-01..2011-12-31 (1 month)           CLASSIFICATION: TRUE ABSENCE OF RECOGNIZED OUTBREAKS
+                                               with operating surveillance - NOT written as a zero row
+  Health sys : operating - the same outbreak-response unit detected and investigated a 117-case food-
+               poisoning outbreak in Gisagara starting 26/12/2011 (metadata 166, Table 11).
+  Evidence   : Nyamasheke outbreak onset 24/10/2011 (14 cases; rows 160 and Table 11). Row 160's TR
+               (2011-11-20) is a 4-week convention, not a reported end date; the outbreak could have
+               trickled into early December. Next recorded cholera: Rubavu 13/2/2012 (row 161).
+  Verdict/why no zero: as G3b (omission-based; outbreak tables demonstrably incomplete).
+  Confidence : MODERATE (0.5).
+Rows        : none. Source registered: metadata 168. Presence: none added (no new count-less cholera
+              evidence; the FY2009-10 presence row already exists).
 
-=== GAP CHARACTERIZATION SUMMARY ===
+================================================================================
+G4  2013-01-01..2013-02-24 (8 weeks, modern)   CLASSIFICATION: TRUE ABSENCE OF RECOGNIZED OUTBREAKS,
+                                               operating surveillance, WEEKLY RECORDS LOST - no zero row
+================================================================================
+Health sys : operating - the eIDSR weekly bulletin series ran continuously 2012-2014; the 2013
+             editions of weeks 1-8 exist(ed) but were overwritten on rbc.gov.rw/IMG/pdf/ by the 2014
+             editions of the same filenames, and no archived copy exists (Agent 1). So somebody WAS
+             reporting; what is missing is our access to the reports, not the surveillance.
+Evidence   : bracketed by the Nkombo/Rusizi outbreak of Nov-Dec 2012 (row 164, onset 29/11/2012, 11
+             sCh; its TR 2012-12-26 is a 4-week convention) and by 15 consecutive national documented
+             zero weeks from week 9 (row 200, 2013-02-25) through week 23 (rows 183-191, 201-205; Annex-1
+             completeness 95-98%). The RBC 2010-Nov 2015 outbreak inventory (metadata 83) lists no
+             outbreak between 29/11/2012 and 20/8/2013. But the same inventory also misses the sporadic
+             suspected cases seen in the weekly bulletins (e.g. 2013 weeks 24, 25, 27 - rows 90-92), so
+             it cannot certify sCh = 0 week by week.
+Regional   : South Kivu endemic (Bukavu/Uvira); Burundi (Bujumbura, Cibitoke on the Rusizi river) reports
+             cholera most years (2012-2013 figures not re-verified here).
+Verdict    : probable genuine quiet (no recognized outbreak) with operating surveillance; the Dec 2012
+             outbreak may have tailed into early January. Not zero-written: no document for these weeks.
+Confidence : MODERATE (0.6) for "no outbreak"; LOW (0.35) for "zero suspected cases every week".
 
-PERIOD: 1970-1990
-Type: SURVEILLANCE GAP (Potential absence + underreporting)
-Reasoning: Cholera endemic in Great Lakes since 1977-78, Rwanda first reported 1991
-Could be: True absence pre-1991 OR failure to report pre-1991 cases to WHO
+================================================================================
+G5  2014-05-01..2015-01-25 (~9 months, modern) CLASSIFICATION: TRUE ABSENCE OF RECOGNIZED OUTBREAKS,
+                                               operating surveillance, WEEKLY RECORDS NOT PUBLIC - no zero
+================================================================================
+Health sys : operating - eIDSR bulletins exist for 2014 weeks 1-16 and 2015 weeks 5-9 with Annex
+             tables at 90%+ completeness (documented zeros rows 192-193, 206-207, 195-199); the RBC ESR
+             division was compiling its outbreak line-list in this very period (inventory signed by the
+             ESR Division Manager, Aug 2015, updated Nov 2015). No bulletin is public for 2014 weeks
+             17-52 or 2015 weeks 1-4 (~3,100 filename probes, Agent 1).
+Evidence   : the inventory - an authoritative, contemporaneous list of every outbreak the ESR division
+             responded to - shows Nyamasheke (onset 3/4/2014, 12 sCh; row 167) and then nothing until
+             Musanze (4/4/2015, imported Ogawa, 9 sCh/1 death; row 168): a 12-month outbreak-free
+             interval. Row 167's TR (2014-04-30) is a convention and conflicts with a national week-16
+             2014 zero (Agent 1 note) - the April 2014 outbreak was probably over by mid-April.
+             WHO: Rwanda absent from the WER 2014 and 2015 tables and zero lists (silent, not zero).
+Regional   : DRC Kivus endemic; Burundi and Uganda report cholera most years (2014 not re-verified here); no regional mega-epidemic
+             comparable to 2002 until Tanzania/Burundi-refugee transmission from May 2015 (after G5).
+Verdict    : probable genuine quiet at outbreak level, operating system, records not public. The
+             2013-2014 bulletins show sporadic single suspected cases in Nkombo/Gihundwe roughly monthly,
+             so a true zero for 9 months at suspected-case level is doubtful. Not zero-written.
+Confidence : MODERATE (0.6) for "no outbreak"; LOW (0.3) for weekly sCh = 0.
 
-PERIOD: 1991-1995
-Type: ENDEMIC PERIOD - SURVEILLANCE GAP (Low-level cases, poorly documented)
-Reasoning: Rwanda had cholera "nearly every year since 1991 except 2 years"
-Cannot determine specific case counts without WHO WER archive access
+================================================================================
+G6a 2015 fragments: Mar, May-Jun, Sep, (Oct 1-22), Dec 2015
+================================================================================
+Health sys : operating (RBC ESR weekly reports; inventory updated to November 2015).
+Evidence   : inventory outbreaks 2015 = Musanze 4/4 (9/1 death, imported from DRC, Ogawa), Rusizi 25/7 (1),
+             Nyamasheke 25/7 (34/1 death), Karongi Jul (1 death, row 114), Nyamasheke 23/10 (20/1 death,
+             row 171). Feb 2015 weeks 5-9 documented zero (rows 195-199).
+  Mar 2015      : bracketed by documented zeros (Feb) and the 4 Apr Musanze import; no inventory entry.
+                  TRUE ABSENCE OF RECOGNIZED OUTBREAKS, operating surveillance. MODERATE (0.6). No zero.
+  May-Jun 2015  : after the Musanze outbreak (4-week window to ~1 May) and before 25 Jul; no inventory
+                  entry. Context: from May 2015 ~70,000 Burundian refugees entered Rwanda (Mahama camp),
+                  while the Burundian-refugee cholera epidemic at Kagunga/Kigoma (Tanzania) ran in
+                  May-June 2015; no Rwandan camp cholera was reported by any source found (Agent 2).
+                  TRUE ABSENCE OF RECOGNIZED OUTBREAKS. MODERATE (0.55). No zero.
+  Sep-22 Oct 2015: after the Jul-Aug Nyamasheke/Rusizi/Karongi cluster and before the 23 Oct Nyamasheke
+                  outbreak (Oct is only fragmentarily covered because the outbreak began on the 23rd).
+                  TRUE ABSENCE OF RECOGNIZED OUTBREAKS. MODERATE (0.5). No zero.
+  Dec 2015      : OUTSIDE the inventory window (updated November 2015) and no bulletin found; the
+                  23 Oct Nyamasheke outbreak (20 cases, 1 death) could have continued into December (row
+                  171's TR 2015-11-19 is a convention). SURVEILLANCE-RECORD GAP (system operating, no
+                  record accessible). LOW confidence either way (0.4). No zero.
 
-PERIOD: 1996-11: CONFIRMED OUTBREAK (23 lab-confirmed cases during November repatriation)
-PERIOD: 1997: SURVEILLANCE GAP (cholera reported in DRC refugee camps, unclear for Rwanda)
-PERIOD: 1998: CONFIRMED OUTBREAK (2900 cases, 55 deaths - Cyangugu)
+================================================================================
+G6b 2017 fragments: Feb (wk7-9), Jun-Jul (wk22-30), Oct-Dec (wk40-52)
+================================================================================
+Health sys : operating - the 2017 RBC ESR weekly reports carry image Annex-2 tables with a Cholera column
+             for every DH catchment (public + private), completeness 82-94%, and documented zeros for
+             weeks 1-6, 10-13, 19-21 (rows 252-254); the same bulletins captured the Ngarama outbreak
+             (wk14-18, 39 sCh, 1 confirmed; rows 208-212, 215-219). WHO: Rwanda absent from WER 2017
+             (silent); WER 2021 narrative treats 2017-2020 as years without reports - wrong, as shown.
+  Feb 2017 (wk7-9): bracketed by documented zeros (wk1-6 and wk10-13). Bulletins for wk7-9 simply not
+                  located. TRUE ABSENCE (probable), operating surveillance. MODERATE-HIGH (0.7). Not zero-
+                  written: the zero must come from reading the wk7-9 Annex tables, not from the brackets.
+  Jun-Jul 2017  : after documented zeros wk19-21; the Ishywa island (Nkombo, Rusizi) health-post report
+                  of 49 cases "from August to September 2017" (row 277, metadata 149, NGO project story,
+                  weak) begins right after. SURVEILLANCE-RECORD GAP (bulletins exist on Wayback, unmined).
+                  LOW-MODERATE (0.45) for no outbreak. No zero.
+  Oct-Dec 2017  : follows the Ishywa Aug-Sep cluster; nothing mined. Ishywa is an island health post whose
+                  49 cases never appear in any RBC weekly bulletin or WHO return found so far - evidence
+                  that island clusters can escape national reporting. SURVEILLANCE-RECORD GAP. LOW (0.35).
+Lead       : the 2017 RBC bulletin archive (Agent 2 recovered it via Wayback) for weeks 7-9, 22-30 and
+             40-52 - reading their Annex-2 Cholera columns would convert most of G6b into documented
+             zeros or new positives.
 
-PERIOD: 1999-2004
-Type: UNCERTAIN - Endemic/surveillance gap
-Reasoning: Rwanda endemic since 1991; IDSR adopted 2002 (improving surveillance)
-"2 years" without cases may fall here or post-2004
+================================================================================
+G7  2019 and 2020 (formerly MASKED by row 6; row 6 is now retracted by Agent 5 - confirmed in
+    ./data/RWA/retracted_rows_ai.csv at 20:03 - so both years are genuinely open)
+================================================================================
+G7a 2019
+Health sys : operating. RBC ESR weekly reports were published through 2019 (about 51 archived on the
+             Wayback Machine). They show an active, lab-backed system: the week-17 report records 5
+             suspected cases at Ngarama DH that tested NEGATIVE on culture (a system that tests and
+             rules out is looking); week 33 records a culture-confirmed case at Mibilizi DH (rows
+             261-262); weeks 34-35 Mibilizi suspects (263-266); week 38 Bugarama (276); weeks 39-42 the
+             culture-confirmed (Ogawa) Nkombo island outbreak 7/11/4/5 (269-272); week 50 one Nkombo
+             suspect (294). WHO: Rwanda absent from WER 2019 (silent), and WER 2021 wrongly implies no
+             cases 2017-2020.
+Regional   : DRC 2019 national epidemic with heavy Kivu transmission (South Kivu, Uvira/Bukavu); Uganda
+             2019 outbreaks including DRC importations; Burundi 2019 Bujumbura/Cibitoke outbreaks.
+  UPDATE 20:13-20:15 - 2019 BULLETINS READ (document retrievals R7-R9):
+    R7 Wayback CDX prefix rbc.gov.rw/fileadmin/user_upload/bulletin/2019/ -> 53 captures, 51 weekly
+       PDFs (weeks 1-52 except 8).
+    R8 parallel download: 19 of 51 succeeded (weeks 1-6, 10-12, 14-22, 35); retry for weeks 7, 9, 13,
+       23-30, 43-49 -> only week 9 succeeded; weeks 23-30 failed twice (HTTP 000, Wayback refusing
+       connections) -> ABANDONED per the two-failure rule.
+    R9 rendered page 1 of each downloaded Jan-Jun bulletin (pdftoppm, 60 dpi) and read the page. Same
+       layout as 2020: a "cases reported" list covering every epidemic-prone disease down to single
+       suspected cases (rubella 1, meningococcal meningitis 1, AFP 1, typhoid 1); public-facility
+       completeness 89.4-97.0 percent. NO cholera entry on any of the 18 pages read, whereas the same
+       series prints "Cholera : ..." lines for weeks 33-35, 38-42 and 50 (rows 261-276, 294).
+  Jan-early Jun 2019: TRUE ABSENCE with operating surveillance for the weeks read. Written as 18
+                 national weekly Inferred_Absence zeros, conf 0.7, surveillance operational:
+                 rows 318-335 (sources 180-197) = ISO weeks 1-6, 9-12, 14-16, 18-22 of 2019.
+                 NOT written: week 7, 8, 13 (no capture / download failed), week 17 (5 suspected
+                 cases at Ngarama DH that tested culture-NEGATIVE - a notified suspect cluster, so it
+                 is neither a clean zero nor a positive; left for Agent 5/7), weeks 23-30 (download
+                 failed twice). Confidence for the written weeks: MODERATE-HIGH (0.7).
+  Jun-Jul 2019 (weeks 23-31): SURVEILLANCE-RECORD GAP (bulletins archived, not retrievable today).
+                 Given that weeks 1-22 were clean, and the Mibilizi confirmation came in week 33,
+                 probable quiet: MODERATE (0.55). No zero.
+  Nov 2019 (weeks 44-48): SURVEILLANCE-RECORD GAP, presence-adjacent (Nkombo outbreak wk39-42; Nkombo
+                 suspect wk50). LOW (0.4). No zero.
+Lead       : 2019 weeks 7, 13, 17 (adjudicate), 23-32, 36-37, 43-49, 51-52 and 2020 week 1/9 and March
+             monthly - same method (render page 1; never trust the text layer). URLs are in
+             /tmp-independent form in the CDX query above; the week->URL map is reproducible with
+             http://web.archive.org/cdx/search/cdx?url=rbc.gov.rw/fileadmin/user_upload/bulletin/2019/&matchType=prefix
 
-PERIOD: 2005-2006: CONFIRMED OUTBREAK (Kigali: 68 cases, 10 deaths)
+G7b 2020
+Health sys : partially disrupted then recovering. COVID-19 (first case 14 Mar 2020; strict national
+             lockdown from 21 Mar 2020) diverted RBC's publication: the weekly ESR series gave way to
+             MONTHLY bulletins. Crucially, those monthly bulletins DID keep a cholera line: April (1
+             suspected, Saint Francois HC/Gihundwe DH, row 274), September (1 suspected, Kigeme DH, row
+             275), October (Nkombo outbreak 43 cases/1 death, 2 culture-confirmed, row 267), November
+             (Gisenyi DH outbreak, 172 cases/4 deaths 15 Oct-7 Dec, row 268), December (12 suspected
+             Nkombo, row 273) - metadata 144, 145, 147. So "bulletins were COVID-only" is true of the
+             weekly series, NOT of the 2020 monthly series.
+Regional   : DRC (South Kivu) endemic throughout 2020; Rubavu/Gisenyi outbreak Oct-Dec 2020 is the
+             classic Goma-Gisenyi border pattern.
+  UPDATE 20:08-20:12 - 2020 BULLETINS RECOVERED AND READ (document retrievals R4-R6):
+    R4 Wayback CDX prefix rbc.gov.rw/fileadmin/user_upload/bulletin/2020/ (first attempt returned 0
+       lines; retry with matchType=prefix -> 94 captures): monthly reports Mar, May, Jun, Jul, Aug
+       2020 and weekly reports weeks 2-9 2020, none previously registered.
+    R5 downloaded 13 PDFs (id_ captures of 2021-04-27). March 2020 monthly and week 9 returned a
+       315-byte HTML stub twice -> abandoned per the two-failure rule.
+    R6 TRAP FOUND: every one of these PDFs carries HIDDEN template text from an older issue
+       ("Cholera: 1 suspected case", "Mumps: 22", "814 cases were reported during the 12-week
+       period", "week 43"), identical in every issue and NOT rendered on the page. A text-layer grep
+       therefore "finds" one cholera case in every month/week of 2020 - that is FALSE. I rendered
+       page 1 of each bulletin (pdftoppm) and read the actual page. On every rendered page the
+       "notified cases" list covers each epidemic-prone disease down to single suspected cases
+       (typhoid, rubella, meningococcal meningitis, AFP) and contains NO cholera entry, while the
+       same series prints "Cholera : one suspected case ..." when one is notified (Apr and Sep 2020,
+       metadata 147; 2019 weeks 38-42 and 50). Public-facility completeness 91-97 percent.
+  Jan-Feb 2020 (weeks 2-8): TRUE ABSENCE with operating surveillance. Written as 7 national weekly
+                 Inferred_Absence zeros, conf 0.7, surveillance operational: rows 311-317 (sources
+                 173-179). Inferred (not Documented) because the reports print no explicit cholera 0.
+                 Week 1 (2019-12-30..2020-01-05) and week 9 (02-24..03-01) remain undocumented.
+  Mar 2020     : March monthly unrecoverable (two failures). SURVEILLANCE-RECORD GAP; the lockdown
+                 began 21 Mar. LOW-MODERATE (0.5). No zero.
+  Apr 2020     : one suspected case (row 274) - covered.
+  May-Aug 2020 : TRUE ABSENCE with operating surveillance even under COVID-19 (completeness 97.4,
+                 96.2, 94.6, 95.7 percent). Written as 4 national monthly Inferred_Absence zeros, conf
+                 0.7, surveillance operational: rows 307-310 (sources 169-172).
+  Sep 2020     : one suspected case (row 275); Oct-Dec outbreaks (rows 267, 268, 273) - covered.
+  Nov 2020     : NOT a gap in substance - the Gisenyi DH outbreak (row 268) spans 15 Oct-7 Dec.
+  REVISED VIEW OF 2020: the orchestrator's premise "RBC bulletins in 2020 were COVID-only" is true
+  only of the separate COVID weekly bulletin ("weekely bulletin coronavirus"); the routine ESR series
+  continued (weekly to Feb, monthly from ~Mar) and kept notifying cholera. 2020 is therefore NOT a
+  surveillance gap: it is a year of documented quiet (Jan-Feb, May-Aug) punctuated by single suspects
+  (Apr, Sep) and two confirmed outbreaks (Oct-Dec). Confidence in this reading: MODERATE-HIGH (0.7).
 
-PERIOD: 2007-2017
-Type: LOW-LEVEL ENDEMIC - PARTIALLY DOCUMENTED
-Reasoning: RBC document confirms 265 cases over 6 years (2018-2024 approximate)
-FETP documents 420 cases and 17 outbreaks 2010-2017 (per previous search context)
-Period cannot be validated as zero-transmission
+================================================================================
+=== BATCH 0 | PHASE 2-3 (context + document retrieval) | RWA ===   [NOT a 20-query search batch]
+================================================================================
+  Gap targeted : G3 (2010-2011), G7 (2019, 2020); all others classified from existing evidence
+  Queries      : 0 search-engine queries. 9 document-retrieval operations instead:
+                 R1 MoH AR 2011-12 fetch; R2 Wayback CDX moh.gov.rw uploads; R3 MoH AR 2010-11 fetch;
+                 R4 Wayback CDX RBC bulletin/2020 (1st attempt 0 lines, retry 94); R5 13 x 2020
+                 bulletin PDFs (11 OK, March monthly + week 9 failed twice); R6 page-1 rendering
+                 and reading of 11 x 2020 bulletins; R7 Wayback CDX RBC bulletin/2019 (53);
+                 R8 2019 PDFs (20 OK; weeks 23-30 failed twice -> abandoned); R9 page-1 rendering
+                 and reading of 18 x 2019 bulletins
+  Sources found: 30    Registered: index 168 (MoH AR 2010-11, context only), 169-172 (RBC monthly
+                 May-Aug 2020), 173-179 (RBC weekly wk2-8 2020), 180-197 (RBC weekly 2019 wk1-6,
+                 9-12, 14-16, 18-22)
+  Rows added   : 29    Indices: 307-310 (2020 monthly zeros), 311-317 (2020 weekly zeros),
+                 318-335 (2019 weekly zeros); all national, Inferred_Absence, surveillance
+                 operational, confidence 0.7
+  Presence rows: 0 added (no new count-less cholera evidence found; FY2009-10 presence row by
+                 Agent 4 already covers G3a)
+  Successful queries: n/a (no search queries). Yield not computed: this is not a 20-query batch
+                 and must not be counted toward the 3-batch minimum or stopping criteria.
+  Consecutive sub-5% batches: n/a
+  Decision     : STOP (TIME-BOXED; hard deadline 20:33; Wayback refusing connections from ~20:15)
 
-PERIOD: 2018-2024: DOCUMENTED (265 cases per RBC, 2022-2024 zero-transmission confirmed)
-PERIOD: 2025: CONFIRMED OUTBREAK (308 cases Jan-Aug 2025)
-PERIOD: 2026: EARLY CASES (18 cases Jan-Mar 2026)
+================================================================================
+KEY METHOD WARNING FOR AGENTS 5 AND 7 (and any future RBC bulletin miner)
+================================================================================
+RBC ESR bulletins of 2017-2020 carry hidden, unrendered template text from an older issue. In the
+2020 files it reads "Cholera: 1 suspected case", "Mumps: 22", "Typhoid fever: 2 suspected cases",
+"814 cases were reported during the 12-week period" in EVERY issue. Any text-layer (pdftotext/grep)
+extraction will invent one cholera case per bulletin. Only the rendered page is evidence. Every
+zero row I wrote was checked against a rendered page-1 image. Recommend Agent 7 scan the dataset for
+any row whose quote reads exactly "Cholera: 1 suspected case" with no facility name.
 
-=== AGENT 6 FINAL STATUS ===
-Completion Time: 2026-05-15 15:30:00
-New CSV Rows: 0
-Key Finding: Major data gaps in 1999-2017 period cannot be resolved without WHO WER archives
-2022-2024 zero-transmission period well-validated
-Surveillance Infrastructure: IDSR 2002, eIDSR 2013 - improved detection from those dates
+================================================================================
+FINAL GAP CLASSIFICATION SUMMARY (Agent 6, 20:16)
+================================================================================
+G1 1990 ............ SURVEILLANCE GAP (non-reporting; WER omission, Q4 war/displacement, regional
+                     epidemic on 3 borders). Confidence 0.6. No row.
+G2 2002 ............ SURVEILLANCE GAP for cholera specifically (general notification system worked:
+                     meningitis DONs), regional epidemic on every border. Confidence 0.6 (non-
+                     reporting), 0.4 that cholera actually occurred. No row.
+G3a 2010-01..04 .... PRESENCE WITH UNKNOWN COUNTS (FY2009-10 six-district presence, timing
+                     unresolved; likely no recognized outbreak inside Jan-Apr). Confidence 0.5. No row.
+G3b 2010-06..2011-10 TRUE ABSENCE OF RECOGNIZED OUTBREAKS, operating surveillance (new MoH AR FY2010-11
+                     shows outbreak response to measles/typhoid/ARI/flu/foodborne/Ebola alerts, zero
+                     cholera mentions; RBC inventory silent). Sporadic suspects unknown. NOT zero-
+                     written (omission-based; sister table misses a lab-confirmed 2012 outbreak).
+                     Confidence 0.55 (no outbreak), <0.3 (weekly zero).
+G3c 2011-12 ........ TRUE ABSENCE OF RECOGNIZED OUTBREAKS, operating surveillance (food-poisoning
+                     outbreak investigated 26/12/2011). NOT zero-written. Confidence 0.5.
+G4 2013-01..02 ..... TRUE ABSENCE OF RECOGNIZED OUTBREAKS, operating surveillance, weekly records
+                     lost (2013 editions overwritten). NOT zero-written. Confidence 0.6.
+G5 2014-05..2015-01  TRUE ABSENCE OF RECOGNIZED OUTBREAKS, operating surveillance (RBC inventory
+                     12-month outbreak-free interval), records not public. NOT zero-written.
+                     Confidence 0.6 (no outbreak), 0.3 (weekly zero).
+G6a 2015 Mar/May-Jun/Sep-Oct: TRUE ABSENCE OF RECOGNIZED OUTBREAKS, operating. Conf 0.5-0.6.
+    2015 Dec ....... SURVEILLANCE-RECORD GAP (outside inventory window; Oct outbreak may continue).
+                     Conf 0.4.
+G6b 2017 Feb ....... probable TRUE ABSENCE (bracketed by documented zeros). Conf 0.7. Not written.
+    2017 Jun-Jul ... SURVEILLANCE-RECORD GAP (bulletins unmined). Conf 0.45.
+    2017 Oct-Dec ... SURVEILLANCE-RECORD GAP, presence-adjacent (Ishywa Aug-Sep). Conf 0.35.
+G7a 2019 ........... Jan-early Jun: TRUE ABSENCE, operating surveillance - 18 weekly zeros written
+                     (rows 318-335). Weeks 7, 8, 13, 23-31: SURVEILLANCE-RECORD GAP (conf 0.55,
+                     probable quiet). Week 17: culture-negative suspect cluster (adjudicate). Nov:
+                     SURVEILLANCE-RECORD GAP, presence-adjacent (conf 0.4).
+G7b 2020 ........... NOT a surveillance gap: routine ESR reporting continued through COVID-19.
+                     Jan-Feb (wk2-8) and May-Aug: TRUE ABSENCE, operating surveillance - 11 zeros
+                     written (rows 307-317). Mar: SURVEILLANCE-RECORD GAP (bulletin unrecoverable;
+                     conf 0.5). Apr/Sep single suspects and Oct-Dec outbreaks already covered.
+G8 2026-09-01..28 .. REPORTING LAG mid-outbreak (24-88 cases/week through week of 08-31). Confidence
+                     0.95. Must stay NA; never a zero.
+
+STOPPING: TIME-BOXED deployment (host clamshell sleep; hard deadline 20:33). 0 search batches run -
+the 60-query minimum was NOT met and this is stated plainly. Value delivered: gap-by-gap prose
+classification, one new context source for 2010-2011, the hidden-template-text trap documented, and
+29 evidence-backed zero rows from rendered national surveillance reports (2019, 2020).
+Validator: python py/validate_quality.py RWA -> exit 0 at 20:15 (ERROR 0, WARN 0) - re-run below.
+
+ADDENDUM 20:17 - template-trap check of existing rows (read-only; no row revised - Agent 5 owns
+revisions): grepped ./data/RWA/cholera_data_ai.csv for quotes of the form "Cholera: 1 suspected
+case" without a facility. Only candidate: row 291 (2022 week 23, "Cholera: 1 Suspected Cases", no
+facility, source 154). Fetched the bulletin (Wayback 20230511203823) and rendered page 1: the
+left-column box "Cases reported immediate & weekly at national level" VISIBLY prints "Cholera: 1
+Suspected Cases" -> row 291 is REAL. The same PDF also carries the hidden 2020-template line
+"Cholera: 1 suspected case ... 814 cases were reported", which is not rendered. Row 291 stands.
+Rows 93 (2012) and 213 (2021) name facilities and predate/postdate the template; not suspect.
+
+FINAL CHECK 20:17: python py/validate_quality.py RWA -> exit 0 (ERROR 0, WARN 0, 321 data rows, 197 sources). workflow_state written (agent 6: batches 0, rows 29, sources 30).
+Agent 6 Status: COMPLETE (time-boxed) at 2026-09-28 20:17:49

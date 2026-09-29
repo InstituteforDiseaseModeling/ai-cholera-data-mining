@@ -1,65 +1,124 @@
-=== AGENT 4 INITIALIZATION ===
+=== AGENT 4 (OBSCURE SOURCE EXPLORER) INITIALIZATION ===
 Country: Rwanda (RWA)
-Start Time: 2026-05-15 11:30:00
+Start Time: 2026-09-28 15:30 local (run window 2, fresh deployment)
 Agent 4 Status: INITIALIZED
+Previous Agent 4 log (May 2026) preserved as search_log_agent_4_legacy_2026-05-15.txt
+Hard wall-clock deadline: 16:50 local (orchestrator). Minimum 3 batches (60 queries).
+Gap list: orchestrator scratch run 15:30 (coverage 89.7%, 611/681 months); reference/effective_* NOT regenerated (runner owns them).
 
-Objective: Obscure Source Explorer - Historical gaps >5 years old, archival sources
-Focus: Pre-2000 data, internet archives, historical WHO reports, 1994-1997 period
+Targets (priority order, from orchestrator brief):
+ 1. Pre-2000 historical depth: 1978 introduction (838/48), 1980s (1982=201, 1984=161, 1986=226), 1991=679, 1992=503, 1993=568, 1997=274 - timing and prefecture/commune detail.
+ 2. 1990 and 2002 (no zero rows; Agents 1 and 3 found only non-reporting) - seek national/francophone count or affirmative absence.
+ 3. 2010-2015 and 2017 archive gaps (Wayback/CDX of rbc.gov.rw, trac.rw, moh.gov.rw; 2017 RBC bulletins not yet read).
+ 4. If time: 2018-2020 RBC bulletin archive (2019 ~51 archived bulletins).
 
-=== BATCH 1 EXECUTION: HISTORICAL AND ARCHIVAL SEARCHES ===
-Queries Executed: 20 queries targeting historical sources 1970-2005
-Key Results:
-1. 1996 REPATRIATION CHOLERA - NEW DATA FOUND:
-   - WHO DON November 28 1996: 23 lab-confirmed Vibrio cholerae 01 El Tor cases
-   - Location: Gisenyi border crossing / Kigali central hospital
-   - Period: November 15-21 1996 during 500,000 refugee repatriation from Zaire
-   - 0 deaths from confirmed cholera
-   - Context: Lancet 1997 Brown et al. letter confirming these cases
-   CSV Row 11 added: AFR::RWA 1996-11-15 to 1996-11-21, 23 cCh, 0 deaths
+Decisions at start:
+ - D1: Did not run py/analyze_effective_gaps.py (orchestrator override; runner owns reference/effective_*).
+ - D2: Previous agents' query lists skimmed; repeated queries avoided (WER annual series 1998-2025 via IRIS, GHO, DON archive, PubMed generic, ProMED generic, RBC 2012-2019 bulletins were covered by Agents 1-3).
+ - D3: Given ~80 minutes to the deadline, batches are planned to finish batch 3 by ~16:35 with wrap-up time.
 
-2. 1994 Goma epidemic: 58,000-80,000 cases confirmed - BUT in DRC (Goma/Zaire), NOT within Rwanda borders
-   - Cannot add to Rwanda cholera_data_ai.csv as these were in DRC territory
+=== BATCH 1 | PHASE 1/3 (historical pre-2000: WER/IRIS, francophone literature, WHO annual summaries) | RWA ===
+Gap targeted : pre-2000 historical depth (1978 introduction; 1980s; 1991-1993) - sub-annual timing and prefecture detail
+               for years covered only by GHO annual national totals (rows 13-31)
+Queries      : 20
+  1  HTTP  Wayback CDX iris.who.int/bitstream/handle/10665/ filter WER53xx/WER54xx (1978-79 WER issues) -> 0  [historical]
+  2  HTTP  Wayback CDX apps.who.int/iris/bitstream/ filter WER53xx/WER54xx -> 0  [historical]
+  3  HTTP  Wayback CDX whqlibdoc.who.int/wer/ -> index pages 2002-2005 only  [historical]
+     (connectivity: iris.who.int HTTP 000 - STILL DOWN; apps.who.int/iris 302 -> iris; Wayback 200; rbc.gov.rw 200)
+  4  WebSearch (fr) choléra Rwanda 1978 épidémie premiers cas préfecture -> CDC EID 17(11) only  [linguistic]
+  5  WebSearch cholera Rwanda 1978 first outbreak introduction Lake Kivu Cyangugu -> Katana HZ (DRC) 1978; no Rwanda count  [academic]
+  6  WebSearch (fr) "Médecine tropicale" choléra Rwanda épidémie -> refugee-camp (Goma) papers only  [linguistic]
+  7  WebSearch (fr) "Annales de la Société belge de médecine tropicale" choléra Rwanda -> Malengreau 1979 lead  [linguistic]
+  8  WebSearch (fr) "Revue médicale rwandaise" choléra -> no cholera article  [linguistic]
+  9  WebSearch horizon.documentation.ird.fr choléra Rwanda Burundi Kivu -> 'Essai d'une bibliographie sur le Rwanda'  [historical]
+ 10  HTTP  IRD Horizon pleins_textes/divers18-01/10072.pdf (66 pp) pdftotext + grep 'chol' -> 0 hits  [historical]
+ 11  HTTP  archive.org advancedsearch + scholar.archive.org (cholera/choléra Rwanda 1977-1996) -> nothing relevant  [historical]
+ 12  WebSearch Malengreau 1979 'épidémie de choléra à l'est du Zaïre en 1978' -> Ann Soc Belg Med Trop 59:401-412 (Zaire; no Rwanda count)  [academic]
+ 13  WebSearch cholera Rwanda 1991 1992 1993 prefecture Cyangugu Gisenyi Kibuye -> MMWR Burundi/Zimbabwe 1992-93  [regional]
+ 14  WebSearch (fr) choléra Rwanda 1992/1993 Bugarama Cyangugu -> 'Cholera in 1992' (Bull WHO) lead  [linguistic]
+ 15  WebFetch CDC MMWR 00020745 'Epidemic Cholera - Burundi and Zimbabwe 1992-1993' -> Rwanda only as a border  [regional]
+ 16  API   Europe PMC: Bull World Health Organ cholera titles 1978-1997 -> 'Cholera in 1991' (PMC2393442), 'Cholera in 1992' (PMC2393471)  [WHO/official]
+ 17  HTTP  NCBI CDN page scans, Bull WHO 71(5):641-644 'Cholera in 1992' (from WER 68(21):149-155) Table 1 -> 'Rwanda 530 32'  [WHO/official]
+ 18  HTTP  NCBI CDN page scans, Bull WHO 71(1):119-120 'Cholera in 1991' (from WER 67(34):253-260) Table 1 -> 'Rwanda 679 35'  [WHO/official]
+ 19  API   PubMed E-utilities esearch/esummary (cholera OR vibrio) AND (Rwanda|Kigali|Butare|Cyangugu|Gisenyi) 1975-2001 -> 23 hits
+           incl. Malatre 1989 (Gisenyi epidemic), Colaert 1979 Lancet, De Pina 1994 Med Trop, Aldighieri 1997 Med Trop  [academic]
+ 20  WebSearch cholera Rwanda 1978 EAMJ/Tropical Doctor/Lancet first El Tor -> nothing new  [academic]
+Sources found: 4 (Bull WHO 1991 table; Bull WHO 1992 table; Malatre 1989 abstract; De Pina 1994 / Aldighieri 1997 leads)
+Registered   : none yet in this batch (registered with the Batch 2 extraction, see below)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Findings     :
+  * 1991: Bull WHO 71(1) Table 1 'Rwanda 679 35' = GHO row 25 exactly -> contemporaneous WHO corroboration (no new row).
+  * 1992: Bull WHO 71(5) Table 1 'Rwanda 530 32' CONFLICTS with GHO row 26 (503/35). Both WHO; not averaged, no competing
+    national row; recorded on row 26 via revise_observation.py (see Batch 2 actions).
+  * 1987: Malatre X, Ahorukomeye A, Giocanti R. Bull Soc Pathol Exot Filiales 1989;82(1):141-50 - 'An outbreak of cholera occurred
+    in the Prefecture of Gisenyi, Rwanda during the last two months of 1987' (bacteriologically confirmed). Abstract has no count;
+    full text pursued in Batch 2.
+Decision     : CONTINUE (3-batch minimum)
 
-3. 1991-2008 pattern: Endemic since 1991 (except 2 years) per CDC EID article (already documented)
-4. Lancet article "Cholera vaccines: lessons from Rwanda" - not accessible (403 error)
-5. Brown et al 1997 Lancet letter (9111572) - abstract only, no full text
+=== BATCH 2 | PHASE 2/3 (francophone periodicals on Gallica; citation chain from PubMed hits) | RWA ===
+Gap targeted : pre-2000 historical depth - 1978-79 introduction, 1987 (GHO 101), 1993 (GHO 568), 1996 (GHO 106)
+Queries      : 20
+  1  WebSearch Malatre Ahorukomeye Giocanti cholera Gisenyi 1989 BSPE -> Centre IST Regards catalogue entry  [academic]
+  2  WebSearch (fr) BSPE 1989 vol 82 numérisé Gallica/BIU Santé -> Gallica holds BSPE vols 60-90 (1967-1997)  [historical]
+  3  WebSearch De Pina/Rault/Boutin Vibrio cholerae Rwanda Med Trop 1994 -> citation only  [academic]
+  4  WebSearch Aldighieri/Suermondt/Rugimbanya 1997 Vibrio cholerae Rwanda indole -> citation only  [academic]
+  5  API   Gallica Issues (BSPE cb344790278, 1989) -> 5 issue arks  [historical]
+  6  API   Gallica ContentSearch 'Gisenyi' x5 issues -> ark bpt6k97755689 views 145-154  [historical]
+  7  HTTP  Gallica texteBrut (ALTCHA challenge - FAIL) + IIIF probe (200)  [technical]
+  8  HTTP  Gallica IIIF page images f145-f154 (Malatre 1989, pp 141-150) read -> ROWS 295, 300  [academic]
+  9  HTTP  Gallica IIIF 900-px crop of Carte 1 commune/sector table (p146) -> ROWS 296-299  [academic]
+ 10  API   Gallica SRU full-text (choléra AND Rwanda, 1978-2003) -> 276 records; Médecine tropicale on Gallica 1941-2012 (cb34348866b)  [linguistic]
+ 11  WebSearch 'Santé et maladies au Rwanda' Meheus 1982 AGCD Rugamba Murekezi (ref 1 of Malatre) -> not online  [historical]
+ 12  API   Gallica Issues + ContentSearch 'Rwanda choléra', Médecine tropicale 1994 and 1997 (12 issues) -> 4 relevant hits  [linguistic]
+ 13  HTTP  IIIF Med Trop 1994;54(3):277 (De Pina et al.) -> strains from Goma camps, Zaire, July 1994 - no Rwanda count  [technical]
+ 14  HTTP  IIIF Med Trop 1997;57(3):309 (Aldighieri et al.) -> '187 cas ... 15 novembre-22 decembre 1996' -> ROW 301  [academic]
+ 15  HTTP  IIIF Med Trop 1994;54(3S):39 CL26 (Dodin et al.) -> 5 Ogawa strains from Rwanda, Nov 1993 (MSF) -> PRESENCE row  [technical]
+ 16  HTTP  rbc.gov.rw/IMG/pdf/cholera_sop_french.pdf (Jan 2013) -> generic 'Chaque annee ... sporadiques ... lac Kivu' - not usable  [WHO/official]
+ 17  API   archive.org sim_annales-de-la-societe-belge-de-medecine-tropicale_1979* -> only the vol 59 index digitised  [historical]
+ 18  API   Gallica sweep BSPE 1978-1988 'Rwanda choléra' (all issues) -> experimental/historical cholera only; no Rwanda outbreak  [historical]
+ 19  API   Gallica sweep BSPE 1990-1997 'Rwanda choléra' -> nothing new  [historical]
+ 20  API   Gallica sweep Médecine tropicale 1978-1993, 1995-2003 'Rwanda choléra' -> only the 1990 abstract of Malatre 1989  [linguistic]
+Sources found: 5    Registered: index 159 (Malatre 1989), 160 (Bull WHO Cholera in 1992), 161 (Bull WHO Cholera in 1991),
+                    162 (Aldighieri 1997), 163 (Dodin 1994)
+Rows added   : 7    Indices: 295 (Gisenyi prefecture 1987-11-07..12-14, 80 sCh/80 cCh/5 deaths), 296-299 (1987 communes:
+                    Nyamyumba 21, Rubavu 26, Rwerere 12, Mutura 20), 300 (Gisenyi prefecture 1978-1979, 463 sCh, conf 0.7),
+                    301 (national 1996-11-15..12-22, 187 sCh, conf 0.8)
+Presence     : 1 (AFR::RWA 1993-11, 5 Ogawa isolates - source 163)
+Revisions    : row 13 (1978 GHO) CONFLICT note - national 1978-79 count 3886 (58 confirmed) vs WHO 843; row 25 (1991) corroborated
+               by Bull WHO 679/35; row 26 (1992) CONFLICT note - Bull WHO 530/32 vs GHO 503/35, confidence 0.9 -> 0.8; row 30 (1996)
+               CONFLICT note - 187 declared 15 Nov-22 Dec vs GHO 106 (= Runda camp only)
+Successful queries: 3/20  (Q8 -> 295, 300; Q9 -> 296-299; Q14 -> 301)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum; batch 3 mandatory)
+Notes        :
+  * NOT COMMITTED: national 1978-1979 3886 cases (single source, >1000, conflicts with WHO 843) - conflict note on row 13 only.
+  * 1987: Malatre 1989 dates the Gisenyi outbreak (initial focus Kanzenze/Mutura, Nyarushyamba/Rwerere, Bisizi/Kanama from a
+    funeral cluster; moved to Rubavu/Gisenyi town from 18 Nov; Nyamyumba lakeshore sporadic). All 80 cases V. cholerae O1 Ogawa.
+  * 1993: first dated evidence within 1993 - Institut Pasteur received 5 Ogawa strains isolated in Rwanda in November 1993
+    (MSF; some from refugees - consistent with the Burundian refugee influx into southern Rwanda after Oct 1993). Isolate count,
+    not a surveillance count, so presence only.
+  * Gallica technique for the next agents: Issues API + ContentSearch + IIIF images work; texteBrut is ALTCHA-blocked.
 
-Batch 1 Yield: 1 new CSV row (1996 data) = 5% (1/20 queries successful)
 
-=== BATCH 2 EXECUTION: INTERNET ARCHIVE AND GLOBAL DATABASES ===
-Queries Executed: 20 queries targeting WHO WER archives, GHDX, historical reports
-Key Results:
-- WHO Cholera Annual Report 2003 (GHDx): 403 error, inaccessible
-- AJTMH 1995-2005 review: 403 error
-- Historical 1977-1990 Rwanda data: Not found in accessible sources
-- 2003-2005 WHO annual data: Not accessible directly
-- Rwanda within-country 1995-1997 data: Only refugee-related data found
-
-Batch 2 Yield: 0/20 = 0% (1 consecutive below threshold)
-
-=== BATCH 3 EXECUTION: OBSCURE GEOGRAPHIC AND PERIOD SEARCHES ===
-Queries Executed: 20 queries targeting Lake Kivu, fishing communities, interior outbreaks
-Key Results:
-- Lake Kivu fishing community risk documented (contextual only)
-- Interior prefecture outbreaks 1994: Only refugee data found
-- 2020-2021 Rwanda cholera data: Not found in accessible sources
-- Rwanda confirmed not in affected countries during 2020 per WHO regional reports
-
-Batch 3 Yield: 0/20 = 0% (2 consecutive below threshold)
-
-=== BATCH 4 EXECUTION: ADDITIONAL TARGETED HISTORICAL SEARCHES ===
-Queries Executed: 20 queries on 2013-2017 period, year-end 2025 statistics
-Key Results:
-- 2013-2017 Rwanda data: Not found in accessible sources
-- Year-end 2025 total: Not confirmed beyond 308 cases as of Aug 2025
-- Global Dec 2025 total: 601,845 cases globally
-
-Batch 4 Yield: 0/20 = 0% (3 consecutive below threshold - STOPPING CRITERIA MET)
-
-=== AGENT 4 FINAL STATUS ===
-Completion Time: 2026-05-15 13:00:00
-Total Searches: 80 queries
-Total New CSV Rows: 1 (row 11 - 1996 repatriation outbreak)
-Total New Sources: 1 (source 11 - WHO DON 1996)
-Key Discovery: 1996 November cholera outbreak in Rwanda during mass refugee repatriation (23 lab-confirmed cases)
-Stopping: 3 consecutive batches below 5% yield (batches 2, 3, 4 all 0%)
+=== BATCH 3 | INTERRUPTED (instance hung ~15:48; reconstructed by the replacement instance at 17:30) ===
+Gap targeted : 2008-2012 district outbreak detail via Rwanda MoH/MINISANTE annual reports captured on web.archive.org
+               (line inferred from the committed artefacts; the hung instance's working notes were not recoverable)
+Queries      : NOT RECORDED - the hung instance committed work but never logged its query list. Denominator assumed = 20.
+Committed artefacts (verified present in the files by the replacement instance):
+  Sources registered : 164 MoH Annual Report 2008 (April 2009) [Wayback moh.gov.rw com_docman gid=116]
+                       165 MoH Annual Report July 2009-June 2010 [Wayback moh.gov.rw/english/wp-content/uploads/2012/05/]
+                       166 MoH Annual Report July 2011-June 2012 [Wayback] - REGISTERED BUT NOT YET MINED (mined in Batch 4)
+                       167 MINISANTE Rapport Annuel 2004 (version finale) [Wayback]
+  Rows added (3)     : 302 AFR::RWA::Western::Rubavu (Nyundo HC) 2008-08-01..2008-12-31, 40 sCh, 3 deaths (source 164, conf 0.75)
+                       303 AFR::RWA::Northern::Musanze 2008-11-01..2008-12-31, 194 sCh, 4 deaths (source 164, conf 0.75)
+                       304 AFR::RWA::Western::Rusizi (Bugarama HC) 2009-09-17..2009-10-12, 67 sCh, 0 deaths (source 165, conf 0.9)
+  Presence rows (2)  : AFR::RWA 2009-07-01..2010-06-30 (source 165: outbreaks in Rubavu, Nyagatare, Musanze, Nyamasheke,
+                       Kamonyi, Rusizi - no per-district counts except Rusizi); AFR::RWA::Western::Cyangugu 2004-05..2004-07 (source 167)
+Successful queries: 2 known (the query that surfaced source 164 -> rows 302-303; the query that surfaced source 165 -> row 304)
+Yield        : 10% (2/20) - PARTIAL BATCH (query list unrecorded; denominator assumed)
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE - replacement instance runs Batch 4 on the same line (MoH annual reports via Wayback)

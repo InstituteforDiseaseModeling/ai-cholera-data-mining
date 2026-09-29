@@ -15,6 +15,7 @@
 #   bash run_all_countries.sh --unattended --publish-progress
 #   bash run_all_countries.sh --from KEN             # resume at a country
 #   bash run_all_countries.sh --only ETH,KEN         # specific countries
+#   bash run_all_countries.sh --first RWA,AGO        # these first, then the rest
 #   bash run_all_countries.sh --retry-failed         # re-attempt failures only
 #
 # State lives in reference/run_manifest.csv and survives interruption: a country
@@ -38,7 +39,7 @@ PERMISSION_MODE="acceptEdits"
 MAX_TURNS=${MAX_TURNS:-600}
 DASH_EVERY=${DASH_EVERY:-5}                # full dashboard rebuild cadence
 PARALLEL=${PARALLEL:-1}                    # countries running concurrently
-DRY=0; LIMIT=0; FROM=""; ONLY=""; RETRY_FAILED=0; PUBLISH=0
+DRY=0; LIMIT=0; FROM=""; ONLY=""; FIRST="${FIRST:-}"; RETRY_FAILED=0; PUBLISH=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -46,6 +47,7 @@ while [[ $# -gt 0 ]]; do
     --limit)           LIMIT="$2"; shift ;;
     --from)            FROM="$2"; shift ;;
     --only)            ONLY="$2"; shift ;;
+    --first)           FIRST="$2"; shift ;;
     --retry-failed)    RETRY_FAILED=1 ;;
     --timeout)         TIMEOUT_SECS="$2"; shift ;;
     --parallel)        PARALLEL="$2"; shift ;;
@@ -106,6 +108,14 @@ print(' '.join(r['iso_code'] for r in rows))
 PY
 )
 [[ -n "$ONLY" ]] && ORDER=$(echo "$ONLY" | tr ',' ' ' | tr '[:lower:]' '[:upper:]')
+# --first ISO,... (or FIRST env) moves those countries to the head of the queue,
+# keeping staleness order for the rest - e.g. finish interrupted countries first.
+if [[ -n "$FIRST" ]]; then
+  first_list=$(echo "$FIRST" | tr ',' ' ' | tr '[:lower:]' '[:upper:]')
+  rest=""
+  for i in $ORDER; do [[ " $first_list " == *" $i "* ]] || rest="$rest $i"; done
+  ORDER="$first_list$rest"
+fi
 
 # ----------------------------------------------------------------- manifest --
 if [[ ! -f "$MANIFEST" ]]; then
@@ -290,7 +300,14 @@ run_country () {
     # limit was reached at 02:33 and the runner burned through the remaining 36
     # countries in under two minutes, recording every one of them as `failed`
     # when none had run at all. Stop the whole run and say so.
-    if tail -c 8000 "$log" 2>/dev/null | grep -qiE "spend limit|usage limit|upgrade to increase your usage"; then
+    #
+    # Match only the CLI's own refusal line, and only on a non-zero exit. The
+    # looser "spend limit anywhere in the last 8 KB" test fired on RWA on
+    # 2026-09-28: its finished report (exit 0) said the *previous* run "hit the
+    # spend limit", so a completed country was recorded as blocked and the run
+    # halted itself.
+    if [[ $code -ne 0 ]] && grep -v '^[[:space:]]*$' "$log" 2>/dev/null | tail -n 5 \
+         | grep -qiE "^You've hit your .*limit|limit resets [A-Za-z0-9]|upgrade to increase your usage"; then
       st="blocked_spend_limit"
       echo "  !! $iso BLOCKED: account spend limit reached - halting the run."
       echo "     Countries already marked done are skipped when you restart;"
