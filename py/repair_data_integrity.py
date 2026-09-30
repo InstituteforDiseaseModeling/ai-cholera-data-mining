@@ -57,6 +57,8 @@ from collections import defaultdict
 from datetime import datetime, date
 from pathlib import Path
 
+from add_observation import prune_backups  # same backup cap as the add tool
+
 ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data"
 
@@ -393,6 +395,7 @@ def repair_country(iso, changes, apply):
                 f"than the header; refusing to rewrite the file. Fix the CSV first.")
         if path.exists():
             shutil.copy2(path, path.parent / f".backup_{path.stem}_{stamp}.csv")
+            prune_backups(path)
         tmp = path.with_suffix(".csv.tmp")
         with open(tmp, "w", newline="", encoding="utf-8") as fh:
             # lineterminator="\n" keeps LF files as LF. The default "\r\n"

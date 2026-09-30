@@ -42,6 +42,7 @@ import argparse
 import csv
 import fcntl
 import json
+import re
 import shutil
 import sys
 from contextlib import contextmanager
@@ -124,6 +125,27 @@ def locked(path):
         fh.close()
 
 
+BACKUP_KEEP = 20
+
+
+def prune_backups(path, keep=BACKUP_KEEP):
+    """Keep only the newest `keep` .backup_{stem}_{stamp}.csv copies of `path`.
+
+    Every write copies the whole file, so unbounded backups grow with
+    writes x file size: data/AGO reached 10,786 copies and 51 GB on 2026-09-30.
+    Git checkpoints (every ~30 min during runs) are the durable restore point;
+    these are only a short undo window.
+    """
+    pat = re.compile(rf"^\.backup_{re.escape(path.stem)}_(\d{{8}}-\d{{6,12}})\.csv$")
+    found = sorted((m.group(1), p) for p in path.parent.iterdir()
+                   if (m := pat.match(p.name)))
+    for _, p in found[:-keep] if keep > 0 else found:
+        try:
+            p.unlink()
+        except FileNotFoundError:
+            pass    # a concurrent writer pruned it first
+
+
 def save(path, rows, fields):
     # Refuse to write a row carrying a key the header does not have. The old
     # filter-and-continue silently dropped the value - including reporting a
@@ -145,6 +167,7 @@ def save(path, rows, fields):
         # second overwrite each other, so the backup was not a restore point.
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S%f")
         shutil.copy2(path, path.parent / f".backup_{path.stem}_{stamp}.csv")
+        prune_backups(path)
     tmp = path.with_suffix(".csv.tmp")
     with open(tmp, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=fields, lineterminator="\n")
@@ -333,6 +356,16 @@ def _append_row_locked(a, row, sch, deaths, cch, dpath):
                 f"instead of adding a duplicate.")
 
     used = {int(r["Index"]) for r in rows if (r.get("Index") or "").strip().isdigit()}
+    # Never reuse the Index of a retracted row. py/revise_observation.py --delete
+    # moves the row to retracted_rows_ai.csv under the same lock; allocating from
+    # live rows alone handed a tombstoned Index to a new, unrelated row whenever
+    # the highest row was retracted (32 collisions across 7 countries found
+    # 2026-09-30), so a tombstone could describe a different live row.
+    tomb = dpath.parent / "retracted_rows_ai.csv"
+    if tomb.exists():
+        with open(tomb, newline="", encoding="utf-8-sig") as fh:
+            used |= {int(t["Index"]) for t in csv.DictReader(fh)
+                     if (t.get("Index") or "").strip().isdigit()}
     row["Index"] = str(max(used) + 1 if used else 1)
     row["confidence_weight"] = f"{cw}"
 
