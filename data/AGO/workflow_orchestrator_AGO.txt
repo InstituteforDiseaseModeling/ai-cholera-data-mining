@@ -1,24 +1,39 @@
 ================================================================================
-WORKFLOW ORCHESTRATOR BRIEF - ANGOLA (AGO) - run of 2026-09-29 (Opus 5.5 cycle)
+WORKFLOW ORCHESTRATOR BRIEF - ANGOLA (AGO) - 2026-09-29 Opus 5.5 cycle, RESUME
 File: ./data/AGO/workflow_orchestrator_AGO.txt   (read this before your first query)
+Revised 2026-09-29 19:20 by the resumed orchestrator (session 2 of this cycle).
+The superseded 16:21 version is kept verbatim at
+./data/AGO/workflow_orchestrator_AGO_superseded_20260929-1610.txt. Its section 0
+and section 6 imposed wall-clock budgets. THEY ARE WITHDRAWN. Do not read that
+file for instructions.
 ================================================================================
 
 0. RUN CONTEXT - READ FIRST
 --------------------------------------------------------------------------------
-* The runner (run_all_countries.sh) is running AGO IN PARALLEL with COG, RWA, MRT.
-  This session started 2026-09-29 16:10 and is killed by `timeout` at 00:10.
-  All seven agents must fit inside that window, so each agent has a wall-clock
-  budget (section 6). The budget is an extra stop condition layered on top of
-  the CLAUDE.md stopping rule; the 3-batch (60-query) minimum still applies.
+* NO TIME LIMIT. There is no deadline, no wall-clock budget, no "return by HH:MM"
+  and no time box for any agent. The ONLY stopping rule for Agents 1-6 is the
+  yield rule (section 7): at least 3 batches, then continue until 3 consecutive
+  batches are below 5% yield, or 12 batches in total. Stopping on time while
+  batches still yield >= 5% is under-collection, and it is exactly the failure
+  this resume exists to repair.
+* Session 1 of this cycle (16:10-19:07) gave each agent a ~45-65 min budget.
+  Agent 1 stopped after 7 batches (yields 10,10,0,10,10,5,10) and Agent 2 after
+  5 batches (50,40,30,55,35) on that budget, with the yield rule unmet. Agent 4
+  was cut off after batch 1 when session 1 was killed. Those three agents are
+  being redeployed to CONTINUE from their last batch (section 8). Agent 3 stopped
+  on the yield rule (batches 6-8 at 0%) and is complete; it is not re-run.
 * Nobody is watching. Never stop to ask a question. Decide, log the decision
   and the rejected alternative, and continue.
+* The runner runs AGO in parallel with RWA, COG and MRT. Only one AGO
+  orchestrator is live (reference/.runner.pid); anything already in ./data/AGO/
+  is earlier work of this cycle - reconcile it, do not duplicate it.
 
 1. OPERATIONAL OVERRIDES (these beat anything in the agent .md or template)
 --------------------------------------------------------------------------------
 DO NOT run  `python py/analyze_effective_gaps.py`  (any flags). It rewrites the
    SHARED ./reference/effective_* and baselineonly_* files that the other three
-   countries' agents are reading. The runner regenerates them when AGO exits.
-   Instead use the read-only in-memory helper:
+   countries' agents are reading. The runner refreshed them at 19:08 and
+   regenerates them when AGO exits. Instead use the read-only in-memory helper:
        python3 /tmp/AGO_orch/ago_coverage.py
 DO NOT run  `py/build_weekly_timeseries.py`, `update_dashboard.sh`,
    `py/update_dashboard_data.py`, or anything that rebuilds all 40 countries.
@@ -39,147 +54,144 @@ Tools: WebSearch / WebFetch are deferred tools - load them first with
    reliefweb.int returns HTTP 403 to WebFetch but 200 to curl with a desktop
    browser User-Agent (article body is in div.rw-article__content).
    PDFs: curl -L -A "Mozilla/5.0 ..." -o /tmp/AGO_orch/x.pdf URL && pdftotext -layout.
-   Put scratch files under /tmp/AGO_orch/ (country-specific; do not use bare /tmp names).
+   Put scratch files under /tmp/AGO_orch/ with your agent prefix (a1_, a2_, ...).
+   Session-1 scratch (downloaded bulletins, extracted sentences) is still there -
+   reuse it rather than re-downloading.
 Validator: `python py/validate_quality.py AGO` must exit 0 before you report done.
    Its "row N" is the CSV LINE number (header = line 1), i.e. DataFrame position
    N-2. Look up the Index column; row N is NOT Index N.
 State: record your run with py/workflow_state.write_agent_state(...) with
    batch_yields in PERCENT units (0-100). Yield = queries that produced >=1
-   committed row / 20. Never above 100.
-Log: ./data/AGO/search_log_agent_{N}.txt - create it fresh at your start
-   (overwrite). Older logs are preserved as
-   ./data/AGO/search_log_agent_{N}_legacy_{date}.txt - read them to avoid
-   repeating work, never write to them.
+   committed NEW row / 20. Never above 100. write_agent_state REPLACES your
+   agent's entry, so a resumed agent must write CUMULATIVE figures (section 8).
+Log: ./data/AGO/search_log_agent_{N}.txt. Fresh agents (5, 6, 7) create it at
+   start (overwrite). RESUMED agents (1, 2, 4) APPEND to their existing log -
+   never overwrite it; it holds session-1 batches that count toward the rule.
+   Older logs are preserved as ./data/AGO/search_log_agent_{N}_legacy_{date}.txt -
+   read them to avoid repeating work, never write to them.
+Deaths: source-reported deaths are data. If a small denominator gives CFR >15%,
+   still record the deaths (the writer caps confidence at 0.7) and add a context
+   note; a CFR WARN is acceptable, a withheld death count is not.
 
-2. STARTING STATE (measured by the orchestrator at 16:15)
+2. STATE AT RESUME (measured by the orchestrator 2026-09-29 19:12)
 --------------------------------------------------------------------------------
-./data/AGO/cholera_data_ai.csv   331 rows (Index max 351)   ./data/AGO/metadata_ai.csv 120 sources
-validate_quality.py AGO : ERROR 0, WARN 21, INFO 97
-   13 notes_missing_quote, 4 reporting_date_blank, 2 zero_row_no_evidence_type,
-   1 multiyear_aggregate (Index 11), 1 same_period_conflict (Index 8 vs 105)
-Effective coverage (JHU+WHO+AI) : 99.7%  (679/681 months), months_ai_only 251
-Baseline-only coverage (JHU+WHO): 62.6%  (426/681 months), 7 gap periods
-Only formal effective gap       : 2026-08-01..2026-09-29 (60 d, recent)
-Latest observation              : 2026-08-15 (45 d stale)
+./data/AGO/cholera_data_ai.csv  915 rows (Index max 940)   ./data/AGO/metadata_ai.csv 244 sources
+./data/AGO/cholera_presence_ai.csv 23 records; ./data/AGO/retracted_rows_ai.csv 8 tombstones
+validate_quality.py AGO : exit 0, ERROR 0, WARN 17, INFO 180
+   11 notes_missing_quote (CSV lines 15-25 = Index 14-24)
+    4 reporting_date_blank (lines 32, 33, 34, 40 = Index 34, 35, 36, 49)
+    1 multiyear_aggregate  (line 12 = Index 11, 1987-04-01..1996-12-31)
+    1 same_period_conflict (line 82 = Index 105 vs line 9 = Index 8, 2006)
+Effective coverage (JHU+WHO+AI): 84.1% (573/681 months), months_ai_only 145,
+   positive months 407, latest observation 2026-09-19.
+Formal effective gaps (./reference/effective_surveillance_gaps_detailed.csv):
+   Angola,AGO,1976-01-01,1976-12-31,366,12,1.0,historical
+   Angola,AGO,1997-01-01,2004-12-31,2922,96,8.0,modern
+Cycle start (16:10): 331 rows, 120 sources, 99.7% (679/681), 1 gap
+   (2026-08-01..2026-09-29). The fall to 84.1% is Agent 3's honest correction:
+   it retracted unsupported zero rows for 1976, 1993 and 1997-2005 (WHO 2005
+   toolkit: "Lack of surveillance during the last 5 years is the most probable
+   cause of non-reporting"). Do not re-add zero rows for those periods without a
+   POSITIVE statement of absence.
+Baseline-only (JHU+WHO): 62.6% (426/681), 7 gap periods.
 
-Prior work (2026-09-21 run, recorded incomplete_2of7):
-  Agent 1: 12 batches, +127 rows - see ./data/AGO/search_log_agent_1_legacy_20260921.txt
-           and ./data/AGO/workflow_state_pre_opus55_2026-09-29.json
-  Agent 2: batch 1 logged (+90 rows, sources 113-117); it then added ~61 more rows
-           (Index 291-351, sources 118 ANGOP 15 Apr 2025, 119 ANGOP 24 Jan 2025,
-           120 ANGOP 14 Feb 2025) WITHOUT logging them before the session died.
-           These are pre-existing data: verify and reconcile, do not duplicate.
-
-3. WHY 99.7% IS WEAKER THAN IT LOOKS - THE REAL TARGETS
+3. WHAT THIS CYCLE HAS ALREADY DONE (full detail: ./data/AGO/workflow_state.json
+   and the search logs - read both before your first query)
 --------------------------------------------------------------------------------
-Coverage counts a month as covered if >50% of its days sit inside ANY row, so a
-handful of long rows carries a lot of it. The weekly series MOSAIC actually
-consumes is built from NATIONAL rows only, priority WHO > JHU > AI; for AI rows
-a <=7-day row is "observed", longer rows are Fourier-spread, and when several AI
-rows overlap a week the HIGHER sCh wins.
+A1 (7 batches, +35 rows, Index 352-386): 2026 ISO wk 21-33 national weekly rows from
+   the WHO dashboard FeatureServer (repairs the ~5x Fourier inflation); Africa CDC
+   weekly rows to 2026-09-19 (Index 366, wk 37 = 116, is INFERRED at conf 0.5);
+   2025 WER final 36 341/895; OCHA ROSA 2008-09 series; 2007 IRIN/IFRC/MoH; H1 2010.
+   Already searched: WER annual reviews 1971-2005 and 2015-2025; WHO 2005 CD
+   toolkit; WHO 2000 compendium; IHR lists 1978-86 and Dec 1999-Oct 2004; IFRC GO
+   1990-2005; WHO DON 1996-2005; GHO API (AGO, COD, ZMB, COG, NAM); ReliefWeb (PC19)
+   by year 2007-2009, 2015-2018, 2021, 2024; Africa CDC / ECDC / UNICEF HAC 2026.
+A2 (5 batches, +553 rows, Index 387-939): 2006 provincial/municipal tables; 2025
+   MINSA weekly provincial tables (wk 13-19, 25) and semi-monthly Quadro 2
+   cumulatives (16 dates Apr-Dec 2025); 2007-2010 provincial; 2013 Cunene/Huambo/
+   Huila; Soyo 2016-17; Uige Sep-Nov 2018. Verified inherited Index 291-351.
+   Withheld deaths on 13 rows (Index 448, 706, 722, 838, 882, 883, 893, 906, 908,
+   915, 926, 932, 937) - to be restored (A2 resume task).
+A3 (8 batches, saturated, net -4 rows): every national zero row labelled;
+   retracted 58 (1997-2005), 102 (1976), 106 (1993), 26, 60; re-scoped 27 to
+   2019-01-21..2020-12-31 Inferred 0.5; new 940 (2022 Inferred 0.5); 75-83 and 108
+   down to Inferred 0.6; 111 (2021) and 112 (2024) stay Documented 0.95.
+A4 (1 batch, 0 rows): WER 1976/1977/1993/1994 notes; ReliefWeb (PC19) cholera items
+   1993-2004 ALL 227 bodies read (sentences in /tmp/AGO_orch/a4_rw_cholera_sentences.txt):
+   no Angolan outbreak with a count 1997-2004. UNICEF Mar 2001: "since 1998, there
+   have been no cholera fatalities"; IRIN Jul 2001 Baia de Luanda environmental
+   detection; WER 1977 provisional 353 (Apr-Nov) vs final 726; PMID 3402580 (1985
+   refugee camp) is not shown to be Angola. Presence +2 (Namibe 1996, Luanda 2001).
 
-(A) 2026 WEEKLY SERIES IS INFLATED ~5x IN WEEKS 21-28 (verified).
-    WHO baseline weekly data stops at ISO week 20 (2026-05-17). After that the
-    builder spreads the 19-month cumulative rows Index 100 (2025-01-05..2026-08-15,
-    42 327) and 101 (2025-01-07..2026-07-25, 41 741) and they beat the genuine
-    increment rows (176, 180, 95). Builder currently emits ISO wk21-28 =
-    1007, 909, 798, 677, 552, 429, 312, 208 (total ~4 890).
-    WHO's own dashboard (ArcGIS FeatureServer behind the WHO global cholera
-    dashboard, same source as cholera_data_who.csv) gives for WHO epiwk 20-32:
-      epiwk date_wk(Mon)  cases deaths      epiwk date_wk(Mon) cases deaths
-       20   2026-05-18     436   10          27   2026-07-06      42   1
-       21   2026-05-25     273    6          28   2026-07-13      38   1
-       22   2026-06-01     187    8          29   2026-07-20     164   0
-       23   2026-06-08     163    4          30   2026-07-27     280   2
-       24   2026-06-15     105    7          31   2026-08-03     140   1
-       25   2026-06-22      19    1          32   2026-08-10     120   1
-       26   2026-06-29      16    0
-    Query: https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services/cholera_adm0_week/FeatureServer/0/query
-           ?f=json&where=adm0_name='ANGOLA' AND epiyr>=2026&outFields=*&orderByFields=epiyr,epiwk&returnGeometry=false
-    (fields: epiyr, epiwk, date_wk [ms epoch, Monday], cases, deaths, cum_case, cum_death)
-    cholera_report_period layer says ANGOLA data run 2025-01-06..2026-08-16.
-    WEEK-DATE CAVEAT: the repo standardised on date_wk as WHO's week start
-    (./reference/who_epiweek_calendar.json; cholera_data_who.csv already uses it:
-    epiwk 19 -> 2026-05-11). But WHO sitrep period totals match these weeks about
-    6 days LATER than date_wk (e.g. "14 Jun-12 Jul: 303" = epiwk 23-26;
-    "12 Jul-9 Aug: 524" = epiwk 27-30), and the AFRO bulletin dates the 280-case
-    week 2-8 Aug. Use date_wk..date_wk+6 for TL/TR (consistency with the WHO
-    baseline file and the calendar), and state the ~6-day offset in processing_notes.
-    Weekly national AI rows for these weeks outrank every Fourier-spread AI row and
-    repair the inflation. NOTE Index 97 (2026-08-02..08-08, 280) and 98
-    (2026-08-09..08-15, 142) already exist from the AFRO bulletin: do not create a
-    second row for the same week under a different date frame without saying which
-    is primary; prefer adding epiwk 20-29 and 32, and record 30/31 as corroboration
-    of 97/98 in their notes.
+4. REMAINING TARGETS (model-impact order)
+--------------------------------------------------------------------------------
+(A) 1997-01-01..2004-12-31 (2922 d) - the longest effective gap. Any POSITIVE
+    cholera report with a count (national or provincial), OR a positive statement
+    of absence for a specific year with evidence surveillance was working. Not yet
+    tried: multi-year academic reviews (e.g. Griffith et al. 2006 AJTMH "Review of
+    reported cholera outbreaks worldwide, 1995-2005"; Gaffga, Tauxe & Mintz 2007
+    AJTMH "Cholera: a new homeland in Africa?"), WHO AFRO Regional Director annual
+    reports and AFRO communicable-disease bulletins 1997-2004, MSF/ICRC/UNICEF
+    annual and activity reports by year, ProMED archive, Lusa/Publico/Jornal de
+    Angola/ANGOP archives in Portuguese, WHO Angola country office bulletins 2002-04.
+(B) 1976-01-01..1976-12-31 (366 d, historical) - WHO received no 1976 figure.
+    Henriques FF, Anais IHMT 1976 4:87-96 is print-only. Portuguese/Cuban medical
+    literature, colonial and post-independence press, Internet Archive.
+(C) 1993 - currently "covered" only by defective Index 11 (the 1987 epidemic
+    16 000/1 460 smeared over 1987-1996, conf 0.4). WHO CD toolkit 2005 gives
+    1993 = 11 210 cases / 610 deaths (Global Atlas) - single source, needs an
+    independent second count before it becomes a row (>1000 cases rule). Agent 5
+    should retract or re-scope Index 11 so 1993 becomes NA unless a count is found.
+(D) RECENT 2026-09-20 onward: no national figure published yet for ISO wk 38-39.
+    Replace inferred Index 366 (wk 37) if a stated figure appears. MINSA
+    (minsa.gov.ao), ANGOP, Jornal de Angola, Africa CDC EI weekly (20/27 Sep issues),
+    WHO multi-country external sitrep, WHO AFRO weekly bulletin, ECDC CDTR.
+(E) CONFLICTS / DEFECTIVE ROWS (Agent 5 owns resolution; others: do not add to them)
+    Index 8   2006 sCh=240 000 conf 0.3 (Frontiers 2013 abstract "ca. 240,000 cases")
+              vs Index 105 (67 257 / 2 722, GHO) and Index 127 (2006-02-13..2007-02-28,
+              75 627). Validator same_period_conflict WARN.
+    Index 11  1987-1996 smear (see C). Validator multiyear_aggregate WARN.
+    Index 14  1977 AI 262 (ResearchGate compilation, unverified) vs WER provisional
+              353 (Apr-Nov) vs JHU/GHO final 726/31.
+    Index 21  2011 AI 2 284/181 vs JHU 2011 rows.   Index 42 Huila 2013 1 442/46 vs
+              ANGOP 804/23 and 598/23.   Index 34/36 are YTD-Aug-2007 values framed
+              as full year.   National conflicts from A2: Index 189 35 451 vs MINSA
+              35 496 (30 Nov 2025); Index 67 36 293 vs 36 313 (28 Dec 2025); Index 68
+              23 143 vs 24 135 (31 May 2025); Index 86 18 422/513 vs ANGOP 18 390/515.
+    JHU AFR::AGO::Bie weekly Apr-Jun 2006 (4 080) is probably Benguela (JHU is
+              read-only: document, do not edit).
+    JHU national cumulative rows 2017-12-15..2023-02-04 (610/11) and 2018-01-01..
+              2023-02-04 (461/8) Fourier-spread ~175 phantom cases/yr over 2019-2023
+              and outrank AI zeros incl. the WHO-documented 2021 zero; builder/JHU
+              issue - report, do not try to fix in the AI layer.
+    Location strays: AFR::AGO::Kwanza_Sul (2 rows) -> Cuanza_Sul; check the 29
+              AFR::AGO::Cubango rows are all 2025+ (pre-2025 = Cuando_Cubango).
+    WARN rows (section 2): add the source quote / reporting_date from the source.
+    ./data/AGO/attribution_review.csv lists Index 64/65 - both retracted on
+              2026-09-21 as false zeros; fill the resolution column (Agent 7).
+(F) GRANULARITY (coverage credited, but only by annual national totals)
+    1971-1977 and 1987-1996 national sub-annual (WER weekly notification tables);
+    2011-2018 national sub-annual; 2026 provincial series (MINSA 2026 bulletins);
+    2025 weekly provincial incidence weeks 20-24 and 26-52; 2006 Feb-Mar Luanda
+    daily items and post-1 May 2006 provincial tables; 2011-2015 provincial;
+    2019 provincial (JHU has 56 rows / 367 cases in 2019).
+    Do NOT manufacture weekly increments from pairs of cumulative snapshots that are
+    already recorded - that adds rows but no information. Record increments only
+    where a source states them (or, for a single missing week between two stated
+    values of the same series, mark it "derived", conf <= 0.5).
 
-(B) ZERO ROWS THAT CARRY TOO MUCH WEIGHT
-    Index 58  AFR::AGO 1997-01-01..2005-12-31 sCh=0, conf 0.95, "decade-long absence".
-              ONE row covering 9 years, including the 1998-2002 civil war. Evidence
-              is "Angola not mentioned in WER 1998/2000/2002". Not-listed is not a
-              positive assertion of absence. Must be tested: ReliefWeb/OCHA/ProMED/
-              MSF 1997-2005 for ANY cholera report in Angola; WHO DON Feb/Mar 2006
-              wording ("first outbreak since ..."). JHU has a 2005 zero row.
-    Index 27  AFR::AGO 2019-01-01..2022-12-31 sCh=0, conf 0.5, NO evidence label.
-              CONTRADICTED for 2019: JHU has 56 rows / 367 cases in 2019. Must be
-              re-scoped/split and labelled (JHU also has zero rows for 2020 and 2021;
-              AI Index 111 is 2021 documented absence).
-    Index 25  AFR::AGO 2023 zero conf 0.5 and Index 60 2023-01-01..2024-05-02 zero
-              conf 0.5 - overlapping, weak; WER "Cholera, 2023" annual report should
-              settle 2023. Index 112 = 2024 documented absence.
-    Index 102 1976 zero, Inferred_Absence, conf 0.6 - between 1975 (JHU 88 cases) and
-              1977 (JHU 726 / AI Index 14 = 262): independence-war year; is it a
-              surveillance gap? Henriques FF 1976, Anais IHMT 4(1-4):87-96 (PMID 1032481).
-    Index 74-83 1970 and 1978-1986 per-year "Documented_Absence" conf 0.8 from "Angola
-              not listed in WER annual table". Civil-war era, surveillance "partial".
-    Index 106 1993 "Documented_Absence" conf 0.9 from WER 1993 "Cholera was not
-              reported in 1993 from ... Angola" - 1992 had 3 608 cases and 1994 3 443,
-              and 1993 was the most intense phase of the war. "Not reported" may be
-              non-reporting, not absence.
-
-(C) CONFLICTS / DEFECTIVE ROWS (Agent 5 owns resolution; others: do not add to them)
-    Index 8   AFR::AGO 2006 sCh=240 000 conf 0.3 vs Index 105 (67 257 / 2 722, GHO)
-              and Index 127 (2006-02-13..2007-02-28, 75 627). 240 000 is not a case count
-              any WHO source gives; probably "people at risk/affected". Validator WARN.
-    Index 11  AFR::AGO 1987-04-01..1996-12-31 16 000/1 460 conf 0.4 - the 1987 epidemic
-              smeared over 10 years; superseded by Index 84 (1987-04-08..12-31, 16 222 /
-              1 460) and the JHU/AI annual rows 1988-1996. Validator WARN.
-    Index 14  1977 AI 262 vs JHU 1977 726.  Index 21  2011 AI 2 284/181 vs JHU 2011 rows.
-    Index 100, 101, 196 cross-year cumulative national rows (see A).
-    Location spellings: canonical AI form is underscores, no accents, current names
-      (Cuanza_Sul, Cuanza_Norte, Lunda_Norte, Lunda_Sul, Icolo_e_Bengo, Uige, Huila,
-      Bie). Stray: AFR::AGO::Kwanza_Sul (2 rows), Kwanza_Norte (1), Uíge (1).
-    Validator WARNs to clear: notes_missing_quote (CSV lines 15-25, 42, 43),
-      reporting_date_blank (lines 33, 34, 35, 41), zero_row_no_evidence_type (lines 27,
-      42), multiyear_aggregate (line 12 = Index 11), same_period_conflict (line 86 vs 9).
-    ./data/AGO/attribution_review.csv lists Index 64/65 - both already retracted on
-      2026-09-21 as false zeros (see ./data/AGO/retracted_rows_ai.csv); resolution
-      column is still blank.
-
-(D) GRANULARITY GAPS (coverage "credited" but only by annual national totals)
-    1971-1977  JHU annual only (1972 268, 1973 263, 1974 934, 1975 88, 1977 726) + AI.
-    1987-1996  JHU/AI annual only, apart from Luanda 1991-92 fragments. The 1987
-               epidemic (16 222 cases) has no epidemic curve. WER weekly
-               notification tables (IRIS scans) list country counts week by week.
-    2007-2015  mostly annual national totals (2007 18 422, 2008 10 511, 2009 2 019,
-               2010 1 484, 2011, 2012 1 215, 2013 6 655, 2014 213).
-    Sub-national: 2006 provincial split is percentage-derived for 4 provinces only;
-      2007-2015 provincial nearly empty; H2-2025 and 2026 provincial series sparse
-      (2025 wk 13/14/15/17/18 weekly tables and cumulative snapshots at 10 May,
-      23 May, 21 Jun exist; Sep and Dec 2025 partial; 2026 Jan/Apr/May partial).
-
-(E) RECENT: 2026-08-16 onward. WHO dashboard ends 2026-08-16. Anything for
-    late August / September 2026 would come from MINSA (minsa.gov.ao, "Boletim
-    Informativo da Colera"), ANGOP, Jornal de Angola, WHO AFRO weekly bulletins,
-    ECDC CDTR, Africa CDC weekly briefs, WHO multi-country external sitrep.
-
-4. COUNTRY PROFILE (from ./reference/country_profiles.json - authoritative)
+5. COUNTRY PROFILE (from ./reference/country_profiles.json - authoritative)
 --------------------------------------------------------------------------------
 Name Angola, ISO2 AO, Central Africa. Neighbours: COD, COG, ZMB, NAM.
 ADM1 (current, 21 since the 2024/25 reform): Bengo, Benguela, Bie, Cabinda, Cuando,
   Cubango, Cuanza Norte, Cuanza Sul, Cunene, Huambo, Huila, Icolo e Bengo, Luanda,
   Lunda Norte, Lunda Sul, Malanje, Moxico, Moxico Leste, Namibe, Uige, Zaire.
-ADM1 pre-2025 (18): ... Cuando Cubango (single), Bengo (incl. Icolo e Bengo),
-  Moxico (incl. Moxico Leste). Use legacy units for pre-2025 periods.
+ADM1 pre-2025 (18): Bengo (incl. Icolo e Bengo), Benguela, Bie, Cabinda, Cuando
+  Cubango (single), Cuanza Norte, Cuanza Sul, Cunene, Huambo, Huila, Luanda, Lunda
+  Norte, Lunda Sul, Malanje, Moxico (incl. Moxico Leste), Namibe, Uige, Zaire.
+  Use legacy units for pre-2025 periods. Canonical AI spelling: underscores, no
+  accents (Cuanza_Sul, Cuanza_Norte, Lunda_Norte, Lunda_Sul, Icolo_e_Bengo,
+  Cuando_Cubango, Uige, Huila, Bie).
 Cities: Luanda, Huambo, Lobito, Benguela, Lubango, Cabinda, Malanje.
 Languages: pt, en. Terms: "colera"/"cólera", "diarreia aguda aquosa", "surto de colera".
 Ministry domains: minsa.gov.ao, inis.gov.ao.
@@ -187,36 +199,67 @@ Season: rainy season Oct-Apr; Luanda peri-urban outbreaks; 2006 and 2025 major e
 Border provinces: Cabinda/Zaire/Uige (COD, COG), Lunda Norte/Lunda Sul/Moxico (COD, ZMB),
   Cunene/Cuando Cubango (NAM, ZMB).
 
-5. AGENT ASSIGNMENTS (who owns what, to avoid duplicated searching)
+6. AGENT ASSIGNMENTS FOR THE RESUME (who owns what)
 --------------------------------------------------------------------------------
-A1 baseline   : (A) WHO dashboard weekly rows epiwk 20-32; (E) the recent gap;
-                institutional sub-annual national series 2007-2015 (WHO DON, AFRO,
-                ReliefWeb/OCHA, IFRC DREF, UNICEF); WER annual reviews for any year
-                whose national total is unverified.
-A2 geographic : 2006 provincial/municipal breakdown; H2-2025 and 2026 provincial series
-                (MINSA daily bulletin narrative text, ANGOP daily reporting, AFRO weekly
-                bulletins); 2007-2015 provincial outbreaks; border provinces; log and
-                reconcile the unlogged prior Agent-2 rows Index 291-351.
-A3 zero       : (B) Index 27, 25, 60 (2019-2024) first; then the positive-assertion
-                test of Index 58 (1997-2005); label every zero row; add-zero only on
-                positive evidence.
-A4 obscure    : (D) 1971-1977 and 1987-1996 sub-annual series (WER weekly notification
-                tables on IRIS, Portuguese colonial/IHMT literature, memoria-africa.ua.pt);
-                1976; ProMED/ReliefWeb 1997-2005 archives (any cholera in Angola?);
-                1977 262-vs-726.
-A5 cross-ref  : (C) all conflicts; cumulative-vs-increment arithmetic; quotes/reporting
-                dates for the WARN rows; location-spelling normalisation; re-mine the
-                registry (esp. WHO multi-country sitreps, AFRO bulletins, GHO).
-A6 context    : classify 1976, 1978-1986, 1993, 1997-2005, 2019-2023, Sep-2026 as
-                Documented / Inferred / Surveillance_Gap with health-system and conflict
-                evidence; revise labels/confidence accordingly.
-A7 audit      : validator to exit 0, repair, attribution_review resolution, impact
-                measurement with /tmp/AGO_orch/ago_coverage.py, ./data/AGO/search_report.txt.
+A1 RESUME (from batch 8): (A) 1997-2004 institutional deep dive (WHO systematic,
+   UN humanitarian, NGO annual reports, multi-year academic reviews) with queries
+   NOT already run (section 3); (D) recent wk 38-39 2026; 2011-2018 national
+   sub-annual series (WHO AFRO bulletins, DON, IFRC DREF MDRAO00x, UNICEF sitreps,
+   ECDC); any year whose national total is still single-source.
+A2 RESUME (from batch 6): restore the 13 withheld death values first; then (F)
+   provincial/district: 2026 provincial series, 2025 weekly provincial weeks 20-24
+   and 26-52 where a source states them, 2006 Feb-Mar Luanda dailies and post-1 May
+   2006 tables, 2007-2018 provincial leads (Waku-Kungo Oct 2007 34/10; Luanda May
+   2009 31; Namibe Jul 2009; Lucapa 2011; Uige Dec 2017-Jun 2018 899/13), 2019
+   provincial, and any provincial report inside (A) 1997-2004.
+A3 COMPLETE (saturated) - not redeployed.
+A4 RESUME (from batch 2; queries 21-22 already run): (B) 1976, (A) 1997-2004 obscure
+   and archival (ProMED, Portuguese press, grey literature, Internet Archive),
+   (C) 1993 second count, 1978-1986 positive evidence against Inferred zeros
+   Index 75-83, 1971-1977 / 1987-1996 sub-annual from WER weekly tables, Index 14.
+A5 FRESH: (E) all conflicts and WARN rows; Index 11; cumulative-vs-increment
+   arithmetic; location strays; re-mine the registry (WHO multi-country sitreps,
+   AFRO bulletins, MINSA bulletins, ANGOP, OCHA ROSA, GHO) for adjacent periods.
+A6 FRESH: classify 1976, 1993, 1997-2004 (by sub-period), 1978-1986, 2019-2023 and
+   Sep-2026 as Documented / Inferred / Surveillance_Gap with health-system and
+   conflict evidence; revise labels/confidence; add-zero only on positive evidence;
+   surveillance gaps go in the log and cholera_presence_ai.csv, never as zero rows.
+A7 FRESH: validator exit 0, repairs, attribution_review resolution, impact
+   measurement with /tmp/AGO_orch/ago_coverage.py (effective AND baseline-only),
+   ./data/AGO/search_report.txt.
 
-6. WALL-CLOCK BUDGETS (hard deadline 00:10; leave margin)
+7. STOPPING RULE - THE ONLY ONE (Agents 1-6)
 --------------------------------------------------------------------------------
-A1 ~65 min | A2 ~60 | A3 ~50 | A4 ~60 | A5 ~55 | A6 ~45 | A7 ~45.
-When you reach your budget: finish the batch in hand, validate, write state, log
-"STOP - orchestrator wall-clock budget" with the batch count, and return. Never
-stop before 3 full batches (60 queries).
+  Batch            = 20 queries
+  Minimum          = 3 batches (60 queries), always, whatever the yield
+  Stop when        = 3 consecutive batches below 5% yield, OR 12 batches in total
+  Time limit       = NONE
+  Yield            = queries that produced >=1 committed NEW row in
+                     ./data/AGO/cholera_data_ai.csv, / 20 x 100 (percent, 0-100).
+                     Presence records, confirmations, revisions and leads do not
+                     count (Agent 3 counted evidence-based revisions/retractions of
+                     zero rows; Agents 5-7 may do the same for their revision work
+                     if they log it explicitly - say which rule you used).
+Log the stopping reason as one of exactly:
+  "STOP - 3 consecutive batches below 5% yield (batches x, y, z)"
+  "STOP - 12-batch maximum reached"
+Agent 7 has no batch limit.
+
+8. RESUME MECHANICS (Agents 1, 2, 4)
+--------------------------------------------------------------------------------
+* APPEND to ./data/AGO/search_log_agent_{N}.txt. First write a block
+  "=== RESUME (session 2) <timestamp> ===" stating: session-1 batches and yields,
+  the consecutive sub-5% count carried forward, that the session-1 wall-clock
+  budget is withdrawn, and your targets. Then number batches continuing from your
+  last one (A1 -> batch 8, A2 -> batch 6, A4 -> batch 2).
+* The yield rule runs over ALL batches, session 1 included: the consecutive
+  sub-5% counter carries forward (A1: 0 after batch 7; A2: 0 after batch 5;
+  A4: 1 after batch 1), and the 12-batch ceiling counts session-1 batches.
+* Your earlier final summary in the log is superseded: write a new final summary
+  at the end marked "SUPERSEDES THE SESSION-1 SUMMARY".
+* write_agent_state(...) with CUMULATIVE values: batches_completed = all batches,
+  batch_yields = the full list (session-1 values first), rows_added = session-1
+  rows + session-2 rows (net of any retractions), sources_discovered likewise, and
+  gaps_filled / gaps_validated_absent / gaps_remaining merged (keep session-1 items
+  that are still true; drop only what you have since resolved).
 ================================================================================
