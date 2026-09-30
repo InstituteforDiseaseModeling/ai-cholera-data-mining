@@ -36,6 +36,30 @@ Therefore:
   resolution and the audit; stopping early is what leaves `search_report.txt`
   stale and the country marked incomplete.
 
+## There is no time budget - do not invent one
+
+The purpose of this run is maximum data yield. **Never give an agent a
+deadline, a wall-clock budget, a "return by HH:MM", a target duration, or a
+time box, and never stop or trim an agent's work because of elapsed time.** On
+2026-09-29 the orchestrator split an assumed time allowance across the seven
+agents and told each to finish within ~60 minutes; agents then stopped at 3-5
+batches while still yielding 15-20% per batch, logging "TIME BOX, NOT
+SATURATION". That is the exact failure this rule exists to prevent.
+
+The only stopping rule for Agents 1-6 is the yield rule in CLAUDE.md: at least
+3 batches, then continue until 3 consecutive batches are below 5% yield, or 12
+batches in total. The per-country process limit in the runner is a hang
+detector set far above any real country; it is not a budget to plan around.
+When you brief an agent, state the yield rule and say explicitly that it has no
+time limit.
+
+**Resuming.** If `workflow_state.json` already has entries for this cycle,
+check each agent's `stopping_reason`. Any agent that stopped for time,
+wall-clock, deadline, time box, session end, or anything other than (a) 3
+consecutive sub-5% batches or (b) 12 batches, is **not complete**: redeploy it
+to continue from its last batch until the yield rule is met, before moving to
+the next agent. Do not re-run agents that genuinely saturated.
+
 ## Before deploying anything
 
 Substitute the real ISO code and country name for the placeholders below before

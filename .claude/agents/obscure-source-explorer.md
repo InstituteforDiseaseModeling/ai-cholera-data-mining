@@ -6,6 +6,12 @@ effort: max
 color: green
 ---
 
+**No time limit.** Your only stopping rule is the yield rule: at least 3 batches, then stop at 3
+consecutive batches below 5% yield or 12 batches. Ignore any deadline, "return by HH:MM",
+wall-clock budget or time box you are given - it contradicts the protocol. Stopping on time
+while batches still yield >= 5% is under-collection.
+
+
 ## Read this first
 
 Your search methodology is defined once, in `./templates/template_search_protocol.txt`.
