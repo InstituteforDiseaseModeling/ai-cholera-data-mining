@@ -259,3 +259,33 @@ DECISION: KEEP ALL 11, weights unchanged.
     2020 zero exists (2020 = WHO-level non-reporting year). The national zeros already cite them (461 -> 489/490; 340 -> 489;
     471 -> 333; 472 -> 333/334). Dropping them would convert those years into clean absences by omission.
   Model impact: none on the national weekly series (sub-national rows are not read by py/build_weekly_timeseries.py).
+
+=== AUDIT PASS 7 | ITEM 9 (platform-zero test) | COG ===
+Test: can Congo's reporting be shown for the window, or is the platform's 0 possibly a default? Checked the cited platform
+  editions/workbooks cached this cycle (/tmp/COG_a1c/wca2012.xlsx, wca2013.xlsx, wca16/*, wca18/*, wca19/*, wca20/*,
+  /tmp/COG_a3c/wca_w20*, wca_w26, wca_w36, wca2020_w53) for NA cells:
+  2012 workbook: 0 NA, 1 blank in 1,080 cells; 2013 workbook: 0 NA, 0 blank in 1,026 cells (every country-week numeric) ->
+    default zeros cannot be excluded (same structure as the 2014 file behind 547).
+  2016 editions: 1-7 NA cells, but WHO AFRO documents Congo sent no IDSR data in H1 2016 while the platform printed 0 ->
+    2016-17 platform 0s are not proof of reporting.
+  2017 edition (W20-2017): 1 NA cell -> ambiguous.
+  2018 editions (W20, W26, W36, RU18 = W46, RU21): 12-30 NA cells each; Congo itself NA in W45-W46 of RU18 -> 0 = entry.
+  2019 editions: RU 'Week 41' shows Congo NA in W31-W41, RU15 'Week 43' (metadata 141) shows 0 for the same weeks -> entries.
+  2020 editions: NA used, but WER 2020: Congo 'did not report cholera data' (no AI zero exists for 2020 - unchanged).
+DECISIONS (py/revise_observation.py --agent 7):
+  329 (2013-07-01..12-29) RELABEL Documented -> Inferred_Absence, 0.7 -> 0.6 (2013 workbook has no NA; IFRC MDRCG014:
+      cases 'dropped to zero' by June 2013, CTCs closed -> probable absence).
+  554 (2013-06-10..06-16) RELABEL Documented -> Inferred_Absence, 0.6 -> 0.4 (no-NA workbook + CONFLICT: IFRC July-2013
+      bulletin 19 new June cases at Tchiamba-Nzassi, Index 615, vs platform June total 12).
+  332 (2012-09-03..09-30) RELABEL Documented -> Inferred_Absence, 0.6 -> 0.5 (no-NA workbook; residual-case presence
+      entry, source 136, unresolved; continuity + MSF/CERF onset dating keep absence probable).
+  339, 461, 340 (Oct 2016-Dec 2017) PASS on non-platform evidence (MoH DG: last case September 2016, metadata 135) ->
+      Documented kept, weights kept (0.65 / 0.5 / 0.6).
+  548, 550, 551, 552, 553, 469, 470 (2018) PASS (NA-distinguishing editions; 548 also bounded by WHO AFRO onset 18 Mar 2018).
+  471, 472 (2019) PASS (NA later replaced by received 0s). (Own-note edition citation corrected by erratum on both rows.)
+  No row RETRACTED: no tested window lacked surveillance entirely (Surveillance_Gap never written).
+  JHU zeros sourced 'UNICEF Country Programme Report (UID 5106)' 2014-2016 (and 2019-11..2020): NOTE ONLY (read-only). The
+    builder takes them as JHU weekly 'observed' zeros at 0.9 and they outrank the AI Inferred rows 547/54/338 (0.5-0.6), so
+    the weekly series treats 2014-16 as high-confidence observed zeros although WHO AFRO says Congo sent no cholera data in
+    2015 H1 and no IDSR data in 2016 H1 -> pipeline issue P1b.
+Builder effect of the three relabels: none on the weekly series (JHU 2012/2013 annual rows outrank AI in those years).
