@@ -268,3 +268,74 @@ Consecutive sub-5% batches (extended): 0
 Decision     : CONTINUE (batch 4: WHO sitrep #31 and any post-#32 editions for Sep 2025-2026; WHO AFRO weekly bulletins for 2026
                Angola; MINSA 2026 bulletins; the remaining registry leftovers (a5_registry_leftovers2.txt) and 2006-2008 provincial
                corroboration)
+
+=== BATCH 4 | PHASE 2 (registry re-fetch: WHO dashboard backend, WHO epi updates #31-#38, MINSA weekly bulletins, AFRO bulletins; 2026 recency) | AGO ===
+Gap targeted : recent 2026-09-19..today (recency); 2026 national weekly dating (model window after the WHO baseline ends
+               17 May 2026); registered sources whose national figures were never extracted (a5_registry_leftovers2.txt)
+Queries (20):
+  curl      Q61 WHO dashboard FeatureServer cholera_adm0_week ANGOLA epiyr>=2025 (84 records; 2026 still ends epiwk 32)   [EXT]
+  curl      Q62 africacdc.org EI weekly report pages (Sep 2026: still only the 13 Sep issue; Oct page 404)
+  IRIS-API  Q63 AFRO weekly bulletin week 36 of 2026 (31 Aug-6 Sep) - Angola entry unchanged (period ends 15 Aug 2026)
+  IRIS-API  Q64 AFRO weekly bulletins weeks 10-12 and 21 of 2026                                              [HIT]
+  curl      Q65 MINSA Boletim Semanal Semana 13 2025 (metadata 99, re-fetch)                                  [HIT]
+  curl      Q66 Semana 14 (metadata 113)                                                                      [HIT]
+  curl      Q67 Semana 15 (metadata 100)                                                                      [HIT]
+  curl      Q68 Semana 16 (metadata 151)                                                                      [HIT]
+  curl      Q69 Semana 17 (metadata 101)                                                                      [HIT]
+  curl      Q70 Semana 18 (metadata 114)                                                                      [HIT]
+  WebSearch Q71 WHO 'epidemiological update #36' 2026 (not in the registry)
+  curl      Q72 WHO epi update #36 PDF (data as of 29 Mar 2026)                                               [HIT]
+  curl      Q73 WHO epi update #35 PDF (metadata 102, re-fetch)                                               [HIT]
+  curl      Q74 WHO epi update #37 page + PDF (metadata 103, re-fetch)                                        [EXT]
+  curl      Q75 WHO epi update #38 page + PDF (metadata 48, re-fetch)                                         [HIT]
+  curl      Q76 WHO sitrep #31 PDF (metadata 31, re-fetch)                                                    [HIT]
+  curl      Q77 WHO epi update #33 PDF (metadata 32) - December 797/15 already corroborated on Index 197
+  curl      Q78 WHO epi update #34 PDF (metadata 33) - January 143/6 = Index 73; nothing new
+  curl      Q79 WHO DON 9 Jun 2006 'Cholera in Angola - update 4' (metadata 93, re-fetch)                     [HIT]
+  IRIS-API  Q80 AFRO weekly bulletin week 23 of 2025 (metadata 316, registered with no rows)                   [HIT]
+RESULTS / COMMITS
+  Q61 KEY FINDING - 2026 WHO dashboard week offset. The FeatureServer files Angola's MoH epi week N+1 (Sunday-Saturday)
+      under WHO epiwk N from (at the latest) April 2026: date_wk is 6 days EARLY. Proof: ECDC '14 Jun-12 Jul' 303 / 12 =
+      epiwk 23-26 exactly; ECDC '12 Jul-9 Aug' 524 / 4 = epiwk 27-30 exactly; ECDC '10 May-14 Jun' 1 930 / 42 vs epiwk 18-22
+      1 929 / 42; WHO AFRO '2-8 Aug' 280 / 2 and '9-15 Aug' 142 / 1 = epiwk 30 (280/2) and 31 (140/1); WHO AFRO cumulative 'as
+      of 25 July' 41 741 = cum at epiwk 28; Africa CDC MoH week 33 cumulative 42 445 / 1 017 = cum at epiwk 32. In late January
+      there was NO offset (AFRO 'as of 24 Jan' 36 463 / 901 = epiwk 3 cum 36 462 / 901), so the offset began between 25 Jan and
+      ~30 Mar 2026 (the MINSA bulletin of 8 Apr, 37 014 / 915, is already below the dashboard's 37 163 / 918 for the week
+      labelled 30 Mar-5 Apr). RE-DATED +6 days (counts unchanged): 352-362 (dashboard epiwk 20-29 and 32 -> MoH weeks 21-30 and
+      33), 94 (WHO May 2026 = epiwk 18-21 -> 10 May-6 Jun) and its derived provincial rows 173-175. Model effect: NONE - the
+      weekly builder keys a <=7-day row by the ISO week containing TL, and the new Sunday TL falls in the same ISO week as the
+      old Monday TL (2026 weekly preview identical before/after, /tmp/AGO_orch/a5_preview_2026_{before,after}_q61.txt). The
+      builder therefore places every Sunday-Saturday MoH week in the ISO week ending on its first day, which is also where the
+      WHO baseline puts them; the 2026 national series is internally consistent but ~6 days early from ~Feb/Mar 2026 on.
+      Rejected alternative: keep date_wk (Agent 1's choice, for consistency with the baseline) - it left two week conventions
+      inside the AI layer (352-362 vs 97/98/363-366), so the true MoH week 33 (16-22 Aug, 120/1) sat on 10-16 Aug beside Index 98,
+      and it would misplace these weeks if the baseline or the builder's TL keying is ever corrected.
+  Q64 registered 784 (AFRO bulletin week 10 2026); NEW 9404 (cum 36 670 / 904 to 8 Mar 2026), 9405 (207 / 3 for 25 Jan-8 Mar)
+  Q65-Q70 NEW 9406-9411: MINSA weekly-bulletin national cumulatives 9 643/377 (29 Mar), 10 771/406 (5 Apr), 12 193/466 (12 Apr),
+      13 818/500 (19 Apr), 15 843/538 (26 Apr), 17 727/574 (3 May 2025) - every case total equals the MINSA daily-bulletin
+      reconstruction exactly (deaths within 0-5). Provincial Tabela 3 cumulatives NOT extracted (rejected: ~100 rows duplicating
+      the provincial weekly increments already taken from these bulletins and the 4 Apr / 14 Apr / 1 May / 10 May provincial
+      cumulative snapshots).
+  Q72 registered 785 (WHO epi update #36); NEW 9412 (2026 cum 603 / 16 to 29 Mar), 9413 (March = weeks 10-13, 2-29 Mar, 266 / 7);
+      RETRACTED 169 (DERIVED 338 = 2 363 - 1 760 - 265, dated 1-31 Mar but spanning the five weeks labelled 23 Feb-29 Mar;
+      superseded by #36's reported 266 / 7; WHO #37's '562% increase' in April confirms 266).
+  Q73 NEW 9414 (2026 cum 265 / 9 to 22 Feb, WHO #35); 166 RE-DATED 1-28 Feb -> 26 Jan-22 Feb (WHO 'epidemiological weeks 5 to 8').
+  Q74 167 and derived 170-172 TL 1 Apr -> 30 Mar (WHO #37 'epidemiological weeks 14 to 17'; its footnote's '29 March' is one day
+      off its own weeks). April's possible 6-day offset (5 Apr-2 May) noted, not applied - onset not dated.
+  Q75 NEW 9415 (2026 cum 4 852 / 96, WHO #38 'as of 31 May'; TR 6 Jun per the offset: 2 363 + ISO week 18 747/11 + 1 742/34).
+  Q76 NEW 9416 (Sep 2025 = weeks 36-39, 1-28 Sep: 1 356 / 28; MINSA calendar month 1 593 / 35 (Index 184) = +237 on 29-30 Sep,
+      consistent), 9417 (Benguela 4 728 to 28 Sep; Luanda/Bengo/Cuanza Sul identical to MINSA 30 Sep rows, not duplicated).
+  Q79 NEW 9418 (WHO DON: 43 076 / 1 642 to 6 Jun 2006; monotone between 9374 and 1156).
+  Q80 NEW 9419 (AFRO: 26 834 / 753 to 24 Jun 2025 = MINSA reconstruction exactly; '50 new cases and 1 death in Huila' = 50
+      national cases with the one death in Huila, so no Huila row).
+  Recency: FeatureServer, Africa CDC, WHO AFRO (week 36) and WHO epi updates (#38 newest) have nothing for Angola after
+      15-19 Sep 2026 -> recent gap 2026-09-20..today REMAINS.
+Sources found: 20 (all fetched); Registered: 2 new (784, 785)
+Rows added   : 16 query-credited (9404-9419); Retractions: 1 (169); Revisions: 352-362, 94, 173-175, 166, 167, 170-172
+Validator    : exit 0, ERROR 0, WARN 37 (33 CFR_high_flagged_for_review, 4 period_single_day), 9 350 rows
+Successful queries (STRICT): 13/20 (Q64-Q70, Q72, Q73, Q75, Q76, Q79, Q80)   Yield STRICT   : 65%
+Successful queries (EXTENDED): 15/20 (+Q61, Q74)                            Yield EXTENDED : 75%
+Consecutive sub-5% batches (extended): 0
+Decision     : CONTINUE (batch 5: remaining registry leftovers - AFRO 2025 bulletins 317/318, IFRC DREF MDRAO011 (53), ANGOP 2006-07
+               provincial items 217/218 via Internet Archive, Africa CDC 16/23 Aug 2026 issues (122/123); 2006-2009 WHO/OCHA
+               provincial tables; one more recency sweep)
