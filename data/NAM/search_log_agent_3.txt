@@ -1,0 +1,222 @@
+=== AGENT 3 INITIALIZATION ===
+Country: Namibia (NAM)
+Agent: 3 - Zero-Transmission Validator (Opus 5.5 cycle)
+Start Time: 2026-09-30 (unattended runner; no time limit - yield rule only)
+Agent 3 Status: INITIALIZED
+Previous-cycle log archived as ./data/NAM/search_log_agent_3_legacy_2025-07-24.txt
+
+PRE-SEARCH STATE (read before first query)
+  ./data/NAM/cholera_data_ai.csv   : 165 rows (AI Index 1-165)
+  ./data/NAM/metadata_ai.csv       : 196 sources (Index 1-196)
+  ./data/NAM/cholera_presence_ai.csv: 9 presence records
+  ./data/NAM/cholera_data_jhu.csv  : 26 rows (READ-ONLY). National annual rows: 2005 0, 2006 185/5, 2007 14/0,
+                                     2008 3496/38, 2009 159/3, 2011 0*, 2012 0*, 2013 3/0, 2014 485/13, 2015 0*,
+                                     2016 0*, 2017 0, 2018 0 (inconsistent with the confirmed Jan 2018 Windhoek case,
+                                     JHU NA-KH row 21), 2019 0, 2020 0, 2021 0, 2023 0, 2024 0 (*=JHU 'Phantom').
+                                     NO JHU national row for 2010 or 2022.
+  ./data/NAM/cholera_data_who.csv  : 57 weekly rows 2025-wk12..2026-wk15 (READ-ONLY); wk12/2025 = 22 cases;
+                                     explicit dashboard zeros are stored BLANK (no information to the weekly builder).
+  Read-only gap recompute (analyse('NAM',...)): 1 gap, 2026-08-01..2026-09-30 (61 d, recent); coverage 99.7%;
+                                     months_ai_only 449 (coverage is dominated by long AI zero rows - read with care).
+  Validator baseline: ERROR 0, WARN 3 (notes_missing_quote file rows 9/10 = AI 8/9; national_subnational_overlap
+                                     2015-01-01..2024-12-31 file rows 7,8 = AI 6/AI 7).
+
+WEEKLY-BUILDER IMPLICATION (py/build_weekly_timeseries.py, read before targeting)
+  Source priority WHO > JHU > AI. JHU annual national rows are Fourier-spread over the whole year and overwrite AI
+  rows, so AI zero rows change the national weekly series ONLY where no JHU/WHO national count exists:
+  2010, 2022, 2025 (WHO weeks blank), 2026. Elsewhere (2007-2009, 2013-2021, 2023-2024) AI zeros are dataset
+  information but do not move the modelled series. Priority order for this run therefore:
+    T1 AI 7 (2015-2024, contradicted by Jan 2018) -> T2 AI 8 (2010) and AI 9 (2022) -> 2025 windows ->
+    2026-04-27..30 -> 2014/2013/2007-2009 windows -> 1990-2005 upgrade check.
+
+TASKS (from orchestrator)
+  T1 AI 7: split around the 25-31 Jan 2018 Windhoek event; re-source; honest labels.
+  T2 AI 8 (2010) / AI 9 (2022): both cite metadata 8 (ECDC 2025) which cannot support them; no quote. Re-source
+     or retract.
+  T3 candidate zero windows (positive evidence only; neighbours AGO/BWA/ZAF/ZMB checked for each).
+  Gap 2026-08-01..2026-09-30 stays EMPTY unless a positive statement of absence is found.
+
+=== BATCH 1 | PHASE 1 (WHO/official, humanitarian/regional, linguistic-EN press, technical) | NAM ===
+Gap targeted : T1 - AI 7 national zero 2015-01-01..2024-12-31 (contradicted by the 25-31 Jan 2018 Windhoek case);
+               T2 - AI 9 (2022)
+Queries      : 20
+  1. New Era WP REST API search='cholera since 2018' -> 12 Sep 2019 'No single cholera case recorded in Namibia since 2018';
+     28 Jul 2022 'Namibia continuously fights disease outbreaks'.
+  2. New Era API fetch of both -> 2019 item cites SADC RVAA 2019 ('Botswana and Namibia recording no cases since 2018');
+     2022 item: 'Since the disease has been contained, the country has not reported any cases since 2018.'
+  3. WebSearch 'SADC 2019 Synthesis Report ... cholera Namibia no cases since 2018' -> ReliefWeb PDF.
+  4. curl -L SADC RVAA 2019 PDF + pdftotext -> p.13 verbatim quote verified (SADC Secretariat, Level 2).
+  5. New Era API search='safe from cholera' / 'cholera outbreak safe' -> 24 Jan 2024 'Namibia safe from cholera outbreak',
+     14 Feb 2018 'Ongwediva mitigates cholera, hepatitis E', 1 Feb 2018 'Cholera outbreak confirmed', 2023-2026 items.
+  6. New Era API extraction of 9 items -> Zambezi acting health director (23 Jan 2024): 'Namibia had no cholera cases
+     recorded over the past two years'; MoHSS PRO (Feb 2018): 'only one case of cholera was detected in a 10-year-old boy,
+     but further cases have not surfaced'; 1 Feb 2018: private-doctor consultation 25 Jan, V. cholerae positive Mon 29 Jan.
+  7. curl GTFCC 11th General Assembly Secretariat slides (metadata 135) -> dated 19 June 2024, data to 31 May 2024;
+     'have not reported cases since 2018 (Djibouti, Guinea Bissau, and Namibia)' verified verbatim.
+  8. WebFetch AllAfrica 202503130047 (metadata 15, the source of AI 7) -> HTTP 403; Wayback availability API -> HTTP 429.
+     Source unverifiable; its 'WHO validation workshop' claim is supported by nothing retrieved.
+  9. WebFetch The Namibian 11 Mar 2025 (metadata 9) -> 'This is the first cholera case reported in Namibia in 10 years.'
+ 10. WebSearch 'allafrica Namibia cholera March 2025 Nangombe ten years' -> The Namibian 'No cholera cases recorded in over
+     a decade' (+ AllAfrica 202503120045 mirror), TimesLive, APA.
+ 11. WebFetch The Namibian 'No cholera cases recorded in over a decade' -> MoHSS ED: 'Namibia has not recorded any cholera
+     cases in the past 10 years.' (imprecise: ignores Jan 2018) -> registered 197.
+ 12. WebSearch Informante 'Cholera no longer' issue 2015 (Agent 2 lead) -> not found online; Informante p=373156 surfaced.
+ 13. WebFetch Informante p=373156 -> 14 Apr 2025 item ('first case of cholera in more than ten years'); not a 2015 source.
+ 14. WebSearch 'Cholera crisis looms at Uis' 2017 (Agent 2 lead) -> not retrievable; no case content expected (warning).
+ 15. WebSearch 'Joint External Evaluation IHR Namibia 2016 cholera' -> WHO/WHE/CPI/REP/2017.36.
+ 16. IRIS discover API + bitstream text search (JEE Namibia) -> IDSR 'strong real-time surveillance system', syndromic
+     surveillance for acute diarrhoea with dehydration, cholera lab testing; last cholera outbreak cited = Opuwo 2014.
+     No absence statement -> registered 202 as surveillance-status evidence only.
+ 17. WebSearch 'Namibia cholera 2016 OR 2017 no cholera / not recorded ... alert' -> regional context only (Zambia Lusaka 2016
+     >1000 cases, Oct 2017-May 2018 5905; Angola 2016-17 Cabinda/Luanda/Zaire 252 cases).
+ 18. New Era API search='cholera' 2014-06..2018-01-20 -> 16 items.
+ 19. New Era API extraction of 7 items + full read of 'Ovahimba say government neglects them' (Aug 2015) -> no Namibian case
+     2014-2017 (the 2015 item quotes villagers on the 2013-14 outbreak); 12 Jan 2018 MIRCO: no Namibians affected in Zambia.
+ 20. IRIS bitstreams WER 2020, 2021, 2022, 2023, 2024 + pdftotext -> Namibia in Table 2 'Countries reported 0 cases and deaths'
+     for 2020, 2021, 2023, 2024 (verified verbatim); WER 2022 footnote b: Namibia 'did not report cholera data to WHO'.
+Sources found: 8    Registered: index 197 (The Namibian 11 Mar 2025, MoHSS ED), 198 (New Era 24 Jan 2024, Zambezi health
+               director), 199 (New Era 28 Jul 2022), 200 (SADC RVAA 2019), 201 (New Era 14 Feb 2018, MoHSS PRO), 202 (WHO JEE 2016)
+Rows RETRACTED: AI 7 (2015-01-01..2024-12-31, Documented 0.9, metadata 15) - contradicted by Jan 2018; unverifiable source.
+                AI 9 (2022, Inferred 0.7, metadata 8 ECDC 2025, no quote) - superseded for 2022 by AI 167.
+                Tombstones in ./data/NAM/retracted_rows_ai.csv.
+Rows added   : 3    Indices: 166 AFR::NAM 2015-01-01..2018-01-21 Inferred_Absence 0.6 (metadata 197, surveillance operational)
+                             167 AFR::NAM 2018-02-01..2023-12-31 Documented_Absence 0.85 (GTFCC metadata 135; covers 2022)
+                             168 AFR::NAM 2024-01-01..2024-12-31 Documented_Absence 0.9 (WER 2024 zero report metadata 81)
+Notes appended: AI 54 (stale reference to AI 7), AI 6 (bracketing zero rows; MoHSS 'further cases have not surfaced').
+Adjudication : split around the event: 2018-01-22..2018-01-31 deliberately left to AI 6 (event ISO week 4 + AI 6 period);
+               pre-event segment only Inferred (the sole explicit claim is the imprecise 2025 MoHSS statement; WER 2015-17
+               silent = non-reporting); post-event segment Documented (GTFCC Level 1 positive statement + SADC 2019 +
+               MoHSS 2018/2024 statements + WHO zero reports 2020/21/23), 0.85 because WHO received no annual report for
+               2018, 2019 and 2022; 2024 on its own WHO zero report (0.9).
+Regional     : 2015-17 regionally moderate, no outbreak in any border province (Zambia Lusaka, Angola far north);
+               2018-2024 includes major neighbour epidemics (SADC 50 750 cases 2018; Zambia 2017-18 and 2023-24; Malawi
+               2022-23) - covered by several independent positive statements, i.e. the stronger-source standard is met.
+Validator    : ERROR 0, WARN 1 (notes_missing_quote file row 8 = AI 8, the 2010 row - batch 2). The
+               national_subnational_overlap WARN (2015-2024) is GONE; AI 9's quote WARN is GONE (row retracted).
+Successful queries: 3/20 (Q11 -> AI 166; Q7 -> AI 167 [also the replacement for AI 9]; Q20 -> AI 168)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches; next: T2 AI 8 / 2010 and the 2009-2013 inter-epidemic period)
+
+=== BATCH 2 | PHASE 1->2 (WHO/official, humanitarian, regional, historical press, academic) | NAM ===
+Gap targeted : T2 - AI 8 national zero 2010 (mis-cited to ECDC 2025, no quote); candidate inter-epidemic span
+               2009-05-28..2013-05-31 (JHU: 2009 159/3, no 2010 row, 2011 0*, 2012 0*, 2013 3/0)
+Queries      : 20
+  1. WebSearch 'WHO "cholera country profile" Namibia' -> no WHO country profile online (only 2025-26 news).
+  2. curl ReliefWeb New Era 17 Jul 2013 'Cholera alert at border' (metadata 139) -> three Angolan nationals admitted to
+     Opuwo since 30 Jun 2013; no statement on the last Namibian outbreak.
+  3. curl ReliefWeb MoHSS 9 Jan 2014, UNICEF report 1, MoHSS 13 Jan 2014, 'Ministry suspected cholera outbreak last year'
+     -> regex scan for outbreak-history statements: none.
+  4. full read MoHSS 9 Jan 2014 update -> outbreak since 16 Nov 2013; no history statement.
+  5. WebSearch 'Namibia floods 2010 Caprivi cholera no cases ... IFRC OR UNICEF OR OCHA' -> MDRNA0004/MDRNA006 leads.
+  6. WebSearch 'Namibia cholera 2010-2012 no cholera / cholera-free / not recorded' -> nothing specific.
+  7. AllAfrica search listings ('cholera namibia', 'namibia cholera kunene', 'cholera caprivi') scraped for 2009-2013
+     headlines -> 'Govt Tightens Cholera Surveillance' (19 Jul 2013: MoHSS 'no new cases of cholera'), 'Kunene Region Face
+     Huge Health Challenges' (May 2010), 'Health Authorities Warn of Diseases' (Apr 2011); story pages HTTP 403.
+  8. The Namibian archive slug probes for 6 headlines -> only 'kunene-region-face-huge-health-challenges' live.
+  9. read The Namibian 10 May 2010 -> 'The region is also prone to outbreaks like cholera and measles' (no current outbreak).
+ 10. curl IFRC MDRNA006 Ops Update 1 (to 10 Apr 2011) -> 'isolated cases of cholera in Angola and it is expected that this
+     may roll dawn to Namibia' -> registered 204.
+ 11. ReliefWeb river search for OCHA regional updates after RU10 (advanced-search syntax failed) + country-code lookup
+     (Namibia = C166).
+ 12. ReliefWeb river cholera x Namibia (C166) x 2009-05-28..2013-06-15, 3 pages (59 items) -> no item reports a Namibian
+     case; WHO AFRO weekly emergency updates Vol.2 Nos.29-31 and 43-44, ACAPS snapshots, New Era 6 Jun 2011 flagged.
+ 13. read WHO AFRO 'Africa weekly emergency situation update' Vol.2 Nos.29-31 (20 Jul-3 Aug 2009) -> Namibia listed ONLY for
+     pandemic H1N1 (1 case 24 Jul, 5 cases 31 Jul); cholera listed for DRC, Kenya etc. Surveillance-status evidence for
+     mid-2009 (Namibia reporting to AFRO), not an absence statement.
+ 14. scan ACAPS snapshots (Jan and Jun 2013), New Era 6 Jun 2011, IRIN Feb 2010 -> New Era/FEMCO 6 Jun 2011: 'Incidents of
+     diarrhoea have not increased substantially, but waterborne diseases like cholera and malaria are likely to break out'
+     -> registered 205 -> ROW AI 170.
+ 15. WebSearch (PT) 'Angola colera 2010 2011 2012 provincias Cunene Huila surto' -> Angola 2011 outbreak 2 284 cases/181
+     deaths; Cunene reportedly marginal (secondary summary, not verified - not cited in rows).
+ 16. WebSearch 'WHO cholera 2010 southern Africa countries reporting ...' -> Zambia 2009-2010 epidemic concentrated in Lusaka;
+     Zheng et al. 2010-2019 SSA outbreak compilation surfaced.
+ 17. medRxiv Zheng et al. full text (Cloudflare block) + bioRxiv API metadata -> built on the JHU database, so NOT independent
+     of the JHU baseline; not used.
+ 18. IFRC GO API MDRNA005 series (15 Apr 2010, 10 Jun 2010, Final Report 31 Jan 2011) + pdftotext -> final report: 'In 2009
+     Caprivi reported outbreaks of Acute Respiratory Tract Infection (ARI) and diarrhoea and yet no such incidences were
+     experienced during the 2010 flood season.' -> registered 203 -> ROW AI 169 (replacement for AI 8).
+ 19. WebSearch 'Namibia cholera outbreaks history 2006 2008 2009 2013 Kunene recurrent ... review' -> no retrospective list
+     that bounds 2010-2012.
+ 20. ReliefWeb river 'OCHA Regional Update No. 11/12 cholera' Jun 2009-Jun 2010 -> RU10 (1 Jun 2009) was the last in the
+     series; mid/late-2009 absence cannot be extended from OCHA.
+Sources found: 3    Registered: index 203 (IFRC MDRNA005 final report), 204 (IFRC MDRNA006 OU1), 205 (New Era 6 Jun 2011)
+Rows RETRACTED: AI 8 (2010, Inferred 0.7, metadata 8 ECDC 2025, no quote) - tombstone in ./data/NAM/retracted_rows_ai.csv
+Rows added   : 2    Indices: 169 AFR::NAM 2010-01-01..2010-12-31 Inferred_Absence 0.6 (IFRC metadata 203) [replaces AI 8]
+                             170 AFR::NAM 2011-01-01..2011-06-06 Inferred_Absence 0.5 (New Era/FEMCO metadata 205)
+Adjudication : 2010 - the only positive statement is regional/seasonal (flood regions, Feb-May 2010), so the national
+               full-year zero stays INFERRED (0.6); it matters because JHU has no 2010 row (sets the 2010 weekly series as
+               inferred_zero). H1 2011 inferred from FEMCO + IFRC (cholera described as an Angolan threat not yet arrived).
+               NOT added: 2009-05-28..2009-12-31 (only enumerated-list silence in AFRO weekly updates; OCHA series ended at
+               RU10); 2011-06-07..2012-12-31 (no statement found; JHU phantom zeros only); 2013-01..2013-05 (none found).
+Regional     : 2010-11 no outbreak found in any province bordering Namibia (Zambia's epidemic Lusaka-centred; Angola
+               isolated cases per IFRC); Botswana/South Africa quiet.
+Validator    : ERROR 0, WARN 0 (all three pre-existing WARNs now cleared).
+Successful queries: 2/20 (Q18 -> AI 169; Q14 -> AI 170)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches; next: 2025 windows (model-relevant: WHO weeks blank), 2026-04-27..30,
+               2014 post-May, 2013 windows)
+
+=== BATCH 3 | PHASE 2 (targeted gap filling: WHO/official, regional, technical) | NAM ===
+Gap targeted : 2025-03-14..2025-06-08 and 2025-08-15..2025-10-26 (model-relevant: no JHU 2025 row, WHO weeks blank);
+               2026-04-27..2026-04-30; open gap 2026-08-01..2026-09-30 (positive statements only)
+Queries      : 20
+  1. IRIS discover API 'Regional Cholera Bulletin' 2025 -> April (381653), May (381794) editions located.
+  2. IRIS bitstreams AFRO April + May 2025 bulletins + pdftotext -> 'there have been no further cases in Namibia and South
+     Africa following confirmed lone cases in March'; 'No new case was reported from the country in April' / 'since April';
+     Namibia cumulative 1 to 31 May 2025 -> registered 206 -> ROW AI 171 (with metadata 67's June statement).
+  3. WebSearch WHO 'Multi-country outbreak of cholera' External Situation Report 2025 Sep/Oct Namibia -> #25, #30-#32.
+  4. IRIS discover 'Multi-country outbreak of cholera' -> sitreps not in IRIS (WER issues only).
+  5. who.int publication pages #30-#32 -> PDF links.
+  6. download + pdftotext sitreps #25, #30, #31, #32 -> #25 (as of 30 Mar): Namibia 22 (all last 28 days) = source of the
+     dashboard's wk12 22 cases; #30/#31/#32 (as of 31 Aug, 28 Sep, 26 Oct): 'Namibia§ 29 1', last-28-days '-'
+     -> registered 209 -> ROW AI 172.
+  7. read sitrep table headers (columns: cumulative cases, deaths, per 100 000, CFR; last-28-days cases, deaths, CFR, % changes).
+  8. pdftotext -raw footnote extraction -> '§ Countries which did not report cholera cases between 30 September and 26 October 2025'.
+  9. who.int slug probes for #26-#29 (wrong slugs, no PDFs).
+ 10. WebSearch sitreps #26/#27/#28 -> correct publication pages.
+ 11. download + pdftotext #26-#29 -> #26 (27 Apr) and #27 (25 May): 'Namibia§ 22 0', § = did not report cases 1-27 Apr / 1-25 May;
+     #28 (29 Jun): 29/1, 7 in last 28 days; #29 (27 Jul): 'Namibia§ 29 1' although WHO AFRO recorded Opuwo 13 -> 16 -> 18
+     in July -> HQ tables MISSED late Opuwo cases (registered 208 for #26/#27; caveat recorded in 209).
+ 12. IRIS discover AFRO 'Weekly Bulletin on Outbreaks and Other Emergencies' 2025 -> weeks 4-37 listed (38+ not in IRIS).
+ 13. download + pdftotext AFRO OEW wk30, 33, 34, 35, 37 -> wk34 Closed Events: 'MoH declared an end to the outbreak, hence the
+     event closed' (18 suspected / 9 confirmed / 1 death; last update 05-Aug-25); wk35, wk37: no Namibian cholera event
+     -> registered 207.
+ 14. download + pdftotext WHO Epidemiological Update No. 38 (metadata 53) -> data 'as of 31 May 2026' (NOT 30 June): 'Namibia
+     213 0 0.0 7 - - - - -', unchanged from No. 37 (26 Apr) -> ROW AI 173; note appended to AI 50 correcting the data date.
+ 15. pdftotext -raw footnote windows #29-#31 verified ('1 and 27 July', '27 July and 31 August', '31 August and 28 September').
+ 16. New Era WP API search cholera / diarrhoea / 'acute watery' / kolera, posts since 20 Jul 2026 -> 7 items.
+ 17. extraction of 4 items -> IPC (22 Sep 2026) repeats Zambezi diarrhoea 1146 -> 6960 and 12 under-5 deaths; Otjozondjupa SORA
+     (31 Aug): Grootfontein 52 confirmed / 188 suspected (known); no statement of cholera absence in Aug-Sep 2026.
+ 18. full read New Era 21 Jul 2026 'Witkop learners recover' (Rehoboth, 9 Jul 2026, 101 learners with vomiting/diarrhoea,
+     inside AI 50's zero window) -> preliminary lab results SALMONELLA (fish cakes) - not cholera; AI 50 not contradicted;
+     shows GI outbreaks were lab-investigated during the zero window.
+ 19. WebSearch Zambezi diarrhoea Sep 2026 cholera ruled out / rotavirus / lab -> no organism reported; ministry 'would not
+     speculate on causes'; decline in cases by September.
+ 20. WebFetch Zambia Monitor 30 Sep 2026 (metadata 99) -> Zambia's outbreak (onset 13 Aug 2026; 304 suspected, 62 confirmed,
+     11 deaths) is in Lusaka, Chilanga, Chongwe, Chibombo, Chiengi, Nsama and Chikankata - none bordering Namibia.
+Sources found: 5    Registered: index 206 (AFRO May 2025 bulletin), 207 (AFRO OEW wk34 2025), 208 (WHO sitrep #27 [+#26]),
+               209 (WHO sitrep #32 [+#30, #31; #29 caveat])
+Rows added   : 3    Indices: 171 AFR::NAM 2025-03-24..2025-06-08 Documented_Absence 0.9 (WHO AFRO June 2025 bulletin, metadata 67)
+                             172 AFR::NAM 2025-08-15..2025-10-19 Documented_Absence 0.75 (WHO sitrep #32, metadata 209)
+                             173 AFR::NAM 2026-04-27..2026-04-30 Documented_Absence 0.85 (WHO Epi Update 38, metadata 53)
+Notes appended: AI 50 (Update 38 data date = 31 May 2026; June-July covered by WER 101(35); 27-30 Apr now AI 173).
+Adjudication : 2025-03-14..03-23 NOT asserted: WHO HQ/dashboard 22 cases in wk12 vs WHO AFRO 'lone case' unresolved -> row
+               starts 24 Mar. 2025-10-20..10-26 NOT asserted: dashboard wk43 has 1 case (retrospective, Grootfontein) -> row
+               ends 19 Oct. AI 172 held at 0.75 because HQ '§' flags demonstrably missed July 2025 cases; its label rests on the
+               MoHSS/AFRO closure plus AFRO non-listing. Both 2025 rows are Documented so they override the Fourier spread of
+               the 45-case 2025 national annual row AI 64 in the weekly builder (an Inferred row would not).
+Open gap     : 2026-08-01..2026-09-30 LEFT EMPTY - no positive statement of absence exists; Namibia has not updated WHO since
+               27 Jul 2026 (ECDC); the Zambezi AWD outbreak (1146 -> 6960 cases, 12 under-5 deaths) has no reported organism.
+               Classified in this log as a SURVEILLANCE GAP for cholera-specific reporting (domestic system operational, but
+               nothing published either way). Not written to cholera_presence_ai.csv: that file's only evidence code is
+               'presence_confirmed_count_unknown', which would falsely assert cholera presence.
+Regional     : 2025 windows during Angola's 2025 epidemic (17/21 provinces by Apr 2025) - stronger-source standard met for
+               AI 171 (two WHO channels), partly met for AI 172 (hence 0.75); Aug-Sep 2026 Zambia outbreak far from the border.
+Validator    : ERROR 0, WARN 0
+Successful queries: 3/20 (Q2 -> AI 171; Q6 -> AI 172; Q14 -> AI 173)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (yield >= 5%; next: 2014 post-May, 2013 windows, 2007-2009 windows, 1990-2005 upgrade check)
+
