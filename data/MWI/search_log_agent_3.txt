@@ -22,3 +22,172 @@ TARGETS (from orchestrator task)
       2020, 2021; 2011 and 2012 inter-season; 1994-1997 (1995-96 "none" per WER 72(13)); 2016/17 onset + 2017 dry season;
       2018 Jun-Oct; 2023 Oct-Dec tail; 2024 Jun-Aug; 2025 weeks 12, 15, 47
   T5  Existing national zero rows vs later positive national rows (contradiction scan, for Agent 5)
+
+PRE-SEARCH ANALYSIS (read-only, no shared files written)
+  National weekly series rebuilt in memory with py/build_weekly_timeseries.py functions (process_country, MWI only,
+  nothing written): observed 265, fourier 1983, documented_zero 601, inferred_zero 52 (2013, JHU UID 21368 zero),
+  assumed_zero 52 (51 in 2014 + 1 in 2015). Matches the orchestrator's figures.
+  BUILDER PRECEDENCE NOTE: priority WHO > JHU > AI means an AI zero or count row changes the current national series
+  only in weeks with no JHU/WHO entry (2014, Sep 2026). AI rows inside JHU-annual years (2006, 2013, 2019-2021, 2024)
+  are recorded for future builder revisions and for sub-annual timing, not because they alter today's output.
+  Access: iris.who.int discover API returns 403 but item/bitstream endpoints and OpenSearch
+  (/server/opensearch/search?format=atom&query=title:(...)) work - used throughout.
+
+T5 CONTRADICTION SCAN (existing national zero rows vs positive rows, all layers) - for Agent 5/7, no rows deleted
+  C1 JHU Index 847 (WHO AFRO UID 20823) 2017-02-12..2017-02-18 = 91 cases / 4 deaths sits INSIDE AI zero Index 573
+     (2 Jan-26 Feb 2017, JCISA). JHU 847 is a YEAR TYPO: JHU UIDs 12 and 14 give exactly 91 / 4 for 2018-02-12..18
+     (2018 week 7, peak of the 2017/18 season). The builder currently renders Feb 2017 week 7 as observed/JHU 91 cases -
+     a phantom epidemic week in a documented cholera-free period. AI zero 573 is NOT contradicted. (JHU is read-only.)
+  C2 JHU Index 71 (UID 21368) national 2013 = 0 is contradicted by JHU's own 2012/13 season district rows (UID 3182:
+     Dedza 3, Thyolo 4, Phalombe 6 = 13, 1 Nov 2012-31 Oct 2013) given AI zero 626 (no case 1 Nov-28 Dec 2012), which
+     places those 13 cases in 2013; also AI 627 (Karonga 3 suspected, 9-11 Jul 2013, unconfirmed). WHO's 2013 table
+     (WER 89(31)) omits Malawi, GHO has no 2013 value: the JHU zero is unsourced.
+  C3 JHU internal: zero rows 888/889 (Oct 2017-Jan 2018), 249, 837 (Jul 2018), 299 (18-24 Mar 2019 vs AI 636 Mchinji
+     3 cases 20-23 Mar 2019), 78 (29 Oct-4 Nov 2019 vs JHU 77 / AI 289 Lilongwe case 29 Oct 2019).
+  C4 AI zero 135 (17-23 Jun 2024) vs JHU 1381 (2-30 Jun 2024 = 4): resolved - WHO week 23 (3-9 Jun) = 4, so all June
+     2024 cases fall before 17 Jun. Not a contradiction.
+  C5 AI zero 290 (1 Nov 2019-7 Jan 2020) vs AI 1944 (Blantyre 1 Nov 2019-27 Jan 2020 = 5): nominal overlap only (1944's
+     TL is the season start; the cluster began ~9-10 Jan 2020). Nyasa Times 10 Jan 2020 ('One cholera case, the first in
+     this rainy season, has been confirmed in Limbe') corroborates row 290.
+
+=== BATCH 1 | PHASE 1 (broad discovery: WHO/official, academic, humanitarian, national press) | MWI ===
+Gap targeted : T1 2026-09-14..2026-09-29 (16d, recent); T2 2014 (365d, modern); T3 2013; T4 2006 after 23 Jul,
+               2020, 2021
+Queries (20):
+   1 [T1] PHIM WordPress media API search=IDSR newest-first + all media + posts -> newest IDSR = wk37 (uploaded
+          2026-09-20); wk38/39 NOT uploaded; 29 Sep post = PoE self-screening (not cholera)
+   2 [T2/T3] WHO GHO OData CHOLERA_0000000001/2/3 MWI -> 2013 and 2014 absent (non-report, not zero)
+   3 [T3] IRIS dc.title "Cholera, 2013" -> WER 89(31): Malawi NOT in table (MOZ 1,869; TZA 270; ZMB absent)
+   4 [T2] IRIS dc.title "Cholera, 2014" -> WER 90(40): Malawi NOT in table (MOZ 480; ZMB, TZA absent)
+   5 [T2] WebSearch "Malawi cholera 2014 Thyolo Phalombe cases outbreak" -> nothing dated in 2014
+   6 [T2] WebSearch "cholera Malawi 2014 'no cholera' OR 'cholera free' OR 'no case' ministry" -> nothing
+   7 [T2/T3] Nyasa Times WP API search=cholera 2013-01..2015-02 (25 posts) -> no 2014 case reports; Karonga Jul 2013
+          threat (already row 627); Nayuchi 'zero cases in the previous year' (local, not usable)
+   8 [T2] WebSearch Thomson Reuters Foundation Jan 2015 + Yahoo fetch -> 'No outbreak has been reported yet this year'
+          (15 Jan 2015; outbreak wording - corroboration only)
+   9 [T2] WebSearch '"2014/2015" cholera season "first case" Nsanje' + NCBI efetch PMC4907756 -> 'first district to be
+          affected during 2014/2015 rainy season' (11 Feb 2015)                                          [ROW 1945]
+  10 [T2] WP APIs malawi24 (archive starts late 2015), mwnation (no 2014-15 posts), times.mw (none), MANA (404);
+          also found Malawi24 4 Sep 2026 end-of-outbreak article (T1: '>28 consecutive days' only; 3,200 cases, 18
+          districts)
+  11 [T4] WebSearch '"No new cases of cholera have been reported since" Malawi 2006' -> nothing
+  12 [T4] ReliefWeb updates search 'Malawi cholera situation report' 2006-07-20..2006-12-31 + fetch UN sitrep
+          31 Jul 2006                                                                           [ROWS 1947, 1948]
+  13 [T4] ReliefWeb sweeps Aug-Oct 2006 / Nov 2006-Mar 2007 + RIACSO Jul/Aug 2006 + DREF MDRMW001 -> 6 Oct 2006 UN
+          sitrep has no cholera section; RIACSO July 2006 'cholera ... showing signs of a decline'
+  14 [T2] ReliefWeb EP-2015-000015-MOZ (regional check) -> Mozambique outbreak 'started on 25 Dec 2014 ... declared on
+          27 Jan 2015'
+  15 [T1] IRIS title search AFRO Weekly Bulletins 2026 -> newest on IRIS = week 35 (24-30 Aug 2026)
+  16 [T1] Africa CDC Epidemic Intelligence Weekly Report (issue 13 Sep 2026; image-only PDF read visually) -> Malawi not
+          among 6 MS with new cholera cases 6-13 Sep; Malawi 2026 = 2,998 cases / 5 deaths; MOZ 7,814 (22 new wk37),
+          ZMB new event (59 susp.) - region ACTIVE in Sep 2026
+  17 [T4] WebSearch Malawi 2020/2021 'no cholera cases' -> nothing
+  18 [T4] Nyasa Times WP API 2019-06..2022-02 (36 posts) -> Jan 2020 Blantyre cluster; 4 Jan 2021 suspected case
+          'tested negative'; 14 Jan 2021 two Blantyre cases (row 638)
+  19 [T4] IRIS AFRO OEW 2020 weeks 8, 9, 11, 13, 14, 15, 16 -> Malawi cholera: 3 confirmed 9 Jan-19 Feb 2020, 'No new
+          confirmed cases have been reported since 19 January 2020'; Closed Events in week 15    [ROW 1949]
+  20 [T4] IRIS WER 'Cholera, 2020' (96(37)) and 'Cholera, 2021' (97(37)) + AFRO OEW 2021 weeks 3,4,6,8,12,14 ->
+          Malawi 2020 = 3, 2021 = 2 (both culture/PCR confirmed); no 2021 AFRO cholera event        [ROWS 1950, 1951]
+Sources found: 6    Registered: metadata Index 272 (UN/UNDP sitrep 31 Jul 2006), 273 (WHO AFRO OEW wk15 2020),
+               274 (WER 96(37) Cholera 2020), 275 (WER 97(37) Cholera 2021); reused Index 6 (PAMJ 2016, Msyamboza)
+Rows added   : 6 live   Indices 1945, 1947, 1948, 1949, 1950, 1951 (1946 retracted by me - see below)
+  1945  AFR::MWI 2014-11-01..2015-02-10 ZERO Documented_Absence, operational, 0.7 (PAMJ 2016: Nsanje first district
+        affected in the 2014/15 rainy season, 11 Feb 2015). First AI row in calendar 2014 (Nov-Dec 2014 weeks).
+  1947  AFR::MWI 2006-07-24..2006-07-31 ZERO Documented_Absence, operational, 0.8 (UN sitrep 31 Jul 2006)
+  1948  AFR::MWI 2006-03-17..2006-07-23 COUNT 617 / 18 deaths, 0.5 - DERIVED: UN season total 4,774/58 minus MoH
+        cumulative 4,157/40 of 16 Mar 2006 (row 499); death base disputed (7-18)
+  1949  AFR::MWI 2020-01-28..2020-02-19 ZERO Documented_Absence, operational, 0.8 (WHO AFRO OEW 2020)
+  1950  AFR::MWI 2020-02-20..2020-12-31 ZERO Inferred_Absence, operational, 0.6 (WER 2020 total 3 = the 3 Jan cases)
+  1951  AFR::MWI 2021-01-15..2021-12-31 ZERO Inferred_Absence, operational, 0.6 (WER 2021 total 2 = the 2 Jan cases)
+  RETRACTED OWN ROW 1946 (same content as 1947) minutes after writing: its note asserted an unverified regional claim;
+  tombstone in ./data/MWI/retracted_rows_ai.csv. Row 1945 note gained a verified regional citation (append).
+Successful queries: 4/20   (9, 12, 19, 20)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Validator    : python py/validate_quality.py MWI -> exit 0, ERROR 0, WARN 36 (unchanged; none from my rows)
+Decision     : CONTINUE (minimum 3 batches; yield >= 5%)
+
+=== BATCH 2 | PHASE 1->2 (official plans and bulletins; targeted gap weeks) | MWI ===
+Gap targeted : T2 2014 / T3 2013 (national position); T4 2025 wks 12, 15, 47; 2024 Jun-Aug; Jun-Oct 2019; 1995-96;
+               2000 after 10 Feb; 2010-2012 inter-seasons; T1 re-check
+Queries (20):
+   1 [T2/T3] PHIM media API search=cholera -> MoH Malawi Multi-sector Cholera Control Plan (MMCCP, draft final 9 Jan
+          2025) downloaded; Figure 4 (PDF p.30) read visually: season totals 2012/13 = 0 and 2013/14 = 0 (also 2010/11
+          60, 2011/12 1806, 2014/15 693, 2019/20 2, 2020/21 3). Registered Index 276. NO ROW - see T2/T3 below.
+   2 [T3/T4] Nyasa Times WP API 'cholera phalombe|thyolo|dedza|case|outbreak' 2012-06..2014-12 + full text of
+          Aug-Dec 2012 items -> Lake Chilwa 'dry cholera' Jul-Sep 2012 (363 infected, 9 dead, 29 Aug); 28 Dec 2012 'no
+          cholera case so far ... since the onset of the rainy season in November' (row 626); 2011/12 season 1,806
+          incl. Lake Chilwa 556; nothing dated in 2013-14 for Thyolo/Phalombe/Dedza
+   3 [T3] WebSearch 'Phalombe OR Thyolo OR Dedza cholera cases 2013 district health office' -> nothing
+   4 [T2/T3] ReliefWeb updates 'Malawi cholera' (C146) 2012-11..2014-12 (4 pages) -> no Malawi cholera report
+   5 [T2] OCHA ROSA Southern Africa weekly maps Dec 2013 / Apr 2014 -> cholera named only for Angola (Dec 2013) and
+          Namibia (Apr 2014); Malawi not mentioned
+   6 [T4 1995-96] IRIS WER 71(21) 'Cholera in 1995', corrigendum 71(22), WER 72(31) 'Cholera in 1996' -> tables:
+          Malawi 1 case / 0 deaths in each year (not marked imported); WER 72(31) text: 'no cases were reported by these
+          2 countries [Malawi, Mozambique] in 1995 and 1996'. Internal WHO contradiction; NO ROW (a case each year)
+   7 [T4] PHIM media API full listing (500 items) -> 2025 IDSR PDFs: weeks 13,14,18,20,24-26,28,30,31,36,37,43,45,46,
+          48,50 only; no week 12, 15, 38-42, 44 or 47 bulletin
+   8 [T4 wk47] PHIM 2025 wk45/46/48 PDFs -> wk46 Table 1 cholera 0, wk48 Table 1 0 but 'One (1) Cholera alert case';
+          no cumulative to difference; wk47 NOT documentable
+   9 [T4 wk15] IRIS WHO AFRO Monthly Regional Cholera Bulletins Mar/Apr/May 2025 -> March 6 new cases ('no confirmed
+          case since epi week 12'), April 3 new, May 0 (105 after data cleaning)                        [ROW 1953]
+  10 [T4 wk12] PHIM 2025 wk13/wk14 PDFs -> wk13 Figure 7: week 12 probable 0, confirmed 0, epi-linked 0; IDSR
+          completeness 99.1% (wk12); cumulative 306 unchanged wk13->wk14                                [ROW 1952]
+  11 [T1/T4] PHIM re-check (newest still wk37) + media pages 6-12 -> 2024 IDSR PDFs only wks 25, 28-30, 37, 43-47
+  12 [T4 2024] IRIS WHO AFRO Monthly Regional Cholera Bulletins Jun/Jul/Aug 2024 -> June 6 new; July 0; August 0;
+          'declared the outbreak over on 10 July 2024 following no confirmed case for four consecutive weeks' [ROW 1954]
+  13 [T4 2019] IRIS WHO AFRO OEW 2019 weeks 16, 18, 21, 25, 30, 35, 38, 40, 43 -> no Malawi cholera event (floods only)
+  14 [T4 2019] The Nation WP API search=cholera 2019-06..2019-11 (14 items) -> only Mwanza 18 Jul and Nathenje (Lilongwe)
+          4 Nov cases reported; combined with MoH season total 26 accounting                    [ROWS 1955, 1956]
+  15 [T4 2000] ReliefWeb 'cholera' (C146) Feb-Dec 2000 + 8 IRIN-SA round-ups -> no Malawi cholera statement after Feb;
+          2000 not zero (WHO 2000 total 2,391 vs 723 to 10 Feb = ~1,668 undated cases)
+  16 [T2] WebSearch for a district-season dataset 2000-2016 (JHU UID 3182 origin) + NCBI efetch Miggo 2023 (PMC10551271)
+          -> origin not found; Miggo text has no 2013-14 figures
+  17 [T4 2012] Nyasa Times 'chilwa' Aug-Dec 2012 + ReliefWeb 'cholera' (C146) Aug-Dec 2012 -> no end-date for the Lake
+          Chilwa outbreak; Oct 2012 undocumented
+  18 [T2/T3] ACAPS Global Emergency Overview snapshots 2012-2014 on ReliefWeb -> country tag lists only
+  19 [T4 2010-11] Nyasa Times WP API 2010-04..2011-06 -> archive effectively starts Nov 2011 (4 posts); 15 Nov 2011 MoH
+          alert gives no case status
+  20 [T1] ECDC monthly cholera overview (data to 26 Aug 2026) -> 'New cases have been reported from: ... Malawi' for 27
+          Jul-26 Aug 2026 (see contradiction C6)
+Sources found: 5    Registered: metadata Index 276 (MMCCP), 277 (PHIM IDSR wk13 2025), 278 (WHO AFRO monthly Apr 2025),
+               279 (WHO AFRO monthly Aug 2024); reused Index 99 (MoH Cholera Season Update 8 Jan 2020)
+Rows added   : 5    Indices 1952-1956
+  1952  AFR::MWI 2025-03-17..2025-03-23 ZERO Documented_Absence, operational, 0.7 (PHIM wk13 Fig. 7: wk12 = 0)
+  1953  AFR::MWI 2025-04-07..2025-04-13 COUNT 3 / 0 deaths, 0.6 - DERIVED (AFRO April +3; wk14 = 0 PHIM; wk16+ = 0 AFRO
+        OEW; PHIM 306 + 3 = UNICEF final 309)
+  1954  AFR::MWI 2024-07-01..2024-08-25 ZERO Documented_Absence, operational, 0.85 (AFRO: July 0, August 0; outbreak
+        declared over 10 Jul 2024); ends before the WHO dashboard's 1 case in 26 Aug-1 Sep 2024
+  1955  AFR::MWI 2019-06-16..2019-07-14 ZERO Inferred_Absence, operational, 0.5 (MoH season total 26 fully accounted)
+  1956  AFR::MWI 2019-07-16..2019-10-28 ZERO Inferred_Absence, operational, 0.5 (same accounting)
+Revisions (own rows): 1950 confidence 0.6 -> 0.5 + MMCCP caveat (2019/20 = 2, 2020/21 = 3 leave one case possibly in
+  Nov-Dec 2020); 1951 MMCCP note; 1952, 1955, 1956 double-counting phrase + precision/citation fixes.
+Successful queries: 4/20   (9, 10, 12, 14)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Validator    : exit 0, ERROR 0, WARN 36 (3 transient national_subnational_overlap WARNs from my rows fixed by appending the
+               double-counting phrase)
+Decision     : CONTINUE (minimum 3 batches; yield >= 5%)
+
+T2/T3 FINDING (2013 and 2014): the Ministry of Health's own national plan (MMCCP 2025, Figure 4) reports ZERO cholera
+  cases for the 2012/13 AND 2013/14 seasons (1 Nov 2012-31 Oct 2014) - this agrees with JHU's national 2013 = 0 (UID
+  21368), with row 626 (no case Nov-Dec 2012) and with WHO having no 2013 or 2014 report from Malawi (WER 89(31),
+  90(40); GHO). It CONFLICTS with JHU UID 3182 district season rows (2012/13: Dedza 3, Thyolo 4, Phalombe 6; 2013/14:
+  Thyolo 6, Phalombe 2) and with AI row 627 (Karonga 3 unconfirmed suspected, 9-11 Jul 2013). No press or UN report of
+  any 2013 or 2014 case was found (Nyasa Times archive 2012-15 read; ReliefWeb 2012-14 swept). Per the task rule
+  (never zero across a period in which any layer shows a case) NO national zero was written for Jan 2013-Oct 2014.
+  Classification: CONFLICTING - MoH national documents 0; JHU district rows 13 + 8 undated (possibly unconfirmed
+  suspected cases). The only 2014 row written is 1945 (1 Nov 2014-10 Feb 2015, dated by PAMJ 2016). Agent 5 should
+  adjudicate the UID 3182 counts; if they are shown to be non-cases, the MMCCP supports a Documented_Absence for
+  2013-01-01..2014-10-31 (and the 2012/13 remainder).
+T5 ADDITIONS
+  C6 PHIM season cumulative rose 3,009 (row 57, to 5 Jul 2026) -> 3,013 (row 313, to 23 Aug 2026) while every PHIM
+     weekly bulletin wk27-35 and the tracker report zero new suspected cases (rows 56, 65, 307-310); ECDC (data to
+     26 Aug 2026) lists Malawi among countries reporting new cases 27 Jul-26 Aug. Most likely a backfill/reclassification
+     of earlier cases (deaths were redefined 5 -> 25 in the same bulletin); if not, zero rows 65/307-310 are contradicted.
+  C7 Legacy zero rows 60-64, 67-69 (1975, 1979, 1980, 1982, 1984-1987) are labelled Documented_Absence (0.9) on the basis
+     of Malawi's ABSENCE from WER notification tables (1979: 'did not report cases'). Under this pipeline's definitions a
+     WHO table that lists notifying countries does not list Malawi with 0; these are Inferred_Absence at best (notification
+     channel live in adjacent years; cholera IHR-notifiable). 1987-88 coincides with the Mozambican refugee influx
+     (camp cholera documented from March 1988). Recommend Agent 5/7 relabel to Inferred_Absence (not changed by me).
+  C8 WHO internal contradiction 1995-96: WER tables 1 case/yr vs WER 72(31) text 'no cases ... in 1995 and 1996'.
