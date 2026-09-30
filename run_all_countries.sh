@@ -37,7 +37,7 @@ TIMEOUT_SECS=${TIMEOUT_SECS:-172800}       # 48h: hang detector only, not a budg
 MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}            # retries before moving on
 PERMISSION_MODE="acceptEdits"
 MAX_TURNS=${MAX_TURNS:-600}
-DASH_EVERY=${DASH_EVERY:-5}                # full dashboard rebuild cadence
+DASH_EVERY=${DASH_EVERY:-1}                # full dashboard rebuild cadence (every country)
 PARALLEL=${PARALLEL:-1}                    # countries running concurrently
 DRY=0; LIMIT=0; FROM=""; ONLY=""; FIRST="${FIRST:-}"; RETRY_FAILED=0; PUBLISH=0
 
