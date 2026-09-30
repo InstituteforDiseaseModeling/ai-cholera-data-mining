@@ -1,0 +1,46 @@
+=== AGENT 5 INITIALIZATION ===
+Country: Angola (AGO)
+Agent  : 5 - Cross-Reference Integrator (fresh deployment, 2026-09-29 Opus 5.5 cycle, session 2)
+Start  : 2026-09-30 (see block timestamps)
+Status : INITIALIZED
+Time limit: NONE. Only stopping rule for SEARCHING: >=3 batches of 20 queries, then stop at
+  3 consecutive batches <5% EXTENDED yield, or at 12 batches. Conflict-resolution / repair work
+  (inventory items 1-25) is not capped by batches and is completed regardless of when searching stops.
+Overrides honoured: NO py/analyze_effective_gaps.py, NO py/build_weekly_timeseries.py, NO dashboard
+  scripts, NO git. CSVs written only through py/add_observation.py (new rows/sources) and
+  py/revise_observation.py (existing rows; --delete writes a tombstone to ./data/AGO/retracted_rows_ai.csv).
+  Read-only helpers used: /tmp/AGO_orch/ago_coverage.py, /tmp/AGO_orch/ago_weekly_preview.py.
+  Scratch files: /tmp/AGO_orch/a5_*.
+Read before query 1: ./data/AGO/workflow_orchestrator_AGO.txt (rev. 19:20), ./templates/template_search_protocol.txt,
+  ./data/AGO/search_log_agent_1.txt, _2.txt, _3.txt, _4.txt (full), ./data/AGO/workflow_state.json (full),
+  ./data/AGO/cholera_data_ai.csv, ./data/AGO/metadata_ai.csv, ./data/AGO/cholera_presence_ai.csv,
+  ./data/AGO/retracted_rows_ai.csv, ./data/AGO/cholera_data_jhu.csv and ./data/AGO/cholera_data_who.csv (READ-ONLY).
+
+YIELD RULES (both logged for every batch; the stopping rule uses EXTENDED yield)
+  STRICT   : query produced >=1 committed NEW row in ./data/AGO/cholera_data_ai.csv.
+  EXTENDED : query produced >=1 committed NEW row, OR an evidence-based change to an existing row's
+             count / date / location / confidence, OR a retraction (tombstoned). Note-only appends do
+             NOT count. Each query counts at most once. Extraction passes over documents already held
+             (by me or by earlier agents in /tmp/AGO_orch/) are NOT new queries and are not credited.
+  Yield = successful queries / 20 x 100 (percent, 0-100; never above 100).
+
+STARTING STATE (measured 2026-09-30 before any change)
+  ./data/AGO/cholera_data_ai.csv   9 307 rows (Index max 9345)
+  ./data/AGO/metadata_ai.csv       769 sources (Index max 769)
+  ./data/AGO/cholera_presence_ai.csv 46 records; ./data/AGO/retracted_rows_ai.csv 28 tombstones
+  python py/validate_quality.py AGO -> exit 0; ERROR 0 / WARN 52 / INFO 308
+     WARN: 31 CFR_high_flagged_for_review, 11 notes_missing_quote (CSV lines 15-25 = Index 14-24),
+           4 reporting_date_blank (lines 32,33,34,40 = Index 34,35,36,49), 4 period_single_day
+           (Index 9255, 9256, 9260, 9297), 1 multiyear_aggregate (line 12 = Index 11),
+           1 same_period_conflict (line 82 = Index 105 vs line 9 = Index 8)
+     INFO: 220 national_subnational_overlap (all documented), 90 metadata_unused
+  python3 /tmp/AGO_orch/ago_coverage.py -> EFFECTIVE 84.9% (578/681), months_ai 537, months_ai_only 150,
+     positive_months 409, gaps: 1976-01-01..1976-12-31 (366d, historical); 1997-01-01..2003-12-31
+     (2556d, modern); 2004-06-01..2004-12-31 (214d, modern); latest observation 2026-09-19.
+     BASELINE-ONLY 62.6% (426/681), 7 gap periods.
+
+=== ORCHESTRATOR NOTE 2026-09-30 08:15:03 (written by the orchestrator, not by Agent 5) ===
+The Agent 5 attempt that wrote the block above was terminated by an API network error (ENOTFOUND) at about
+08:07, partway through its (unlogged) batch 1. It committed no rows or revisions to ./data/AGO/cholera_data_ai.csv.
+It registered metadata 770 (WHO DON update 3, 6 Jun 2006), 771 (Observador/Lusa 9 Apr 2025) and 772 (WHO AFRO pt,
+15 Jan 2025) and left scratch files /tmp/AGO_orch/a5_*. Agent 5 is redeployed; the new attempt appends below.

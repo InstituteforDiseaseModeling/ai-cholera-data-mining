@@ -1,36 +1,52 @@
-=== AGENT 7 QUALITY AUDIT - CONGO (COG) ===
-Date: 2026-05-15
-Status: COMPLETED
+=== AGENT 7 (cholera-quality-auditor) INITIALIZATION ===
+Country: Republic of the Congo (COG)
+Cycle: 2026-09-29 (Opus 5.5 re-run), FRESH Agent 7 run
+Start Time: 2026-09-30 07:42:22
+Agent 7 Status: INITIALIZED
+Previous canonical Agent 7 log (2026-05-15) preserved at ./data/COG/search_log_agent_7_legacy_20260515.txt
+Previous report preserved at ./data/COG/search_report_legacy_20250806.txt
+Working directory: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Tools: edits/relabels/retractions via py/revise_observation.py; new rows via py/add_observation.py;
+       mechanical repairs via py/repair_data_integrity.py; exit gate py/validate_quality.py COG (must exit 0).
+Constraints honoured: do NOT run py/analyze_effective_gaps.py / py/analyze_baseline_gaps_optimized.py
+       (shared ./reference files, 4 parallel countries) -> private helper /tmp/COG_gaps_private.py used instead;
+       do NOT run update_dashboard.sh; no git commit; JHU/WHO baselines read-only.
 
-=== QUALITY AUDIT SUMMARY ===
-All 6 data collection agents ran. 15 data observations validated from 9 sources spanning 2000-2025.
+=== RESUME NOTE ===
+Run was interrupted once by a transient network error (API DNS ENOTFOUND) after the structural checks below; context intact;
+no data file changed during the interruption (coordinator check 08:14). Log continues without truncation.
 
-=== FILE VALIDATION ===
-cholera_data_ai.csv: 15 data rows - VALIDATED
-metadata_ai.csv: 9 source entries - VALIDATED
-search_report.txt: EXISTS
-Agent logs 1-6: ALL PRESENT
-
-=== FORMAT VALIDATION ===
-✓ 14 required columns present
-✓ Date format YYYY-MM-DD verified
-✓ Location codes AFR::COG format verified
-✓ Dual-reference indexing verified
-✓ source_database = 'AI' for all rows
-
-=== DATA QUALITY VALIDATION ===
-✓ 2007 outbreak: 4000 sCh, 52 deaths, CFR 1.3% - validated
-✓ 2011 outbreak: 775 sCh, 32 deaths, CFR 4.1% - validated
-✓ 2023 outbreak: Dolisie epicenter 65 sCh/17 deaths, national 2389 sCh/52 deaths
-✓ 2025 outbreak: 808 sCh, 67 deaths, CFR 8.3% (Mbamou Island epicenter)
-✓ Zero-transmission periods: 2000-2006, 2008-2010, 2023-2024 documented
-✓ CFR flags: 2016 Mbamou 18.8% (island isolation), 2023 Niari 26.2% (epicenter) - noted in processing_notes
-✓ Double-counting notes added for sub-national rows
-
-=== COVERAGE ASSESSMENT ===
-- Temporal span: 2000-2025
-- Outbreaks: 2007, 2011, 2012 (Betou), 2016 (Mbamou), 2018, 2023, 2025
-- Zero-transmission: 2000-2006, 2008-2010, 2023-2024
-- Source quality: 55% Level 1 (WHO), 45% Level 2 (IFRC, ReliefWeb)
-
-=== AGENT 7 STATUS: COMPLETED ===
+=== AUDIT PASS 1 | ITEM 1 (structural/format) + ITEM 2 (repair tool) | COG ===
+Inputs read: ./data/COG/workflow_state.json (all 6 agent entries + orchestrator gate log), FINAL SUMMARY / OPEN LEADS /
+  CONFLICT REGISTER / GAP CLASSIFICATION sections of ./data/COG/search_log_agent_1.txt .. search_log_agent_6.txt.
+1a Validator (authoritative): python py/validate_quality.py COG --json /tmp/COG_audit.json -> exit 0,
+   ERROR 0 / WARN 10 / INFO 218 (612 rows, 188 sources). WARN = 10 x CFR_high_flagged_for_review (item 16).
+   INFO = 170+ national_subnational_overlap 'documented' groups + metadata_unused entries (listed under item 3/4).
+1b CSV structure (/tmp/COG_a7 scripts, csv module, no pandas coercion):
+   ./data/COG/cholera_data_ai.csv: 14 columns in the specified order; 613 physical records (header + 612), every record 14
+     fields; UTF-8 strict decode OK; no BOM; LF line endings; no embedded newlines in processing_notes.
+   ./data/COG/metadata_ai.csv: 15 columns in the specified order; 189 records, every record 15 fields; UTF-8 OK; no BOM.
+   ./data/COG/retracted_rows_ai.csv: 25 tombstones (Index 1,3,7-12,14,72,110,167-171,335 and 624-631).
+1c Dual reference: 612/612 rows source_index -> existing metadata Index; 612/612 source == metadata Source exactly.
+   Metadata Index 1..188 contiguous, no duplicates. source_database: 612 'AI' (data), 188 'AI' (metadata).
+   Data Index: 612 unique values in 2..629; holes = 17 retracted numbers (1,3,7,8,9,10,11,12,14,72,110,167-171,335);
+   624-631 were tombstoned by Agent 5 batch 8 and 624-629 were then RE-USED by the pre-fix allocator for different live rows
+   (2025-08 district splits 624-628, national zero 629) - each live row carries a disclosure note. NOT renumbered (by rule).
+1d Dates: TL <= TR for 612/612; reporting_date present and >= TR for 612/612; no date after 2026-09-30.
+1e Counts/CFR: no count-less row; deaths <= sCh, cCh <= sCh everywhere; all counts non-negative integers; CFR equals
+   deaths/sCh*100 (2 dp) on every row with sCh>0 and deaths present; zero rows carry CFR 0.0.
+1f Confidence: all 0.1-1.0. Against the CLAUDE.md reliability bands (L1 0.9-1.0, L2 0.7-0.9, L3 0.3-0.6, L4 0.1-0.3):
+   0 rows ABOVE their source's band ceiling; 159 L1-cited and 29 L2-cited rows sit BELOW the band floor = deliberate
+   down-weighting (conflict, inferred zeros, routine-coded counts) - allowed by the conflict-resolution rules.
+   Metadata reliability: Level 1 = 125, Level 2 = 48, Level 3 = 15, Level 4 = 0. Status: Active 187, Superseded 1 (Index 122).
+1g Locations: every ADM1 segment is one of the 12 units in ./reference/country_profiles.json (Bouenza, Brazzaville, Cuvette,
+   Cuvette-Ouest, Kouilou, Lekoumou, Likouala, Niari, Plateaux, Pointe-Noire, Pool, Sangha) with ONE spelling each; no
+   prohibited (programme/demographic) segment. Era-specific units are distinct, not misspellings: Likouala::Betou (2012,
+   administrative district, Index 5, 484) vs Likouala::Enyelle-Betou (2026 health district, Index 128-130, 190, 196..);
+   Plateaux::Ngo-Mpouya (2026 health district) with health-area children ::Mpouya/::Ngo/::Ottui (144-146).
+   Pool::Ngoma Tse-Tse (348) uses the JHU spelling (official 'Goma Tse-Tse'); Pointe-Noire::Tchiamba-Nzassi (615) is the
+   district attached to Pointe-Noire department. Cross-layer naming note (baseline, read-only): JHU writes 'Cuvette Ouest'
+   (space), 'CG-16' (ISO 3166-2 for Pointe-Noire) and two regex-like strings '(Brazzaville|Likouala)' - AI uses the
+   profile spelling 'Cuvette-Ouest'. Reported as a pipeline issue.
+2  Repair tool: python py/repair_data_integrity.py --dry-run COG -> 'TOTAL: 0 change(s)'. Nothing to apply; nothing
+   withheld, so ./data/COG/attribution_review.csv was NOT created (per brief).
