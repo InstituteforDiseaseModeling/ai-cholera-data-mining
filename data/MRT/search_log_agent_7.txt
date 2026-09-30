@@ -1,0 +1,78 @@
+================================================================================
+=== AGENT 7 (QUALITY AUDITOR) - MRT (Mauritania) - OPUS 5.5 MAX-EFFORT RE-RUN ===
+================================================================================
+Run: opus55_max_2026-09-29 (orchestrated seven-agent re-run; RESUMED process started 19:08 PDT)
+Start: 2026-09-29 22:16:50 PDT
+Log status: FRESH canonical log for this cycle. The legacy Agent 7 log (2026-05-15, an 8-row
+  dataset) is kept unchanged at ./data/MRT/search_log_agent_7_legacy_2026-05-15.txt.
+Role: last gate before MOSAIC. No batch limit (validation queries unlimited). Writes only via
+  py/add_observation.py and py/revise_observation.py (--agent 7, --reason); repair tool only with
+  the MRT argument; never hand-edit CSVs; never run shared generators or writing git commands.
+
+READ IN FULL BEFORE ANY ACTION
+  /tmp/MRT_run/brief_common_v2.md; ./data/MRT/workflow_state.json (agents 1-6 incl. the cumulative
+  entries of resumed Agents 1 and 4; run incl. run.resumed; prior_run; cross_agent_findings; all 32
+  orchestrator notes); ./data/MRT/search_log_agent_{1,2,3,4,5,6}.txt (incl. Agent 5 CONFLICT
+  REGISTER K1-K9 + post-June-2007 rule; Agent 6 GAP CLASSIFICATION TABLE + KEY FINDINGS FOR AGENT 7);
+  ./data/MRT/search_log_agent_7_legacy_2026-05-15.txt; ./data/MRT/search_report_legacy_2026-05-15.txt;
+  ./CLAUDE.md; ./templates/template_search_protocol.txt.
+Scratch (not data): /tmp/MRT_run/agent7/
+
+STATE ON ENTRY (verified)
+  ./data/MRT/cholera_data_ai.csv     130 rows (max Index 139)
+  ./data/MRT/metadata_ai.csv         131 sources (Index 1-131)
+  ./data/MRT/cholera_presence_ai.csv  25 rows
+  python py/validate_quality.py MRT --json /tmp/MRT_audit.json -> EXIT 0; ERROR 0, WARN 6, INFO 78
+    WARN: CFR_high_flagged_for_review at file lines 53, 66, 77, 100, 126 (= Index 59, 72, 85, 108,
+          134); period_single_day at file line 127 (= Index 135)
+    INFO: 44 metadata_unused; 34 national_subnational_overlap (all 'documented')
+  Validator row numbers are FILE LINE numbers (header = line 1), not Index values.
+
+################################################################################
+=== V1 FULL VALIDATION AND REPAIR ===
+################################################################################
+V1.1 STRUCTURAL INTEGRITY (script /tmp/MRT_run/agent7/integrity.py; local, no query)
+  data header = the 14 mandated columns in order; metadata header = the 15 mandated columns; no ragged
+  lines in either file; metadata Index sequential 1..131, no duplicates; data Index unique (130 values,
+  max 139; gaps = tombstoned retractions 1, 2, 6, 7, 9, 44, 46, 77, 78 and the re-used 63).
+  DUAL REFERENCE: every source_index exists in metadata; every `source` text equals metadata Source
+  EXACTLY (130/130); no live row cites a Superseded source (metadata 125 is retired and uncited).
+  DATES: all TL<=TR; all reporting_date>=TR; none after 2026-09-29.
+  ARITHMETIC: deaths<=sCh and cCh<=sCh everywhere; CFR recomputed = stored CFR (+-0.06) on every row with
+  both counts; no row without a quantitative value.
+  LOCATION: every row starts AFR::MRT; every ADM1 token is in country_profiles.json adm1 (+ pre-2014
+  'Nouakchott' and 'Multi_Provincial', both legal); one ADM2 row (Index 40 Nouakchott::Dar_Naim).
+  CONFIDENCE: no row exceeds the ceiling of its source's Reliability_Level band.
+  NOTES: every row carries "Source states:"; every sub-national row carries exactly ONE of the two
+  primary-level phrases; source_database = 'AI' on all rows.
+  DUPLICATES: no exact duplicate (Location, TL, TR, sCh, deaths); no same-location/same-count row pair
+  with overlapping windows.
+  NATIONAL-vs-NATIONAL OVERLAPS (the validator checks only national-vs-sub-national): 16 overlapping
+  national pairs (script natoverlap.py) - 51/52, 56/133, 61/63, 67/124, 69-71/134, 72/124, 127/128,
+  127-130/132, 128/135, 129/130, 132/135. Every pair cross-references the other; nested pairs (56 in
+  133; 69-71 in 134; 135 in 128; 127-130 and 135 in annual 132) say "do not sum"; additive pairs (72+67+124
+  = WHO period V 94/9; 127+128 = DON 2640/55; 61+63 (+62) = annual 4534/148; 129+130) are explained on at
+  least one side. RESULT: PASS.
+  NOTE (not a defect of the data): notes are append-only, so on some revised rows the OPENING text
+  states a superseded reading (e.g. Index 124 opens with the withdrawn '6-13 JUNE' reading; the
+  re-dating to May is appended later; Index 72 still calls the 33 cases 'probably June'). Addressed by a
+  one-line AUDIT stamp on such rows (see V1 repairs).
+
+V1.2 EXTRACTION SPOT-VERIFICATION AGAINST CACHED SOURCE PAGES (visual reading of the agents' 220-dpi
+  crops in /tmp/MRT_run/agent1/; re-reading cached files is not a query)
+  1971 (JHU 1139/53), WER vol 46 notification tables:
+    46(25) 'MAURITANIA 16 VI Abdel Bagrou 11s 2s'  +  46(26) '17 VI 1re Region Amourj, Departement 31 6',
+      revised in 46(35) 'Amourj, Dep 31r 3r'  -> row 48 = 42/5 (11+31; 2+3r)                    VERIFIED
+    46(35) 'Up to 15 VIII: Addel Bagrou 288r 10r; Amourj 31r 3r; Bousteila 150r 3r; Djigueni 228r 1r;
+      Timbedra 2r 0' = 699/17 -> row 57                                                        VERIFIED
+    46(36) '16-22 VIII Nema 10 0; 11 VI-22.VIII Kaedi 51 1; Boghe 80 20' -> rows 58, 59, 60;
+      row 49 derived 699+10+51+80 = 840, 17+0+1+20 = 38, minus row 48 (42/5) = 798/33          VERIFIED
+    46(37) '23-29 VIII Abdel Bagrou 2 0; Nema 4 0; Kaedi 25 0; Boghe + M'Bagne 7 0' -> rows 50 (38/0),
+      94 (HEC 6/0), 95 (Gorgol 25/0), 96 (Brakna 7/0)                                          VERIFIED
+    46(38) '30 VIII-5 IX Djigueni 47 3; Kaedi 4 0; Boghe 6 0' -> rows 51 (57/3), 97, 98, 99     VERIFIED
+    46(39) '5-12 IX Abdel Bagrou 1 0; Amourj 1 0; Djigueni 32 1; Boghe 1 0; M'Bagne 1 0' -> rows 52
+      (36/1), 100 (HEC 34/1), 101 (Brakna 2/0)                                                  VERIFIED
+    46(40) '13-19 IX Djigueni 6 0' -> rows 53, 102                                             VERIFIED
+    46(41) '20-25 IX Djigueni 5 0; Nema 18 7' -> rows 54 (23/7, 0.7), 103                      VERIFIED
+    46(42) '26 IX-3.X Djigueni 12 0' -> rows 55, 104                                           VERIFIED
+    46(51) '18-30 XI Djigueni 14 1; Timbedra 25 0' -> rows 56 (39/1), 105                      VERIFIED

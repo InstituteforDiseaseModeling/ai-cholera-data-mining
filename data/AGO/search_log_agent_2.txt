@@ -530,3 +530,130 @@ Validator    : exit 0, ERROR 0, WARN 35 (18 CFR_high - all source-stated deaths,
                4 reporting_date_blank, 1 multiyear_aggregate, 1 same_period_conflict - all pre-existing)
 Decision     : CONTINUE (batch 7: T2 MINSA daily bulletins 2025 - stated 24 h provincial splits for weeks 20-24 and
                26-52; then T4/T5/T6/T7)
+
+=== BATCH 7 | PHASE 2 (T2 2025 weekly provincial incidence via MINSA daily bulletins; T3/T4 IFRC 2006-07 tables) | AGO ===
+Gap targeted : sub-national 2025 weeks 20-24 and 26-52 (MINSA weekly bulletins exist only for weeks 13-19, 23, 25);
+               Oct 2006-Feb 2007 southern resurgence geography; 2011-2013 leads.
+Method       : every numbered MINSA 'Boletim Informativo da Colera' states the 24 h split by province in text
+               ('Foram notificados N novos casos ..., sendo A na Provincia X, B em Y ...') plus a death sentence.
+               Parser /tmp/AGO_orch/a2_s2_bparse.py + independent death parser a2_s2_bdeaths2.py; a bulletin is
+               ingested only if (i) the provincial values sum EXACTLY to the stated national 24 h total, (ii) its
+               printed number and 'ACTUALIZADO' date match the expected date (bulletin N = 7 Jan 2025 + N days),
+               (iii) deaths are split only when the provincial deaths sum exactly to the stated total (else blank,
+               sentence quoted). One row per province per bulletin (24 h convention TL = D-1, TR = D, as all other
+               24 h rows). EXTERNAL VALIDATION: bulletins 145-151 (1-7 Jun 2025) sum to 1 034 cases = MINSA's own
+               week-23 national total (Semana 23 image, session 1); weekly sums track the WHO dashboard weekly series
+               (e.g. MINSA wk 42 1 005 vs WHO ISO-wk 42 1 043; wk 51 126 = 126).
+Queries (20):
+ 121 afro.who.int publication pages + PDFs, bulletins 124-158 (weeks 20-24)                              [HIT]
+ 122 same, bulletins 166-200 (weeks 26-30)                                                               [HIT]
+ 123 same, bulletins 201-237 (weeks 31-35)                                                               [HIT]
+ 124 curl reliefweb.int (PC19) 2025 cholera listing pages 2-8 -> ReliefWeb copies of mislinked/image-only
+     bulletins 172, 180, 228, 235 (+209 afro) ; image-only PDFs rendered and read visually               [HIT]
+ 125 direct afro.who.int URL probes (8 filename patterns x 2 month folders) for 43 missing bulletins ->
+     168, 170, 189 found (170 read visually; Luremo late deaths)                                           [HIT]
+ 126 publication pages + PDFs, bulletins 266-306 (weeks 40-44)                                           [HIT]
+ 127 publication pages + PDFs, bulletins 307-354 (weeks 45-52)                                           [HIT]
+ 128 second direct-URL probe for 18 still-missing bulletins                                             [no row]
+ 129 first-page JPGs embedded on 13 publication pages whose PDF link is missing or points to another
+     document (138, 157, 158, 175, 207, 269, 284, 288, 296, 336, 339, 340, 349) - upscaled 3x, read visually,
+     each verified by the image's cumulative counter minus the previous day's cumulative                  [HIT]
+ 130 IRIS OEW 2025 weeks 35-37 Angola entries (stale: data to 18 Aug)                                   [no row]
+ 131 UNICEF Angola HSR No. 12 (2 Sep-2 Oct 2025) + PDF (national 29 850/824 only)                       [no row]
+ 132 WebSearch [pt] colera Uige setembro 2025 ... (-> Sep-2025 monthly figures already Index 184-188)   [no row]
+ 133 WebSearch [pt] colera Lunda Norte Capenda Camulemba setembro 2025 ... (same monthly figures)       [no row]
+ 134 WebSearch [pt] colera Cunene setembro 2025 Ondjiva Cuanhama ... (same; Cunene 606/7 cumulative)     [no row]
+ 135 IFRC MDRAO001 Operations Updates 4, 5, 6 + Final Report pages and PDFs                              [HIT]
+ 136 re-read GTFCC country profiles 2007/2009/2013 (percentages only; weekly-by-province chart unlabelled) [no row]
+ 137 IFRC MAAAO001 programme update 3, reports 2006-07, appeal 2008-09, MDRAO002 floods update 1       [no row]
+ 138 re-read WHO AFRO 2012-2013 outbreak bulletins (only the 2012 table already in Index 978-983)       [no row]
+ 139 WebSearch [pt] colera Lucapa Lunda Norte dezembro 2011 (nothing new)                              [no row]
+ 140 WebSearch [pt] colera Saurimo Lunda Sul janeiro 2012 Dundo Chitato (VOA leads = Agent 1's)          [no row]
+RESULTS
+ * 2025 PROVINCIAL DAILY SERIES: 191 MINSA daily bulletins ingested (+ 13 read from first-page images, 6 from
+   scanned PDFs) -> 1 055 provincial 24 h rows, 19 provinces, 11 May-27 Dec 2025. Complete (7/7 days) for MINSA
+   weeks 20-23, 26, 27, 30-33, 35, 42-47, 50-52 (20 weeks); partial: wk 24 (6/7), 28 (5/7), 29 (4/7), 34 (6/7),
+   36 (2/7), 40 (5/7), 41 (6/7), 48 (6/7), 49 (6/7); wk 37-39 (7-27 Sep) ABSENT - bulletins 238-265 are posted
+   on neither afro.who.int nor ReliefWeb (September covered only by the monthly Index 184-188 and the 29 Aug /
+   30 Sep Quadro 2 cumulatives). Week 25 has the session-1 weekly Tabela 1 rows.
+ * Data quirks handled: Cabinda backlog of 30 cases (2-8 Jun) placed on a 2-9 Jun row (bulletin 153 footnote;
+   Cabinda silent in 146-152); Luremo 4 late community deaths (18-22 Jun) as a municipal row; 2 deaths discarded by
+   the Technical Commission (bulletin 209) and Huila death re-registrations (290) noted; MINSA misprints 172 ('178')
+   and 275 ('279') identified by date; WHO AFRO page mislinks (138, 157, 158, 168, 170, 172, 175, 191, 207, 224,
+   228, 269, 277, 284, 288, 296, 336, 339, 340, 349) detected by the number/date check - never ingested under the
+   wrong number.
+ * OWN PARSE ERROR CAUGHT AND FIXED: bulletin 145 ('4* na Provincia da Huila e 1 no Namibe') had been written as
+   Huila 5 deaths; the second, independent death parser flagged it -> Index 1705 deaths 5 -> 4, Index 1601 deaths
+   0 -> 1 (revise_observation.py, notes appended).
+ * 2006-07 (query 135): MoH tables via IFRC - cumulative to 31 Oct 2006 (16 prov. = 57 570/2 354 exact), monthly
+   Nov and Dec 2006 (each exact: 4 820/229, 5 030/138), monthly Jan and Feb 2007 (column labels corrected by
+   arithmetic; 3 873/92, 4 334/166); 57 570 + 9 850 + 8 207 = 75 627 = the stated 28 Feb 2007 cumulative. Resolves
+   the resurgence geography (Cunene Oct 2006 onset: 132 -> +698 Nov -> +627 Dec -> +149 Jan -> +7 Feb) and gives a
+   partial second source for Agent 1's Cunene lead (IFRC ~1 613/62 to 28 Feb 2007 vs ANGOP 1 915/72 to 3 Apr 2007 -
+   NOT committed). Moxico zero extended to 24 Apr 2007 (explicit), Lunda Sul to 28 Feb 2007 (exclusion).
+Revisions (not counted): Index 1426/1460/1485/1507/1518/1600/1944 confidence -> 0.7 (CFR >15% single-day);
+   1705, 1601 (parse fix); overlap notes on 184-188 (Sep-2025 monthly) and 197-200 (Dec-2025 monthly); Index 904
+   RETRACTED (own s1 ANGOP Benguela Jan 2007 792/22: same period as MoH 643/20, Index 2481 - value kept in 2481's
+   note, confidence 0.6).
+Sources found: 177   Registered: metadata_ai.csv index 343-519 (191 MINSA bulletin entries incl. image/scan ones,
+               4 IFRC 2007, 3 WHO AFRO OEW 2025 from batch 6 excluded)
+Rows added   : 1 142 -> ./data/AGO/cholera_data_ai.csv 1 344 -> 2 485 rows (Index 1371-2512; net +1 141 after
+               retracting 904)
+Successful queries: 9/20  (queries 121, 122, 123, 124, 125, 126, 127, 129, 135)
+Yield        : 45%
+Consecutive sub-5% batches: 0
+Validator    : exit 0, ERROR 0, WARN 40 (23 CFR_high - source-stated deaths; 11 notes_missing_quote, 4
+               reporting_date_blank, 1 multiyear_aggregate, 1 same_period_conflict - pre-existing)
+Decision     : CONTINUE (batch 8 = Phase 3: 2026 MINSA bulletins / T1, 2008 Benguela second source, 2013 Huila/
+               Cunene, 2016-2019 Zaire/Uige/Cabinda, border provinces, 1997-2004 provincial)
+
+(Correction to the BATCH 7 block above: '191 MINSA bulletin entries' counts all metadata entries with that naming,
+ including session-1 bulletin sources re-used by URL; the NEW batch-7 sources are the 177 at Index 343-519.)
+
+=== BATCH 8 | PHASE 3 (T1 2026 provincial, T4 second sources, T6 1997-2004, T7 border; provincial portals) | AGO ===
+Gap targeted : 2026 provincial series (MINSA 2026 bulletins not public); 2025 tail; 2008/2012-2013/2016-2018
+               leads needing second sources; 1997-2004 provincial; border provinces.
+Queries (20):
+ 141 curl afro.who.int/countries/angola/publications pages 0-3 (newest = bulletin 355, 28 Dec 2025; no 2026
+     MINSA bulletin posted) -> bulletin 355 24 h split (Uige 16, Huila 3, Malanje 1; source 90 re-used)       [HIT]
+ 142 curl reliefweb.int (PC19) 2026 listing pages 0-2 + 'colera' pages (10 items)                         [no row]
+ 143 curl IFRC DREF MDRAO011 Final Report (May 2026) - PDF now exposed: Cacuaco onset cluster 25/5, 7 Jan 2025 [HIT]
+ 144 WHO multi-country cholera epidemiological updates #33-#38 (2026): provincial percentages only (already
+     Index 170-175); #36/#39/#40 pages not published                                                    [no row]
+ 145 WebSearch [pt] colera Benguela 2026 Navegantes Baia Farta ... -> benguela.gov.ao 18 Jun 2026: Benguela
+     Mar 2025-17 Jun 2026 7 475/165 (components corroborated: MINSA 2025 4 731/108 + WHO Apr/May 2026 shares);
+     RNA 29 Apr 2026 corroborates Index 1269                                                            [HIT]
+ 146 WebSearch [pt] colera Malanje 2026 Cacuso Calandula ... (nothing new)                             [no row]
+ 147 WebSearch site:benguela.gov.ao colera casos + Uige / Huila provincial-government searches           [no row]
+ 148 curl 3 benguela.gov.ao notices ('perto de 525' Apr 2025 - approximate), VOA 20 Dec 2012 Uige city (3 deaths,
+     'cerca de 150' admissions -> cholera_presence_ai.csv), huilangola.com (empty)                     [no row]
+ 149 WebSearch [pt] colera Benguela 2008 ... Lusa (no 2008 second source)                              [no row]
+ 150 WebSearch jn.pt colera Angola 2008 ... (JN 583372 = existing source 136)                           [no row]
+ 151 WebSearch rna.ao colera 2026 provincia casos (only the known Uige Aug 2026)                       [no row]
+ 152 WebSearch RNA colera Jun-Jul 2026 Luanda Icolo e Bengo -> RNA 13 May 2026 Icolo e Bengo (Sequele, Cabo
+     Ledo; no counts); Jornal de Angola 677559 (JS-rendered, unreadable)                               [no row]
+ 153 WebSearch voaportugues colera Huila 2013 Cunene (nothing for 2013)                                [no row]
+ 154 WebSearch voaportugues colera Soyo Zaire 2016 2017 (Rede Angola Soyo 92/5 = Index 714)              [no row]
+ 155 WebSearch voaportugues colera Uige 2018 Songo Negage (nothing for 2018)                            [no row]
+ 156 curl Revista Cientifica CSE (Angola) 'Colera em Angola: causas, consequencias ...' - repeats 2011 and the
+     2016-17 provincial split (MINSA report) -> corroboration notes on Index 22-24                      [no row]
+ 157 WebSearch [pt] surto de colera Angola 1998 1999 Benguela Lobito Huambo (no provincial count)       [no row]
+ 158 WebSearch cholera outbreak Angola 2003 2004 province ... MSF (confirms no outbreak with a count)   [no row]
+ 159 curl ReliefWeb 'Flood and Cholera Update Situation Report no. 2' (23 Mar 2009) = existing source 28 [no row]
+ 160 curl CERF 2007 Angola report = existing source 91 (national only)                                  [no row]
+RESULTS
+ * 2026: no MINSA 2026 bulletin is public (afro.who.int newest No 355; ReliefWeb 2026 has 10 Angola items; OEW
+   2026 weeks 13-29 not on IRIS; Africa CDC paragraphs say 'from five provinces' without naming them). New 2026
+   provincial evidence limited to Benguela (Index 2517 cumulative; RNA corroboration of Index 1269).
+ * 2025: bulletin 355 24 h split; Cacuaco onset cluster (7 Jan 2025).
+ * T4/T6/T7: no second source found for Benguela 2008 (2 338/34) or the Cunene 1 915/72 lead; nothing with a count
+   for 1997-2004 in any province; no Angolan border-province figures in neighbour sources.
+Sources found: 3   Registered: metadata_ai.csv index 520 (IFRC DREF MDRAO011 final), 521 (benguela.gov.ao),
+               522 (VOA 2012, presence only)
+Rows added   : 5 -> ./data/AGO/cholera_data_ai.csv 2 485 -> 2 490 rows (Index 2513-2517); presence +1
+               (AFR::AGO::Uige::Uige Dec 2012)
+Successful queries: 3/20  (queries 141, 143, 145)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 9 = Phase 3 deep validation: remaining 2025 single days via other hosts/mirrors,
+               2006-07 province-level second sources, 2010-2011 provincial, OCHA ROSA 2008-09 re-mine, cross-border)
