@@ -18,3 +18,136 @@ Targets (from orchestrator brief; no formal historical gap rows remain for MWI i
 Stopping rule: min 3 batches x 20 queries; then stop at 3 consecutive batches <5% yield or 12 batches.
 No time limit.
 
+Inputs read before the first query: ./templates/template_search_protocol.txt; /tmp/MWI_brief_shared.md (orchestrator brief,
+outside repo); ./data/MWI/workflow_state.json; FINAL SUMMARY/HANDOVER of ./data/MWI/search_log_agent_1.txt, _2.txt (+ batch-4
+national handover, batches 10-12), _3.txt (C1-C33, batches 8-12 = the WER issues already mined 1973-2009);
+./data/MWI/cholera_data_ai.csv (2,267 rows), ./data/MWI/metadata_ai.csv (348), ./data/MWI/cholera_data_jhu.csv (national
++ camp rows), ./data/MWI/cholera_presence_ai.csv, ./data/MWI/retracted_rows_ai.csv. Validator at start: exit 0, ERROR 0,
+WARN 37. Shared-file safety: py/analyze_effective_gaps.py NOT run; no dashboard/builder; no git writes.
+Query-count convention: one query = one search or one fetch target; a sweep of the result set of one search counts as
+ONE query (not one per document); tool-refused domains (apnews.com, nytimes.com) were not executed and are not counted.
+
+=== BATCH 1 | PHASE 1 (broad discovery: refugee-era literature chain; WHO DON; season-window ReliefWeb sweeps) | MWI ===
+Gap targeted : 1988-1993 refugee-era camp/district detail; 2002/03-2007/08 and 2010/11-2013/14 season-total-only years
+Queries (20):
+   1 NCBI E-utilities esearch+efetch: cholera AND (Malawi OR Nyasaland), 1970-2006 -> 12 papers (Swerdlow 1997, Moren 1991,
+     Hatch 1994, Naficy 1998, Roberts 2001, Zachariah 2002, Gordon 2001, Turnbull 1985 ...) - no new counts in abstracts
+   2 Swerdlow et al. Epidemiol Infect 1997 full text (PMC PDF behind reCAPTCHA; Cambridge Core PDF read with pdftotext) ->
+     'Between 1988 and 1990, at least nine cholera outbreaks were reported among refugees in Malawi, including three that
+     affected Nyamithuthu'; Nyamithuthu 1,931/68 = row 1; 6,114 seen at observation tent (diarrhoea, not cholera) - no row
+   3 WebFetch JAMA Naficy 1998 (URL returned a different article)
+   4 WebSearch Naficy 1998 -> '11 cholera outbreaks ... Mozambican refugees between 1987 and 1991, attack rates 0.6-9.3%'
+     (no per-outbreak counts reachable)
+   5 WebFetch Lancet 2004 Connolly 'Communicable diseases in complex emergencies' -> HTTP 403
+   6 WebSearch exact phrase (11 outbreaks, attack rates) -> Shannon et al. PLoS NTD 2019
+   7 NCBI efetch Shannon 2019 (PMC6586254) table -> Malawi rows only Mankhokwe 1988 951/31 and Nyamithuthu 1990 1,931/68
+     (= rows 25 and 1); cites Moren et al. Disasters 1991 'Epidemiologic surveillance among Mozambican refugees in Malawi,
+     1987-89' (DOI 10.1111/j.1467-7717.1991.tb00475.x, Wiley, paywalled)
+   8 MSF Science Portal (fieldresearch.msf.org now CNAMEs to scienceportal.msf.org) search 'cholera Malawi' -> client-side
+     app, no result list server-side
+   9 Internet Archive Scholar (proof-of-work bot check - NOT circumvented) + Crossref/fatcat lookup for Moren 1991 ->
+     fatcat API unreachable; paper paywalled
+  10 ReliefWeb search cholera AND Malawi, 1998-01-01..2000-12-31 (60 items) + full-text sweep -> nothing new (IFRC 03/2000
+     723/19 = row 143; IRIN 19-26 Mar 1999 regional DEATHS South 103 / Central 140 / North 18 = row 599's 260, deaths-only
+     by region - not written)
+  11 WHO DON API: titles containing Malawi + all 202 pre-2005 cholera DONs scanned -> 6 Sep 2002 DON (Nkhotakota 755/24 to
+     24 Aug 2002) superseded by the revised 13 Sep 2002 DON already used (rows 494-495); no 1996-2001 Malawi item exists
+  12 WebSearch UPI archive (upi.com) Malawi cholera 1989-1993 -> nothing
+  13 ReliefWeb cholera AND Malawi, 2002-10-01..2003-06-30 (86 items) + sweep                                     [ROWS]
+  14 WHO GHO API, all countries 1981 (C21) -> 261 occurs only for MWI (no other country's 1981 value is 261); GHO's 18
+     African 1981 countries sum 19,415 vs WER 57(17) 15 countries 17,521 -> GHO used later revisions/other returns; C21
+     remains unresolved but is not a transcription copy
+  15 ReliefWeb 2003-10-01..2004-06-30 (44 items) + sweep -> only World Vision Machinga 77/1 (rows 496/497 exist)
+  16 ReliefWeb 2004-10-01..2005-06-30 (18 items) + sweep -> RIACSO April 2005 update                           [ROW]
+  17 ReliefWeb 2006-08-01..2007-07-31 (43 items) + sweep + IFRC appeal PDFs MDRMW002 (2 Feb 2007), MDRMW00201
+     (1 May 2007), MDRMW001fr (final report 2006)                                                                    [ROWS]
+  18 ReliefWeb 2007-10-01..2008-07-31 (48 items) + sweep                                                        [ROWS]
+  19 ReliefWeb 2010-09-01..2011-08-31 (14 items) + sweep -> only the WHO ESA May 2011 update already used (metadata 287)
+  20 ReliefWeb 2012-10-01..2014-12-31 (114 items, mostly ACAPS snapshots) + strict re-filter -> nothing for 2012/13-2013/14
+  (not executed: WebSearch restricted to apnews.com and nytimes.com - domains refused by the tool)
+  Local read (not a web query): ./../MOSAIC-data/raw/EMDAT/public_emdat_2026-09-16.xlsx (read-only) -> no Malawi cholera
+     record before 2000; 2006-0054-MWI = 852 affected / 20 deaths, 16 Jan-18 May 2006 (Blantyre, Mangochi, Dedza, Balaka,
+     Salima) - the same 852/20 IFRC MDRMW001 final report attributes to Blantyre, Mangochi, Chikwawa, Nsanje for Dec 2005-
+     Jan 2006: timing/geography inconsistent -> NOT written (by 31 Jan only ~4 deaths in Blantyre+Mangochi rows).
+Sources found: 6   Registered: metadata Index 349-354
+  349 UNICEF Southern Africa Crisis Donor Update 3 Dec 2002 (Karonga/Kaporo)   350 RIACSO Southern African Humanitarian
+  Crisis Update Mar 2003 (Dowa/Madisi)   351 RIACSO update Apr 2005 (952/10)   352 IFRC MDRMW002 Update no. 1 (1 May 2007)
+  353 UNICEF Malawi floods note 14 Jan 2008 (434/5; 2006/07 season window)   354 IFRC MDR63001 Ops Update 2 (3 Mar 2008)
+Rows added   : 8   Indices 2301-2308
+  2301 AFR::MWI::Karonga 2002-10-19..10-25  18 sCh / 3 cCh / 1 death (Kaporo; precedes JHU Karonga 2002/03 season row;
+       conflict noted: RIACSO 5 Nov 2002 '15 new suspected ... in October ... No deaths', superseded)
+  2302 AFR::MWI::Dowa 2003-02-28..03-01  90 / 0 (Madisi hospital, 48 h; facility lower bound; JHU has no Dowa 2002/03)
+  2303 AFR::MWI 2005-02-28..03-31  83 / 1 DERIVED (952/10 minus 869/9; fills the WER gap 21 Feb-3 Apr 2005)
+  2304 AFR::MWI 2006-08-01..12-31  142 / 2 cumulative since the Aug 2006 onset to the floods of 1 Jan 2007
+  2305 AFR::MWI::Multi_Provincial 2007-02-05..02-11  9 (flood areas: Chikwawa, Nsanje [+ Mangochi]); provincial subset
+  2306 AFR::MWI 2007-11-05..2008-01-14  434 / 5 cumulative since the 5 Nov 2007 onset (deaths conflict vs Reuters 8, row 504)
+  2307 AFR::MWI 2007-06-24..11-04  ZERO Documented_Absence, operational, 0.7 (season ended week of 17 Jun 2007; next onset
+       5 Nov 2007; reconciliation 167 + 308 = 475 = WHO/JHU 2007)
+  2308 AFR::MWI 2007-11-05..2008-02-29  714 / 13 cumulative since onset (IFRC; OCHA '>700' on 11 Feb 2008)
+Revisions    : row 502 (Agent 1, 2006/07 season 309/6) - TL/TR 2006-11-01..2007-10-31 -> 2006-08-01..2007-06-23 (window
+               documented by UNICEF 14 Jan 2008) + precedence phrase (cleared a transient national_subnational_overlap WARN)
+Not written  : UNICEF 'estimated 150' for epi-week 8-14 Feb 2003 (approximate; Agent 1 already declined it in row 594);
+               IFRC MDRMW001 852/20 (see above); EM-DAT secondary figures.
+Successful queries: 4/20  (13, 16, 17, 18)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Validator    : exit 0, ERROR 0, WARN 37 (unchanged from start)
+Decision     : CONTINUE (minimum 3 batches; yield >= 5%)
+
+=== BATCH 2 | PHASE 1->2 (refugee-era citation chain through WHO grey literature; remaining season sweeps) | MWI ===
+Gap targeted : 1987-1994 refugee-camp epidemics (17 outbreaks / 11 camps); 1997/98 season; 2000/01, 2001/02, 2005/06 windows
+Queries (20):
+   1 ReliefWeb cholera AND Malawi 2000-10-01..2001-07-31 (70 items) + strict sweep -> all counts already used (rows 593,
+     1936, 1916); IRIN 28 Feb 2001 'About 1,500 people had been treated ... At least 20 people have died' (2000/01 season,
+     approximate, >1000, single source - EM-DAT 2001-0108-MWI 1,500/20 derives from it) -> NOT written (note for Agent 5:
+     WHO's '2001' total is Nov 2001-Jan 2002, C24, so calendar-2001 cases of the 2000/01 season are missing from WHO)
+   2 ReliefWeb 2001-08-01..2002-06-30 (62 items) + sweep -> nothing new (WHO AFRO 24 Apr 2002 = metadata 90; PANA 3 Mar 2002
+     'over 10,000 ... at least 175' conflicts with WHO 22,023/609 by 9 Mar - stale, not written)
+   3 IRIS OpenSearch full text: 'cholera Malawi refugees', 'cholera Malawi 1990', 'cholera Malawi 1993', 'cholera Malawi
+     outbreak report' (306 items) -> Murray et al. Bull WHO 1998 (IRIS 10665/260667)
+   4 Murray 1998 (IRIS bitstream, pdftotext) -> '17 reported outbreaks of cholera in 11 Mozambican refugee camps in Malawi
+     between 1987 and 1994, with incidence ranging from 4 to 60 cases per 1000 population per year (10)'; ref 10 = WHO
+     meeting report CDR/GPV/95.1
+   5 IRIS WHO CDR/GPV/95.1 (1995; image-only scan, TEXT bundle empty - read page images visually) -> section 2.3.1: 'more than
+     20 000 cases of cholera occurred during 17 outbreaks in 11 camps. The mean attack rate was 2.5%, (range 0.5-6.0%).
+     Epidemics lasted from 7-22 weeks ... The mean case-fatality ratio (CFR) for all epidemics was 2.5% (range 0-11%)' - no
+     per-outbreak annex -> NOT written (1987-94 multi-year lower bound, >1000, no independent second source)
+   6 IRIS WHO/CDS/CSR/EDC/99.4 (1999 OCV emergencies meeting) -> MSF direct-cost table 'Malawi Mar 98 - May 98 Number of
+     cases treated 1,300'                                                                                         [ROW]
+   7 IRIS WER 73(19) (8 May 1998), born-digital page -> 'Malawi ...-16.IV 1 745 74' (= WHO/JHU 1998 annual)       [ROW]
+   8 WebSearch (French) choléra réfugiés mozambicains Malawi Epicentre -> Brown et al. Bull Soc Pathol Exot 2002;95(5)
+   9 Brown 2002 PDF (pathexo.societe-mtsi.fr) -> 'De 1988 à 1993, au Malawi, les épidémies de choléra se sont succédé dans
+     les camps de réfugiés mozambicains, totalisant plus de 7000 cas. La létalité rapportée était de 2,5%' (CONFLICTS with
+     WHO 1995 '>20 000'); ref: Bitar et al. 'Une épidémie de choléra dans un camp de réfugiés mozambicains au Malawi,
+     janvier-février 1990', Santé Publique 1992;2:33-39 (a Jan-Feb 1990 camp outbreak - new lead)
+  10 NCBI/Europe PMC search for Bitar 1992 -> not indexed
+  11 WebSearch exact French title -> not online
+  12 World Bank documents API 'cholera Malawi' 1988-2008 (108 docs) + 3 PDFs (1992 Local Government SAR, 2001 PHN ICR,
+     ICR review) -> qualitative only ('Frequent outbreaks of cholera occur' in squatter areas)
+  13 WebFetch Hatch et al. IJE 1994 (OUP) -> abstract only, paywalled; June 1988 outbreak size still unknown
+  14 WebSearch USAID/OFDA annual reports FY1990-93 Malawi cholera -> not found
+  15 Msyamboza et al. JIDC 2014 PDF -> season totals 1998/99 25,000/860, 2001/02 33,546/968, 2008/09 5,751/125, 2011/12
+     1,806/38 (all already rows) -> used as evidence for the row-2 window correction (below)
+  16 WebSearch NSO Malawi statistical yearbook notifiable diseases by district -> only survey-based HDX tables
+  17 HDX CKAN API (Malawi health statistics by district 2020) -> survey indicators, no cholera counts
+  18 WebSearch theses/dissertations (College of Medicine MPH) cholera by district -> none located
+  19 Repository probes: KUHES (no DNS), UNIMA (no response), Mzuzu University DSpace API 'cholera' (10 items, 2016-2019;
+     Karonga 2017/18 already covered by JHU weekly district rows)
+  20 ReliefWeb 2005-09-01..2006-07-31 (53 items) + sweep -> existing derived national rows already sum to the UN season total
+     4,774 (24+498+499+2009+2008+2010); RIACSO May 2006 '47 cases and one fatality ... 1 to 14 May 2006' nests in row 2008
+     (58/1, 1-21 May) - corroboration, not written
+Sources found: 2 registered (355 WER 73(19); 356 WHO/CDS/CSR/EDC/99.4). Read but not registered (no row): Murray 1998, WHO
+  CDR/GPV/95.1, Brown 2002, Msyamboza 2014 (already metadata 3), World Bank docs, RIACSO May 2006.
+Rows added   : 2   Indices 2309-2310
+  2309 AFR::MWI 1998-01-01..04-16  1,745 / 74 (WHO notification = WHO 1998 total; >1000 corroborated by MSF 1,300 treated
+       Mar-May 1998 and QECH 244 admissions Mar 1998, row 1934)
+  2310 AFR::MWI 1998-03-01..05-31  1,300 (MSF-treated subset, lower bound; treatment continued after WHO's 16 Apr window)
+Revisions    : row 2 (legacy, 25,000 / 860 '1998/99') TL/TR 1998-01-01..1999-12-31 -> 1998-11-01..1999-10-31 (season window:
+               PANA 'started in ... Blantyre in November' 1998; Msyamboza 2014 season definition 1 Nov-31 Oct); it no longer
+               envelops the separate Jan-May 1998 outbreak (2309/2310) or the Nov 1999 onset rows (1917, 1932-1935).
+Successful queries: 2/20  (6, 7)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Validator    : exit 0, ERROR 0, WARN 37
+Decision     : CONTINUE (minimum 3 batches; yield >= 5%)
+
