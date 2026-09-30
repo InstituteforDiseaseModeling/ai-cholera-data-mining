@@ -1,61 +1,216 @@
 ================================================================================
 AGENT 3 - ZERO-TRANSMISSION VALIDATOR
 Country: Republic of the Congo (COG) / Congo-Brazzaville
-Start: 2026-09-21
+Run: UNATTENDED runner PID 76250 (4 countries in parallel), run started 2026-09-29 16:10
+Agent 3 start: 2026-09-29 17:49:22
 Working dir: /Users/johngiles/MOSAIC/ai-cholera-data-mining
-Log: ./data/COG/search_log_agent_3.txt
+Canonical log: ./data/COG/search_log_agent_3.txt
+Previous run's Agent 3 log (unfinished, 2026-09-21): ./data/COG/search_log_agent_3_legacy_20260921.txt
+Protocol: ./templates/template_search_protocol.txt (20 queries/batch, min 3 batches)
 ================================================================================
 
 ENTRY STATE
-  ./data/COG/cholera_data_ai.csv       161 rows
-  ./data/COG/metadata_ai.csv            66 sources
-  ./data/COG/cholera_presence_ai.csv     7 rows
-  validate_quality.py COG: 0 ERROR
+  ./data/COG/cholera_data_ai.csv        312 rows (31 national zero rows)
+  ./data/COG/metadata_ai.csv             98 sources
+  ./data/COG/cholera_presence_ai.csv     13 rows
+  ./data/COG/retracted_rows_ai.csv       12 tombstones
+  python py/validate_quality.py COG  ->  ERROR 0 / WARN 10 / INFO 38 (exit 0)
+  Private gap helper (python /tmp/COG_gaps_private.py COG), JHU+WHO+AI:
+     2001-01-01..2001-12-31  365d modern  (presence-suspected; ZERO ROW PROHIBITED)
+     2026-09-01..2026-09-29   29d recent  (cholera active, not yet reported; ZERO ROW PROHIBITED)
+     coverage 98.1% (668/681 months; months_ai_only 351)
+  Shared reference/effective_* files NOT regenerated (shared by 4 parallel countries).
 
-EFFECTIVE GAPS (read-only, not regenerated - shared file):
-  1970-01-01..1977-12-31  2922 d  historical
-  1980-01-01..1996-12-31  6210 d  historical
-  2014-12-01..2014-12-31    31 d  modern
-  2026-05-01..2026-09-21   144 d  recent
+WEBSEARCH ALLOCATION
+  Session hard cap 200 calls shared by orchestrator + 7 agents; 28 used before Agent 3.
+  Agent 3 allocation: 25 WebSearch calls. Direct retrieval (curl / WebFetch / WHO IRIS
+  DSpace REST / WHO GHO OData / Europe PMC / OpenAlex / Crossref / ReliefWeb / HDX /
+  Wayback CDX / sante.gouv.cg WordPress API) does not consume the cap; each distinct
+  retrieval or API interrogation counts as ONE query for batch accounting.
+  Per-batch split WebSearch vs direct is logged below.
 
-BUDGET NOTE
-  Agent 2 reported the shared WebSearch budget exhausted (200/200). This agent
-  therefore works primarily by DIRECT DOCUMENT RETRIEVAL (curl / DSpace REST /
-  WHO GHO OData / pdftotext), which does not consume the WebSearch budget.
-  Each distinct retrieval or API interrogation counts as one query for batch
-  accounting. Batches that used retrieval instead of search say so.
+TARGETS (from orchestrator brief)
+  A. Audit all 31 national zero rows: 28-35 (1970-77), 36-52 (1980-96), 162 (2002-05),
+     163 (2010, check vs source 63 2010-2011 department breakdown), 54 (2014-12),
+     12 (2023-09-21..2024-12-31, notes_missing_quote), 165 (2025-01-01..06-20),
+     166 (2025-12-01..2026-02-01).
+  B. New explicit absence: 2021-2022 MoH SIMR weekly bulletins (cumulative cholera 0);
+     2014/2015/2017 HDX platform zeros (2017 conflicts with JHU 18+18 - log only);
+     2019 JHU 67-case week (investigate, log only); inter-epidemic windows 2013 H2,
+     2016 outside Aug-Oct, 2018 after April, 2008-2009; sub-national 2025-26 zero
+     departments only where explicitly listed.
+  C. Positive assertion of absence only. Surveillance_Gap -> log / presence, never a zero.
+  PROHIBITED: any zero row for 2001; any zero row for 2026-09-07 onward.
 
-PRE-SEARCH BASELINE RECONCILIATION (mandatory before asserting any absence)
-  Built a year-by-year reconciliation of ./data/COG/cholera_data_jhu.csv,
-  ./data/COG/cholera_data_who.csv and ./data/COG/cholera_data_ai.csv.
-  Result: TWO EXISTING AI ZERO ROWS ARE CONTRADICTED BY THE JHU BASELINE ALREADY
-  SITTING IN THE SAME COUNTRY DIRECTORY.
+=== BATCH 1 | PHASE 1 (audit + broad absence discovery) | COG ===
+Time         : 17:49-17:57
+Gap targeted : audit of existing zero rows (Index 12, 163, 165, 36-52) + 2021/2022/2024 explicit-absence
+               search (JHU annual zeros only) ; recent/2001 gaps NOT targeted for zeros (prohibited)
+Queries      : 20 = 1 WebSearch + 19 direct retrievals
+  Q1  [direct] afro.who.int EN news 'cholera-epidemic-declining-congo' (source 6) - Index 12 quote check
+  Q2  [direct] extranet.who.int Programme biennal OMS-Congo 2015-2016 PDF (source 63) sec. 2.2.3.2
+  Q3  [direct] WHO GHO OData CHOLERA_0000000001 SpatialDim=COG (all years)
+  Q4  [direct] MoH SITREP N18 2023 (source 66; Agent 2 cache /tmp/COG_a2/moh23_n18.txt) - 2023 outbreak end
+  Q5  [direct] Europe PMC REST: cholera AND (Pointe-Noire OR Brazzaville OR Republic of Congo) (1375 hits, AFRO-HQ noise)
+  Q6  [direct] MoH SITREP N01/N02/N03 2025 (Agent 2 cache) - index-case date for Index 165 boundary
+  Q7  [direct] Europe PMC full text PMC13507534 (2025 V. cholerae strains, IJID Reg 2026) - 'last outbreak' statement
+  Q8  [WebSearch #1] Congo Brazzaville choléra épidémie Pointe-Noire 1997 "depuis 1979" OR "première épidémie" OR "depuis 1978"
+  Q9  [direct] Obengui et al. Med Trop 2000 (source 39; Agent 2 cache chu1999.txt) - 1979-1997 statement
+  Q10 [direct] afro.who.int FR news 'lepidemie-de-cholera-en-recul-au-congo' (source 6 FR)
+  Q11 [direct] WHO IRIS DSpace: WER 'Cholera in 1997' (10665/230506) full text
+  Q12 [direct] WHO IRIS: WER 1998 No 6 'Cholera-like diarrhoeal disease in the Congo' (source 68)
+  Q13 [direct] Europe PMC: (cholera OR choléra) AND ("Pointe-Noire" OR Brazzaville) (261 hits)
+  Q14 [direct] sante.gouv.cg SIMR bulletin pages S52-2021, S8/S9/S26-2022 (PDF link extraction)
+  Q15 [direct] SIMR S52-2021 PDF (cumulative S1-S52 2021)            -> ROW 325
+  Q16 [direct] SIMR S26-2022 PDF (cumulative S1-S26 2022)            -> ROW 326
+  Q17 [direct] sante.gouv.cg WordPress media API search=SIMR (17 bulletin files enumerated)
+  Q18 [direct] SIMR S37-2018 + S38-2018 PDFs                          -> ROW 328
+  Q19 [direct] SIMR S37-2023 + SE11-2024 PDFs (SE11: cum S1-S11 2024 Cholera 0, completeness 99%)
+  Q20 [direct] SIMR SE28-2024 (+ S9-2022) PDFs                        -> ROW 327
+Findings:
+  - Index 12: source 6 (EN+FR) contains NO statement about 2023/2024 and not the quoted phrase -> RETRACTED
+    (misattributed); replaced for 2024-01-01..07-14 by Index 327; rest of its span is covered by WHO dashboard
+    weekly zeros (./data/COG/cholera_data_who.csv: 0 missing days, 0 positives 2023-09-20..2024-12-31).
+    SITREP N18 (source 66): cholera 0 new suspected in the 14 days to 19 Sep 2023, cumul 71/21 conf/5 deaths.
+  - Index 163 (2010): source 63 reads 'De 2010 à 2011, 775 cas, avec 32 décès' with department split
+    Cuvette 297/Likouala 182/Plateaux 148/Brazzaville 84/Sangha 49/Pool 17 - the 775 equals EXACTLY the 2011
+    MoH weekly department series (Index 206-294, epi-weeks 21-51 2011), so the source attributes NO cases to
+    2010. NOT contradicted (note appended in batch 2 after regional check).
+  - GHO COG series: records only for 1978,1979,1997-2000,2005(=0 explicit),2006-2009,2011-2013,2016.
+    No record for 2010 (consistent with Index 163); series ends 2016 so it is silent on 2017+.
+  - Index 165: SITREP N02 'les symptômes du cas index ont débuté le 21 juin 2025'; N01 'Le 23 juin 2025,
+    notification du cas index'; N03 'cas index notifié le 21 juin 2025'. TR 2025-06-20 = day before onset:
+    boundary CONFIRMED. WHO week 2025-06-16..22 (1 case) = the index case; partial-week overlap is resolved
+    by the builder's observed > documented_zero ranking. No change.
+  - 1980-1996: WER 1997 annual (Congo 275/60), WER 1998 No 6, DON text, Obengui 2000 and WebSearch #1: NO
+    retrospective 'first since 1978/79' statement found. Obengui 2000 cites the 1978-79 Brazzaville epidemic
+    (Yala 1982) as the precedent for 1999 but asserts nothing about 1980-96.
+  - WebSearch #1 surfaced a WHO sentence 'Le Congo a connu au total six flambées épidémiques de choléra
+    entre 1997 et 2016' (page not identified in the result list; lead for batch 2).
+  - SIMR S38-2018: RDT-positive cholera case from Ile Mbamou reached CHU Brazzaville 23 Sep 2018 -> 2018 H2
+    is NOT an absence window (JHU also has positives Apr-May, Jun-Jul, Sep-Nov 2018).
+  - 2021/2022 surveillance was PARTIAL (completeness 34% wk52-2021; 54%/EWARS 43% wk26-2022; bulletin warns
+    'une sous-notification inquiétante'); 2024 OPERATIONAL (97-99%).
+Sources found: 6 new documents    Registered: index 99, 100, 101, 102
+Rows added   : 4    Indices: 325 (zero 2021-01-04..2022-01-02, Documented/partial 0.8),
+                              326 (zero 2022-01-03..2022-07-03, Documented/partial 0.8),
+                              327 (zero 2024-01-01..2024-07-14, Documented/operational 0.9),
+                              328 (POSITIVE AFR::COG::Brazzaville::Mbamou 2018-09-17..23 sCh=1, conf 0.9)
+Revisions    : Index 12 RETRACTED (misattributed; tombstone in ./data/COG/retracted_rows_ai.csv)
+Successful queries: 4/20 (Q15, Q16, Q18, Q20)
+Yield        : 20%
+WebSearch used this batch: 1 (cumulative 1/25)   Direct: 19
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (yield >= 5%; minimum 3 batches)
 
-  Index 1  AFR::COG 2000-01-01..2006-12-31 sCh=0 conf 0.80
-     contradicted by ./data/COG/cholera_data_jhu.csv Index 4900
-       "AFR::COG,2000-01-01,2000-12-31,2,9" WHO Annual Cholera Report (UID: 309)
-     contradicted by ./data/COG/cholera_data_jhu.csv Index 4902
-       "AFR::COG,2006-01-01,2006-12-31,10,175" WHO Annual Cholera Report (UID: 309)
-     contradicted by ./data/COG/cholera_data_ai.csv itself (2006-11-01.. rows,
-       Pointe-Noire 6452 cases, added by Agents 1/2)
+=== BATCH 2 | PHASE 2 (regional cross-check + targeted windows) | COG ===
+Time         : 17:57-18:06
+Gap targeted : zero-row audit regional cross-checks (1970-77, 1980-96, 2002-05, 2010); inter-epidemic windows
+               2013 H2, 2017, 2019, 2008; Index 165 start-of-window corroboration
+Queries      : 20 = 2 WebSearch + 18 direct
+  Q1  [WebSearch #2] "six flambées épidémiques de choléra" Congo 1997 2016  -> WHO DON488 (2023)
+  Q2  [direct] Europe PMC full text PMC8684622 (Kayembe et al. BMC Infect Dis 2021, western DRC 1973-2018)
+  Q3  [direct] WHO DON488 French page: 'six flambées ... entre 1997 et 2016, la dernière ... à Mpouya' and
+               'compte tenu de l'absence prolongée du choléra dans le pays (la dernière flambée épidémique
+               documentée remonte à 2016)'
+  Q4  [direct] Europe PMC TITLE:"cholera ante portas" -> PMC3299488
+  Q5  [direct] Europe PMC full text PMC3299488 (Bompangue et al. PLoS Curr 2012, Kinshasa ten-year hiatus)
+  Q6  [direct] WHO IRIS DSpace search 'Cholera, 2017' / 'Cholera, 2019'
+  Q7  [direct] IFRC MDRCG009 DREF + Op. Update 1 (Agent 2 cache): 2011 MoH table 'Total 775 23 32 4.12', wk 21-51
+  Q8  [direct] WER 'Cholera, 2017' text (10665/274655) - Congo NOT in Africa table
+  Q9  [direct] WER 'Cholera 2019' text (10665/334242) - Congo NOT in Africa table
+  Q10 [direct] WER 'Cholera in 1978' text (10665/222465) - 'newly infected' + yearly 'Number of new countries infected'
+  Q11 [direct] WER 'Cholera in 1972/1973/1974' texts - 1974: 'for the first time during the present pandemic'
+               vs 'reappeared'; Angola in WER 1970-73 African table
+  Q12 [direct] HDX WCA regional platform workbooks 2012-2017 (Agent 2 cache) - Congo weekly rows  -> ROW 329
+  Q13 [direct] IFRC MDRCG004 final report (cache) - 2008 outbreak end: no end-date statement
+  Q14 [direct] MoH SIMR SE2-2025 PDF (cum SE1-SE2 2025 Choléra 0, completeness 98%)
+  Q15 [direct] IFRC MDRCG010 final report/update (cache; 2012 Bétou, not 2013) + HDX 2013 package metadata
+  Q16 [direct] Wayback CDX sante.gouv.cg/wp-content/uploads/* - FAILED ('Internet Archive: Temporarily Offline')
+  Q17 [direct] WER 'Cholera, 2013' text (10665/242248): Congo listed (CFR >5%), no timing; Angola 6655
+  Q18 [WebSearch #3] Congo Brazzaville choléra 2013 Sept-Dec Pointe-Noire Kouilou nouveaux cas - nothing for H2 2013
+  Q19 [direct] HDX 2013 dataset dates (created 2018-03-29; data 2013)
+  Q20 [direct] WHO DON 22 July 2011 (source 48): Congo 181 suspected cases 'between 14 June and 20 July 2011'
+Findings:
+  - REGIONAL: Kinshasa/western DRC cholera-free mid-2001..2010 ('no primary cases reported since 2002 and only
+    ten imported cases between 2002 and 2010'; 'cholera had been absent between 2002 and 2010' - Bompangue 2012).
+    Kinshasa epidemic 1996-2001. Western-DRC expansions documented: 1973 & 1977 (Luanda->Bas-Zaire), 1997
+    (Kinshasa/Gabon), 2006, 2011-12, 2015-17 (Kayembe 2021); Angola hit Dec 1971.
+  - DON488's 'last documented outbreak 2016' OMITS the documented 2018 Mossaka/Makotimpoko outbreak (JHU,
+    WHO annual 2018 = 60/3, AI Index 7/8/63-65) -> not usable as a 2017-2022 absence source.
+  - 2017 CONFLICT (logged, NO row): JHU/UNICEF rows 5098 (2017-01-02..03-12, 18) and 5099 (03-13..05-21, 18)
+    vs HDX WCA 2017 (0 in all 53 weeks) and WER 'Cholera, 2017' (Congo absent). The value 18 equals the 2016
+    Mpouya outbreak total (DON488: 18 cases/3 deaths; JHU UNICEF weekly Aug-Oct 2016 = 7+2+3+1+3+2 = 18):
+    most probably a cumulative 2016 figure carried into 2017 reports. Baseline read-only; routed to Agent 5/7.
+  - 2019 67-case week (JHU 5223, 2019-10-21..27): WER 'Cholera 2019' Africa table does NOT list Congo; AFRO
+    OEW wk43/2019 lists Congo only for chikungunya (Agent 2). Probably mis-assigned; baseline read-only;
+    routed to Agent 5/7. No zero row (JHU already carries 2019 weekly zeros around it).
+  - 2013 H2: HDX weekly 0 in weeks 27-52 (last positive wk 26 = 6) -> ROW 329 (Documented, partial, 0.7).
+  - 2012: HDX weeks 36-46 = 0 but MoH dates the Pointe-Noire epidemic from October 2012 -> conflict, NO row.
+  - 2008-2009: no end-date / onset statements found (IFRC MDRCG004 final report) -> NO row.
+Sources found: 5 new documents   Registered: index 103
+Rows added   : 1    Indices: 329 (zero 2013-07-01..2013-12-29, Documented_Absence/partial 0.7)
+Revisions (audit, not yield): 163 conf 0.6->0.7 + note; 162 note; 28-33 conf 0.9->0.8 + note; 34-35 note;
+  29-35 addendum; 36-48, 51 note; 49, 50 conf 0.7->0.5 + note; 52 conf 0.7->0.6 + note; 54, 165, 166 notes;
+  329 caveat note (unverified DRC-geography claim flagged)
+Successful queries: 1/20 (Q12)
+Yield        : 5%
+WebSearch used this batch: 2 (cumulative 3/25)   Direct: 18
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Decision     : CONTINUE (minimum 3 batches)
 
-  Index 3  AFR::COG 2008-01-01..2010-12-31 sCh=0 conf 0.80
-     contradicted by ./data/COG/cholera_data_jhu.csv Index 4904
-       "AFR::COG,2008-01-01,2008-12-31,4,156" WHO Annual Cholera Report (UID: 309)
-     contradicted by ./data/COG/cholera_data_jhu.csv Index 4905
-       "AFR::COG,2009-01-01,2009-12-31,0,93" WHO Annual Cholera Report (UID: 309)
-
-  Also noted, and therefore NOT candidates for a zero row:
-     1999 - JHU Index 4899: 4813 cases / 20 deaths. The 1997-98 Pointe-Noire
-            epidemic ran through 1999; 1999 was in fact Congo's largest
-            cholera year on record. The task brief listed 1999 as a possible
-            inter-outbreak interval; the baseline refutes that outright.
-     2016 - JHU 15 cases / 2 deaths (annual) + weekly UNICEF series
-     2017 - JHU weekly UNICEF series, 18 cases in Jan-Mar and 18 in Mar-May
-     2019 - JHU Index 5223: 67 cases in week 2019-10-21..27
-  Baseline zero-reporting already present (do not duplicate as AI rows):
-     2005 JHU Index 4901 explicit 0/0 WHO Annual Cholera Report
-     2021 JHU Index 4911 explicit 0/0 WHO Annual Cholera Report
-     2022 JHU Index 4912 explicit 0/0 WHO Annual Cholera Report
-     2014, 2015, 2020, 2021, 2022 weekly 0-case rows, UNICEF series
+=== BATCH 3 | PHASE 2-3 (WHO annual zero-reporting tables, onset statements, inter-epidemic windows) | COG ===
+Time         : 18:06-18:12
+Gap targeted : 2022 H2 (no MoH bulletin), 2023 H1 (pre-Dolisie), 2010/2011 pre-epidemic, 2012 inter-epidemic,
+               2020 (JHU zeros only), 2019 anomaly, 2025-26 sub-national zero departments
+Queries      : 20 = 2 WebSearch + 18 direct
+  Q1  [direct] WHO IRIS 'Cholera, 2008' - item not found by title search
+  Q2  [direct] WER 'Cholera, 2009' (10665/241610) - Congo in Africa table (93 cases), no timing
+  Q3  [direct] WER 'Cholera, 2011' (10665/241944) - 'an area which had been cholera-free for about a decade'
+  Q4  [direct] WER 'Cholera, 2015' (10665/350522) - Congo NOT in table (mentions are DRC/Congo River only)
+  Q5  [direct] WER 'Cholera, 2016' (10665/258911) - Congo in table (Mpouya outbreak)
+  Q6  [direct] WER 'Cholera, 2020' (10665/345271) - footnote: Republic of Congo 'did not report cholera data to
+               WHO for 2020' -> WHO-LEVEL SURVEILLANCE GAP for 2020 (NOT a zero; logged only)
+  Q7  [direct] WER 'Cholera, 2021' (10665/362858) - Table 2 'Countries reported 0 cases and deaths in 2021 ...
+               zero reporting' lists Congo -> corroborates Index 325 (note)
+  Q8  [direct] WER 'Cholera, 2022' (10665/372993) - Table 2 zero reporting lists Congo            -> ROW 330
+  Q9  [direct] WHO DON488 English (source 4; Agent 2 cache don488.html) - first case 28 June 2023 -> ROW 331
+  Q10 [direct] sante.gouv.cg WP posts search 'choléra' (23 posts: 2023 & 2025 SITREPs/declarations)
+  Q11 [direct] sante.gouv.cg WP posts search 'bulletin épidémiologique' (no 2020 or 2022-H2 SIMR issue exists)
+  Q12 [direct] sante.gouv.cg WP posts search "fin de l'épidémie" (no end-of-epidemic declarations)
+  Q13 [direct] MoH SITREP N47/N48 2026 (Agent 2 cache) - Tableau I lists only the 6 affected departments;
+               unaffected departments are NOT explicitly listed with 0 -> no department zero rows (per brief)
+  Q14 [direct] sante.gouv.cg 'Situation épidémiologique du 27 mai 2020' - COVID-19 only, no cholera
+  Q15 [direct] Europe PMC PMC11891530 (AFRO cholera burden 2000-2023, BMJ Glob Health 2025): Congo among
+               countries 'that do not have cholera integrated in their surveillance system at some point';
+               2019-2023 IDSR cholera reporting inconsistent -> supports 'partial' labels 2021-2022
+  Q16 [direct] WER 'Cholera, 2012' (10665/242099) - Congo in table; DRC cases along Congo River 5 provinces
+  Q17 [direct] WER 'Cholera, 2018' (10665/330005) - 'Republic of the Congo 60 3 5.0' (confirms 2018 positive;
+               DON488's 'last documented outbreak 2016' is wrong)
+  Q18 [direct] WHO AFRO OEW wk43 2019 (Agent 2 cache) - Congo appears only on map/other-event labels
+  Q19 [WebSearch #4] Pointe-Noire choléra épidémie début "octobre 2012" OR "novembre 2012" - MSF: 'débuté à la
+               mi-novembre 2012 après des pluies diluviennes'                                 -> ROW 332
+  Q20 [WebSearch #5] Congo choléra 2020 OR 2019 "aucun cas de choléra" ... - surfaced MoH 'Annuaire statistique
+               sanitaire 2019-2020' (lead for batch 4)
+Findings:
+  - 2022 H2 documented by WHO zero-reporting table (row 330); 2021 WHO zero-reporting corroborates row 325.
+  - 2023 H1: first case of the Dolisie outbreak notified 28 June 2023 (DON488, SITREP N18) -> row 331 to ISO wk 25.
+  - 2020: WHO says Congo did NOT report cholera data for 2020 -> Surveillance_Gap at WHO level. JHU carries 20
+    UNICEF weekly zero rows for 2020 (inferred_zero in the builder). No AI zero written. Flag for Agents 6/7.
+  - 2011 Jan-May: DON 2011 onset 14 June; MoH weekly series starts epi-week 21 (2 cases) - candidate zero window
+    2011-01-01..2011-05-22 NOT written this batch (only onset statements; see batch 4 decision).
+  - 2012: HDX weeks 36-46 = 0 and MSF mid-November onset, but source 63 says 'd'octobre 2012' -> row 332 limited
+    to 2012-09-03..09-30; Oct-mid-Nov 2012 left unwritten (conflict).
+  - Index 163 UPGRADED to Documented_Absence 0.75 on the WER 2011 statement (revision, not yield).
+Sources found: 4 new documents   Registered: index 104 (WER Cholera 2022), 105 (HDX WCA 2012)
+Rows added   : 3    Indices: 330 (zero 2022-07-04..2022-12-31, Documented/partial 0.8),
+                              331 (zero 2023-01-01..2023-06-25, Documented/operational 0.85),
+                              332 (zero 2012-09-03..2012-09-30, Documented/partial 0.7)
+Revisions (not yield): 325 note; 326 note; 163 Inferred->Documented, 0.7->0.75, note; 162 addendum
+Successful queries: 3/20 (Q8, Q9, Q19)
+Yield        : 15%
+WebSearch used this batch: 2 (cumulative 5/25)   Direct: 18
+Validator after batch: ERROR 0 / WARN 9 / INFO 38 (319 rows, 105 sources)
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (yield >= 5%; time box not reached: 26 of ~60 minutes used)
 

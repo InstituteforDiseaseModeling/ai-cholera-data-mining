@@ -1,0 +1,37 @@
+=== AGENT 3 INITIALIZATION ===
+Country: Angola (AGO)
+Agent  : 3 - Zero-Transmission Validator
+Start  : 2026-09-29 18:09 (wall-clock budget ~60 min, target finish ~19:10)
+Status : INITIALIZED
+Legacy : ./data/AGO/search_log_agent_3_legacy_20250806.txt (2025 run; its 1997-2005 / 2019-2022 /
+         2023-2024 zero rows were written "due to API restrictions" from Agent 1 hand-offs, with no
+         search of its own that produced an absence statement - read, not repeated)
+
+STARTING STATE (measured 18:09)
+  ./data/AGO/cholera_data_ai.csv 919 rows (Index max 939); ./data/AGO/metadata_ai.csv 237 sources
+  python py/validate_quality.py AGO : ERROR 0 / WARN 21 / INFO 169 (exit 0)
+     WARN classes: notes_missing_quote 13, reporting_date_blank 4, zero_row_no_evidence_type 2
+     (CSV lines 27 = Index 26, 42 = Index 58), multiyear_aggregate 1, same_period_conflict 1
+  python3 /tmp/AGO_orch/ago_coverage.py : EFFECTIVE 100.0% (681/681), gap periods 0;
+     BASELINE-ONLY 62.6% (426/681), 7 gap periods incl. 1970, 1976, 1978-1986, 1993,
+     1997-2004, 2023-02..12, 2026-06..09
+  Zero rows: 33 (20 national, 13 provincial 2025 MINSA weekly zeros)
+     National: 25 (2023 Inf 0.5), 26 (2024-01..05-02 NO LABEL 0.95), 27 (2019-2022 Inf 0.5),
+               58 (1997-2005 NO LABEL 0.95), 60 (2023-01..2024-05-02 Inf 0.5), 74 (1970 Doc 0.9),
+               75-82 + 83 (1978-1986 Doc 0.8), 102 (1976 Inf 0.6), 106 (1993 Doc 0.9),
+               108 (2015 Doc 0.85), 111 (2021 Doc 0.95), 112 (2024 Doc 0.95)
+
+HOW THE MODEL CONSUMES WHAT I DECIDE (checked in code, not assumed)
+  py/build_weekly_timeseries.py: national rows only; zero row with canonical "Evidence type:
+  Documented_Absence" -> documented_zero at row conf; any other explicit zero -> inferred_zero
+  capped at 0.6; weeks with NO row -> assumed_zero (conf 0.5), and
+  MOSAIC-pkg/R/process_cholera_surveillance_data.R NA-blanks ONLY assumed_zero
+  ("drop_week <- ... meth == 'assumed_zero'"). So: Documented -> zero at conf; Inferred -> zero
+  at <=0.6; RETRACTED -> NA in the model. Retraction is the correct encoding of a surveillance gap.
+
+YIELD COUNTING RULE (stated for the orchestrator's audit)
+  A query is "successful" if its evidence produced >=1 COMMITTED change to
+  ./data/AGO/cholera_data_ai.csv: a new add-zero row, a new positive row, or an evidence-based
+  revision / retraction of an existing zero row via py/revise_observation.py. Queries that only
+  confirm existing evidence, only add a cholera_presence_ai.csv record, or only find leads do
+  NOT count. Each query counts at most once. Yield = successful/20 x 100 (percent, 0-100).
