@@ -27,3 +27,151 @@ identical boundaries (R4) are NOT new data and take NO yield credit. Re-reading 
 already downloaded by Agents 1-4 under /tmp/MRT_run/agent{1,2,3,4}/ is not a query
 (convention of Agents 1, 2 and 4); a fresh document fetch or API query is.
 
+
+################################################################################
+=== AGENT 5 RESTART - MRT - full run, started 2026-09-29 20:5x PDT ===
+################################################################################
+Why a restart: the header above was written by an earlier Agent 5 attempt (~19:0x PDT)
+  that was interrupted before its first batch (no rows, no revisions). It is kept as a
+  record; everything below is this run. Brief: /tmp/MRT_run/brief_common_v2.md (section 0
+  = the only stopping rule). No time limit applies.
+Read in full before any query: /tmp/MRT_run/brief_common_v2.md; ./data/MRT/workflow_state.json
+  (agents 1-4 incl. resumed 1 and 4, run, cross_agent_findings, all orchestrator notes incl.
+  'ROUTING to Agent 5'); ./data/MRT/search_log_agent_{1,2,3,4}.txt (incl. the RESUMED final
+  summaries of Agents 1 and 4); this log's header; ./templates/template_search_protocol.txt;
+  ./CLAUDE.md (conflict-resolution framework, source hierarchy); ./data/MRT/cholera_data_ai.csv
+  (132 rows, max Index 136); ./data/MRT/metadata_ai.csv (126 sources);
+  ./data/MRT/cholera_presence_ai.csv (25 rows); ./data/MRT/retracted_rows_ai.csv (6, 7, 63old,
+  77, 78); ./data/MRT/search_log_agent_5_legacy_2025-07-24.txt (older dataset; its '18 cases
+  in 2014' was a Guinea-Bissau misattribution, corrected long ago - not reused).
+Validator at start: python py/validate_quality.py MRT --json /tmp/MRT_run/a5_start.json ->
+  exit 0; ERROR 0, WARN 7 (CFR>15% file lines 58, 71, 82, 105, 131 = Index 59, 72, 85, 108,
+  134; period_single_day file line 132 = Index 135; national_subnational_overlap
+  2005-07-01..2005-10-31 file lines 2,3,36-40,133 = Index 1, 2, 37-41, 136), INFO 71.
+  The overlap WARN fires because Index 1's note says 'should not be summed' (no regex match);
+  every other row in that group carries 'do not sum'/'Provincial subset'.
+
+ROUTED WORK (orchestrator): C1 2005 national series + overlap (Index 1, 2, 37-41, 135, 136;
+  held figures FEWS 1305/25 + 1231/21 to 26 Aug, UNICEF 3719/67 to 19 Oct); C2 Index 4
+  (2008-2010) grade under the one zero standard post-IHR(2005); C3 Index 9/46 re-pointing to
+  source 53; C4 2003 conflict (Index 34 vs WHO 34/8); C5 Trarza 1989 presence row (source 99);
+  C6 unopened 2025-2026 ReliefWeb items + any product covering 2026-09-14..29; C7 1996 overlap
+  (Index 61/63); C8 re-mine proven sources (WHSR 1970-77, WER 1984-89, DON/OCHA/FEWS 2005,
+  IFRC GO, citation chains Moore 2018 / Rebaudet 2013 / Mengel 2014 / Senegal-Mali lit.).
+
+COUNTING RULE (declared before any query): one query = one WebSearch call, one direct API
+  query, or one direct document fetch (curl/WebFetch of a specific URL), channel logged.
+  Re-reading, grepping or re-rendering a file already on disk (/tmp/MRT_run/agent{1-5}/) is
+  NOT a query. Batch = exactly 20 queries. A query is SUCCESSFUL only if it produced >=1 NEW
+  row committed to ./data/MRT/cholera_data_ai.csv. Revisions (--append-note, --confidence,
+  --tl/--tr, --set-evidence), retractions, presence rows/retractions and REPLACEMENT rows
+  created only to re-point or re-window an existing observation with no new information
+  (e.g. C3's merged 2025 row) earn NO yield credit. A held figure committed after a second
+  source is found is credited to the query that fetched the second source (the commit depends
+  on it) - same convention Agent 1 declared before its batch 11.
+  Yield = successful queries / 20 x 100 (percent). Stop only at 3 CONSECUTIVE batches each
+  <5%, or 12 batches. WebSearch soft share ~50 calls (running count WS#n); beyond it, API and
+  document channels (IRIS DSpace REST, ReliefWeb search/report pages with browser UA,
+  Wayback id_/CDX, Europe PMC, OpenAlex, Crossref, GHO OData, IFRC GO API, curl/WebFetch).
+Scratch dir (not data): /tmp/MRT_run/agent5/ (reusing the earlier attempt's 1985 WER
+  downloads, iris.py, cropmr.py) and /tmp/MRT_run/agent5/r/ for this run.
+
+PRE-BATCH CACHE WORK (no query credit; files already on disk):
+  C5 VERIFIED: Agent 1's cached WER 1989;64(28):220 (/tmp/MRT_run/agent1/wer1989_28.pdf),
+     crops c1989_28_hit1_p1.png and c1989_28_hit3_p1.png and Agent 2's render
+     /tmp/MRT_run/agent2/c_1989_28_yf.png read visually: the cholera table prints only
+     'MAURITANIA - MAURITANIE 2-12 VI 54 0' (national, no area named; = row 93); the page
+     states 'There have been no notifications of newly infected areas'; Trarza appears only
+     under 'Areas removed from the infected area list between 7 and 13 July 1989 ... YELLOW
+     FEVER - FIEVRE JAUNE ... MAURITANIA - MAURITANIE 6e Region Trarza'. Agent 2's claim is
+     CONFIRMED -> presence row retracted below (tombstone).
+  C1/Index 135 VERIFIED: IFRC 05AA030 Programme Update 2 (cached by Agent 4,
+     /tmp/MRT_run/agent4/r2/rw_ifrc_mrt_pu2_0.txt, lines 53-54): 'a cholera epidemic hit
+     Mauritania, with 710 cases (11 deaths- including five children) recorded to date. On 16
+     August 2005 alone, nearly 99 cases were reported.' 'alone' makes 99 a ONE-DAY count, not
+     a cumulative; the single-day window is correct. Decision: KEEP (window right); the
+     period_single_day WARN is the validator's manual-review flag for sub-two-week periods,
+     here reviewed - a daily count, not an outbreak duration. Note appended below.
+
+=== BATCH 1 | PHASE 2 (cross-reference; C1 2005 sources, C6 2025-2026 items, open gap) | MRT ===
+Gap targeted : 2026-09-14..2026-09-29 (16d, recent) re-check; C6 AI-only 2025-2026 items; C1 2005 (JHU year,
+               data product): source re-reads for Index 1/2, second sources for held FEWS 1305/25, 1231/21
+               and UNICEF 3719/67
+Queries      : 20  (WS = WebSearch, running total #)
+  1  [curl, browser UA] press.un.org/en/2005/afr1240.doc.htm (metadata 1) -> JavaScript 'Client Challenge'
+  2  [Wayback id_] un.org/News/Press/docs/2005/afr1240.doc.htm -> readable: 'NEW YORK, 25 August (OCHA) ...
+     According to OCHA's regional office for West Africa, the total number of cholera cases recorded in the
+     subregion in 2005 stands at 24,621 ... To date, ... 1,087 cases in Mauritania' - NO Mauritanian deaths (the
+     listed deaths 8+62+172+29+20+10+100 = 401 exactly). The row's quote 'As of 25 August 2005 a total of 1087
+     cases have been reported' was a paraphrase; the figure is a calendar-2005 cumulative to 25 Aug.
+  3  [curl, browser UA] msf.org 'Major cholera outbreak in Nouakchott' (metadata 2) -> HTTP 503
+  4  [Wayback id_] same URL -> never archived under the current msf.org URL
+  5  [curl, browser UA] Africa CDC EIR September 2026 page -> still ONE file (24-September-2026.pdf = issue
+     2026-09-13, metadata 54); no week-38/39 issue
+  6  [curl, browser UA] Africa CDC EIR October 2026 page -> HTTP 404
+  7  [curl] WHO AFRO outbreaks/emergencies bulletin index -> latest Week 35 (24-30 Aug 2026)
+  8  [curl] ECDC cholera worldwide monthly -> still 'Monthly update as of 26 August 2026'; Mauritania, Senegal,
+     Mali absent. => 2026-09-14..2026-09-29 STILL UNCOVERED by any product; NOT zero-filled.
+  9  [ReliefWeb report+PDF] OCHA 'West and Central Africa: Latest Events at a glance (18-24 August 2026)' ->
+     Mauritania appears only as a map label; cholera items = EU EUR 2.3 m for Nigeria, Cameroon, CAR, Chad and
+     'more than 61,000 cholera cases ... African region during the first five months of 2026' (WHO) -> NOT
+     Mauritanian (C6: classified non-cholera for MRT)
+ 10  [ReliefWeb report+PDF] OCHA '... (2-8 June 2026)' -> Mauritania box = CERF US$2.5 m anticipatory DROUGHT
+     allocation; cholera item = Borno State, Nigeria -> non-cholera for MRT
+ 11  [ReliefWeb report+PDF] OCHA '... (21-27 October 2025)' -> Mauritania box = WFP aid cuts at Mbera camp
+     (154,000 refugees); no cholera anywhere in the issue -> non-cholera
+ 12  [ReliefWeb report+PDF] WHO AFRO Weekly Bulletin week 1 (29 Dec 2025-4 Jan 2026) -> all-events table:
+     Mauritania = Diphtheria Grade 2 ('Between epidemiological weeks 1 and 50 of 2025, a total of 1 082 cases and
+     39 deaths were reported nationwide') and Rift Valley fever Grade 2 (53 cases/15 deaths, 27 Sep-30 Nov 2025);
+     NO Mauritanian cholera event (cholera events listed for Angola, Burundi, DRC, Ethiopia, Kenya, Malawi,
+     Mozambique ...) -> affected-event enumeration + channel-open evidence    -> registered metadata 128
+ 13  [ReliefWeb report+PDF] IPC Mauritanie AMN Nov 2025-Oct 2026, FULL FRENCH REPORT (first time read verbatim:
+     ipcinfo.org copy is Cloudflare-blocked, the ReliefWeb attachment is not) -> p.3 'Les maladies a potentiel
+     epidemique comme le cholera et la rougeole constituent egalement des facteurs de risque eleve ... Ainsi, les
+     epidemies de cholera sont recurrentes et tres repandues dans certaines Moughataas, selon les donnees de
+     surveillance epidemiologique du cholera du Ministere de la Sante' - no count/place/date. Annex 2 (p.19,
+     rendered at 110 dpi) 'PHASE CLASSIFICATION ACTUELLE (AOUT-NOVEMBRE 2025)', row 'Cholera ou diarrhee
+     aqueuse' = 'Tres Faible' (lowest class) in ALL 25 Phase-3+ Moughataas of Adrar, Assaba, Brakna, Gorgol,
+     Guidimaka (p.20 panel for HEC/HEG/Inchiri/Tagant/TZ/Trarza prints only shock/programme rows). C6 VERDICT:
+     generic contributing-factor language, NOT a report of 2025-2026 transmission; no conflict row.
+                                                                              -> registered metadata 127
+ 14  [ReliefWeb search] 'cholera Mauritania' (DO20051001-20060228), no country tag -> 15 items; unread: IFRC
+     05EA015 Operation Update 4, Fact Sheet 3
+ 15  [ReliefWeb report+PDF] IFRC 05EA015 Operation Update No. 4 (9 Feb 2006) -> 'the Federation channelled funds
+     to support the cholera response of the national society' - no counts
+ 16  [ReliefWeb report+PDF] IFRC 05EA015 Fact Sheet No. 3 (12 Nov 2005) -> 'unforeseen cholera outbreak' - no counts
+ 17  [WS#1] choléra Mauritanie octobre 2005 cas décès Nouakchott Timbédra ministère de la santé bilan -> RG figure
+     (blocked), MSF page, cridem 2022 denial, Manga 2008 (Senegal) - nothing new
+ 18  [IRIS discover, 2005] 'cholera West Africa 2005 situation Mauritania' -> WER 80(35):297-299 and 80(39):333-334
+     'OUTBREAK NEWS: Cholera, West Africa (update)'
+ 19  [IRIS fetch] WER 2005;80(35):297-299 -> the DON 26 Aug text ('The country reported a total of 717 cases from
+     early May to 12 August occurring in 4 regions'; Nouakchott 497/10 to 10 Aug); no regional table
+ 20  [IRIS fetch] WER 2005;80(39):333-334 -> the DON 23 Sep text (2640/55 from 6 regions, 20 Jul-21 Sep; 89%
+     Nouakchott); no table
+Sources found: 2 new usable (C6)   Registered: metadata 127 (IPC French report), 128 (WHO AFRO bulletin wk 1 2026)
+Rows added   : 1 (Index 137) - a C3 REPLACEMENT row (identical outer boundaries, no new data) -> NO yield credit
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (minimum 3 batches)
+ACTIONS IN BATCH 1 (revisions/retractions - no yield credit):
+  C5  Presence row AFR::MRT::Trarza 1989-07-07..07-13 (source 99) RETRACTED with /tmp/MRT_run/retract_presence.py
+      (tombstone -> ./data/MRT/retracted_presence_ai.csv): a yellow-fever area removal (verified on page images).
+  C1  Index 135: one-day count verified ('On 16 August 2005 alone'); window kept; verification note appended.
+  C1  Index 1 RETRACTED (tombstone): verbatim re-read = calendar-2005 cumulative 'to date' 25 Aug 2005 (OCHA),
+      single-source >1000, conflicts with the DRAS/MoH stream, superseded for the national series by WHO
+      notifications 127-130. HELD (conflict register).
+  C1  Index 2 RETRACTED (tombstone): MSF 29 Aug 2005 'over 1000 patients' = lower bound, stored as 1000 over
+      Jul-Oct; superseded by DRAS counts (rows 41, 37); content moved to row 41's notes.
+  C1  Notes: 127, 128, 129, 130, 135 (PRIMARY LEVEL: National total - includes provinces not individually
+      listed; row-1 retraction cross-reference); 41 (row-1/2 retraction, MSF magnitude corroboration, held FEWS
+      continuation, single-source flag for Agent 7). Metadata 1 description corrected (verbatim, date, Level-2 note).
+  C1  RESULT: national_subnational_overlap WARN for 2005-07-01..2005-10-31 is GONE (the group was keyed on row 1,
+      whose note lacked a do-not-sum phrase); all remaining 2005 national/sub-national overlaps are INFO
+      'documented'. Validator: exit 0, ERROR 0, WARN 6 (5 CFR>15% as printed; reviewed single-day Index 135).
+  C3  Index 137 ADDED (AFR::MRT 2025-01-01..2025-12-31, Documented_Absence 0.95, operational, source 53,
+      reporting 2026-09-25) and Index 46 + Index 9 RETRACTED (tombstones). Outer boundaries identical; model input
+      unchanged (documented_zero 0.95 over 2025 before and after); dual-reference integrity restored.
+      Verified before writing: WER 101(38) Table 1 African rows (22 countries, no Mauritania, no Mali) and Table 5
+      (Mauritania and Senegal listed; Mali absent).
+  C6  2025-2026 items: all five routed items opened; none reports Mauritanian cholera (classification above).
