@@ -1,103 +1,163 @@
-=== AGENT 4 INITIALIZATION ===
-Country: Republic of Congo (COG)
-Start Time: 2025-01-24 12:08:00
-Agent 4 Status: INITIALIZED - Obscure source expansion & beyond-suggested-sources
+================================================================================
+AGENT 4 - OBSCURE SOURCE EXPLORER
+Country: Republic of the Congo (COG) / Congo-Brazzaville
+Run: UNATTENDED runner PID 76250 (4 countries in parallel), run started 2026-09-29 16:10
+Agent 4 start: 2026-09-29 18:31:12
+Working dir: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Canonical log: ./data/COG/search_log_agent_4.txt
+Previous (2025) Agent 4 log preserved at ./data/COG/search_log_agent_4_legacy_20250806.txt
+Protocol: ./templates/template_search_protocol.txt (20 queries/batch, min 3 batches)
+================================================================================
 
-=== OBSCURE SOURCE EXPANSION STRATEGY ===
-Focus: Beyond-suggested-sources exploration, unconventional source discovery, deep institutional diving
-Target: Alternative data sources not covered by priority_sources.txt, archived materials, specialized databases
-Primary Objectives:
-1. Explore Internet Archive for historical cholera documentation
-2. Search specialized medical and epidemiological databases beyond suggested sources
-3. Investigate academic institutional repositories and theses
-4. Access regional health organization archives and reports
-5. Discover unconventional sources (colonial records, missionary archives, historical newspapers)
+ENTRY STATE
+  ./data/COG/cholera_data_ai.csv        328 rows
+  ./data/COG/metadata_ai.csv            109 sources
+  ./data/COG/cholera_presence_ai.csv     13 presence rows
+  python py/validate_quality.py COG  ->  ERROR 0 / WARN 9 / INFO 38 (exit 0)
+  Private gap helper (python /tmp/COG_gaps_private.py COG), JHU+WHO+AI:
+     2001-01-01..2001-12-31  365d modern  (presence-suspected, conf 0.4; ZERO PROHIBITED w/o resolution)
+     2026-09-01..2026-09-29   29d recent  (not Agent 4's; cholera active, not yet reported; NEVER a zero)
+     coverage 98.1% (668/681 months; months_ai_only 351)
+  No era=historical or >=1095-day gaps remain (1970-77 and 1980-96 carried by absence rows).
+  ./reference/url_check_broken.csv lists NO COG URLs.
+  Shared reference/effective_* files NOT regenerated (shared by 4 parallel countries).
 
-=== BEYOND-SUGGESTED-SOURCES METHODOLOGY ===
-Focus areas for expansion beyond reference/priority_sources.txt:
-- Internet Archive Wayback Machine for historical surveillance reports
-- National library and archive systems
-- University institutional repositories
-- Regional African health organization databases
-- Historical colonial administrative records
-- Missionary medical mission records
-- International development organization archives
-- Specialized tropical medicine databases
+WEBSEARCH ALLOCATION
+  Session hard cap 200 shared by orchestrator + 7 agents; 36 used before Agent 4.
+  Agent 4 allocation: 50 WebSearch calls. Direct retrieval (curl / WebFetch / IRIS DSpace REST /
+  GHO OData / Europe PMC / Crossref / OpenAlex / HAL / IRD Horizon / Persee / Gallica / Wayback
+  CDX / TNH date URLs / ProMED archive IDs) does not consume the cap; each distinct retrieval or
+  API interrogation = ONE query for batch accounting. Split logged per batch.
 
-=== AGENT 4 BATCH-BASED EXECUTION LOG ===
-Minimum: 2 batches (40 queries)
-Stopping Criteria: 2 consecutive batches <5% data observation yield
-Data Observation Yield = (Queries resulting in NEW cholera_data.csv rows / 20 queries per batch) × 100%
+TARGETS (orchestrator brief, priority order)
+  A. 2001: was there cholera in Congo in 2001? ProMED 2001, IRIN/TNH 2001, Panapress, Depeches de
+     Brazzaville, Semaine Africaine, ACI, ReliefWeb 2001 HTML/Wayback, IFRC 2001/2002 appeals,
+     MSF 2001 activity reports, UNICEF/OCHA 2001, WHO AFRO 2001, exact WHO CCS paragraph.
+  B. Historical depth/verification: 1978-79 (illegible WER entries, French REH edition, Yala 1982,
+     ORSTOM/IRD, Bull Soc Pathol Exot / Med Trop); 1980-96 retrospective statement (Carme 1983,
+     Remy & Dejours 1988, theses); 1997-98 reconciliation (Index 57 CFR 17%, Index 175 CFR 19%,
+     ~1,700 missing 1998 cases); 2007 (Index 186 CFR 20.6%, H2 2007 timing); 2009 (93 cases);
+     department splits 1999 and 2012.
+  C. Dead links: check ./data/COG/metadata_ai.csv URLs; recover via Wayback availability/CDX.
 
-=== BATCH 1 EXECUTION (Queries 181-200) ===
-Time: 12:08:00 - 12:18:00
-Focus: Obscure source expansion, Internet Archive searches, institutional repositories, colonial archives
+=== BATCH 1 | PHASE 1 (archival discovery: 2001 + 1978 scans) | COG ===
+Time         : 18:31-18:38
+Gap targeted : 2001-01-01..2001-12-31 (365d, modern; presence-suspected) ; 1978 WER entries
+               recorded as illegible by Agent 1 (historical depth)
+Categories   : 1 WHO/official, 2 Academic, 3 Humanitarian, 4 Regional, 5 Historical, 7 Linguistic(FR)
+Queries      : 20 = 3 WebSearch + 17 direct
+  Q1  [WS1] ProMED cholera "Congo" Brazzaville OR "Pointe-Noire" 2001 outbreak -> nothing for 2001
+         (surfaced IFRC MDRCG021 (2023) and MDRCG025 (2025) DREFs - modern, not Agent 4's)
+  Q2  [WS2] WHO cholera country profile Congo Brazzaville history 1970 -> no Congo profile exists online
+  Q3  [WS3] choléra Brazzaville "Pointe-Noire" 2001 épidémie panapress OR allafrica [FR] -> nothing for
+         2001; ReliefWeb 'Situation on Cholera in DRC Mar 2001' surfaced (Kinshasa/Goma)
+  Q4  [D] WHO DON API (who.int/api/news/diseaseoutbreaknews) titles containing 'Congo' -> API only
+         carries 2004+ items; pre-2004 items not indexed (startswith 1997..2002 = 0)
+  Q5  [D] IFRC GO API appeals country COG (34 appeals) -> M00ME005 'Congo-Brazzaville: Minor Emergencies'
+         (2000), M97EA026 (1997-98 population movement), M97ME029, M98ME019; NO 2001 appeal
+  Q6  [D] IFRC GO appeal_document for M00ME005/M97EA026/M97ME029/M98ME019 (by appeal id) -> 0 documents
+  Q7  [D] Wayback availability API -> FAILED 'HTTP 429 Too Many Requests' (first attempt)
+  Q8  [D] WebFetch ReliefWeb 'Situation on Cholera in DRC Mar 2001' -> FAILED 'HTTP 403 Forbidden'
+  Q9  [D] IRIS DSpace REST: WER 1978 No 44 (10665/222181) ORIGINAL scan WER5344.PDF, p.4 rendered at
+         400 dpi (pdftoppm) and read visually: 'CONGO 29.IX-5.X 1i 1' (i = imported case)    -> ROW 342
+  Q10 [D] IRIS: WER 1978 No 50 (10665/222258) original scan p.8 rendered at 400 dpi: 'CONGO 27.X-2.XI
+         7 0 / 20-26.X 4 2 / 13-19.X 22 6'                                                -> ROW 343
+  Q11 [D] Europe PMC core record PMID 7172355 (Yala, Dodin, Diana 1982, Bull Soc Pathol Exot 75(4):345-351)
+         -> abstract only: 'first cholera cases notified by the Congo in 1978 and 1979 ... very subtle
+         propagation ... "iceberg" phenomena ... cases almost exclusively of the family type'; no counts
+  Q12 [D] Europe PMC (cholera OR choléra) AND (Brazzaville OR Pointe-Noire ...) 1975-2001 -> 12 hits; only
+         Yala 1982 and Obengui 2000 (source 39) are Congo cholera papers
+  Q13 [D] IRIS: WER 'Cholera, 2000' (10665/231588) + corrigendum map (10665/231598) -> Congo 9 cases /
+         2 deaths in the Africa table, NO location or narrative (cannot tell whether the 2000 cases were
+         in Brazzaville/Pointe-Noire)
+  Q14 [D] Wayback CDX + raw snapshot of who.int/csr/don/archive/country/cog/en/ (2005) -> Congo DON index
+         starts 28 Dec 2001 (Ebola) and omits the known 1998 cholera DONs; no cholera item Dec 2001-2005
+  Q15 [D] curl ReliefWeb HTML access test (OCHA Apr-May 1998 report page) -> HTTP 200 (HTML reachable
+         with a browser UA although WebFetch and the API are refused)
+  Q16 [D] Wayback raw snapshot of who.int/csr/don/archive/year/2001/en/ (all 98 DONs of 2001) -> cholera
+         DONs 2001 = South Africa, Tanzania, Chad, India, Afghanistan, West Africa, Nigeria; NO Congo item
+  Q17 [D] Wayback DON 2001_09_26 'Cholera in West Africa - Update' -> Burkina Faso, Côte d'Ivoire...;
+         no Congo
+  Q18 [D] ReliefWeb HTML search cholera, country filter C66 (Republic of Congo; PC64 = Colombia, fixed),
+         dates 1998-2002 -> ~60 Congo-tagged items: IRIN-CEA 1999 round-ups, OCHA Jul 2000 sitrep, IFRC
+         Congo annual report 2000, IFRC Central Africa Appeal 01.07/2001 updates 1-2, UNICEF Oct 2000,
+         CAP 1999, CAP 2000 snapshot, WHO EHA Highlights Dec 2000/Mar 2001 (leads for batch 2)
+  Q19 [D] Background HTTP status sweep of all 109 ./data/COG/metadata_ai.csv URLs (results in batch 2)
+  Q20 [D] ReliefWeb HTML: WHO EHA Highlights Vol II Issue 3 (Mar 2001) -> cholera only in DRC (Goma, from
+         Feb 2001); Republic of the Congo appears only in the funding table (US$ 277,600 Italy)
+Findings (2001):
+  - All WHO channels are silent on a 2001 Congo cholera event: WER 2001/2002 notifications (Agent 1), WER
+    'Cholera, 2001' table (Agent 1), GHO (Agent 1), and now the complete 2001 DON year archive (98 items)
+    and WHO EHA Highlights Mar 2001. The 2000 annual entry (9/2) carries no location. Still no source
+    other than the WHO CCS 2009-2013 sentence names 2001.
+Findings (1978):
+  - The two 1978 WER entries previous agents could not read are legible on the image: 29 Sep-5 Oct 1978
+    1 imported case / 1 death; 20-26 Oct 1978 4 cases / 2 deaths. The 1978 weekly national series
+    (Index 342, 178, 179, 343, 180, 181) now sums to 51 cases = WHO annual 1978 total exactly (deaths 13
+    vs 14 annual). Both rows are below the validator's 25-case CFR threshold (no WARN).
+Sources found: 3 usable   Registered: index 110 (WER 1978 No 44)
+Rows added   : 2    Indices: 342 (AFR::COG 1978-09-29..10-05 sCh 1 d 1, conf 0.8, src 110),
+                              343 (AFR::COG 1978-10-20..10-26 sCh 4 d 2, conf 0.8, src 80)
+Successful queries: 2/20 (Q9, Q10)
+Yield        : 10%
+WebSearch used this batch: 3 (cumulative 3/50)   Direct: 17
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches; ReliefWeb C66 leads for 1999-2001)
 
-SUCCESSFUL DATA EXTRACTIONS (0 queries yielded new data rows):
-- Internet Archive searches conducted for historical Republic Congo surveillance reports but no specific quantitative data found
-- French colonial archives at Brazzaville explored but no quantitative cholera data extracted
-- Academic thesis and institutional repositories searched but focused primarily on DRC rather than Republic Congo
-- Historical newspaper archives identified (La France de Brazzaville) but no specific cholera quantitative data extracted
-- Liverpool School of Tropical Medicine archives explored but colonial expeditions did not yield Republic Congo cholera data
-- World Bank and UNESCO archives searched but no specific cholera quantitative data found
-- Specialized databases and repositories explored but no new Republic Congo cholera observations discovered
-
-OBSCURE SOURCE EXPANSION ASSESSMENT:
-- Internet Archive yielded extensive historical cholera documentation but mostly from other regions
-- Colonial archives in Brazzaville contain French Equatorial Africa materials but specific cholera data not accessible through web search
-- Academic repositories contain substantial DRC cholera research but limited Republic Congo-specific quantitative data
-- Specialized institutional archives identified but would require direct contact for access to cholera-specific materials
-- Historical newspapers and colonial medical bulletins found but specific Republic Congo cholera data not immediately extractable
-
-BATCH 1 DATA OBSERVATION YIELD: 0/20 = 0% (Below 5% threshold - continue to minimum 2 batches)
-
-=== BATCH 2 EXECUTION (Queries 201-220) ===
-Time: 12:18:00 - 12:28:00
-Focus: Additional obscure source expansion, institutional repositories, specialized archives, beyond-suggested-sources
-
-SUCCESSFUL DATA EXTRACTIONS (0 queries yielded new data rows):
-- Archives Nationales du Congo Brazzaville: Historical colonial archives AEF period identified but no specific cholera quantitative data
-- Catholic mission archives (Congrégation Saint-Esprit): Historical medical records 1888-1930 documented diseases but no cholera specifics
-- French Equatorial Africa colonial medical records: Extensive Rita Headrick research identified but no specific Republic Congo cholera data
-- Université Marien Ngouabi thesis repository: Medical research infrastructure confirmed but no cholera studies for Republic Congo
-- Centre de Recherches Médicales: No specific results found for historical epidemiological studies
-- La Semaine Africaine newspaper archives: Historical archives from 1952+ available but no cholera outbreak coverage identified
-- FONCAM (Fondation Congolaise pour l'Action Médicale): No search results found
-- ORSTOM/IRD tropical medicine research: Historical research documented but limited Republic Congo cholera focus
-- Peace Corps volunteer health records: Regional presence confirmed but no cholera outbreak documentation
-- Institut Pasteur: Regional outpost via Bangui identified but no specific Brazzaville laboratory cholera surveillance
-- Médecins du Monde historical missions: DRC cholera work documented but no specific Republic Congo Pointe-Noire missions
-- Action Contre la Faim WASH interventions: DRC focused activities but no Republic Congo specific cholera interventions
-- Première Urgence historical archives: DRC operations confirmed but no Republic Congo cholera emergency response archives
-- Hôpital Général de Brazzaville: CHU-B historical context documented but no accessible patient cholera records
-- CHU historical outbreak documentation: Current surveillance confirmed but no historical cholera outbreak archives
-- Programme National de Lutte surveillance: DRC programs well-documented but no Republic Congo specific archives
-- Direction Générale de la Santé bulletins: Current epidemiological bulletins found but no historical cholera archives
-- RAEOT network: No specific network found, related AFENET networks active in DRC but not Republic Congo focused
-- WAHO regional surveillance: West African focus, Congo not ECOWAS member, limited regional cholera monitoring
-- Société Congolaise de Médecine archives: No search results found for medical society historical archives
-
-OBSCURE SOURCE EXPANSION ASSESSMENT BATCH 2:
-- Extensive institutional archives identified but most lack digitized cholera-specific quantitative data
-- Colonial period medical archives (AEF) exist but require physical consultation for cholera data extraction
-- University medical research infrastructure present but limited Republic Congo cholera research focus
-- Newspaper archives available but cholera outbreak coverage not digitally accessible
-- International NGO presence documented but primarily DRC focused for cholera responses
-- Hospital and clinical archives exist but patient records not publicly accessible
-- Government surveillance systems active but historical cholera bulletins not archived online
-- Regional networks primarily serve other countries (DRC focus for Central Africa, West Africa focus for WAHO)
-
-BATCH 2 DATA OBSERVATION YIELD: 0/20 = 0% (Below 5% threshold)
-
-=== AGENT 4 COMPLETION SUMMARY ===
-MINIMUM REQUIREMENT MET: 2 batches completed (40 queries total)
-STOPPING CRITERIA ACHIEVED: 2 consecutive batches <5% yield (Batch 1: 0%, Batch 2: 0%)
-
-OBSCURE SOURCE EXPANSION RESULTS:
-- 40 total queries executed across Internet Archive, colonial archives, academic repositories, institutional databases
-- Extensive archival infrastructure identified but limited digitized cholera quantitative data available
-- Most promising sources (colonial AEF archives, university repositories, newspaper archives) require direct institutional contact
-- Republic Congo appears to have limited historical cholera research compared to neighboring DRC
-- Current surveillance infrastructure active but historical archives not systematically digitized
-
-Agent 4 obscure source expansion & beyond-suggested-sources completed successfully at 12:28:00
+=== BATCH 2 | PHASE 2 (targeted: 1998-1999 epidemic timing/split, 2000-2001 via ReliefWeb archive) | COG ===
+Time         : 18:38-18:44
+Gap targeted : 2001 (365d); 1998 thin months (Sep-Dec 1998); 1999 Brazzaville/Pointe-Noire split and timing
+Categories   : 1 WHO/official, 3 Humanitarian, 4 Regional (DRC), 5 Historical, 7 Linguistic(FR)
+Queries      : 20 = 0 WebSearch + 20 direct (ReliefWeb HTML via curl with browser UA)
+  Q1  [D] ReliefWeb 'A snapshot of the Consolidated Appeal for the Republic of the Congo for 2000' (22 Nov
+         1999) -> cholera only as a prevention objective; no counts
+  Q2  [D] ReliefWeb '1999 UN Consolidated Inter-Agency Appeal for Republic of the Congo' -> 'country-wide
+         cholera prevention mechanism'; no counts
+  Q3  [D] ReliefWeb 'WHO: Information note on the situation in Brazzaville' (20 Jan 1999) -> 'No sign of
+         re-emerging cholera in the country (... re-introduction of cholera in the Southern part of the
+         country last year, an epidemics which has been detected very late with a case mortality rate
+         reaching 50%)'
+  Q4  [D] ReliefWeb 'WHO: Information note ... Brazzaville - Update' (28 Jan 1999) -> same statement
+         (registered Index 111)
+  Q5  [D] ReliefWeb IRIN-CEA Weekly Round-Up 3-99 (22 Jan 1999) -> Congo section has no cholera
+  Q6  [D] ReliefWeb IRIN-CEA Weekly Round-Up 1-99 (1-7 Jan 1999) -> cholera only DRC (Shabunda)
+  Q7  [D] ReliefWeb IRIN-CEA Weekly Round-Up 2-99 -> cholera only DRC (South Kivu)
+  Q8  [D] ReliefWeb listing: search 'cholera Brazzaville', C66, 1999 (3 pages, 60 items)
+  Q9  [D] ReliefWeb listing: search 'cholera Pointe-Noire', C66, 1998 (2 pages, 30 items)
+  Q10 [D] ReliefWeb listing: search 'choléra', C66, 1998-2001 (FR items)
+  Q11 [D] ReliefWeb IRIN-CEA Weekly Round-Up 4-99 (22-29 Jan 1999) -> no Congo cholera
+  Q12 [D] ReliefWeb IRIN-CEA Weekly Round-Up 5-99 (30 Jan-4 Feb 1999) -> Brazzaville IDP sites 'Cholera
+         had been identified in the sites'; Pointe-Noire 'Cholera has been identified in the city'
+         (registered Index 112; 2 presence rows)
+  Q13 [D] ReliefWeb IRIN-CEA Weekly Round-Up 6-99 (5-11 Feb 1999) -> no Congo cholera count
+  Q14 [D] ReliefWeb IRIN-CEA Weekly Round-Up 7-99 (12-18 Feb 1999) -> no Congo cholera count
+  Q15 [D] ReliefWeb IRIN Update 607 (11 Feb 1999) -> no Congo cholera count
+  Q16 [D] ReliefWeb IRIN Update 622 (4 Mar 1999) -> no Congo cholera count
+  Q17 [D] ReliefWeb IRIN Weekly Round-Up 42-98 (9-15 Oct 1998) -> cholera only DRC (Bunia/Nyankunde,
+         Shabunda) - no Republic of Congo item for autumn 1998
+  Q18 [D] ReliefWeb IRIN Weekly Round-Up 45-98 (30 Oct-5 Nov 1998) -> DRC only (South Kivu CFR up to 40%)
+  Q19 [D] ReliefWeb IRIN Update 538 (4 Nov 1998) -> DRC only
+  Q20 [D] ReliefWeb 'Cholera in the Congo' (10 Feb 1998) -> same text as WHO DON 10 Feb 1998 (source 42);
+         duplicate, not re-registered
+  (Background, counted under batch 1 Q19: HTTP sweep of 110 metadata URLs -> all HTTP 200, PubMed 203;
+   soft-404 content check running.)
+Findings:
+  - 1999 TIMING: WHO said on 20 and 28 Jan 1999 there were no signs of cholera re-emergence; IRIN places
+    cholera in Brazzaville IDP sites and in Pointe-Noire in the week 30 Jan-4 Feb 1999. The 3431 cases of
+    the 1 Jan-30 Apr 1999 notification (Index 176) therefore belong to an epidemic beginning around the
+    end of January (note appended to 176). Pointe-Noire is newly documented as affected in 1999.
+  - 1997-98 CFR: WHO itself put the early CFR of the late-detected southern epidemic at 50% -> corroborates
+    Index 57's 17.1% (note appended).
+  - Autumn 1998: IRIN autumn-1998 cholera items are all eastern-DRC; no Republic of Congo counts for the
+    thin Sep-Dec 1998 months.
+Sources found: 2 usable   Registered: index 111 (WHO note 28 Jan 1999), 112 (IRIN-CEA 5-99)
+Rows added   : 0
+Presence rows: +2 ./data/COG/cholera_presence_ai.csv (AFR::COG::Pointe-Noire and AFR::COG::Brazzaville,
+               1999-01-30..1999-02-04, src 112, conf 0.5)
+Revisions (not yield): Index 176 (timing note), Index 57 (CFR corroboration + 1997/1998 death split note),
+               Index 55 (context note)
+Successful queries: 0/20
+Yield        : 0%
+WebSearch used this batch: 0 (cumulative 3/50)   Direct: 20
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (minimum 3 batches not reached)
