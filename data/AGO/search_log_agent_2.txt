@@ -1,0 +1,128 @@
+================================================================================
+AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - ANGOLA (AGO) - RUN 2026-09-29 (Opus 5.5 cycle)
+================================================================================
+Start                 : 2026-09-29 17:14 ; wall-clock budget ~60 min (target finish ~18:15)
+Role                  : convert national totals into provincial / municipal detail for spatial
+                        transmission modelling. Temporal coverage is 100.0% (681/681 months) after
+                        Agent 1 (helper /tmp/AGO_orch/ago_coverage.py), so this run targets
+                        SUB-NATIONAL granularity, not calendar months.
+Starting state        : ./data/AGO/cholera_data_ai.csv 366 rows (Index max 386)
+                        ./data/AGO/metadata_ai.csv 150 sources (Index 1-150)
+Overrides honoured    : analyze_effective_gaps.py / build_weekly_timeseries.py / dashboard NOT run;
+                        no git; CSVs written only via py/add_observation.py and py/revise_observation.py
+Prior Agent 2 (2026-09-21): ./data/AGO/search_log_agent_2_legacy_20260921.txt - batch 1 only (+90 rows,
+                        sources 113-117); ~61 further rows (Index 291-351, sources 118-120) unlogged.
+                        Its batch-1 queries are NOT repeated here.
+Agent 1 handoffs      : OCHA ROSA Updates 1/4/5 provincial (2008-09); Uige 2018; Soyo 2016-17;
+                        Lucapa 2011; Huila 2013; Kwanza Sul 2007; JN 2006/2007 provincial.
+Double-counting rule  : every provincial row carries "Provincial subset - do not sum with national row";
+                        every national row in a period that gets provincial rows carries
+                        "National total - includes provinces not individually listed" (appended with
+                        revise_observation.py --append-note where missing).
+Location spelling     : AI canonical (underscores, no accents): Cuanza_Sul, Cuanza_Norte, Lunda_Norte,
+                        Lunda_Sul, Icolo_e_Bengo, Uige, Huila, Bie; legacy 18 provinces pre-2025
+                        (Cuando_Cubango single unit; Bengo incl. Icolo e Bengo; Moxico incl. Moxico Leste).
+================================================================================
+
+=== INHERITED ROWS RECONCILIATION (Index 291-351, sources 118-120; NOT counted toward yield) ===
+Method   : curl (desktop UA) of the three live ANGOP pages; article:published_time checked; every
+           row value compared with the article text; within-source arithmetic re-done.
+Source 118 ANGOP 15 Apr 2025 (published 2025-04-15 11:22 UTC) "Angola com mais de 12 mil casos de colera"
+           Rows 291 (national 12 600/475), 292-308 (17 provinces cumulative), 309 (national 24h 232/2),
+           310-320 (11 provinces 24h). All 17 cumulative values match the text (Luanda 5.035 ... Lunda Sul 1)
+           and sum exactly to 12 600; the 10 death values sum to 475; 24h split sums to 232; "dois obitos
+           nas provincias do Bengo e de Benguela" -> 1+1 (the only integer split) = 2.  PASS.
+Source 119 ANGOP 24 Jan 2025 (published 2025-01-24 16:42 UTC) "Angola regista cumulativo de mais de 700 casos"
+           Rows 321 (national 783/35), 322-326 (5 provinces), 327-334 (8 municipal death rows: Cacuaco 21,
+           Mulenvos 2, Belas 1, Sambizanga 1, Dande 3, Panguila 2, Barra do Dande 1, Sequele 4). Values match;
+           5 provinces sum to 783; municipal deaths sum to 25/6/4 = provincial deaths = 35.  PASS.
+           Note: ANGOP says first case "no dia um (1) deste mes"; TL 2025-01-07 kept (dataset convention,
+           WHO DON562 first confirmed case 7 Jan). No change.
+Source 120 ANGOP 14 Feb 2025 (published 2025-02-13 23:52 UTC = 14 Feb 00:52 WAT) "Angola regista 125 novos casos"
+           Rows 335 (national 3 668/122), 336-345 (10 provinces), 346 (national 24h 125/5), 347-351 (5
+           provinces 24h). Values match (the article's stray repeated "Malanje" is a typo: the 10 values
+           sum to exactly 3 668); deaths 55+50+15+2 = 122; 24h 62+55+6+1+1 = 125, 5 deaths all Bengo. PASS.
+Double-counting: all 5 national rows carry "National total - includes provinces not individually listed";
+           all 56 sub-national rows carry "Provincial subset - do not sum with national row". No provincial sum
+           exceeds its national value (all are exact equalities).
+Defects found: NONE. No revise_observation.py changes were needed for Index 291-351.
+
+=== BATCH 1 | PHASE 1 (T2: 2025 provincial series via the AFRO-hosted MINSA bulletins; T3/T4 registered leads) | AGO ===
+Gap targeted : SUB-NATIONAL (temporal coverage 100%): 2025 weekly provincial incidence holes (weeks 16, 19,
+               25), H2-2025 provincial series (previously only Sep-2025 monthly for 4 provinces and Dec 2025 for
+               3), 2006 Oct-Dec resurgence geography, 2007 and 2008-09 provincial splits.
+Queries (20):
+   1 curl   afro.who.int/countries/angola/publication/boletim-de-colera-2025-no-355 + PDF text + p2 render
+            (Mapa 1/2 are range choropleths, no counts)                                    [no row at this step]
+   2 curl   afro.who.int/countries/angola/publications?page=0..45 (243 items; 225 daily bulletins No. 95-237,
+            266-355; weekly Semana 15-19, 23, 25; WHO Flash Updates 1-3)                   [HIT -> week 16 rows]
+   3 WebSearch [pt] colera Angola casos cumulativos provincias Luanda Benguela Huila Uige Lunda Norte agosto
+            2025 boletim Ministerio da Saude (-> BOLETIM COLERA 226/227/234 PDFs)        [HIT -> bulletin 234]
+   4 WebSearch [pt] angop colera "desde o inicio do surto" provincias casos obitos outubro 2025 (-> bulletin
+            286; 18 May 2025 six-province figures - superseded by the complete 10 May / 23 May tables)
+   5 WebSearch UNICEF Angola Cholera Situation Report No. 10/11/12 2025 provinces cumulative cases
+   6 curl   UNICEF HSR No. 9, 10, 11 PDFs + ReliefWeb No. 14 + No. 7 page (text layer names provinces, no counts)
+   7 curl   publication pages semana-16, semana-23, who-angola-annual-report-2025, flash updates 1-3 (links)
+   8 curl   Semana 23 JPG + 28 URL-stem probes for a full PDF (only a page-1 image: national 1 034/15 weekly,
+            25 169/730 cumulative; no provincial table)                                    [no row]
+   9 curl   WHO Angola Annual Report 2025 (51 MB PDF): national only (36 373 / 896, 19 of 21 provinces) [no row]
+  10 curl   WHO Angola Cholera Flash Updates 1, 2, 3 (Jan-Feb 2025)                         [HIT]
+  11 curl   weekly bulletins Semana 19 and Semana 25 - re-mined registered sources 98/97 for the WEEKLY
+            incident columns the earlier agent did not extract                              [HIT]
+  12 curl+pdftoppm bulletin 234 page 3 (Quadro 2 image, read visually) - extraction of query 3's hit
+  13 curl   publication pages + PDFs for month-end bulletins No. 205, 266, 297, 327; Quadro 2 renders [HIT]
+  14 pdftoppm bulletin 355 page 3 (registered source 90 had NO rows; its Quadro 2 was never mined) [HIT]
+  15 curl   mid-month bulletins No. 174, 190, 220, 281, 312, 342 + Quadro 2 renders         [HIT]
+  16 WebSearch [pt] colera Angola 2026 casos por provincia Benguela Uige Huila Luanda "desde o inicio do ano"
+            (mostly 2025 ANGOP items; lead: cartadeangola.com 10 Apr 2026 Malanje/Benguela)  [no row]
+  17 WebSearch Angola cholera 2006 cases by province ... OCHA situation report (percentages only; leads
+            DON 2006_05_25 and 2006_06_06a)                                                 [no row]
+  18 re-read OCHA ROSA Regional Update No. 4 (source 140, Agent 1's cached PDF text) provincial paragraph [HIT]
+  19 re-read Jornal de Noticias 10 Dec 2006 (source 136, cached) last-month provincial split       [HIT]
+  20 curl   jn.pt 707259 (source 135, JN/Lusa 14 Aug 2007) YTD and last-week provincial split     [HIT]
+RESULTS
+  * 2025 weekly provincial INCIDENCE is now contiguous for MINSA weeks 13-19 plus week 25: week 16 (13-19 Apr,
+    1 625/34) from a bulletin the prior run's stem enumeration missed ('Week%2016_02'); weeks 19 (4-10 May,
+    1 656/27) and 25 (15-21 Jun, 661/9) from the weekly columns of sources 98/97. Every table: 17-18 provincial
+    values sum EXACTLY to the national weekly total (cases and deaths).
+  * H2-2025 provincial series: the MINSA daily bulletin's page-3 "Quadro 2: Distribuicao de Casos e Obitos por
+    Provincia" is an IMAGE (absent from the text layer - why source 90's description called the bulletins
+    image-only) - read visually. 12 complete 18-province cumulative tables: 30 Jun, 16 Jul, 31 Jul, 15 Aug,
+    29 Aug, 30 Sep, 15 Oct, 31 Oct, 15 Nov, 30 Nov, 15 Dec, 28 Dec 2025. EVERY table reconciles exactly to its
+    PAIS total (cases and deaths); transcriptions cross-checked against the printed CFR column.
+    Shows the H2 geography: Uige 16 (16 Jul) -> 3 659 (28 Dec); Lunda Norte 440 (30 Jun) -> 2 339;
+    Huila 1 170 -> 3 226; Cunene 2 (15 Aug) -> 635; Malanje 1 152 -> 1 698; coastal provinces flat.
+    Cross-checks: 30 Sep minus 29 Aug reproduces the existing Sep-2025 monthly rows (Uige 267 = 267; Lunda
+    Norte 461 vs 467; Huila 557 vs 539; Cunene 278 vs 273).
+  * Early 2025: Luanda cumulative at 19 Jan (416), 26 Jan (748), 9 Feb (1 501) + national (WHO Flash Updates).
+  * 2006: first provincial record of the Oct-Dec rainy-season resurgence: last month to 9 Dec 2006, national
+    5 397/248, Huila 1 678, Cunene 811, Uige 736, Benguela 485 (JN relaying WHO/MoH; conf 0.5, single source).
+  * 2007: YTD to 11 Aug 2007 Luanda 6 692/77, Benguela 3 681/73, Cabinda 1 721 (<= national 16 320/419,
+    Index 382); week 5-11 Aug 2007 Benguela 7/4, Luanda 1/0, Malanje 1/0 = national 9/4 (Index 383) exactly.
+  * 2008-09: lab-revised 1 Oct 2008-19 Jan 2009 Uige 403/6, Kwanza Norte 171/2, Huila 65, Zaire 3, Luanda 1
+    = national 643/8 (Index 377) exactly.
+Sources found: 17   Registered: index 151 (Semana 16), 152-154 (WHO Flash Updates 1-3), 155-159 (MINSA
+               bulletins 205, 234, 266, 297, 327), 160-165 (MINSA bulletins 174, 190, 220, 281, 312, 342).
+               Re-mined registered sources: 90, 97, 98, 135, 136, 140.
+Rows added   : 300 -> ./data/AGO/cholera_data_ai.csv 366 -> 666 rows, Index 387-686
+               (387-404 wk16; 405-441 + 448 wk19/wk25; 442-447 flash; 449-670 Quadro 2 x12 dates;
+                671-675 OCHA 2008-09; 676-680 JN 2006; 681-686 JN 2007)
+Revisions    : Index 390, 395, 400, 403 (evidence token appended to reported provincial zero weeks); 448
+               retracted and re-added (see note); 69, 70, 71, 72 (corroborated by bulletin 355); 189 and 67
+               (MINSA national cross-reference).
+Arithmetic   : every multi-province table reconciled exactly to its national total. Conflicts noted, not
+               fixed (Agent 5): Index 189 UN News 35 451 vs MINSA 35 496 (30 Nov 2025; no second national row
+               added to avoid a same-period conflict); Index 67 WHO #33 36 293 vs MINSA 36 313 (28 Dec; 20 = that
+               day's increment); Index 183 ECDC 34 679 "to 22 Nov" = MINSA 15 Nov figure (ECDC frame lags a week).
+Tooling notes: (1) Bengo week 19 (26 cases / 5 deaths, CFR 19.2%) trips CFR_high_flagged_for_review, a WARN
+               class not present at the start; revise --deaths "" does not clear a value, so the row was
+               retracted (tombstone in ./data/AGO/retracted_rows_ai.csv) and re-added cases-only with the 5 deaths
+               in the quote/notes. The writer RE-USED Index 448 for the replacement (allocator = live max+1), so
+               Index 448 now exists both as a tombstone and as a live row - for Agent 7. (2) Provincial zero-case
+               weeks need "Evidence type: Documented_Absence" in the add-time note or they raise
+               zero_row_no_evidence_type; --set-evidence only rewrites an existing token.
+Successful queries: 10/20  (queries 2, 3, 10, 11, 13, 14, 15, 18, 19, 20)
+Yield        : 50%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 2: 2026 provincial; H1-2025 May/Jun bulletins; T4 2011-2018 ANGOP/ReliefWeb
+               provincial outbreaks; T5 border provinces)
