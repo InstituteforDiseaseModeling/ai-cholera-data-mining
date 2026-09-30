@@ -1,0 +1,264 @@
+=== AGENT 6 INITIALIZATION ===
+Country: Angola (AGO)
+Agent  : 6 - Gap Context Investigator (FRESH deployment, orchestrator session 3, 2026-09-29 Opus 5.5 cycle)
+Start  : 2026-09-30 15:50 (local)
+Status : INITIALIZED
+Time limit: NONE. The only stopping rule is the yield rule: batches of exactly 20 queries; minimum 3 batches
+  (60 queries) whatever the yield; then continue until 3 CONSECUTIVE batches are below 5% EXTENDED yield, or
+  12 batches in total.
+Legacy : ./data/AGO/search_log_agent_6_legacy_20250806.txt is a 2025 run that executed no searches ("API
+  restrictions"); read for leads only, never written to.
+
+YIELD RULES (both logged for every batch; the stopping rule uses EXTENDED, as allowed by brief section 7)
+  STRICT   : the query produced >=1 committed NEW row in ./data/AGO/cholera_data_ai.csv.
+  EXTENDED : a NEW row, OR an evidence-based change to an existing row's evidence label / confidence / dates /
+             count, OR a tombstoned retraction. Presence records, note-only appends, leads and confirmations do
+             NOT count. Each query counts once. A local re-read of a document already held in /tmp/AGO_orch/
+             (by me or an earlier agent) is NOT a query and is never credited, even if it drives a change;
+             such changes are logged as "uncredited".
+  Yield = successful queries / 20 x 100 (percent, 0-100; never above 100).
+
+READ BEFORE QUERY 1
+  ./data/AGO/workflow_orchestrator_AGO.txt (S3 addendum, sections 1, 4, 6, 7); ./data/AGO/workflow_state.json
+  (all agent entries, orchestrator sessions 1-3); ./data/AGO/search_log_agent_3.txt (full), _5.txt (batches 1-12,
+  CONFLICT RESOLUTION, final summary), final summaries of _1.txt, _2.txt (state), _4.txt; the legacy A6 log;
+  ./templates/template_search_protocol.txt; ./data/AGO/cholera_presence_ai.csv (47), ./data/AGO/retracted_rows_ai.csv
+  (62), all national zero rows of ./data/AGO/cholera_data_ai.csv; baselines ./data/AGO/cholera_data_jhu.csv and
+  ./data/AGO/cholera_data_who.csv (READ-ONLY).
+  Local evidence re-read before query 1 (held by earlier agents; not queries): WHO AFRO Southern Block IDS bulletins
+  Sep 1999-Jul 2006 and AFRO CDER 2004 issues (/tmp/AGO_orch/a1_afrocsr/), AFRO weekly outbreak sheets 2003-2005,
+  AFRO IDS weekly cholera trends 2000 wk 52, MINSA GEPE Anuario Estatistico Sanitario 2020-2023 and INE yearbooks
+  (/tmp/AGO_orch/a4_ine_*.txt), JPRS-TEP-88-010 OCR (/tmp/AGO_orch/a4_ia/), FBIS 17 Feb 1981 OCR (a4_ia_passages.txt).
+
+OPERATIONAL OVERRIDES HONOURED
+  No py/analyze_effective_gaps.py, no py/build_weekly_timeseries.py, no dashboard scripts, no git. CSVs written only
+  through py/add_observation.py (new rows/sources/presence) and py/revise_observation.py --agent 6 (existing rows).
+  Read-only helpers: python3 /tmp/AGO_orch/ago_coverage.py, python3 /tmp/AGO_orch/ago_weekly_preview.py.
+  Scratch files: /tmp/AGO_orch/a6_*.
+
+STARTING STATE (measured 2026-09-30 15:48, before any change)
+  ./data/AGO/cholera_data_ai.csv   9 622 rows (Index max 9694)
+  ./data/AGO/metadata_ai.csv       1 009 sources (Index max 1009)
+  ./data/AGO/cholera_presence_ai.csv 47 records; ./data/AGO/retracted_rows_ai.csv 62 tombstones
+  python py/validate_quality.py AGO -> exit 0; ERROR 0 / WARN 39 (35 CFR_high_flagged_for_review, 4 period_single_day)
+     / INFO 468. Saved: /tmp/AGO_orch/a6_validator_start.txt
+  python3 /tmp/AGO_orch/ago_coverage.py -> EFFECTIVE 85.0% (579/681), months_ai 539, months_ai_only 151,
+     positive_months 411; gaps 1976-01-01..1976-12-31 (366d, historical), 1997-02-01..2003-12-31 (2525d, modern),
+     2004-06-01..2004-12-31 (214d, modern); latest observation 2026-09-19. BASELINE-ONLY 62.6% (426/681).
+
+PERIODS TO CLASSIFY (from the orchestrator brief)
+  P1 1976 | P2 1997-02..2003-12 by sub-period | P3 2004-06..12 | P4 2005 (JHU/GHO zero, read-only) |
+  P5 1978-1986 zero rows 75-83 (adjudicate 1981 Index 78 vs 9251/presence 709; 1978 Index 75 vs presence 704) |
+  P6 2015 Index 108 | P7 2019-01-21..2020 (27), 2022 (940), 2023 (25) vs 2021 (111) and 2024 (112) |
+  P8 2026-09-20 onward (reporting lag) | P9 edge overlaps (9299 vs WER 27.III-2.IV 1972; 27 vs JHU Uige Jan 2019).
+
+PRE-QUERY FINDINGS FROM LOCAL RE-READS (uncredited; they shape the batch-1 queries)
+  L1 WHO AFRO Southern Block bulletin Oct 2001: "We welcome in this issue of the bulletin, the inclusion for the
+     first time of data from Angola and Zambia, which have joined the Southern African epidemiological block." ->
+     the Angola "0" cholera cells in the Southern Block tables of Jan-Apr 2000 predate Angola's data flow into the
+     block: zero-fills, not reports (the Jan 2000 table itself warns "this table does not give a true picture ...
+     since reports have not been received from most of the countries"). Same bulletin: "Currently, there is a
+     surveillance focal point at central level and provincial counterparts in some of the provinces"; "parts of
+     the country are not accessible due to ... inadequate security"; recommendation "Improve reporting to WHO,
+     even if data are incomplete."
+  L2 AFRO CDER Jan 2004 (Jan-Dec 2003 table): Angola cholera "-" (no report) beside meningitis 47/8, AFP 104 and
+     measles 1 183 -> in 2003 Angola reported other notifiable diseases to AFRO but submitted NO cholera figure.
+     CDER Jun-Oct 2004: cholera "0 0 0" and meningitis "444 66" frozen from week 22 while AFP (47 -> 96 cases) and
+     measles (59 -> 160) kept rising -> after week 22 of 2004 the IDSR weekly channel stopped; the vertical polio
+     and measles programmes kept reporting.
+  L3 Southern Block 2001-2002: Angola AFP surveillance at certification level (2001 non-polio AFP rate 2.6, stool
+     adequacy 90%; 2002: 188 AFP cases, rate 3.0); Kunene reported 202 suspected measles cases Dec 2001-Jan 2002 ->
+     vertical programmes looked everywhere they could reach; cholera was never reported.
+  L4 MINSA GEPE Anuario Estatistico Sanitario 2020/2021/2022/2023 (Tabela 104 / 93 / 15 / 15, "Morbilidade por
+     doencas de notificacao obrigatoria", Fonte: Relatorios DNSP): Colera 2019 = 19 cases / 0 deaths (= the Jan-2019
+     Uige tail), 2020 = 0/0, 2021 = 0/0, 2022 = 0/0, 2023 = 0/0, in tables that carry malaria in millions, measles
+     (2019 5 592; 2022 18 999; 2023 15 371), meningitis, AFP and poliomyelitis (2019: 106, the cVDPV2 outbreak) ->
+     explicit national zero notifications from a functioning notifiable-disease system, whose cholera line records
+     real cases when they occur (2019). Agent 4 deferred the label decision on 27/940/25 to Agent 6.
+  L5 INE Anuario Estatistico de Angola 2014-2017, Quadro 4.3: the 2015 column is demonstrably misaligned (Meningite
+     47 354 vs 556/402 in the adjacent years; Disenteria 207, Raiva 230, Diabetes 348 and Traumatismo 3 802 in the
+     CASES column equal the 2015 DEATHS in Quadro 4.4) -> its "Colera 50" for 2015 cannot be taken as a count.
+  L6 FBIS 17 Feb 1981 (Luanda Domestic Service 16 Feb 81): "The Angolan Health Ministry has refuted reports published
+     by a Portuguese newspaper according to which more than (?7) people ... have fallen victims of a Cholera
+     outburst. According to (?TAUDE JORNO) Angola has recorded in Luanda at least three cases of cholera for over a
+     month now, the ministry outlined in a communique. The ministry also said that (?TAUDE JORNO) has accused the
+     Angolan authority of having called on the national press to report nothing on the so-called cholera outbreak."
+     Grammar: "(?TAUDE JORNO)" is the subject of both reported claims; Diario de Lisboa 16 Feb 1981 identifies it as
+     the Lisbon evening paper A Tarde ("uma duzia de casos de colera teriam sido registados em Luanda") -> the
+     "at least three cases" is A TARDE's claim as summarised by the Ministry, which it refuted ("so-called cholera
+     outbreak"). The Ministry did not concede cases. The brief's reading ("the Health Ministry's own communique ...
+     stating Luanda has recorded at least three cases") is the less likely one.
+  L7 JPRS-TEP-88-010 OCR: "Since its appearance in 1981 in Northern Kwanza, cholera has claimed 104 victims" sits in an
+     OCR text with visible character errors ("Recentl:", "townshit", "Paralic!", "contro! duc"); "1981" vs "1987" is a
+     classic OCR confusion, and the 1987 epidemic reached N'Dalatando in October 1987 ("The epidemic made its
+     appearance this month", Index 9446). A page-image check is the decisive test (batch 1).
+  L8 JHU national weekly 2019 (WHO AFRO): 8, 7, 4 cases in the weeks ending 6/13/20 Jan 2019, then reported zeros
+     every week 21 Jan-2 Jun 2019 -> Index 27's TL 2019-01-21 is already consistent with JHU; the JHU Uige rows
+     "2019-01-01..2019-01-27 19" are cumulatives whose cases all fall before 21 Jan (no conflict; P9 part 2 closed).
+
+=== BATCH 1 | PHASE 1 (decision-grade checks: P5 1981 evidence, P7 2019-2023 labels, P2 other-disease reporting by year, P6 2015, P1 1976, P8 recency) | AGO ===
+Gap targeted : P5 1981 (Index 78 vs 9251 / presence 709); P7 2019-2023 (Index 27, 940, 25); P2 1997-02..2003-12 sub-periods;
+               P3 2004-06..12; P4 2005; P6 2015 (Index 108); P1 1976; P8 2026-09-20+
+Queries (20) [category tag]:
+  Q1  [historical/technical] archive.org item jprs-report_jprs-tep-88-010: PDF p.7 rendered at 300 dpi, the year word
+      cropped and zoomed (/tmp/AGO_orch/a6_q1_crop_year_zoom.png)                                              [RESULT]
+  Q2  [linguistic pt] WebSearch "Kwanza Norte" OR "Cuanza Norte" colera 1981-1983 casos N'Dalatando Cazengo -> nothing
+  Q3  [linguistic pt] WebSearch Angola "nao regista"/"sem registo" casos de colera 2023 -> almapreta 30 Jan 2024 (low
+      quality, garbled history) -> UN News pt 29 Jan 2024 fetched                                               [context]
+  Q4  [official pt] WebSearch colera Angola 2023 "nenhum caso"/"sem casos" Lutucuta MINSA -> minsa.gov.ao 'Minsa: Angola
+      sem casos de colera' (Tue 23 Jan 2024) and Novo Jornal 9 Feb 2024 fetched                                   [context]
+  Q5  [official pt] WebSearch ANGOP 2023 colera Malawi Mocambique DNSP -> 2023 MINSA 'Plano de Contingencia da Colera e
+      Outras Doencas Diarreicas Agudas'                                                                           [context]
+  Q6  [humanitarian] WebSearch UNICEF Angola 2023 annual report cholera -> UNICEF Mid-Year 2023 Humanitarian SitRep and
+      2023 HAC downloaded: the word cholera does not occur in either (drought response in the south)             [context]
+  Q7  [official] WebSearch WHO AFRO 2015 cholera country list / Outbreak Bulletin Dec 2015 -> nothing
+  Q8  [linguistic pt] WebSearch colera Angola 2015 surto casos ANGOP -> only 2025 items
+  Q9  [official/archive] Wayback CDX afro.who.int/csr/ids/bulletins_ids/afro/* -> CDER captured only Jun 2000-Oct 2004;
+      no 2005 issue archived                                                                                     [RESULT]
+  Q10 [official/archive] AFRO CDER No. 000 (Jun 2000), Jul, Aug, Sep, Oct 2000 (Wayback id_ PDFs)                 [RESULT]
+  Q11 [official/archive] AFRO CDER No. 0005 (Jul 2001)                                                          [RESULT]
+  Q12 [humanitarian] WebSearch 2002 quartering/family reception areas WHO surveillance -> OCHA Apr 2002: measles,
+      meningitis, malaria, diarrhoea; no cholera                                                                 [context]
+  Q13 [humanitarian] WebSearch MSF 2002 Angola nutrition reports cholera -> famine/malnutrition; no cholera outbreak
+  Q14 [regional] WebSearch Angolan refugees cholera Zambia 1999-2001 camps -> Zambia 1999 outbreak was Ndola
+      (Copperbelt); none reported in the Angolan-refugee camps of Western/North-Western Province                  [context]
+  Q15 [regional] WebSearch cholera Bas-Congo 1998-2001 -> Kinshasa double epidemic 1996-98 and 1999-2001 (5 105 cases);
+      EuropePMC PMC8684622 full text read                                                                        [context]
+  Q16 [academic/technical] WebSearch Weill 2017 genomic history Africa -> >=11 introductions since 1970; MDR
+      sublineages from Asia replaced older ones after 2000 (Angola detail not in abstract)                      [context]
+  Q17 [historical es] WebSearch brigada medica cubana Angola 1976 colera -> nothing
+  Q18 [historical] WebSearch Anais IHMT 1976 vol 4 Henriques digitised -> print only (index PDF), no digital copy
+  Q19 [official] Africa CDC EI weekly report pages Sep/Oct 2026 -> only the 24-Sep file (MoH wk 37); Oct page 404
+  Q20 [official] WHO IRIS API newest WER / AFRO OEW -> WER 101(38) (held), OEW wk 36 (md5 = Agent 5's file)
+EVIDENCE, QUOTE BY QUOTE
+  Q1  The JPRS print itself reads "Since its appearance in 1981 in Northern Kwanza, cholera has claimed 104 victims" -
+      the '1' is printed, so the '1981' is NOT an OCR error. The slip is upstream (newspaper or translator): the SAME
+      province's contemporaneous report, Jornal de Angola 31 Oct 1987 (JPRS-TEP-88-001 / DTIC ADA354338, held by
+      Agents 4/5, Index 9446), says of N'Dalatando "The epidemic made its appearance this month when seven cases were
+      detected and taken to the Regional Hospital", and the DNSP communique (JPRS-TEP-88-002, metadata 795): "the
+      cholera epidemic broke out in April in the municipality of Soyo ... It then spread from the coast to some of the
+      provinces of the interior, namely to Cuanza-Norte, Huambo, Huila, Malange, and Uige." -> cholera first reached
+      Cuanza Norte in October 1987; "1981" is a date slip for 1987.
+  Q3/Q4 UN News (pt) 29 Jan 2024: "Outra provincia onde se presta atencao ao risco de um eventual surto de colera ha varios
+      meses e a do Luanda [Lunda] Norte"; MINSA, Tue 23 Jan 2024, National Director of Public Health Helga Freitas:
+      "Angola nao tem registos de casos de colera", alert level 2 because of Zambia and DRC, emergency kits at borders;
+      Novo Jornal 9 Feb 2024: "Angola, que ja reforcou medidas de vigilancia epidemiologica, nao registou ate ao momento
+      casos de colera". -> the system was watching at the end of 2023 / start of 2024 (2024 already Documented 0.95).
+  Q10 AFRO CDER No. 000 (Jun 2000), Table 1 "Cholera, meningitis and plague ... in 1999 as reported to WHO (January 2000
+      update)": "Angola 0 0 0 29 5 17 0 0 0" - but the table ZERO-FILLS non-reporters (Lesotho 0/0/0 although the
+      Southern Block said "No cholera and meningitis data are available for Lesotho"; Uganda meningitis 0), so Angola's
+      1999 cholera 0 is a fill; meningitis 29/5 is a report. CDER No. 004 (Oct 2000) uses '-' for no report and '0' for a
+      reported zero (Algeria "0 0 0"): "Angola - - - 135 18 13 - - -" -> 2000: meningitis 135 cases / 18 deaths
+      REPORTED, cholera NOT reported. Same issue: Angola 196 AFP cases (2000), wild polio 49.
+  Q11 AFRO CDER No. 0005 (Jul 2001): "Angola - - - - - -" for cholera and meningococcal meningitis; AFP 24 cases -> 2001
+      (to mid-year): only the polio programme reporting.
+  Q9  CDER issues are archived only Jun 2000-Oct 2004 -> no AFRO zero/non-zero statement for 2005 is recoverable.
+  Q14/Q15 Regional: Zambia's 1999-2001 cholera was Copperbelt/Lusaka, none reported in the Angolan-refugee camps of
+      Western/North-Western Province; western DRC: Kinshasa epidemic 1996-98 and 1999-2001 (5 105 cases / ~300 deaths),
+      "a few small isolated peaks of epidemics in the early 2000s ... linked to the east-west dynamics" (PMC8684622), and
+      the Angola-linked spreads into Kongo Central documented only for 1973, 1977 and 2006 -> the regional epidemic was
+      real but its documented foci were not on Angola's borders.
+COMMITS (all UNCREDITED - driven by documents already held in /tmp/AGO_orch/, not by a batch-1 query)
+  Index 78   (AFR::AGO 1981 Inferred_Absence) confidence 0.4 -> 0.5 + adjudication note (Kwanza Norte 'since 1981' =
+             date slip for 1987; the Luanda figure is A Tarde's refuted claim, not a Ministry admission).
+  Index 9251 (Luanda Jan-Feb 1981, 3 sCh, 0.2) note-only: reading corrected; kept as the record of a denied claim.
+  Index 9299 (1972 documented zero) TL 1972-03-31 -> 1972-04-03 (removes the 3-day overlap with the WER 27.III-2.IV
+             1-case Lobito notification, Index 9593; 3-9.IV has no WER notification).
+  P7 RE-LABEL (evidence: MINSA GEPE Anuario Estatistico Sanitario 2020-2023, held by Agent 4, who deferred the label):
+     NEW 9695 AFR::AGO 2019-01-21..2019-12-31 Documented_Absence 0.7 operational (src 693; derived: 2019 annual 19 =
+              the January Uige tail; WHO AFRO weekly zeros 21 Jan-2 Jun 2019)
+     NEW 9696 AFR::AGO 2020 Documented_Absence 0.75 operational (src 694; 2020 = 0/0 in the 2020 and 2021 editions)
+     NEW 9697 AFR::AGO 2022 Documented_Absence 0.75 operational (src 695; 2022 = 0/0 in the 2022 and 2023 editions)
+     NEW 9698 AFR::AGO 2023 Documented_Absence 0.7 operational (src 696; 2023 = 0/0, deaths table 0; regional epidemic)
+     RETRACTED 27 (2019-01-21..2020-12-31 Inferred 0.5, src 15), 940 (2022 Inferred 0.5, src 239 Level 3),
+              25 (2023 Inferred 0.4, src 14) - tombstones in ./data/AGO/retracted_rows_ai.csv; new Index 9695-9698 do
+              not collide with any tombstone.
+     Why Documented: explicit national zero notifications (DNSP reports) in tables that carry every other notifiable
+     disease; the cholera line records real cases (2019 = 19) and matches WHO zero reports where WHO has them (2021;
+     2024). Why not 0.9+: WER non-submission for 2020, 2022, 2023; yearbook small counts imperfect (poliomyelitis 2019
+     106 vs 138 cVDPV2; 2020 0 vs 3; plague 2020 1 683 in one edition, 0 in the next). Rejected: keeping Inferred
+     (ignores an explicit national zero series); in-place relabel of 27/940/25 (their cited sources do not document
+     the zeros - dual-reference integrity); a single 2019-2020 row (2019 is derived, 2020 explicit - different weights).
+  Validator after commits: exit 0, ERROR 0, WARN 39 (unchanged classes), INFO 467. Rows 9 622 -> 9 623.
+  Weekly preview 2019-2023 (read-only): 2019 wk 23 - 2023 wk 5 remain JHU Fourier-filled from the JHU cumulative rows
+     ending 2023-02-04 (builder issue, report only); Feb-Dec 2023 now documented_zero 0.70 (was inferred 0.4).
+Sources found: 14   Registered: none (corroborating URLs quoted in notes/log)
+Rows added   : 4 (9695-9698, uncredited); retractions 3 (27, 940, 25, uncredited); revisions 78, 9299 (uncredited)
+Successful queries (STRICT)  : 0/20      Yield STRICT   : 0%
+Successful queries (EXTENDED): 0/20      Yield EXTENDED : 0%   (every change this batch came from a local re-read)
+Consecutive sub-5% batches (extended): 1
+Decision     : CONTINUE (minimum 3 batches). Batch 2 = targeted: second editions of the MINSA yearbook (2024 edition
+               for 2023; 2019 edition), 2015 single-year yearbooks, AFRO/WHO 1997-98 and 2002-03 statements, 1976/1978
+               institutional sources (WHA/EB assistance-to-Angola reports), 2004 H2 MINSA/WHO bulletins, recency.
+
+=== BATCH 2 | PHASE 2 (targeted: second yearbook editions for 2019-2023, 2015 clean sources, 1976/1978 institutional and press, 1997-98 and 2004 H2 positive-report probes, regional, recency) | AGO ===
+Gap targeted : P7 (2019-2023 yearbook corroboration); P6 2015 (Index 108); P1 1976; P5 1978 (Index 75); P2 1997-98;
+               P3 2004-06..12; P2/P3 regional; P8 2026-09-20+
+Queries (20) [category tag]:
+  Q21 [official pt] WebSearch 'Anuario Estatistico Sanitario' 2024 MINSA -> no 2024 edition; a second upload of the 2021
+      edition found (INE Publicacao_638386090746148428, Tabela 102: colera 2020 0/0, 2021 0/0) - corroboration only
+  Q22 [official pt] WebSearch Anuario Estatistico Sanitario 2019/2018/2015 editions -> none online (only 2020-2023 + duplicates)
+  Q23 [official pt] WebSearch INE Anuario Estatistico de Angola 2015/2016 -> AEA 2015-2018 repeats the misaligned 2015 column
+      ('Colera 50', same lineage); UMN teaching document downloaded - no national data
+  Q24 [official] WHO IRIS 'Cholera, 2016' (WER 92(36)) downloaded -> Angola only in Table 1 (78 / 3); no text on 2015
+  Q25 [official] WebSearch AFRO Outbreak Bulletin Vol. 5 late-2015 issues -> not archived online; lead: Ngom et al. 2023
+      'Five decades of infectious diseases outbreaks in the African region (1970-2018)'
+  Q26 [historical] WebSearch WHA 1976-77 assistance to Angola -> Angola joined WHO on 15 May 1976 and signed the Basic
+      Agreement in 1976 (IHR binding from 15 Aug 1976, WER 51(34))                                              [context]
+  Q27 [historical pt] WebSearch colera Angola 1978 ANOP desmentido CEE vacinas -> nothing
+  Q28 [academic] WebSearch/WebFetch Ngom et al. 2023 (ScienceDirect 403) -> abstract only ('Angola reported 7348 cholera
+      cases during the 1995-2016 period', irreconcilable with WHO totals - not used)
+  Q29 [academic] EuropePMC Epidemiol Infect 2001 'Epidemiology of meningococcal meningitis in Angola, 1994-2000' ->
+      PMC full text not indexed (Cambridge Core copy exists; lead)
+  Q30 [humanitarian] WebSearch UNICEF Angola 1998 cholera -> nothing behind UNICEF's Mar 2001 'since 1998 ... no cholera
+      fatalities'
+  Q31 [official] WebSearch WHO 1998 Africa cholera countries Angola -> WHO: eastern/southern Africa epidemic 1998
+      (Kenya, Mozambique, Somalia, Uganda, Tanzania, Zambia, Zimbabwe); no Angola
+  Q32 [linguistic pt] WebSearch colera Angola 1998-1999 Lusa -> MSF Brasil 7 Mar 2006 fetched: 'E o primeiro surto em
+      Luanda em mais de uma decada' / 'apenas notificacoes ocasionais nao confirmadas de casos de colera em Luanda' [context]
+  Q33 [official pt] WebSearch colera Angola Oct-Dec 2004 casos -> only 2025 items
+  Q34 [humanitarian] WebSearch OCHA Angola 2004 monthly analyses -> Jul 2004 polio NIDs by 23 000 teams (4.5 million
+      children) - the health system was operating in H2 2004; no disease-outbreak table found               [context]
+  Q35 [regional] WebSearch cholera 2004-2005 Zambia Western/North-Western, Namibia Kunene, Bas-Congo, Cabinda -> Zambia
+      2003-04 and 2005-06 outbreaks were urban Lusaka (2 529 cases Nov 2003-Jan 2004; 6 045 in 2005-06)       [context]
+  Q36 [technical] WebSearch Baia de Luanda 2001 Vibrio cholerae marine study -> not online (only Colombo 1997 FEMS on
+      1991-94 river strains)
+  Q37 [regional fr] WebSearch cholera Pointe-Noire/Brazzaville 1998-2002 -> Pointe-Noire 7 Nov 1997-27 Jan 1998 445 cases /
+      83 deaths with secondary foci at Madingo-Kayes (coast towards Cabinda); Congo's 'previous epidemic ... 1998 during
+      the civil war' (IPS 2007)                                                                                [context]
+  Q38 [historical fr] WebSearch cholera Angola Oct 1978 AFP 'enrayee/jugulee' -> nothing
+  Q39 [official pt, recency] Jornal de Angola CMS search API (POST /cms/api/v1/noticias, titulo 'colera'): newest item
+      25 Sep 2026 'Trabalhadores da Saude destacados no combate a colera e Mpox' (no counts; held by Agent 5)
+  Q40 [official, recency] WHO dashboard FeatureServer cholera_adm0_week (Angola): newest epiwk 32 2026 (120 / 1), layer
+      edited 28 Sep 2026 -> nothing after MoH week 37
+UNCREDITED LOCAL RE-READS THIS BATCH (Agent 5's WER 1971-1999 text corpus, /tmp/AGO_orch/a5_wer71..a5_wer99)
+  L9  WHO compilation criteria (WER 53(10), p. 75, read from the page image): an area declared infected "is deleted from the
+      list on receipt of a declaration under Article 7 that the area is free from infection. If information is available
+      which indicates that the area has not been free ... the Article 7 declaration is not published" -> removal from the
+      WHO infected-area list is a POSITIVE act of the health administration, never automatic.
+  L10 1977-78: monthly 'Infected Areas as on ...' lists carry ANGOLA 'Luanda, Cap. (PA)' and 'Luanda District' under
+      cholera from 1977 to 30 Mar 1978; Benguela District removed 26 Aug-1 Sep 1977, Cuanza Norte / Golungo Alto 2-6 Sep
+      1977; WER 53(17), 28 Apr 1978: 'Areas Removed ... between 21 and 27 April 1978 ... CHOLERA - Africa - ANGOLA' -> the
+      Angolan administration closed the 1977 epidemic with an IHR Article 7 declaration in late April 1978.
+  L11 1997: the WER 1997 index lists ONE Angolan cholera notification (p. 56 = WER 72(8), 1.VI.1996-7.II.1997, 10 cases);
+      the 1998 and 1999 volumes list none. Contrast with 1977-78: in 1997-2002 the 15 Angolan units stayed on the infected
+      list because NO Article 7 declaration was ever made (Agent 5) - the IHR cholera channel was dormant, not reporting
+      freedom. The WER 2006 phrase 'Angola, which had not reported any cases since 1998' is contradicted by WHO's own
+      notification index and GHO (no 1997-98 entry) -> recorded as an inconsistent retrospective, not as 1998 presence.
+  L12 1975-76: Benguela District (Benguela, Lobito) on the cholera list on 25 Sep 1975; in 1976 Angola appears only under
+      yellow fever; no removal notice was recovered from the OCR (late-1975 lists partly unreadable) -> not used.
+COMMITS (UNCREDITED - driven by L9/L10, local re-read of documents held by Agent 5)
+  Index 75 (AFR::AGO 1978 Inferred_Absence) confidence 0.5 -> 0.6 (cap) + adjudication note: the April 1978 Article 7
+     declaration is the only 1978-specific official act and it asserts freedom; the Sep 1978 news-agency claim was
+     denied by the Foreign Ministry and the Oct 1978 French item gives no case, place or count. Rejected: keep 0.5; split
+     into Documented (28 Apr-31 Dec) + Inferred (Jan-Apr); retract.
+Sources found: 11   Registered: none
+Rows added   : 0    Revisions: 75 (uncredited)
+Successful queries (STRICT)  : 0/20      Yield STRICT   : 0%
+Successful queries (EXTENDED): 0/20      Yield EXTENDED : 0%
+Consecutive sub-5% batches (extended): 2
+Decision     : CONTINUE (minimum 3 batches not yet reached). Batch 3 = deep validation: Cambridge Core meningitis 1994-2000
+               paper (surveillance description), WHO/AFRO institutional reports 1998-2003 (Angola country office bulletins,
+               IDS assessment Feb 2002), WHO GTFCC profile text, Zambia 2000-2010 cholera epidemiology (border provinces),
+               DRC Kongo Central early-2000s peaks, 2005 WHO Angola statements, 1976 health-system collapse sources, recency.
+
