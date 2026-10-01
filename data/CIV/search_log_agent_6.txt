@@ -14,3 +14,70 @@ search intent; counted in batches of exactly 20.
 Yield = queries that committed >=1 new row to ./data/CIV/cholera_data_ai.csv / 20.
 
 Starting state (checked with pandas before first query): see BASELINE block below.
+
+=== BASELINE (pandas, before first query) ===
+./data/CIV/cholera_data_ai.csv     : 1759 rows, max Index 1777
+./data/CIV/metadata_ai.csv         : 294 sources, max Index 294
+./data/CIV/cholera_presence_ai.csv : 75 presence records
+./data/CIV/retracted_rows_ai.csv   : 18 tombstones
+Effective gap file row for CIV: 2026-08-01..2026-09-30 (recent). Since then row 814 covers 27 Jul-20 Sep 2026
+(Inferred 0.5); 21-30 Sep 2026 open.
+Builder behaviour checked by code read (py/build_weekly_timeseries.py, not run): within the AI layer the
+ranking is observed > documented_zero > positive Fourier > inferred_zero (inferred zero confidence capped 0.6),
+and every historical ISO week with NO row is filled as 'assumed_zero' (sCh=0, conf 0.5) up to 52 weeks before
+the latest observation. Consequences used in this log: (1) an inferred zero overlapping a positive annual row
+is already overruled in the series, so retracting it changes labels, not numbers; (2) a surveillance gap left
+honestly empty still appears as assumed_zero in the weekly file - downstream users must read assumed_zero as
+'no data', not as an observed zero (flagged for Agent 7 and the modellers).
+Cache material read (not counted as queries): Bai 1991 register via /tmp/civ_a5/add_bai.py (1970 930; 1971 137;
+1972 105; 1973-1976 0; 1977 43; 1978 2; 1979 3; 1980 0; 1981 5; 1982 45; 1983 155; 1984 2; 1985 9; 1986 18;
+1987 1; 1988 67; 1989 79; 1990 12; Jan-Feb 1991 20); Duchassin et al. BSPE 1973 pp.485-487 and 679 page images
+(/tmp/civ_a4/gal); Heyerdahl 2019 thesis text (/tmp/civ_a2/hey.txt) 'Le prix du silence' section.
+
+=== BATCH 1 | PHASE 1 (official/humanitarian/regional re-check of the 2026 tail) | CIV ===
+Gap targeted : 2026-09-21..2026-09-30 (open, recent) + regional signal (Ghana) behind rows 42/814
+Queries      : 20
+  1  [africacdc.org download pages Sep + Oct 2026] Sep page still holds ONE file (24-Sep-2026, data to 13 Sep);
+        October page 404                                                                          -> none
+  2  [WHO dashboard ArcGIS cholera_adm0_week: layer info + max(date_wk) + CIV records] lastEdit 28 Sep 2026; max
+        date_wk 2026-09-14 (= W37, 14-20 Sep); CIV latest record 2025 W33 (114 cases)              -> none (no extension)
+  3  [same layer, iso_3_code IN (GHA,LBR,GIN,MLI,BFA) AND epiyr=2026] 0 records - no neighbour 2026 cholera
+        record                                                                                    -> none (regional context)
+  4  [WHO IRIS sorted by date] newest WER = 101(38), 25 Sep 2026; no 101(39)                       -> none
+  5  [afro.who.int outbreaks/emergencies updates page] listing ends at week 36 (31 Aug-6 Sep 2026)  -> none
+  6  [afro.who.int site search 'weekly bulletin outbreaks week 37 2026' / 'september 2026'] nothing -> none
+  7  [bsp.inspci.org WP REST media after 2026-08-20] only new upload = Supplement CSP-CI 5 (1 Oct 2026) -> see q9
+  8  [bsp.inspci.org WP REST posts] newest = CSP-CI 5 congress supplement; no BSP-CI 4.3 / Le Vigile W28+ -> none
+  9  [CSP-CI 5 supplement PDF, 235 pp., pdftotext + grep 'chol'] congress abstracts; cholera only as a risk in
+        two abstracts; no surveillance data                                                       -> none
+  10 [Google News RSS fr: choléra "Côte d'Ivoire" when:30d] 3 items, none about CIV cholera         -> none
+  11 [Google News RSS en: cholera Ivory Coast/Abidjan after:2026-09-10] nothing relevant           -> none
+  12 [Google News RSS fr: choléra + Abidjan/Korhogo/San-Pedro/Bouaké/Daloa/Yamoussoukro after 15 Aug] nothing -> none
+  13 [Google News RSS en: cholera Ghana after:2026-06-15] 54 items: GHS 'No cholera outbreak recorded since the
+        recent floods' (11-12 Jul), prevention campaigns, Nigeria outbreak; one headline 'Central Region moves to tame
+        cholera outbreak' (Modern Ghana 16 Jul)                                                   -> see q15-q18
+  14 [Wayback CDX modernghana.com/news/ prefix + 'cholera' filter Jul-Oct 2026] HTTP 504 x2         -> none
+  15 [Google News RSS exact headline + batchexecute link decode] -> modernghana.com/news/1511287/... and GNA
+        original gna.org.gh/2026/07/central-region-moves-to-tame-cholera-outbreak/                 -> lead
+  16 [modernghana.com direct + WebFetch] 403 (Cloudflare challenge)                                -> none
+  17 [GNA WP REST search=cholera after 2026-07-01] 45 posts: prevention, sanitation, fumigation, Nigeria/Kenya/
+        Nepal items; no Ghanaian case                                                             -> none
+  18 [GNA WP REST content of the 16 Jul and 1 Jul stories] 16 Jul = 'intensive public-education campaign
+        urging stakeholders to strengthen cholera-prevention measures' (no case); 1 Jul = 'Ghana has recorded no
+        confirmed cholera case for more than a year' (registered 295)                             -> none (REVISIONS 814, 42)
+  19 [ECDC weekly threats listing + CDTR W38 and W39 2026 PDFs] latest cholera monthly overview 'last reported on
+        28 August 2026'; W39 has no cholera item                                                  -> none
+  20 [ReliefWeb API v1 (decommissioned 410), v2 (appname 403); HTML search 'cholera West Africa' 1 Sep-1 Oct 2026 +
+        top hit OCHA 10 Sep 2026 'Across six countries in West and Central Africa'] six countries = DRC, Nigeria,
+        Chad, Cameroon, CAR, Congo; no CIV, no Ghana                                              -> none
+Sources found: 1 new    Registered: index 295 (GNA, Ghana cross-check)
+Rows added   : 0
+REVISIONS (py/revise_observation.py --agent 6; not counted toward yield):
+  Index 814  note: Ghana signal resolved; 1 Oct 2026 re-check of every tail source; label/period/confidence unchanged
+  Index 42   note: Ghana caveat lifted; label/confidence unchanged
+2026 TAIL: still no comprehensive source past 20 Sep 2026 -> 21-30 Sep 2026 stays OPEN (no row).
+GHANA SIGNAL: RESOLVED - not an outbreak (GHS 1 Jul: no confirmed case for >1 year; 16 Jul story = prevention).
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (minimum 3 batches)
