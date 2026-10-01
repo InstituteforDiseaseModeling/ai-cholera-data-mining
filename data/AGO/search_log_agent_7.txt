@@ -53,7 +53,7 @@ Tool changes found on disk (not mine): commit d54df8d (2026-09-30 12:11, "add_ob
           This bears on A6 and A10 (see below).
 
 ================================================================================
-VALIDATION SAMPLING DESIGN (Stages 1-4) - drawn 17:25, numpy default_rng(seed=20260930)
+VALIDATION SAMPLING DESIGN (Stages 1-4) - drawn ~17:18, numpy default_rng(seed=20260930)
 ================================================================================
 Sample files (read-only extracts of ./data/AGO/cholera_data_ai.csv + metadata URL), /tmp/AGO_orch/:
   a7_sample_g1a_nat_gt10k_2025_26.csv  55 rows = EVERY national row with sCh > 10 000 and TL >= 2025
@@ -71,16 +71,16 @@ Method  : each row re-checked against the LIVE source (curl desktop UA / WebFetc
           and recorded as such. Verdicts PASS / PASS-WITH-NOTE / FAIL / UNVERIFIABLE. Fetching and reading were
           run as six parallel read-only helper sub-agents (no write access to ./data; results written to
           /tmp/AGO_orch/a7_verify_<group>.tsv); every FAIL and a spot-sample of PASSes re-checked by me before any
-          CSV change. Host status at 17:20: iris.who.int TCP connect timeout (3 tries; WER/AFRO IRIS items
+          CSV change. Host status at ~17:15: iris.who.int TCP connect timeout (3 tries; WER/AFRO IRIS items
           unreachable), afro.who.int 200, ArcGIS FeatureServer 200, reliefweb 200 (curl+UA), africacdc.org 200.
 
 ================================================================================
-A1 - ./data/AGO/attribution_review.csv (Index 64, 65 citing metadata 31)  [17:40]
+A1 - ./data/AGO/attribution_review.csv (Index 64, 65 citing metadata 31)  [~17:27]
 ================================================================================
 Checks  : tombstones Index 64 (2008) and 65 (2010) in ./data/AGO/retracted_rows_ai.csv - both retracted 2026-09-21
           as false zeros; metadata 31 = 'WHO Multi-country outbreak of cholera external situation report #31
           (29 Oct 2025)', Date_Range 2025-01-01..2025-09-28 (still correctly cited by live Index 66).
-          LIVE WHO GHO OData (ghoapi.azureedge.net, CHOLERA_0000000001/2, AGO, queried 17:38): 2008 = 10 511 cases /
+          LIVE WHO GHO OData (ghoapi.azureedge.net, CHOLERA_0000000001/2, AGO, queried ~17:26): 2008 = 10 511 cases /
           243 deaths; 2010 = 1 484 / 30 -> PASS for the retraction (both zeros false) and for the replacement rows
           live Index 87 (2008, 10 511/243, metadata 35) and Index 89 (2010, 1 484/30, metadata 35).
 Action  : resolution column filled for both lines (python csv module; every other field byte-identical to the
@@ -88,4 +88,400 @@ Action  : resolution column filled for both lines (python csv module; every othe
           the rows no longer exist and no source supports them. There is no tool verb for this file; the repair tool
           is designed to preserve reviewer-filled resolutions and will archive the file (rename to .resolved) on its
           next scoped --apply. Status: RESOLVED.
+
+================================================================================
+A2 - Index 9638 (national 2006-05-26..06-04, 2 877 / 139, WER 81(23))  [~17:30]
+================================================================================
+Check   : IRIS item d3dde86b unreachable (TCP timeout). Used Agent 5's IRIS download /tmp/AGO_orch/a5_wer06/w06_23.pdf
+          (uuids.json maps issue 23 -> d3dde86b...; masthead 'No. 23, 2006, 81, 233-236', '9 JUNE 2006'; PDF CreationDate
+          8 Jun 2006). Rendered p. 4 (printed p. 236) at 200 dpi and read the IHR box visually
+          (/tmp/AGO_orch/a7_w06_23_box2.png): heading 'Notifications of diseases received from 17 to 23 March 2006'
+          (stale template line - all other entries in the box are May 2006 periods); 'Angola 26.V-04.VI ... 139  2877'
+          under 'Cases / Deaths' -> printed TRANSPOSED, exactly as Agent 5 transcribed.
+          Independent reconciliation: WER chain to 20 May = 37 611 / 1 367 (sum of Index 9626-9637); UNICEF 24 May
+          39 267 / 1 451 (Index 270); WHO/Angola 4 Jun 42 562 / 1 625 (Index 1330). 25 May-4 Jun = 3 295 / 174; this
+          row's 2 877 / 139 (26 May-4 Jun) leaves 418 / 35 for 25 May. The printed order (139 cases / 2 877 deaths) is
+          impossible. VERDICT: PASS - interpretation correct; header misprint confirmed.
+Action  : python py/revise_observation.py AGO --index 9638 --agent 7 --append-note "...verified..." (values, period,
+          confidence 0.6 unchanged). Rejected: raising confidence above 0.6 (a transposition is still a judgement).
+
+================================================================================
+A4 - Index 9251 (AFR::AGO::Luanda 1981-01-15..02-16, sCh 3, conf 0.2)  [~17:32]
+================================================================================
+Check   : LIVE archive.org micro_IA1176908_0847 (FBIS Daily Report: Middle East & Africa V-031, 17 Feb 1981), djvu text
+          lines 4190-4209: 'HEALTH MINISTRY DENIES REPORTS OF CHOLERA OUTBREAK ... The Angolan Health Ministry has
+          refuted reports published by a Portuguese newspaper according to which more than (?7) people in Angola have
+          fallen victims of a Cholera outburst. According to (?TAUDE JORNO) Angola has recorded in Luanda at least
+          three cases of cholera for over a month now, the ministry outlined in a communique. ... Such reports are seen
+          to be aimed at sabotaging ...' -> the 3 is the newspaper's allegation as summarised in the denial.
+DECISION: RETRACT (tombstone). No source asserts that a cholera case occurred; the claimant's figure itself varies
+          (3; Diario de Lisboa 'uma duzia'; '>(?7)' / '(77)' victims). Fails the CLAUDE.md inclusion test (number must
+          be cholera cases in a context indicating incidence; here the context is an official denial).
+REJECTED: keep at 0.2 with an explicit contested note (Agents 4-6's choice) - a 0.2-weight sCh=3 still reads as an
+          observation of incidence to any sub-national consumer, and the tombstone preserves every field.
+Action  : python py/revise_observation.py AGO --index 9251 --agent 7 --delete --reason "..." (tombstone written;
+          9 623 -> 9 622 live rows; tombstones 65 -> 66). Note appended to national Index 78 (1981 Inferred_Absence 0.5,
+          unchanged) recording the retraction. Metadata 705 (the FBIS item) now has no live row - it stays registered as
+          the evidence cited in Index 78's notes (metadata_unused INFO, justified). No model effect (sub-national row).
+
+================================================================================
+VALIDATION SAMPLE G3 - Agent 2's 2025 MINSA daily 24 h series (30 rows: 15 provincial, 15 municipal)
+================================================================================
+Helper result (/tmp/AGO_orch/a7_verify_g3.tsv): 30 PASS / 0 PASS-WITH-NOTE / 0 FAIL / 0 UNVERIFIABLE, all LIVE
+  (28 distinct bulletins fetched from afro.who.int at the registered URLs, HTTP 200; bulletin number and ACTUALIZADO
+  date matched meta_Source in every case; provincial values checked against the 'DESTAQUE DAS ULTIMAS 24h' text and
+  the Quadro 1 provincial totals; municipal values read from the Quadro 1 images; TL = bulletin date - 1, TR =
+  bulletin date on all 30). Indices: 2575 2687 3318 4053 3758 3804 4189 4175 4433 5609 5981 1589 7351 7507 1948 7761
+  7832 1791 1829 1878 1887 1910 8180 2017 2030 2134 2178 2422 2338 2347.
+  Minor (no action): municipal rows 2575, 3318, 3758, 3804 leave deaths blank where the source shows 0 (text-era
+  rows); rows read from tables use 0. Blank vs 0 deaths has no builder effect.
+My own re-check of one PASS: Index 7761 (Luanda::Camama 2025-07-04..05, 1/0) - LIVE
+  https://www.afro.who.int/sites/default/files/2025-07/BOLETIM%20CO%CC%81LERA%20179.pdf : header 'BOLETIM No 179/2025
+  ACTUALIZADO: 05-07-2025, as 18h'; text '22 novos casos ... 3 em Luanda'; Quadro 1 image block Camama 1/0, Mulenvos
+  1/0, Kilamba 1/0, Total 3/0; PAIS 22/0 -> PASS (agrees with helper). Note: Quadro 1 province labels render as black
+  boxes in the PDF image; province assignment rests on municipality names + block totals = headline split (sound).
+
+================================================================================
+VALIDATOR BASELINE CHECK  [~17:34]
+================================================================================
+python py/validate_quality.py AGO --no-baseline --json /tmp/AGO_orch/a7_validator_nobaseline.json -> exit 0,
+  ERROR 0, WARN 39, INFO 467 (after the 9251 retraction: overlap groups 366 -> 365, metadata_unused 101 -> 102).
+  ./reference/validation_debt.json holds NO AGO entry (its only note records that Agent 1 removed the stale AGO
+  64/65 entries on 2026-09-21) -> nothing is being suppressed for Angola; raw severities = reported severities.
+
+================================================================================
+A6 - Index reuse by add_observation.py (tombstone/live collisions)
+================================================================================
+Verified: 66 tombstones, all Index values unique among tombstones; 8 collide with LIVE rows: 448, 3837-3843.
+  448  : tombstone (Bengo 2025-05-04..10, 26/5, src 98, retracted 2026-09-29) and live row have the SAME content
+         (Agent 2 retracted and re-added it with the restored deaths) - harmless duplicate of the audit record.
+  3837-3843: tombstones hold Agent 2's old misattributed Luanda/Bengo Jan-2025 rows (src 591/592); the live rows with
+         the same Index are DIFFERENT observations (src 593/594, other days/units).
+Audit-trail implication: any reference to 'Index 3837-3843' written before 2026-09-29 (logs, notes, handoffs) now
+  resolves to a different live row; revise_observation.py --index acts on the live row only; a consumer joining
+  retracted_rows_ai.csv to cholera_data_ai.csv on Index mis-pairs eight records; attribution_review.csv keys on
+  data_Index and could attach a resolution to the wrong row. Renumbering would break every existing reference, so
+  the 8 collisions are documented, not fixed.
+Tool status: FIXED going forward by commit d54df8d (2026-09-30 12:11, 'never reuse retracted Index' - allocation now
+  excludes Index values present in retracted_rows_ai.csv). No collision created after it (Agents 5 att.3, 6 and my
+  retraction of 9251 checked).
+Related audit-trail gaps found: 18 Index values are neither live nor tombstoned (30, 31, 37-41, 46, 47, 50-57, 59).
+  17 of them are the 2026-09-21 presence quarantine (cholera_presence_ai.csv moved_from_row = CSV line = Index+1 at the
+  time); Index 59 has no record anywhere (pre-cycle). moved_from_row stores an unstable CSV line number, not the Index.
+
+================================================================================
+A7 - WARN justification (35 CFR_high_flagged_for_review, 4 period_single_day)
+================================================================================
+CFR rows (Index): 448 706 722 838 882 883 893 906 908 915 926 932 937 941 1230 1231 1294 1337 1704 1977 2461 2467
+  2492 2516 2910 3014 3180 3205 3738 3906 3947 3955 3961 9608 9626.
+  - confidence_weight <= 0.7 on all 35 (max 0.7; none above the CFR cap).
+  - every row's quote gives cases and deaths in ONE statement for ONE period/unit (spot-read all 35 quotes): ANGOP /
+    IFRC / WHO / UNICEF / WER provincial or municipal statements (e.g. 906 'At least 61 people died of cholera, out of
+    392 cases recorded ... between April 20 and May 15'), provincial tables (1230/1231/3947 IFRC & UNICEF tables with
+    the CFR column printed by the source: 22%, 16%, 15%), and 7 MINSA single-day rows (1704, 1977, 2910, 3014, 3180,
+    3205, 3738) where the day's deaths include community deaths of earlier cases - noted on each row ('deaths among
+    earlier cases / community deaths reported that day'; 2910 a flagged backlog '44* ... 10*').
+  - all 13 deaths Agent 2 had withheld carry 'Deaths restored (session 2)' notes with the quote. Their earlier text
+    ('DEATHS WITHHELD FROM COLUMN ... Agent 5/7 may restore') is stale but superseded by the appended restore note.
+  - only 9626 is national (WER 01.I-19.II 2006 40/8, first notified week; deaths in children <5 per note).
+  - checked 1337's denominator: the ANGOP/WHO-Angola list gives 'Lunda-Norte 274 (84)' in the cases list with
+    deaths in brackets; the first list (498, 287 ...) is deaths, as the note explains; sums reconcile to 1 625 deaths.
+  VERDICT: all 35 justified (source-reported deaths are data; small denominators; context notes present). No fix.
+Single-day rows: 9255 (Luanda 12 Jun 1987, 110), 9256 (Luanda 23 Jun 1987, 40/0), 9260 (Luanda Sun 17 Apr 1988,
+  206/20), 9297 (national 16 Mar 1972, 2 suspected, 'entre as 0 e as 24 horas do dia 16 de Marco'). Each quote names a
+  single calendar day -> TL = TR is the faithful encoding. Justified. (Agent 5's review note on 9297 calls it
+  'sub-national' - it is national; harmless: JHU 1972 annual has builder priority.)
+
+================================================================================
+A9 - metadata with no live row (validator metadata_unused INFO: 102 after the 9251 retraction)
+================================================================================
+Named items: 798 -> cited in notes of Index 9684; 945 -> 9620; 821 -> 9317; 831 -> 9339; 833 -> 9340; 839 -> 9337;
+  881 -> 9286 (all corroboration-only WER/UNICEF issues). CONFIRMED.
+All 102: 20 back cholera_presence_ai.csv records; 21 are the sources of tombstoned rows (e.g. 705 FBIS 1981, 37 WER
+  1977 review); the rest are cited by number or title in other rows' notes, except 9 cited only in the agents' search
+  logs as negative/absence evidence: 54 (WER Cholera in 1988), 65 (Cholera, 2000), 129 (1999), 130 (2001),
+  132 (2004), 133 (2005), 242 (WER current data 1976-77), 284 (AFRO Southern Africa feedback bulletin), 287 (AFRO EHA
+  Angola provinces). Not errors (registered sources consulted for gap classification), but not traceable from the
+  CSVs - flagged in the report.
+
+================================================================================
+A10 - per-write backups (storage)
+================================================================================
+State now: 80 .backup_*.csv files in ./data/AGO (20 each for cholera_data_ai, metadata_ai, cholera_presence_ai,
+  retracted_rows_ai), oldest 2026-09-30 15:21; du -sh ./data/AGO = 252 MB. The ~11 000 files / >50 GB in my brief is
+  OUTDATED: commit d54df8d (12:11 today) added prune_backups() (BACKUP_KEEP = 20 per file) to add_observation.py and
+  repair_data_integrity.py, which pruned them on the next writes. Consequence: restore points older than 15:21 today
+  are gone; git checkpoints (e.g. df6cea0, 16:55) are now the only durable restore points. I deleted nothing.
+
+================================================================================
+A13 - national vs sub-national double counting
+================================================================================
+Validator: 365 of 365 national_subnational_overlap groups are 'documented' (INFO; it raises WARN when any row in a
+  group lacks a primacy phrase). Semantic spot-check of 2025: 6 313 municipal rows and 1 974 provincial rows all say
+  'do not sum'; 94 of 100 national 2025 rows say 'National total', the other 6 (66, 100, 101, 109, 184, 196) carry an
+  explicit 'do not sum with ...' sentence. Hierarchy arithmetic: 1 389 municipal-sum vs provincial pairs for the same
+  24 h window: 1 385 exact, 4 municipal sums below the provincial count (partial table listings), 0 over-counts.
+  The builder reads national rows only, so sub-national rows cannot double count in the model. PASS.
+
+================================================================================
+A11 - agent claims vs what landed (Index-range reconciliation, live + tombstones)
+================================================================================
+  A1  352-386 live 35 + 941-991 live 51 = 86 = claim; metadata 121-150 (30) + 245-288 (44) = 74 = claim.
+  A2  387-939: 553 values = 544 live + 10 tombstoned - 1 (448 both); 992-9244: 8 253 values = 8 250 live + 3 tombstoned
+      (1266, 1268, 2301; 3837-3843 are collisions) -> net 553 - 2 + 8 250 = 8 801 = claim; metadata 87 + 404 = 491.
+  A3  940 added (later tombstoned by A6); 26, 58, 60, 102, 106 tombstoned -> net -4 = claim; metadata 238-242.
+  A4  9245-9345: 101 values = 91 live + 10 tombstoned (9300-9307 own re-cites, 9345 by A5, 9251 by me) -> 93 at its
+      end = claim; metadata 243-244 + 693-769 = 79 = claim.
+  A5  9346-9438: 92 live + 9398 tombstoned; 9439-9694: 256 live; net 9 307 -> 9 622 = +315 = claim; metadata 770-1009
+      = 240 = claim.
+  A6  9695-9698 live 4; 27, 940, 25 tombstoned -> net +1 = claim.
+  No claimed row is missing; no batch yield above 100; no agent below 3 batches.
+
+================================================================================
+A8 - builder / JHU-layer defects (REPORT ONLY - JHU is read-only, py/ not edited)  [~17:37]
+================================================================================
+Measured with python3 /tmp/AGO_orch/ago_weekly_preview.py 1970 2026 (output /tmp/AGO_orch/a7_weekly_preview_1970_2026.txt):
+ (1) 2006 total 118 764 vs WHO/GHO 67 257 (Index 105); 2007 total 75 052 vs 18 422 (GHO, Index 86). Mechanism (read in
+     py/build_weekly_timeseries.py process_country): a non-weekly JHU row's FULL total is Fourier-spread over only the
+     weeks NOT covered by JHU weekly rows, never net of them. 2006 ISO wks 1-7 (2 Jan-19 Feb) = 1 594, 1 453, 1 482,
+     1 700, 2 113, 2 718, 3 499 (JHU fourier, conf 0.5) although the index case was 13 Feb and WHO notified 40 cases to
+     19 Feb (Index 9626) -> ~14 560 phantom cases before/at onset; wks 35-52 ~52 000 vs ~10 000 notified Sep-Dec (WER
+     chain, Index 9647-9651). 2007 wks 1-19 ~55 000 vs WER Jan-10 May 14 929 (Index 9451 / 9652-9662).
+ (2) JHU national cumulatives 2017-12-15..2023-02-04 (610/11) and 2018-01-01..2023-02-04 (461/8) Fourier-fill 2019 wk 23
+     -> 2023 wk 5: 2019 = 80 (19 real + 61 phantom), 2020 = 177, 2021 = 175, 2022 = 175, 2023 wk 1-5 ~6 - over the
+     WHO-documented 2021 zero (Index 111) and the MINSA-yearbook zeros 2019/2020/2022 (9695-9697). 2023 wk 6+ shows the
+     AI documented_zero 0.70 correctly.
+ (3) JHU 1988 annual 15 500 / 1 542 (source 42) is BELOW WHO's own notifications 1 Jan-22 Jul 1988 = 16 351 / 879 (sum
+     of AI WER rows 9318-9325) while its deaths exceed them; the model uses the JHU 15 500.
+ (4) JHU Fourier seasonal template vs documented timing: 1972 builder by month Jan 9, Feb 18, Mar 37, Apr 51, May 60 vs
+     WER notifications Jan 96, Feb 18, Mar 15, Apr 9, May 4 (epidemic peak January, misplaced to Apr-May); 1974 builder
+     puts ~205 cases in Sep-Dec vs 22 notified (spring peak itself roughly right).
+ (5) JHU AFR::AGO::Bie 2006 weekly series: 8 rows 16 Apr-10 Jun 2006 = 4 080 cases, vs Bie's own reported totals
+     (IFRC/MoH 22 by 14 Jun, 25 by 25 Aug; ANGOP 46 Apr-Jul) - two orders of magnitude out: a mislabel (probably
+     Benguela/Malanje). Sub-national, so no national-series effect today.
+ (6) Builder keys any row of <= 7 days to the ISO week of TL as a whole-week 'observed' value, so 1-3 day counts become
+     weekly counts where no real weekly row exists (risk of undercount). No current national effect (2026: 9692 ->
+     WHO wk 8 wins; 9679 -> AI 187 wins; 718 -> WHO wins).
+ (7) Week placement 2026: Sunday-Saturday MoH-week rows (Index 352-366, re-dated by Agent 5) and WHO baseline Monday
+     date_wk rows are both keyed one ISO week early (e.g. Index 366 MoH wk 37 = 13-19 Sep lands in ISO wk 37 = 7-13 Sep;
+     the series ends 2026 wk 37 = 116 inferred). Internally consistent at the WHO->AI hand-over (ISO wk 20 WHO 477,
+     wk 21 AI 436). ECDC '10 May-14 Jun 2026: 1 930 cases' = epiwk 18-22 under the 6-day offset (note on Index 176).
+ (8) Priority WHO > JHU > AI: every AI sub-annual, weekly and documented-zero row inside a JHU-annual year is invisible
+     to the model (1971-1977, 1987-1996, 2006-2018 detail; AI zeros 9295/9299/9309 in 1971-1973).
+Status: all eight REPORTED (search_report.txt section 'Why most AI rows do not reach the model'); none fixable in the
+  AI layer.
+
+PRESERVED: mv ./data/AGO/search_report.txt ./data/AGO/search_report_legacy_20250806.txt (mtime Aug 6 2025 kept) [~17:39]
+================================================================================
+VALIDATION SAMPLE G4 - Agent 5's WER IHR weekly notifications (20 random of 207)
+================================================================================
+Helper result (/tmp/AGO_orch/a7_verify_g4.tsv): 19 PASS / 1 PASS-WITH-NOTE / 0 FAIL / 0 UNVERIFIABLE.
+  ACCESS CAVEAT: live IRIS never answered (helper retries 17:26, 17:28; my own tries 17:15-17:20: TCP connect timeout);
+  no Wayback snapshot exists for any of the 20 IRIS item URLs. All 20 were therefore read from Agent 5's IRIS
+  downloads (/tmp/AGO_orch/a5_wer72..07/), with every issue's identity checked on the page-1 masthead (vol., no.,
+  date) and every figure read visually from 200-dpi page renders (900 dpi for one label). This verifies the
+  TRANSCRIPTION, not the live availability of the URL.
+  Sample: 9581 9593 9516 9526 9537 9547 9551 9552 9481 9514 9569 9462 9471 9473 9621 9609 9613 9615 9648 9653.
+  PASS-WITH-NOTE 9516 (25-31.XII.1972, 1/0): values right; its SERIES CHECK sentence was copied from the 1973 rows (cites
+    the 1973 series and 'the JHU 1973 annual row'). Same defect on 9515 (11-17.XII.1972, outside the sample).
+    ACTION: correction notes appended to 9515 and 9516 (python py/revise_observation.py ... --agent 7 --append-note);
+    values unchanged.
+  Observations (no action): 9581 puts the 6 non-'s' cases in cCh (Agent 5's convention for WER 'C' vs 's'); the WER
+    IHR boxes distinguish notified from suspected cases, not laboratory confirmation - cCh for WER rows means
+    'notified, not marked suspect'. 9621 (1989): the death conflict with the containing 1.VI-19.VII box (52 > 30) is
+    real; the 'probably Luanda-only' reading is inference; conf 0.5 justified. 9344 (press, 18-24.XII.1972 1/0) is
+    also printed in WER 48(1) - corroboration already in its note.
+  Series sums re-derived by the helper: 1972 WER rows 212/18 (+9344 = 213/18); 1973 WER rows 232/6 (+9286 = 235).
+My own re-check of one PASS: Index 9648 - /tmp/AGO_orch/a5_wer06/w06_40.pdf (masthead 'No. 40 ... 6 OCTOBER 2006'),
+  IHR box 'Notifications of diseases received from 29 September to 5 October 2006 ... Angola 04-27.IX 1153 38' = row
+  2006-09-04..09-27 1 153 / 38 -> PASS.
+
+================================================================================
+MODEL-VISIBLE IMPACT OF THE WHOLE CYCLE (read-only, in memory)  [~17:41]
+================================================================================
+Script  : /tmp/AGO_orch/a7_compare_preview.py - runs py/build_weekly_timeseries.process_country() twice with identical
+          templates and the CURRENT JHU/WHO baselines: (a) pre-cycle AI file (git 556d2e6, 2026-09-21, 331 rows, copied to
+          /tmp/AGO_orch/a7_precycle/AGO/), (b) current AI file. Writes nothing in the repo.
+Result  : 1 051 of 2 959 national weeks change value, method or source; AI-sourced weeks 1 102 -> 665.
+  1976        AI inferred_zero (false zero, retracted) -> builder 'assumed_zero' (no source)
+  1978-1986   AI documented_zero -> inferred_zero (label honesty; values 0 unchanged)
+  1993        AI documented_zero (FALSE) -> AI Fourier 11 210 cases (Index 9278)
+  1997        inferred_zero -> 5 wks AI Fourier (WER 1 Jun 1996-7 Feb 1997, 10 cases) + 46 assumed_zero
+  1998-2003   AI inferred_zero (false zero, retracted) -> assumed_zero
+  2004        inferred_zero -> 22 wks documented_zero (Jan-May, Index 990) + 30 assumed_zero
+  2023        AI inferred_zero -> documented_zero 0.70 (46 wks, Index 9698)
+  2026        9 977 -> 6 732 (Fourier spread of cumulatives replaced by 17 observed weekly rows)
+  Every other year: identical model input (JHU/WHO priority).
+CAVEAT for the report: surveillance-gap weeks are emitted by the builder as 'assumed_zero' (sCh 0, conf 0.5) for any
+  historical week >52 weeks before the latest observation. Agents 3/6 removed false zeros for 1976 and 1997-2004, but
+  unless the MOSAIC import treats assumed_zero as missing, those periods still enter the model as zeros (at 0.5 instead
+  of 0.6). Recommend: builder emits NA (not assumed_zero) inside periods classified Surveillance_Gap.
+
+================================================================================
+EXTRA CHECKS (not in the validator)  [17:44]
+================================================================================
+(a) Monotonicity of national cumulative series (TL 2025-01-07: 66 rows; 2025-01-01: 3; 2006-02-13: 14; 2006-02-19: 6;
+    2026-01-01: 13): 0 non-monotone steps in cases or deaths. PASS.
+(b) Confidence vs reliability band (CLAUDE.md L1 0.9-1.0, L2 0.7-0.9, L3 0.3-0.6, L4 0.1-0.3):
+    ABOVE band: 2 rows - Index 61 and 62 (UN OCHA flood/cholera updates 2009, metadata 28/29, Level 2) at 0.95.
+      ACTION: python py/revise_observation.py AGO --index 61|62 --agent 7 --confidence 0.9 (band cap; values unchanged;
+      no model effect - JHU 2009 annual has priority). My first note on each named the wrong metadata numbers (22/23);
+      a correction note naming 28/29 was appended immediately.
+    BELOW band: 6 827 rows (6 787 Level 1, mostly MINSA bulletin image transcriptions at 0.85 and CFR-capped rows at
+      <= 0.7) - deliberate, documented downgrades; conservative; left.
+(c) Location legality: 21 provincial names, all canonical (underscores, no accents); legacy units only pre-2025
+    (Cuando_Cubango 1987-2007, Moxico 2006-07), current units only 2025+ (Cubango 64 rows, Icolo_e_Bengo 553 rows);
+    one AFR::AGO::Multi_Provincial row (9335, 1987, permitted by CLAUDE.md). 0 non-ASCII locations. PASS.
+(d) Deaths-only rows (no sCh, no cCh): 34 (19 from 2025 MINSA municipal death lists, 11 from 2006, 3 from 2007, 1 2026),
+    e.g. Index 327-334 'Relativamente aos 35 obitos, 25 registaram-se ... Cacuaco (21) ...'. CLAUDE.md is internally
+    inconsistent here ('must have specific numbers for cases, deaths, or CFR' vs the MANDATORY 'at least one cholera case
+    value (sCh or cCh) OR a confirmed zero'); the validator and repair tool accept them; the builder skips them (blank
+    sCh); the gap analysis counts them as informative. Real source-stated death counts - kept, flagged in the report.
+
+(e) Revision-stamp attribution: 8 notes are stamped '[AGENT 5 REVISION ...]' while their own '(reason: Agent 2 session 2
+    ...)' names Agent 2 (3 dated 2026-09-29, before Agent 5 ever ran; 5 dated 2026-09-30; e.g. Index 817, 818, 821) -
+    revise_observation.py defaults --agent to 5. Reason text identifies the true author; flagged as a tooling defect
+    (--agent should be mandatory). revise_observation.py also does not enforce the CFR>15% -> confidence <= 0.7 cap
+    (Agent 2's note); the validator would catch it (CFR_high_undocumented_at_high_confidence) - none present.
+(f) A5 presence file (no editing tool; NOT hand-edited) - defects to document:
+    #37 AFR::AGO::Cuanza_Norte 1981 (source 709): date slip for Oct 1987 (Agent 6, P5) - should be removed or re-dated.
+    #45 AFR::AGO 1997-12-01..1998-01-04 (source 769, l'Unita map 'Fonti: OMS, Outbreak'): probably a copy of WHO's
+        unchanged IHR infected-area list (15 units carried 1997-2002), not independent evidence of transmission.
+    #36 AFR::AGO 1978-09-01..09-18 (source 704): a Portuguese news-agency claim DENIED by the Angolan Foreign Ministry,
+        stored as 'presence_confirmed_count_unknown' - the label overstates it (same class as the retracted Index 9251).
+    #16 AFR::AGO::Luanda_Sul 2025-01-07..03-23 (source 24): no province 'Luanda Sul' exists - almost certainly Lunda_Sul.
+    #0/#1 AFR::AGO::Uige-with-accent::Uige / ::Songa (source 17, 2018): accented, non-canonical; 'Songa' is probably Songo.
+    #5/#15 AFR::AGO::Kwanza_Norte(::Dondo): legacy spelling (canonical Cuanza_Norte).
+    #18 AFR::AGO 2019-01-01..2019-12-05 (OCHA ROSEA Dec 2019, source 144): spans the documented-zero window of 9695;
+        Agent 6 attributes it to the Jan-2019 Uige tail - period should be narrowed to Jan 2019.
+    Recommendation: a 'revise-presence' verb (re-date, relabel evidence, re-locate, retract with tombstone).
+
+================================================================================
+VALIDATION SAMPLE G1b - every national row with sCh > 10 000 before 2025 (31 rows)  [17:48]
+================================================================================
+Helper TSV (/tmp/AGO_orch/a7_verify_g1b.tsv): 23 PASS / 8 PASS-WITH-NOTE / 0 FAIL / 0 UNVERIFIABLE (access: live for most;
+  Wayback for 127, 9278; Internet Archive microfiche for 84; IRIS unreachable).
+  Sample: 9326 9308 84 9261 15 9278 105 9 2426 1330 1314 1204 1182 1156 831 270 1135 127 9374 115 124 126 9372 9418 86
+          9451 381 382 9375 87 947.
+  Follow-up (all note/metadata/confidence only; NO value changed):
+   9     quote was a paraphrase; verbatim UNICEF 21 Apr 2006 text re-fetched LIVE by me (reliefweb abstract: '13,819 cases
+         reported across the 6 affected provinces as of 18 April; 646 deaths to date (case fatality rate of 5%) as of 18
+         April') -> appended; stale 'not retrievable' caveat superseded.
+   15    metadata 10 URL (apps.who.int/gho/data) now redirects to a legacy page; GHO OData API (metadata 35) access path
+         appended (1989 17 601 / 925 re-verified live).
+   127   IFRC URL behind a Cloudflare challenge; Wayback capture (2009) appended as the verifiable copy.
+   9252, 9261, 9263  national rows carrying Agent 4's boilerplate 'Provincial/municipal subset - not a national total';
+         correction appended to all three (only national rows with that sentence).
+   84    WER 'Cholera in 1987' country table is Table 2 not Table 1; 1 460 deaths = the 14-Jan-1988 notification (GHO
+         final 1 403); note appended; metadata 47 Description corrected (--meta-index 47 --set-description). The Source
+         title keeps its 'Table 1' wording (renaming it would desynchronise the dual-reference label).
+   9308  EFE dateline 'Lisboa, 30' / 'hasta hoy' vs TR 29 Apr; probably stale vs WER-implied 28 093 / 2 078 by 2 May 1988;
+         documented, values and TR kept, conf 0.4.
+   9278  1993 national 11 210 / 610: same WHO toolkit table wrong in 1988, 1989 (deaths), 1994, 1995 -> confidence
+         0.5 -> 0.4 (rejected: keep 0.5; retract).
+   382   TR 11 Aug 2007 approximate (article dated 14 Aug, 'so far this year') - already documented; no change.
+
+G1b helper final report [17:49]: confirms 23 PASS / 8 PASS-WITH-NOTE / 0 FAIL; iris.who.int down for all 3 cited
+  items; web.archive.org later refused connections (identity of IRIS item 94a6edb2 not confirmable; same issue verified on
+  the archive.org microfiche). Extra findings (JHU read-only - REPORT ONLY):
+  - JHU Index 583 (2006-01-01..05-16) 33 775 / 1 298 vs WHO notice 18 May 2006 '35 775 cases and 1298 deaths' (live) -
+    digit error in the JHU baseline (AI Index 124 carries the correct 35 775).
+  - JHU Index 555 (2006-02-13..2006-12-31) 82 204 / 3 092 is mis-dated: GTFCC gives that total for 13 Feb 2006-9 May 2007
+    (JHU 306 has the right span); WHO/GHO 2006 = 67 257. Feeds the 2006 builder inflation.
+  - JHU 307 (2007-05-10..12-31) and 517 (2007 full year) both carry 18 422 / 513 - the 2007 annual repeated.
+  - IFRC MDRAO001 Final Report (source of AI 381) is internally inconsistent for 2006 (55 212 vs 57 570 by 31 Oct); the 2007
+    figure used (16 731 / 435 Jan-Sep) remains plausible - note only.
+  - Source typos: GTFCC 2007 profile 2006 = 67 275 (WHO 67 257); IRIN 2006 deaths 2 772 (WHO 2 722) - note only.
+  Action on 9308: addendum appended (cumulative 22 958 by 31 Mar, 27 229 by 24 Apr 1988 -> EFE's 24 727 ~ 6-10 Apr 1988).
+  Index 84 deaths: g1b reconciles WHO's 22 Jul 1988 cumulative 2 282 = 1 403 (1987) + 879 (1988 notifications), i.e. the
+  final 1987 death count is 1 403; row 84 keeps the WER review's printed 1 460 (source-faithful) with the conflict noted.
+
+A8 (2) ROOT CAUSE CONFIRMED [17:51]: raw JHU file /Users/johngiles/MOSAIC/jhu_cholera_data/data/Angola/ObservationCollection5014.csv
+  (read-only) lines 73-74 and 78-79: 'AFR::AGO,2017-12-15,2023-02-04,true,false,11,610,1.8,W07 2018' and
+  'AFR::AGO,2018-01-01,2023-02-04,...,8,461,1.7,W07 2018' (and the same pair for AFR::AGO::Uige). Reporting week W07 2018
+  with TR 2023-02-04 -> TR is a typo for 2018-02-04 (the Dec 2017-Feb 2018 Uige outbreak: 610 cases since 15 Dec 2017,
+  461 since 1 Jan 2018). This single typo manufactures every phantom case in the model for 2019 wk 23 - 2023 wk 5.
+  Fix belongs in the JHU conversion (py/convert_jhu_to_workflow.py input) - not the AI layer; reported.
+
+================================================================================
+VALIDATION SAMPLE G1a - every national row with sCh > 10 000, 2025-2026 (55 rows)  [17:56]
+================================================================================
+Helper result (/tmp/AGO_orch/a7_verify_g1a.tsv): 49 PASS / 4 PASS-WITH-NOTE / 1 FAIL / 1 UNVERIFIABLE. All 16 cited MINSA
+  daily bulletins fetched LIVE from afro.who.int (Quadro 2 PAIS line read visually); WHO sitreps #27-#32, epi update #33,
+  IFRC, UNICEF, Africa CDC, Jornal de Angola API, RTP live; 8 AFRO OEW/monthly items from cached IRIS downloads (IRIS down).
+  FAIL 196 (national 2025-01-07..2026-02-19, 36 536 / 903, RTP/Lusa): TR one day late. Re-fetched LIVE by me: report
+    'analisado na quarta-feira [18 Feb] ...'; minister's 36 536 / 903 given 'no final do encontro', with 'cinco dias
+    consecutivos sem novos casos'; 'Na quinta-feira [19 Feb], foram notificados 20 novos casos' is separate (Index 9692).
+    ACTION: --tr 2026-02-18 (values, confidence unchanged).
+  UNVERIFIABLE 271 (national to 23 May 2025, 22 172 / 669, ANGOP): angop.ao empty reply (my retry 18:0x: curl exit 52).
+    Values confirmed by me LIVE in the primary MINSA bulletin No 136/2025 (ACTUALIZADO 23-05-2025): 'total cumulativo de
+    22.172 ... Ocorreram 669 obitos'. ACTION: note appended; citation kept (outage transient; relay not shown wrong).
+    Rejected: retract + re-add against metadata 355 (loses provenance for no data gain).
+  PASS-WITH-NOTE 9455: note's reconciliation arithmetic wrong (MINSA 26 Oct 32 954 / 858, 28 Oct 33 146 / 859 = IFRC
+    exactly) -> correction note appended. 9437, 189, 68: documented day-convention TRs - no action.
+  Extra: 109 is an 'ARTIGO DE OPINIAO' relaying MINSA at 0.8 -> confidence 0.6 (Level 3 band), note appended.
+  Observations (no action): TL convention differs across the WHO 2025 series (2025-01-01 / 01-05 / 01-07; 9390, 9392,
+    9394, 9396 move WHO's '1 January' to 7 Jan without saying so) - no count effect; 17 non-MINSA national rows equal the
+    MINSA cumulative for the same date (redundant relays, harmless while cumulatives are never summed); 67 (36 293) and
+    9351 (36 313) share TR 2025-12-28 (documented; WER 367 = 36 341 supersedes).
+
+================================================================================
+VALIDATION SAMPLE G5 - every national row with TL >= 2026 (45 rows)  [17:56]
+================================================================================
+Helper result (/tmp/AGO_orch/a7_verify_g5.tsv): 30 PASS / 13 PASS-WITH-NOTE / 2 FAIL / 0 UNVERIFIABLE (live except 9405,
+  97, 98 from cached AFRO bulletins - IRIS down; WHO dashboard last edited 2026-09-28, still ends at epiwk 32).
+  FAIL 95, 96 (ECDC 12 Jul-9 Aug 524 / 4; 1 Jan-9 Aug 5 903 / 120): values right, document WRONG. Re-checked by me LIVE:
+    metadata 49 = CDTR week 33 (8-14 Aug, PDF 2026-WCP-0045) has no Angola text (cholera item 'Monthly update - last
+    reported on 31 July 2026'); CDTR week 35 (22-28 Aug, p. 20) has both sentences verbatim.
+    ACTION: registered metadata 1010 (CDTR week 35); retracted 96 and 95 (tombstones); re-added as Index 9699 (5 903 / 120)
+    and 9700 (524 / 4) against 1010 with reporting_date 2026-08-28; metadata 49 set Superseded with an explanatory
+    Description (no live row cites it).
+  PASS-WITH-NOTE 362 (MoH wk 33, WHO dashboard 120 / 1): WHO AFRO and Africa CDC both split MoH wks 32/33 as 142/118 (dashboard
+    140/120; same total 260, same cumulative 42 445 / 1 017); 98 (142) + 362 (120) counted 262. I read the Africa CDC
+    23 Aug issue p. 8 image myself ('In epidemiological week 33, the MoH reported 118 new suspected cases and one new
+    deaths'). ACTION: added Index 9701 (2026-08-16..22, 118 / 1, metadata 123, conf 0.85); retracted 362 (tombstone keeps
+    the dashboard 120). The national 2026 weekly series is now one MoH series from wk 31 to 37 (97, 98, 9701, 363-366).
+  PASS-WITH-NOTE 168 (derived '338 in March' wrong; WHO #36 March = 266) -> correction note. 191 (paraphrased quote) ->
+    verbatim RTP text appended. 364 (derived; needs metadata 124 as well as 125) -> note. 366 (inferred wk 37) -> the
+    9-Aug-issue precedent appended (table runs one MoH week ahead of the narrative); stays 0.5.
+  PASS-WITH-NOTE 9445, 9440, 9415, 94, 9439, 9444: WHO/WER window dates shifted +6 days to the MoH Sunday-Saturday frame
+    under Agent 5's documented dashboard-offset convention (ECDC totals 37 above the dashboard at four check points and
+    each 'as of' date = day after a Sunday-Saturday week). Interpretive but documented - kept; flagged in the report.
+  PASS-WITH-NOTE 167 (TL 30 Mar vs source '29 March', 1 day, documented), 98 (dashboard 140 vs MoH 142, documented).
+  Metadata 104 title says '19-26 June'; PDF masthead '20-26 June' -> Description corrected (title kept).
+  Newer week 37/38 figures: NONE published (Africa CDC Sept page one file, Oct 404; dashboard epiwk 32; ECDC to 9 Aug).
+
+================================================================================
+VALIDATION SAMPLE G2 - every national zero row (21)  [17:58]
+================================================================================
+Helper TSV (/tmp/AGO_orch/a7_verify_g2.tsv): 15 PASS / 6 PASS-WITH-NOTE / 0 FAIL / 0 UNVERIFIABLE.
+  Access: MINSA/INE yearbooks, press archives (Diario de Lisboa, O Comercio do Porto), GHO live; WER annual reviews via
+  ReliefWeb/Wayback copies (2016, 2022, 2025 issues) or Agent 5's cached IRIS downloads (1985-1987 reviews; IRIS down).
+  PASS: 74, 9309, 9299, 9295, 75, 76, 77, 79, 83, 990, 9696, 9697, 9698, 111, 112 (9696-9698 explicit yearbook zeros with
+    other diseases reported in the same tables; 111/112 WER 'zero reporting' Table 2 verbatim; 9698 independently
+    corroborated by a MINSA note of 12 Mar 2024 'nao foi detectado qualquer caso positivo').
+  PASS-WITH-NOTE and decisions:
+   9695 (A3) yearbook 'Colera 19 0' is an annual total only; no sub-period zero stated; JHU explicit weekly zeros 21 Jan-
+        2 Jun, flat cumulative to 15 Jun; 16 Jun-31 Dec rests on 19 - 19 = 0. DECISION: --set-evidence Inferred_Absence,
+        confidence 0.7 -> 0.6 (python py/revise_observation.py AGO --index 9695 ...). Rejected: keep Documented 0.7 (a
+        derived zero is an inference; builder reserves documented_zero for source-confirmed absence). Re-scoping TL to
+        16 Jun rejected (JHU zeros already govern Jan-Jun; no gain).
+   78   1981: the internal contradiction (zero vs 9251's 3 Luanda cases) is removed by the A4 retraction; the Cuanza Norte
+        1981 presence record (date slip) remains (no presence tool) - documented.
+   80/81/82  1984-86 Inferred 0.6: the WER reviews' generic caveat ('cholera present in several countries that failed to
+        notify', unnamed) was not in the notes -> appended to each. Helper proposed 0.6 -> 0.5 because Angola's IHR
+        infected-area declarations are documented only for 1978-1983; REJECTED: Agent 3's 0.6 for 1984-86 rests on
+        Angola's documented reporting of trypanosomiasis (252 / 1 105 / 1 272) and meningitis (1985 71, 1986 173) to WHO,
+        which the helper did not contradict, and the caveat names no country.
+   108  2015 Inferred 0.4 vs INE 'Colera 50' (corrupted column): helper proposed 0.4 -> 0.3. REJECTED: no new evidence beyond
+        what Agents 5 and 6 weighed (0.6 -> 0.5 -> 0.4); JHU's 2015 zero governs the model anyway.
+Validator re-run after all changes so far: exit 0, ERROR 0, WARN 39, INFO 467 (365 overlap + 102 metadata_unused: +49
+  Superseded, +705, -123 now cited by 9701).
+
+G2 helper final report [17:59]: confirms 15 PASS / 6 PASS-WITH-NOTE. Additional note-level fixes applied (no value
+  changes): 83 (1982 table located: WER 58(27), 8 Jul 1983, p. 210 - checked the cached issue masthead 'No. 27 / 8 JULY
+  1983'), 79 (1983 review caveat), 9299 (stale pre-rescope period text), 74 (O Comercio do Porto 20 Jul 1971 support),
+  9309 (metadata 736 is a collection-level URL). Extra JHU defect (REPORT ONLY): JHU row 301 (2023-04-22..04-28, 0) is a
+  misdated copy of a 2019 week (raw tag 'W19 2019'). Presence record 36 (1978, source 704) confirmed live as an official
+  denial ('Angola has denied that there is a cholera epidemic') - mislabelled presence_confirmed (no tool; documented).
 
