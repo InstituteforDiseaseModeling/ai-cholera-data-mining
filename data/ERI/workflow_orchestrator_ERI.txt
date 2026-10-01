@@ -1,0 +1,158 @@
+================================================================================
+WORKFLOW ORCHESTRATOR - ERITREA (ERI) - COMMON BRIEF FOR AGENTS 1-7
+Cycle: Opus 5.5 max-effort re-run (cycle started 2026-09-29); this orchestrator
+session began 2026-10-01 06:04 (runner pid 27566, run dir logs/run_20260929-190752).
+Repo root: /Users/johngiles/MOSAIC/ai-cholera-data-mining  (all paths below are
+repo-relative to it).
+================================================================================
+
+1. STOPPING RULE - THE ONLY ONE
+   Agents 1-6: minimum 3 batches of 20 queries, whatever the yield. Then keep
+   going until EITHER 3 consecutive batches are below 5% yield OR 12 batches are
+   done. There is NO time limit, NO deadline, NO wall-clock budget. Elapsed time
+   is never a stopping reason. Running out of WebSearch quota is never a
+   stopping reason either (see 5).
+   Yield = queries (not rows) that produced >=1 committed row / 20 * 100, in
+   PERCENT units. Never above 100.
+
+2. COUNTRY PROFILE (verbatim from ./reference/country_profiles.json)
+   name Eritrea, iso2 ER, subregion East Africa
+   adm1 (zobas): Anseba, Debub, Debubawi Keyih Bahri, Gash-Barka, Maekel,
+                 Semenawi Keyih Bahri
+   major_cities: Asmara, Keren, Massawa, Assab, Mendefera, Barentu
+   neighbors: DJI, ETH, SDN
+   search_languages: en, ar, ti
+   disease_terms: cholera, acute watery diarrhoea, kolera, ሸሮኽ (sherokh -
+                  the correct Tigrinya term per prior Agent 2), ኮሌራ, الكوليرا
+   health_domains: shabait.com
+   season: "Minimal public reporting; treat absence of data as non-reporting
+            unless positively documented"
+
+3. GAPS TO TARGET
+   3a. Effective gaps (./reference/effective_surveillance_gaps_detailed.csv,
+       refreshed by the runner 2026-10-01 06:00 - READ, DO NOT REGENERATE):
+       G1 1971-01-01..1996-12-31  9497 d  historical
+       G3 2001-01-01..2004-12-31  1461 d  modern
+       G6 2024-01-01..2026-10-01  1005 d  recent
+       G2 1998-01-01..2000-05-31   882 d  modern
+       G4 2009-01-01..2010-12-31   730 d  modern
+       G5 2022-01-01..2022-12-31   365 d  modern
+       (Listed longest first. Labels G1-G6 are chronological and match the prior
+        cycle's report, ./data/ERI/search_report_legacy_pre_opus55_2026-09-19.txt.)
+   3b. JHU-PHANTOM-MASKED periods (secondary targets). The gap analyser still
+       counts JHU rows flagged "Phantom: True" (generated, not reported) as
+       coverage, so these never appear as gaps although nothing real covers them:
+       2011-01-01..2014-06-30, 2014-10-01..2014-12-31, 2015-07-01..2016-08-26,
+       2016-09-27..2019-12-31, 2021-01-01..2021-12-31.
+       (JHU 2005, 2006, 2007=119 cases/9 deaths, 2008=1 case, 2020=0, 2023=0
+        are Phantom=False, i.e. real WHO annual returns. 2006=0 is contradicted
+        by AI row 19, the lab-confirmed Tessenei outbreak.)
+
+4. STARTING STATE (2026-10-01, before Agent 1)
+   ./data/ERI/cholera_data_ai.csv     19 rows (Index 4-7, 9-23)
+   ./data/ERI/metadata_ai.csv         126 sources
+   ./data/ERI/cholera_presence_ai.csv 7 records (all 2016)
+   validator: ERROR 0, WARN 0, INFO 118
+   coverage 32.7% (223/682 months), months_ai 45, months_ai_only 31, 6 gaps
+   Existing rows: national zeros 1970 (5,7), 1997-01-01..1998-01-09 (23),
+   2000-06..12 (9), 2014 Q3 national+6 zobas (12-18), 2015 Q1 (6), 2015 Q2 (4);
+   positives: Tessenei/Gash-Barka 2006-09-18..11-05 60 cases 3 deaths (19);
+   2016 Gash-Barka 22 cases (10) and 23 deaths national with Debub::Maimine 17,
+   Gash-Barka::Molqi 3, Debub::Ala 3 sub-rows (11, 20, 21, 22).
+
+5. WEBSEARCH QUOTA - SHARED, HARD CAP (~200 calls per process)
+   The WebSearch tool is capped at about 200 calls for this whole process, shared
+   by all seven agents (SOM's run hit it at Agent 4 and Agents 5-6 had none).
+   Per-agent WebSearch allocation: A1 35, A2 25, A3 25, A4 30, A5 25, A6 30,
+   A7 15, reserve 15. This caps one TOOL, not your batches: queries beyond your
+   allocation must run through the uncapped channels below, and each such
+   query counts as one of the 20 in a batch exactly like a WebSearch call.
+   Uncapped query channels (tested 2026-10-01):
+     python3 /tmp/eri_tools/ddg_search.py "query" [n]   DuckDuckGo HTML search
+     python3 /tmp/eri_tools/iris.py search "query" [n]  WHO IRIS discover API
+     python3 /tmp/eri_tools/iris.py text|pdf <handle> out  IRIS full text / PDF
+     Europe PMC REST, OpenAlex, Crossref, PubMed E-utilities, ReliefWeb RSS
+     (adaptive date bisection - RSS silently caps at 20 items), WHO DON OData,
+     WHO GHO OData, Wayback CDX / id_ replay, archive.org advancedsearch,
+     UN Digital Library, IFRC GO API (goadmin.ifrc.org/api/v2/appeal/
+     ?country__iso3=ERI returns 6 appeals: 1994, 1997, 1998, 2002, 2004, 2005).
+   Not available: Google Books API (daily quota exhausted), HathiTrust (403).
+   Fetch with curl + pdftotext rather than WebFetch where exact quotes matter.
+   tesseract is NOT installed; for scanned PDFs render pages with
+   `pdftoppm -r 130 -png -f P -l P file.pdf /tmp/eri_page` and Read the PNG.
+
+6. WHAT THE PRIOR CYCLE ALREADY CLOSED (~1,440 queries, 2026-09-18/19; do not
+   re-walk these unless you have a NEW technique for them - read the
+   Description column of ./data/ERI/metadata_ai.csv before searching):
+   WER weekly corpus 1971-2000 swept by pdftotext (idx 53, 72, 75); WER annual
+   cholera reviews 1970-2004 (idx 9), 2007 (26), 2009 (105), 2010 (106),
+   2020-2024 (27-31); WHO DON archive 1996-2026 complete (85); WHO AFRO weekly
+   outbreak bulletins 2017-2026 (54); AFRO regional cholera bulletins 2023-2025
+   (52); WHO multi-country cholera sitreps to #38 (10); ReliefWeb ERI x
+   cholera/AWD complete 1994-2026, 690 docs (87, 120); Europe PMC full text
+   (88); OpenAlex (122); IRIS title:Eritrea corpus (89); WHO Eritrea EHA /
+   Health Update bulletins 2006-2008 (68, 96, 118, 119); WHO Eritrea quarterly
+   bulletins - only two exist, Q3 2014 and Q1 2015 (56, 7, 108); WHO cholera
+   dashboard (70, 107 - PLOTS MISSING AS ZERO, never a nil return); GHO OData
+   (8, 25, 69, 78); shabait.com CDX + native search (93, 98, 109); moh.gov.er
+   (99); dehai archives (115); Radio Erena (101-104); Asmarino/Assenna/Geeska
+   (11-13, 21); World Bank docs (100); EM-DAT (113); ICRC 2002-2005 (71);
+   UNICEF/UN CAP 2000-2001 (15, 16, 86); JEMA journal (66); CERF (91).
+
+7. OPEN LEADS FOR THIS CYCLE (verified by the orchestrator 2026-10-01)
+   L1 NEW: WER 101(38), 25 Sep 2026, "Cholera Annual Report, 2025", IRIS handle
+      10665/387694 (TEXT bundle downloads fine). Table 5 "Countries, territories,
+      and areas reporting zero cholera cases, by WHO region, 2025" lists
+      ERITREA among 22 African Region zero-reporters, and the text defines:
+      "A zero report is distinct from the absence of a submission: it indicates
+      that no cases were detected by a surveillance system that was in
+      operation". This is the first WHO nil return for Eritrea since data year
+      2023 and bears directly on G6 (2025-01-01..2025-12-31).
+      POSITIVE-CONTROL CAUTION: Togo is also on the 2025 zero list, but WHO's
+      own weekly series in ./data/TGO/cholera_data_who.csv carries 164 Togo
+      cases (4 deaths) in weeks 2025-01-06..2025-03-09, and WHO multi-country
+      sitreps list Togo as affected in 2025. The instrument therefore has a
+      possible false-zero (or epi-year attribution) elsewhere. Weigh this in
+      the confidence and say so in processing_notes; do not ignore it.
+   L2 The 2007 national outbreak (JHU 119 cases / 9 deaths, "first time ever"
+      Eritrea reported) has NO location. WHO Eritrea year-end Health Update 2007
+      (idx 119) mentions major acute diarrhoeal outbreaks in Assab and Tio
+      (Southern Red Sea) and Bada/Gelalo (Northern Red Sea, 190 cases/5 deaths,
+      wks 38-43, NOT labelled cholera). Any source that locates the 119/9 or
+      labels Bada as cholera converts this into sub-national rows.
+   L3 Phantom-masked periods (3b) have NEVER been targeted by any agent.
+   L4 Scanned-PDF blind spot: pre-2000 WHO documents were swept with pdftotext;
+      the one Eritrea-resolved pre-2000 zero (row 23) was found only by rendering
+      a scan to images. Africa tables in WER "Cholera in 1993/1994/1995/1996"
+      (Eritrea became a WHO Member State in 1993) and WHO EMC Horn-of-Africa
+      updates after 9 Jan 1998 have not been checked visually.
+   L5 IFRC appeals 1994-2005 for Eritrea via the GO API; WHO AFRO 2009-2010
+      cholera summaries (WER 2009 says 8 African nil returns, unnamed).
+
+8. EVIDENCE RULES (binding)
+   - Never hand-edit CSVs: python py/add_observation.py register-source | add |
+     add-zero | add-presence. Validator must exit 0: python py/validate_quality.py ERI
+   - A row needs a number. Count-less presence -> add-presence (cholera_presence_ai.csv).
+   - Zero rows: only Documented_Absence or Inferred_Absence. A surveillance gap
+     (nobody reporting) is NOT a zero row - log it, and use the presence file /
+     search log. WER footnotes name Eritrea a NON-REPORTER for 2021, 2022, 2024:
+     no zero row is permissible for those years.
+   - WHO dashboard zeros are not nil returns (idx 107).
+   - Positive-control rule: before banking an absence from a document, check
+     that the document does not also list as zero/absent a country or period
+     known to have had cholera (e.g. 2006 Tessenei vs EHA nil template, idx 118).
+   - Sub-national rows overlapping a national row must carry one of the exact
+     phrases "National total - includes provinces not individually listed" or
+     "Provincial subset - do not sum with national row".
+   - >1000 cases needs two independent sources.
+   - Do NOT run update_dashboard.sh, and do NOT run py/analyze_effective_gaps.py
+     with its default prefix (shared files, other countries are running in
+     parallel). Do not edit files outside ./data/ERI/ except your own /tmp files.
+   - Record state: python -c "import sys;sys.path.insert(0,'py');from workflow_state
+     import write_agent_state; write_agent_state('ERI', agent_num=N, ...)"
+     (this REPLACES your agent's entry, so write once with your full totals;
+     batch_yields in PERCENT). Log every batch in ./data/ERI/search_log_agent_N.txt
+     in the protocol's shape (./templates/template_search_protocol.txt).
+================================================================================
+ORCHESTRATOR RUN LOG (appended per agent below)
+================================================================================
