@@ -1,0 +1,128 @@
+================================================================================
+AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - SOMALIA (SOM) - 2026-09-29 Opus 5.5 cycle
+================================================================================
+Start: 2026-09-30 20:24:26
+Status: INITIALIZED
+Protocol: ./templates/template_search_protocol.txt (20 queries/batch; min 3 batches;
+  stop at 3 consecutive <5% batches or 12 batches; NO time limit)
+Brief read: ./data/SOM/workflow_orchestrator_SOM.txt (section 1 overrides honoured:
+  no analyze_effective_gaps.py, no weekly builder/dashboard, no git, writer tools only)
+Prior work read: ./data/SOM/search_log_agent_1.txt (this cycle, 12 batches),
+  ./data/SOM/search_log_agent_2_legacy_20260921.txt (previous Agent 2, setup only),
+  ./data/SOM/workflow_state.json
+Inherited: ./data/SOM/cholera_data_ai.csv 172 rows (Index 1-17, 19-173);
+  ./data/SOM/metadata_ai.csv 161 sources; validator exit 0, WARN 25 (24 overlap + 1 CFR)
+Sub-national AI rows at start: 15 of 172 (Bay 2017 [15], Somaliland 2007 [21],
+  Banadir 2011 [22], Kismayo 2006 [30], Puntland 2006 x2 [32,34], Togdheer 2006 [33],
+  Puntland 2005-06 zero [38], Jilib 2006 [40], Banadir 2005-06 zero [41],
+  Baidoa 1995 [162], Banaadir 1994 [163], Banaadir 1996-97 [169], Bosaso 1999 [173])
+JHU sub-national already held (./data/SOM/cholera_data_jhu.csv, EMR::SOM, read-only):
+  2007 (Banaadir Oct/Nov), 2009 (3 death-only), 2010 (10: Juba/Banaadir May 2010),
+  2011 (38, Banaadir hospital weekly), 2012 (282, regional weekly), 2013 (23),
+  2015 (3), 2016 (2: Beledweyne/Marka Dec 2016), 2017 (1 aggregate), 2018-19 (17,
+  Banaadir districts UNICEF), 2020 (6 aggregates), 2021 (45 district annual),
+  2023 (48: district annual + Dec duplicates). Not re-transcribed at same resolution (D1).
+Query-counting convention (same as Agent 1): one query = one search, or one
+  fetch+read of one distinct document. Re-opening an already-registered document
+  to read its district table counts as a query (it uses budget).
+Canonical Location spellings: brief section 6 (AFR::SOM::Banaadir, ::Jubbada_Hoose,
+  ::Shabeellaha_Hoose, ::Woqooyi_Galbeed, district AFR::SOM::{ADM1}::{District}).
+Double-counting phrases used on every new sub-national row overlapping a national row:
+  "Provincial subset - do not sum with national row"; state aggregates additionally
+  "State aggregate - do not sum with its member regions".
+================================================================================
+
+PRE-FLIGHT (not searches; not counted toward yield)
+ P1 DONE: revise_observation.py --append-note on national Index 3, 7, 8, 10, 11 ("National total -
+    includes provinces not individually listed ...") and on AFR::SOM::Bay Index 15 ("Provincial
+    subset - do not sum with national row"). Dates/counts of Index 10/11 untouched (D2 = Agent 5).
+    Effect: the 24 national_subnational_overlap WARNs -> 0 (validator WARN 25 -> 1; the remaining
+    WARN is the pre-existing Index 17 CFR 26.8%, Agent 5's).
+ P2 DONE (D3): EMHJ 2023;29(9) (metadata 2/11/13 landing page, Agent 1's cached HTML) says "The
+    highest incidence was in Bay Region with 14 964 reported cases" = reported/suspected -> sCh.
+    revise_observation.py CANNOT blank a cCh value (an empty --cch means "no change"); --cch 0 would
+    falsely assert zero confirmed cases. DECISION: retract Index 15 (tombstone in
+    ./data/SOM/retracted_rows_ai.csv, reason recorded) and re-enter it from EMHJ Table 1 as
+    Index 178: AFR::SOM::Bay 2017 sCh 14,964, deaths 214 (deaths are new). Rejected alternative:
+    --sch 14964 leaving cCh 14964 (would keep a false lab-confirmed count).
+ P3 DONE - NO ROWS WRITTEN: WHO ArcGIS service SOMALIA__Cholera_Cases_EPI_Week_8_2024_WFL1 (AGOL item
+    b18eb69523584b7da36a55f92dd90d68, owner kamwendor@who.int_WHO, created 2024-03-16 11:46 UTC,
+    snippet "Map showing cholera cases in Somalia for EPI Week 8"); layers 4 and 5 hold identical
+    data: 34 non-zero features, 4,835 cases / 56 deaths; dataLastEditDate 2024-03-25 11:13 UTC; 7
+    features (Borama, Gabiley, Hargeisa, Garowe, Qoryoley, Bondere, one unnamed 60-case feature)
+    lack the State_region/District attributes of the original features (added later). Its total
+    matches NO published period: FMOH e-IDSR wk-8 2024 "From the epidemiological Week1 ... 3,265 of
+    cholera cases and 37 deaths"; e-IDSR wk-10 4,383/54 (= OCHA Flash Update No.2 "4,380 cases and
+    54 associated deaths ... from 1 January to 18 March 2024"); e-IDSR wk-11 4,956/60; WHO weekly
+    baseline wk1-8 3,375/37. The layer is the district map behind OCHA Flash Update No.2 (same
+    shaded districts) but a mixed/intermediate snapshot -> period not establishable -> no district
+    rows. Lead for Agent 5 only if a WHO district table with 4,835/56 turns up.
+
+=== BATCH 1 | PHASE 1 (broad discovery, G1 breadth across epidemic years) | SOM ===
+Gap targeted : G1 regional splits for 2017, 2018, 2019, 2000, 2002-04, 2024 (national-only periods);
+               P3 (2024 district layer)
+Categories   : 1 WHO/official (DON, e-IDSR, WHO ArcGIS), 2 Academic (EMHJ), 3 Humanitarian (OCHA,
+               UNICEF, ReliefWeb), 5 Historical (Internet Archive), 7 n/a this batch
+Queries      : 20 (one search, or one fetch+read of one distinct document)
+ Q1  Fetch EMHJ 2023 Table 1 PDF (29-09-08-t1.pdf, image-only -> 300 dpi render, read visually) +
+     full-text PDF text layer (double-entry check) -> 2017/2018/2019 by 20 regions  [ROWS]
+ Q2  Fetch FMOH e-IDSR bulletin epi-week 8 2024 (ReliefWeb) - P3 period check; state tables are
+     ALERTS, not cases
+ Q3  ArcGIS Online item search + FeatureServer/4 and /5 metadata (P3)
+ Q4  Fetch OCHA Somalia 2024 AWD/cholera Flash Update No.2 (24 Mar 2024, metadata 7) HTML + PDF
+     -> Puntland, Hirshabelle x2, Somaliland state rows  [ROWS]
+ Q5  Fetch e-IDSR epi-week 10 2024 (P3; YTD 4,383/54)
+ Q6  Fetch e-IDSR epi-week 11 2024 (P3; YTD 4,956/60)
+ Q7  Fetch WHO DON 2000_11_22 (Cholera in Somalia) -> Borama, Awdal 272/14  [ROW]
+ Q8  Fetch WHO DON 2000_05_02 -> national 2,232/230 1 Jan-21 Apr 2000 + 5 regional presence
+     records  [ROW]
+ Q9  WebSearch: WHO Disease Outbreak News "Cholera in Somalia" 2004 cases deaths since December 2003 region
+ Q10 Fetch DON 2004_02_18a (Mozambique/Burundi/Cameroon/Mali multi-country; no Somalia) + WHO
+     "CHOLERA Outbreaks 2004" compilation (astrium.com PDF; Somalia item = IRIN 14 Apr 2004)
+ Q11 WebSearch: IRIN April 2004 Somalia cholera Mogadishu "2,042" suspected cases 23 deaths
+ Q12 Fetch TNH node/217300 and TNH Adale 2000 directly (curl: JS challenge; WebFetch: 403)
+ Q13 Fetch TNH "35 reportedly die of cholera in Adale" (27 Nov 2000) via Wayback 20240219
+     -> Cadale (Middle Shabelle) 65/3 (WHO figure)  [ROW]
+ Q14 ReliefWeb listing (PC216)_(DO20031201-20040630) search=cholera -> 17 items
+ Q15 Fetch IRIN "Somalia: Cholera on the rise in Mogadishu" (14 Apr 2004) -> Banaadir 3-9 Apr 2004
+     489/9, 12 confirmed  [ROW]
+ Q16 Fetch UNICEF Somalia Review Nov-Dec 2003 -> Mogadishu CTC admissions Dec 2002-May 2003
+     >5,000  [ROW]
+ Q17 Fetch UNICEF Somalia Review Jan 2004 -> Mogadishu Jan 2004 66 cases  [ROW]
+ Q18 Fetch UNICEF Somalia Review Feb 2004 - no count
+ Q19 Fetch UNICEF Somalia Review Mar 2004 - no count (Jowhar: "cholera has virtually disappeared")
+ Q20 Fetch UNICEF Somalia Review Apr 2004 - no count
+FINDINGS
+ * EMHJ 2023 Table 1 = complete regional table 2017-2019 (20 reporting regions incl. Puntland/
+   Somaliland sub-regions Cayn, Karkar, Moridijex, Sahil). Columns sum exactly to 78,701/1,163,
+   6,448/45 and 3,089/4. Sub-regions aggregated to the pre-1991 ADM1 (Karkar->Bari, Cayn->Togdheer,
+   Moridijex+Sahil->Woqooyi_Galbeed), components quoted in each note. Jubbada_Dhexe absent from
+   the table (inaccessible) -> no row. 2018/2019 explicit regional zeros written as add-zero
+   Documented_Absence, surveillance "partial", confidence 0.7 (12 for 2018, 14 for 2019).
+   CORROBORATION: FMOH sitrep wk-22 2017 Table 1 (cumulative wk 1-22 by region) is <= the EMHJ year
+   total for every region it lists (e.g. Bay 14,807/214 vs 14,964/214); only conflict: Nugaal deaths
+   30 (wk 22) vs 27 (year) - noted, confidence 0.85. Togdheer (12,233), Awdal, Woqooyi_Galbeed are
+   single-source (Somaliland not in the FMOH table). 2018 Kismayo 2,330/15 and Jowhar 558/2 match
+   the WHO 2019 weekly district table (cumulative since Dec 2017) exactly.
+ * BASELINE DEFECT (for orchestrator/Agent 5/7): JHU UID 21477 (./data/SOM/cholera_data_jhu.csv
+   rows EMR::SOM 2023-01-01..2023-03-18 4,380/54; SO-HI 273 and 10; Puntland 351/23; Somaliland 21)
+   is a transcription of OCHA Flash Update No.2 of 24 MARCH 2024, misdated to 2023. The correctly
+   dated state rows are AI Index 225-228; the national figure is AI Index 9.
+ * IRIN 14 Apr 2004 "2,042 suspected cases / 23 deaths since mid-December" and "173 suspected
+   cases 27 Mar-2 Apr" - geography ambiguous (Mogadishu sentinel or national) -> NOT recorded;
+   lead for Agent 4/5.
+ * Presence (not rows): DON 2 May 2000 -> Bay, Jubbada_Hoose, Shabeellaha_Hoose, Banaadir, Mudug
+   (1 Jan-21 Apr 2000) in ./data/SOM/cholera_presence_ai.csv.
+Sources found: 14   Registered: index 162 (EMHJ PDF), 163-168 (DON 2000 x2, IRIN 2000, IRIN 2004,
+               UNICEF reviews x2); metadata 7 re-used (OCHA FU2)
+Rows added   : 61   Indices: 174-224 (EMHJ: 2017 x17 [174-190], 2018 x5 [191-195], 2019 x3
+               [196-198], 2018 zeros x12 [199-210], 2019 zeros x14 [211-224]); 225-228 (OCHA 2024
+               states); 229 Borama 2000; 230 national Jan-Apr 2000; 231 Cadale 2000; 232 Banaadir
+               Apr 2004; 233 Banaadir Dec 2002-May 2003; 234 Banaadir Jan 2004
+Revisions    : Index 4, 5, 9, 20 - appended "National total - includes provinces not individually
+               listed" (they now overlap Agent 2 sub-national rows); Index 15 retracted (D3)
+Successful queries: 8/20 (Q1, Q4, Q7, Q8, Q13, Q15, Q16, Q17)
+Yield        : 40%
+Consecutive sub-5% batches: 0
+Validator    : exit 0, ERROR 0, WARN 1 (pre-existing Index 17 CFR), national_subnational_overlap 0
+Decision     : CONTINUE (below 3-batch floor)
