@@ -138,3 +138,65 @@ Agent productivity cross-check (log vs workflow_state.json vs file):
     (Yopougon-Ouest 33.33%); 116 note carries Cocody-Bingerville 44.67%.
   Agent 6 open item DECIDED: 1032 Duekoue, 1033 Guiglo, 1034 Toulepleu kept full-year 2007 at 0.7 (government zone ran
     the SIG; Moyen-Cavally not among the <80% regions); decision note on each.
+
+=== STEP 9: SOURCE RE-READ (Africhol, Index 4) ===
+  Europe PMC full text PMC4871502 (Sauvageot 2016): Table 1 Adiake 161 suspected / 63 tested / 23 culture-positive and KPBV
+  19 / 18 tested / 1 positive - rows 6 and 7 match. Table 6 Adiake '60 | 3 | 5.0 | 23 | 2 | 8.7': the 3 deaths are among
+  the 60 suspect cases with a documented outcome, so row 7's deaths=3 on 161 is a lower bound (its note had said
+  '161 ... 3 deaths CFR 5.0%', which mixes denominators). Clarifying note appended to row 7.
+
+=== STEP 10: URL CHECK - ALL 301 METADATA URLs (not a sample) ===
+  Method: curl GET with Range 0-4095, -L, --max-time 30, browser UA, 6 parallel (/tmp/civ_a7/urlcheck.py); every HTML
+  title reviewed per domain for soft-404/challenge pages; IRIS handles additionally resolved through the DSpace REST API
+  (/server/api/pid/find), which returns 404 for a non-existent handle (/tmp/civ_a7/irischk.py).
+  Result: 293 of 301 answered 200/206/203 with real content on the first pass; 2 more (71 Wayback factsheet, 250 IA
+  details page) answered on retry (transient); 243 (Wayback id_ PDF of Heyerdahl 2022) failed twice then served the PDF
+  (transient). Genuinely dead or blocked:
+    5   m.reliefweb.int/report/382462 - 404 on both ReliefWeb hosts, NO archive capture. Row 5 (Adjame Jan 2011 41/8)
+        downgraded 0.7 -> 0.4, NON-PRIMARY (surviving copy of the same IRIN story reads '61 infected', row 351).
+    6   IFRC article - 403 (bot protection); Wayback 20260727122402 copy recorded in the description.
+    187 BSP-CI Vol 01 No 03 - URL field is a transliteration ('BSP-no3'); live file is BSP-n%C2%B03-Final.pdf (verified,
+        application/pdf); recorded in the description (the URL field cannot be edited by any tool; no row cites 187).
+    215 The New Humanitarian 14 Aug 2002 - 403 (bot challenge); Wayback 20240217143357 copy recorded.
+    301 doi.org -> Microbiology Society - 403 to scripts; PMC12692737 open copy (HTTP 200) recorded.
+  Level 1 sources added this cycle (Index 72-301): 106 - all included in the full check above.
+  IRIS: 76 of 89 IRIS items confirmed through the REST API (titles match the metadata Source); the API then stopped
+  responding (iris.who.int timing out for both API and handle pages from ~11:05 PDT), so 13 items (192, 195, 212, 230-236,
+  298-300) were confirmed only by an HTTP 200/206 handle-page response in the first sweep. Not re-verifiable today.
+  Descriptions updated via python py/revise_observation.py CIV --meta-index N --set-description (old text kept, URL CHECK
+  sentence appended) for Index 5, 6, 187, 215, 301.
+  Other repairs from this step: row 80 note corrected (JHU '161 suspected 2018' = running-total artefact; real weekly 10).
+
+=== STEP 11: VALIDATOR (mid-audit, after all repairs) ===
+  python py/validate_quality.py CIV --json /tmp/CIV_mid_audit.json -> exit 0 | ERROR 0 | WARN 96 | INFO 529
+  WARN classes unchanged in count (50 same_period_conflict, 31 CFR_high, 10 multiyear_aggregate, 5 period_single_day):
+   - all 50 conflict pairs carry PRIMARY / NON-PRIMARY on at least one row (pandas check);
+   - all 31 CFR>15% rows carry a context note (early small series, community/home deaths, prison, refugee, late-detected
+     rural foci) and confidence <= 0.7;
+   - all 10 multi-year rows are labelled aggregates (2002-2017 factsheet ADM1 totals 138-146; Abidjan 2001-2005 row 490)
+     at 0.7;
+   - all 5 single-day rows are genuine one-date counts (20 Oct 1970 first notified case x2, 28 Oct 1970 peak day,
+     25 May 2025 PBV daily label, 7 Jan 2015 Divo press count).
+
+=== STEP 12: COVERAGE (py/analyze_effective_gaps.analyse in memory; ./reference NOT regenerated) ===
+  JHU+WHO+AI: 682 months, 657 with data (96.3%), months_ai 650, months_ai_only 256, positive months 605, gap periods 4
+    (1973-01..12, 1978-12, 1983-01..06, 1983-08..12); latest observation 2026-09-20; latest positive 2025-12-31.
+  JHU+WHO only: 682 months, 399 (58.5%), positive 383, gap periods 8.
+  Start of cycle (runner, 2026-09-30 09:31): 681 months, 679 (99.7%), months_ai 507, ai_only 278, positive 397, 1 gap.
+  Agent 7's edits change no coverage figure (locations, confidence and notes only; no row added or retracted).
+  1983 decision: a national annual 155 row (sCh or cCh-only) was considered. With sCh it distorts the weekly series
+  (flat K=1 template puts ~78% of the cases outside Jun-Aug; ~256 if nested over the window). A cCh-only row would be
+  ignored by the builder but would close the 1983 gap in the coverage metric while the builder still writes 48 zero
+  weeks - a misleading closure. Not entered; documented on row 1443 and in the report.
+
+=== STEP 13: REPORT, FINAL GATE, STATE ===
+  ./data/CIV/search_report.txt OVERWRITTEN (legacy copy kept as ./data/CIV/search_report_legacy_20260514.txt).
+  Final validator: python py/validate_quality.py CIV --json /tmp/CIV_post_audit.json -> exit 0 | ERROR 0 | WARN 96 |
+    INFO 529 | 1753 rows | 301 sources.
+  Final counts: 1753 rows (max Index 1779), 301 sources, 75 presence records, 26 tombstones; 37 rows carry an
+    '[AGENT 7 REVISION 2026-10-01]' note; metadata descriptions revised: 5, 6, 187, 215, 301.
+  write_agent_state('CIV', agent_num=7, batches_completed=0, batch_yields=[], rows_added=0, sources_discovered=0, ...)
+    -> ./data/CIV/workflow_state.json now holds agents 1-7.
+  IRIS still unreachable at close (API and home page time out): 13 IRIS items remain page-checked only.
+End Time: 2026-10-01 12:07:55
+Agent 7 Status: COMPLETE

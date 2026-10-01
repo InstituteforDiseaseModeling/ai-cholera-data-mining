@@ -1,117 +1,220 @@
-CÔTE D'IVOIRE (CIV) CHOLERA SURVEILLANCE DATA ENHANCEMENT
-SEARCH REPORT - AGENT 7 QUALITY AUDIT
+====================================================================================================
+COTE D'IVOIRE (CIV) - AI CHOLERA DATA LAYER - SEARCH REPORT (Agent 7, quality audit)
+Cycle: 2026-09-29 Opus 5.5 re-run | Audit date: 2026-10-01 | Supersedes ./data/CIV/search_report_legacy_20260514.txt
+Files: ./data/CIV/cholera_data_ai.csv (1,753 rows, Index 1-1779) | ./data/CIV/metadata_ai.csv (301 sources)
+       ./data/CIV/cholera_presence_ai.csv (75 records) | ./data/CIV/retracted_rows_ai.csv (26 tombstones)
+Validator: python py/validate_quality.py CIV -> exit 0 | ERROR 0 | WARN 96, all reviewed (section 6)
+All coverage figures were computed IN MEMORY with py/analyze_effective_gaps.analyse() on 2026-10-01 (./reference
+was not regenerated). Builder figures come from py/build_weekly_timeseries.py functions run in memory; no file written.
+====================================================================================================
 
-Country: Côte d'Ivoire (CIV)
-Completion Date: 2026-05-14
-Methodology: 7-Agent Systematic Internet Search with Quality Audit
-Total Duration: ~4 hours (Agent 1-6: 2025-01-23; Agent 7 re-execution: 2026-05-14)
+1. BOTTOM LINE
+- Growth: 13 rows / 12 sources before 21 Sep 2026 -> 146 / 71 after the interrupted 21 Sep run -> 1,753 / 301 now.
+  This cycle wrote 1,633 rows and retracted 26 (tombstoned), net +1,607. The file holds 1,294 case rows, 440 zero rows
+  (only 34 national; of the 406 sub-national, 376 are district zeros read from annual RASS/Annuaire tables) and 19
+  deaths-only rows, plus 75 presence-only records.
+- COVERAGE WENT DOWN, ON PURPOSE: 99.7% (679/681 months) at the start of the cycle -> 96.3% (657/682) now. The
+  earlier figure rested on WHO-exclusion zero rows asserting no cholera in years where Abidjan laboratory registers
+  show cholera. Retracting or trimming them reopened 1973, Dec 1978 and 1983 outside 21 Jun-19 Jul (4 gap periods,
+  24 months).
+  months_ai_only fell 278 -> 256; months with positive cases rose 397 -> 605. Baseline alone (JHU+WHO): 58.5%
+  (399/682 months, 8 gap periods). The AI layer is therefore the only source for 256 country-months.
+- Main epidemiological result: the "WHO-silent" years 1972-1990 and 1997-1999 were not cholera-free. They were
+  low-level endemic transmission with unnotified epidemics. WHO non-notification is not absence (section 2).
+- Main limitation is downstream, and it is not fixable from the AI layer. The weekly builder uses national rows only
+  and ranks WHO > JHU > AI. Only 9 of the 318 AI national weekly rows reach the weekly series: the digitised epidemic
+  curves for 2001-2005, 2011 and 2012-2014 are overridden by JHU rows (mostly annual totals spread with a flat K=1
+  template), and the 2025 onset curve by WHO's reporting-date batches.
+  Several JHU baseline rows also distort the series badly, e.g. 2012 renders as 1,772 cases against 424-589 (sec. 5).
+  In the simulated series the AI layer supplies 1,115 of 2,960 weeks but only ~853 of ~27,060 cases (3%).
+- 21-30 Sep 2026 is uncovered: no source past 20 Sep exists yet (re-checked 1 Oct, section 4).
 
-==================================================
-EXECUTIVE SUMMARY
-==================================================
+2. KEY FINDINGS
+(a) 1972-1990 and 1997-1999 - UNDER-NOTIFIED, NOT ABSENT. The IPCI V. cholerae O1 strain register (Bai 1991 annex) gives
+    1972 105, 1977 43, 1978 2, 1981 5, 1982 45, 1983 155, 1984 2, 1985 9, 1986 18, 1987 1, 1988 67, 1989 79, 1990 12
+    isolates. WHO tables list CIV only in 1979 (3) and 1982 (34, "incomplete"). CHU de Cocody isolated 3 in 1975 and 1 in
+    1980, against a register 0 in both years. Other events: Tortiya Nov 1984 145 cases / 31 deaths; MACA prison Sep 1991
+    ~50 deaths and Jul 1997 44 deaths; routine HMIS 88 cases (1997) and 16 (1998); 1999 >=19 confirmed isolates. The IHR
+    channel worked for yellow fever, polio, measles and dracunculiasis, so the silence is specific to cholera. Zero rows
+    remain only for 1974, 1976, Jan-Apr 1977, Jan-Oct 1978, Jan-25 Nov 1981 and Jan-14 May 1985 (inferred, 0.2-0.6),
+    plus a WER-documented zero for Sep 1979.
+(b) 2002-2007 PARTITION: the north and west were a SURVEILLANCE GAP from Sep 2002 to 2003. The MoH bulletin "only
+    covers the government controlled zone, leaving out 40% of the country"; INHP promptness fell to 25% at the crisis
+    peak. 2004-2006 was partial (NGO detection) and Jan-Mar 2007 was a gap. National 2002-2004 counts are
+    government-zone lower bounds.
+(c) 2011 POST-ELECTORAL BLACKOUT: the INHP case database has no notification in ISO weeks S11-S20 (about 26 Mar-15 May
+    2011); UNICEF wrote that "surveillance systems are down". The period is left without rows, not zeros.
+(d) 2016-2024 TRUE QUIET WITH OPERATIONAL SURVEILLANCE: suspected cases were detected and tested every year and all were
+    laboratory-negative (2017 31/0 ... 2021 12 tested/0 positive ... 2024 5/0). DHIS2 completeness was 98.5-100%, and
+    Abidjan sewage in 2023-24 yielded only non-O1, ctx-negative V. cholerae.
+(e) 2025 EPIDEMIC resolved at 556 cases / 123 confirmed / 24 deaths, where the WHO annual report (WER 101(38)) equals
+    the INHP final figure. Onset 25 May 2025 at Vridi-Akobrakre; six districts affected; end declared from 14 Dec 2025.
+(f) 2026: documented absence 1 Jan-5 Jul (INHP Vigile N931, 0.95); probable absence 6 Jul-20 Sep from comprehensive
+    WHO and Africa CDC exclusion lists (0.6/0.5); the Ghana "outbreak" signal was a prevention story.
 
-The 7-agent systematic workflow enhanced Côte d'Ivoire cholera surveillance data by identifying
-and validating 11 new data observations from 10 high-quality sources spanning 1995-2025.
-The AI data file (cholera_data_ai.csv) fills gaps in the JHU/WHO baseline with sub-annual
-outbreak details, sub-national geographic breakdowns, Africhol surveillance data, 2025
-outbreak progression, and a 2024 validated zero-transmission period.
+3. GAPS STILL OPEN (does the data exist?)
+- 1973, 12 months: a fade-out year with 0 register isolates but contemporaneous clinical presence reports. Counts, if
+  any, are in offline 1973 literature (Med Afr Noire 1973 vol.20; OCCGE reports). Moderate chance they exist.
+- 1983 outside 21 Jun-19 Jul, 11 months: the annual total is KNOWN (155 confirmed) but not its timing. The builder
+  renders 48 weeks as zero. Monthly data likely exist in Dosso-Bretin's 1988 thesis and Dosso et al. 1987 (offline).
+- Aug 1977, Dec 1977, Dec 1978: probably near-zero (register totals equal the listed months), but 4 undated CHU de
+  Cocody 1977 isolates could fall here. The builder renders these months as zero.
+- Q4 2000: national rows give 35 cases from one unit, while INHP totals imply about 860-890. The data exist in INHP
+  SNSE records (offline).
+- North/west Sep 2002-2003 and 26 Mar-15 May 2011: probably never collected nationally; facility (MSF/ACF) records may
+  exist.
+- 21-30 Sep 2026: will be covered once the WHO dashboard W38+, the October Africa CDC issue or a new INHP Vigile appears.
+- Also missing: 2019-2022 and 2024 W41-W52 INHP weekly bulletins (2 suspected 2024 cases unplaced); 2014 district
+  counts (8 districts, 77 confirmed); 2001 northern foci. These exist at INHP but are not online.
 
-KEY ACHIEVEMENTS:
-- 11 new data observations added to cholera_data_ai.csv
-- 10 sources documented in metadata_ai.csv (40% Level 1, 40% Level 2, 20% Level 3)
-- Average confidence weight: 0.94
-- 2025 outbreak documented with 3 temporal snapshots (45, 322, 491 cumulative cases)
-- 2024 validated as zero-transmission (WHO AFRO bulletin confirmation)
-- Sub-annual data for major outbreaks (1995, 2001, 2002)
-- Sub-national data: Abidjan (2001), Adjamé district (2011), Adiake prefecture (2012), KPBV district (2012)
-- 100% validation success across all 4 stages
+4. 2026 TAIL CHECK (1 Oct 2026): WHO dashboard last edited 28 Sep, latest week 14-20 Sep, no CIV 2026 record. Africa CDC
+   newest issue 24 Sep (data to 13 Sep); October page 404. Newest WER is 101(38); newest AFRO bulletin is week 36.
+   BSP-CI's only new upload is the CSP-CI 5 congress supplement, with no Vigile after week 27. Google News FR/EN: nothing.
+   Rows 129, 42 and 814 are unchanged and the tail stays open.
 
-==================================================
-DATA COLLECTION RESULTS
-==================================================
+5. BUILDER / BASELINE DEFECTS - read before modelling (simulation of py/build_weekly_timeseries.py; not modified)
+- assumed_zero: 112 weeks have no row in any layer and are written as sCh=0: all of 1973, 48 weeks of 1983, Aug and Dec
+  1977, Dec 1978. Cholera was present or possible in each. MODEL THEM AS MISSING, NOT ZERO.
+- 1970: the JHU annual 868 is Fourier-spread over the whole year, so 699 cases land before cholera arrived on 20 Oct 1970.
+  JHU outranks the AI documented absence row 815.
+- 2012: JHU "2012-01-01..03-15 1321/34" is a misdated cumulative. The series gets 1,341 cases in Q1 2012, against a true
+  64-69 (WHO AFRO), and 1,772 for the year against 424 (WHO) / 431 (INHP) / 589 (RASS). The AI platform weekly curve
+  (411) is overridden.
+- 2006: JHU "2006-01-01..08-28 321/2" is the Feb 2006 Zouan-Hounien focus spread over eight months (series 436, WHO 414).
+- 2015-2018: JHU "UNICEF Country Programme Report (UID 5108)" rows mix weekly counts with cumulative-from-January
+  snapshots. The file sums to 112 / 468 / 151 for 2016-2018 against weekly totals of 16 / 24 / 10. The builder's
+  50%-coverage skip protects most years (2017 renders 29), but 2015 renders 131 against a national 199-200.
+- 2025: WHO reporting-date batches (W23 45, W26 55, W27 9, W29 280, W33 114, with zeros in W24-25, W28 and W30-32) outrank
+  the INHP onset curve, so peak onset weeks with 89 and 75 cases render as 0. AI onset weeks S21-S22 are added on top of
+  WHO's W23 report of the same cases, giving 586 against 556.
+- WHO week numbering: the dashboard's 2025 W53 starts 29 Dec 2025, so WHO 2026 week N = ISO week N+1. This is the known
+  baseline-converter week-shift bug. CIV has no 2026 WHO rows, so CIV is not directly affected.
+- Annual rows whose ISO week 1 starts in December spill into the next year: 1997-W01 gets 27 cases of JHU 1996.
+  Annual laboratory-register rows are spread flat (the K=1 template peaks in March), although for example the 1988
+  epidemic began in October.
+- Fix suggested: let an observed AI weekly row outrank a Fourier-spread JHU/WHO aggregate; correct or drop JHU UID 901
+  (2012) and 902 (2006); de-duplicate the UID 5108 snapshots in the JHU converter; start the JHU 1970 row on
+  1970-10-16; treat assumed_zero as missing in MOSAIC.
 
-SOURCES IDENTIFIED: 10 sources
-- WHO Disease Outbreak News (Level 1): 3 sources
-- Peer-reviewed academic studies / Africhol (Level 1): 1 source
-- UN agencies (UNICEF, IFRC) (Level 2): 3 sources
-- WHO AFRO regional bulletins (Level 1): 1 source
-- Humanitarian/news (Level 2-3): 2 sources
+6. VALIDATOR AND WHAT AGENT 7 DID
+- Start: ERROR 0 / WARN 96. End: ERROR 0 / WARN 96, with the same classes: 50 same_period_conflict, 31 CFR>15%,
+  10 multi-year, 5 single-day.
+  JUSTIFIED: every conflict pair carries PRIMARY or NON-PRIMARY (Agent 5 register plus Agent 6 pairs); every CFR>15%
+  row has documented context and confidence <=0.7; the multi-year rows are labelled aggregates at <=0.7; the
+  single-day rows are genuine one-date counts. The repair tool's dry run proposed 0 changes, so --apply was not run.
+- FIXED (37 rows revised, 5 source descriptions; 0 rows added or retracted), all via py/revise_observation.py --agent 7:
+  confidence above source ceiling 8, 9, 10; typed CFR 3; same-unit locations 116 (Bingerville -> Cocody-Bingerville),
+  83/1446/1488/1502 (Port-Bouet -> Port-Bouet-Vridi), 664 (KPBV -> Koumassi); 2007 district zeros in regions with SIG
+  completeness <80% (RASS 2007-2009) 0.7 -> 0.5 on 12 rows and -> 0.3 on Koumassi 1023 and Grand-Lahou 1018; non-additive
+  labels on 1760, 1761 and 1779; 1983 builder note on 1443; dead source on row 5 (0.7 -> 0.4); notes on 7, 80, 118, 119,
+  1465, 1032-1034. Agent 6's open item is decided: the Duekoue/Guiglo/Toulepleu 2007 zeros are kept at 0.7.
+- 1983 decision: entering the national 155 was tested and rejected. With the March-peaking template it would put ~78%
+  of the cases outside Jun-Aug, and nested over the dated window it gives ~256. The window row stays as national input.
+- URLs: all 301 checked. 1 is dead with no archive (Index 5); 4 are bot-blocked or mistyped, with working copies recorded.
+  IRIS went down mid-check, so 13 IRIS items are page-checked only, not API-verified.
 
-DATA OBSERVATIONS ADDED: 11 rows in cholera_data_ai.csv
-1. AFR::CIV, 1995-09-18 to 1995-11-12: 2027 cases, 150 deaths (WHO DON, sub-annual)
-2. AFR::CIV, 2001-05-01 to 2001-09-21: 3152 cases, 175 deaths (WHO DON, sub-annual)
-3. AFR::CIV::Abidjan, 2001-05-01 to 2001-09-21: 2012 cases, 51 deaths (WHO DON, sub-national)
-4. AFR::CIV, 2002-01-01 to 2002-07-14: 581 cases, 19 deaths (WHO DON, sub-annual)
-5. AFR::CIV::Abidjan::Adjame, 2011-01-01 to 2011-01-31: 41 cases, 8 deaths (district-level)
-6. AFR::CIV::Abidjan::KPBV, 2012-06-01 to 2013-12-31: 19 cases, 0 deaths (Africhol surveillance)
-7. AFR::CIV::Adiake, 2012-05-01 to 2012-10-31: 161 cases, 3 deaths (Africhol outbreak)
-8. AFR::CIV, 2025-05-25 to 2025-06-06: 45 cases, 7 deaths (initial 2025 outbreak)
-9. AFR::CIV, 2025-05-25 to 2025-07-14: 322 cases, 15 deaths (cumulative Jul 14)
-10. AFR::CIV, 2025-05-25 to 2025-08-03: 491 cases, 20 deaths (cumulative Aug 3)
-11. AFR::CIV, 2024-01-01 to 2024-12-31: 0 cases, 0 deaths (validated absence)
+7. AGENTS (batches; rows; stop) - none ran <3 batches; no yield >100%; claimed rows match the file
+  A1 12; +603; cap - most productive (WER, INHP, OCHA/ReliefWeb, digitised Ekra curve). Redeployed after a laptop sleep.
+  A2 12; +64; cap - press-archive crawls, district depth; low yield. Killed by HTTP 529 in batch 12, resumed.
+     The session WebSearch budget (200) ran out here, so Agents 3-7 worked through APIs, RSS and archives.
+  A3 7; +395; saturation - 394 zero rows, nearly all district zeros from annual tables; 3 retractions.
+  A4 12; +30 live; cap - historical grey literature; first counts for 1972, 1984, 1991, 1993-95, 1997; 9 retractions.
+  A5 12; +537; cap - UVCI thesis repository; the IPCI register; 1983, Q4 2000, 2001-02 SNSE; conflict register.
+  A6 6; +2; saturation - 2 rows from 120 queries, but the gap classification that drives sections 2-3.
 
-GAPS FILLED:
-- 2025 data gap: Partially filled with outbreak data (491 cases/20 deaths as of Aug 3 2025)
-- 2024 absence: Validated as zero-transmission
-- Sub-annual detail added for 1995, 2001, 2002 outbreaks
-- Sub-national detail added for Abidjan (2001), Adjamé (2011), KPBV and Adiake (2012)
+8. WHAT A FUTURE RUN SHOULD TRY
+- Offline items named by Agents 4-6: Dosso-Bretin M., "Les vibrionaceae en Cote d'Ivoire" (Montpellier 1988, nnt
+  1988MON11380); Dosso et al., Med Afr Noire 1987;34(7):631-637 (1981-86); Remy G. 1984 thesis (Paris IV); Lajoinie
+  1975 (Montpellier); Bourgeade et al. 1973 (Med Afr Noire 20(3)) and the OCCGE "Situation au 1er mars 1971"; Akovi
+  Mensah 1980 (n.270) and Dougrou 1983 (n.504) MIT statistics theses; Briand & Causse 2003 WHO mission report; RASS
+  1997-2000 and 2021+; Annuaire 2009-2014; AFRO Regional Director reports 1973-90.
+- Approaches not tried: direct requests to INHP (Vigile archive 2019-22, 2024 W41+, 2026 W28+), IPCI (register after
+  Feb 1991) and DIIS; university and BIU library loans; IRD Horizon with a login; OCR of the IA WER microfiche Oct
+  1999-Sep 2000; finishing Agent 4's Africa Online 1997-2003 press crawl; WHO AFRO OEW 2025 W38-W52 from AFRO directly.
+- Pipeline: fix the builder priority and JHU defects in section 5 before re-fitting. Re-check the tail after 5 Oct 2026.
 
-GAPS REMAINING:
-- 1972-1978 (7 years): No quantitative data found
-- 1980-1981 (2 years): No quantitative data found
-- 1983-1990 (8 years): No quantitative data found
-- 1997-2000 (4 years): No quantitative data found
+====================================================================================================
+METRICS APPENDIX
+====================================================================================================
+A1. ROWS AND SOURCES (pandas, 2026-10-01)
+  Origin (Index range)            live  case  zero  deaths-only  national  sub-national  retracted
+  legacy pre-21 Sep (1-13)          12    11     1      0            8         4            1
+  21 Sep 2026 run (14-146)         114   104    10      0           29        85           19
+  Agent 1 (147-749)                599   573    22      4          356       243            4
+  Agent 2 (750-813)                 64    48    13      3            3        61            0
+  Agent 3 (814-1208)               395     1   394      0            9       386            0
+  Agent 4 (1209-1240)               30    21     0      9           10        20            2
+  Agent 5 (1241-1777)              537   534     0      3           99       438            0
+  Agent 6 (1778-1779)                2     2     0      0            1         1            0
+  TOTAL                           1753  1294   440     19          515      1238           26
+  (Retractions are shown against the range of the retracted row's Index; 1252-1254 are Agent 5 re-points of 135-137.)
+  National zero rows: 34 (18 Documented_Absence, 15 Inferred_Absence, 1 confirmed-only, row 71). Sub-national: 406.
+  Presence records 75, all written this cycle (the file was empty at the start, per Agent 1's batch counts).
+  Agent 7: 0 rows added, 0 sources added.
+  Confidence: <=0.3 14 | 0.3-0.5 249 | 0.5-0.7 704 | 0.7-0.9 735 | 0.9-1.0 51. Rows by source tier: L1 933, L2 708,
+  L3 112. No row exceeds its source tier's ceiling after the Agent 7 fixes (1,103 deliberate downgrades below the floor).
+  Sources: 301 = L1 160 (2 Superseded), L2 87, L3 53, L4 1 (Superseded). This cycle (Index 72-301): 230 = L1 106,
+  L2 78, L3 46. Cited by rows 220, by presence records only 19, context or corroboration only 62.
 
-==================================================
-SURVEILLANCE SYSTEM CHARACTERIZATION
-==================================================
+A2. COVERAGE (py/analyze_effective_gaps.analyse, in memory, 2026-10-01; month covered if >50% of days)
+                              months  with data  %      ai    ai_only  positive  gap periods
+  Baseline only (JHU+WHO)       682     399     58.5     0       0       383         8
+  Start of cycle (runner)       681     679     99.7    507     278      397         1
+  Now (JHU+WHO+AI)              682     657     96.3    650     256      605         4
+  Baseline gaps: 1972-78, 1980-81, 1983-90, 1997-2000, Nov-Dec 2019, Mar-Dec 2020, Jan-May 2025, Sep 2025-Oct 2026.
+  Remaining: 1973-01..12, 1978-12, 1983-01..06, 1983-08..12 (258 of the 283 baseline-missing months now informative).
+  Recency: latest observation 2026-09-20 (inferred-absence row 814); latest positive 2025-12-31 (annual row 147; last
+  epidemic cases by onset were in week 41, 6-12 Oct 2025).
 
-CONFIRMED FACTS:
-1. CIV experienced its first reported cholera outbreak in 1970-1971 (7th pandemic spread to West Africa)
-2. Surveillance system established with precocious alert system in 2001
-3. 2002 conflict disrupted health systems; "epidemic silence" documented 2005-2014 (institutional practice)
-4. CIV case definition sensitivity: 46.5% (lowest among 7 Africhol countries)
-5. Laboratory confirmation rate: <13% regionally (CIV-specific rate lower)
-6. 2025 outbreak: First confirmed cholera in ~15 years; CIV confirmed absence 2010-2024 approximately
+A3. WEEKLY BUILDER (in-memory simulation) - annual national total vs best national figure
+  1970 868 (699 placed before arrival) | 1972 105 = IPCI | 1973 0 assumed (presence) | 1977 43 = register (Aug, Dec
+  assumed 0) | 1983 112 (155 confirmed; 48 weeks assumed 0) | 1984 147 (Tortiya 145 + IPCI 2) | 1988 67 (flat; epidemic
+  from Oct) | 1997 113 (AI 86 + 27 JHU-1996 spill) | 2000 35 (INHP implies ~860-890 in Q4) | 2006 436 (WHO 414) |
+  2011 1261 (RASS 1448) | 2012 1772 (WHO 424 / INHP 431 / RASS 589) | 2015 131 (199-200) | 2017 29 (weekly 24, RASS 31) |
+  2019 5.9 (RASS 13) | 2025 586 (556) | 2026 0. Template country_k1 (9 valid years), peaks in weeks 10-13.
+  Weeks by winning source: JHU 1,722 (1,252 Fourier); AI 1,115 (782 Fourier, 264 inferred zero, 60 documented zero,
+  9 observed); WHO 11; assumed_zero 112. AI national weekly rows overridden: 309 of 318 (2001 47, 2002 63, 2003 39,
+  2011 34, 2012 43, 2013 25, 2014 22, 2025 11, others 25).
 
-GAP PERIOD CHARACTERIZATION:
-- 1972-1990 gaps: Pre-surveillance system; likely surveillance gap rather than true absence
-- 1997-2000 gaps: Possible low-incidence period between 1996 and 2001 surge
-- 2003-2010: Post-conflict health system reconstruction; "epidemic silence" institutional practice
-- 2015-2024: Low/zero incidence period; 2024 WHO AFRO confirmed zero cases
+A4. AGENTS (./data/CIV/workflow_state.json, cross-checked against logs and the file)
+  Agent  batches  yields (%)                               rows      sources  stop
+  1      12       70,60,35,40,15,20,5,55,25,25,15,25       +603      +126     12-batch cap
+  2      12       15,10,10,15,10,5,0,0,25,0,25,10          +64       +30      12-batch cap
+  3       7       5,15,30,15,0,0,0                         +395      +18      3 x <5%
+  4      12       5,10,10,0,0,10,0,10,0,10,5,0             +32 (30)  +28      12-batch cap
+  5      12       25,40,15,10,0,0,5,0,10,5,15,5            +537      +21      12-batch cap
+  6       6       0,5,5,0,0,0                              +2        +7       3 x <5%
+  Retractions by agent: A3 3 (52, 53, 484); A4 9 (14, 15, 23, 24, 28, 29, 31, 1228, 1229); A5 6 (135-137, 291, 294,
+  344); A6 8 (11, 17, 21, 26, 27, 30, 32, 33). Every tombstone carries a reason; none reuses a live Index. Each A6
+  retraction moved the WHO non-notification fact onto the surviving count row first (1640, 1644, 1768, 1769, 1772,
+  1633, 1774, 306).
+  Disruptions: A1 cut off mid-batch 2 (laptop slept on battery) and redeployed; A2 killed by HTTP 529 in batch 12 and
+  resumed; WebSearch budget (200) exhausted in A2 batch 12; IRIS outages (A2 batches 2-8, A7).
 
-==================================================
-QUALITY ASSURANCE
-==================================================
+A5. VALIDATOR
+  Start (/tmp/CIV_audit.json) and end (/tmp/CIV_post_audit.json): exit 0, ERROR 0, WARN 96, INFO 529.
+  Extra checks (not in the validator) all pass after the fixes: source tier ceilings; CFR computed (2 dp); metadata
+  Index 1-301 with no holes; Superseded 70/230/231 uncited; TL<=TR<=reporting_date; nothing after 2026-10-01; locations
+  under valid ADM1; primacy phrase outside the quoted text on every national/sub-national overlap.
 
-VALIDATION RESULTS (100% pass rate):
-Stage 1 (Authentication): All 10 sources verified with working URLs or institutional confirmation
-Stage 2 (Epidemiological range): All CFR values within acceptable range; Row 5 high CFR (19.5%)
-  contextualized by UNICEF documentation of post-election crisis and inadequate WASH
-Stage 3 (Cross-reference): Major outbreaks confirmed by multiple independent sources
-Stage 4 (Duplication): No duplicate records; overlapping 2025 rows documented with clear notes
+A6. CONFLICTS CARRIED FORWARD (recorded in notes, not averaged)
+  2001: 6,260/341 carries three period versions ("2001", Oct 2000-Dec 2001, "jusqu'en octobre 2001"; row 486), plus
+        5,723/327 to 11 Nov 2001 (row 1723); JHU 5,912/305 drives the series.
+  Q4 2000 national 35 is too low (CHU de Cocody alone 52; INHP implies ~860-890) - rows 1465-1467, 1760.
+  1975 and 1980: IPCI register 0 vs CHU de Cocody 3 and 1 (rows 1640, 1644) - positive rows primary.
+  1989: 79 (register annex) vs 75 (Tableau LVII), row 1771. 1999: 19 printed vs 20 implied, row 1774.
+  CHU de Treichville Jan-Jul 2001: SMIT register 162 (1471-1474) primary vs emergency unit 271 (1761).
+  Abidjan 2011: 1,779/39 (row 347, non-primary) exceeds national RASS 1,448/32 (row 65, primary).
+  WHO 17 Sep 2008 "sur 499 cas ... 02 deces", with no place or period (rows 54, 468) - unresolved, possibly 2006 west.
+  2024: 5 suspected (INHP) vs WHO zero-reporting; 2 cases after week 40 not placed (row 306).
+  1983: 112 window (row 1443) vs 150 (Vangah, Jun-Aug) vs 155 annual (IPCI); 1982: 34 (WHO, incomplete) vs 45 (IPCI).
+  2012 Q1: JHU 1,321/34 vs WHO AFRO 64-69 (rows 491, 769-770). 2011 W28: 38/1 vs 23/0 (rows 663, 1291).
+  Adjame Jan 2011: 41 (row 5, dead source) vs 61 for Abidjan in the surviving IRIN copy (row 351).
 
-INDEX SYSTEM INTEGRITY: PASS
-- metadata_ai.csv: 10 sequential integers (1-10), no gaps/duplicates
-- cholera_data_ai.csv: All source_index values reference valid metadata entries
-- Source names: All match exactly between data and metadata files
+A7. URL CHECK (all 301 metadata URLs, 1 Oct 2026; /tmp/civ_a7/url_results.tsv)
+  293 returned content on the first pass and 3 on retry. Dead with no archive: Index 5. Blocked or mistyped, with
+  working copy recorded in the description: 6 (Wayback 2026-07-27), 187 (correct file BSP-n%C2%B03-Final.pdf),
+  215 (Wayback 2024-02-17), 301 (PMC12692737). IRIS: 76 of 89 items API-verified; 13 page-checked only (outage).
 
-FORMAT COMPLIANCE: PASS
-- YYYY-MM-DD dates: All rows compliant
-- AFR::CIV geographic codes: All rows compliant
-- source_database = 'AI': All rows compliant
-
-==================================================
-REMAINING LIMITATIONS
-==================================================
-
-1. Historical gaps (1972-1990, 1997-2000): No quantitative data found; characterized as
-   surveillance gaps rather than validated zero-transmission periods
-2. 2025 outbreak: Ongoing as of data collection date; cumulative total may be higher by year-end
-3. Sub-national data sparse: Only available for 2001 (Abidjan), 2011 (Adjamé), 2012 (Adiake/KPBV)
-4. Institutional "epidemic silence" 2005-2014: True cholera burden in this period unknown;
-   surveillance gaps not validated as true zero-transmission
-
-FINAL STATUS: MISSION COMPLETED
-Data ready for MOSAIC modeling workflow integration.
-All 7 agents completed; CSV files validated and populated.
+A8. AUDIT TRAIL: ./data/CIV/search_log_agent_7.txt; scratch /tmp/civ_a7/ (integrity.py, sim.py, urlcheck.py, irischk.py).
+====================================================================================================
