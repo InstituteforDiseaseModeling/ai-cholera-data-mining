@@ -1,96 +1,293 @@
-MALAWI (MWI) CHOLERA SURVEILLANCE DATA ENHANCEMENT - FINAL REPORT
-Generated: 2025-08-06 20:20:15
-Workflow: Complete 7-Agent MOSAIC Enhancement
+MALAWI (MWI) - AI CHOLERA DATA ENHANCEMENT - SEARCH REPORT
+Cycle: 2026-09-29 Opus 5.5 re-run, Agents 1-6 + Agent 7 quality audit. Written by Agent 7 on 2026-09-30.
+Replaces the August 2025 report; the old text is in git history.
+Files: ./data/MWI/cholera_data_ai.csv, ./data/MWI/metadata_ai.csv, ./data/MWI/retracted_rows_ai.csv,
+./data/MWI/cholera_presence_ai.csv. Audit trail: ./data/MWI/search_log_agent_7.txt.
 
-=== EXECUTIVE SUMMARY ===
+==========================================================================================
+1. BOTTOM LINE
+==========================================================================================
+The AI layer grew from 399 rows / 117 sources to 2,504 live rows / 456 sources. That is 2,113 new live rows
+(1,782 case, 324 zero, 7 deaths-only). Separately, 67 rows were retracted with tombstones, 8 of them from
+before this cycle. Most of the new data is sub-national. It includes a cell-for-cell verified weekly district
+series for the whole 2022-23 epidemic (1,083 rows) and WHO-notification district geography for 1973-74.
 
-BASELINE TRANSFORMATION:
-- Original gap: 55.7 years of complete surveillance absence (1970-2025)
-- Enhanced coverage: 50 years documented (1973-2023) 
-- Gap reduction: 90% improvement in historical coverage
+The disappointing numbers:
+ - Effective coverage FELL, from 99.9% (680 of 681 months, 1 gap) to 92.5% (630 of 681, 4 gaps).
+   months_ai_only fell from 147 to 97. This was deliberate. Agent 6 retracted national zero rows for 1979,
+   1980, 1982 and 1987: each rested only on silence in WHO's IHR notification channel, a channel shown to have
+   missed real Malawi outbreaks (1981: 261 cases reported through the annual questionnaire but never notified).
+   In those years neighbouring Tanzania, Mozambique or Zambia were in epidemic. Earlier agents also relabelled
+   1975 and 1984-86 from Documented to Inferred absence. A false zero is the worst error this dataset can make;
+   these gaps are honest.
+ - Weeks of the national weekly series that MOSAIC can use (observed + documented_zero + fourier) fell from
+   2,878 to 2,416. AI-sourced weeks fell from 722 to 487. MOSAIC-pkg/R/process_AI_cholera_data.R keeps only
+   observed, documented_zero and fourier_* weeks, so Inferred_Absence zeros (inferred_zero) are dropped just
+   like assumed_zero. The relabels and retractions therefore turned 417 documented-zero weeks of 1975-1987
+   into NA (200 relabelled Inferred, 209 retracted, 8 dropped when row 64 was re-periodised).
+ - Almost none of the new sub-annual national evidence reaches MOSAIC. The builder ranks WHO > JHU > AI in
+   every ISO week. Of 2,239 weeks covered by an AI national row, 1,752 (78%) are still filled from JHU or WHO.
+   Agent 1's sixteen 2022 national periods (17,840 cases, matching WHO's 17,488 within 2%) are inert. The
+   builder still shows 32,628 cases for 2022, spread from a dozen overlapping JHU cumulatives, including about
+   1,100-1,200 cases a week in February 2022, when one case occurred. It still puts 302 of 1973's 371 cases
+   before the first case on 19 Oct 1973, and about 2,454 phantom cases into 2024 (see maintainer actions a-f).
+ - Agent 6 added 2 rows from 160 queries. All three web channels were exhausted by the end of the cycle.
 
-DATA COLLECTION RESULTS:
-- Total observations added: 22 cholera data entries
-- Total sources validated: 20 references (86% Level 1 quality)
-- Geographic coverage: National + 8 districts across all 3 regions
-- Temporal coverage: 1973 first introduction → 2023 recent outbreaks
+==========================================================================================
+2. SOURCES AND OBSERVATIONS
+==========================================================================================
+Sources: 339 registered this cycle (metadata 118-456), of which 301 are cited by a live row.
+ - By reliability level: Level 1 156, Level 2 80, Level 3 103.
+ - Whole file: 456 sources (L1 263, L2 88, L3 105), 396 cited.
+ - Live rows by source level: L1 919, L2 1,466 (1,083 of them from openwashdata), L3 119.
 
-KEY OUTBREAK DOCUMENTATION:
-1. 1975: 22,427 cases (highest single-year historical count)
-2. 1998-99: 25,000 cases (endemic establishment)
-3. 2001-02: 33,546 cases (largest documented outbreak)
-4. 2008-09: 5,751 cases (125 deaths, CFR 2.2%)
-5. 2009-10: 1,171 cases (Lake Chilwa district outbreak)
-6. 2014-15: 693 cases (8 districts, post-flood response)
-7. 2022-23: >59,000 cases (district-level detail available)
+Live rows added this cycle, by agent (the full table is in Appendix A):
+ - Agent 1: 208 (234 written; 26 later superseded by Agent 5).
+ - Agent 2: 1,296.
+ - Agent 3: 341.
+ - Agent 4: 122.
+ - Agent 5: 143 (146 written; 3 retracted by Agent 7).
+ - Agent 6: 2.
+ - Agent 7: 1 (a citation correction).
+By level: national 347, district 1,746, region 7, multi-district 13. By type: zero rows 324 (Documented 309,
+Inferred 15; none labelled Surveillance_Gap), case rows 1,782, deaths-only rows 7 (plus 1 legacy).
+Presence records: 2 -> 14.
 
-EPIDEMIOLOGICAL INSIGHTS:
-- First cholera introduction: 1973 (7th pandemic wave)
-- Endemic transition: 1998 (continuous transmission established)
-- Geographic risk pattern: Lake districts consistently most affected
-- Seasonal pattern: Rainy season transmission validated
-- Case fatality rates: 0.3-5.1% (epidemiologically consistent)
+==========================================================================================
+3. COVERAGE BEFORE / AFTER (recomputed read-only by Agent 7; shared ./reference files not rewritten)
+==========================================================================================
+                          Cycle start (29 Sep)       Now (30 Sep, after audit)
+ JHU+WHO baseline         78.1%, 6 gaps              78.1%, 6 gaps (baseline files unchanged)
+ JHU+WHO+AI effective     99.9%, 1 gap               92.5%, 4 gaps
+   months_ai / ai_only    358 / 147                  536 / 97
+   months with positives  547                        542
+ Weekly national series   2,953 wks: obs 265,        2,959 wks: obs 269, fourier 1,953,
+                          fourier 2,033, doc0 580,   doc0 194, inf0 279, assumed0 264
+                          inf0 52, assumed0 23
+Gap periods vs cycle start: none closed; three opened (1979-01..1980-12, 1982, 1986-11..1987-12).
+Gap periods vs the JHU+WHO baseline:
+ - Closed: 1970-72 (documented) and 1974-75 (1975 is Inferred only).
+ - Partly closed: 1984-87, for 34 of 48 months, all of them Inferred only. 2026-05..09, up to 13 Sep.
+ - Still open: 1979-80, 1982.
+In MOSAIC terms, only 1970-72, Jan-May 1974 and May-mid-Sep 2026 are genuinely closed; the Inferred-only
+periods arrive as NA.
+Real gains in the weekly series:
+ - Jan-May 1974 now carries the 1,228 notified cases, instead of spreading 246 of them into Jun-Dec.
+ - 330 phantom 2014 cases, and 17 in 2015, from a mis-dated legacy row were removed.
+ - New documented-zero weeks: 2014 weeks 44-52; 2017 weeks 1-5, 7-10 and 18-19 (week 6 is the JHU 847
+   phantom); 12 weeks of Apr-Aug 2025; 2026 weeks 28-31.
 
-QUALITY ASSURANCE:
-- Data validation: 50+ systematic checks performed
-- Source verification: 100% URLs validated or archived
-- Mathematical consistency: All CFR calculations verified
-- Cross-validation: Major outbreaks independently confirmed
-- No conflicts detected: Exceptional source agreement
+==========================================================================================
+4. GAPS STILL OPEN, AND WHETHER THE DATA EXIST
+==========================================================================================
+ - 2026-09-14..30 (PHIM epi-weeks 38-39). Publication lag, not absence. PHIM's media library was re-checked
+   on 30 Sep: the newest bulletin is week 37 (Table 1 shows cholera 0, measles 95, completeness 97%). The
+   data exist and will appear; no zero was written.
+ - 1979-1980, 1982. Uncertain. The routine health information system was working, but neighbours were in
+   epidemic and the cholera channel is known to have missed outbreaks. The decisive documents are WHO World
+   Health Statistics Annual 1981/1982 (the Malawi blocks) and MoH annual reports. They are probably in print
+   archives only; not online.
+ - 1986-11..1987-12. Probable gap, during the Mozambican refugee influx. Camp surveillance (MSF/Epicentre;
+   Moren et al. 1991) and IFRC 1988-93 appeals would hold counts; not digitized.
+ - Jan-Oct 2014. Shown as 42 assumed_zero weeks, which are NA in MOSAIC. Not a coverage gap, because JHU
+   season rows cover it. Decision D2: status quo.
+ - 2025 Sep-Oct. Cases occurred (26 Sep: 2 confirmed in Lilongwe; week 43: 1; week 45: 2), but PHIM never
+   uploaded bulletins for weeks 38-42 and 44, and WHO sitreps conflict. No zero.
+ - Sub-annual national counts for 1989/90 (WHO 15,258) and 1991 (8,088) were left unwritten: they rest on
+   the WHO notification stream alone, and the only plausible second sources are paper IFRC appeals.
 
-REMAINING SURVEILLANCE GAPS:
-1. 1974-1989 (15 years): Early surveillance system limitations
-2. 1991-1997 (6 years): Pre-endemic transition period
-3. 2003-2007 (4 years): Reporting gaps vs biological absence
-4. 2016-2021 (5 years): Possible transmission reduction period
+==========================================================================================
+5. VALIDATOR STATUS AND WHAT AGENT 7 CHANGED
+==========================================================================================
+python py/validate_quality.py MWI:
+ - Start of audit: ERROR 0, WARN 12, INFO 395.
+ - End of audit: ERROR 0, WARN 12, INFO 394 (2,504 rows, 456 sources); exit 0.
+ - py/repair_data_integrity.py --dry-run MWI found 0 changes, and there is no attribution_review.csv.
+All 12 WARNs are confirmed and justified (detail in Appendix C):
+ - 4 single-day point events: rows 77, 288, 289, 648.
+ - 8 high-CFR rows, all at confidence <=0.7, with cases and deaths sharing one period: 1042, 1043, 1526,
+   1566, 1703, 2084, 2316, 2574.
 
-MOSAIC MODELING READINESS:
-✓ Endemic period coverage: 1998-2023 (25 years)
-✓ Outbreak calibration points: 8 documented outbreaks
-✓ Geographic stratification: District-level data available
-✓ Seasonal patterns: Rainy season transmission confirmed
-✓ Cross-border context: Regional coherence established
-✓ Uncertainty quantification: Appropriate confidence weighting
+Changes made by Agent 7, all through the tools:
+ - D4, row 26 (243 / 3, Jan-Apr 2024): the figure is genuine but was mis-cited. It comes verbatim from ECDC's
+   monthly cholera overview (data to 30 Apr 2024). The cited page (metadata 24) is a 16 Aug 2023 WHO AFRO
+   release. Fix: registered ECDC as metadata 456, re-entered the figure as row 2575 (retract + re-add,
+   because the reviser cannot change source_index), and retired metadata 24 as Superseded with a corrected
+   description.
+ - Zero rows over cases: retracted 2424, 2531 and 2532. These were Documented zeros for 2025 week 9,
+   2024 week 17 and 2025 week 13, each sitting on a WHO case count for the identical ISO week. WHO and PHIM
+   weeks are aligned in 2024-25 (most same-week counts match), so these are real conflicts. Row 2531's own
+   source excludes probable cases.
+ - Trimmed row 2019 to end 13 Dec 2015: UNICEF's curve has 4 cases in 14-20 Dec.
+ - Trimmed row 2004 to end 20 Feb 2022: the index case's onset is 25 or 28 Feb. The builder zero-fills
+   every ISO week whose Monday is on or before TR.
+ - Row 2540 (1993): Agent 5 had moved WHO's second additive batch (325 cases / 12 deaths) into the notes to
+   avoid a same-period WARN. A warning is not a reason to drop a sourced figure, so the counts are now
+   2,393 / 55 and the 1993 windows sum exactly to WHO's 25,193 / 524.
+ - D3: notes appended to the eight deaths-only rows and to 2565, 2446, 2527, 2144 and 2505; metadata 402
+   description extended.
+ - None of these edits changes the weekly series: every affected week is outranked by JHU or WHO.
 
-=== TECHNICAL SPECIFICATIONS ===
+Decisions:
+ - D1 (Sep 2026): no row; publication lag.
+ - D2 (Jan-Oct 2014): no zero. No explicit contemporaneous statement covers 3 Jan-31 Oct 2014: MoH's
+   2 Jan 2014 statement only forecasts the rest of the season, and MMCCP Figure 4 is a 2025 retrospective of
+   registered cases. If row 2418 holds, the MoH Epidemiology Unit's 8 undated suspected cases can only fall
+   in this window. An Inferred row would not reach MOSAIC anyway.
+     Residual inconsistency, documented: zeros 626/2325/2493/2418 also sit inside UID 3182 seasons that have
+     suspected cells. They are kept because explicit contemporaneous statements cover them (MoH, UNICEF,
+     OCHA: "did not have any reports of cholera in 2013") and they are inert in the builder.
+ - D3 (deaths-only): all eight kept, under one documented policy.
+ - D5 (CIA presence record, metadata 369): stored at 0.4, should be read at <=0.2. It most plausibly
+   paraphrases WHO's carry-over listing of Karonga (WER 54(51-52)). The 1987 Noticias record (0.3) says
+   refugees carried cholera into Mozambique, not that cases occurred in Malawi. Neither can be re-weighted
+   with the current tools.
+ - D6: all 12 WARNs confirmed.
+ - D7: spot checks found 4 defects, now fixed (rows 26, 2540, 2019/2004, and the three zero conflicts).
 
-Data Files Generated:
-- cholera_data_ai.csv: 22 observations, 14 columns, MOSAIC-ready format
-- metadata_ai.csv: 20 sources, 15 columns, dual-reference indexing
-- search_log_agent_[1-7].txt: Complete workflow documentation
+==========================================================================================
+6. AGENT PERFORMANCE (claims verified against the files)
+==========================================================================================
+Every agent ran >=3 batches. No yield exceeds 100%. Every row-count, Index-range and tombstone claim
+reconciles (Appendix B).
+ - Agent 2 (geographic): the single most valuable contribution, the openwashdata weekly district series.
+   All 1,083 rows match the raw sheet cell for cell, with 0 mismatches.
+ - Agent 3 (zeros): rigorous. 1973-74 district rows verified against WER 49(04) and 52(15). Its C1-C33 notes
+   underpin most maintainer actions. Two of its zero rows needed trimming.
+ - Agent 4 (obscure): recovered WHO AFRO 1999-2005 bulletins via Wayback. Its chart digitizations sum exactly
+   to the printed totals (1,605 / 20 for 2000/01).
+ - Agent 1 (baseline): built the 2022, 2015/16 and 2008/09 national series (arithmetic verified) and
+   repaired legacy rows.
+ - Agent 5 (cross-reference): resolved 25 same-period conflicts and the 1993 and 2001/02 decisions. But it
+   dropped a sourced figure to silence a WARN and wrote three zeros over WHO counts; Agent 7 fixed both.
+   Its yields count re-fetches of already-registered sources and two deaths-only rows. Outcome unchanged.
+ - Agent 6 (context): 2 rows from 8 batches. Its value is the honest reclassification of 1979-1987.
+ - Agent 3's batch-10 yield counted WER pages as queries (about 3/12 on a stricter count). Outcome unchanged
+   (12-batch ceiling).
 
-Search Performance:
-- Agent 1 (Baseline): 3 batches, 60 queries, 16 observations
-- Agent 2 (Geographic): 1 batch, 20 queries, 6 district entries  
-- Agent 3 (Zero-validation): Limited by search restrictions
-- Agent 4 (Archives): Limited by access constraints
-- Agent 5 (Cross-reference): 1 batch, validation successful
-- Agent 6 (Context): Epidemiological gap characterization
-- Agent 7 (Quality): Comprehensive validation and reporting
+==========================================================================================
+7. WHAT A FUTURE RUN SHOULD TRY
+==========================================================================================
+ - Re-check PHIM for weeks 38-39 and later 2026 bulletins.
+ - Ask PHIM for the 2022-26 cholera line list; it would replace about 75 derived rows.
+ - Ask the MoH Epidemiology Unit for monthly 2012/13-2013/14 district data, to date or discard the UID 3182
+   suspected cells and settle 2013-14.
+ - Library and archive sources for 1979-88: WHSA 1981/1982, MoH annual reports, Malawi Epidemiological
+   Quarterly (from 1984), MSF/Epicentre camp reports, IFRC appeals M88EA003-M93EA204.
+ - Re-run Malawi once the maintainer builder and baseline fixes land; most of this cycle's evidence becomes
+   live only then.
 
-Total Workflow Metrics:
-- Search queries executed: ~100 parallel searches
-- Data observation yield: 22 validated entries
-- Source discovery rate: 20 unique validated references
-- Quality certification: EXCEPTIONAL (86% Level 1 sources)
+==========================================================================================
+8. MAINTAINER ACTIONS (agents must not fix these themselves)
+==========================================================================================
+ (a) WHO baseline blanks reported zeros. ./data/MWI/cholera_data_who.csv blanks 48 WHO-reported zeros
+     (12 in 2024, 36 in 2025; written by the old converter). Agent 7's in-memory simulation with the zeros
+     restored: the 2024 national total drops from 2,949 to 495 (-2,454; week 1 drops from 1,703.7 to 0) and
+     2025 drops by 6.
+       Fix: regenerate with the fixed py/convert_who_to_workflow.py (delete the file first; the converter
+       appends), together with the 2026 one-week date-shift fix.
+       Side effect: WHO zeros would then override the AI counts in 2025 weeks 15/43/45 and 2024 week 1.
+ (b) JHU 847 year typo. Row 847 (2017-02-12..18, 91 cases / 4 deaths, UID 20823) duplicates JHU 178 and
+     1287 (2018-02-12..18, 91 / 4). It renders 2017-W06 as an observed 91-case week between documented zeros.
+ (c) JHU UID 3182 (MoH Epidemiology Unit district table) has row errors, broader than earlier logs state:
+       - Karonga and Mangochi are identical in every season 2002/03-2014/15 (Mangochi is present, not absent).
+       - Lilongwe repeats the same 35 / 87 / 793 / 7 in 2003/04-2005/06 and 2007/08.
+       - Lilongwe 2006/07 = 751, above the national 300.
+       - Machinga repeats 222 in two seasons.
+       - Thyolo is non-zero in all 14 seasons 2000/01-2013/14.
+       - Nsanje is blank for 2000/01-2005/06.
+ (d) JHU 2022 overlap. Eighteen JHU national rows overlap 2022: 12 cumulative-since-onset rows (two
+     identical), row 200, two cumulative-to-date rows, and WHO 17,488 plus four component rows. Together they
+     inflate 2022 to 32,628.
+ (e) WHO "calendar" totals that are really season or notification windows are spread over the wrong year:
+     2001 (2,395 = 28 Oct 2001-19 Jan 2002), 2009 (5,751 = 2008/09), 2015 (693 = 2014/15),
+     2016 (1,792 ~ 2015/16), 1976 (19 = 12 Dec 1976-1 Jan 1977).
+ (f) Builder precedence. WHO > JHU > AI per week makes AI sub-annual evidence inert in every year with a JHU
+     annual row (78% of AI-covered weeks).
+       Agent 3's proposal: spread JHU annual totals only inside notified windows when finer rows sum to them
+       (1973, 1974, 1976, 1994, 1997), or aggregate complete AI district-weeks to national (1974; 2022-23).
+       Also: the builder zero-fills whole ISO weeks whose Monday is <= TR, and it skips the first partial week
+       of a non-weekly row (so 1981-W01 becomes assumed_zero).
+ (g) WebSearch cap. The session-wide budget of 200 calls (CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION) cannot
+     fit six collectors x 240 queries. Agent 4 exhausted it in batch 9; Agents 5-7 ran without WebSearch.
+     Raise it in the runner.
+ (h) CLAUDE.md contradicts itself on deaths-only rows. "Quantitative Data: Must have specific numbers for
+     cases, deaths, or CFR" versus the "MANDATORY DATA INCLUSION REQUIREMENT" paragraph, whose first sentence
+     demands sCh/cCh or a documented zero while its last sentence admits "death counts". The writer and the
+     validator accept deaths-only rows. Pick one rule.
+ (i) MOSAIC drops inferred_zero (process_AI_cholera_data.R). The Documented/Inferred label therefore decides
+     whether an absence reaches the model. Confirm that is intended.
+ (j) Tool gaps:
+       - revise_observation.py cannot change source_index (it forced retract + re-add for row 26).
+       - There is no revise verb for cholera_presence_ai.csv (for the CIA and Noticias re-weights).
+       - Metadata Source names cannot be corrected: metadata 19 is named "Blantyre district ..." but is WHO
+         DON435.
+       - same_period_conflict cannot express additive notifications (this caused the 1993 data drop).
+ (k) Legacy metadata 1-117 grade 107 of 117 sources as Level 1. Re-grade.
 
-=== RECOMMENDATIONS ===
+==========================================================================================
+APPENDIX A - OBSERVATIONS BY AGENT (live rows on 30 Sep 2026)
+==========================================================================================
+ Agent      Index range  live   case  zero  deaths-only | national district region multi
+ legacy     1-403         391    359    31     1        |    80      310      0      1
+ A1         404-648       208    194    13     1        |    77      131      0      0
+ A2         649-1944     1296   1146   146     4        |     0     1296      0      0
+ A3         1945-2300     341    181   160     0        |    86      255      0      0
+ A4         2301-2423     122    118     4     0        |    90       22      1      9
+ A5         2424-2572     143    140     1     2        |    93       41      6      3
+ A6         2573-2574       2      2     0     0        |     0        1      0      1
+ A7         2575            1      1     0     0        |     1        0      0      0
+ TOTAL                   2504   2141   355     8        |   427     2056      7     14
+Zero rows: national Documented 55 / Inferred 14; district Documented 281 / Inferred 5.
+Confidence: >=0.9: 529; 0.7-0.89: 1,726; 0.5-0.69: 206; <0.5: 43.
+Tombstones: 69 = 2 before the cycle + A1 14 + A3 15 + A4 1 + A5 29 + A6 4 + A7 4 (26, 2424, 2531, 2532).
+Exact restatements of baseline rows: 7 AI rows (25, 2422, 2520, 2521, 2522, 2526, 2565). All are lower in
+builder priority; kept as provenance or series continuity.
 
-For MOSAIC Modeling:
-1. Use 1998-2023 period for endemic transmission modeling
-2. Apply district-level stratification for recent outbreaks
-3. Incorporate seasonal patterns (rainy season emphasis)
-4. Weight major outbreaks appropriately for calibration
-5. Consider cross-border transmission with Mozambique
+==========================================================================================
+APPENDIX B - AGENT RUN METRICS (./data/MWI/workflow_state.json, checked against each log)
+==========================================================================================
+ Agent  batches  yields (%)                                  rows written  live now  sources  stop
+ A1     12       30,40,55,15,20,10,15,15,25,10,60,25          234           208       75       ceiling
+ A2     12       5,25,60,30,35,10,30,20,15,5,5,15             1,296         1,296     79       ceiling
+ A3     12       20,20,25,15,35,10,20,30,25,55,15,0           341           341       77       ceiling
+ A4     12       20,10,15,5,5,5,30,5,10,10,0,0                122           122       53       ceiling
+ A5     12       50,10,25,10,20,30,50,75,35,20,0,25           146           143       39       ceiling
+ A6     8        0,0,5,0,5,0,0,0                              2             2         15       3 x <5%
+ A7     audit (no batch budget)                              +1, -4                  1        -
+Queries: 1,360 for Agents 1-6. Agent 3 was killed once mid-batch-7 by a network fault and redeployed; its
+committed rows were verified.
 
-For Future Research:
-1. Archive searches for 1974-1989 gap (if access obtained)
-2. Cross-validation with Mozambique historical data
-3. Sub-national surveillance enhancement for small outbreaks
-4. Genomic analysis integration where available
-
-Data Quality: EXCEPTIONAL - Ready for immediate MOSAIC integration
-Confidence Level: HIGH - Comprehensive, validated, modeling-ready dataset
-Workflow Status: COMPLETED - All 7 agents successfully executed
-
-Contact: MOSAIC Framework Cholera Surveillance Enhancement Project
+==========================================================================================
+APPENDIX C - VALIDATION DETAIL
+==========================================================================================
+ Single-day rows:
+   77    Lilongwe, 2 confirmed on 26 Sep 2025 (IFRC GO).
+   288   Blantyre index case of 2018/19, 4 Dec 2018; died.
+   289   Lilongwe, last confirmed case, 29 Oct 2019.
+   648   Mwanza, imported RDT-positive case, 15 Jul 2019.
+ High-CFR rows:
+   1042, 1043, 1526, 1566, 1703  openwashdata district-weeks (re-verified against the sheet).
+   2084  WER 64(27) '1.IV-31.V 64r 16r'.
+   2316  251/13 - 216/6 = 35/7 (WER 48(46)-(47)).
+   2574  JPRS TEP-94-011, 26 cases / 5 deaths (verbatim).
+ INFO: 334 national/sub-national overlaps, all carrying the precedence phrase; 60 metadata entries cited by
+ no row.
+ Zero-row audit: 358 zero rows scanned against every positive row in all three layers, by day and by ISO
+ week. Three were retracted and two trimmed (above).
+ Kept after review:
+   1957  JCISA prints "0 - zero cases reported".
+   1874  Mwanza's 2017 case predates the window.
+   591   UID 3182 "Karonga" values are Mangochi's.
+   135, 1964  WHO puts all June 2024 cases in 3-9 Jun (C4).
+ Inference-based Documented zeros: 48, all checked. The 2018/19 district list names five of "6 districts";
+ Mchinji is the sixth and has no zero row.
+ Source checks performed live (all matched):
+   - openwashdata raw sheet (all 1,083 rows).
+   - WER 49(04) and WER 52(15) via the IRIS DSpace API.
+   - WHO AFRO Southern Africa IDS bulletin, Mar-May 2001 (Wayback).
+   - PHIM IDSR 2026 weeks 14, 15, 37.
+   - IFRC MDRMW017 DU1.
+   - Nyasa Times, 28 Dec 2012.
+   - JPRS TEP-94-011.
+   - ECDC CDTR week 18 2024 and the ECDC monthly overview (Wayback, 28 May 2024).
