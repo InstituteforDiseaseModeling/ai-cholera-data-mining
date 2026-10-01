@@ -3,8 +3,8 @@
   "agents": [
     {
       "agent_num": 1,
-      "completed_at": "2026-10-01T22:47:15.460361+00:00",
-      "batches_completed": 8,
+      "completed_at": "2026-10-01T22:59:31.357645+00:00",
+      "batches_completed": 11,
       "batch_yields": [
         20.0,
         10.0,
@@ -13,18 +13,21 @@
         10.0,
         10.0,
         10.0,
-        5.0
+        5.0,
+        0.0,
+        0.0,
+        0.0
       ],
       "rows_added": 29,
-      "sources_discovered": 50,
-      "stopping_reason": "in progress - batch 8 complete, yield 5%",
+      "sources_discovered": 58,
+      "stopping_reason": "3 consecutive batches below 5% yield (batches 9,10,11)",
       "gaps_filled": [
-        "1979-08 Libreville 5 cases (sub-annual/sub-national detail)",
-        "2025 documented zero report (WER 101(38))",
-        "2026-05-27..2026-09-13 inferred absence"
+        "1979-08-01..1979-08-31 Libreville 5 cases (sub-annual + sub-national resolution of the JHU 1979 annual row)",
+        "2025-01-01..2025-12-31 Documented_Absence (Gabon listed among countries submitting a WHO zero report for 2025, WER 101(38))",
+        "2026-05-27..2026-09-13 Inferred_Absence (WER 101(35) + Africa CDC 2026-09-13)"
       ],
       "gaps_validated_absent": [
-        "1970-1978",
+        "1970-1978 (Inferred, WHO annual tables 1974-1978 + Carme 1983)",
         "1980",
         "1982",
         "1983",
@@ -51,12 +54,16 @@
         "2010",
         "2022",
         "2023",
-        "2025",
+        "2025 (Documented)",
         "2026-01-01..2026-09-13"
       ],
       "gaps_remaining": [
-        "1997 (cholera PRESENT: V. cholerae O1 T7 isolate CNRVC970170; no count; WHO annual table excludes Gabon = reporting failure)",
-        "2026-09-14..2026-10-01 (no source published yet)"
+        "1997-01-01..1997-12-31 - cholera PRESENT not absent: toxigenic V. cholerae O1 sublineage T7 isolate CNRVC970170 from Gabon (CDC EID 2021 App.1 Table 4; ENA ERR976547) while the WHO 1997 annual table excludes Gabon = reporting failure. No count exists; recorded in data/GAB/cholera_presence_ai.csv. Left as a gap deliberately - a zero row here would be a false negative.",
+        "2026-09-14..2026-10-01 (18 days) - no enumerating source published yet: WHO moved the monthly cholera update into the WER from July 2026 and the August/September edition is not out; Africa CDC latest issue is dated 2026-09-13; ECDC latest is 26 Aug 2026; AFRO weekly OEW not published for weeks 36-39.",
+        "1982-2020 absence rows rest on non-notification (Gabon has no WHO GHO entry for those years), not on national zero reports - all are Inferred_Absence at 0.5-0.7 by design.",
+        "JHU baseline flag: WHO classifies Gabon 2015-2020 as Absence of reporting and only 2021 as Zero reporting (metadata 62), so the JHU phantom zeros for 2011-2020 are not documented zeros. JHU is read-only; for Agent 7 and the modellers.",
+        "Disputed claim for 2011: the government attributed three Bitam detention deaths (June 2011) to cholera (US State Dept 2011 report, metadata 67); no lab confirmation, contested in the same source, no WHO notification. Lead for Agent 4/6.",
+        "Conflict for 1981: the WHO provisional annual table gives Gabon 2 cases vs the final GHO/JHU figure of 7 (metadata 65). Lead for Agent 5."
       ]
     }
   ],
@@ -89,7 +96,34 @@
       "No prior workflow_state.json for this cycle: fresh run, no agents to resume.",
       "Coverage 99.3% is driven by 9 AI zero rows; Index 3 (1982-2001, 240 months) and Index 1 (1970-1978, 108 months) are long Inferred/weakly-documented absences. Decision: brief all agents to seek POSITIVE case evidence inside AI-asserted zero periods (esp. WHO WER annual tables) and to strengthen or correct the absence evidence, rather than treat the country as finished.",
       "Index 8 (2025 zero row) has reporting_date 2025-05-14 < TR 2025-12-31 (validator WARN) and its cited source only covers Jan-Aug 2025; flagged for Agent 3/5/7 repair via py/revise_observation.py.",
-      "Shared gap files are runner-owned: agents instructed NOT to run py/analyze_effective_gaps.py; in-memory analyse() snippet supplied instead."
+      "Shared gap files are runner-owned: agents instructed NOT to run py/analyze_effective_gaps.py; in-memory analyse() snippet supplied instead.",
+      "Agent 1 retracted all 8 legacy zero rows (mis-cited) and rebuilt the absence record year-by-year from WHO annual cholera tables (Inferred_Absence 0.5-0.7) plus one Documented_Absence (2025, WER 101(38) zero report). 1997 deliberately left open (toxigenic isolate CNRVC970170 = presence, non-notification). Decision: accept; ask Agent 3 and Agent 6 to adjudicate whether non-notification years that coincide with neighbour epidemics (1991, 1996, 1998-1999, 2004, 2022-2023) merit Inferred_Absence or should be left empty, given 1997 proves non-notification != absence for Gabon."
+    ],
+    "gates": [
+      {
+        "after_agent": 1,
+        "at": "2026-10-01T23:02:26.866932+00:00",
+        "validator": {
+          "ERROR": 0,
+          "WARN": 0,
+          "INFO": 40,
+          "exit": 0
+        },
+        "data_rows": 32,
+        "metadata_sources": 70,
+        "presence_rows": 1,
+        "retracted_rows": 8,
+        "coverage_pct": 97.9,
+        "months_with_data": 668,
+        "gap_periods": 2,
+        "gaps": [
+          "1997-01-01..1997-12-31 (presence confirmed, no count)",
+          "2026-09-01..2026-10-01 (recent; AI covers to 2026-09-13)"
+        ],
+        "verdict": "ACCEPTED",
+        "checks": "batches=11 (>=3 OK); max yield 20% (<=100 OK); stopping_reason is a valid yield-rule reason. Row-count check: state claims rows_added=29 but indices 10-40 = 31 new rows were committed (8 legacy rows retracted, Index 9 relabelled; net 9->32). Under-claim, not an over-claim; true figure recorded here: rows_added_actual=31.",
+        "rows_added_actual": 31
+      }
     ]
   }
 }
