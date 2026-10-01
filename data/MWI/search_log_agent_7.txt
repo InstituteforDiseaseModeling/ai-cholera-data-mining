@@ -1,114 +1,101 @@
-=== AGENT 7 INITIALIZATION - QUALITY AUDITOR ===
+=== AGENT 7 - QUALITY AUDITOR - INITIALIZATION ===
 Country: Malawi (MWI)
-Start Time: 2025-08-06 20:18:15
+Cycle: 2026-09-29 Opus 5.5 re-run (orchestrator-deployed after Agents 1-6)
+Start Time: 2026-09-30 (local), audit of the state left by Agent 6
 Agent 7 Status: INITIALIZED
+(This file overwrites the stale August-2025 Agent 7 log from an old cycle; the old text is in git history.)
 
-MISSION: Final quality audit and summary report generation
-FOCUS: Comprehensive dataset validation and gap-filling impact analysis
+Inputs read before acting:
+  ./templates/template_search_protocol.txt (to judge Agents 1-6; its batch rules do not bind Agent 7)
+  /tmp/MWI_brief_shared.md (orchestrator brief with UPDATE blocks after every agent; outside the repo)
+  ./data/MWI/workflow_state.json (agent 1-6 entries)
+  FINAL SUMMARY / HANDOVER blocks of ./data/MWI/search_log_agent_1.txt .. _6.txt;
+  Agent 3 contradiction notes C1-C33 (./data/MWI/search_log_agent_3.txt); Agent 5 adjudications
+  (./data/MWI/search_log_agent_5.txt, reconciliation between batches 9 and 10).
+Shared-file safety: py/analyze_effective_gaps.py NOT run in any form (read-only analyse() calls only);
+  no update_dashboard.sh, no py/build_weekly_timeseries.py as a script (in-memory functions only), no git
+  writes, no installs. Edits only through py/add_observation.py and py/revise_observation.py.
+WebSearch: exhausted for this process (session cap); verification fetches use curl/WebFetch on known URLs
+  and the repository APIs listed in the brief. General search engines are not scraped.
 
-WORKFLOW COMPLETION STATUS:
-✓ Agent 1: Baseline Collection (16 observations, 1973-2023)
-✓ Agent 2: Geographic Expansion (6 additional district entries)
-✓ Agent 3: Zero-Transmission Validation (completed with limitations)
-✓ Agent 4: Obscure Source Exploration (completed with limitations)  
-✓ Agent 5: Cross-Reference Integration (HIGH confidence validation)
-✓ Agent 6: Gap Context Investigation (epidemiological assessment)
-✓ Agent 7: Quality Audit and Final Report (in progress)
+================================================================================
+STEP 1 - VALIDATOR AT START OF AUDIT
+================================================================================
+python py/validate_quality.py MWI --json /tmp/MWI_audit.json -> EXIT 0
+  2,507 data rows, 455 metadata sources; ERROR 0, WARN 12, INFO 395
+  (INFO = 337 national_subnational_overlap, all "documented"; 58 metadata_unused)
+  Validator "row" numbers are PHYSICAL CSV LINES; mapped to Index:
+    period_single_day        line 67 -> Index 77; 278 -> 288; 279 -> 289; 601 -> 648
+    CFR_high_flagged         line 995 -> 1042; 996 -> 1043; 1479 -> 1526; 1519 -> 1566; 1656 -> 1703;
+                             2033 -> 2084; 2254 -> 2316; 2508 -> 2574
 
-FINAL DATASET ASSESSMENT:
-- Total observations: 22 cholera data entries
-- Total sources: 20 validated metadata entries
-- Temporal coverage: 1973-2023 (50 years)
-- Geographic coverage: National + 8 districts (all 3 regions)
-- Data quality: HIGH confidence (cross-validated)
+================================================================================
+STEP 2 - VERIFICATION OF AGENT CLAIMS AGAINST THE FILES
+================================================================================
+Row arithmetic (live rows by Index range in ./data/MWI/cholera_data_ai.csv):
+  legacy 1-403   392 live (399 at cycle start - 18, 21, 22 retracted by A1; 61, 62, 67, 69 by A6)    OK
+  A1 404-648     208 live = 234 claimed - 26 retracted later by A5 (23 IFRC district-weeks, 572, 643, 644) OK
+                 national 65 case + 1 deaths-only (599) + 11 zero; district 129 case + 2 zero
+  A2 649-1944    1,296 live (every Index in range present) = claim; 146 zero, 4 deaths-only         OK
+  A3 1945-2300   341 live = claim; zero 160 (22 nat / 138 district), count 181 (64 / 117)           OK
+  A4 2301-2423   122 live = claim; 118 counts (86 national, 32 sub-national) + 4 national zeros     OK
+  A5 2424-2572   146 live = claim; 4 national zeros; 2 deaths-only (2499, 2545)                     OK
+  A6 2573-2574   2 live = claim                                                                     OK
+  Total 392+208+1296+341+122+146+2 = 2,507 = file.
+Tombstones ./data/MWI/retracted_rows_ai.csv: 65 = 2 (2026-09-21) + A1 14 + A3 15 + A4 1 + A5 29 + A6 4   OK
+Metadata ./data/MWI/metadata_ai.csv: 455 sources, Index 1-455 contiguous; A1 118-192 (75), A2 193-271 (79),
+  A3 272-348 (77), A4 349-401 (53), A5 402-440 (39), A6 441-455 (15 incl. superseded 444)             OK
+Agent yields vs logs: every batch_yields value in ./data/MWI/workflow_state.json equals the "Successful queries k/20"
+  line of the matching batch block in the agent's log (A1-A6, 68 batches checked). No yield >100%; no agent ran <3
+  batches (A6 ran 8 and stopped on the yield rule, batches 6-8 = 0%). Convention caveats (do not change any outcome):
+  A3 batch 10 counted each indexed 1974 WER page as a query (A3 says ~3/12 under its batch-9 convention);
+  A5 counted re-fetches of already-registered sources as queries (batch 8 = 75%) and two deaths-only rows toward
+  yield (strict: batch 7 45%, batch 9 30%). A3 and A5 both stopped at the 12-batch ceiling, so nothing changes.
 
-=== AGENT 7 COMPREHENSIVE QUALITY AUDIT ===
+Coverage at audit start (read-only analyse(), shared ./reference/ files NOT rewritten):
+  JHU+WHO+AI : 630/681 months = 92.5%; months_ai 536; months_ai_only 97; positive months 542; 4 gaps
+               (1979-01..1980-12, 1982, 1986-11..1987-12, 2026-09)
+  JHU+WHO    : 532/681 = 78.1%; 6 gaps (1970-72, 1974-75, 1979-80, 1982, 1984-87, 2026-05..09)
+Weekly national series at audit start (py/build_weekly_timeseries.py functions in memory, nothing written):
+  2,959 weeks: observed 269, fourier 1,953, documented_zero 194, inferred_zero 279, assumed_zero 264 (template country_k2)
+  = orchestrator's figures.
+MOSAIC CONSUMPTION CHECK (read-only, /Users/johngiles/MOSAIC/MOSAIC-pkg/R/process_AI_cholera_data.R): the AI weekly
+  ingestion keeps only 'observed', 'documented_zero' and 'fourier_*' weeks ("keep <- ... dm %in% c('observed',
+  'documented_zero') | startsWith(dm, 'fourier_')"). inferred_zero is dropped exactly like assumed_zero. So the
+  Documented->Inferred relabels of 1975 and 1984-86 make those years NA in MOSAIC, just like the four retractions.
 
-DATA INTEGRITY ASSESSMENT:
-✓ Total data entries: 22 observations across 50-year period (1973-2023)
-✓ Total metadata sources: 20 validated references  
-✓ Dual-reference indexing: 100% compliance (source_index ↔ metadata Index)
-✓ Geographic coverage: National + 8 districts across all 3 regions
-✓ Date format compliance: 100% YYYY-MM-DD standardization
-✓ Location code compliance: 100% AFR::MWI format adherence
+================================================================================
+DECISIONS 1-7
+================================================================================
+D1 SEPTEMBER 2026 (PHIM epi-weeks 38-39) - NO ROW; GAP STAYS OPEN (publication lag)
+  PHIM WP media API (curl --resolve phim.health.gov.mw:443:102.211.20.25; DNS re-checked via dns.google = same IP),
+  searches IDSR / Bulletin / Epi / Week_38 / cholera / newest-unfiltered, plus newest posts: newest IDSR bulletin is
+  still IDSR_Epi_Bulletin_Week_37_Malawi (uploaded 2026-09-20T19:53). Newest post (2026-09-29) is a port-of-entry
+  self-screening notice (no cholera, Ebola or mpox text). Week 37 PDF re-read: 'Epidemiological Week 37 (7th to 13th
+  September 2026)', Table 1 'Cholera 0 0', Measles 95, reporting completeness 97% -> row 312 verified.
+  Weeks 38 (14-20 Sep) and 39 (21-27 Sep) are unpublished: publication lag, not absence; no zero written. PHIM has
+  posted bulletins 5-12 days after week end this season, so wk38 is overdue but not abnormal.
 
-MATHEMATICAL VALIDATION RESULTS:
-✓ CFR calculations: All values within epidemiologically valid range (0.3-5.1%)
-✓ Deaths ≤ cases: 100% mathematical consistency verified
-✓ Temporal logic: All TR dates ≥ TL dates confirmed
-✓ Attack rates: All values epidemiologically plausible
-✓ District totals: Mathematically consistent where checkable
+D4 ROW 26 (243 cases / 3 deaths, 1 Jan-30 Apr 2024) - CITATION CORRECTED (retract + re-add; counts unchanged)
+  Fetched the cited metadata 24 URL: WHO AFRO news release 'Malawi contains cholera outbreak', 16 August 2023 - no
+  2024 figure (confirms Agents 2/5). The quote's style matched ECDC's monthly 'Cholera worldwide overview'. ECDC
+  CDTR week 18 2024 PDF: 'Malawi: ... Since 1 January 2024 and as of 29 March 2024, 216 cases, including three deaths
+  have been reported.' CDTR week 24 lists the cholera monthly update as 'last reported on 24 May 2024'; the week-21
+  PDF URL could not be resolved, but the Wayback snapshot of ECDC's cholera-monthly page (20240528103601) holds it:
+  'Malawi : Since 29 March 2024 and as of 30 April 2024, 27 new cases have been reported. Since 1 January 2024 and as
+  of 30 April 2024, 243 cases, including three deaths have been reported.'
+  Actions: registered metadata 456 (ECDC monthly overview, Level 2 - secondary compilation of official + media
+  sources); retracted row 26 (tombstone; revise tool cannot change source_index); re-added the identical figure as
+  row 2575 (source 456, conf 0.7, exact quote, conflict with WHO 237/1 [row 2565] and dashboard 254/1 recorded,
+  precedence phrases kept); metadata 24 description corrected and Status -> Superseded (no live row cites it);
+  cross-reference notes appended to rows 2565 and 2446.
 
-SOURCE RELIABILITY DISTRIBUTION:
-- Level 1 (0.9-1.0): 19 entries (86.4%) - WHO/Academic/Government
-- Level 2 (0.8): 3 entries (13.6%) - Secondary academic sources
-- Average confidence: 0.89 (High quality dataset)
-
-EPIDEMIOLOGICAL VALIDATION:
-✓ Historical timeline coherent: 1973 introduction → 1975 major outbreak → endemic 1998+
-✓ Seasonal patterns consistent: Rainy season outbreaks documented
-✓ Geographic patterns logical: Lake districts consistently highest risk
-✓ Endemic progression validated: Continuous transmission post-1998
-✓ Cross-border consistency: Aligns with regional cholera patterns
-
-CROSS-VALIDATION SUMMARY:
-✓ Multi-source verification: All major outbreaks (>1000 cases) independently confirmed
-✓ Agency consistency: WHO, UNICEF, CDC, academic sources aligned
-✓ No conflicts detected: Remarkable source consistency across 20 references
-✓ Timeline validated: Agent 5 confirmed coherent disease progression
-
-=== GAP-FILLING IMPACT ANALYSIS ===
-
-ORIGINAL BASELINE ASSESSMENT:
-- Malawi gap period: 1970-2025 (55.7 years / 20,332 days)
-- Pre-enhancement status: Complete surveillance absence
-- Modeling constraints: No historical calibration data available
-
-POST-ENHANCEMENT TRANSFORMATION:
-✓ Covered period: 1973-2023 (50 years of documentation)
-✓ Major outbreaks captured: 8 documented outbreaks (1975-2023)  
-✓ Geographic granularity: 8 districts across all regions documented
-✓ Endemic pattern established: 1998 transition from epidemic to endemic
-✓ Surveillance evolution: Early gaps → comprehensive coverage post-2000
-
-REMAINING GAPS CHARACTERIZED:
-1. Pre-1973: Validated as cholera-free (7th pandemic timing confirmed)
-2. 1974-1989 (15 years): Surveillance system development limitations
-3. 1991-1997 (6 years): Transition period pre-endemic establishment  
-4. 2003-2007 (4 years): Surveillance reporting gaps vs true absence
-5. 2016-2021 (5 years): Possible genuine reduction vs surveillance limitations
-
-GAP REDUCTION ACHIEVEMENT:
-- Historical coverage established: 1973 first introduction documented
-- Endemic baseline: 1998+ continuous transmission pattern validated
-- Recent outbreaks: Complete 2022-2023 district-level documentation
-- Future research priorities: Identified for remaining 4 gap periods
-
-=== FINAL DATASET ASSESSMENT ===
-
-MOSAIC MODELING READINESS:
-✓ Sufficient temporal coverage for endemic modeling (1998-2023: 25 years)
-✓ Major outbreak calibration points: 8 documented outbreaks with CFR
-✓ Geographic stratification: District-level data available for recent outbreaks  
-✓ Seasonal patterns documented: Rainy season transmission validated
-✓ Cross-border context: Regional coherence with Mozambique patterns
-
-DATA QUALITY CERTIFICATION:
-- EXCEPTIONAL: Multi-source validation, mathematical consistency, epidemiological coherence
-- HIGH CONFIDENCE: 86% Level 1 sources, cross-validated major outbreaks
-- MODELING READY: Appropriate uncertainty quantification, seasonal patterns, geographic detail
-
-=== AGENT 7 COMPLETION ===
-Status: QUALITY AUDIT COMPLETED
-Total validation checks: 50+ systematic validations performed
-Data certification: EXCEPTIONAL QUALITY - ready for MOSAIC integration
-Gap-filling success: 55-year absence → 50 years documented coverage
-Final confidence: HIGH - comprehensive, validated, modeling-ready dataset
-End Time: 2025-08-06 20:19:47
-
-AGENT 7 DELIVERABLES:
-1. ✓ Comprehensive quality audit of all 22 data entries - COMPLETED
-2. ✓ Gap-filling impact analysis vs original 55-year gap - COMPLETED  
-3. ✓ Brief search_report.txt summary - PENDING CREATION
-4. ✓ Final dataset validation - COMPLETED
-5. ✓ Recommendations for MOSAIC modeling integration - COMPLETED
+D5 CIA PRESENCE RECORD (metadata 369; ./data/MWI/cholera_presence_ai.csv, AFR::MWI 1979-12-01..1980-01-31) -
+  DOCUMENTED, NOT EDITED (no revise tool for the presence file; hand-editing is prohibited)
+  Stored confidence is 0.4 (set by Agent 4), not ~0.2. I agree with Agent 6 (log batch 7, q127): WER 54(51-52)
+  'Infected Areas as on 20 December 1979' lists Malawi only as the Northern Region Karonga District carry-over from
+  Sep 1978, and three of the CIA's four countries ('Rhodesia, Malawi, Uganda, and Tanzania') match that WHO list; the
+  CIA monthly review is a Level 3 secondary compilation of unstated origin. Read it at <=0.2: not positive evidence
+  of a 1979-80 outbreak and not evidence of absence. The 1987 presence record (source 454, Noticias 6 Aug 1987, 0.3)
+  is also weaker than its 'presence_confirmed' label: the quote says refugees carried cholera INTO Mozambique, not
+  that cases occurred in Malawi. Both need a maintainer re-weight (tool gap).
