@@ -20,3 +20,121 @@ Repair tool: python py/repair_data_integrity.py --dry-run CIV --log /tmp/CIV_rep
 
 === STEP 2: WORKFLOW STATE AND AGENT LOGS (read in full) ===
 Read ./data/CIV/workflow_state.json and ./data/CIV/search_log_agent_1.txt .. _6.txt.
+Agent productivity cross-check (log vs workflow_state.json vs file):
+  Agent 1: 12 batches, yields 70,60,35,40,15,20,5,55,25,25,15,25; +603 rows (Index 147-749), +126 sources (72-197). Stop: cap.
+           First deployment cut off mid-batch 2 (laptop slept on battery, network lost ~12:04); redeployed, resumed at
+           batch 2 q9 (orchestrator note in the log). Consistent.
+  Agent 2: 12 batches, yields 15,10,10,15,10,5,0,0,25,0,25,10; +64 rows (750-813), +30 sources (198-227). Stop: cap.
+           Batch 12 killed after q11 by HTTP 529 API-overload errors, resumed q12-q20 by a second deployment; the session
+           WebSearch budget (200 calls) ran out at batch 12 q16. Consistent.
+  Agent 3: 7 batches, yields 5,15,30,15,0,0,0; +395 rows (814-1208: 394 zero rows of which 386 district/provincial, 1
+           count row), 3 retractions (52, 53, 484), +18 sources (228-245; 230-231 Superseded). Stop: saturation. Consistent.
+  Agent 4: 12 batches, yields 5,10,10,0,0,10,0,10,0,10,5,0; +32 rows written (1209-1240) of which 2 (1228-1229) were later
+           replaced by 1231-1232 -> 30 live; 9 retractions; +28 sources. workflow_state says rows_added=30 (live count). OK.
+  Agent 5: 12 batches, yields 25,40,15,10,0,0,5,0,10,5,15,5; +537 rows (1241-1777, incl. 3 re-pointed relays 1252-1254);
+           6 retractions; +21 sources (274-294). Stop: cap. Consistent. Note: batch 2 alone wrote 377 rows from 8 queries
+           (digitised thesis tables/figures) - yield counts queries, not rows, so this is legitimate.
+  Agent 6: 6 batches, yields 0,5,5,0,0,0; +2 rows (1778, 1779), 8 retractions, +7 sources (295-301). Stop: saturation. OK.
+  No agent ran fewer than 3 batches; no yield above 100%; claimed rows match the file (1753 rows, max Index 1779, 26 tombstones).
+
+=== STEP 3: INTEGRITY CHECKS BEYOND THE VALIDATOR (pandas; /tmp/civ_a7/integrity.py) ===
+  metadata Index 1..301 sequential, no holes/duplicates, no duplicate Source names or URLs. Superseded: 70, 230, 231 - no
+    live row cites any of them.
+  dual reference: every source_index exists; every `source` equals metadata Source exactly.
+  dates: all YYYY-MM-DD; TL<=TR<=reporting_date for all 1753 rows; nothing after 2026-10-01; no blank reporting_date.
+  counts: no negatives/non-integers; deaths<=sCh, cCh<=sCh everywhere; no count-less row.
+  CFR: 1 row typed rather than computed - Index 3 stores 2.5 for 51/2012 = 2.53 (validator tolerance 0.6 hides it). FIX.
+  confidence ceilings (validator does NOT check these): 3 legacy rows exceed their source tier -
+    Index 8 (Africanews, Level 3, ceiling 0.6) at 0.7; Index 9 (UNICEF press release, Level 2, ceiling 0.9) at 0.95;
+    Index 10 (IFRC, Level 2, ceiling 0.9) at 0.95. FIX to the ceilings. 1102 rows sit below their tier floor =
+    documented deliberate downgrades (permitted: the band is a ceiling).
+  tombstones: 26, every one with a reason; no tombstone Index reused by a live row; no duplicate tombstone.
+  presence file: 75 records, every source_index valid, names match, dates valid.
+
+=== STEP 4: LOCATIONS ===
+  All 155 distinct locations (data + presence) sit under a valid ADM1 of reference/country_profiles.json. Index 7 is now
+  AFR::CIV::Comoe::Adiake (Agent 2 relocation confirmed).
+  Abidjan nomenclature verified against primary tables (cached /tmp/civ_a1/b2/ann0708.txt Annuaire 2007-2008 Tableau 52/58;
+  Akoun 2014 Tableau I quoted in row 1266):
+    - 2001-2006: Abidjan-Centre/Est/Nord/Ouest/Sud (old districts; SNSE, Annuaire 2001-2006) - real units.
+    - 2007-2011: separate districts Adjame-Plateau, Attecoube*, Koumassi, Marcory* (new 2008), Port-Bouet-Vridi,
+      Treichville, Cocody-Bingerville, Abobo-Est/Ouest*, Anyama*, Yopougon-Est*/Ouest (* = created 2008). Akoun's 2011
+      list has Koumassi, Port Bouet, Marcory, Treichville, Attecoube, Adjame Plateau as SEPARATE districts.
+    - 2012-~2019: merged Koumassi-Port-Bouet-Vridi (KPBV), Adjame-Plateau-Attecoube (APA), Marcory-Treichville (RASS
+      2012/2013/2015/2017).
+    - 2025: Port-Bouet-Vridi and Yopougon-Est again separate (INHP Vigile) - KPBV was split.
+  So KPBV vs Port-Bouet-Vridi vs Koumassi, and Adjame vs Adjame-Plateau vs Adjame-Plateau-Attecoube vs Attecoube, are
+  REAL administrative changes, not spelling variants - not harmonised. Same-unit inconsistencies found and FIXED:
+    (a) Index 116: 'AFR::CIV::Abidjan::Bingerville' 2007 = the Annuaire's COCODY-BINGERVILLE row (pdftotext split the
+        name across two lines; the table has no separate Bingerville district) -> Cocody-Bingerville.
+    (b) Index 83, 1446, 1488, 1502: 'Port-Bouet' = commune of Port-Bouet, whose footprint is the Port-Bouet-Vridi health
+        district (Gnahou 2011: the PBV district = 'quartiers de la commune PORT BOUET') -> Port-Bouet-Vridi, so the
+        Port-Bouet series 1983-2025 is continuous. (Presence record 'Abidjan::Port-Bouet' 2001 cannot be edited by any
+        tool - left, noted.)
+    (c) Index 664: OCHA count for 'Koumassi' alone (May-Jun 2011) filed under KPBV, a district that did not exist until
+        2012 -> AFR::CIV::Abidjan::Koumassi (joins Akoun's 2011 Koumassi district series).
+  Left as documented conventions (not same-unit errors): Agent 5 files Cocody commune/CHU de Cocody rows under
+  Cocody-Bingerville and Marcory under Marcory-Treichville::Marcory ('Location = health district of the hospital' -
+  documented in rows 1760/1776); Kouame 2016 pooled 2011-12 quartiers under 2012 district names. Reported, not changed.
+
+=== STEP 5: DOUBLE COUNTING ===
+  Validator: every national/sub-national overlap group is INFO (documented). Stricter re-check (primacy phrase required
+  OUTSIDE the quoted source text): 0 national rows and 0 sub-national rows lacking one (2 apparent misses, rows 6 and 7,
+  were regex artefacts: both carry Agent 1's 'do not sum' note).
+  Facility rows 1760 (CHU de Cocody 2000, 52) and 1761 (CHU de Treichville Jan-Jul 2001, 271): notes say 'facility
+  subset' and 'do not sum' with named rows but not explicitly 'never add to Abidjan totals' -> explicit label appended.
+  Row 1779 (national 2021 12/0/0, WER 97(37)): note says 'SAME FIGURE AS THE JHU BASELINE ... do not sum' -> explicit
+  'CORROBORATING, NON-ADDITIVE' label appended.
+
+=== STEP 6: BUILDER-FACING INTEGRITY (py/build_weekly_timeseries.py functions imported and run IN MEMORY for CIV only;
+    no file written; /tmp/civ_a7/sim.py) ===
+  Template: country_k1 (9 valid years) - nearly flat, peaks in March (weights 0.75-1.25 x 1/52), NOT the May-Jul season.
+  Simulated national annual totals vs best national figure (abridged; full table in the report appendix):
+    1970 868 JHU - but 699 of them fall before 19 Oct 1970 (cholera arrived 20 Oct 1970): JHU annual Fourier outranks the
+         AI documented absence row 815 (Jan-Aug 1970). BASELINE/BUILDER DEFECT.
+    1973 0 (52 assumed_zero weeks; no row in any layer)        1983 112 (4 weeks) + 48 assumed_zero weeks; IPCI 155
+    1977 43 with Aug and Dec assumed_zero; 1978 2 with Dec assumed_zero
+    1997 113 = AI 86 + 27.1 cases of JHU 1996 keyed into 1997-W01 (Mon 30 Dec 1996 = ISO 1997-W01). ISO-year spill.
+    2006 436 (WHO 414): JHU UID 902 '2006-01-01..08-28 321/2' (= Zouan-Hounien Feb 2006 focus) spread over 8 months.
+    2012 1772 (WHO 424, INHP 431, RASS 589): JHU UID 901 '2012-01-01..03-15 1321/34' puts 1341 cases in Q1 2012; true Q1
+         2012 = 64-69 (WHO AFRO). BASELINE DEFECT, the largest in the series.
+    2015 131 vs national 199-200: JHU weekly covers >=50% of weeks so the annual is skipped.
+    2017 29 (weekly 24, RASS 31): JHU 'UNICEF Country Programme Report (UID 5108)' rows mix 52 weekly counts with 23
+         cumulative-from-2-January snapshots and other overlapping windows (2016 sum 112 vs 16 weekly; 2017 468 vs 24;
+         2018 151 vs 10). The builder's 50%-coverage rule skips most, but 7-day snapshots starting on a Sunday enter as
+         'weekly' and win on the max rule (+5 in 2017).
+    2025 586 vs 556: WHO's reporting-date batches W23 45, W26 55, W27 9, W29 280, W33 114 with explicit 0 in W24-25,
+         W28 and W30-32 outrank the INHP onset curve (W28 89, W30 75 by onset become 0); AI onset weeks S21-S22 (45) are
+         added on top of WHO's W23 report of the same cases (+30 double count at the seam).
+  Nested national AI windows in AI-only periods (1972-90, 1997-2000, 2025-08-18+, 2026): NO remaining inflation from
+  nesting - per-week maxima reproduce the best annual figure in every year checked (1972 105, 1977 43, 1984 147 = Tortiya
+  145 + IPCI 2, 1985 9, 1986 18, 1988 67, 1989 79, 1990 12, 1999 19). Remaining distortions are ISO-year spills of
+  annual rows into W01 of the next year (1976 +0.1, 1980 +0.1, 1987 +0.35, 1997 +27.1 JHU, 1998 +1.8) and the 2025 seam.
+  IPCI register rows 1762-1773 (sCh=cCh): every note states 'MINIMUM national count' - lower bound confirmed.
+
+=== STEP 7: 2026 TAIL (re-checked 2026-10-01 ~10:45 PDT; nothing found that covers 21-30 Sep 2026) ===
+  WHO dashboard ArcGIS cholera_adm0_week: dataLastEditDate 2026-09-28 08:21 UTC; max date_wk 2026-09-14 (WHO 2026 W37 =
+    14-20 Sep); CIV latest record 2025-08-11 (W33, 114 cases, cum 503). WHO numbering confirmed: 2025 W53 = 2025-12-29
+    (= ISO 2026-W01) and 2026 W1 = 2026-01-05 (= ISO 2026-W02), i.e. WHO 2026 week N = ISO week N+1 (the known week-shift).
+    CIV has no 2026 WHO row, so the shift does not touch CIV's baseline; row 814's TR was set from date_wk (correct).
+  Africa CDC: September page still one file (24-Sep-2026 issue, data to 13 Sep); October page HTTP 404.
+  WHO IRIS: newest WER = 101(38) (25 Sep 2026); newest AFRO Weekly Bulletin on Outbreaks = Week 36 (31 Aug-6 Sep 2026).
+  bsp.inspci.org WP REST media: newest uploads = Supplement CSP-CI 5 (1 Oct 2026, congress abstracts, + cover jpg);
+    no BSP-CI 4.3, no Le Vigile after N931 (W27 2026).
+  Google News RSS fr (cholera "Cote d'Ivoire" 14d; cholera Abidjan 30d) and en (30d): no Ivorian cholera item.
+  -> Rows 129 (documented zero 1 Jan-5 Jul, 0.95), 42 (inferred 27 Apr-26 Jul, 0.6; sole cover 6-26 Jul) and 814
+     (inferred 27 Jul-20 Sep, 0.5) unchanged; 21-30 Sep 2026 left OPEN.
+
+=== STEP 8: REPAIRS APPLIED (all via python py/revise_observation.py CIV --agent 7; each writes a backup) ===
+  Confidence ceilings: Index 8 0.7->0.6 (Level 3; CFR context added), 9 0.95->0.9, 10 0.95->0.9 (Level 2).
+  CFR recomputed: Index 3 2.5 -> 2.53.
+  Locations: 116 Bingerville -> Cocody-Bingerville; 83, 1446, 1488, 1502 Port-Bouet -> Port-Bouet-Vridi; 664 KPBV -> Koumassi.
+  Labels: 1760, 1761 'SINGLE-HOSPITAL FACILITY COUNT - NOT ADDITIVE'; 1779 'CORROBORATING, NON-ADDITIVE'.
+  1983: note on 1443 (builder renders 48 weeks assumed_zero; annual-155 option tested and rejected; treat as missing).
+  Q4 2000: cross-reference note on 1465 (CHU de Cocody 52 > the unit's 35).
+  2007 district zeros (RASS 2007-2009 completeness passage): 0.7 -> 0.5 on 1017, 1019, 1020, 1021, 1022, 1024, 1025,
+    1026, 1027, 1046, 1047, 1048 (regions Lagunes 1-2, Marahoue, Sud-Comoe <80%); 0.7 -> 0.3 on 1018 Grand-Lahou (50%)
+    and 1023 Koumassi (41.67%). Lower-bound notes on positive 2007 counts 118 (Adjame-Plateau 3.61%) and 119
+    (Yopougon-Ouest 33.33%); 116 note carries Cocody-Bingerville 44.67%.
+  Agent 6 open item DECIDED: 1032 Duekoue, 1033 Guiglo, 1034 Toulepleu kept full-year 2007 at 0.7 (government zone ran
+    the SIG; Moyen-Cavally not among the <80% regions); decision note on each.
