@@ -3,3 +3,64 @@ Country: South Sudan (SSD)
 Start: 2026-10-01 12:18:38
 Status: INITIALIZED
 
+=== AGENT 1 PRE-SEARCH STATE (2026-10-01, cycle 2026-09-29 Opus 5.5 re-run) ===
+Read: ./CLAUDE.md, ./templates/template_search_protocol.txt, ./data/SSD/workflow_orchestrator_SSD.txt (D1-D10),
+      ./data/SSD/search_log_agent_1_legacy_2026-05-15.txt, ./data/SSD/search_log_recent_update_2026-06-18.txt
+Starting files: ./data/SSD/cholera_data_ai.csv 52 rows (Index 1-52); ./data/SSD/metadata_ai.csv 22 sources (Index 1-22)
+Validator (py/validate_quality.py SSD) at start: ERROR 0 | WARN 21 | INFO 18, exit 0
+Read-only analyse('SSD',...,date.today()=2026-10-01): effective gaps 2005-02-01..2006-01-31 (365d, modern),
+      2026-06-01..2026-10-01 (123d, recent); coverage 97.5% (665/682), months_ai_only 471; latest obs 2026-05-24.
+      py/analyze_effective_gaps.py NOT run (orchestrator D3: shared reference files).
+Targets (orchestrator brief): T1 recent gap 2026-05-25..2026-09-30 | T2 2005-02..2006-01 | T3 hidden gap 1970-01..2005-01
+      behind AI 18 (treated as unfilled, D4) | T4 sub-annual national resolution 2006 Apr-Dec, 2007-2010, 2014-2015 |
+      T5 verify AI 2/3/4 (2007-2009 totals) and the 2024 total conflict (AI 16 vs JHU 387 vs WHO weekly).
+Baseline notes: WHO weekly national 2023-02-20..2026-05-24 (102 rows; 2026 sum 6,516 cases/72 deaths; 2024 in-year sum
+      15,749/314 (rows fully inside 2024)); JHU national: 2006-01-28..03-03/03-20 cumulative, 2011-2013 zeros (WHO annual
+      report UID 620), 2014 6,421/167 and 2015 1,818/47 annual, 2016-17 and 2022 weekly, 2024 annual 20,132/360 (+ partial
+      2024 rows 8,571/11,561/5,453/14,670), 2010-05-09..15 Northern Bahr el Ghazal (Aweil/Malual) 10+12 cases, 2 deaths.
+Tooling: pdftotext available (homebrew) for WHO PDFs; WebSearch + WebFetch loaded; curl fallback if WebSearch exhausts.
+
+=== BATCH 1 | PHASE 1 (broad discovery - WHO/official + humanitarian, recent gap first) | SSD ===
+Gap targeted : 2026-05-25..2026-09-30 (recent gap; effective gap row 2026-06-01..2026-10-01, 123d, recent)
+Queries      : 20
+  1 WebSearch "multi-country outbreak of cholera" epidemiological update 38 2026 South Sudan -> WHO update 38 PDF (ROW)
+  2 WebSearch South Sudan cholera situation report July 2026 cases deaths -> ECDC monthly overview (YTD 12,411/119 as of 20 Jul)
+  3 WebSearch South Sudan cholera outbreak August 2026 -> nothing new (UN News SC Aug 2026, CARE, MSF generic)
+  4 WebSearch "Multi-country outbreak of cholera" epidemiological update 39/40/41 2026 -> only #34-36 found
+  5 Wayback CDX ecdc cholera-monthly 2026 captures -> ECDC SSD series inconsistent (455 YTD as of 23 Mar 2026)
+  6 curl probe cdn.who.int ..._epidemiological_update_{39,40,41}.pdf for every date Jul-Sep 2026 -> all 404
+  7 WebFetch who.int/emergencies/situation-reports -> only #34 listed
+  8 curl probe who.int/publications/m/item/...epidemiological-update--{39..42}--DD-month-2026 -> none
+  9 WebSearch WHO cholera epidemiological update "June 2026" South Sudan Unity -> update 38 only
+ 10 WebSearch South Sudan MoH cholera outbreak situation report No. 70 2026 -> nothing direct
+ 11 WebSearch WHO AFRO weekly regional cholera bulletin 2026 South Sudan -> AFRO OEW bulletins (PDFs on iris.who.int: connection refused/timeouts from this host)
+ 12 WebSearch Africa CDC weekly epidemic intelligence report 2026 cholera South Sudan -> ECDC CDTR wk26, WHO news 29-09-2026 (WER 2025 annual cholera report published)
+ 13 fetch afro.who.int OEW listing -> weeks 30-36 2026 pages; IRIS bitstreams unreachable (lead for Agent 4: WHO AFRO OEW weeks 22-39 2026 via another route)
+ 14 curl ECDC CDTR weekly PDFs wk22-39 2026 -> wk35 restates 12,411/119; no other SSD cholera numbers
+ 15 ReliefWeb API v2 POST (cholera, SSD, since 2026-05-20) -> AccessDenied (appname not approved)
+ 16 ReliefWeb RSS search=cholera, country PC8657 -> WHO Weekly Situation Update W38 etc. (ROW)
+ 17 ReliefWeb RSS search="Ongoing Health Emergency Events South Sudan" -> WHO weekly updates W19,W20,W22-W30,W32-W38 2026 (ROWS)
+ 18 ReliefWeb RSS search="South Sudan cholera situation report" -> MoH Cholera Sitreps No. 65-78 (Feb-2 Jun 2026)
+ 19 ReliefWeb RSS searches for MoH sitrep No. 79/80/82, "cholera situation report August 2026", "health cluster bulletin 2026" -> no sitrep >78 on ReliefWeb; Health Cluster Bulletins Apr-Jul 2026
+ 20 ReliefWeb RSS search="South Sudan Humanitarian Snapshot 2026" -> OCHA snapshots Jan-Aug 2026 (YTD cholera series)
+Sources found: 13    Registered: index 23,24,25,26,27,28,29,30,31,32
+Rows added   : 5    Indices: 53,54,55,56,57
+  53 AFR::SSD 2026-05-04..05-31  1,579/14  (WHO update 38, May = epi wks 19-22)
+  54 AFR::SSD 2026-05-25..06-21  2,639/12  (WHO SSD weekly W25, last-4-weeks; ISO wks 22-25)
+  55 AFR::SSD 2026-06-22..07-19  2,440/16  (WHO SSD weekly W29, wks 26-29)
+  56 AFR::SSD 2026-07-20..08-16  1,626/4   (WHO SSD weekly W33, wks 30-33; template-header caveat, conf 0.8)
+  57 AFR::SSD 2026-08-17..09-16    586/4   (WHO SSD weekly W38, explicitly stated window 17 Aug-16 Sep)
+Extraction decision (logged for Agent 5): the WHO SSD weekly updates give two kinds of numbers - weekly "new cases · 7 days"
+  flash counts (W22 122 ... W38 24; sum W22-W38 excl. W21/W31 ~3,270) and line-list "cases · last 4 weeks" totals. Cumulative
+  growth 1 Jun->20 Sep (104,813 -> 112,542 = 7,729) shows the flash counts miss the Rubkona backlog/harmonisation; the 4-week
+  totals reconcile (chain 54-57 sum 7,291/36 vs cumulative growth W21->W38 ~7,619/~42). Chose ONE contiguous non-overlapping
+  chain of 4-week blocks (W25, W29, W33, W38 reports); flash counts recorded in notes only, because AI weekly rows would make the
+  weekly builder skip the 4-week aggregates (same-source >=50% weekly coverage rule). Alternative chain (W26 2,767/15; W30
+  2,060/12; W34 1,455/1; W38 586/4) and OCHA monthly YTD increments (May 1,630/12; Jun 3,005/28; Jul 2,684/21; Aug 1,713/1)
+  logged as corroboration, not added (would create competing overlapping national rows).
+Outbreak status: ACTIVE, declining (W38: 24 new, 0 deaths, 4 counties; cum 112,542/1,727). NO end-of-outbreak declaration ->
+  no Documented_Absence row. Message for Agent 3: do not zero any part of 2026-05..09; transmission continuous in Unity/Renk.
+Successful queries: 3/20 (Q1, Q16, Q17)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches; yield >= 5%)
