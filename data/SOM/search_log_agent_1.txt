@@ -35,3 +35,274 @@ JHU check (./data/SOM/cholera_data_jhu.csv, EMR::SOM, read-only) before any seri
 IRIS probe at start: iris.who.int TCP connect still times out (URLError 60). Retry later.
 ================================================================================
 
+QUERY-COUNTING CONVENTION FOR THIS RUN: one query = one search, or one fetch+read of
+one distinct document. The Africa CDC EIR sweep below therefore counts each of the 35
+weekly issues read (productive or not) as one query, in latest-to-earliest order.
+This uses budget honestly (35 slots) and makes batch 2 single-family (category 1);
+category mixing resumes in batch 3.
+
+=== BATCH 1 | PHASE 1 (broad discovery) | SOM ===
+Gap targeted : T1 1991-01-01..1993-12-31 (1096d, historical) [Q1-Q10]
+               T3 2026-09-01..2026-09-30 (30d, recent) + 2026 weekly series [Q11-Q20]
+Categories   : 1 WHO/official, 2 Academic, 3 Humanitarian, 4 Regional, 5 Historical, 6 Technical
+Queries      : 20
+ Q1  WebSearch  MMWR 1992 "Somalia" population-based mortality assessment Baidoa Afgoi diarrhea cholera displaced
+ Q2  WebSearch  Operation Restore Hope Somalia 1993 diarrheal disease surveillance "Vibrio cholerae" troops stool isolates
+ Q3  WebFetch   cdc.gov/mmwr/preview/mmwrhtml/00018099.htm (curl 403; WebFetch OK)
+ Q4  EuropePMC  (Somalia) AND (cholera OR Vibrio) AND PUB_YEAR:[1990 TO 1998] -> 5 hits
+ Q5  EuropePMC  abstracts PMID 9185422 (AMREF 1994-96), 9805490 (WER 1998), 8028168 (JAMA 1994), 8096276 (Lancet 1993)
+ Q6  WebSearch  "cholera" Somalia 1993 outbreak Bossaso OR Kismayo OR Berbera OR Hargeisa cases deaths UNICEF OR ICRC OR UNOSOM
+ Q7  Fetch      refworld.org IRB "Chronology of Events: June 1994 - April 1995" (curl 403, WebFetch 403; Wayback "temporarily offline")
+ Q8  WebSearch  "cholera" "Baidoa" 1995 "138" cases eight deaths February Mogadishu "150 people"
+ Q9  EuropePMC  PMID 19121605 (Cholera in Ethiopia in the 1990s) + Djibouti 1993-2000 + Somali refugee cholera 1988-97
+ Q10 EuropePMC  Djibouti 1993-94 epidemic papers (PMID 10078376, 7746133, 8907768; PMC2486693 full text not served)
+ Q11 curl probe ECDC CDTR 2026 weeks 36-40 PDFs (38, 39 exist; 36, 37, 40 404)
+ Q12 WebFetch   ecdc.europa.eu cholera-monthly (worldwide overview)
+ Q13 WebSearch  Africa CDC weekly epidemic intelligence report September 2026 cholera Somalia new cases
+ Q14 Fetch+OCR  Africa CDC EIR Sep-2026 page -> issue of 13 Sep 2026 (image-only PDF; macOS Vision OCR)
+ Q15 Fetch      Africa CDC EIR monthly download pages Jan-Aug 2026 (34 more issues enumerated)
+ Q16 Fetch+OCR  EIR issue 30 Aug 2026 (epi-wk 35)
+ Q17 Fetch+OCR  EIR issue 23 Aug 2026 (epi-wk 34)
+ Q18 Fetch+OCR  EIR issue 16 Aug 2026 (epi-wk 33)
+ Q19 Fetch+OCR  EIR issue 9 Aug 2026 (epi-wk 32; file ...Report-20Aug26.pdf)
+ Q20 Fetch+OCR  EIR issue 2 Aug 2026 (epi-wk 31)
+FINDINGS
+ * T1 (1991-93), institutional angles NOT tried by the previous cycle:
+   - CDC MMWR 41(49) 1992 Baidoa/Afgoi survey (Nov-Dec 1992): causes of death diarrhoea
+     (Baidoa 56%) and measles; "Deaths peaked in early September during concurrent
+     epidemics of measles and multidrug-resistant Shigella dysenteriae". The 1992
+     Baidoa diarrhoeal epidemic was SHIGELLA, not cholera. No cholera mentioned.
+   - Sharp et al. AJTMH 1995 (US troops, Restore Hope 1992-93): 113 stool specimens,
+     Shigella 33%, ETEC 16%, Giardia 4%, rotavirus 1%; no V. cholerae reported.
+   - Boss/Toole/Yip JAMA 1994: 23 population surveys 1991-early 1993 compiled from the
+     "Center for Public Health Surveillance for Somalia", UNICEF and NGOs; none reports
+     cholera in its abstract. Moore et al. Lancet 1993 (Baidoa/Afgoi): measles and
+     diarrhoea, no cholera.
+   - Scrascia et al. IJMM 2009 (PMID 19121605): "In 1993, after 6 years of absence,
+     cholera re-emerged in the Horn of Africa. Following its introduction to Djibouti,
+     the disease spread to the central and southern areas of Ethiopia reaching Somalia
+     in 1994." -> regional chronology places Somalia's re-introduction in 1994; it is
+     NOT a positive absence statement backed by Somali surveillance, so no zero row.
+   - Djibouti (non-MOSAIC, searched only): Bioforce-run epidemics 1993 and 1994
+     (Bull Soc Pathol Exot 1998); no Somali counts in abstracts.
+   - Refworld IRB chronology (Jun 1994-Apr 1995) reportedly records a Mogadishu cholera
+     outbreak 22 Feb 1995 (~150 deaths in 3 weeks) and ~138 cases / 8 deaths in Baidoa in
+     February 1995 - but refworld.org returns 403 to curl and WebFetch and the Internet
+     Archive was offline, so the text could not be verified. NOT committed. Lead for
+     Agent 4 / Agent 2 (1995 sub-national).
+   => T1 REMAINS EMPTY (no count, no surveillance-backed absence).
+ * T3 / 2026: ECDC has published no cholera monthly since 28 Aug (CDTR wk 38/39 list it
+   as "last reported on 28 August 2026"). The cholera-monthly page still shows the
+   26 Aug update (= AI Index 28/29).
+ * BREAKTHROUGH: Africa CDC's weekly Epidemic Intelligence Reports (35 issues, 8 Jan -
+   13 Sep 2026) carry a Somalia cholera paragraph or footnote in most issues, with
+   MoH-reported new cases for stated epi-weeks and the 2026 cumulative. The PDFs are
+   image-only (DHIS2 renders; pdftotext returns nothing). OCR tool built for this run:
+   /tmp/SOM_orch/a1_ocr/ocr (Swift + Vision, compiled against MacOSX26.5.sdk because the
+   default 27.0 SDK mismatches swiftc 6.3.3). Usage: pdftoppm -r 150 -png f.pdf p; ocr p-*.png
+   All 35 OCR texts: /tmp/SOM_orch/a1_eirs/*.ocr.txt
+   The cumulative chain closes exactly: WHO wk1-3 (82+78+73=233) +90 =323 +79 =402 +153
+   =555 +86 =641 +68 =709 ... 1,023 (wk14) +62 +85 =1,170 +36 =1,206 +900 =2,106 +62
+   =2,168 +343 =2,511 +146 =2,657 +42 =2,699 +79 =2,778 (wk36).
+   "In epidemiological week N, a backlog of X cases" = week-N cases reported late: the
+   wk-3 backlog of 73 equals the WHO dashboard's independent 12-18 Jan count exactly.
+ * ECDC's "489 new cases since 12 July and as of 9 August" (AI Index 29) = Africa CDC wks
+   27-30 (343) + wks 31-32 (146): its epi period is 29 Jun-9 Aug, not 12 Jul-9 Aug
+   (reporting-window artefact; for Agent 5).
+ * WHO dashboard labels 2025-12-29..2026-01-04 as 2025 "epiwk 53"; Africa CDC/MoH call it
+   2026 week 1 (ISO). Same 82 cases, so no duplicate row was added for week 1.
+Sources found : 16   Registered: index 55 (13 Sep), 54 (30 Aug), 53 (9 Aug), 52 (2 Aug)
+                [42-51 registered in the same writer call; used in batch 2]
+Rows added    : 6    Indices: 42 (YTD 1 Jan-6 Sep 2,778/55 conf/1 death), 58 (wks 35-36: 79),
+                57 (wks 33-34: 42), 56 (wks 31-32: 146), 55 (wks 27-30: 343, 1 death)
+                [row Index 42 and 58 from Q14; 57 Q16; 56 Q19; 55 Q20]
+Successful queries: 4/20 (Q14, Q16, Q19, Q20)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (below 3-batch floor)
+
+=== BATCH 2 | PHASE 1 (systematic institutional sweep, Africa CDC EIR 2026) | SOM ===
+Gap targeted : T3 2026 national weekly series (and T3 recency gap)
+Categories   : 1 WHO/official (Africa CDC) only - single-family sweep, see convention note
+Queries      : 20 (each = fetch + OCR + read of one EIR issue)
+ Q1  EIR 26 Jul 2026 (wk 30)  - Somalia (2,168; 0) stale, no new statement
+ Q2  EIR 19 Jul 2026 (wk 29)  - stale 2,168
+ Q3  EIR 12 Jul 2026 (wk 28)  - stale 2,168
+ Q4  EIR 5 Jul 2026 (wk 27)   - wk 26: 62 new (8 conf) -> row 54
+ Q5  EIR 28 Jun 2026 (wk 26)  - wks 19-25: 900 new (10 conf) -> row 53
+ Q6  EIR 21 Jun 2026 (wk 25)  - stale 1,206
+ Q7  EIR 14 Jun 2026 (wk 24)  - stale 1,206
+ Q8  EIR 7 Jun 2026 (wk 23)   - stale 1,206
+ Q9  EIR 31 May 2026 (wk 22)  - stale 1,206
+ Q10 EIR 24 May 2026 (wk 21)  - stale 1,206
+ Q11 EIR 17 May 2026 (wk 20)  - stale 1,206
+ Q12 EIR 10 May 2026 (wk 19)  - wk 18: 36 new -> row 52
+ Q13 EIR 3 May 2026 (wk 18)   - wks 16-17: 85 new (1 conf) -> row 51; DERIVED wk 15 = 62 -> row 50
+ Q14 EIR 19 Apr 2026 (wk 16)  - stale summary 935
+ Q15 EIR 12 Apr 2026 (wk 15)  - wk 14: 54 new; cumulative 1,023 -> rows 49, 43
+                                (same issue's summary says 935: re-OCR'd at 200 dpi, both
+                                 readings confirmed; 1,023 used, discrepancy in notes)
+ Q16 EIR 9 Apr 2026 (wk 13)   - stale 709
+ Q17 EIR 30 Mar 2026 (wk 12)  - stale 709
+ Q18 EIR 26 Mar 2026 (wk 11)  - stale 709 (only issue with a text layer)
+ Q19 EIR 23 Mar 2026 (wk 10)  - wk-9 backlog 68 -> row 48
+ Q20 EIR 13 Mar 2026 (wk 9)   - wk-8 backlog 86 -> row 47
+Sources registered: 51 (5 Jul), 50 (28 Jun), 49 (10 May), 48 (3 May), 47 (12 Apr),
+                    46 (23 Mar), 45 (13 Mar)
+Rows added   : 9    Indices: 54, 53, 52, 51, 50 (derived, conf 0.5), 49, 43, 48, 47
+               (9 rows; row 43 = YTD 1 Jan-5 Apr 1,023, the only stated value for wks 10-13)
+Successful queries: 7/20 (Q4, Q5, Q12, Q13, Q15, Q19, Q20)
+Yield        : 35%
+Consecutive sub-5% batches: 0
+TRAP logged: EIR 5 Jul 2026, MEASLES Somalia paragraph reads "10, 108 cases ... of cholera"
+             (typo in source) - measles, not cholera. EIR 15 Jan 2026 footnote "backlog of
+             1,209 cases and 40 deaths ... Somalia" (wks 32-52 of 2025) is DIPHTHERIA.
+Weekly-builder check (read-only preview + /tmp simulation, nothing written):
+  2026 preview total 3,275 vs stated 2,778. Simulation: dropping my YTD row 42 -> 3,243;
+  dropping the legacy overlapping rows 25,28,29,31,35 -> 3,076; dropping those AND 42 ->
+  2,873. The over-count comes mainly from the legacy YTD rows (D2, Agent 5).
+Decision     : CONTINUE (below 3-batch floor)
+
+=== BATCH 3 | PHASE 2 (targeted gap filling) | SOM ===
+Gap targeted : T3 2026 weekly series (end of EIR sweep) [Q1-Q9]
+               T2 2006-09-01..2006-10-31 (61d, modern) [Q10-Q20]
+Categories   : 1 WHO/official (Africa CDC, WHO HAC), 3 Humanitarian (FSAU/FAO, ReliefWeb), 4 Regional (HoA multi-country)
+Queries      : 20
+ Q1  EIR 5 Mar 2026 (wk 8)    - footnote "**Between epidemiological week 5-7, a backlog of 153 cases ..." -> row 46
+ Q2  EIR 25 Feb 2026 (wk 7)   - footnote "*In epidemiological week 6, a backlog of 79 cases ..." -> row 45
+ Q3  EIR 18 Feb 2026 (wk 6)   - stale 323
+ Q4  EIR 10 Feb 2026 (wk 5)   - stale 323
+ Q5  EIR 4 Feb 2026 (wk 4)    - 90 new (2 conf), cumulative 323 -> row 44 (placed in ISO wk 4; see notes)
+ Q6  EIR 28 Jan 2026 (wk 3)   - Somalia (82; 0) only
+ Q7  EIR 17 Jan 2026 (wk 2)   - no Somalia cholera entry
+ Q8  EIR 15 Jan 2026 (wk 1)   - wk 1 = 82 (4 conf) = WHO baseline row for 29 Dec-4 Jan -> duplicate, not added
+ Q9  EIR 8 Jan 2026 (wk 52 of 2025) - 2025 backlog only (WHO baseline covers 2025)
+ Q10 ReliefWeb  listing (PC216)_(DO20060901-20061130) "nutrition update" -> FSAU MNU Sep/Oct/Nov 2006, Somaliland bulletin
+ Q11 PDF        FSAU Monthly Nutrition Update Sep 2006 (fsau-som-29sep.pdf)
+ Q12 PDF        FSAU Monthly Nutrition Update Oct 2006 (fsau-som-31oct.pdf)
+ Q13 PDF        FSAU Monthly Nutrition Update Nov 2006 (Full_Report.pdf)
+ Q14 ReliefWeb  (C216)_(DO20060801-20061231) "Horn of Africa Health Review" (country tag, not primary country)
+ Q15 ReliefWeb  (C216)_(DO20060801-20061231) "Health Action in Crises" highlights + lookups for Nos 125-127, 133
+ Q16 WHO HAC Highlights No 121 (14-20 Aug 2006)
+ Q17 WHO HAC Highlights No 122 (21-27 Aug 2006)
+ Q18 WHO HAC Highlights No 123 (28 Aug-2 Sep 2006)
+ Q19 WHO HAC Highlights No 124 (4-10 Sep 2006)
+ Q20 WHO HAC Highlights No 127 (25 Sep-1 Oct 2006)
+FINDINGS
+ * T2: FSAU Sep/Oct/Nov 2006 updates carry only survey diarrhoea PREVALENCE (e.g. 14.1%
+   two-week diarrhoea prevalence in Sool Plateau; Nov: "A notable increase in diarrhoeal
+   diseases has being reported at health centre level" after the Deyr floods) - no AWD/
+   cholera outbreak counts, no cholera mention. Not cholera; not rows.
+ * The previous cycle's ReliefWeb harvests used PC216 (Somalia as PRIMARY country), which
+   excludes multi-country bulletins. Searched them with C216 (country tag): WHO HAC weekly
+   Highlights Nos 119-139 (Aug-Dec 2006) are tagged Somalia. Nos 121-124, 127 read here:
+   Somalia items are polio campaigns, drought, supply workshops - no AWD/cholera.
+Sources registered: none new (Africa CDC 42-44 registered in batch 1's writer call)
+Rows added   : 3    Indices: 44, 45, 46
+Successful queries: 3/20 (Q1, Q2, Q5)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch floor met; yield 15% >= 5%)
+
+=== BATCH 4 | PHASE 2 (targeted gap filling) | SOM ===
+Gap targeted : T2 2006-09..10 (end of WHO HAC sweep) [Q1-Q7]
+               T4 national sub-annual 2017 (Jan-May weekly with deaths) [Q8-Q20]
+Categories   : 1 WHO/official (WHO HAC, FMOH/WHO EMRO sitreps), 4 Regional (HoA bulletins), 6 Technical (lab confirmation in sitreps)
+Queries      : 20
+ Q1  WHO HAC Highlights No 128 (2-9 Oct 2006)   - Somalia: Dadaab refugee flows only
+ Q2  WHO HAC Highlights No 129 (9-15 Oct 2006)  - Somalia: CERF outreach/surveillance plans only
+ Q3  WHO HAC Highlights No 130 (16-22 Oct 2006) - Somalia: "political tensions and armed violence"
+ Q4  WHO HAC Highlights No 131 (23-29 Oct 2006) - Somalia: polio outbreak, refugees
+ Q5  WHO HAC Highlights No 132 (30 Oct-5 Nov 2006) - Shabelle floods "killed at least 12"
+ Q6  WHO HAC Highlights No 133 (6-12 Nov 2006)  - floods "drowned 47"
+ Q7  WHO HAC Highlights No 134 (13-19 Nov 2006) - floods, Hiran 50 000 displaced; no AWD count
+ Q8  curl probe emro.who.int/images/stories/somalia/documents/cholera_sitrep_somalia_week_N_2017.pdf, N=1-30
+                -> 17 exist (6,7,9,10,13,14,15,17-26); 1-5, 8, 11, 12, 16, 27-30 redirect (302)
+ Q9  FMOH sitrep wk 6 2017  -> wk 5 (913/10) and wk 6 (854/9): rows 60, 61
+ Q10 FMOH sitrep wk 7 2017  -> 1,502/79: row 62
+ Q11 FMOH sitrep wk 9 2017  -> wk 8 table (1,352/38) and wk 9 (1,839/48): rows 63, 64
+ Q12 FMOH sitrep wk 10 2017 -> 3,126/71: row 65
+ Q13 FMOH sitrep wk 13 2017 -> wk 12 (3,390/70), wk 13 (3,292/67), DERIVED wk 11 (2,915/53): rows 66, 67, 77
+ Q14 FMOH sitrep wk 14 2017 -> 3,128/32: row 68
+ Q15 FMOH sitrep wk 15 2017 -> 2,984/34: row 69
+ Q16 FMOH sitrep wk 17 2017 -> wk 16 (3,356/60), wk 17 (3,475/43): rows 70, 71
+ Q17 FMOH sitrep wk 18 2017 -> 2,691/22: row 72
+ Q18 FMOH sitrep wk 19 2017 -> 2,472/10: row 73
+ Q19 FMOH sitrep wk 20 2017 -> 2,319/22: row 74
+ Q20 FMOH sitrep wk 21 2017 -> 2,679/23: row 75
+FINDINGS
+ * T2 CLOSED AS FAR AS PUBLIC SOURCES GO: WHO's own weekly HAC Highlights for every week
+   from 14 Aug to 19 Nov 2006 mention Somalia repeatedly (floods, polio, refugees,
+   conflict) and NEVER an AWD/cholera outbreak before the Deyr floods. With FSAU dating
+   onset to "the last week of October 2006 and the first week of November 2006" in
+   Eastern Sanaag (AI Index 34), the evidence is that no outbreak was RECOGNISED in
+   Sep-Oct 2006. That is not a positive absence statement, so NO zero row; for Agent 3.
+ * T4 2017: the FMOH "Situation Report For Acute Watery Diarrhea/cholera" weekly PDFs
+   give national weekly cases AND deaths. JHU UID 20382 already has weekly CASES from 30
+   Jan 2017 (within ~1% of these) but NO deaths before 5 June, so deaths are new
+   information; JHU UID 20375 (UNICEF) has weeks 23+ with deaths, so weeks 23-26 were NOT
+   transcribed. The chain is consistent (e.g. 28,408 wk15 + 3,356 + 3,475 = 35,239 wk17;
+   +2,691 = 37,930 wk18; +2,472 = 40,402; +2,319 = 42,721; +2,679 = 45,400; +3,207 = 48,607).
+ * D2 CONFIRMED FROM PRIMARY TEXT: the wk-21 report gives "45,400 cumulative cases since
+   week 1" = AI Index 10's figure (a cumulative, not a 3-week window); the wk-15 report
+   gives 28,408 / 558 cumulative = AI Index 11 (same).
+Sources registered: 56 (wk6), 57 (wk7), 58 (wk9), 59 (wk10), 60 (wk13), 61 (wk14), 62 (wk15),
+                    63 (wk17), 64 (wk18), 65 (wk19), 66 (wk20), 67 (wk21), 68 (wk22)
+Rows added   : 17   Indices: 60-75, 77 (77 = derived wk 11, conf 0.5)
+Successful queries: 12/20 (Q9-Q20)
+Yield        : 60%
+Consecutive sub-5% batches: 0
+Validator    : exit 0; WARN 25 (+19 national_subnational_overlap groups: each new 2017
+               national weekly row overlaps AFR::SOM::Bay Index 15, whose note lacks the
+               double-counting phrase. My rows carry "National total - includes provinces not
+               individually listed ... do not sum"; the groups turn INFO when Agent 2 adds the
+               phrase to Index 15, which the brief assigns to Agent 2.)
+Weekly preview 2017 (read-only /tmp simulation): 144,985 -> 88,964 (stated ~75,400-78,700).
+               What remains is Index 3 / Index 8 Fourier slices in weeks 1-4 and 23-52
+               (D1/D2: JHU's UNICEF weekly series for weeks 23-49 never reaches the builder).
+Decision     : CONTINUE
+
+=== BATCH 5 | PHASE 2 (targeted gap filling, T4 resolution) | SOM ===
+Gap targeted : T4 national sub-annual 2017 (end of FMOH weekly set) and 2020 (monthly)
+Categories   : 1 WHO/official (FMOH/WHO EMRO), 2 Academic-grade grey literature (EMCSR series), 6 Technical
+Queries      : 20
+ Q1  FMOH sitrep wk 22 2017                -> 3,207/25: row 76
+ Q2  curl emro.who.int "cholera-situation-in-somalia-february-2017.html" (metadata 5; WebFetch 502, curl OK)
+                                           -> January 2017 = 3,113/47 (weeks 1-4): row 59
+ Q3  FMOH sitrep wk 23 2017 - 2,429/19 = JHU UID 20375 row 100 exactly -> not added
+ Q4  FMOH sitrep wk 24 2017 - 1,979/13 = JHU row 101 -> not added
+ Q5  FMOH sitrep wk 25 2017 - 1,371/22 = JHU row 102 -> not added
+ Q6  FMOH sitrep wk 26 2017 - 1,121/3  = JHU row 103 -> not added
+ Q7  WebSearch emro.who.int Somalia cholera situation report 2021 weekly infographic AWD cholera cases deaths epidemiological week
+ Q8  curl enumeration applications.emro.who.int/docs/WHOEMCSR{380..520}E-eng.pdf (135 docs; 11 Somalia cholera monthlies)
+ Q9  curl enumeration WHOEMCSR{240..379, 521..700} (269 docs; 11 more Somalia cholera monthlies; no Jan 2020, no Dec 2021, no 2022)
+ Q10 WHO-EM/CSR/295 Cholera situation in Somalia Feb 2020 -> 1,011/5: row 78
+ Q11 WHO-EM/CSR/297 Mar 2020 -> 864/1: row 79
+ Q12 WHO-EM/CSR/299 Apr 2020 -> 451/3: row 80
+ Q13 WHO-EM/CSR/301 May 2020 -> 805/7: row 81
+ Q14 WHO-EM/CSR/303 Jun 2020 -> 909/4: row 82
+ Q15 WHO-EM/CSR/305 Jul 2020 -> 447/3: row 83
+ Q16 WHO-EM/CSR/307 Aug 2020 -> 322/1: row 84
+ Q17 WHO-EM/CSR/309 Sep 2020 -> 264/1: row 85
+ Q18 WHO-EM/CSR/311 Oct 2020 -> 212/0: row 86
+ Q19 WHO-EM/CSR/313 Nov 2020 -> 238/2: row 87
+ Q20 WHO-EM/CSR/315 Dec 2020 -> 247/0: row 88
+FINDINGS
+ * D2/Index 7 MIS-SCOPE (for Agent 5): the EMRO February 2017 page says "from 3113 cases and
+   47 deaths in January to 4621 cases and 138 deaths in February". 4,621 is FEBRUARY alone
+   (FMOH weeks 5-8: 913+854+1,502+1,352 = 4,621), so AI Index 7 (2017-01-01..02-28) should be
+   2017-01-30..2017-02-26 (or Feb), not a Jan-Feb cumulative.
+ * The WHO EMRO CSR document series (WHO-EM/CSR/nnn/E) carries a monthly "Cholera situation in
+   Somalia" report for Feb 2020 - Nov 2021 (22 issues): monthly national suspected cholera
+   cases/deaths plus the outbreak cumulative since Dec 2017. Cumulatives chain within a few
+   cases (e.g. 11,491 Feb 2020 + 864 = 12,355 Mar; ... 20,644 Sep 2021 + 118 = 20,762 Oct).
+   Dec 2017-Nov 2021 cumulative 20,875 agrees with JHU 2018-2021 annuals (6,761+3,100+6,414+
+   4,342 = 20,617 + Dec 2017) - which in turn CONFLICTS with AI Index 2 (2021 = 6,205/39, WHO
+   DON 2022): EMCSR Jan-Nov 2021 sums to 4,568/35. CONFLICT - see Agent 5.
+Sources registered: 56-68 (batch 4), 69-79 (EMCSR 2020 monthlies, this batch)
+Rows added   : 13   Indices: 76, 59, 78-88
+Successful queries: 13/20 (Q1, Q2, Q10-Q20)
+Yield        : 65%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+
