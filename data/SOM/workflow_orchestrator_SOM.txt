@@ -289,3 +289,49 @@ Log the stopping reason as one of exactly:
   "STOP - 12-batch maximum reached"
 Agent 7 has no batch limit.
 ================================================================================
+
+S1. ORCHESTRATOR ADDENDUM AFTER AGENT 4 (2026-10-01) - OVERRIDES ANYTHING ABOVE THAT CONFLICTS
+--------------------------------------------------------------------------------
+* Progress: Agents 1-4 COMPLETE (each "STOP - 12-batch maximum reached"; Agent 3 also
+  strictly saturated). Rows 40 -> 2 179 (Index max 2219), sources 41 -> 408, presence
+  1 -> 72, tombstones 39. Validator exit 0, ERROR 0, WARN 28 (25 CFR >15% with
+  source-reported deaths, 3 single-day periods), INFO 215.
+* NEW READ-ONLY TOOL - the national arithmetic dashboard:
+      python3 /tmp/SOM_orch/som_year_check.py 1970 2026
+  Per year: the weekly-builder preview total (what the model sees), the JHU annual
+  national row(s) (invisible to the builder, D1), the AI full-year row(s), the WHO weekly
+  sum, preview/reference ratio, and weeks by method (observed/fourier/documented_zero/
+  inferred_zero/assumed_zero). Snapshot after Agent 4: /tmp/SOM_orch/year_check_after_A4.txt
+* D1 IS WORSE THAN FIRST STATED. Because the builder cannot read EMR::SOM, every year
+  that has JHU data but no AI NATIONAL row is rendered as 52 weeks of assumed_zero
+  (sCh = 0) in the national weekly series - i.e. the model is told there was no cholera:
+      2011 (JHU 77 636)  2007 (41 643)  2003 (11 020)  2015 (7 536)  2013 (6 864; preview 416)
+      2004 (4 490)  2010 (3 510)  2014 (2 820)  2008 (1 281)  2009 (208)
+  Sub-national rows do NOT feed the national series (template fallback only).
+  REVISED RULE for these years: NATIONAL rows from primary sources are now
+  high-value. Prefer sub-annual national series (weekly / monthly / epidemic-period
+  totals as printed by WHO EMRO, the Health Cluster, OCHA, UNICEF, WER). Where a primary
+  source gives only an annual national figure, it MAY be entered as an AI row, quoting
+  the primary source verbatim, stating the JHU value it corroborates or conflicts with,
+  and noting "entered because py/build_weekly_timeseries.py cannot read the EMR::SOM JHU
+  rows (defect D1); JHU outranks AI once D1 is fixed, so no double counting". Never
+  copy a number from the JHU file itself.
+* Over-counted years in the preview (overlapping AI rows of one series; D2 class):
+  1998 x2.30 (10 153 vs JHU 4 417 / WHO Horn profile 14 800 - also a source conflict),
+  2021 x1.53 (6 649 vs Index 2 6 205 vs monthly 4 568 Jan-Nov vs JHU 4 342),
+  1997 x1.31, 2017 x1.18 (88 964 vs ~78 700), 2012 x1.13 (AI 26 000 vs JHU 22 576),
+  2020 x1.12, 1986 x1.12, 2026 (3 275 vs stated 2 778 to 6 Sep).
+  Under-counted: 1985 x0.63, 2001 x0.68, 1999 x0.70, 2000 x0.79, 2019 x0.79.
+* Builder mechanics the agents established (for planning rows, not for gaming them):
+  a row of <= 7 days is assigned whole to the ISO week of its TL; a longer row is
+  Fourier-spread over weeks whose Monday is >= TL, and is DROPPED ENTIRELY if >= 50% of
+  its weeks already hold <= 7-day rows of the same layer; per week the higher layer
+  wins (WHO > JHU > AI), then method (observed > documented_zero > fourier >
+  inferred_zero), then the larger sCh. Overlapping cumulative rows of one series
+  therefore inflate a year (max-of-slices), and an annual row next to many weekly rows
+  vanishes.
+* New baseline defects for the report (JHU is read-only - document, never edit):
+  D5 JHU UID 21477 rows dated Jan-Mar 2023 are OCHA Flash Update No. 2 of 24 Mar 2024,
+     misdated by one year (Agent 2).
+  D6 JHU UID 20382 has ten false national zeros 2017-09-25..2017-12-03 inside the 2017
+     epidemic (Agent 3).
