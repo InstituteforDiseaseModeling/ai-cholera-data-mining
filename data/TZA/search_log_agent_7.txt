@@ -1,0 +1,119 @@
+=== AGENT 7 INITIALIZATION ===
+Country: Tanzania (TZA)
+Start Time: 2026-10-01 13:09:10
+Agent 7 Status: INITIALIZED (cholera-quality-auditor, 2026-09-29 Opus 5.5 re-run cycle)
+
+=== AUDIT PASS 1: VALIDATOR + MECHANICAL REPAIR (2026-10-01 13:09) ===
+Command: python py/validate_quality.py TZA --json /tmp/TZA_audit.json  -> exit 0
+Result: 1507 data rows, 555 metadata sources. ERROR 0 | WARN 52 | INFO 262.
+  WARN classes: 47 CFR_high_flagged_for_review, 2 multiyear_aggregate (AI 36, AI 189),
+                2 period_single_day (AI 366 Zanzibar 2002-03-11; AI 1533 national 2022-04-03),
+                1 same_period_conflict (AI 302 vs AI 138, Zanzibar Dec 1997).
+  Note: validator 'row' = physical CSV line (header = line 1), not the Index column. Mapped to Index.
+Command: python py/repair_data_integrity.py --dry-run TZA --log /tmp/TZA_repair_dryrun.json -> 0 changes.
+  No ./data/TZA/attribution_review.csv produced (no unverifiable citations detected mechanically).
+  --apply NOT run (nothing to apply).
+
+=== AUDIT PASS 2: PRESENCE-FILE PLAGUE ROWS + SUPERSEDED-CITATION SWEEP (2026-10-01 13:11) ===
+Action: removed 2 rows from ./data/TZA/cholera_presence_ai.csv (371 -> 369 rows).
+Backup (pre-edit, byte copy): ./data/TZA/.backup_cholera_presence_ai_20261001-131105739291.csv
+Method: short Python script under the tool's own lock file (./data/TZA/.cholera_presence_ai.csv.lock),
+  csv.DictWriter(lineterminator='\n') - round-trip of the unedited file verified byte-identical first;
+  diff backup vs new = exactly lines 3-4 deleted, nothing else changed.
+Reason: metadata 51 (WER 1988 63(44):337-338) was set Superseded by Agent 4 (D11): the Tanzania entry
+  'Tanga Region: Lushoto District, Tanga District' sits in the PLAGUE - PESTE column of 'Infected Areas as
+  on 27 October 1988'; the page's 'Cholera outbreak' article is about Xinjiang, China. Lushoto (West
+  Usambara) is a known plague focus. These rows assert cholera presence that the source does not support.
+TOMBSTONE (verbatim removed records; presence file has no tombstone file of its own):
+  {"Location": "AFR::TZA::Tanga::Lushoto", "TL": "1988-01-01", "TR": "1988-12-31", "evidence": "presence_confirmed_count_unknown", "source_index": "51", "source": "WHO Weekly Epidemiological Record - Cholera outbreak / infected areas (WER 1988, 63, No. 44, pp. 337-338)", "confidence_weight": "0.85", "processing_notes": "Source states: 'TANZANIA, UNITED REP. OF / TANZANIE, REP.-UNIE DE - Tanga Region: Lushoto District, Tanga District (WER list of infected areas, 1988)' - cholera confirmed present; no case count available.", "source_database": "AI", "moved_from_row": ""}
+  {"Location": "AFR::TZA::Tanga::Tanga", "TL": "1988-01-01", "TR": "1988-12-31", "evidence": "presence_confirmed_count_unknown", "source_index": "51", "source": "WHO Weekly Epidemiological Record - Cholera outbreak / infected areas (WER 1988, 63, No. 44, pp. 337-338)", "confidence_weight": "0.85", "processing_notes": "Source states: 'TANZANIA, UNITED REP. OF / TANZANIE, REP.-UNIE DE - Tanga Region: Lushoto District, Tanga District (WER list of infected areas, 1988)' - cholera confirmed present; no case count available.", "source_database": "AI", "moved_from_row": ""}
+Superseded metadata entries: 51, 92, 93, 94, 95, 230, 356, 541.
+Sweep result: 0 live rows in ./data/TZA/cholera_data_ai.csv and 0 rows in ./data/TZA/cholera_presence_ai.csv
+  cite any Superseded entry (after the removal). Data source-label mismatches 0; presence label mismatches 0;
+  presence rows with unregistered source_index 0.
+Other Lushoto presence rows (WER 1979 54(13), 1981 56(44), 1982 57(5)/(15)/(28)) carry Agent 4's explicit
+  '(cholera list)' annotation; one (1982 57(15)) notes Lushoto also appears separately under plague. Queued
+  for a page-image spot-check in Pass 5.
+
+=== AUDIT PASS 3: INDEPENDENT CROSS-LAYER CHECKS (AI + JHU + WHO) (2026-10-01 13:20) ===
+Script: /tmp/tza_crosslayer.py (read-only; output /tmp/TZA_crosslayer.json). Location nesting normalises the JHU
+'AFR::TZA::Mainland::<Region>' wrapper and maps the five Zanzibar ADM1 regions (Zanzibar North / South and Central /
+Urban West, Pemba North / South) under AFR::TZA::Zanzibar, so zero rows are tested against every nested positive.
+
+A. Zero/positive overlaps (108 AI zero rows vs every positive row in all three layers, same or nested location):
+   HARD (positive period wholly inside a zero window): 1
+     AI 11 (Zanzibar zero 2017-07-25..2023-11-03) vs JHU 762 (Zanzibar::Unguja::Urban West 2017-09-28..12-10, deaths 1,
+     cases BLANK, WHO AFRO UID 20883). Baseline defect class 'deaths with blank cases' (JHU 752/761-763 same UID).
+     WHO AFRO bulletins hold Zanzibar's 2017 cumulative frozen from 11/12 Jul 2017 (JHU 1850 = 0). Zero stands; note queued.
+   SOFT (>50% of the positive period inside the zero): 12 - all adjudicated in existing notes or explained:
+     AI 26 vs AI 1515/JHU 269 (1977 annual; cases Oct-Dec 1977 after TR 1977-10-01) and JHU 268 (1974; Kyela episode dated
+     23 May-13 Jun 1974 = AI 1084/1085); AI 117 vs JHU 1053-1055/1624 (TL 2015-01-01 = year-to-date convention; Zanzibar
+     2015 outbreak began after Jul 2015); AI 500 vs AI 705 (Mtwara first cases 13 Mar 2016, AI 1094); AI 859 vs AI 858
+     (Temeke cases reported Sat 30 Jul 2016, after TR - Agent 3 Z7 note); AI 908 vs JHU 752 (Arusha 1 death, blank cases,
+     UID 20883 - same baseline defect; note queued); AI 1093 vs AI 32/JHU 310 (2021 annual cases all dated Dec 2021).
+   WEAK (<=50%): 168; only 12 involve a positive row of <=62 days. Checked individually:
+     AI 1377/1378 (national zero weeks 6-19 May 2019, WHO AFRO OEW wk20/21: 'no new cholera cases ... past four weeks
+     Tanga 35, Arusha 2') vs AI 524/525/526 (Dar es Salaam/Temeke/Ilala, windows from 20 Apr 2019 taken from the Temeke
+     director's '20/04/2019'). WHO's 4-week breakdown has no Dar es Salaam case and JHU 1842 dates the Dar es Salaam
+     outbreak from 20 May 2019 -> the zero weeks stand; the Temeke onset date is unexplained (possible misprint for
+     20/05/2019). Notes queued on AI 1377, 1378, 524. AI 1093 (TR 2021-11-29) vs AI 1535 (W48 from 29 Nov): consistent at
+     daily resolution - Figure 2's first case-day is 30 Nov 2021 (Agent 5 moved TR deliberately). AI 169 vs AI 1060/1061:
+     last case 14 Jul 2019 (AI 466) - consistent. AI 508 vs AI 528 (Shinyanga 98 by ~30 Nov 2015 vs AFRO 96 by 25 Nov):
+     within reporting noise; note queued. AI 1111 (Simiyu zero Jul-Dec 2025) vs AI 1530 (cumulative to 20 Jul 2025): TR
+     is a report cut-off, that week's new cases were Mbeya/Ruvuma; note queued.
+   RESULT: no AI zero row is contradicted by a dated positive row in any layer.
+
+B. Cumulative monotonicity (same location + same TL, later TR must not be lower): 43 violations.
+   AI: 9 - ALL already documented (AI 164 vs 70 Rukwa 2025 two streams; AI 649/644 Agent 5 P6 notes; AI 175 WHO death
+   revision 4->1; AI 204/678 Shinyanga; AI 544/584/611/632 Hounmanou 2017 column flagged INCOMPLETE and re-weighted 0.4).
+   JHU: 34 - baseline defects (read-only): e.g. national cumulative since 2015-08-15 falls 35,832 (JHU 1668, 10 Jun 2017)
+   -> 30,269 (JHU 829) -> 25,778 (JHU 1189); 36,288 (JHU 267) -> 33,214 (JHU 1032); Mainland and Union cumulatives mixed
+   in one series; JHU 1793 '2023-01-01..04-28 = 2,641' exceeds JHU 315 (2023 annual 1,040); JHU 1798 (10,061 to 24 Nov
+   2024) vs JHU 323 (2024 annual 2,911).
+
+C. Part exceeds whole: single sub-national row > containing national row: 820 with a non-zero national container;
+   747 are JHU-internal. 73 involve AI rows: all trace to deficient JHU national rows (JHU carries up to four parallel
+   'national' weekly series for 2016 - e.g. 2016-05-09..15 = 55 / 191 / 221 vs MoH mainland 212 (AI 1425); UNICEF
+   UID 20377 national weeks 2017-19 (JHU 1063 = 94 vs OEW Mbeya 205; JHU 1137 = 5 vs OEW Ngorongoro 21 + Uvinza 4);
+   JHU 1402 268 for Mar-Nov 2009 vs JHU 301 7,700 for 2009; JHU 323 2,911 for 2024 vs JHU 320 12,197). AI-internal: 1
+   (AI 397 Mpwapwa 37 > AI 46 national Dec 2025 17) - documented on both rows ('treat as a lower bound').
+   Sum of AI ADM1 rows with identical period > national row: 28 - Hounmanou 2007/2011/2012 columns (documented vs WHO
+   annual), 2016/2017 MoH/OEW weeks vs the low JHU series (baseline), AI 1504 vs WHO 27 (documented).
+
+D. Duplicates: AI-internal exact 0 (validator agrees). AI rows exactly duplicating a JHU/WHO row (normalised location,
+   TL, TR, sCh, deaths): 70 (64 Agent 2 WHO AFRO OEW 2017-19 district/regional weeks already in JHU; 6 pre-cycle national
+   annuals AI 2, 3, 4, 142, 143, 149). Only 2 of 70 say so in their notes. Near duplicates (TL/TR +-3 d, sCh +-5%): 52,
+   of which 42 are further Agent 2 OEW weeks vs JHU (same cases; deaths 0 vs blank). AI 148/710 (Kigoma 4,408, TR 1 d
+   apart) - AI 710 documents itself as corroboration. Builder impact nil (sub-national; national AI rows are shadowed
+   by JHU), but ~100 of Agent 2's 671 live rows restate baseline content. Notes queued on the undocumented ones.
+
+E. Double-count phrasing: using the validator's own strict regex, every AI sub-national row that overlaps ANY national
+   row in AI/JHU/WHO (not only AI) and every AI national sub-period row nested in a longer national row carries an
+   explicit statement. Missing: 0.
+
+F. Location legality/consistency: 0 illegal strings (AI + presence); every ADM1 segment is in the country profile list
+   or a Mainland/Zanzibar wrapper; 0 region-creation anachronisms (Geita/Katavi/Njombe/Simiyu < Mar 2012, Songwe <
+   Jan 2016); 0 districts filed under the wrong region after the 2012/2016 splits. Two Zanzibar hierarchies coexist
+   (island wrapper AFR::TZA::Zanzibar[::Unguja|::Pemba] - 31 rows; ADM1 regions Zanzibar North/South and Central/Urban
+   West/Pemba North/South - 42 rows, mostly Agent 5's ZACCEP shehia rows). Not a model defect (the builder uses exact
+   AFR::TZA rows only) but a string-prefix aggregator would not nest the ADM1 form under AFR::TZA::Zanzibar. Reported.
+
+=== AUDIT PASS 4: VALIDATOR WARN CLASSES - FIX OR JUSTIFY (2026-10-01 13:25) ===
+47 x CFR_high_flagged_for_review: every row is at confidence_weight <= 0.7 (max 0.7; AI 290 0.4, AI 1268 0.5), so the
+   validator's ERROR rule (CFR >15% at >0.7) is not triggered. Every one of the 47 notes states the reason (small weekly
+   WER IHR denominators, deaths printed in the same notification line, late notifications; AI 25 Rufiji 1977 '55% of the
+   69 patients ... before control measures ... died'; AI 188 Butiama 1986; AI 1268 Bunda 2007 early-outbreak count).
+   Agent 5 P3 page-image re-reads recorded on a subset (e.g. AI 1243 '25-31.III 37 18'; AI 313 '23-29.XII 61 25').
+   Disposition: JUSTIFIED (as published by WHO; deaths are not used to rescale cases). Pass 5 re-checks a sample.
+2 x multiyear_aggregate: AI 36 (PAMI 33,319/550, Aug 2015-Dec 2018, 0.7) - the source reports the epidemic as one total,
+   three official versions differ <0.4% (conflict register in note); AI 189 (Reyburn et al., Unguja 2002-2008 = 3,245,
+   0.6) - the source gives only the seven-year total. Both capped <=0.7, neither enters the national builder as the finest
+   row. Disposition: JUSTIFIED.
+2 x period_single_day: AI 366 (WER 2002 77(13):108 'Zanzibar 11.III 16 0' - single-date entries are WER's convention in
+   that table, Agent 5 P3); AI 1533 (MoH plan Fig. 2 bar '03-04-22' = 8 cases - the only exactly dated count in
+   27 Mar-13 Apr 2022, replaces retracted zero AI 1532). Disposition: JUSTIFIED (re-checked in Pass 5).
+1 x same_period_conflict: AI 302 (WER 1998 73(3):16 Zanzibar 1-31.XII 1997 241/29, 'Additional figures for this period')
+   vs AI 157 (validator 'row 138' = physical line 138; WHO DON 7 Jan 1998 1,065/123). AI 302's note marks itself
+   NON-PRIMARY and names AI 157 as the primary count. Disposition: JUSTIFIED.
+No WARN is fixed by suppression; none required a data change.
+
