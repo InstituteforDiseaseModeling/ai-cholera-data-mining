@@ -1,0 +1,291 @@
+================================================================================
+WORKFLOW ORCHESTRATOR BRIEF - SOMALIA (SOM) - 2026-09-29 Opus 5.5 cycle
+File: ./data/SOM/workflow_orchestrator_SOM.txt   (every agent reads this before its first query)
+Written 2026-09-30 18:40 by the SOM orchestrator (session 1 of this cycle).
+Agent-specific instructions arrive in each agent's prompt; this file is the shared context.
+================================================================================
+
+0. RUN CONTEXT - READ FIRST
+--------------------------------------------------------------------------------
+* NO TIME LIMIT. There is no deadline, no wall-clock budget, no "return by HH:MM"
+  and no time box for any agent. The ONLY stopping rule for Agents 1-6 is the
+  yield rule (section 8): at least 3 batches, then continue until 3 consecutive
+  batches are below 5% yield, or 12 batches in total. Stopping on time while
+  batches still yield >= 5% is under-collection.
+* Nobody is watching. Never stop to ask a question. Decide, log the decision and
+  the alternative you rejected, and continue.
+* SOM runs in parallel with other countries (CIV, MWI, NAM at the time of writing).
+  Only one SOM orchestrator is live (reference/.runner.pid). Anything already in
+  ./data/SOM/ is earlier work - reconcile it, do not duplicate it.
+* This is a FRESH cycle for SOM. The previous cycle (2026-09-18) ran only Agent 1
+  (11 batches, saturated) and the start of Agent 2 before it was interrupted. Its
+  state is archived at ./data/SOM/workflow_state_pre_opus55_2026-09-29.json and its
+  logs at ./data/SOM/search_log_agent_{1,2}_legacy_20260921.txt (2025 runs:
+  *_legacy_20250807.txt). READ them to avoid repeating work; never write to them.
+
+1. OPERATIONAL OVERRIDES (these beat anything in the agent .md or the template)
+--------------------------------------------------------------------------------
+DO NOT run  `python py/analyze_effective_gaps.py`  (any flags, any prefix). It
+   rewrites the SHARED ./reference/effective_* / baselineonly_* files that other
+   countries' agents are reading. The runner refreshed them before SOM started
+   and regenerates them when SOM exits. Use the READ-ONLY in-memory helper:
+       python3 /tmp/SOM_orch/som_coverage.py SOM                    (JHU+WHO+AI)
+       python3 /tmp/SOM_orch/som_coverage.py SOM --layers JHU WHO   (baseline only)
+DO NOT run  `py/build_weekly_timeseries.py`, `update_dashboard.sh`,
+   `py/update_dashboard_data.py`, or anything else that rebuilds all 40 countries.
+   To see how the weekly builder will treat SOM rows, use the read-only preview:
+       python3 /tmp/SOM_orch/som_weekly_preview.py 2017 2017      (year range)
+DO NOT git add / commit / push. The runner commits data/SOM when the country ends.
+DO NOT edit py/ scripts, reference/ files, the baseline files
+   (./data/SOM/cholera_data_jhu.csv, ./data/SOM/cholera_data_who.csv), or any other
+   country's data directory.
+DO NOT hand-edit ./data/SOM/cholera_data_ai.csv or ./data/SOM/metadata_ai.csv.
+   New rows/sources : python py/add_observation.py {register-source|add|add-zero|add-presence} SOM ...
+   Existing rows    : python py/revise_observation.py SOM --index N ... --reason "..."
+                      (--append-note, --confidence, --sch/--cch/--deaths, --tl/--tr,
+                       --location, --set-evidence, --delete [writes a tombstone to
+                       ./data/SOM/retracted_rows_ai.csv]; --meta-index with
+                       --set-description / --set-status for metadata)
+Tools: WebSearch / WebFetch are deferred tools - load them first with
+   ToolSearch query "select:WebSearch,WebFetch".
+   reliefweb.int: WebFetch -> HTTP 403; curl with a desktop browser User-Agent -> 200
+     (article body in div.rw-article__content; attachments are direct PDF links).
+     ReliefWeb API v1 is dead (410) and v2 needs an approved appname (403).
+     Listing pages work: https://reliefweb.int/updates?search=...  (curl + UA)
+   PDFs: curl -L -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" -o /tmp/SOM_orch/aN_x.pdf URL
+         then pdftotext -layout.
+   WHO IRIS (iris.who.int) TIMED OUT from this machine at 18:30 on 2026-09-30 (DNS
+     resolves; TCP connect hangs). Retry it later in your run - it has been the
+     richest route to WER annual reviews and weekly notification tables. Helpers:
+       python3 /tmp/SOM_orch/iris_find.py "cholera in 1993" 20     (search; uuid|date|handle|title)
+       python3 /tmp/SOM_orch/iris_text.py <uuid>                   (OCR TEXT bundle)
+       python3 /tmp/SOM_orch/iris_text.py <uuid> --pdf /tmp/SOM_orch/aN_x.pdf
+     (WebFetch on iris.who.int returns 403 even when it is up; the REST API does not.)
+     If IRIS stays down: Wayback copies of apps.who.int/iris PDFs, the WER pages on
+     who.int, and Europe PMC sometimes mirror the same text.
+   WHO GHO OData (works): https://ghoapi.azureedge.net/api/CHOLERA_0000000001?$filter=SpatialDim%20eq%20'SOM'
+     (_0000000002 deaths, _0000000003 CFR).
+   WHO global cholera dashboard back-end (works):
+     https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services/cholera_adm0_week/FeatureServer/0/query?where=iso_3_code%3D%27SOM%27&outFields=*&orderByFields=date_wk%20ASC&returnGeometry=false&f=json
+     For SOM it holds 2023-2025 weekly (already in the WHO baseline) and 2026 epiwk 1-2
+     ONLY (78, 73). WHO has published nothing newer for Somalia there.
+   WHO ArcGIS DISTRICT layer (lead for Agent 2, unmined): service
+     SOMALIA__Cholera_Cases_EPI_Week_8_2024_WFL1, layer 5 "Cholera Cases Week 8":
+     120 districts with Cases, Deaths, CFR, State_region, District (e.g. Bay /
+     Burhakaba 473 cases, 3 deaths). The period (2024 YTD to epi-week 8? outbreak
+     cumulative?) must be established from a WHO/MoH sitrep for week 8 2024 before
+     any row is written. Query:
+     .../SOMALIA__Cholera_Cases_EPI_Week_8_2024_WFL1/FeatureServer/5/query?where=1%3D1&outFields=*&returnGeometry=false&f=json
+     (a probe copy is at /tmp/SOM_orch/som_wk8_2024.json)
+   Europe PMC REST works every time; pubmed.ncbi.nlm.nih.gov has a cookie wall and
+     pmc.ncbi.nlm.nih.gov a reCAPTCHA. ajtmh.org and academic.oup.com return 403.
+   Scratch files: /tmp/SOM_orch/ with your agent prefix (a1_, a2_, ...).
+Validator: `python py/validate_quality.py SOM` must exit 0 before you report done.
+   Its "row N" is the CSV LINE number (header = line 1), i.e. DataFrame position N-2.
+   Look up the Index column; row N is NOT Index N (e.g. "row 18" = Index 17).
+State: record your run with py/workflow_state.write_agent_state(...), batch_yields in
+   PERCENT units (0-100). Yield = queries that produced >=1 committed NEW row / 20.
+   Never above 100. write_agent_state REPLACES your agent's entry, so a resumed agent
+   writes CUMULATIVE figures.
+Log: ./data/SOM/search_log_agent_{N}.txt - create it at your start (Agent 1: the
+   orchestrator has written its INITIALIZATION header; APPEND below it). Append one
+   block per batch in the protocol's shape, and a final summary.
+Deaths: source-reported deaths are data. If a small denominator gives CFR >15%, still
+   record the deaths (the writer caps confidence at 0.7) and add a context note.
+
+2. STATE AT CYCLE START (measured by the orchestrator 2026-09-30 18:16)
+--------------------------------------------------------------------------------
+./data/SOM/cholera_data_ai.csv   40 rows (Index 1-17, 19-41; Index max 41)
+./data/SOM/metadata_ai.csv       41 sources (Index 1-41)
+./data/SOM/cholera_presence_ai.csv 1 record (1985-1986 CFR-only, PubMed 7485686)
+./data/SOM/cholera_data_jhu.csv  736 rows (read-only)   ./data/SOM/cholera_data_who.csv 159 rows
+   (2023-01 .. 2026-01-18 weekly national, read-only)
+validate_quality.py SOM : exit 0, ERROR 0, WARN 6, INFO 8
+   5 x national_subnational_overlap - 2017 national rows Index 3, 7, 8, 10, 11 vs
+       AFR::SOM::Bay Index 15 (no double-counting phrase)
+   1 x CFR_high_flagged_for_review  - Index 17 (1985 UNDRO 1 015 deaths / 3 794 cases = 26.8%)
+Effective coverage (JHU+WHO+AI): 94.3% (642/681 months), months_ai_only 233,
+   positive months 419, latest observation 2026-08-16 (45 days stale).
+Formal effective gaps (./reference/effective_surveillance_gaps_detailed.csv):
+   Somalia,SOM,1991-01-01,1993-12-31,1096,36,3.0,historical
+   Somalia,SOM,2006-09-01,2006-10-31,61,2,0.17,modern
+   Somalia,SOM,2026-09-01,2026-09-30,30,1,0.08,recent
+Baseline-only (JHU+WHO): 60.1% (409/681), gaps 1972-1984, 1987-1993, 2005-2006,
+   2026-02..2026-09.
+READ percent_coverage WITH CARE: 204 of the 233 AI-only months come from three long
+   zero rows (Index 39: 1972-1982; 37: 1983-1984; 36: 1987-1990). Coverage is high;
+   resolution is not. The AI layer is 40 rows, 33 national, mostly annual or YTD.
+
+3. DEFECTS THE ORCHESTRATOR FOUND BEFORE AGENT 1 (read - they change what is valuable)
+--------------------------------------------------------------------------------
+(D1) PIPELINE: THE WEEKLY BUILDER IGNORES ALL OF SOMALIA'S JHU DATA.
+     ./data/SOM/cholera_data_jhu.csv codes every row as "EMR::SOM..." (WHO EMRO
+     prefix); SOM is the only one of the 40 countries whose JHU file does this.
+     py/build_weekly_timeseries.py reads national rows only where Location ==
+     "AFR::SOM" exactly, so ./data/SOM/cholera_weekly_SOM.csv is built from AI (1 364
+     weeks) + WHO (158 weeks) + nothing (1 329 weeks): the JHU weekly 2017-2019
+     series, the 2011-2013 sub-national weekly series and the 1970-2004 annual series
+     never reach the model. The gap analysis DOES read the JHU rows, so it shows
+     these periods as covered. This is a pipeline fix (converter or builder) that the
+     orchestrator reports to the user; it is NOT fixed in the AI layer.
+     => Do NOT bulk-transcribe series the JHU file already holds at the same
+        resolution (2017-2019 national weekly, 2011-2013 regional weekly, annual
+        national totals 1970-2004): they add no information and would only inflate
+        yield. Check ./data/SOM/cholera_data_jhu.csv before transcribing a series.
+        New resolution (sub-annual where JHU is annual, sub-national where JHU is
+        national, deaths where JHU has none, different periods) IS new information.
+(D2) DATA: 2017 YEAR-TO-DATE CUMULATIVES ENTERED AS SHORT WINDOWS (Agent 5 owns the
+     fix; nobody else adds to it). Index 10 (2017-05-22..2017-06-10, 45 400 / 738) and
+     Index 11 (2017-04-01..2017-04-23, 28 408 / 558) quote WHO EMRO weekly updates
+     whose totals are cumulative since 1 January 2017, but carry 3-week TL..TR
+     windows. Because of D1 they are the only 2017 data the builder sees: the 2017
+     weekly series sums to 144 985 against a true ~78 700 (preview helper, 2017).
+     VERIFIED by the orchestrator against the live pages, 2026-09-30 18:45:
+       10 Jun 2017 update: "2679 AWD/ cholera cases and 23 deaths for week 21 (22 - 29
+       May 2017). The cumulative figures for the cholera outbreak since the beginning
+       of the year stands at 45400 cases and 738 deaths."  (so Index 10's figure is
+       cumulative 1 Jan..~28 May; the WEEK-21 figure 2 679 / 23 is a genuine weekly
+       national value that JHU lacks - JHU's 2017 weekly rows start 5 Jun)
+       23 Apr 2017 update: "Since the start of the outbreak at the beginning of 2017,
+       a cumulative total of 28,408 cholera cases and 558 deaths (CFR-2%)".
+     Index 7 (Jan-Feb 4 621), 8 (to 26 Oct 77 783) and 3 (year 78 701) are the same
+     cumulative series. Overlapping cumulative rows also inflate 2026 (Index 25, 28,
+     29, 31, 35: weekly preview sums 3 053 vs 2 649 stated to 16 Aug) and need the
+     same treatment where they are one series.
+(D3) DATA: Index 15 (AFR::SOM::Bay 2017) carries 14 964 in cCh with sCh blank, but its
+     own note says "14,964 reported cases ... interpreted as 14964 sCh cases".
+     Reported cases in a 2017 AWD/cholera line list are suspected (sCh), not
+     laboratory-confirmed. Verify against the EMHJ 2023 source and correct (Agent 2).
+(D4) NAMING: existing sub-national rows use "Banadir", "Jubbada Hoose" (space),
+     "Jubbada Dhexe" (space). Canonical form is in section 6. Agent 5 normalises the
+     old rows with revise_observation.py --location; new rows use section 6 from the start.
+
+4. WHAT THE PREVIOUS CYCLE ESTABLISHED (detail: ./data/SOM/search_log_agent_1_legacy_20260921.txt)
+--------------------------------------------------------------------------------
+Rows 28-41 came from that run (14 rows, 14 sources). Gap outcomes:
+  1972-1982 documented absence (Index 39, WER 61(26) "last affected in 1971", conf 0.65)
+  1983-1984, 1987-1990 documented absence (Index 37, 36; Coppo et al. 1995: zero V.
+     cholerae O1 from 4 295 cultured diarrhoea specimens, conf 0.80) - a Mogadishu
+     laboratory denominator; the north was at war from 1988 (Agent 6: check scope).
+  1991-1993 LEFT EMPTY ON PURPOSE: state collapse, no surveillance; neighbours reporting
+     heavily (Kenya 3 388 and Uganda 5 072 in 1992, Djibouti 10 055 in 1993). A zero
+     here would be a fabricated negative. A positive count would be new.
+  2005-01..2006-06 Banaadir absence (Index 41); Puntland 2005-07..2006-08 (Index 38);
+     Oct-Dec 2006 Deyr flood wave quantified (Index 30, 32, 33, 34, 40). South/central
+     outside Mogadishu Jan 2005-Sep 2006 still unknown.
+  2026 filled to 16 Aug (Index 28, 29, 31, 35; Index 31 = 2 649 / 1 is the primary figure).
+HANDOVER LEADS STILL OPEN
+  L1 ProMED 20050701.19 (Somalia 1-25 Jun 2005) and 20061201.34 (1-29 Nov 2006)   -> A4
+  L2 Weill et al., Science 2017 (seventh-pandemic genomes, 45 countries): Somali
+     isolate dates in the supplementary table would settle 1991-1993             -> A4
+  L3 Somalia FMOH e-IDSR Weekly Epidemiological Bulletin, ~66 issues on ReliefWeb
+     2022-2024, weekly AWD/cholera by region and district (metadata Index 41,
+     UNMINED)                                                                    -> A2, A1 (national 2022), A5
+  L4 WHO EMRO Somalia: ~151 cholera PDFs (weekly infographics, monthly reports)
+     2020-2023 and the Weekly EPI Watch index 2020-2023                          -> A1 (national), A2 (regional)
+  L5 WHO Horn of Africa profile 2007 (metadata Index 36) prints Somalia 1994-2004 with
+     regional narrative; diverges from the baseline (1998: 14 800 vs 4 417; 2003:
+     6 686 vs 11 020). Somali cholera strategy Table 1 (metadata Index 34) diverges
+     for 2009 (5 278 vs GHO 208)                                                 -> A5
+  L6 IRIN 19 Jun 2006 Afmadow District Hospital: 20 child deaths in 10 days, ~50
+     diarrhoea patients/day (deaths only; a case count would fill mid-2006 south) -> A2, A6
+  L7 The WHO multi-country cholera table froze Somalia 2026 at 233 / 0 for four
+     editions; ECDC/Africa CDC and Somalia's own Health Cluster/IDSR show ~2 650 by
+     mid-August. Do not take Somalia 2026 from the WHO country table.
+TRAPS (do not repeat)
+  * ReliefWeb dates the IMC release "IMC launches operation to aid displaced Somalis"
+    to 7 May 2005; its content (394 000 fled Mogadishu since February) is May 2007.
+  * WER 52(19) 13 May 1977 "Somalia ... 0" and "280 ... nine Regions" are SMALLPOX.
+  * WER 101/36-37 (18 Sep 2026) Somalia rows are LEPROSY.
+  * The Somali cholera strategy's "isolation of over 4,000 cases" for 1983-1990 is a
+    misquotation: the cited study cultured 4 295 cases and isolated ZERO O1.
+  * WHO Somalia 2006 annual report "14.233 watery diarrhea cases Jan-Jun 06" is
+    all-cause AWD (rotavirus-dominated), NOT cholera.
+  * Health Cluster May-June 2026 "15,249 alerts of suspected cholera" = ALERTS, not cases.
+DEAD OR UNREACHABLE: plateformecholera.info (redirects to a commercial site);
+  iddynamics.jhsph.edu Somalia page (404); apps.dtic.mil PDFs (JS challenge);
+  WHO EMRO dsaf/epi archive starts 2008; EMCSR document series starts ~2019.
+
+5. SOMALIA CASE-DEFINITION RULES (apply to every row)
+--------------------------------------------------------------------------------
+* "AWD/cholera" (the joint suspected-cholera definition Somalia has used in outbreak
+  reporting since ~2017, and WHO EMRO used for the 2007, 2011 and 2016-17 epidemics)
+  = suspected cholera -> sCh. Laboratory-confirmed V. cholerae counts -> cCh.
+* Routine surveillance "AWD" / "acute watery diarrhoea" totals (EWARN, CSR, HMIS
+  weekly all-cause watery diarrhoea, often rotavirus-dominated) are NOT cholera.
+  They become a row only when the source frames them as a cholera/AWD OUTBREAK
+  (outbreak response, CTCs/CTUs, V. cholerae confirmed, "AWD/cholera"). Say which
+  in processing_notes. When in doubt, cholera_presence_ai.csv plus a log note.
+* Alerts, rumours, stool samples tested, beds, OCV doses, people reached, and
+  "people at risk" are not cases.
+* Cumulative vs period: state which in processing_notes; a YTD cumulative row's TL is
+  the start of the cumulation (usually 1 January), never the start of the week.
+
+6. COUNTRY PROFILE (./reference/country_profiles.json - authoritative) + NAMING
+--------------------------------------------------------------------------------
+Name Somalia, ISO2 SO, East Africa (WHO EMRO member). Neighbours: DJI, ETH, KEN
+  (DJI is not a MOSAIC country: search it, never create data for it).
+ADM1 (18 pre-1991 regions): Awdal, Bakool, Banaadir, Bari, Bay, Galguduud, Gedo,
+  Hiiraan, Jubbada Dhexe, Jubbada Hoose, Mudug, Nugaal, Sanaag, Shabeellaha Dhexe,
+  Shabeellaha Hoose, Sool, Togdheer, Woqooyi Galbeed.
+CANONICAL Location spelling (underscores, no spaces, profile names):
+  AFR::SOM::Awdal  ::Bakool  ::Banaadir  ::Bari  ::Bay  ::Galguduud  ::Gedo
+  ::Hiiraan  ::Jubbada_Dhexe  ::Jubbada_Hoose  ::Mudug  ::Nugaal  ::Sanaag
+  ::Shabeellaha_Dhexe  ::Shabeellaha_Hoose  ::Sool  ::Togdheer  ::Woqooyi_Galbeed
+  English/other forms -> canonical: Benadir/Banadir/Mogadishu region -> Banaadir;
+  Lower Juba -> Jubbada_Hoose; Middle Juba -> Jubbada_Dhexe; Lower Shabelle ->
+  Shabeellaha_Hoose; Middle Shabelle -> Shabeellaha_Dhexe; Hiran/Hiraan/Hiraan ->
+  Hiiraan; Galgadud -> Galguduud; Nugal -> Nugaal; Maroodi Jeex (+ Saaxil) ->
+  Woqooyi_Galbeed (Somaliland names). Puntland's Karkaar/Haylaan sit in Bari/Sanaag:
+  name the parent ADM1 and quote the source name in the notes.
+  District: AFR::SOM::{ADM1}::{District} e.g. AFR::SOM::Banaadir::Hodan,
+  AFR::SOM::Jubbada_Hoose::Kismayo, AFR::SOM::Bay::Baidoa. Do not invent a district
+  for a source that only named a region.
+  Federal-member-state aggregates (several regions): AFR::SOM::Somaliland,
+  AFR::SOM::Puntland, AFR::SOM::Jubaland, AFR::SOM::South_West_State,
+  AFR::SOM::Hirshabelle, AFR::SOM::Galmudug - use ONLY when the source gives the state
+  total and no regional split, and mark "State aggregate - do not sum with its
+  member regions" in processing_notes.
+Cities: Mogadishu, Hargeisa, Kismayo, Baidoa, Bosaso, Beledweyne.
+Languages: en, so, ar (Italian is worth trying for pre-1991 material).
+Terms: cholera, acute watery diarrhoea, AWD, daacuunka (Somali), الكوليرا (Arabic);
+  Somali "shuban biyood" (watery diarrhoea) also appears in MoH/radio material.
+Ministry domain: moh.gov.so. Others used by Somali health reporting: Health Cluster
+  (healthcluster.who.int / ReliefWeb), WHO EMRO Somalia (emro.who.int/somalia).
+Season: endemic; Shabelle/Juba riverine districts and IDP camps; drought and flood
+  cycles (Gu Apr-Jun, Deyr Oct-Dec rains); reported as AWD/cholera jointly.
+
+7. AGENT ASSIGNMENTS (who owns what; details are in each agent's prompt)
+--------------------------------------------------------------------------------
+A1 baseline-collector  : gaps 1991-1993, 2006-09..10, 2026-09 (longest first); the
+                         2026 national weekly series; national sub-annual 2020-2022
+                         and other years where AI and JHU are annual-only.
+A2 geographic          : regional/district rows for every epidemic year; the
+                         double-counting phrase on the 5 legacy 2017 WARNs; D3.
+A3 zero-validator      : audit the 5 existing zero rows; sub-national absences;
+                         any positively-documented absence in 2006-09..10.
+A4 obscure-source      : 1991-1993; L1, L2; 1970-71, 1985-86 and 1994-2004
+                         sub-annual/regional from archives; dead links via Wayback.
+A5 cross-reference     : D2 (urgent), D4, L5, Index 17 CFR, re-mine the registry.
+A6 gap-context         : classify every remaining gap >= 6 months and the scope of
+                         the long zero rows.
+A7 quality-auditor     : validator exit 0, repairs, impact measured with the
+                         /tmp helper, ./data/SOM/search_report.txt incl. D1.
+
+8. STOPPING RULE - THE ONLY ONE (Agents 1-6)
+--------------------------------------------------------------------------------
+  Batch            = 20 queries
+  Minimum          = 3 batches (60 queries), always, whatever the yield
+  Stop when        = 3 consecutive batches below 5% yield, OR 12 batches in total
+  Time limit       = NONE
+  Yield            = queries that produced >=1 committed NEW row in
+                     ./data/SOM/cholera_data_ai.csv, / 20 x 100 (percent, 0-100).
+                     Presence records, confirmations and leads do not count.
+                     Agents 3, 5 and 6 may also count evidence-based revisions
+                     (re-labels, re-scopes, retractions with tombstones) if they say
+                     so explicitly in the log and report the strict figure alongside.
+Log the stopping reason as one of exactly:
+  "STOP - 3 consecutive batches below 5% yield (batches x, y, z)"
+  "STOP - 12-batch maximum reached"
+Agent 7 has no batch limit.
+================================================================================
