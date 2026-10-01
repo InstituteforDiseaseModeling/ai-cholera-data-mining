@@ -1,0 +1,242 @@
+SOMALIA (SOM) - AI CHOLERA DATA ENHANCEMENT - SEARCH AND QUALITY-AUDIT REPORT
+Cycle 2026-09-29 (Opus 5.5 re-run) | Agent 7 (cholera-quality-auditor) | 2026-10-01
+Supersedes ./data/SOM/search_report_legacy_20250807.txt. That report claimed "50+ observations", said
+"all CFR values within 0.1-15%" (Index 17 was 26.8%), and called 2005-06 a zero-transmission candidate
+(it is a surveillance gap).
+Data: ./data/SOM/cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv.
+Audit log with every check and query: ./data/SOM/search_log_agent_7.txt
+
+1. BOTTOM LINE
+* Rows went from 40 to 2,360 and sources from 41 to 563. Validator: exit 0, ERROR 0.
+* The formal coverage metric did NOT move: 94.3% (642/681 months) at cycle start, 94.1% (642/682) now.
+  months_ai_only stayed at 233 and none of the 3 effective gaps closed. The metric was saturated before
+  the cycle began, so it cannot show this cycle's work.
+* What the model sees did change. The weekly builder cannot read Somalia's 736 JHU rows (D1), so at cycle
+  start it showed 19 epidemic years as zero cholera. In the national weekly preview, of 33 years with a
+  published annual:
+  - within +/-15% of that annual: 8 -> 28
+  - rendered 0 despite a positive annual: 19 -> 0
+  - assumed-zero weeks (sCh = 0): 1,329 -> 367
+  - stated-weekly weeks: 158 -> 409
+* Still bad:
+  - 367 national weeks remain "no cholera" without evidence: 259 are the national surveillance gaps
+    1991-01..1994-02 and 2005-06, where no data exists; 108 are reporting gaps during known transmission.
+  - 5 of 33 years lie outside +/-15%: 1985 0.56, 1998 3.36, 2000 0.73, 2001 0.68, 2009 25.5. 1998 and 2009
+    are deliberate.
+  - Data ends 6 Sep 2026 (25 days stale).
+
+2. WHAT WAS FOUND
+Sources +522: Level 1 404, Level 2 100, Level 3 17, Level 4 1 (all 563: L1 440, L2 104, L3 18, L4 1).
+  Each source is one document from about 25 series:
+  - WHO/FMOH weekly AWD-cholera reports 2017-24; WHO-EM/CSR monthlies and EMRO updates 2017-21;
+  - WER notification pages 1970-2000 (IRIS page scans); Africa CDC weekly reports 2026 (OCR);
+  - UN, UNICEF, OCHA and Health Cluster documents 1985-2011; EWARN; EMRO RD reports; GHO; EMHJ 2023.
+Observations from this cycle: 2,336 live rows (plus 24 legacy).
+  - 2,227 case rows (79 derived from two stated cumulatives) and 109 zero rows. Of all 114 zero rows,
+    101 are Documented_Absence and 13 Inferred_Absence.
+  - By level: national 368, state aggregate 11, ADM1 674, district 1,283.
+  - Presence records 1 -> 87.
+  - 95 retractions with tombstones (16 legacy mis-citations or double counts, 79 agents' own superseded or
+    re-binned rows); no value lost.
+Gains: the 1970-71, 1985-86 and 1994-2000 epidemics from WER tables; national rows for every year D1
+  blanked; national weekly series for 2017, 2019-22 and 2026; district series for 2007, 2017 and 2022-24.
+
+3. COVERAGE AND GAPS (python3 /tmp/SOM_orch/som_coverage.py SOM [--layers JHU WHO])
+                         cycle start         now
+  effective coverage     94.3% (642/681)     94.1% (642/682)
+  baseline-only          60.1% (409/681)     60.0% (409/682)
+  months_ai_only         233                 233
+  effective gaps         3                   3, none closed
+  latest observation     2026-08-16          2026-09-06
+Open gaps - does the data exist?
+  1991-01..1993-12 (to Feb 1994): NO.
+    - No national notification of any disease: last return 1989, WHO left in October 1991, and EMRO 1993
+      found "no organized formal health services".
+    - 1992-93 surveys found Shigella and measles; WHO dates the epidemic from February 1994.
+    - Probably quiet in 1991-92, high risk from July 1993 (Djibouti). Left empty on purpose.
+  2006-09..10, inside a 2005-01..2006-10 national gap: SURVEILLANCE GAP.
+    - No national return was made for 2005 or 2006. WER 2006's "No cases were reported" means
+      non-reporting, not absence.
+    - Absence was observed only in Mogadishu and Puntland.
+    - Jilib 2005 and Afmadow 2006 death clusters are suspected, never confirmed.
+  2026-09-07..30: PUBLICATION LAG. Nothing after the Africa CDC report of 13 Sep existed on 1 Oct: ECDC is
+    at 26 Aug, WHO is frozen at 233, the Health Cluster at Jul-Aug. Re-check; never zero-fill.
+
+4. VALIDATION AND AUDIT
+* Validator: E0 / W30 / I393 at start and end. All 30 WARNs are justified (Appendix A5): 27 are CFR > 15%
+  with source-reported deaths, each at confidence <= 0.7; 3 are single-day report dates.
+* Repair tool dry run: 0 changes in every class. Nothing applied or withheld; no attribution_review.csv.
+* Spot-check: 95 rows (every agent, 1971-2026, all levels and row types, 15 random district-weeks)
+  re-verified against freshly fetched sources. 0 failures. Six annotations or adjustments: 2442 (AWD rule
+  borderline, kept), 1751 (verbatim quote), 211 (Awdal 2019 zero 0.7 -> 0.6), 2170 (floor), 21 and 33
+  (caveats already present).
+* Suspected presence records (Jilib 2005, Afmadow 2006, Middle Shabelle and Galguduud 1997, Afgoye 2002):
+  their cited sources (metadata 546, 547, 548, 380, 515) now open with "SUSPECTED, NOT CONFIRMED".
+* Double counting:
+  - Regions never exceed the national figure in 173 period comparisons, beyond <= 3.8% between WHO
+    streams.
+  - No overlapping national rows inflate a year.
+  - 1998 kept on WHO's running tally (14,456 by 12 Jun), not the WER annual 4,417 (EMRO 10,654, HoA 14,800
+    and WER's own Jan-1998 notifications agree with the tally).
+  - 2009 kept at FMOH 5,278: WHO's 208 omits "cases ... labelled acute watery diarrhoea".
+  - 2019 kept at 3,518: UNICEF weeks 1-7 cover the closed WHO CTC stream.
+
+5. AGENTS (all 12 batches; claims reconcile with the CSV; no yield > 100%; flags in Appendix A2)
+  Most valuable for the model:
+  - A5 (+144 net): removed cumulative inflation (2017 88,964 -> 79,172; 2021 6,649 -> 4,625) and filled
+    the D1-blind years.
+  - A4 (+96): WER epidemic courses 1970-2000.
+  - A1 (+132): weekly series 2017, 2019-22 and 2026.
+  Most rows:
+  - A2 (+1,841): accurate district transcription (15/15 random rows exact) that never feeds the national
+    series.
+  Validators:
+  - A3 (+71 net) and A6 (+37), strict yield 0% in 5 of 12 batches each. A3's Somaliland data-stream audit
+    was the most careful work in the run; A6 classified every gap.
+
+6. PIPELINE DEFECTS - MODEL OWNERS MUST ACT (none is fixable in the AI layer)
+D1 All 736 rows of ./data/SOM/cholera_data_jhu.csv are coded "EMR::SOM..." (SOM is the only one of the 40
+   countries). py/build_weekly_timeseries.py reads only "AFR::SOM" (lines 221, 305), so no JHU row reaches
+   ./data/SOM/cholera_weekly_SOM.csv. The gap analysis does read them, which is why coverage looked
+   complete. THE FIX NEEDS A DECISION, NOT A PREFIX CHANGE: once JHU is readable it outranks AI week by
+   week, and the JHU annuals that other WHO sources contradict would override the AI series:
+   - 1998: 4,417 (vs 10,654-14,800 elsewhere);
+   - 2001: 2,567 (vs 1,821 in WHO's own WER review);
+   - 2009: 208 (which WHO says omits AWD-labelled cases).
+   Options: rank AI above JHU in SOM years that have an AI national series, or flag those three JHU rows.
+D7 The builder writes sCh = 0 (assumed_zero) for every week without a source row (lines 501-527), so the
+   surveillance gaps 1991-01..1994-02 (161 weeks) and 2005-06 (103 weeks) reach the model as "no cholera".
+   Mask them as NA in the pipeline. Do NOT fill them with zero rows.
+D8 Builder mechanics (do not "fix" the rows):
+   - national rows only;
+   - rows of <= 7 days go to the ISO week of their TL (Saturday-start 2007 weeks land one week early);
+   - an aggregate is dropped when >= 50% of its weeks hold weekly rows, without renormalisation (1985
+     loses ~970 cases);
+   - overlapping rows of one layer take the larger slice per week, so cumulatives inflate.
+D5 (JHU, read-only) UID 21477 rows dated Jan-Mar 2023 are OCHA Flash Update No. 2 of 24 Mar 2024. The
+   correctly dated figures are AI rows 9 and 225-228.
+D6 (JHU, read-only) UID 20382 has ten false national zeros 2017-09-25..12-03; UID 20375 shows 126...22
+   cases for the same weeks.
+D9 add-presence (py/add_observation.py) stamps every record "presence_confirmed_count_unknown ... cholera
+   confirmed present", even for suspected events, and no tool can edit it. It needs an --evidence option.
+(The brief's D2-D4, the 2017 YTD windows, Bay cCh and spellings, were AI-layer defects and are fixed.)
+
+7. WHAT A FUTURE RUN SHOULD TRY
+* IRIS answered on 1 Oct after being down most of the cycle. Leads:
+  - WER cholera notifications 2001-03 (10665/231898, 232058, 232195, 232349);
+  - 'Cholera, 2003' and 'Cholera, 2004' (232546, 232852);
+  - EMRO communicable-disease annual reports 2001-02 (116328, 116370);
+  - the 2003-04 "2,042 / 23" outbreak note.
+  Tile against the existing annual rows. (The 1998-99 reviews and Toole & Waldman 1988 were done.)
+* ProMED 20050701.19 and 20061201.34: Wayback CDX works again, but the 2005 captures are only the front
+  page. The posts need their numeric IDs (ISID archive search).
+* Weill et al. 2017 Table S1 (dated Somali isolates for 1991-93 and 2005-06): Science returns 403; try the
+  author repository.
+* Also: WHO Somalia annual reports 2004/05/07; Health Cluster bulletin #7 (Dec 2007); a Somaliland MoHD
+  source for 2020-24.
+* Recency: the next Africa CDC, ECDC and Health Cluster releases. Add increments with "do not sum with
+  cumulative row Index N".
+
+================================================================================================== APPENDIX
+A1 FILE STATE                    cycle start   before audit   after audit
+  cholera_data_ai.csv rows        40            2,360          2,360 (Index max 2456)
+  metadata_ai.csv sources         41            563            563
+  cholera_presence_ai.csv         1             87             87
+  retracted_rows_ai.csv           0             95             95
+  validator                       E0 W6 I8      E0 W30 I393    E0 W30 I393, exit 0
+  Agent 7 writes (py/revise_observation.py --agent 7 only):
+  - notes on data rows 2442, 1751, 2170, 2196 (1998 adjudication) and 27 (WHO 2025 annual 9,003/9);
+  - confidence 0.7 -> 0.6 on 211;
+  - flags on metadata 546, 547, 548, 380, 515.
+  No row added or retracted; no source registered.
+
+A2 AGENTS   Index range: committed / live / tombstoned   queries   yields (%)
+  A1  42-173        132 /   126 /  6    240  20,35,15,60,65,60,100,85,100,30,0,25
+  A2  174-2020    1,847 / 1,817 / 30    240  40,25,95,100,100,100,100,90,70,30,25,30
+  A3  2021-2104      84 /    71 / 13    229  strict 15,0,15,0,15,15,50,15,20,0,0,0
+  A4  2105-2219     115 /    95 / 20    242  25,25,75,55,60,25,55,10,15,35,25,5
+  A5  2220-2419     200 /   190 / 10    241  strict 25,100,60,20,5,60,20,90,75,5,15,20 (extended stored)
+  A6  2420-2456      37 /    37 /  0    240  strict 5,25,20,0,25,10,15,0,0,0,0,5 (extended stored)
+  Reconciliation: 40 + 132 + 1,841 (minus legacy Index 15) + 71 + 96 + 144 + 37 = 2,360. All 95 tombstones
+  are unique; 0 committed Index values are unaccounted for.
+  Batch flags:
+  - A3 b11 ran 11 queries; A4 b12 ran 22 (242 total); A5 b3 ran 21. All disclosed.
+  - 100% batches (A1 b7, b9; A2 b4-b7; A5 b2) count documents, not rows.
+  Stopping rule:
+  - A3, A5 and A6 stopped on extended yields (permitted, with strict figures logged).
+  - A6 also counted presence records; strict 0% in batches 8-10 means it would have stopped after batch
+    10. That is over-collection, harmless.
+  - A5's log revises batch 1/3 strict yields (25 -> 30, 60 -> 65) that its state file does not.
+
+A3 ALL LIVE ROWS (2,360)
+  level: national 384, state 15, ADM1 676, district 1,285
+  type: case 2,246 (incl. 89 derived), zero 114
+  decade: 1970s 26, 1980s 34, 1990s 55, 2000s 360, 2010s 486, 2020s 1,399
+  confidence: >=0.9 213 | 0.7-0.89 1,913 | 0.5-0.69 196 | <0.5 38
+
+A4 NATIONAL WEEKLY PREVIEW, in memory (/tmp/SOM_orch/som_year_check.py; cycle start = git 6c87754)
+  year    start      now  JHU ref r_start  r_now  weeks now obs/fourier/dz/iz/az
+  1970        0       49       43    0.00   1.14  1/4/0/0/0
+  1971        0       82       89    0.00   0.92  16/0/30/0/6
+  1985     3794     5679    10199    0.37   0.56  6/20/5/4/17
+  1986        0    17821    15980    0.00   1.12  8/35/4/0/5
+  1994        0    28334    28334    0.00   1.00  0/47/0/0/5
+  1995        0     9255     9255    0.00   1.00  0/13/0/27/12
+  1996      187     9016    10274    0.02   0.88  0/28/0/14/10
+  1997     1348     7024     6814    0.20   1.03  0/51/0/0/1
+  1998        0    14839     4417    0.00   3.36  3/25/0/14/11
+  1999        0    17420    17757    0.00   0.98  2/49/0/0/1
+  2000        0     5447     7496    0.00   0.73  0/24/0/14/14
+  2001        0     1742     2567    0.00   0.68  0/29/7/12/4   (0.96 of WHO WER 1,821)
+  2002        0     2859     2775    0.00   1.03  0/24/0/18/10
+  2003        0    10841    11020    0.00   0.98  0/51/0/0/1
+  2004        0     4669     4490    0.00   1.04  0/53/0/0/0
+  2006        0       69        -       -      -  1/0/0/0/51
+  2007        0    43190    41643    0.00   1.04  25/21/0/0/6
+  2008        0     1260     1281    0.00   0.98  0/51/0/0/1
+  2009        0     5299      208    0.00  25.48  0/53/0/0/0
+  2010        0     3510     3510    0.00   1.00  0/52/0/0/0
+  2011        0    77636    77636    0.00   1.00  0/52/0/0/0
+  2012    25584    22215    22576    1.13   0.98  0/52/0/0/0
+  2013      416     6530     6864    0.06   0.95  22/30/0/0/0
+  2014        0     2886     2820    0.00   1.02  0/52/0/0/0
+  2015        0     7582     7536    0.00   1.01  0/53/0/0/0
+  2016    15619    15619    15619    1.00   1.00  0/52/0/0/0
+  2017   144985    79172    75414    1.92   1.05  20/32/0/0/0   (EMHJ 78,701: 1.006)
+  2018     6345     6345     6761    0.94   0.94  0/52/0/0/0
+  2019     3142     3518     3100    1.01   1.13  48/4/0/0/0
+  2020     6464     6651     6414    1.01   1.04  51/2/0/0/0
+  2021     6205     4625     4342    1.43   1.07  11/37/0/0/4
+  2022    15600    15280    15653    1.00   0.98  29/23/0/0/0
+  2023    18081    18081    18304    0.99   0.99  51/1/0/0/0
+  2024    21945    21945    21945    1.00   1.00  52/0/0/0/0
+  2025     9003     9003        -       -      -  52/0/0/0/0
+  2026     3053     2727        -       -      -  11/25/0/0/0   (stated 2,778 to 6 Sep)
+  Zero rows: documented Jun-Dec 1971, Jan 1983-Jan 1985, and Dec 1986-May 1988; inferred 1972-82,
+  Feb 1985, and Jun 1988-1990.
+  Assumed-zero weeks: 1991-93 156; 2005-06 103.
+  Totals: observed 158 -> 409; fourier 474 -> 1,097; documented_zero 890 -> 226; inferred_zero 0 -> 811;
+  assumed_zero 1,329 -> 367.
+
+A5 VALIDATOR WARN FAMILIES (row Index)
+  1985 UNDRO/WER refugee-camp epidemic: 235, 236, 238, 2113, 2114, 2118, 2120, 2122, 2123, 2124
+  1986 WER revision: 2127 (conf 0.4)
+  1970-71 WER town cells: 2158, 2161, 2203
+  2007 district/region-weeks and Jamame: 245, 364, 372, 421, 426, 439, 443, 2440
+  2017 Bakool week 7: 531
+  2008-09 unconfirmed AWD outbreaks: 1982, 2099 (conf 0.3; the source itself doubts the deaths)
+  2000 rural outbreaks: 2411 (Level 4, conf 0.2), 2415
+  single-day rows: 2201 (Bardera 11 Feb 1999, a Thursday), 2213, 2217 (1971 report dates)
+
+A6 SPOT-CHECK AND CHECKS - full tables in ./data/SOM/search_log_agent_7.txt (S3, S4)
+  Spot-check: 95 rows, 0 FAIL. It covered:
+  - every derived family: 77, 524, 1995, 2188, 2220, 2226, 2227, 2333, 2345, 2346, 2420, 2423, 2442, 2447;
+  - Somaliland zeros 209, 211, 223;
+  - YTD rows 10, 1954, 2183, 2270, 2344;
+  - AWD-rule rows 21, 33, 300, 1982, 2099, 2103, 2385, 2442.
+  Double counting: 173 national/sub-national period comparisons; 6 exceed the national figure by
+  +1 to +17 cases (WHO dashboard vs country-office tables, and one source-internal Bakool difference).
+  Recency (1 Oct 2026), all checked, nothing newer than 6 Sep: Africa CDC (latest issue 13 Sep;
+  October page 404), ECDC (26 Aug; CDTR week 39), WHO WER 101(35) (frozen at 233) and 101(38) (2025
+  annual), WHO dashboard (2026 week 2), 46 ReliefWeb Somalia items 10 Sep-1 Oct, OCHA August update,
+  Health Cluster portal.
