@@ -1,0 +1,58 @@
+=== AGENT 7 (cholera-quality-auditor) INITIALIZATION ===
+Country: Somalia (SOM)
+Cycle: 2026-09-29 Opus 5.5 re-run
+Start Time: 2026-10-01 05:04:52
+Agent 7 Status: INITIALIZED
+Working directory: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Legacy audit log (untouched): ./data/SOM/search_log_agent_7_legacy_20250807.txt
+Operational overrides honoured (brief section 1 + S1/S2): no py/analyze_effective_gaps.py,
+no weekly builder / dashboard scripts, no git, no edits to py/ reference/ or baseline files,
+CSV writes only through py/add_observation.py and py/revise_observation.py.
+
+State on arrival (per orchestrator S2, to be re-measured below):
+  ./data/SOM/cholera_data_ai.csv 2360 rows (Index max 2456)
+  ./data/SOM/metadata_ai.csv 563 sources
+  ./data/SOM/cholera_presence_ai.csv 87 records
+  ./data/SOM/retracted_rows_ai.csv 95 tombstones
+  validator: exit 0, ERROR 0, WARN 30, INFO 393
+
+================================================================================
+S1 VALIDATOR (authoritative) - run at audit start
+================================================================================
+Command : python py/validate_quality.py SOM --json /tmp/SOM_orch/a7_audit.json
+Result  : exit 0 | 2360 data rows | 563 metadata sources | ERROR 0  WARN 30  INFO 393
+          WARN 27 x CFR_high_flagged_for_review, 3 x period_single_day
+          INFO 286 x national_subnational_overlap (all "- documented"), 107 x metadata_unused
+Validator line -> Index map (line N = csv physical line; no embedded newlines in SOM):
+  CFR WARN: 235, 236, 238, 245, 364, 372, 421, 426, 439, 443, 531, 1982, 2099, 2113, 2114,
+            2118, 2120, 2122, 2123, 2124, 2127, 2158, 2161, 2203, 2411, 2415, 2440
+  single-day WARN: 2201 (Bardera 11 Feb 1999, one-day Xinhua report), 2213 (WER 15.III.1971 report date),
+            2217 (WER 26.IV.1971 report date)
+Each WARN row's processing_notes read in full: all carry a verbatim quote, the period as printed,
+  a stated reason for the CFR (refugee camps 1985, pre-ORS 1970-71, small denominators in 2007
+  district-weeks, inaccessible Middle Juba, rural no-NGO outbreaks 2000, news-relayed counts),
+  and confidence <= 0.7. Individual source checks are in the S3 spot-check table below.
+INFO review:
+  * No metadata source with Status=Superseded (11, 12, 13, 22, 263) is cited by a live row.
+  * 107 unused sources = preliminaries superseded by revised WER figures (305, 306, 314, 315, 317,
+    322, 323, 333, 334, 339, 363, 368), sources of retracted overlapping cumulatives whose figures
+    were moved into surviving increments (1, 28, 31, 35, 159, 160, 164), corroboration-only sources
+    cited in notes (36 HoA profile, 523/525/526/531/553/561 EMRO RD reports, 558-560 WER annual
+    reviews), presence-only sources (272, 301, 546-548 ...), and context (smallpox history 554, MSF
+    timeline 530). Checked which unused sources could carry a row - see S3/S4 notes.
+  * Derived residual rows 2420 (1999) and 2447 (1994) cite GHO (metadata 411) for the annual they
+    subtract from; the EMRO RD reports (523, 553) are quoted as corroboration in the notes.
+    Arithmetic re-done: WER 1999 rows 2172-2176 = 1486+740+1348+2342+1048 = 6,964 / 26+25+77+22+44
+    = 194; 17,757-6,964 = 10,793; 693-194 = 499 -> row 2420 correct. 1994: 28,334-27,766 = 568;
+    1,206-1,171 = 35 -> row 2447 correct.
+
+================================================================================
+S2 MECHANICAL REPAIRS
+================================================================================
+Command : python py/repair_data_integrity.py --dry-run SOM
+Result  : "TOTAL: 0 change(s)" - no date fix, no label normalisation, no presence quarantine,
+          no multi-year or high-CFR downweight, no duplicate merge proposed for SOM.
+          ./data/SOM/attribution_review.csv NOT created (no row-label/metadata mismatch).
+Action  : --apply NOT run (nothing to apply; running it would only rewrite and back up files).
+          Classes applied: none. Classes withheld: none (none triggered).
+
