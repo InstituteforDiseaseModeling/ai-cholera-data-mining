@@ -4,3 +4,172 @@ Start Time: 2026-09-30 21:53:21
 Agent 7 Status: INITIALIZED (Quality Auditor; no batch limit)
 Previous Agent 7 log archived as ./data/NAM/search_log_agent_7_legacy_2026-05-15.txt
 
+=== CHECK PASS 1 | STEP 1: VALIDATOR + REPAIR (2026-09-30 21:53) ===
+python py/validate_quality.py NAM --json /tmp/NAM_audit.json -> ERROR 0 / WARN 0 / INFO 112 (exit 0); 202 rows, 242 sources.
+  INFO = 23 national_subnational_overlap (all "documented") + 89 metadata_unused.
+python py/repair_data_integrity.py --dry-run NAM -> TOTAL 0 changes. ./data/NAM/attribution_review.csv not created (nothing to resolve).
+NOTE: 89 of 242 sources (37%) are referenced by no data row. Spot-reviewed: they are context/corroboration sources cited in
+  processing_notes (e.g. WER 2010-2019 non-reporting tables 142-149, presence-file sources 109/111/116/158/220, superseded
+  sources 6/13/15/18/73, conflicting-figure sources 71/219/235/236/238). INFO only; not an error.
+
+=== CHECK PASS 2 | STEP 2: AGENT WORK VERIFIED FROM FILES ===
+Index arithmetic: live Index set + tombstone Index set = 1..225 exactly, no duplicates, no overlap; metadata Index 1..242
+  contiguous and unique. Start 63 rows/68 sources -> 63 + 162 added - 23 retracted = 202 rows; 68 + 174 = 242 sources. RECONCILES.
+Per-range live/retracted: pre-run 1-63 50/13; A1 64-117 48/6 (65,69,73,83,85,109 retracted by A5); A2 118-165 47/1 (153 by A5);
+  A3 166-195 28/2 (166 own, 173 by A6); A4 196-204 9/0; A5 205-224 19/1 (212 own); A6 225 1/0. Tombstones = 23 = ledger.
+Batches/yields in all six logs match workflow_state.json and the run ledger exactly (A1 12, A2 7, A3 12, A4 12, A5 12, A6 5).
+  No agent ran <3 batches. No yield >100%. Yields are query-counted ("Successful queries: k/20"), not row-counted
+  (e.g. A2 batch 1: 34 rows from 4 successful queries = 20%). rows_added claims match the Index ranges.
+  Caveat for productivity: 11 of Agent 5's 19 live rows and Agent 6's only row are REPLACEMENTS of retracted rows
+  (re-attribution/re-dating), not new information; Agent 5's genuinely new rows are AI 205-208, 210, 216, 218 (7).
+Process events confirmed in logs: A1 harness kill after batch 7 (batch 8 redone) + DNS outage in batch 11 (resumed at Q14);
+  WebSearch budget exhausted from A4 batch 9 (A4 9-12, A5 1-12, A6 1-5 used WebFetch/curl/APIs/Wayback); IRIS intermittent.
+
+=== CHECK PASS 3 | STEP 3 a-e: INDEPENDENT CONSISTENCY CHECKS (/tmp/nam_checks.py, read-only) ===
+(a) Zero vs positive overlaps (AI zero rows vs AI+JHU+WHO positives; regional zeros vs same-region/descendant/Multi_Provincial):
+    20 zero rows overlap >=1 positive row. ALL 20 ADJUDICATED AS NON-CONTRADICTIONS:
+    - national zeros vs JHU/AI annual or cumulative counts whose cases fall outside the zero window (AI 54/171/172 vs AI 64;
+      AI 99/179 vs JHU 2009; AI 180 vs JHU 2008; AI 174 vs JHU 2006 (outbreak from Oct 2006); AI 175/176 vs JHU 2007 (=Jan-Feb
+      tail); AI 178/202 vs JHU 2014 (485 reached by 11 May)) - each row documents it;
+    - AI 171 vs WHO 2025 wk12 (22 cases, 17-23 Mar): documented reporting-week placement of cases dated 2-17 Mar (ECDC);
+      WHO outranks AI 171 for that week in the builder;
+    - 2008 Omusati/Oshana/Oshikoto zeros (AI 134,135,141,142,143,159,160) vs four-region flood-zone aggregates AI 104/111/209:
+      aggregate cases were confined to Ohangwena (+Oshana from 27 Mar; Oshana zeros end 26 Mar). AI 159/160 lacked the
+      cross-reference -> notes appended (see fixes);
+    - AI 190/191 (Khomas/Otjozondjupa zeros to 2014-02-04) vs AI 208/216: Okahandja cases (AI 58) and Windhoek cases are after
+      4 Feb; AI 216 = Omusati/Oshana/Ohangwena only. Consistent.
+    Baseline-internal conflict found: JHU 2018 national annual = 0/0 vs JHU NA-KH 2018-01-25..31 (1 confirmed) and AI 6.
+(b) Cumulative monotonicity (same Location+TL): 10 breaks + 6 cross-TL inversions. ALL documented in notes: AI 112->106
+    (WHO revision 497->485), AI 131/148 (same-week conflicting Kunene counts, both 0.35-0.5), AI 215->2 (AI 2 = lagged
+    6-7 Jan figure, conf 0.5), AI 136->119 (deaths conflict), AI 111->104 (cCh different scope), AI 127->97 (New Era vs WHO HAC),
+    AI 120->94 (diarrhoea vs IFRC basis), AI 76->77/78 and 219 vs 79/81, 107/110/205 vs 77/78 (all-suspected vs WHO AFRO
+    classified = confirmed+epi-linked basis; AI 77 gives 105 suspected/60 discarded). No row changed.
+(c) Parts vs whole: AI 93 (250) < districts 337 = documented diarrhoea-vs-cholera basis (AI 93/119/136 notes); JHU 2007 (14)
+    < Ohangwena 475 + Omusati 90 = documented (Apr-May 2007 outbreak never notified to WHO; AI 210/126 notes); JHU 2008 3,496
+    < Ohangwena 1,406 + Kunene 2,236 + Oshana 5 = 3,647 documented (AI 131/132/209 notes); JHU 2013 (3) < Opuwo 6 documented
+    (AI 113); AI 90 518 vs 519 and AI 3 546 vs 550 = my double count of AI 165/58/151 inside AI 208/216 (exact 493+32+21=546);
+    AI 64 (45) < Opuwo 18 + Grootfontein 80 = documented (WHO annual = classified-case basis; AI 64 conflict #11 note).
+(d) Subset/total labels: with the validator's vocabulary, 5 sub-national rows overlapping a national row (any layer) carry no
+    double-count statement: AI 6 (vs JHU 2018 annual) and AI 114-117 (vs JHU 2009 annual). The validator misses them because
+    it only groups AI-file national rows. -> notes appended (see fixes).
+(e) Bands: 1 row ABOVE its source's band: AI 10 conf 0.9 on a Level 3 source (The Namibian, metadata 9). 52 rows below band
+    (43 L1, 9 L2) = conservative downweights (inferred absences, lagged/conflicting counts) - acceptable.
+    CFR>15%: AI 74 1/4=25% conf 0.9 (denominator 4; death corroborated by WHO 2025 wk24 6 cases/1 death) - kept, noted;
+    AI 108 (1/3), 118 (4/22), 151 (1/1), 162 (1/1) all <=0.45. No positive count row spans >2 years (no multi-year count cap
+    needed). Multi-year ZERO rows: AI 167 (5.9 y, 0.85), AI 174 (16.5 y, 0.6), AI 181 (3.1 y, 0.6) - zero rows are exempt
+    from the CFR/aggregate cap; AI 167 reviewed under item-5 check below.
+
+=== CHECK PASS 4 | STEP 3f: SOURCE SPOT-CHECKS (27 rows, all agents; curl/pdftotext/IRIS DSpace API/Wayback/page render) ===
+NOTE: WebSearch unavailable for this session (session budget 200/200 already used by Agents 1-4); all checks via curl/WebFetch.
+Method: fetch the cited URL (or its PDF attachment / IRIS TEXT bitstream / Wayback id_ capture), grep the exact figures.
+ pre-run : AI 2 (OCHA map 10 Jan 2014: '7 deaths and 138 cases') PASS; AI 3 (ReliefWeb disaster page: 'Country-wide, 546 cases
+           and 19 deaths') PASS; AI 13 (WHO Epi Update 34 PDF Table 1: 'Namibia 42 0 0.0') PASS; AI 57 (WHO AFRO PDF via ReliefWeb:
+           316 cases/11 deaths; 'Ten stool samples were tested positive' = cCh 10) PASS
+ Agent 1 : AI 64 (IRIS WER 101(38): 'Namibia 45 0 1.5 1 1 2.2'; 'Namibia 126 34 27.0 130 34 26.2') PASS; AI 84 (IRIS WER 82(5):
+           'Namibia/Namibie 01.XI.06-09.I.07 199 5') PASS; AI 93 (IFRC bulletin: '250 cases and 7 deaths ... 50 of them in Outapi')
+           PASS; AI 98 (OCHA RU10 PDF: '203 cases and 9 deaths ... Kunene Region was the only cholera affected area ... No cases
+           were reported since 19 April 2009') PASS; AI 110 (The Namibian: '39 hospitalisations and 108 suspected cases') PASS;
+           AI 112 (WHO AFRO Outbreak Bulletin Vol.4(1) Fig. 3 rendered to PNG: Namibia 497 cases / 11 deaths) PASS
+ Agent 2 : AI 126 (New Era 9 May 2007: '475 of which 27 were confirmed ... Ten deaths') PASS; AI 131 (New Era 30 Apr 2008:
+           '2 168 suspected ... five cases confirmed ... 13 residents died') PASS; AI 133 (New Era: '188 suspected cases and 52
+           confirmed cases, with no fatalities') PASS; AI 145 (AZ 17 Apr 2008: 1201 / 16 lab-positive / 13 deaths; source scopes it
+           to 'the north' via the Oshana/Ohangwena/Omusati coordinator - Ohangwena coding already justified in-row by a second
+           outlet) PASS; AI 154 (New Era Oshiwambo: 533 suspected, confirmed 'from eight to thirteen', deaths 'still three') PASS
+ Agent 3 : AI 168 (IRIS WER 100(36) Table 2 'Countries reported 0 cases and deaths in 2024' incl. Namibia) PASS; AI 174 (New Era
+           21 Feb 2007: 'cases of cholera reported for the first time in Namibia') PASS; AI 181 (New Era 20 Sep 2018: 'The last
+           cholera outbreak experienced in Namibia was in 2013-2014') PASS
+ Agent 4 : AI 196 (Wayback WHO AFRO Southern Block IDS Feb 2000 PDF: 'Namibia 17 0 0 0 0 ...' explicit cholera zeros 1999) PASS;
+           AI 199 (New Era 2008: 'This year only, cholera has killed 37 people') PASS; AI 201 (Wayback Republikein 26 Jul 2013:
+           'vier monsters ... net twee het positief getoets', both discharged) PASS; AI 203 (Wayback New Era Mar 2009: '149 cases
+           ... nine cases were confirmed ... death cases remained at eight') PASS
+ Agent 5 : AI 206 (The Namibian 15 Jul 2026: '282 suspected ... 82 were laboratory confirmed ... One person died') PASS; AI 207
+           (UN RC SitRep 2 PDF: 'Kunene, 493 cases ... 15 deaths ... Four other regions have recorded 21 cases with two deaths')
+           PASS; AI 215 (MoHSS via ReliefWeb: '89 (yesterday) to 276 (today) ... total number of death to 8') PASS
+ Agent 6 : AI 225 (New Era: 'last confirmed case in Grootfontein ... 18 February 2026 ... Opuwo ... 22 March 2026') PASS
+ Agent 7 : AI 226 (IRIS WHO AFRO Monthly Bulletin Mar 2025 TEXT bitstream; see fixes) PASS
+RESULT: 27/27 = 100% quote-present-and-numbers-match. Caveat: sample restricted to rows whose sources are retrievable;
+  interpretation issues (AI 2 lag, AI 145 scope) are documented in-row, not quote mismatches.
+
+=== CHECK PASS 5 | STEP 4 ITEMS ===
+Item 1 (in-memory weekly build, build_all_templates + process_country, no files written): national series now ends at ISO
+  2026-W29 (13-19 Jul, AI 50 documented_zero); 2026-W30 (20-26 Jul) is ABSENT (on-disk 18:21 file still shows W30 as an AI
+  documented_zero from retracted AI 55). Days 16-19 Jul sit inside W29 and inherit AI 50's zero because weeks_in_range()
+  includes any ISO week whose Monday <= TR (week-rounding artefact). 2026-W17 = AI fourier 4.98; W18 = AI 225 observed 0.
+Item 2 (WHO blank-zero weeks): WHO 2026 rows 'week 5/13/14/15' (stored ISO W6, W14, W15, W16) have blank sCh with note
+  '0.0 cases'; the builder skips them, so AI 14 (213) is Fourier-spread into W6 17.2, W14 9.0, W15 7.7, W16 6.3, W17 5.0 =
+  45.1 cases. WHO observed weeks 2025-W43..2026-W13 sum to exactly 277 (= MoHSS/AFRO suspected as of 7-8 Apr); with the
+  Fourier fill the national series totals 322.1 vs the final MoHSS 282 (AI 206) = +40 (+14%). True post-7-Apr increment
+  ~5 (277->282 by 22 Apr). No AI rows added (WHO 2026 rows also carry the known one-ISO-week shift). Documented as O2.
+Item 3: AI 14 correction note appended (blank last-28-days cells = missing data; 213 unchanged).
+Item 4 (Informante id 3559 'Cholera scare at Ondangwa private school', category 'northern'):
+  - Wayback: only 301 captures (view=article URL 2016-03-04; task=view URL 2018-06-29); no other URL form archived.
+  - DATED via neighbouring legacy IDs with archived 200 captures: 3264 = Thu 8 Jan 2009; 3634 = Thu 5 Mar 2009; 3666 = Thu
+    12 Mar 2009; 3687/3689 = Thu 19 Mar 2009 (~46 IDs/weekly issue) -> id 3559 = 19 or 26 Feb 2009 issue (inside AI 193).
+  - New Era WP API ('cholera Ondangwa', 'cholera school Ondangwa', 'Ondangwa diarrhoea', 'cholera Oshana'): no 2009 item.
+    Republikein/Namibian Sun/AZ Wayback CDX (cholera, ondangwa): no 2009 Ondangwa cholera item (AZ 'Keine Panik vor Cholera'
+    and 'Drei Cholera-Tote in Namibia' are both 19 Dec 2008 = Kunene Okangwati 29 suspected/2 confirmed/3 deaths).
+  - CONTRARY EVIDENCE FOUND: New Era c. 3 Mar 2009 (metadata 232, Wayback 20090304) - Oshana Regional Health Director Dr N.
+    Hamata: 'Although no cases of cholera were reported in the Oshana Region ...'; Minister Kamwi: 'no serious cases of
+    waterborne diseases have been reported in all regions except the Kunene Region'. Post-dates the probable scare.
+  - DECISION: AI 193 kept, not shortened; caveat appended; confidence 0.7 -> 0.65 (uncharacterised cholera-related event in
+    Oshana inside the window).
+Item 5 (annual-report silence): all 81 zero rows reviewed (41 Inferred, 40 Documented). None rests on MoHSS annual-report
+  silence alone. AI 200 (Caprivi regional annual report 2000/01) quotes an explicit 'There were no cases of or outbreaks of
+  ... cholera during the year'. The 1990-2004 WER rows (AI 16-30, Inferred 0.8) rest on non-notification under mandatory
+  IHR(1969) notification + WHO GHO (no Namibia record before 2005) + PMC2870929 ('first published report of cholera from
+  Namibia') + AI 174 ministerial statement; 1970-1989 rows (0.6) on WER non-listing + WER 66(42) 1991 'never notified'.
+  AI 167/181 explicitly flag WER 2015-2019/2022 non-reporting and rest on GTFCC/SADC/MoHSS statements + WHO zero reports
+  2020/2021/2023. No 2012-2013H1 row exists (correctly: only JHU phantom zero and AR 2012/13 silence).
+
+=== FIXES APPLIED (all via py/revise_observation.py / py/add_observation.py; no hand edits) ===
+ 1. AI 10 RETRACTED (tombstone) and RE-ADDED as AI 226 with identical values (Kunene 2025-03-02..03-13, cCh 1, deaths 0, conf
+    0.9) citing metadata 58 (WHO AFRO Monthly Regional Cholera Bulletin March 2025, Level 1; text verified from the IRIS TEXT
+    bitstream: Table 1 'Namibia 1 0 0 1 0 0 Mar-25 02-Mar-25' + Opuwo District Hospital/Kunene narrative; metadata 151 wk13
+    bulletin also verified). Reason: AI 10 cited The Namibian (metadata 9, Level 3) at 0.9 = above the Level 3 band. The
+    add tool's duplicate guard required retract-then-add. Cross-reference notes appended to AI 54, 64, 171, 188.
+    New finding recorded in AI 226: the bulletin's summary classes the case 'imported' while its own narrative says 'no
+    recent travel history outside the country'.
+ 2. AI 14: correction note (item 3) - blank last-28-days cells are missing data, not 'no new cases'; dashboard weeks 13-15
+    are not confirmed zeros (277 -> 282 suspected by 22 Apr); 213 unchanged; builder caveat (~45 Fourier cases).
+ 3. AI 6: double-count statement + JHU 2018 annual-zero vs JHU NA-KH/AI 6 Jan 2018 case conflict documented.
+ 4. AI 114, 115, 116, 117: double-count statement vs JHU 2009 national annual (159/3, all Kunene).
+ 5. AI 159, 160: cross-reference to the four-region flood-zone aggregates AI 104/111/209 (cases confined to Ohangwena).
+ 6. AI 193: unresolved-lead caveat (Informante id 3559 dated to 19/26 Feb 2009; contradicted by the Oshana director's
+    early-March 2009 statement); confidence 0.7 -> 0.65.
+ Not changed (adjudicated, documented above): AI 74 (CFR 25% on 4 cases, WHO AFRO's own figure), AI 16-30 (Inferred 0.8,
+    multi-line corroboration), AI 167 (0.85, WHO zero reports 2020/21/23 + statements), all monotonicity breaks (documented).
+ Post-fix re-check: 0 rows above band; 0 sub-national rows lacking a double-count statement; validator ERROR 0 / WARN 0.
+
+=== CHECK PASS 6 | STEP 5: IMPACT (read-only analyse(); in-memory weekly builds; no shared files written) ===
+                         Baseline JHU+WHO | START of run (ledger) | END (now)
+ months_with_data/681       229 (33.6%)    |   679 (99.7%)         | 678 (99.6%)
+ gap_periods                 5             |   1 (2026-08..09)     | 1 (2026-07-01..09-30, 92 d)
+ months_ai / months_ai_only  0 / 0         |   582 / 449           | 656 / 448
+ months_with_positive_cases  81            |   84                  | 89
+ latest_observation          2026-04-19    |   2026-07-26 (AI 55)  | 2026-07-15 (AI 50)
+ latest_positive             2026-03-29    |   2026-04-26          | 2026-04-26
+ observations (all layers)   83            |   146                 | 285
+ This run: coverage -1 month (July 2026 fell below the >50%-of-days rule when AI 55 was correctly retracted); 0 gap periods
+ closed, 0 opened, the one gap widened 61 -> 92 days; months_ai_only -1; positive months +5, ALL FIVE artefacts of the new
+ 2025 annual row AI 64 (Jan, Feb, Apr, May, Sep 2025 are documented-zero months touched by a full-year positive row).
+ Genuine AI-added positive months vs baseline: Jul 2025, Aug 2025 (Opuwo 12->18 missed by WHO HQ), Apr 2026 (277->282).
+ vs baseline: 4 of 5 baseline gaps closed (1970-2004, 2010, 2022, 2025-01..03) and 2026-05..06 closed - ALL by zero rows,
+ and all already closed before this run started.
+ Evidence behind AI coverage: of 656 AI-covered months, 342 rest on Documented zeros only, 269 on Inferred zeros only, 45
+ include a positive AI row (all 45 overlap JHU/WHO coverage). Of 448 AI-ONLY months: 238 Inferred-only, 208 Documented-only,
+ 2 (Jan-Feb 2025) documented zero + annual count; i.e. no AI-only month carries positive case information.
+ By decade (AI-only months): 1970s 108 Inf/12 Doc; 1980s 120 Inf; 1990s 2 Inf/118 Doc; 2000s 60 Doc; 2010s 8 Inf/4 Doc;
+ 2020s 14 Doc/2 mixed.
+ National weekly series (in memory): all layers 2,951 weeks (1970-W1..2026-W29), case mass 4,696.1; baseline-only 1,081 weeks
+ (2004-W53..2026-W13), case mass 4,648.0. AI supplies 1,983 weeks, of which 1,968 are zero weeks (1,053 inferred_zero, 915
+ documented_zero); AI case mass 48.1 (+1.0%), ~45 of it the AI 14 artefact in 2026-W6/W14-17. AI relabels 113 baseline
+ assumed_zero weeks (60 documented, 51 inferred, 2 Fourier). Current vs on-disk 18:21 build: identical except 2026-W30 removed.
+
+=== COMPLETION ===
+Report written: ./data/NAM/search_report.txt (executive summary 99 lines / ~1,220 words + metrics appendix A1-A11).
+Workflow state: write_agent_state('NAM', agent_num=7, batches_completed=6, rows_added=1 (AI 226 re-attribution, net 0),
+  sources_discovered=0) -> ./data/NAM/workflow_state.json (7 agent entries).
+Final validator: python py/validate_quality.py NAM -> ERROR 0 / WARN 0 / INFO 112 (89 metadata_unused + 23 documented overlaps).
+Not done by design (orchestrator overrides): no shared reference/dashboard/weekly files written; no git commit.
+Agent 7 Status: COMPLETE
+End Time: 2026-09-30 22:32:00
