@@ -13,3 +13,91 @@ conflicts; P5 registry re-mining; P6 arithmetic; P7 plague presence rows (Agent 
 Stopping rule: >=3 batches of 20; then stop at 3 consecutive sub-5% batches or 12 batches.
 No time limit.
 
+=== PRE-BATCH LOCAL RECONCILIATION (no queries; not counted in any batch yield) ===
+Method: dry-run harness replicating py/build_weekly_timeseries.process_country on temp copies of the
+three CSVs (/tmp/tza_a5/sim.py, /tmp/tza_a5/attr.py; repo files untouched) to measure which AI rows
+reach the national weekly series and how much each fabricates. Only 13 AI rows reached the series at
+start: AI 13, 23, 29, 33, 57, 154, 159, 161, 162, 165, 176, 179, 466.
+Validator at start: exit 0, ERROR 0, WARN 52 (47 CFR_high, 2 same_period_conflict, 2 multiyear, 1 single-day).
+
+P1 2026 cumulative smear -> RESOLVED, 5 retractions (tombstones in ./data/TZA/retracted_rows_ai.csv)
+  AI 162 (1-25 Jan, 113/2): exact duplicate of WHO baseline rows (59/2 wk of 29 Dec + 54 wk of 12 Jan = 113/2);
+         spread into WHO-blank 2026 W2 and W4 (+75). Keeping it alone -> 2026 total 188.
+  AI 159 (to 29 Mar), AI 22 (to 26 Apr), AI 23 (to 31 May), AI 29 (to 26 Jul): same 113/2 restated;
+         last-28-days '-' = missing (WHO footnote); spread into W5 and W20-30.
+  Dry run 2026 national total: 216.3 -> 113.0 (= WHO cumulative exactly).
+  Related conflicts closed by arithmetic (no row change):
+   - UNICEF Great Lakes '54 cases in 2026' vs WHO 113: 54 = WHO week-3 row; UNICEF's end-2025 cumulative 16,612
+     absorbs the 59 of the WHO row dated 29 Dec 2025-4 Jan 2026 (16,612 + 54 = 16,666 = OEW cumulative to 1 Feb).
+     Note the WHO 2026 week-shift bug (memory): WHO epiwk 1 of 2026 truly starts 5 Jan, so the 59 may belong to
+     5-11 Jan; MoH Dec 2025 monthly = 17 = WHO wk 51 supports the 59 being January cases. Baseline read-only.
+   - OEW 2026 wk3 'as of 14 December ... 4 261 ... 58 deaths ... preceding 28 days, 21 new cases' vs WHO weekly
+     63 + 21 (wk 47-48): 4261 = WHO weekly sum of ISO weeks 1-50 exactly; the '21' equals wk 48 alone. Internal
+     WHO inconsistency; no AI row carries it. WHO weekly (finer) stands.
+
+P2 2025 annual totals -> RESOLVED, 5 retractions
+  The 12 monthly MoH IDSR rows AI 53-58 + 41-46 sum to 3987/45 = WHO Cholera Annual Report 2025 (WER 101(38))
+  3987 cases exactly (WHO deaths 47, cCh 11, RDT 239/250). Retracted as redundant: AI 168 (3987/47/cCh 11, final),
+  AI 161 (4261/58 to 28 Dec, preliminary; = WHO weekly W1-50), AI 21 (4101/55 to 26 Oct), AI 20 (4003/50 to 31 Aug),
+  AI 19 (ECDC 2085/16 to 17 Mar). All figures verbatim in notes of AI 53 and AI 46; pointer notes on the other 10.
+  Dry run: AI 161 alone filled WHO-blank 2025 W44/49/50/52 with 473 cases; with only AI 168 kept, ~430.
+  After: W44 8.2 (AI 44 Oct), W49/50/52 3.3-3.5 (AI 46 Dec = 17). 2025 national total 4845.2 -> 4390.1.
+  'Keep one annual total if any' weighed: re-weighting cannot neutralise the smear (builder picks the larger sCh
+  among same-source Fourier entries, ignoring confidence), so none kept.
+  Correction noted on AI 46: its '3103 cases' for the WHO weekly 2025 total is not reproducible (file sums to 4278).
+Remaining AI rows reaching the series after P1/P2: 13, 33 (2022: P4), 44, 46, 57 (legit monthly), 154, 466
+(2019: P4, an undercount not a smear), 165, 176, 179 (2022 event B).
+
+=== BATCH 1 | PHASE 2 (cross-reference re-mining) | TZA ===
+Gap targeted : registry re-mine (P5) + P3/P4 verification: 2019 Tanga split, 2021-22 epidemic, 2022 calendar total,
+               2015-16 IFRC series, 2022 IFRC DREF, 2024 AFRO monthly series, 2007-08 WHO annuals; IJID 2024 lead
+Queries      : 20 (one logical lookup each; API navigation calls grouped)
+  1  WF   reliefweb ESA regional cholera bulletin page (metadata 5) -> HTTP 403
+  2  API  ReliefWeb API v2 -> 'not an approved appname' (confirmed unusable, as Agents 1-4 logged)
+  3  WB   Wayback 20190408 copy of the same page -> 'During week 12 (week ending 24 March 2019), 38 new cases ... total ...
+          since the beginning of 2019 to 154, including 2 deaths ... Korogwe DC (24), Korogwe TC (11) and Handeni DC (3)'
+          => AI 7/8/9 were week-12 NEW cases mis-dated 2019-01-01..04-01 -> REVISED (see P3)
+  4  WB   ESA bulletin 6th issue PDF -> table: wk11 23/0, wk12 38/0, 2019 154/2, 2018 4,688/84, 2017 4,276/76, since Aug
+          2015 33,475/552; = JHU weekly W1-W12 2019 sum 154/2 exactly -> AI 6 TR 04-01 -> 03-24 + corroboration note
+  5  CDX  Wayback enumeration of reliefweb 'cholera_outbreaks_bulletin...' PDFs -> only the 6th issue archived
+  6  WS   "Tanzania Public Health Bulletin" issue IDSR cholera 2022/2023 -> nothing beyond Issues 13-16 (no Issue 1-12 found)
+  7  DL   metadata 7 PDF -> it is the MoH National Multi-Sectoral Cholera Prevention and Control Plan 2023-2027 (cover
+          '@2022 Edition', final Nov 2023), NOT a '2022 report'. Table 2 (Nov 2021-Jun 2022) Nkasi 54/0, Kigoma MC 30/4,
+          Nkasi 94/1, Uvinza 126/0, Tanganyika 215/6 = 519/11; Fig. 2 daily epi curve (categorical axis), first case-day
+          30-11-21, last 28-06-22 -> meta 7 description corrected; AI 1093 TR 12-01 -> 11-29; AI 13 TL 11-01 -> 11-30 + notes
+  8  IRIS OEW week 52 2022 (metadata 73) re-fetched -> national event line 'Tanzania ... 15-Nov-22 | 31-Oct-22 | 17-Nov-22 |
+          18 | 3 | 1 | 5.6%', all cases Babati DC                                                  -> ROW 1366 (national)
+  9  API  IFRC GO appeals for TZA -> cholera ops MDRTZ018/031/037; flood ops MDRTZ035/040/043/044
+  10 API  IFRC GO appeal documents -> unregistered: MDRTZ018 Dec 2015 EA, Oct/Nov 2016 final reports; MDRTZ031 final
+          report; MDRTZ035 (12 docs), MDRTZ040 (2), MDRTZ043 (1)
+  11 DL   MDRTZ018 preliminary final report (FileId 150808) -> same text as q12; no separate row
+  12 DL   MDRTZ018 final report (FileId 152826) -> 'As of 31 May 2016, 21,647 cases ... 338 cholera related mortalities
+          reported in 60 districts' (mainland)                                                -> ROW 1367 (Mainland cumulative)
+          (also 'As of 19 November 2015 ... 8,954 cases and 129 deaths' - NOT entered: national cumulative restatement in
+          a period covered by JHU weekly; Nyarugusu May 2015 4,833/40 = AI 211 already)
+  13 DL   MDRTZ031 DREF final report -> 'As of 23 of April total of 13 patients ... ten (10) from Tanganyika DC, and three (3)
+          from Uvinza DC' (index case notified 18 Apr 2022)                                  -> ROWS 1368, 1369 (district)
+          undated '261 ... (137 in Katavi and 124 in Kigoma) of which 200 were confirmed with four deaths' not entered
+  14 DL   MDRTZ037 final report (metadata 84) -> repeats MoH sitrep 134 (13 regions 1,521/34; Simiyu 824); nothing new
+  15 IRIS AFRO Monthly Regional Cholera Bulletin July 2024 (metadata 34) -> PRINTED 'In July, new cases decreased by 2.0%
+          from 408 in June to 400. New deaths ... from 10 in June to five in July' vs AI 96 = 463/5 DERIVED by subtracting
+          year-to-date cumulatives (backfill inflates the increment). Map Fig. 17 binned (3-164/165-382/383-928): no counts.
+          P6 revision deferred until the Aug-Dec issues are read.
+  16 IRIS WER 83(31) 'Cholera, 2007' -> 'United Republic of Tanzania 1 609 65 4.04' (= JHU 299)
+  17 IRIS WER 84(31) 'Cholera, 2008' -> 'United Republic of Tanzania 2 911 88 3.02' (= JHU 300): no JHU year shift; the
+          Hounmanou regional sums exceeding WHO (2007 2,860; 2011 1,149; 2012 302) are a separate MoH stream, already
+          documented in metadata 228 and weighted 0.5-0.6 -> log only (P6)
+  18 API  Europe PMC (title + broad) for 'Cholera case trends in Eastern Africa ... 2007-2024' -> not indexed
+  19 API  Crossref PII S1201971224005071 -> doi 10.1016/j.ijid.2024.107432, IJID 152:107432 (Mar 2025), Ebonwu, Aliddeki,
+          Otieno, Riek, Mercy (Africa CDC) - a short item
+  20 API  Semantic Scholar -> GOLD OA (CC BY-NC-ND), no abstract text served; full text still behind ScienceDirect
+Sources found: 2 registered   Registered: metadata 515 (MDRTZ018 final report), 516 (MDRTZ031 DREF final report)
+Rows added   : 4   Indices: 1366, 1367, 1368, 1369
+Revisions    : AI 6, 7, 8 (location Korogwe -> Korogwe Urban), 9, 13, 1091, 1093; metadata 7 description
+Retractions  : AI 33 (PAMI calendar-2022 annual; see P4 2022)
+Successful queries: 3/20  (q8, q12, q13)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 2: AFRO Aug-Dec 2024 printed monthly figures (P6), P4 single-source corroboration -
+               Simiyu 2024, Mwanza 2016, Dar 2010, Kagera 1994-95, Bunge 2002-03; 1986/1997/2004 WER checks)
+
