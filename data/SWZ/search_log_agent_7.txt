@@ -1,135 +1,54 @@
-=== AGENT 7 INITIALIZATION ===
+=== AGENT 7 INITIALIZATION (cholera-quality-auditor) ===
 Country: Eswatini (SWZ)
-Start Time: 2026-05-15 07:00:00
+Cycle: 2026-10-01
+Start: 2026-10-02 15:38:12 PDT
+Starting state: 160 rows, 135 sources
 Agent 7 Status: INITIALIZED
 
-=== AGENT 7: QUALITY AUDIT AND DATASET FINALIZATION ===
+Audit plan:
+  Step 1  Validator (py/validate_quality.py SWZ) + scoped repair dry run (py/repair_data_integrity.py --dry-run SWZ)
+  Step 2  Agent work verification (workflow_state.json + search_log_agent_1..6.txt)
+  Step 3  4-stage QC on high-impact sample (rows >1000 cases, A4 hospital rows 161-171, row 180, Documented/Inferred absence rows)
+  Step 4  Pending cleanup (dead metadata URLs -> Wayback via revise_observation.py; presence duplicate; metadata 11; 2026 tail)
+  Step 5  Baseline JHU/WHO issue quantification (read-only, report only)
+  Step 6  In-memory coverage measurement (analyse(); no shared reference writes)
+  Step 7  Final validator, write_agent_state, search_report.txt
 
-=== COMPREHENSIVE QUALITY AUDIT TASKS ===
+=== AUDIT STEP 1 | VALIDATOR + SCOPED REPAIR | 2026-10-02 15:38:46 PDT ===
+Command: python py/validate_quality.py SWZ --json /tmp/SWZ_audit.json
+Result : EXIT 0 | 160 data rows | 135 metadata sources | ERROR 0 | WARN 0 | INFO 59
+  INFO national_subnational_overlap : 26 (all tagged "documented" - processing_notes state primary level)
+  INFO metadata_unused              : 33 (metadata 2,3,4,6,9,10,11,15,17,18,19,22,23,24,30,31,38,39,40,47,49,50,53,76,83,87,96,104,106,107,114,118,133)
+Command: python py/repair_data_integrity.py --dry-run SWZ
+Result : TOTAL 0 change(s). No --apply needed.
+attribution_review.csv: not present (nothing withheld for judgement).
+Saved: /tmp/SWZ_audit.json, /tmp/SWZ_a7/repair_dryrun.txt
 
-[07:00:01] STARTING AGENT 7 - Quality Audit and Dataset Finalization
-
-[07:00:02] TASK: Source Reliability Distribution Analysis
-✓ Source 1: WHO AFRO Weekly Cholera Bulletin April 5 2023 - Level 1 (1.0 weight)
-✓ Source 2: WHO Multi-Country Cholera Situation Report 2 May 2023 - Level 1 (1.0 weight)
-✓ Source 3: Africa CDC Weekly Event Based Surveillance Report July 2023 - Level 1 (1.0 weight)
-✓ Source 4: WHO AFRO Weekly Cholera Bulletin February 5 2024 - Level 1 (0.8-0.9 weight)
-✓ Source 5: UNICEF Swaziland Humanitarian Situation Report 4 September 2017 - Level 2 (0.6 weight)
-✓ Source 6: CDC MMWR International Notes Cholera 1981 - Level 1 (retained for historical reference)
-✓ Source 7: WHO AFRO Cholera Bulletin April 2023 Outbreak Context - Level 1 (0.7 weight for inferred absence)
-✓ Source 8: WHO Infectious Disease Outbreaks African Region 2018 - Level 1 (0.9 weight)
-✓ RESULT: 7/8 sources Level 1 (87.5%), 1/8 Level 2 (12.5%) - EXCELLENT quality distribution
-
-[07:00:03] TASK: Data Row Validation Review
-✓ Row 1 (2023 outbreak): VALIDATED - 2 confirmed cases, 0 deaths, CFR 0.0%, 4 independent sources
-✓ Row 2 (2017 suspected): VALIDATED - 4 suspected cases, single source (Level 2), appropriate 0.6 weight
-✓ Row 3 (2024 absence): VALIDATED - WHO documented absence, appropriate 0.9 weight
-✓ Row 4 (2025 absence): VALIDATED - Inferred absence from multiple WHO bulletins, 0.8 weight
-✓ Row 5 (2010-2014 absence): VALIDATED - Inferred absence consistent with regional patterns, 0.7 weight
-✓ Row 6 (2018 absence): VALIDATED - Peer-reviewed WHO analysis explicitly confirms, 0.9 weight
-✓ Row 7 (2015-2017 absence): VALIDATED - JHU phantom entries + academic exclusions, 0.7 weight
-✓ Row 8 (2019-2022 absence): VALIDATED - JHU zero entries + 2023 "new" characterization, 0.8 weight
-✓ RESULT: 100% validation pass rate
-
-[07:00:04] TASK: Index System Integrity Check
-✓ Metadata indices: Sequential 1-8 (no gaps, no duplicates)
-✓ Data source_index values: All reference valid metadata indices
-✓ Source names in data match exactly with metadata Source column
-✓ All data rows have source_index AND source columns populated
-✓ RESULT: Index system integrity CONFIRMED
-
-[07:00:05] TASK: Date Logic Validation
-✓ All TL < TR verified
-✓ All reporting_dates after TR date
-✓ No future dates beyond collection date
-✓ RESULT: Date logic validation PASSED
-
-[07:00:06] TASK: Geographic Validation
-✓ All entries use AFR::SWZ format (national level)
-✓ No invalid location codes found
-✓ RESULT: Geographic validation PASSED
-
-[07:00:07] TASK: CFR Validation
-✓ Row 1 (2023): 0 deaths / 2 cases = 0.0% CFR - VALIDATED
-✓ Rows 3-8 (absence periods): 0 deaths / 0 cases = 0.0% CFR - VALIDATED
-✓ RESULT: CFR validation PASSED
-
-[07:00:08] TASK: Duplicate Detection
-✓ No identical records from different sources
-✓ Time periods checked for overlap - confirmed non-overlapping
-✓ National vs subnational double-counting: Not applicable (national level only)
-✓ RESULT: No duplications detected
-
-[07:00:09] TASK: Source Authentication
-✓ Source 1: WHO AFRO active URL verified
-✓ Source 2: WHO official publication verified
-✓ Source 3: Africa CDC active URL verified
-✓ Source 4: WHO AFRO active URL verified
-✓ Source 5: ReliefWeb URL (403 blocked but source content verified via search)
-✓ Source 6: CDC MMWR active URL verified
-✓ Source 7: WHO AFRO active URL verified
-✓ Source 8: Cambridge Core URL verified (peer-reviewed)
-✓ RESULT: All sources authenticated
-
-[07:00:10] TASK: Gap-Filling Impact Assessment
-✓ Baseline coverage: 46.5% (315/677 months with data)
-✓ AI-discovered data covers: 2017 Q3, 2023, 2024-2025 active periods
-✓ AI-documented absence covers: 2010-2014, 2015-mid2017, 2018, 2019-2022
-✓ Key gaps addressed: 2010-2014 (60 months), 2015-2017 (30 months), 2019-2022 (48 months)
-✓ RESULT: Significant gap-filling achieved for recent surveillance period
-
-[07:00:11] TASK: Data Quality Assessment
-✓ Outbreak data quality: EXCELLENT (Level 1 sources, multi-source confirmed)
-✓ Absence data quality: GOOD (mix of documented and inferred absences)
-✓ Historical data quality: JHU baseline validated by CDC MMWR
-✓ RESULT: Overall quality HIGH
-
-[07:00:12] TASK: Mandatory Field Completion Check
-✓ All Location fields: AFR::SWZ format
-✓ All TL/TR date fields: YYYY-MM-DD format
-✓ All source_index fields: Valid integer references
-✓ All source fields: Exact matches with metadata
-✓ All confidence_weight fields: Valid 0.1-1.0 range
-✓ All processing_notes: Include source quotes
-✓ All source_database fields: AI
-✓ RESULT: All mandatory fields complete
-
-=== QUALITY AUDIT FINDINGS ===
-
-ISSUES RESOLVED DURING AUDIT:
-1. Removed invalid Row 3 (CDC MMWR 1981 entry with no quantitative data)
-2. Fixed formatting issue in Row 2 (extra space before reporting_date)
-3. Renumbered data rows to be sequential 1-8
-4. Updated metadata to reflect removed validation-only entry
-
-DATA SUMMARY:
-- Total data rows: 8
-- Outbreak data rows: 2 (2017 suspected, 2023 confirmed)
-- Zero-transmission rows: 6 (2010-2014, 2015-mid2017, 2018, 2019-2022, 2024, 2025)
-- Level 1 sources: 7 (87.5%)
-- Level 2 sources: 1 (12.5%)
-- Average confidence weight: 0.80
-
-REMAINING GAPS NOT ADDRESSED:
-- 1970-1977 (pre-cholera period): Documented absence of surveillance; no formal WHO confirmation
-- 1979-1980: Surveillance gap after 1978 (2 cases) and before 1981 (238 cases)
-- 1983-1991: Major historical gap; regional context suggests minimal transmission
-- 1993-1995, 1997: Post-1992 gaps; regional context (Zimbabwe absent 1994-1997) supports absence
-
-[07:00:13] TASK: MOSAIC Integration Readiness
-✓ JHU-compatible CSV format maintained
-✓ Dual-reference indexing system implemented
-✓ Confidence weights assigned for modeling
-✓ Processing notes support all data points
-✓ source_database = 'AI' for all rows
-✓ RESULT: MOSAIC integration READY
-
-=== AGENT 7 COMPLETION ===
-Quality Audit: PASSED
-All 7 previous agent outputs reviewed and validated
-Dataset finalized: 8 data rows, 8 sources
-search_report.txt created
-
-Agent 7 Status: COMPLETED
-End Time: 2026-05-15 07:30:00
+=== AUDIT STEP 2 | AGENT WORK VERIFICATION | 2026-10-02 15:42:14 PDT ===
+Sources: ./data/SWZ/workflow_state.json (agents 1-6 + 6 orchestrator gates); ./data/SWZ/search_log_agent_1..6.txt read in full.
+Index bookkeeping (script over cholera_data_ai.csv + retracted_rows_ai.csv + metadata_ai.csv):
+  181 data indices allocated = 160 live + 21 tombstones; no index missing, none both live and retracted.
+  pre-cycle 1-9: 5 live, 4 retracted (3,4,8,9) | A1 10-46: 37 created, 26 live, 11 retracted | A2 47-116: 70/69/1 (89)
+  A3 117-160: 44/39/5 (124,126,134,144,158) | A4 161-172: 12/12/0 | A5 173-179: 7/7/0 | A6 180-181: 2/2/0
+  Metadata 1-135 contiguous: pre 1-10, A1 11-50 (40), A2 51-88 (38), A3 89-116 (28), A4 117-128 (12), A5 129-134 (6), A6 135 (1).
+Batch floor (>=3): PASS for all six (7, 12, 12, 9, 5, 5 batches).
+Yield >100% tripwire: PASS (max 35%, A4 B1). All batch_yields recorded in percent units.
+Claimed vs observed row deltas: PASS at every gate (+37, +70, +36, +3, +5, 0).
+Stopping rules: A1 rule (a) B5-7; A2 rule (b) 12 batches (B8-11 each exactly 5%); A3 rule (b) 12 batches; A4 rule (a) B7-9;
+  A5 rule (a) B3-5; A6 rule (a) B3-5. All legitimate as logged.
+YIELD-COUNTING CAVEATS (flagged, not errors):
+  A4: B2 (Q2 -> rows 168/169) and B4 (Q4 -> row 170) successes were Inferred->Documented REPLACEMENTS of existing zero rows
+      (16/144, 17), not new coverage. Discounted, A4's yields read 35,0,0,0,... and rule (a) would have fired after B4 (B2-B4 all
+      <5%). The inflated count kept A4 running to B9, and B6 then found the genuinely new Budget Speech 2001 row 172 - so the
+      miscount extended searching rather than inflating data, but A4's stop point is not the one the protocol would have produced.
+  A3: 8 of its 29 successes were replacement/re-sourcing rows (B1 Q1/Q9/Q13; B2 Q7/Q8; B3 Q16; B5 Q3/Q7; plus B8 Q6/Q7 and B12 Q8
+      splits). A3 flagged them itself. Discounted sequence ~5,5,5,5,0,30,5,15,5,5,0,5 - rule (a) still never fires, so the
+      12-batch run is unaffected.
+  A6: B2 Q13 (row 181) is a re-sourcing split of row 5; without it B2 = 5% (not below 5%) - stop point unaffected. Flagged by A6.
+  A5: replacement row 176 was correctly NOT counted.
+  A1/A2/A4: archive sweeps (e.g. A1 B1 Q4 WER title sweep -> 22 rows; A1 B4 Q2 466 JPRS issues -> 10 rows) counted as ONE query.
+      This deflates yield (consistent with 'count queries, not rows').
+Other process notes: A2 exhausted the session WebSearch allowance at B8 Q14 and A3 started with WebSearch refused; both continued via
+  direct APIs (IRIS, Wayback CDX, Europe PMC, ReliefWeb, OpenAlex) and counted those as queries. A4's first session logged no
+  batches and was redeployed from batch 1 (orchestrator record). No agent claimed rows it did not add.
 
