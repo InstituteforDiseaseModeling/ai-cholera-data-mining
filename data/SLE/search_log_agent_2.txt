@@ -1,0 +1,83 @@
+=== AGENT 2 INITIALIZATION (Geographic Expansion Specialist) ===
+Country: Sierra Leone (SLE)
+Start: 2026-10-01 23:19:56
+Status: INITIALIZED
+
+=== AGENT 2 PRE-SEARCH STATE ===
+Read: ./data/SLE/workflow_orchestrator_SLE.txt (sections 0-10, incl. A1 handover), ./templates/template_search_protocol.txt,
+      ./data/SLE/search_log_agent_1.txt (all 12 batches, final summary, LEADS FOR AGENT 2/3/4/5),
+      ./data/SLE/cholera_data_ai.csv (127 rows, Index 1-9, 12-129), ./data/SLE/metadata_ai.csv (78 sources),
+      ./data/SLE/cholera_presence_ai.csv (2 records).
+Validator at start: python py/validate_quality.py SLE -> exit 0, ERROR 0, WARN 9 (4 CFR_high on A1 rows; 5 overlap WARNs
+      from legacy Index 3-8, 12 - Agent 5).
+Coverage helper (python3 /tmp/SLE_orch/sle_coverage.py SLE): 76.8% (524/682), gaps 1972-1976, 1979-1985, 2010,
+      2026-09-01..2026-10-01. py/analyze_effective_gaps.py NOT run (brief s.1 override).
+Agent 2 scope (brief s.7 + prompt): province/district/chiefdom detail for every outbreak year except the 2012-13 JHU
+      chiefdom series (2012-13 district DEATHS are new); border districts (Guinea: Kambia, Port Loko, Karene,
+      Koinadugu/Falaba, Kailahun; Liberia: Pujehun, Kenema, Kailahun); Freetown slums; any sub-national positive evidence
+      in the gaps 1972-76, 1979-85, 2010, 2026.
+Rules adopted: every sub-national row --note carries "Provincial subset - do not sum with national row"; national rows
+      (if any) carry "National total - includes provinces not individually listed"; cumulative rows carry
+      "Cumulative snapshot since <date> - do not sum with overlapping rows"; canonical Location names per brief s.6;
+      no edits to legacy Index 1-20 (evidence -> LEADS FOR AGENT 5).
+Query accounting: 1 query = 1 WebSearch, 1 WebFetch of a document, 1 archive/API pull (ReliefWeb curl, Wayback PDF,
+      EuropePMC API, IRIS call). Connectivity probes not counted.
+
+=== BATCH 1 | PHASE 1 | SLE ===
+Gap targeted : Priority 1 - 2012 epidemic DATED DISTRICT cumulatives WITH DEATHS (JHU UID 20355 daily chiefdom series has
+               no deaths; JHU UID 810 has only the end-of-outbreak 2012-01-01..2013-02-11 district totals); priority 2 -
+               1986, 1994-95, 2007, 2013 district geography (Q4, Q5, Q8, Q10, Q19)
+Access notes : ReliefWeb returned HTTP 429 after bursts -> /tmp/SLE_orch/a2_rw.py (a1_rw.py + backoff) and spaced requests;
+               WHO AFRO PDFs live under https://www.afro.who.int/sites/default/files/pdf/ (page links point at a dead
+               staging host who.insomnation.com). Image tables read visually at 300 dpi (pdftoppm) and cross-checked with
+               the Vision OCR tool; every table's district parts were summed against its stated national total.
+Queries      : 20
+  Q1  ReliefWeb WHO DON 'Cholera in Sierra Leone - update (22 August)' -> national only (11,653/216; Bonthe and Kono newly
+      affected; 10 of 13 districts) - the 'WA 4,374/57, Port Loko 2,681/39, Kambia 1,102/28' attributed to this DON is NOT
+      in it; no row
+  Q2  ReliefWeb WHO/UNICEF 'Cholera situation in Sierra Leone - 24 August 2012' + PDF -> district table 1 Jan-23 Aug
+      (12,819/224) -> ROWS 130-139
+  Q3  ReliefWeb WHO/UNICEF '... 10 August 2012' + PDF -> district table to 11 Aug (9,234/160) -> ROWS 140-147
+  Q4  WebSearch "Sierra Leone cholera 1986 epidemic Kambia Port Loko Tonkolili district cases deaths" -> nothing for 1986
+  Q5  WebSearch "Sierra Leone cholera 1995 Freetown Kissy/Wellington/Kroo Bay/Kenema/Bo" -> nothing for 1995
+  Q6  ReliefWeb WHO/UNICEF '... 30 August 2012' + PDF -> charts only; text 'As of 29 August 2012 ... 14,521 cases with 243
+      deaths ... Western Area about 50% ... Port Loko 21% and Kambia 9%' (percentages, not counts); no row
+  Q7  ReliefWeb WHO/UNICEF '... 17 August 2012' + PDF -> district table to 16 Aug (10,905/184) -> ROWS 148-155
+      (Freetown: Mabela declining; new areas Leicester Road, Blackhall Road - no counts)
+  Q8  WebSearch Yeliboya/Rokai/Kotimor cholera Kambia 1994 -> only 2012 (index case Yeliboya 16 Feb 2012; Yeliboya 34% of
+      Kambia cases - CERF RC/HC 2012); no row
+  Q9  ReliefWeb WHO/UNICEF '... 24 September 2012' + PDF (image table) -> district table to 23 Sep (19,680/278; text
+      19,674) -> ROWS 156-167
+  Q10 WebSearch 2007 Kenema/Kambia/Newton/Pujehun -> no 2007 district data; leads: WHO AFRO 4 Sep and 11 Sep 2012 updates
+  Q11 WebFetch WHO AFRO 'Cholera situation in Sierra Leone - 4 September, 2012' + PDF -> district table to 3 Sep
+      (15,838/251) -> ROWS 168-179
+  Q12 WHO AFRO node 2998 '... 11 September 2012' + PDF (image table) -> district table to 10 Sep (17,319/259) -> ROWS 180-191
+  Q13 WebSearch '"Cholera situation in Sierra Leone" October 2012' -> leads: WHO DON 2012DON034, WHO AFRO node 2996 (18 Sep)
+  Q14 WebFetch WHO DON 2012DON034 (8 Oct 2012) -> national 20,736/280 to 2 Oct only; no row
+  Q15 ReliefWeb OCHA map 'Cholera Cases - Week 39 (as of 03 Oct 2012)' + PDF -> chiefdom choropleth with RANGES only; no row
+      (other OCHA 2012 choropleths skipped for the same reason)
+  Q16 ReliefWeb IFRC MDRSL003 Operation Update 1 (24 Oct 2012) + PDF -> Table 1 (Source: MoH) district cumulative 'up to 13
+      October 2012' (21,599/290) -> ROWS 192-203 (Table 2 'by first week of October', undated, not entered)
+  Q17 ReliefWeb IFRC DREF MDRSL002 (20 Mar 2012) + PDF -> MOHS table as at 9 Mar 2012: Port Loko 1,168/8, Kambia 490/17,
+      Pujehun 479/9 -> ROWS 204-206
+  Q18 ReliefWeb IFRC DREF MDRSL002 final report + PDF -> 96 referrals (programme output); no row
+  Q19 WebSearch 2013 district outbreaks -> 'second outbreak in 2013 with 368 cases by August' (Wikipedia); no district data
+  Q20 WHO AFRO node 2996 '... 18 September 2012' + PDF -> district table to 17 Sep (18,734/272) -> ROWS 207-218
+Sources found: 13    Registered: index 79, 80, 81, 82, 83, 84, 85, 86, 87
+Rows added   : 89    Indices: 130-218 (all sub-national, all 2012)
+  2012 dated district cumulative snapshots (cases + deaths), one MoHS stream (WHO/UNICEF daily updates, IFRC copies):
+    to 09 Mar (204-206, 3 districts, IFRC/MoHS)   to 11 Aug (140-147, 8)   to 16 Aug (148-155, 8)   to 23 Aug (130-139, 10)
+    to 03 Sep (168-179, 12)   to 10 Sep (180-191, 12)   to 17 Sep (207-218, 12)   to 23 Sep (156-167, 12)
+    to 13 Oct (192-203, 12, IFRC copy of MoH table)
+  Arithmetic: every snapshot's district parts sum EXACTLY to its own stated national total (cases and deaths); 24 Sep
+    narrative 19,674 vs table 19,680 (table kept, noted). Western Area = Urban+Rural combined -> AFR::SLE::Western_Area.
+  Corroboration (>1000-case rows): JHU UID 20355 daily chiefdom series summed to the same dates agrees within ~3%
+    (e.g. 23 Aug WA 6,439 vs 6,240; Port Loko 2,981 vs 2,944; Kambia 1,202 vs 1,220); deaths are new information.
+  Notes on every row: "Cumulative snapshot since 2012-01-01 - do not sum with overlapping rows" + "Provincial subset - do
+    not sum with national row".
+Successful queries: 9/20 (Q2, Q3, Q7, Q9, Q11, Q12, Q16, Q17, Q20)
+Yield        : 45%
+Consecutive sub-5% batches: 0
+Validator    : exit 0, ERROR 0, WARN 9 (unchanged; new rows only joined the existing legacy 2012 overlap groups)
+Decision     : CONTINUE (minimum 3 batches; yield >= 5%). Batch 2: Nov-Dec 2012 / 2013 district tables, then
+               pre-2012 outbreak years (1986, 1994-95, 1998-99, 2004-2008) district geography.
