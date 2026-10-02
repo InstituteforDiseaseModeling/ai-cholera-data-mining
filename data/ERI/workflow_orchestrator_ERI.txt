@@ -355,3 +355,118 @@ Months with positive cases 29 -> 42. Effective gap periods 6 -> 15 (fragmentatio
 None of the six cycle-start gaps fully closed; five narrowed; 2022 untouched.
 Left for the runner: cholera_weekly_ERI.csv rebuild (stale since 14:07) via its full
 dashboard refresh; gap reference files regenerate when this country exits.
+
+################################################################################
+PASS 2 - COMMON BRIEF FOR AGENTS 1-7 (orchestrator session 2026-10-01 22:25,
+runner pid 19720, runner attempt 2 of 3, run dir logs/run_20261001-194905)
+################################################################################
+P2.0 WHY THERE IS A PASS 2
+   The runner judges a country complete only when all seven canonical logs
+   ./data/ERI/search_log_agent_N.txt are newer than its start marker
+   (logs/run_20261001-194905/.mark_ERI, 19:49). Pass 1 wrote logs 1-4 under the
+   previous runner (07:52-18:57), so attempt 1 scored 3/7 and the runner re-ran
+   ERI from the top. The system brief requires all seven agents to run even when
+   a country looks finished. Pass 1's low yields were also partly caused by
+   outages rather than exhausted sources: IRIS was down for all of Agent 3 and
+   Agent 6, Wayback refused connections for most of Agent 3's B2-B4, and IRIS
+   TEXT bundles truncate at about 100k characters. Pass 2 is real work, not a
+   re-stamp. Each agent gets a fresh budget of 3 to 12 batches under the yield
+   rule, with its pass-1 log as a do-not-repeat list.
+
+P2.1 STOPPING RULE - THE ONLY ONE (unchanged)
+   Agents 1-6: at least 3 batches of 20 queries, whatever the yield. Then
+   continue until 3 consecutive batches are below 5% yield, or 12 batches are
+   done. There is NO time limit, NO deadline and NO wall-clock budget, and
+   elapsed time is never a stopping reason. A spent WebSearch allocation is not
+   a stopping reason either: switch to the uncapped channels.
+   Yield = queries that produced >=1 committed NEW row / 20 * 100, in PERCENT
+   units, never above 100.
+
+P2.2 PROFILE, GAPS, STATE - see sections 2 and 3 above (profile unchanged).
+   Effective gaps right now (./reference/effective_surveillance_gaps_detailed.csv,
+   refreshed by the runner 19:49 - READ ONLY, never regenerate):
+     1971-01-01..1974-03-31 1186d hist | 1974-06-01..1977-08-31 1188d hist
+     1977-10-01..1985-07-31 2861d hist | 1985-11-01..1996-12-31 4079d hist
+     1998-01-01..1999-12-31  730d hist | 2001-01-01..2003-12-31 1095d modern
+     2004-08-01..2004-12-31  153d      | 2009-01-01..2009-02-28   59d
+     2009-04-01..2009-04-30   30d      | 2009-06-01..2009-09-30  122d
+     2009-11-01..2010-12-31  426d      | 2022-01-01..2022-12-31  365d (UNTOUCHED in pass 1)
+     2024-01-01..2024-08-31  244d rec  | 2024-10-01..2024-12-31   92d rec
+     2026-01-01..2026-10-01  274d rec
+   The analyser also counts JHU "Phantom: True" zero rows as coverage. These
+   periods are therefore gaps in reality (evidence-only view, cov2.py):
+     2009-11..2013-12, 2014-10..12, 2015-07..12, 2016-06..08, 2016-10..2017-03,
+     2017-05..2019-12, 2021-01..2022-12
+   Pass-2 start state: 134 rows (max Index 139), 261 sources, 16 presence;
+   validator ERROR 0 WARN 0 INFO 233. Coverage: analyser 37.7% (257/682),
+   evidence-only 23.3% (159/682), baseline JHU+WHO 28.2% (192/682);
+   months with positive cases 42.
+   Coverage tool (in memory, writes nothing shared):
+     python3 /tmp/eri_orch/cov2.py [--gaps] [--baseline]
+
+P2.3 DO NOT REPEAT PASS 1
+   Before you search, read your own pass-1 log
+   ./data/ERI/search_log_agent_N_opus55_pass1_2026-10-01.txt and skim the others.
+   Also read the Description column of ./data/ERI/metadata_ai.csv (Index 1-261)
+   and the pass-1 gap classification table in
+   ./data/ERI/search_log_agent_6_opus55_pass1_2026-10-01.txt.
+   A query that repeats a pass-1 query in substance (same instrument, same
+   period, same terms) wastes one of your 20; grep the pass-1 logs first.
+   Re-checks are allowed when you have a NEW technique: PDF instead of a
+   truncated TEXT bundle, page images for a scanned PDF, a channel that was down
+   in pass 1, or a new language or spelling.
+
+P2.4 CHANNEL STATUS AT 22:30 (re-probe at the start of every batch)
+   DOWN:    iris.who.int (timeouts; apps.who.int/iris redirects into it). It came
+            back once in pass 1 (16:09) and went down again, so keep retrying.
+            When it is down, try Wayback copies of apps.who.int/iris/bitstream/...
+   BLOCKED: DuckDuckGo html/lite (HTTP 202, /tmp/eri_tools/ddg_search.py returns
+            nothing). Bing via curl ignores every term after the first. Google
+            via curl needs JavaScript. Brave returns 429. unhcr.org 403. UN
+            Digital Library 202. open.unicef.org is Cloudflare-blocked to curl
+            (try WebFetch).
+   UP:      archive.org (advancedsearch, full-text search via
+            /tmp/eri_tools/ia_fts.py, item downloads); Wayback CDX (slow,
+            ~9 s) - replay is intermittent (302/000), so use a patient retry loop;
+            ReliefWeb (RSS + API); Europe PMC REST; OpenAlex; Crossref; PubMed
+            E-utilities; IFRC GO API; www.who.int pages; documents.un.org API.
+   WebSearch tool: about 200 calls per PROCESS, shared by all seven agents.
+   This is a new process, so the cap is fresh. Pass-2 allocation: A1 35, A2 30,
+   A3 25, A4 25, A5 25, A6 25, A7 15, reserve 20. With DuckDuckGo blocked,
+   WebSearch is the main general-web channel. Use your allocation, do not exceed
+   it, and run further queries through the uncapped channels. Every query counts
+   as one of the 20 in a batch, whatever the channel.
+   Scanned PDFs: tesseract is not installed. Use pdftoppm -r 130 -png -f P -l P
+   file.pdf /tmp/eri_p2_page and Read the PNG.
+
+P2.5 EVIDENCE RULES - section 8 above is binding and unchanged. In brief:
+   - Writers only: python py/add_observation.py register-source | add |
+     add-zero | add-presence. Use py/revise_observation.py to change an existing
+     row (append-note, re-weight, set-evidence, --delete with tombstone).
+   - Count-less evidence goes to add-presence. Zero rows are
+     Documented_Absence or Inferred_Absence only. WER names Eritrea a
+     non-reporter for 2021, 2022 and 2024: no zero rows for those years. WHO
+     dashboard zeros are not nil returns.
+   - Positive-control rule for every absence instrument.
+   - Exact do-not-sum phrases on overlapping national and sub-national rows.
+   - More than 1000 cases needs two independent sources.
+   - Do NOT run update_dashboard.sh, py/analyze_effective_gaps.py or
+     py/repair_data_integrity.py --apply against shared prefixes. Write only in
+     ./data/ERI/ and your own /tmp/eri_p2_aN/ directory.
+   - python py/validate_quality.py ERI must exit 0 before you report.
+
+P2.6 LOG AND STATE FOR PASS 2
+   - Your canonical log ./data/ERI/search_log_agent_N.txt starts FRESH for
+     pass 2. Its first line names your pass-1 archive file. Append one block per
+     batch in the protocol shape (template section 2).
+   - Record state ONCE at the end, with PASS-2 numbers only (rows you
+     committed, sources you registered, batches in this pass). batch_yields are
+     in PERCENT. write_agent_state REPLACES your entry. Pass-1 entries are kept
+     in workflow_state.json passes[0].
+       python -c "import sys;sys.path.insert(0,'py');from workflow_state import
+       write_agent_state; write_agent_state('ERI', agent_num=N, batches_completed=B,
+       batch_yields=[...], rows_added=R, sources_discovered=S, stopping_reason='...',
+       gaps_filled=[...], gaps_validated_absent=[...], gaps_remaining=[...])"
+################################################################################
+PASS 2 RUN LOG (appended per agent below)
+################################################################################

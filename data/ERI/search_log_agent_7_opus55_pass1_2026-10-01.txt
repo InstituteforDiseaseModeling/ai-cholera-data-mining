@@ -1,0 +1,365 @@
+=== AGENT 7 INITIALIZATION ===
+Agent: 7 - Quality Auditor (cholera-quality-auditor)
+Country: Eritrea (ERI)
+Cycle: Opus 5.5 max-effort re-run (started 2026-09-29)
+Start Time: 2026-10-01 21:45:26
+Agent 7 Status: INITIALIZED
+Work directory: /tmp/eri_a7/
+
+PLAN
+  1. Read accumulated state: ./data/ERI/workflow_state.json, ./data/ERI/workflow_orchestrator_ERI.txt,
+     ./data/ERI/search_log_agent_1.txt .. _6.txt, ./data/ERI/search_report_legacy_pre_opus55_2026-09-19.txt,
+     ./templates/template_search_protocol.txt (to judge Agents 1-6 compliance).
+  2. Format/integrity validation: python py/validate_quality.py ERI --show-info, then independent checks
+     (dual-reference, sequential metadata Index, 14/15 columns, UTF-8, ISO dates, TL<=TR<=reporting_date,
+     deaths<=sCh, cCh<=sCh, CFR recomputation, integer counts, location codes vs 6 zobas,
+     do-not-sum phrases on overlapping national/sub-national pairs, zero-row evidence + surveillance status,
+     duplicates/overlaps, >1000-case two-source rule, confidence weight vs source level,
+     presence file and retracted-rows tombstone well-formed).
+  3. 4-stage QC on every row added/revised this cycle (Index 24-139), lighter pass on 4-23.
+     Required adjudications: (a) rows 133-139 (2014 H1 zero, Q3 2014 bulletin YTD reading),
+     (b) row 24 (2025 national zero), (c) rows 131-132 (Tio 2024), (d) rows 123-129, 25-29, 30-35,
+     36-122, 130 primary-row designation / double-count paths, (e) Plaut/Arbi Harnet 1,342/13 presence-only.
+     Quality score/flag per row group.
+  4. Gap-filling impact: in-memory analyse() via /tmp/eri_orch/cov.py ONLY (never module-level
+     analyze_effective_gaps.py, which writes into shared ./reference/). Baseline comparison from
+     ./reference/baseline_surveillance_gaps_*.csv (read only).
+  5. Write ./data/ERI/search_report.txt (overwrite; legacy preserved).
+  6. write_agent_state once; final validator gate python py/validate_quality.py ERI --json /tmp/ERI_post.json.
+  Constraints: ERI passed explicitly to every pipeline tool; no hand edits to CSVs; no dashboard update;
+  no git commit; no writes outside ./data/ERI/ except /tmp.
+
+=== STEP 0: STATE READ (2026-10-01 21:45-21:55) ===
+Read: ./data/ERI/workflow_orchestrator_ERI.txt (brief + run log through Agent 6), ./data/ERI/workflow_state.json
+(Agents 1-6 entries, coverage_tracking), ./data/ERI/search_log_agent_6.txt (full, incl. GAP CLASSIFICATION
+TABLE and NOTES FOR AGENT 7), ./templates/template_search_protocol.txt (217 lines).
+
+=== STEP 1: VALIDATOR (authoritative) ===
+CHECK V1  python py/validate_quality.py ERI --show-info --json /tmp/eri_a7/validate_start.json
+          -> exit 0; 134 data rows, 261 metadata sources; ERROR 0, WARN 0, INFO 233
+             (220 metadata_unused, 13 national_subnational_overlap all 'documented').
+CHECK V2  python py/validate_quality.py ERI --no-baseline --quiet -> identical (ERROR 0 WARN 0 INFO 233):
+          nothing for ERI is being masked by reference/validation_debt.json.
+
+=== STEP 2: FORMAT AND INTEGRITY VALIDATION BEYOND THE VALIDATOR (script /tmp/eri_a7/integrity.py, output /tmp/eri_a7/integrity_out.txt) ===
+CHECK I1  Encoding: cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv all decode as
+          UTF-8, no BOM, no CRLF.                                                                         PASS
+CHECK I2  Structure: data header = the 14 specified columns in order; metadata header = the 15 specified columns in
+          order; no ragged rows in either file.                                                           PASS
+CHECK I3  Metadata Index: 261 rows, exactly 1..261, no duplicates, no holes; source_database 'AI' throughout. PASS
+CHECK I4  Dual reference: all 134 rows' source_index exist in metadata and every source string equals the metadata
+          Source exactly.                                                                                 PASS
+CHECK I5  Data Index: 134 unique values in 4..139; absent 8 (pre-cycle, retired before this cycle) and 127
+          (retracted by Agent 2, tombstone present).                                                      PASS
+CHECK I6  Dates: all TL/TR/reporting_date are YYYY-MM-DD; TL <= TR <= reporting_date on every row; nothing after
+          2026-10-01.                                                                                     PASS
+CHECK I7  Counts: all deaths/sCh/cCh non-negative integers written without decimals; deaths <= sCh and cCh <= sCh
+          wherever both are present; every row carries at least one count; CFR recomputed (deaths/sCh*100, 2 dp)
+          matches on every positive row; zero rows CFR 0.0; deaths-only rows have blank CFR.            PASS
+CHECK I8  >1000-case rule: no row has sCh > 1000 (largest: 416, rows 28/29).                             PASS
+CHECK I9  Locations: all begin AFR::ERI; every level-3 token is one of the six zobas; sub-zoba tokens Tessenei,
+          Molqi, Haykota (Gash-Barka), Maimine (Debub), Ala (Debub - a village, not a sub-zoba; accepted as the
+          finest geography the source gives, flagged by the prior audit and in row 22's notes), Afabet and Gelalo
+          (Semenawi Keyih Bahri), Hagaz (Anseba), Araeta (Debubawi Keyih Bahri). No programme categories. PASS
+CHECK I10 Confidence vs source level: no row exceeds its level ceiling (L1 1.0, L2 0.9, L3 0.6, L4 0.3). 124 rows sit
+          below the level floor; all are deliberate downgrades recorded in the notes (2009 zoba zeros 0.75, CDER
+          zeros, period-inferred zeros, euphemism-based 1985 rows, row 24 at 0.5, row 25 L3 at 0.15).     PASS
+CHECK I11 Zero rows (109): canonical 'Evidence type:' token is Documented_Absence (105) or Inferred_Absence (4); a
+          surveillance status is present on all 109 (operational 102, partial 7). No 'Surveillance_Gap' string
+          anywhere in the file.                                                                           PASS
+CHECK I12 Exact do-not-sum phrases (orchestrator rule 8) on all 57 overlapping national/sub-national pairs
+          (script /tmp/eri_a7/donotsum.py): 13 national rows and 52 sub-national rows involved.
+          FAIL x3 - the validator passes them on looser tokens ('DO NOT SUM', 'PRIMARY COUNT') but the exact
+          phrase is missing on: national row 11 (2016 deaths), national row 29 (1985 Afabet companion) and
+          sub-national row 22 (Ala). -> repaired below (append-note, no value change).
+CHECK I13 Other overlaps: national-national 9 x 122 (2000 zeros, Jun-Sep overlap; both zero - no arithmetic risk) and
+          11 x 123 (2016: deaths-only vs cases-only; primary rows already designated by Agent 5). Zoba-vs-sub-zoba
+          10 (Gash-Barka 22 cases) x 21 (Molqi 3 deaths) and x 124 (Haykota 20 deaths): different measures and
+          origins, documented in row 11. No same-location duplicates.                                   PASS (noted)
+CHECK I14 Presence file: 10 columns, 16 records, all TL<=TR, every source_index resolves to metadata with the exact
+          Source string (see I15). Tombstone: 1 record (Index 127, 16 columns = data columns + retracted_on +
+          retracted_reason), reason cites the superseding row 128.                                         see I15
+CHECK I15 Presence references: all 16 presence records resolve to metadata with the exact Source string; TL<=TR;
+          AFR::ERI locations; confidence 0.1-0.35; evidence label presence_confirmed_count_unknown on all.  PASS
+          Tombstone: Index 127 is not live; its source_index 175 resolves with the exact Source string; retracted
+          2026-10-01 with a reason naming the superseding row 128.                                         PASS
+          Two presence records carry information that is not strictly 'count unknown': #2 (metadata 12, the
+          Asmarino deaths now in data row 11 - superseded, flagged by the prior audit) and #3 (metadata 14, Plaut
+          1,342 patients / 13 deaths - presence-only BY DESIGN because a >1000 claim needs two origins). The
+          label is the add-presence tool's only value; no tool can retire or relabel a presence record and
+          hand-editing is prohibited, so both stand (inert: no downstream consumer reads the presence file).
+REPAIR R1 (I12) python py/revise_observation.py ERI --index 11 --agent 7 --append-note "National total - includes provinces
+          not individually listed. [...]" -> exit 0 (510 chars; no value change).
+REPAIR R2 (I12) ... --index 29 --agent 7 --append-note "National total - includes provinces not individually listed. [...]"
+          -> exit 0 (512 chars; no value change).
+REPAIR R3 (I12) ... --index 22 --agent 7 --append-note "Provincial subset - do not sum with national row. [...]" -> exit 0
+          (198 chars; no value change). Re-run of /tmp/eri_a7/donotsum.py: all 57 pairs now carry the exact phrases.
+CHECK I16 python py/repair_data_integrity.py --dry-run ERI -> 'TOTAL: 0 change(s)'. No mechanical repair needed;
+          --apply NOT run. No ./data/ERI/attribution_review.csv exists (nothing withheld for citation review).
+
+=== STEP 3: 4-STAGE QC (Stage 1 authentication / Stage 2 epidemiological & temporal / Stage 3 cross-reference / Stage 4 duplication & integration) ===
+
+--- ADJUDICATION (a): rows 133-139 (2014-01-01..2014-06-30 Documented_Absence, national + 6 zobas, metadata 56) ---
+CHECK Q1  Stage 1: cached PDF /tmp/eri_a6/eri_qb_2014q3.pdf (MD5 f00fc78077ddf50695dcebbdf18540b8; pdfinfo CreationDate
+          14 Nov 2014 = rows' reporting_date) re-read in full (pdftotext) and Table 3 page rendered. Quote in row 133 is
+          verbatim ('Table 3: The weekly cumulative number of epidemic prone diseases ... as third quarter the year';
+          'Cholera 0 0 0 0 0 0 0 0 0').                                                                   PASS
+CHECK Q2  INDEPENDENT PERIOD TEST (new; not used by Agent 6 or the orchestrator): pages 5-6 rendered at 300 dpi
+          (pdftoppm), the red 2014 series markers of Figure 1 (bloody diarrhoea by week) and Figure 2 (malaria by
+          week) pixel-digitized with scipy, y calibrated on the printed gridlines (scripts inline, PNGs
+          /tmp/eri_a7/qb14hi-5.png, -6.png). 40 weekly points per series.
+            malaria       wk1-39 = 10,572 | Table 3 = 10,560 (0.1%) | wk27-39 (Q3 only) = 3,482
+            bloody diarr. wk1-40 = 18,641 | narrative 18,607 (0.2%); Table 3 zoba columns 18,712 | wk27-39 = 6,078
+            wk1-13 sums 5,277 / 5,288 vs Q1-2014 values in the Q1-2015 bulletin 5,617 / 4,854 (within ~9%)
+          Also: Table 2 measles 'annualized' rate = raw rate x 0.75 (=39/52) on every zoba; AFP table uses x1.5 (8
+          months) - both cumulative from January. VERDICT: Table 3 is YEAR-TO-DATE (ISO weeks 1-39). The Q3-only
+          reading is excluded by a factor of ~3.                                                         PASS
+CHECK Q3  Stage 2-3: positive control inside the table passes (bloody diarrhoea 19,387, malaria 10,560, dengue 6,645
+          beside hard zeros); YTD completeness 97.6% (Gash-Barka 89.5%); neighbours quiet in 2014 (Ethiopia 0 in
+          EPHI retrospective; no Sudan/Djibouti 2014 record). No 2014 Eritrean cholera claim in any channel.  PASS
+CHECK Q4  Stage 4: national row 133 carries 'National total - includes provinces not individually listed'; zoba rows
+          134-139 carry 'Provincial subset - do not sum with national row'; no overlap with rows 12-18 (Q3).  PASS
+DECISION  KEEP rows 133-139; RE-WEIGHT 0.75 -> 0.85 (python py/revise_observation.py ERI --index 133..139 --agent 7
+          --confidence 0.85 --append-note "...", all exit 0). Reason: the 0.15 discount existed only because the
+          H1 claim rested on a period inference; that inference is now verified quantitatively inside the same
+          document. 0.05 below rows 12-18 (0.9) for the graph-reading step. Row 12 received a cross-reference note
+          (no value change). FLAG: HIGH (rows 12-18 HIGH; 133-139 HIGH).
+          Note for MOSAIC: JHU 2014 (Phantom=True) outranks AI rows in py/build_weekly_timeseries.py, so neither
+          the value (0, unchanged) nor the weight reaches the national weekly series until the builder stops letting
+          phantom zeros outrank evidence.
+
+=== AGENT 7 VALIDATION BATCH V1 | validation queries for adjudications (b) row 24, (c) rows 131-132, (e) Plaut, 2014 control, 2016-17 second origins | ERI ===
+Date: 2026-10-01 (~22:00-22:30). Purpose: positive-control and second-origin searches against the load-bearing rows; not
+gap collection. Channel status: DuckDuckGo html helper returned HTTP 202 (anti-bot) from the 3rd query on - two probes
+(Tigrinya 2025; '2025 Gash-Barka Tesseney Om Hajer') failed and are NOT counted; re-asked through WebSearch. IRIS
+discover API timed out (not counted). ReliefWeb API v2 refused (unapproved appname; RSS used instead).
+  Q1  [DDG] 'Eritrea cholera 2025' -> Africa-Press 'Eritrea' section syndicating GLOBAL cholera stories (no Eritrean
+      case), WHO DON579, WHO 29 Sep 2026 news, UN Eritrea ARR 2025 (already read, metadata 250). Negative.
+  Q2  [DDG] 'الكوليرا إريتريا 2025' -> Arabic coverage of WHO's 2025 global report only. Negative.
+  Q3  [WebSearch 1/30] 'Tio Eritrea cholera 2024 Southern Red Sea outbreak deaths' -> Sudan Red Sea State, AFRO
+      bulletins; nothing on Tio. Negative (no second origin, no official statement).
+  Q4  [WebSearch 2/30] '"Eritrea" cholera 2025 Gash Barka OR Tesseney OR Kassala border cases' -> only 2016 items
+      (Asmarino, Madote, Sitata). Negative for 2025.
+  Q5  [WebSearch 3/30] '"1342" cholera Eritrea Gash 2016 makeshift clinic' -> only the Asmarino/Arbi Harnet chain.
+      Plaut figure STILL SINGLE-ORIGIN.
+  Q6  [WebSearch 4/30] 'ኮሌራ ኤርትራ ጢዖ' (Tigrinya: cholera Eritrea Tio) -> village lists, no cholera item. Negative.
+  Q7  [Europe PMC REST] TITLE_ABS Eritrea AND cholera, 2023-2026 -> 4 hits; BMJ Open 2025 (PMC12587947, EM-DAT/
+      ReliefWeb/DON comparison for the Greater Horn 2010-2024) full text: no Eritrean epidemic; BMC Pediatr 2025
+      (child diarrhoea management in Eritrean referral hospitals) not cholera. Negative.
+  Q8  [ReliefWeb RSS, adaptive bisection, /tmp/eri_a2/rw.py] primary_country.iso3:eri AND (cholera OR "acute watery"
+      OR AWD), 2024-06-01..2026-10-01 -> 1 item: OHCHR CRC review (15 Jan 2025) in which a Committee expert ASKED 'How
+      was the State party working to prevent cholera outbreaks?' - a question, no Eritrean outbreak asserted, no
+      recorded answer. Negative (context only; no presence record).
+  Q9  [WebSearch 5/30] 'Eritrea cholera cases 2014 WHO' -> Ethiopia papers and 2016 items; no 2014 Eritrean cholera.
+      POSITIVE CONTROL for rows 133-139 / 12-18 passes (nothing contradicts the 2014 zeros).
+  Q10 [WebSearch 6/30 + Crossref + OpenAlex] 'Eritrea 2007 cholera outbreak 119 cases 9 deaths location' -> nothing
+      locates the 119/9; the only new paper (Ebonwu et al., IJID 152:107432, 2025, 'Cholera case trends in Eastern
+      Africa ... 2007-2024') covers Comoros, Ethiopia, Kenya, Somalia, Tanzania only (OpenAlex abstract). L2 still open.
+  Q11 [shabait.com WP REST search=cholera, all years] -> 8 posts 2016-2020, none 2021-2026: no government
+      acknowledgement or denial of Tio 2024. Read: 'Expertise, Books and Remedy' (12 Oct 2016: author's booklet on
+      'epidemic diseases like Ibola and cholera' - no outbreak named), ERIMA 22nd conference (colonial-era history),
+      risk-mapping 2019 and NAPHS 2018 (cholera as a hazard / IDSR priority). Negative.
+  Q12 [eritreanpost.org WP REST search=cholera / Tio] -> the single 18 Sep 2024 post (metadata 245); no follow-up with
+      numbers and no retraction. Negative.
+  Q13 [ArcGIS Online item 6d435a53... (metadata 259), re-downloaded] WHO cholera_adm0_week: 5,208 rows to week of
+      2026-09-14 (item modified 2026-09-28), 43 countries - ERITREA ABSENT, Djibouti absent; neighbours 2026: Sudan
+      May-Sep 518/320/1,195/845/77, Ethiopia Jan-Mar 12/8/27, Yemen 246-1,188/month. Confirms Agent 6 N3. Negative.
+  Q14 [WHO GHO OData] CHOLERA_0000000001/0000000002 SpatialDim ERI -> only 2005-2008 (deaths 0/0/9/0); no newer year.
+      Consistent with JHU. Negative.
+  Q15 [WebSearch 7/30] 'الكوليرا طيعو إريتريا' (Arabic: cholera Tio Eritrea) -> generic cholera pages. Negative.
+  Q16 [WebSearch 8/30] 'Eritrea cholera 2026' -> ECDC/WHO 2026 updates do not list Eritrea; 2016 items only. Negative.
+  Q17 [Europe PMC REST] TITLE_ABS Eritrea AND ("acute watery diarrh*" OR "Vibrio cholerae" OR cholera), all years ->
+      9 hits; Zheng et al. IJID 2022 (PMC9439956, SSA outbreaks 2010-2019) full text: 'Eritrea' 0 times; Lessler 2018
+      excludes Eritrea (metadata 45); Somda 2009 already metadata 64. Negative.
+  Q18 [WebSearch 9/30] 'Hashferay detention cholera 2017 Eritrea prisoners' -> prison memoirs, US HRR 2017; no cholera.
+  Q19 [Wayback id_ of state.gov 2017 Country Report on Human Rights Practices: Eritrea, 72,907 chars] -> 'cholera',
+      'diarrh', 'epidemic', 'outbreak' 0 times. Rows 125-126 remain single-origin (ENSF statement).
+  Q20 [WebSearch 10/30] 'Bada Denkalia cholera 2016 Eritrea Afar deaths' -> Asmarino 2016, Ethiopian Afar papers; no
+      second origin for row 128.
+Sources found: 0 registered (nothing new carried Eritrean cholera content; negatives are recorded here rather than as a
+               metadata 'closure bundle', to avoid inflating the source count)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%   (Agent 7 has no stopping rule; this batch tests rows, it does not collect)
+RESULT       : no query contradicted any existing row; no second origin found for Tio 2024, Plaut 1,342, Hashferay 2017 or
+               Bada 2016; nothing reported Eritrean cholera in 2014, 2025 or 2026.
+
+--- ADJUDICATION (b): row 24 (AFR::ERI 2025-01-01..2025-12-31, Documented_Absence, partial, 0.5, metadata 127) ---
+CHECK Q5  Stage 1: WER 101(38) text (/tmp/eri_a5/pt_wer101_38.txt, 152 KB) re-read: Table 5 African Region (22) lists
+          'Eritrea'; definition 'A zero report is distinct from the absence of a submission ...' verbatim; 'No data were
+          received for 2025 from a further 77 ... (African Region four ...)'. Quote in the row is exact.        PASS
+CHECK Q6  Stage 3: same issue names the eight zero-reporters whose zero came with laboratory testing - Eritrea is NOT
+          among them; 'Ten countries that had reported cases in 2024 submitted a zero report for 2025' incl. Togo and
+          Comoros (documented false zeros, tail-of-2024 mechanism, not applicable to Eritrea, which reported nothing
+          for 2024). Validation batch V1 (Q1, Q2, Q4, Q16): no 2025 or 2026 Eritrean cholera claim in any channel;
+          WHO weekly feed (Q13) has never carried Eritrea.                                                 PASS (weak)
+DECISION  KEEP at 0.5 (no change). Agent 6 asked for 0.5 or lower; I do not go lower: the row is an affirmative WHO
+          zero submission that WHO itself separates from silence (it named Eritrea a NON-submitter for 2021, 2022 and
+          2024), and AFRO's Jan-Jun 2025 map is consistent. 0.5 already prices in the bordering epidemics (Sudan 73,597;
+          Ethiopia 8,505 incl. Tahtay Adiyabo and Gulomekeda on the Gash-Barka/Debub borders; Djibouti 379), the absent
+          lab support, the 2006 false nil return and the absent event-based surveillance. Below 0.5 the row would weigh
+          less than the builder's own assumed_zero fill (0.5) for weeks with no evidence at all, which inverts the
+          evidence ordering. FLAG: MEDIUM (direct, unambiguous extraction; validity of the instrument is the doubt).
+          BUILDER INTERACTION (documented, no change made): because row 24 makes 2026-W01 the last observed week,
+          py/build_weekly_timeseries.py's assumed_zero fill now reaches back over 2024 (47 weeks), a WHO-named
+          non-reporting year. MOSAIC-pkg/R/process_AI_cholera_data.R DROPS assumed_zero, so no false zero reaches the
+          model, but any other consumer of ./data/ERI/cholera_weekly_ERI.csv must do the same.
+
+--- ADJUDICATION (c): rows 131-132 (Tio, Araeta sub-zoba, Debubawi Keyih Bahri; 2024-09-02..2024-10-06; 200 cases /
+    7 deaths; conf 0.1; metadata 244) ---
+CHECK Q7  Stage 1: cached page /tmp/eri_a5/fb_afarvoice.html - og:title verbatim 'THE death toll in #Tio rises to 7,
+          with over 200 cholera patients ... for the third consecutive week'. eritreanpost.org 18 Sep 2024 confirmed
+          via WP REST (only cholera post on that site; no follow-up). Quote exact.                         PASS
+CHECK Q8  Stage 2: CFR 3.5% plausible; window: first public items 15-16 Sep 2024 + 'third consecutive week' -> post
+          about 22 Sep-6 Oct; TR 2024-10-06 and TL 2024-09-02 (onset allowance) are a defensible estimate, recorded as
+          such; reporting_date = TR is an upper-bound estimate, also recorded.                              PASS
+CHECK Q9  Stage 3: V1 Q3, Q6, Q11, Q12, Q15 found no second origin, no WHO/government acknowledgement and no denial.
+          UN Eritrea ARR 2024 'November 2024 Cholera outbreak' (metadata 250): I concur with Agent 6 that it is a
+          readiness score against the REGIONAL epidemic (parallel 'June 2024 regional MPox outbreak'; WHO AFRO Feb 2024
+          plan lists Eritrea 'at risk of cross-border transmission'; WHO RRA v6 of 24 Sep 2024 has no Eritrean signal).
+          It neither corroborates nor refutes Tio.                                                         PASS
+CHECK Q10 Stage 4: 131 'Provincial subset - do not sum with national row'; 132 'National total - includes provinces
+          not individually listed' + 'do not add 131 to this row'. In the builder only 132 is read (200 cases over ISO
+          weeks 36-40, conf 0.08 after the 5-week factor). No double count.                                PASS
+DECISION  KEEP both at 0.1 (Level 4 floor), window and notes unchanged. FLAG: PROVISIONAL (single-origin social-media
+          count, undated post, no official confirmation; occurrence attested by four publications within a week).
+
+--- ADJUDICATION (d): primary-row designation and aggregation paths ---
+CHECK Q11 Aggregation is tested, not assumed: py/build_weekly_timeseries.py was run IN MEMORY for ERI (flat seasonal
+          template; nothing written; scripts /tmp/eri_a7/weekly_sim*.py) and MOSAIC-pkg's ingestion filter
+          (process_AI_cholera_data.R keeps observed / documented_zero / fourier_*; drops assumed_zero AND inferred_zero)
+          applied to the result. The builder reads only Location == AFR::ERI rows, skips blank-sCh rows, and ranks
+          WHO > JHU > AI per week.
+  1974 (25-27): primary national deaths row 25 (352, ELF count) is deaths-only -> skipped; 26 (250 deaths NE of Ghinda)
+       is its subset; 27 (1 case, 12-19 Jul) does not overlap and is the only 1974 value MOSAIC sees (1 observed
+       week). No double count.                                                FLAG: LOW (25 0.15, 26 0.3, 27 0.5)
+  1977 (129): deaths-only national (5 POW deaths) -> skipped by the builder. No overlap.            FLAG: LOW
+  1985 (28-29): primary national 29 (416/3) carries the exact national phrase (repair R2); 28 is its geographic
+       component. Builder uses 29 only (13 fourier weeks Aug-Oct 1985).                              FLAG: MEDIUM
+  2007 (30-35): sub-zoba weekly Bada rows; the national primary is JHU 2007 (119/9, WHO return). Not read by the
+       builder (sub-national), so no double count; parts exceed the whole (190 > 119) and this is documented, not
+       reconciled. Builder spreads JHU's 119 over 2007 instead of weeks 38-43.                       FLAG: HIGH
+  2009 (36-120): 80 zoba-week rows + 5 national rows (62, 79, 86, 93, 115) written only for weeks in which all six zobas
+       reported; zobas carry the provincial phrase, nationals the national phrase. Builder reads the 5 national weeks
+       (observed zeros). Spot-check against /tmp/eri_a2/wcoeri/gid4899.txt (wk 13: 'All the six zobas/regions ...
+       submitted', cholera 0 x6), gid4908.txt (wk 43 '19th - 25th Oct 2009', all six, cholera 0), gid4894.txt (wk 5
+       Gash-Barka and Maekel NA -> no national row) - all match the rows.              FLAG: HIGH
+  2000/2004 (122, 121, plus pre-cycle 9): CDER Oct 2000 Table 4 and Aug 2004 Table 1 re-read from /tmp/eri_a2/cder/
+       (Eritrea cholera 0 0 0 with legend '"-" No report'; Aug 2004 narrative lists Eritrea among July DYSENTERY
+       reporters, so a July return existed). 9 x 122 overlap Jun-Sep 2000, both zero; builder prefers the documented
+       zero (122). Rows 121/122 refuse extension (documented by Agent 3).    FLAG: 121 MEDIUM, 122 MEDIUM, 9 MEDIUM
+  2016 (10, 11, 20-22, 123, 124, 128, 130): PRIMARY national CASES row 123 (>300), PRIMARY national DEATHS row 11 (23,
+       exact phrase added, repair R1); subsets 10, 20-22 (decompose 11 exactly), 124 (Haykota 20 - NOT inside 11's 23,
+       documented), 128 (Bada, third zoba - NOT inside 123). Builder: 11 skipped (deaths-only); 123 is OVERRIDDEN by the
+       JHU 2016 Phantom=True zero, so MOSAIC receives NO 2016 Eritrean value (the JHU inferred_zero is dropped by its
+       filter). No double-count path exists; the defect is the opposite (evidence lost). FLAG: LOW (counts) / occurrence
+       well established; 130 (Jan-May zero, pixel-verified map) MEDIUM, also overridden by the JHU 2016 phantom.
+  2017 (125-126): primary national 126 (24/3), subset 125. Overridden by JHU 2017 phantom.           FLAG: LOW
+  2024 (131-132): see (c).                                                                          FLAG: PROVISIONAL
+  2025 (24): see (b).                                                                               FLAG: MEDIUM
+  Pre-cycle (lighter pass): 4 (Q2 2015, AFRO named zero list) HIGH; 6 (Q1 2015 Inferred) MEDIUM; 5, 7 (1970 Inferred)
+       MEDIUM; 12-18 (Q3 2014) HIGH; 19 (Tessenei 2006, lab-confirmed, corroborated by Adoulis 2006 meta 249) HIGH; 23
+       (1997 table zero, WHO officer as sole Eritrean participant) MEDIUM; 133-139 HIGH (see (a)).
+RESULT    No aggregation path can double-count: the national series reads one row per event (the designated primary),
+          sub-national rows are never summed into it, and every overlapping pair carries the exact phrases. The real
+          defect runs the other way - see 'MOSAIC visibility' below.
+
+--- ADJUDICATION (e): Plaut / Arbi Harnet 1,342 patients / 13 deaths (metadata 14) ---
+CHECK Q12 Still single-origin after V1 Q5 (WebSearch exact figure) on top of Agent 5's T1 sweep; it remains presence
+          record #3 (AFR::ERI::Gash-Barka, 2016-09-01..2016-10-27, conf 0.15) and is NOT a data row. A >1000-case claim
+          needs two independent origins (CLAUDE.md Tier 1). DECISION: presence-only, unchanged.            PASS
+
+--- MOSAIC VISIBILITY (what actually reaches the model; flat-template simulation, in memory) ---
+CHECK Q13 ISO weeks of ./data/ERI/cholera_weekly_ERI.csv that would pass MOSAIC's filter, by origin:
+          cycle start: 159 kept (AI-origin 54: 1997 + 1998 wk1-2 zeros; JHU-origin 105); AI positive weeks 0.
+          now:         307 kept (AI-origin 202: 19 positive weeks = 617 cases [1974 1, 1985 416, 2024 200]; 183
+                       documented-zero weeks [1997 52, 1998 2, 1999-W52 1, 2000 39, 2004 31, 2009 5, 2025 52, 2026-W01 1]).
+          NOT reaching MOSAIC: 2016 (row 123, 300 cases) and 2017 (row 126) - outranked by JHU Phantom=True zeros that the
+          filter then drops; 2014 Q3 + H1, 2015 Q1-Q2, 2016 Jan-May evidenced zeros - same phantom precedence; 2006
+          Tessenei (sub-national only; JHU real 2006 zero); 2007 Bada timing (sub-national); deaths-only rows 11, 25,
+          129; Inferred_Absence rows 5, 7, 6 and the Oct-Dec part of 9 (inferred_zero is dropped).
+          RECOMMENDATION (pipeline, not data): let documented AI observations outrank JHU rows flagged 'Phantom: True'.
+
+=== STEP 2b: DID AGENTS 1-6 DO THE WORK? (read_workflow_state('ERI') + log parse + row attribution) ===
+CHECK A1  Batches >= 3 for every agent: A1 6, A2 9, A3 4, A4 6 (incl. one redeployment), A5 4 (resumed after the
+          19:49 runner restart), A6 5.                                                                     PASS
+CHECK A2  Yields in percent, none > 100: A1 [5,15,5,0,0,0]; A2 [5,5,10,15,0,5,0,0,0]; A3 [5,0,0,0]; A4 [0,0,0,0,0,0];
+          A5 [5,0,0,0]; A6 [0,5,0,0,0]. Every stop = 3 consecutive sub-5% batches after the 3-batch floor; B2-type 5%
+          resets were honoured (A2 B6, A6 B2).                                                             PASS
+CHECK A3  20 queries per batch: parsed 'Q1..Q20' labels per batch in all six logs - 34 of 34 batches carry 20 labels
+          (A1 B4 lists 'Q2-Q10' as nine per-year UN-report retrievals, counted as 9 under the logged convention). PASS
+CHECK A4  Claimed rows vs file: 'WRITTEN BY AGENT N' attribution - A1 Index 24-29 (6), A2 30-129 minus retracted 127
+          (99), A3 130 (1), A5 131-132 (2), A6 133-139 (7); 19 + 115 = 134 = file. Cycle-start file (git 0f469e9) held
+          exactly Index 4-7, 9-23.                                                                         PASS
+CHECK A5  Protocol deviations (logged, not disqualifying): A4 issued B4 in the same sweep before evaluating the B3
+          boundary (disclosed) and its FIRST run skipped its own G3 grey-literature target and four self-named leads
+          (caught by the orchestrator; redeployed; B5-B6 searched them, 0%); A5 was split across two sessions by the
+          runner restart; channel outages (IRIS all of A3/A6, Wayback for A3/A4, DDG intermittently) were mitigated
+          with patient fetchers and caches, and failed probes were not counted as queries.
+PRODUCTIVITY JUDGEMENT
+  A2 (geographic) was the productive agent: 99 of 115 rows, incl. the two series that changed the file (16 WHO Eritrea
+     weekly bulletins of 2009 -> 85 zoba/national zero rows; the 2007 Bada weekly table re-labelled cholera via WHO HAC
+     Highlights) and all 2016-17 Arabic-language counts. A1 added the only pre-1990 counts (1974, 1985) and the 2025
+     WHO zero. A6 resolved the 2014 period question (7 rows) - work that belonged to Agent 3's speciality.
+  UNDER-PERFORMED: A4 (obscure-source explorer) - 0 rows in 6 batches; the first run did not search its assigned G3
+     target until redeployed. After redeployment its empty result is a searched negative, but it remains the agent
+     with no data contribution. A3 (zero-transmission validator) - 1 row in 4 batches under heavy outages; it re-noted
+     row 12 without resolving the Q3-2014 period ambiguity the prior audit had flagged for exactly this role, which
+     Agent 6 then closed with a cross-bulletin test. A5 - 2 rows (Tio, Level-4 floor), otherwise adjudication work;
+     acceptable for an integrator.
+  SOURCE INFLATION (stated, not penalised): of 135 sources registered this cycle, 29 are cited by data rows (21%), 5
+     more only by presence records, 30 are 'closure/negative bundles' and ~71 are context or adjudication sources. The
+     source count (126 -> 261) therefore overstates data-bearing discovery about 4.6-fold.
+
+=== STEP 4 (brief task 4): GAP-FILLING IMPACT (in memory only; ./reference/ untouched) ===
+CHECK G1  cp ./data/ERI/cholera_data_ai.csv /tmp/eri_orch/now/ERI/ && python3 /tmp/eri_orch/cov.py (after repairs
+          R1-R3 and the 133-139 re-weight, which change no dates or counts):
+            cycle start analyser 32.7% (223/682), 6 gaps | phantom-excluded 16.6% (113/682), 9 gaps
+            now         analyser 37.7% (257/682), 15 gaps | phantom-excluded 23.3% (159/682), 20 gaps
+            months_ai 45 -> 94; months_ai_only 31 -> 65 (87 phantom-excluded); positive months 29 -> 42.
+          Identical to the orchestrator's figures.
+CHECK G2  Baseline JHU+WHO only (/tmp/eri_a7/cov_baseline.py): 28.2% (192/682), 4 gaps; phantom-excluded 10.6% (72/682).
+          Baseline files (./reference/baseline_surveillance_gaps_*.csv, read only; dated 21 Sep, 681 months): ERI 28.2%,
+          gaps B1 1970-2004 (420 mo), B2 2009-2010 (24), B3 2022 (12), B4 2024-01..2026-09 (33); 41 gap-years.
+CHECK G3  Baseline gap months (489) now covered by the AI layer (/tmp/eri_a7/baseline_gaps.py): cycle start 31 (all
+          zero rows: 1970, 1997, 2000-06..12); now 65 (58 by zero rows, 7 with positive data; 11 months touched by a
+          positive row). Per baseline gap: B1 49/420, B2 3/24, B3 0/12, B4 13/33. Gap-years: cycle start 3 validated
+          absent / 38 empty; now 5 validated absent >=6 months (1970, 1997, 2000, 2004, 2025), 1 partial (2009, 3
+          months), 4 with positive data (1974, 1977, 1985, 2024), 31 with nothing.
+CHECK G4  Effective gaps G1-G6 of cycle start: NONE fully closed; 5 of 6 reduced (G1 by 6 positive months 1974/1977/1985;
+          G2 by Jan-May 2000 zero; G3 by Jan-Jul 2004 zero; G4 by Mar/May/Oct 2009 zeros; G6 by 2025 zero + Sep 2024
+          positive); G5 (2022) untouched. 6 -> 15 gaps is fragmentation, not regression. Annual gap-years (>=6 months
+          missing): 38 -> 36.
+
+CORRECTION to CHECK I10 (logged 2026-10-01 ~22:50): the number of rows below their source-level floor is 112, not 124
+(recount of /tmp/eri_a7/integrity_out.txt and integrity_post.txt: 112 in both). No other figure in I10 changes.
+
+=== STEP 5: REPORT ===
+WROTE ./data/ERI/search_report.txt (overwrote the prior cycle's copy; the legacy report is preserved as
+./data/ERI/search_report_legacy_pre_opus55_2026-09-19.txt). Executive summary 165 lines + appendices A-J (per-agent
+table, Agent 6 gap classification table, validation pass rates, source reliability, admin levels, decades, weights,
+withheld/retracted items, recommendations incl. human-only leads and the ArcGIS WHO-dashboard channel, scripts).
+
+=== STEP 6: STATE AND FINAL GATE ===
+CHECK F1  python py/validate_quality.py ERI --json /tmp/ERI_post.json -> exit 0; 134 rows, 261 sources;
+          ERROR 0, WARN 0, INFO 233 (output /tmp/eri_a7/validate_final.txt).
+CHECK F2  write_agent_state('ERI', agent_num=7, batches_completed=1, batch_yields=[0], rows_added=0,
+          sources_discovered=0, stopping_reason='Audit complete (Agent 7 has no yield stopping rule) ...',
+          gaps_filled=[], gaps_validated_absent=[2014 H1 re-verification], gaps_remaining=[19 periods + MOSAIC
+          visibility note]) -> written once; read back: 7 agent entries, orchestrator keys preserved.
+NOT DONE BY DESIGN: update_dashboard.sh not run; py/analyze_effective_gaps.py not run at module level (shared
+./reference/ untouched); py/build_weekly_timeseries.py not run (in-memory simulation only); no git commit; no file
+written outside ./data/ERI/ except /tmp/eri_a7/* and /tmp/ERI_post.json (and the copy into /tmp/eri_orch/now/ERI/
+and /tmp/eri_orch/nophantom/ERI/ required by the coverage script).
+ACTION FOR THE RUNNER: ./data/ERI/cholera_weekly_ERI.csv (built 2026-10-01 14:07) predates rows 130-139, the Tio rows'
+inclusion and row 24's 0.6->0.5 re-weight; it must be rebuilt before MOSAIC ingests Eritrea.
+
+=== AGENT 7 CLOSING SUMMARY | ERI ===
+Rows        : cycle 19 -> 134 (+115: 19 positive, 96 zero); Agent 7 +0 (no deletions). Presence 7 -> 16. Sources 126 -> 261
+              (Agent 7 +0).
+Repairs     : R1-R3 exact do-not-sum phrases on rows 11, 29, 22; R4 rows 133-139 weight 0.75 -> 0.85; R5 note on row 12.
+Adjudicated : 133-139 KEEP (re-weighted); 24 KEEP 0.5; 131-132 KEEP 0.1 PROVISIONAL; Plaut 1,342 presence-only.
+Coverage    : analyser 32.7% -> 37.7% (baseline 28.2%); evidence-only 16.6% -> 23.3% (baseline 10.6%); gaps 6 -> 15
+              (none of the 6 closed; 5 narrowed; 2022 untouched). MOSAIC-visible AI weeks 54 -> 202 (19 positive).
+Validator   : ERROR 0 / WARN 0 / INFO 233, exit 0.
+Log closed  : 2026-10-01 22:22:39
