@@ -1,0 +1,114 @@
+=== AGENT 4 INITIALIZATION ===
+Agent: 4 - Obscure Source Explorer (obscure-source-explorer)
+Country: Democratic Republic of Congo (COD) - Zaire 1971-1997
+Start Time: 2026-10-02 12:54:13
+Agent 4 Status: INITIALIZED (fresh run this cycle; Agents 1-3 complete, 12 batches each)
+
+Starting state (measured 2026-10-02 12:54 via csv.DictReader):
+  ./data/COD/cholera_data_ai.csv       9,993 rows (max Index 10064); zero rows 1,604
+  ./data/COD/metadata_ai.csv           832 sources (max Index 832)
+  ./data/COD/cholera_presence_ai.csv   10 rows
+  ./data/COD/retracted_rows_ai.csv     71 tombstones
+  python py/validate_quality.py COD    exit 0, ERROR 0, WARN 100, INFO 185 (orchestrator hand-over)
+
+Effective gap file: no COD rows (99.9% coverage) = orchestrator D10 ARTIFACT (1973-1977 "covered" only by
+  Agent 3 province-level 1973-1999 Inferred_Absence zeros Index 9738-9746 + Kalemie 9/1977 Index 242).
+  Baseline-only (JHU+WHO) gaps: 1970-01-01..1977-12-31 (historical) and 2026-06-01..2026-10-02.
+Targets (from resolution profile, orchestrator brief):
+  H1 1973-1977 national/local counts (presence only so far)
+  H2 1978-1999 sub-annual national series (JHU annual only) - WER weekly issues via IRIS REST
+  H3 1978-1999 sub-national (Kivu/Shaba 1978, Goma 1994 camps, 1996-97 camps, Mbuji-Mayi 9,767/571 period,
+     test of 1973-1999 never-affected-province zeros 9738-9746)
+  H4 2000-2007 provincial / health-zone
+  H5 theses and grey literature (Bompangue thesis, UNIKIN/UNILU/ESP, PNECHOL plans)
+  H6 dead links in metadata (Wayback/CDX recovery)
+Stopping rule: batch = 20 queries; min 3 batches; then stop at 3 consecutive batches <5% yield or 12 batches.
+  No time limit. Yield = queries producing >=1 NEW committed row / 20, in percent.
+
+=== BATCH 1 | PHASE 1 (broad discovery - WER weekly notification tables via WHO IRIS REST) | COD ===
+Gap targeted : H2 1978-1999 sub-annual national (1978 first; JHU holds annual 1978 3,481/183 only); H3 1978 sub-national (presence);
+               H1 1973-1977 (academic lead search)
+Counting     : each IRIS search = 1 query; each WER issue downloaded and read (PDF scan, pdftotext -layout, page image crop) = 1 query;
+               each WebSearch = 1 query. Helper: /tmp/COD_orch/a4/wer_harvest.py (downloads issue PDF, locates 'Zaire' words with
+               pdftotext -bbox, renders a crop for visual check); all numbers below were read from the page IMAGES, not only OCR.
+Queries      : 20
+  Q1  [WHO/Historical] IRIS search 'Weekly Epidemiological Record 1978 vol. 53 full issue' -> WER full issues are indexed one item per
+        issue ('Weekly Epidemiological Record, 1978, vol. 53, NN [full issue]') -> 0
+  Q2  [WHO/Historical] WER 1978 No.26 (30 Jun 1978, uuid e55e6355) -> first Zaire cholera notification ever: 'ZAIRE - ZAIRE 27.VI 85 15'
+        (OCR text bundle flattens the table; read from page image) -> SUPERSEDED by the No.28 revision (not entered) -> 0
+  Q3  [WHO/Historical] IRIS search 'Weekly Epidemiological Record, 1978, vol. 53 full issue' size 100 -> complete 1978 issue list
+        (Nos 1-50, 51-52) -> /tmp/COD_orch/a4/wer1978_list.txt -> 0
+  Q4  [Historical] WER 1978 No.27 (7 Jul) -> complete infected-area list: Zaire, Shaba Province, X Kalemie -> presence only -> 0
+  Q5  [WHO/Historical] WER 1978 No.28 (14 Jul; notifications 7-13 Jul) -> 'ZAIRE 23.V-26.VI * 678 54 (*Revision: see p.189)' -> row 10065;
+        newly infected areas as on 13 Jul: Kivu Province Uvira Zone, Shaba Province Moba Zone -> presence
+  Q6  [WHO/Historical] WER 1978 No.29 (21 Jul; notifications 14-20 Jul) -> 'ZAIRE 17.VII 49 3' -> row 10066 (period start inferred);
+        newly infected as on 20 Jul: Kivu Province Bukavu -> presence
+  Q7  WER 1978 No.30 (28 Jul) -> cholera Africa list Ghana/Kenya only, no Zaire line -> 0
+  Q8  WER 1978 No.31 (4 Aug) -> complete infected list (Zaire: Kivu - Bukavu, Uvira Zone; Shaba - Kalemie, Moba Zone) -> 0
+  Q9  WER 1978 No.32 (11 Aug) -> Zaire only in index/malaria imports -> 0
+  Q10 WER 1978 No.33 (18 Aug) -> cholera Africa list Tanzania only -> 0
+  Q11 WER 1978 No.34 (25 Aug) -> Rwanda only -> 0
+  Q12 WER 1978 No.35 (1 Sep) -> complete infected list (same 4 Zaire areas) -> 0
+  Q13 WER 1978 No.36 (8 Sep) -> no African cholera notification -> 0
+  Q14 WER 1978 No.37 (15 Sep) -> 'Human plague in 1977' table (Zaire plague, not cholera) -> 0
+  Q15 WER 1978 No.38 (22 Sep) -> newly infected as on 21 Sep: Bas-Zaire Province Tshela; Kivu Province Goma, Ile Idjwi -> presence -> 0 rows
+  Q16 WER 1978 No.39 (29 Sep) -> complete infected list: Bas-Zaire Tshela; Kivu Bukavu, Goma, Idjwi, Uvira Zone; Shaba Kalemie, Moba Zone -> 0
+  Q17 WER 1978 No.40 (6 Oct) -> Malawi, Nigeria only -> 0
+  Q18 WER 1978 No.41 (13 Oct) -> Burundi, Rwanda only -> 0
+  Q19 [Academic] WebSearch 'Schyns 1979 cholera Zaire oriental 1978 Ann Soc Belg Med Trop Kivu Shaba' -> citations: Schyns C, Fossa A,
+        Colaert J. 'L'epidemie de cholera dans le Sud-Kivu' Ann Soc Belg Med Trop 1979;59(3):451-65 (PubMed 11636748); Malengreau M et al.
+        'A propos de l'epidemie de cholera a l'est du Zaire en 1978' Ann Soc Belg Med Trop 1979;59:401-412; IRD Horizon PDF 'L'implantation
+        et l'extension du cholera en Afrique noire' -> leads (batch 2) -> 0
+  Q20 [Linguistic] WebSearch 'cholera 1978 Zaire Kalemie Uvira Goma Bukavu epidemie cas deces Kivu Shaba premiers cas' -> nothing new -> 0
+Sources found: 18 WER issues read   Registered: index 833 (WER 1978 No.27), 834 (No.28), 835 (No.29), 836 (No.38)
+Rows added   : 2   Indices: 10065 (AFR::COD 1978-05-23..06-26 678/54, conf 0.9), 10066 (AFR::COD 1978-06-27..07-17 49/3, conf 0.7)
+Presence     : +7 in ./data/COD/cholera_presence_ai.csv (1978 infected areas: Katanga::Kalemie, Katanga::Moba, Kivu::Uvira, Kivu::Bukavu,
+               Bas-Congo::Tshela, Kivu::Goma, Kivu::Idjwi; Shaba = Katanga, Bas-Zaire = Bas-Congo, Kivu = pre-1988 Kivu Region)
+Successful queries: 2/20 (Q5, Q6)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches; yield >= 5%)
+Notes        : Weeks with no Zaire line (Nos 30, 33, 34, 36, 40, 41) were checked against the printed African list - genuine non-notification,
+               NOT zeros (non-notification is not absence). For Agent 5: Carme 1983 'declared 1978 = 824' is close to the sum of WER weekly
+               notifications seen so far (678 + 49 = 727 by 17 Jul) whereas JHU 1978 = 3,481/183; the WER annual review 'Cholera in 1978'
+               will settle which is the final figure (deaths 54 + 3 already exceed a third of JHU's 183).
+Validator    : exit 0, ERROR 0, WARN 100, INFO 189 (+2 metadata_unused = presence-only sources 833, 836; +2 overlap INFO)
+
+=== BATCH 2 | PHASE 1 (WER 1978 completion + annual review + 1979 academic leads) | COD ===
+Gap targeted : H2 1978 sub-annual national (Oct-Dec 1978); H3 1978 eastern Zaire epidemic (academic grey literature)
+Queries      : 20
+  Q21 WER 1978 No.42 (20 Oct) -> no Zaire line -> 0
+  Q22 WER 1978 No.43 (27 Oct; notifications 20-26 Oct) -> 'ZAIRE 19.X 12 1' (read from page image) -> row 10067; infected list Bas-Zaire Tshela,
+        Kivu Bukavu, Goma, Ile Idjwi
+  Q23 WER 1978 No.44 -> 0     Q24 No.45 (polio text mention only) -> 0     Q25 No.46 -> 0
+  Q26 WER 1978 No.47 (24 Nov) -> infected list still Bas-Zaire Tshela; Kivu Bukavu, Goma -> 0 (presence already recorded)
+  Q27 No.48 -> 0     Q28 No.49 (smallpox certification text) -> 0     Q29 No.50 -> 0
+  Q30 WER 1978 No.51/52 (22 Dec) -> annual INDEX: 'Zaire - Zaire ... 189, 210, 218, 314, 371' (cholera notification pages); complete infected-area
+        list as on 21 Dec 1978 has NO Zaire area (all delisted); p.371 has no Zaire line (Senegal/Tanzania only) -> 0
+  Q31 [WHO] IRIS search 'cholera in 1978' -> 'CHOLERA IN 1978' (10665/222465, WER 1979 No.17) + 1978 'CHOLERA'/'CHOLERA SURVEILLANCE' notes -> 0
+  Q32 [WHO] WER 'Cholera in 1978' Table 1 -> 'Zaire - Zaire ... 3 481' (cases only; = JHU 1978 annual) -> no new row -> 0
+  Q33-Q37 [WHO] five 1978 WER 'CHOLERA' / 'CHOLERA SURVEILLANCE' notes (10665/221964, 222230, 222153, 222193, 222242) -> Brazil, Nauru,
+        Malaysia, Japan only; no Zaire item -> 0 (5 queries)
+  Q38 [Academic] Europe PMC (TITLE cholera AND zaire/kivu, 1978-1990; EXT_ID 11636748) -> PMID 543736 'Cholera in Eastern Zaire, 1978' and
+        543737 'L'epidemie de cholera a l'est du Zaire en 1978' (Ann Soc Belg Med Trop 1979, no abstracts), 11636748 (Bull Seances ARSOM 1979,
+        Schyns 'Sud-Kivu', no abstract), 6373033 (Malemba-Nkulu oral vaccine trial 1984: 67/18,377 unvaccinated, 25/6,249 injected, 3/12,014
+        oral - cohort counts, epidemic date not given) -> 0
+  Q39 [Academic] WebSearch '"lib.itg.be" Annales Societe belge medecine tropicale 1979 cholera Zaire pdf' -> ITM scans not surfaced -> 0
+  Q40 [Academic] curl research.itg.be publications search 'cholera Zaire 1978' -> Cloudflare 'Just a moment' challenge -> 0
+Sources found: 12 WER issues + 1 annual review + 5 notes   Registered: index 837 (WER 1978 No.43)
+Rows added   : 1   Indices: 10067 (AFR::COD 1978-10-13..10-19 12/1, conf 0.5)
+Revisions    : 10066 TL 1978-06-27 -> 1978-07-11, conf 0.7 -> 0.6 (convention for WER single-date Zaire entries harmonised: one-week window
+               ending on the printed date; a 'since previous notification' reading would turn 19.X into a 3-month 12-case window, a false
+               near-zero signal in a 3,481-case year)
+Successful queries: 1/20 (Q22)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Decision     : CONTINUE (minimum 3 batches)
+For Agent 5  : Carme et al. 1983 'declared 1978 = 824' = 85 + 678 + 49 + 12 EXACTLY, i.e. the naive sum of all four WER 1978 weekly Zaire
+               notifications INCLUDING the superseded first figure (85/15, revised by WER No.28 to 678/54 for 23.V-26.VI). WHO 'Cholera in 1978'
+               final = 3,481 (= JHU). The weekly tables therefore under-report (739 of 3,481 cases); Carme's 1979 figure 7,723 (> JHU 5,515)
+               suggests the 1979 weekly notifications were more complete - to test in batch 3.
+Method note  : WER annual index (last issue of each year) lists the pages carrying each country's cholera notifications; IRIS search results
+               carry dc.description.startpage/endpage per issue, so index pages map to issues with one listing query.
+Validator    : exit 0 (checked after writes)
+
