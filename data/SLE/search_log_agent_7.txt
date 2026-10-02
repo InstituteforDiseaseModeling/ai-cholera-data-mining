@@ -1,0 +1,75 @@
+=== AGENT 7 INITIALIZATION (cholera-quality-auditor) ===
+Country: Sierra Leone (SLE)
+Cycle: 2026-09-29 Opus 5.5 re-run (session 2)
+Start Time: 2026-10-02 16:37:46 PDT
+Agent 7 Status: INITIALIZED
+Role: final quality audit, scoped repairs, coverage impact measurement, ./data/SLE/search_report.txt
+Query budget: unlimited (Agent 7 has no stopping rule other than finishing the audit)
+
+READ BEFORE STARTING:
+  ./data/SLE/workflow_orchestrator_SLE.txt (sections 0-10, all handover notes incl. SESSION 2 RESUME and AFTER AGENT 6)
+  ./data/SLE/workflow_state.json (agent entries 1-6 + orchestrator key with gates)
+  (to read next) ./data/SLE/search_log_agent_1.txt .. search_log_agent_6.txt, ./data/SLE/retracted_rows_ai.csv,
+  ./data/SLE/cholera_presence_ai.csv, ./data/SLE/search_report_legacy_20260515.txt (read-only; claims unreliable)
+
+OPERATIONAL OVERRIDES HONOURED (brief section 1, beat the agent definition):
+  - NOT running py/analyze_effective_gaps.py in any form (shared ./reference files); using the read-only helper
+    python3 /tmp/SLE_orch/sle_coverage.py SLE  and  ... SLE --layers JHU WHO  instead.
+  - NOT running py/build_weekly_timeseries.py, update_dashboard.sh, py/update_dashboard_data.py
+    (read-only preview /tmp/SLE_orch/sle_weekly_preview.py instead).
+  - No git add/commit/push. No edits to py/, reference/, ./data/SLE/cholera_data_jhu.csv, ./data/SLE/metadata_jhu.csv,
+    or any other country's directory.
+  - No hand-edits of the CSVs: add_observation.py for new rows/sources; revise_observation.py SLE --index N ... --agent 7
+    for existing rows; --meta-index N --set-status/--set-description for metadata.
+  - Repair tool scoped: python py/repair_data_integrity.py --dry-run SLE first, then --apply SLE only if agreed.
+  - Scratch files: /tmp/SLE_orch/a7_*
+
+=== T1 VALIDATOR (authoritative) - BEFORE AUDIT ===
+Command: python py/validate_quality.py SLE --json /tmp/SLE_audit.json   (2026-10-02 ~16:40 PDT)
+Result : exit 0 | 379 rows | 188 sources | ERROR 0 | WARN 6 | INFO 151
+  WARN x6 CFR_high_flagged_for_review - CSV lines 7, 22, 37, 38, 283, 287 = Index 24 (14/29 = 48.3%), 39 (12/50 = 24.0%),
+       54 (100/517 = 19.3%), 55 (171/890 = 19.2%), 313 (43/198 = 21.7%), 317 (33/60 = 55.0%)  [line->Index mapping checked below]
+  INFO x74 national_subnational_overlap - all suffixed 'documented' (every row in each overlapping group carries a double-counting phrase)
+  INFO x77 metadata_unused - metadata entries no live data row cites (incl. 14 Superseded legacy entries, presence-only and
+       note-only sources)
+Matches the orchestrator's hand-off figures (ERROR 0, WARN 6, INFO 151).
+
+=== T2 REPAIR TOOL (scoped) ===
+Command: python py/repair_data_integrity.py --dry-run SLE  -> exit 0, "TOTAL: 0 change(s)"; change log [] (/tmp/SLE_orch/a7_repair_dryrun.json)
+  = no source-label drift, no count-less rows, no multi-year aggregate or high-CFR row above confidence 0.7, no exact duplicate
+    (location, TL, TR, sCh, deaths, cCh) and therefore nothing written to ./data/SLE/attribution_review.csv (file does not exist).
+Decision: --apply SLE NOT run - there is nothing for it to apply (a no-op write would only create a backup). Rejected
+  alternative: run --apply for form's sake.
+
+=== T3 AGENT PERFORMANCE - INDEPENDENT CHECK (workflow_state.json + logs + files) ===
+Method: parsed every '=== BATCH n' block of ./data/SLE/search_log_agent_1.txt .. _6.txt (query labels Q1-Q20 incl. ranges such as
+  'Q12-Q17' and several labels per line), 'Yield' and 'Successful queries k/20' lines, per-batch 'Rows added'; compared with
+  workflow_state.json agent entries and with the Index ranges actually present in ./data/SLE/cholera_data_ai.csv and the tombstones
+  in ./data/SLE/retracted_rows_ai.csv.
+Batches / yields (all in percent, all <= 100):
+  A1 12  35,25,5,25,0,70,40,5,15,0,5,10   stop: 12-batch ceiling (longest sub-5% run 1)            -> rule (b) correct
+  A2 12  45,5,5,5,0,5,15,0,0,5,0,15       stop: ceiling (sub-5% run 2 at 8-9; 5% is not <5%)       -> rule (b) correct
+  A3 12  10,5,5,10,5,0,5,0,0,15,0,0       stop: ceiling (runs of 2 at 8-9 and 11-12)               -> rule (b) correct
+  A4  9  60,10,20,5,0,5,0,0,0             stop: 3 consecutive <5% (7,8,9)                           -> rule (a) correct
+  A5 12  10,5,0,0,10,0,0,5,0,0,5,0        stop: ceiling (runs of 2 at 3-4, 6-7, 9-10)               -> rule (b) correct
+  A6  6  0,0,5,0,0,0                      stop: 3 consecutive <5% (4,5,6) after the 3-batch minimum  -> rule (a) correct
+  None ran < 3 batches; no yield > 100% (max 70%, A1 batch 6 = 14/20); the 'Successful queries k/20' line equals Yield/5 in every
+  batch of every agent.
+Queries per batch: 20 logged queries in every batch EXCEPT Agent 3 batch 12, which lists Q1-Q12 and Q15-Q20 (18 queries; Q13 and
+  Q14 were never logged although the header says 20). Agent 3 therefore logged 238, not 240, queries. Impact: none on the stopping
+  decision (batch 12 was the 12-batch ceiling at 0%); recorded as a logging defect.
+Row reconciliation (Index ranges present now vs claims):
+  start 18 (Index 1-9, 12-20) + A1 109 (21-129) + A2 157 (130-286) + A3 19 (287-305) + A4 82 (306-387) = 385
+  A5: -15 retracted (3-9, 12-19) -14 re-cite deletions (2, 110-122) +14 replacements (388-401) +8 new (402-409) = 378
+  A6: +1 (410) = 379 = current row count. Tombstones 29 = 15 + 14. Per-agent rows in the file now: legacy 2 (1, 20), A1 96
+  (=109-13 re-cited), A2 157, A3 19, A4 82, A5 22 (14 re-cites + 8 new), A6 1. Every agent's claimed row count reconciles.
+  Agent 3 credited rows 295-298 (batch 6) and 300-301 (batch 8) to local re-reads, not to batch queries - conservative, no yield
+  inflation. Agent 5 did not credit its 14 housekeeping re-cites to yield - correct.
+Sources: 24 -> 78 (A1 +54) -> 111 (A2 +33) -> 145 (A3 +34) -> 173 (A4 +28) -> 184 (A5 +11, incl. 174 = corrected re-registration of
+  69) -> 188 (A6 +4). Matches workflow_state.json and the metadata Index column (1..188, no gaps, no duplicates).
+Productivity (new rows per 20 queries): A1 9.1, A2 13.1, A4 9.1, A3 1.6, A5 0.67 (new information) , A6 0.17.
+  A2's count is dominated by 151 rows of dated 2012-13 district snapshots (12 rows per table); A4's by 72 rows of 1970-71 WER
+  weekly notifications. A6's single row is a 12-day inferred zero (conf 0.4).
+VERDICT T3: no agent ran < 3 batches, none reported a yield > 100%, every stop matches the yield rule, every claimed row exists.
+  One discrepancy: Agent 3 batch 12 logged 18 queries, not 20.
+

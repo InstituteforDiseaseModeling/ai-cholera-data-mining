@@ -1,0 +1,86 @@
+=== AGENT 3 INITIALIZATION ===
+Agent      : 3 - Zero-Transmission Validator (zero-transmission-validator)
+Country    : Mali (MLI)
+Cycle      : 2026-09-29 Opus 5.5 re-run
+Start Time : 2026-10-02 16:22:35 (local)
+Status     : INITIALIZED
+Prior log  : ./data/MLI/search_log_agent_3_legacy_2025-07-23.txt (archived prior cycle; read, not modified)
+Starting state (read before first query):
+  ./data/MLI/cholera_data_ai.csv     : 866 rows (Index 1-869; 11, 174, 368 absent); 126 zero rows, 51 of them national (AFR::MLI)
+  ./data/MLI/metadata_ai.csv         : 302 sources (Index 1-302)
+  ./data/MLI/cholera_presence_ai.csv : 62 rows
+  ./data/MLI/cholera_data_jhu.csv    : read-only baseline
+  ./reference/effective_surveillance_gaps_detailed.csv (runner refresh 10:00): MLI one gap 2026-09-01..2026-10-02 (32 d, recent)
+Mandate:
+  PART A - adjudicate pre-existing zero rows AI 2, 6, 7, 26, 27, 28, 29, 30; Agent-2 contradictions C-A2-2 (row 316),
+           C-A2-6 (rows 296-297 vs row 24), C-A2-7 (rows 315/367 vs row 23); verify the national zero rows that overlap
+           positive national rows (2, 28, 29, 282, 283, 284, 285, 296, 297, 317, 372).
+  PART B - document validated absence not yet recorded: 2017, 2018, 2019 (WHO zero-report lists), 2020 (MoH SNISS 2020 /
+           UNICEF WCARO 2020), June 2006 and other SAP monthly zero statements 2005-2008 (C-A2-8), 1981-1982 explicit
+           statement, inter-epidemic months, 2026-09-29..10-02 if a source exists.
+Rules: only Documented_Absence / Inferred_Absence become zero rows; Surveillance_Gap periods are left empty and logged.
+       Tools: py/add_observation.py (add-zero/add/register-source), py/revise_observation.py --agent 3 (always).
+       No edits to shared ./reference/effective_surveillance_* files; no dashboard; no git.
+Stopping rule: >= 3 batches of 20 queries; then stop at 3 consecutive batches < 5% yield or 12 batches. No time limit.
+
+=== BATCH 1 | PHASE 1 (broad absence discovery: WHO/official, national, academic) | MLI ===
+Time         : 2026-10-02 16:25-17:20 (local)
+Gap targeted : unlabelled JHU zero years 2017-2020; C-A2-8 (June 2006); evidence for PART A rows AI 6 (1999) and AI 7 (2000)
+Queries      : 20
+  Q1  curl WHO IRIS bitstream WER 93(38) 'Cholera, 2017' (metadata 255) -> footnote a: Mali among countries that 'reported 0 cases
+      and deaths in 2017, fulfilling ... zero reporting' -> ROW 870 (2017 Documented_Absence, conf 0.95)
+  Q2  curl WHO IRIS WER 94(48) 'Cholera, 2018' (metadata 252) -> Mali in the 2018 zero-report list; Niger 3900/78 in Table 1 -> ROW 871
+  Q3  curl WHO IRIS WER 95(37) 'Cholera 2019' (metadata 253) -> Mali in the zero-report list (English footnote misprints '2018',
+      French reads 'en 2019'); Niger, Burkina Faso, Guinea also zero -> ROW 872
+  Q4  curl WHO IRIS WER 96(37) 'Cholera, 2020' (metadata 254) -> footnote b: Mali among GTFCC at-risk countries that 'did not report
+      cholera data to WHO for 2020' (non-submission; also BFA, CIV, GIN, NER); no row by itself
+  Q5  curl INSTAT Greenstone Annuaire SLIS 2017 (metadata 201) -> Tableau LVI: cholera 0/0 every region, 'Total 2017 0 0'; 'Aucun cas
+      confirme de cholera ... en 2017' -> corroboration for row 870
+  Q6  curl INSTAT Greenstone Annuaire SNISS 2020 (metadata 204) -> Tableau 107 cholera 0/0 every region; 'Aucun cas confirme de
+      cholera et anthrax n'a ete enregistre'; Tableau 103 IDSR completeness 89.8% (Menaka 1.3%) -> ROW 873 (2020 Documented, 0.85)
+  Q7  ReliefWeb API v2 query for UNICEF WCA 2020 updates -> HTTP 403 'not using an approved appname'; nothing
+  Q8  curl ReliefWeb page (metadata 241) + attachment 'WCA Cholera_Update_W1-53_2020.pdf' -> Mali 0 in W1-45 and each of W46-W53;
+      BFA/GIN/NER/SEN 0, CIV 12 -> corroboration + regional check for row 873
+  Q9  curl INSTAT Greenstone Annuaire SNISS 2018 (metadata 202) -> Tableau 161 (suite): cholera 0/0 in all 11 regions (source
+      DPLM/SSE 2018) -> corroboration for row 871
+  Q10 curl INSTAT Greenstone Annuaire SNISS 2019 (metadata 203) -> FINDING: its notifiable-disease table is a verbatim copy of the
+      2018 table (title 'en 2018', source 'DPLM/SSE 2018', identical figures, footer 'Annuaire Statistique 2018') - NOT independent
+      2019 evidence; metadata 203's description overstates it (noted on row 872)
+  Q11 WebSearch '"Cholera Outbreaks in Central and West Africa" "2019 Regional Update" Week 52 reliefweb' -> listing only
+  Q12 curl ReliefWeb slug enumeration (2019 regional updates -0..-22) + attachment 'WCA Cholera_Update_W52_2019.pdf' -> Mali 0 in
+      W1-40 and each of W41-W52, and 0 in the '2018 W1-W52' column (Niger 2018 = 3803) -> corroboration rows 871/872
+  Q13 WebSearch '"Aucun cas de cholera ni de fievre jaune n'a ete notifie" Mali 2006' -> no hit for the SAP sentence; summary pointed
+      to Dao 2009 / Konate 2006 (2002 cases all in January) -> lead
+  Q14 WebFetch + curl Cairn (Dao 2009 full text) -> HTTP 403 / CAPTCHA; nothing
+  Q15 Europe PMC REST search Dao 2009 (PMID 19863017) -> abstract: '12,176 cases of cholera recorded, including 1,406 deaths, from
+      1995 to 2004' from DLMPE/INRSP registers = exactly 1995+1996+2001+2002+2003+2004 (2254+5541+68+16+1437+2860), i.e. the
+      register holds 0 for 1997-2000 -> evidence for AI 6/AI 7 adjudication. (Konate 2006 thesis text read from Agent 2's cached
+      copy /tmp/mli_a2/bib/t7848.txt - not counted as a query: 'l'OMS a signale 6 cas dont 3 deces au Mali en 1997 ... Ces donnees
+      n'ont pas ete signalees sur les fiches de suivi epidemiologique au niveau de la DNS'; 'De 1998 a 2000, aucun cas de cholera
+      n'a ete declare au Mali [55-57]' where refs 55-57 = WHO WER 'Cholera en 1998/1999/2000'; 'L'epidemie de 2002 a ete de courte
+      duree avec 16 cas tous survenus au mois de janvier'.)
+  Q16 curl Wayback WER 75(31) 'Cholera, 1999' (metadata 21) -> Table 1 'Cholera cases and deaths notified to WHO, 1999': 'Mali 6 3';
+      neighbours Niger 1186/85, Guinea 546/44, Burkina Faso 93/6 -> evidence AGAINST AI 6
+  Q17 curl Wayback WER 76(31) 'Cholera, 2000' (metadata 22) -> Table 1 (27 African countries): Mali absent; Malawi 2391/56;
+      neighbours Burkina Faso 617/14, Guinea 517/36, Niger 211/38 -> evidence for AI 7
+  Q18 curl Wayback WER 75(25) IHR notifications 16-22 June 2000 (metadata 181) -> cholera Africa 1.I-8.V: 'Mali 1 885 51', Malawi
+      ABSENT from the list (Burkina Faso 617/14 = its annual figure) -> the GHO/JHU Mali 2000 figure 1885/51 is this probable
+      Malawi mislabel -> evidence for AI 7
+  Q19 WebSearch 'reliefweb Mali hivernage juin 2006 "cholera" "fievre jaune" notifie pendant ce mois' -> SAP Synthese Region de Gao
+      juin 2006 (fetched: no cholera statement); no row
+  Q20 ReliefWeb HTML search via curl '"Aucun cas de cholera" Mali' -> 'Rapport sur l'evolution de l'hivernage 2006 au Mali au titre
+      du mois de juin 2006' (Govt. Mali, posted 3 Jul 2006): '39 cas de meningite ... 4 cas de rougeole ... Aucun cas de cholera ni
+      de fievre jaune n'a ete notifie pendant ce mois' -> registered 303 -> ROW 874 (June 2006 Documented_Absence, conf 0.8).
+      Regional check fetched for this row (WER 82(31) 'Cholera, 2006', metadata 260): Guinea 3242, Niger 1232, CIV 414, Senegal 365,
+      Mauritania 25; Burkina Faso zero report.
+Sources found: 8 used (255, 252, 253, 254, 201, 202, 203, 204, 241 re-read; 303 new)    Registered: 303
+Rows added   : 5    Indices: 870 (2017), 871 (2018), 872 (2019), 873 (2020), 874 (June 2006) - all AFR::MLI Documented_Absence
+Successful queries: 5/20 (Q1, Q2, Q3, Q6, Q20)
+Yield        : 25%
+Consecutive sub-5% batches: 0
+Note on credit: rows 870-873 come from sources Agent 1 had registered but deliberately not turned into rows (JHU zeros existed);
+  each was re-read and verified by the credited query.
+Regional cross-check outcomes: 2017 quiet (no neighbour in WHO Table 1); 2018 neighbour epidemic (Niger 3900) -> three independent
+  official channels used; 2019 quiet (NER/BFA/GIN zero reports); 2020 Sahel neighbours 0, CIV 12; June 2006 neighbours epidemic
+  (GIN/NER/CIV/SEN) -> explicit national government statement used, conf 0.8.
+Decision     : CONTINUE (minimum 3 batches)
