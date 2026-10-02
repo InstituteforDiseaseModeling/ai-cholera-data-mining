@@ -266,3 +266,81 @@ Decision     : CONTINUE (yield >= 5%)
 Validator    : exit 0, ERROR 0, WARN 93 (CFR_high 60 - small weekly/HZ denominators, capped at 0.7 where sCh>=25; same_period 26;
                multiyear 4; pre-existing 3). File rows 8,149.
 
+
+=== BATCH 7 | PHASE 2 -> 3 (gap filling + source-chain following) | COD ===
+Gap targeted : G3 2025 W27-W32 provincial/HZ, 2025 W36-W52 provincial, 2026 W11-W16 provincial + HZ; G3 2024 W20-W26 provincial
+               (gap in the PNECHOL series); G4 2012-2013 legacy-province/HZ series (WHO-DRC DPR editions)
+Queries      : 20
+  Q1  [Official/G3] curl insp.cd WordPress media API (search=cholera) -> SITREP SGI SE30/2025 PDF -> 2025 W27 provincial rows -> 14 rows
+  Q2  [Official/G3] curl INSP SITREP_CHOLERA_SGI-SE31 pptx -> provincial tables W28-W31 2025 -> 66 rows (Q1+Q2 = 72 rows + 8 zero spans;
+        metadata 759, 760)
+  Q3  [Official] ReliefWeb listing 2026 (PC75) -> 0
+  Q4  [WHO/G3] curl WHO internal cholera sitrep S14/2026 (metadata 650) -> provincial windows SE11-SE14 (Nord-Kivu 717/0, Sud-Kivu 833/13,
+        Kinshasa 723/28, Tanganyika 346/7, Haut-Lomami 298/5) + Ibanda 131, Kirotshe 268 -> 7 rows (Index 8282-8288)
+  Q5  [WHO/G3] curl WHO internal sitrep S17/2026 -> nothing beyond Agent 1's rows -> 0
+  Q6  [Official/G4] curl WHO-DRC DPR 13-19 Feb 2012 (metadata 353) Tableau I -> 2012 weeks 1-7 by province (Bandundu 63/2, Kinshasa 208/6,
+        Bas-Congo 152/5, Ituri district 932/22, Katanga 862/12, Nord-Kivu 1,054/8, Sud-Kivu 1,702/7), explicit zeros for
+        Orientale-Kisangani and Maniema, Ituri 2011 205/7 -> 10 rows. NOT entered: Equateur 0/0 for weeks 1-7 (contradicted by OCHA
+        15 Feb 2012 '124 cas' Index 881 and the Mbandaka outbreak from 28 Jan 2012, Index 1283); Kisangani-area 2011 1,631/84 (already
+        Index 1129/1611). Parts vs whole: DPR Kisangani 1,631 + Ituri 205 exceeds PNECHOL 2011 Orientale 1,638 (Index 229) - noted.
+  Q7  [Official/G4] curl DPR 20-27 Feb 2012 (metadata 41) -> no new provincial figures -> 0
+  Q8  [Official/G4] curl DPR 5-11 Mar 2012 (metadata 42) -> W10 provincial + HZ (Kinshasa 6 HZ, Kirotshe, Mutwanga, Uvira, Kinkondja,
+        Kalemie, Boma-Bungu, Boma), weeks 1-10 cumulatives; Tableau 1 epidemic and endemic provinces reconcile with printed totals
+        (889/34, 6,387/74). Kinshasa weeks 1-10: kept the table value 288/8 (reconciles) over the text's 285/8 -> 27 rows
+  Q9  [Official/G4] curl DPR 23 Feb 2013 (metadata 48) -> W6 2013 Katanga (24 HZ), Kinshasa (7 HZ), Nord-Kivu (6 HZ), Sud-Kivu (7 HZ) +
+        weeks 1-6 cumulatives -> 52 rows. PARTS VS WHOLE: the Katanga list names 25 HZ = 585 cases vs stated 24 HZ / 579; Bukama
+        (6 cases, the only single-HZ removal reconciling both count and total) NOT entered; the other 24 HZ sum to 579/12.
+  Q10 [Official/G4] curl DPR 6 Mar 2013 (metadata 49) -> W8 2013 Katanga 19 HZ (sum 452/14 = stated), Kinshasa 5 HZ, cumulatives -> 29 rows
+  Q11 [Official/G4] curl DPR 20 Jun 2013 (metadata 50) -> Katanga weeks 1-23 11,091/256 already Index 97 -> 0
+  Q12 [WHO] ReliefWeb listing 'Crise Humanitaire Complexe et Epidemies' sitreps 2024-05..2026-09 -> 2024 S16-S49 (no S20/S21/S24/S26),
+        2025 S03/S07/S15, 2026 S12/S14/S16; S23/2024 and S12/2026 PDFs had been cached unregistered by Agent 1 -> 0 (re-mined, see below)
+  Q13 [WHO/G3] curl crisis sitrep S14/2026 -> W13-W14 provincial (NK, SK, HL, HK, Kinshasa, Tanganyika), HZ weekly, S1-S14 provincial +
+        HZ cumulatives (also Equateur, Tshopo) -> 55 rows. Sud-Kivu S1-S14 4,594/50 entered as PRIMARY (same period as Index 2323, DPS
+        figure 4,698/53 via Radio Okapi; 2323 annotated NON-PRIMARY). Ngiri-Ngiri S1-S14 230 (< its S1-S12 243) not entered; Tanganyika
+        HZ values (sum 101 > provincial 65; repeat of the W12 wording) not entered.
+  Q14 [WHO/G3] curl crisis sitrep S16/2026 -> W16 provincial (W15 identical to Agent 1's Index 2109-2124, not re-entered), HZ weekly W15-W16,
+        S1-S16 cumulatives, Mai-Ndombe 548 and Equateur 464 for W13-W16 -> 62 rows. Kinshasa W16 68/1 entered as PRIMARY (same period as
+        Index 257 Council of Ministers '40'; 257 annotated NON-PRIMARY). Series checks: S1-S14 + W15 + W16 = S1-S16 exactly for NK, SK,
+        HL, HK, Kinshasa, Tanganyika.
+  Q15 [WHO] ReliefWeb listing WHO internal cholera sitreps 2025-06..2026-09 -> 2025 only S34/S35 (handled in batch 3) -> 0
+  Q16 [Humanitarian] ReliefWeb listing PC75 'choléra' Sep-Dec 2025 (80 items) -> 0 (candidates fetched in Q17-Q20)
+  Q17 [NGO] MSF 21 Oct 2025 'Cholera epidemic rapidly spreading' -> national only (>58,000 / >1,700 to mid-October) -> 0
+  Q18 [UN] UNICEF 8 Dec 2025 'worst in 25 years' -> national only (64,427 / 1,888) -> 0
+  Q19 [UN/G3] OCHA Sud-Kivu snapshot at 30 Sep 2025 (rendered page) -> Sud-Kivu S1-S40 2025 = 10,240 cases -> 1 row (Index 9045);
+        its 16 deaths NOT entered (below the SGI S1-S35 count of 56, Index 2089)
+  Q20 [UN/G3] UNICEF CATI one-pager October 2025 (rendered page) -> MoH/PNECHOL suspected cases by province EW40-EW43 2025 for Nord-Kivu
+        (181,151,197,173), Sud-Kivu (308,189,241,166), Tanganyika (198,236,269,143), Kinshasa (29,22,41,26), 'Partial data' ->
+        16 rows (Index 9029-9044, confidence 0.6). Its 'key indicators since January' MoH table not entered (no end date; Kinshasa 118
+        vs SGI 2,216 to S35).
+Re-mining without query credit:
+  REMINE-SE37-2026 (Agent 1's cached INSP SE37/2026 text): SE34-SE37 2026 provincial weekly + S1-S35 2026 lab-confirmed by province (cCh)
+        -> 77 rows (Index 8289-8365); notes on Index 36, 37, 1097, 1100, 1103.
+  REMINE-CRISE24 (Agent 1's cached 2024 S22/S23/S25/S27 crisis sitreps; S23 registered as metadata 761): 2024 W21-W26 provincial weekly
+        (NK, Kasai, SK, HK, Tanganyika, HL, Kasai-Oriental), HZ weekly (Karisimbi, Nyiragongo, Goma, Mushenge, Dekese, Ilebo, Ruzizi,
+        Fizi, Minova, Kalehe, Uvira, Kafubu, Muya), Kasai HZ S12-S22 cumulatives, Tanganyika/Haut-Lomami cumulatives -> 86 rows (Index
+        8484-8569). Each provincial row carries the edition's provincial sum, the edition national and the WHO dashboard national
+        (W21: 833 vs 835 vs 809; W23: 681 vs 682 vs 580; W25: 537 vs 535 vs 511). Kasai rows at confidence 0.5: the same sitreps
+        state all 23 Mushenge samples were V. cholerae negative (Shigella/Yersinia found). Haut-Lomami W24 not entered (printed 18;
+        the stated -18.2% change and the national 453 both imply 22).
+  REMINE-CRISE26 (Agent 1's cached S12/2026 crisis sitrep, registered as metadata 762): W11-W12 2026 provincial weekly + HZ weekly +
+        S1-S12 cumulatives -> 63 rows. Summary-paragraph errors resolved: Haut-Lomami S1-S12 = 2,076 (not 2,832, which is Kinshasa's
+        figure; the endemic-province sum 11,484 reconciles only with 2,076); Kinshasa '2 645' = S1-S11.
+  REMINE-SGI33 (Agent 1's cached SGI-Cholera SE33/2025 bulletin, metadata 68): HZ tables W31-W32 2025, accepted only where the HZ values
+        reproduce the bulletin's trend-table provincial value; main-DPS tables by the batch-3 parser (Equateur, Kinshasa, Mai-Ndombe,
+        Maniema, Mongala, Nord-Kivu, Tanganyika); Sud-Kivu, Tshopo and the 'autres DPS' table transcribed by hand (the parser had put
+        Haut-Lomami's zero-valued Lwamba under Sankuru; the Lomami sous-total line is misprinted 12/11 but the HZ values reproduce the
+        trend 25/18) -> 222 HZ-week rows + 57 zero spans (Index 8750-9028). Sud-Kivu Lemera/Nundu read from a split layout (conf 0.7).
+  Relocations (canonical HZ names, no collisions): Index 6874, 8169, 8176, 8199 -> Sud-Kivu::Miti-Murhesa; 7580, 7586, 7593, 8002, 8003 ->
+        Maniema::Kunda.
+Sources found: 30+   Registered: 761 (crisis sitrep S23/2024), 762-764 (crisis sitreps S12, S14, S16 2026), 765 (UNICEF CATI Oct 2025),
+               766 (OCHA Sud-Kivu snapshot Sep 2025)
+Rows added   : 844 in batch 7 (Index 8202-9045): 339 by batch-7 queries + 505 re-mined (77 + 86 + 63 + 279)
+Successful queries: 11/20 (Q1, Q2, Q4, Q6, Q8, Q9, Q10, Q13, Q14, Q19, Q20)
+Yield        : 55%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (yield >= 5%)
+Validator    : exit 0, ERROR 0, WARN 99 -> CFR_high 64, same_period_conflict 28 (new documented pairs 8648/2323 and 8729/257, both
+               annotated), multiyear 4, other pre-existing 3. No national_subnational_overlap WARN.
+Leads (Agent 5): OCHA 29 Feb 2012 provincial figures (Index 874-878, source 286) disagree with the WHO-DRC DPR series (e.g. Bandundu
+               591 by 15 Feb vs DPR 63 to 19 Feb and 568 to 25 Mar); Haut-Katanga 2024 S1-S27 deaths 141 (Index 2282) vs 144 in the
+               same sitrep's Haut-Katanga paragraph; Agent 1 Index 2233 'Sud-Kivu::Lulenge-Kimbi' = Kimbi-Lulenge.
