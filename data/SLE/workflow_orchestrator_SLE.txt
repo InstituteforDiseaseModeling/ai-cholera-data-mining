@@ -1,0 +1,337 @@
+================================================================================
+WORKFLOW ORCHESTRATOR BRIEF - SIERRA LEONE (SLE) - 2026-09-29 Opus 5.5 cycle
+File: ./data/SLE/workflow_orchestrator_SLE.txt  (every agent reads this before its first query)
+Written 2026-10-01 ~20:00 by the SLE orchestrator (session 1 of this cycle).
+Agent-specific instructions arrive in each agent's prompt; this file is the shared context.
+Later agents: the orchestrator appends handover notes in section 10 after each agent.
+================================================================================
+
+0. RUN CONTEXT - READ FIRST
+--------------------------------------------------------------------------------
+* NO TIME LIMIT. There is no deadline, no wall-clock budget, no "return by HH:MM"
+  and no time box for any agent. The ONLY stopping rule for Agents 1-6 is the
+  yield rule (section 8): at least 3 batches, then continue until 3 consecutive
+  batches are below 5% yield, or 12 batches in total. Stopping on time while
+  batches still yield >= 5% is under-collection, not completion.
+* Nobody is watching. Never stop to ask a question. Decide, log the decision and
+  the alternative you rejected, and continue.
+* SLE runs in parallel with other countries (LBR - a neighbour -, COD, SWZ at the
+  time of writing). Only one SLE orchestrator is live (reference/.runner.pid).
+  Anything already in ./data/SLE/ is earlier work - reconcile it, do not duplicate it.
+  Never write into ./data/LBR/ or ./data/GIN/ (search them, read them, never write).
+* FRESH cycle. No workflow_state.json existed. The previous cycle's logs (2025-07
+  to 2026-05) are archived as ./data/SLE/search_log_agent_N_legacy_<date>.txt and
+  the old report as ./data/SLE/search_report_legacy_20260515.txt. Read them to
+  avoid repeating work; never write to them. Their claims are NOT verified - the
+  old report admits Agent 7 "reconstructed" the CSVs from logs, and several of
+  those rows are contradicted by the baseline (section 3).
+
+1. OPERATIONAL OVERRIDES (these beat anything in the agent .md or the template)
+--------------------------------------------------------------------------------
+DO NOT run  `python py/analyze_effective_gaps.py`  (any flags, any prefix). It
+   rewrites SHARED ./reference/effective_* / baselineonly_* files that other
+   countries' agents are reading. The runner refreshed them before SLE started
+   and regenerates them when SLE exits. Use the READ-ONLY in-memory helper:
+       python3 /tmp/SLE_orch/sle_coverage.py SLE                    (JHU+WHO+AI)
+       python3 /tmp/SLE_orch/sle_coverage.py SLE --layers JHU WHO   (baseline only)
+DO NOT run  `py/build_weekly_timeseries.py`, `update_dashboard.sh`,
+   `py/update_dashboard_data.py`, or anything else that rebuilds all 40 countries.
+   To see how the weekly builder will treat SLE rows, use the read-only preview:
+       python3 /tmp/SLE_orch/sle_weekly_preview.py 1997 1997      (year range)
+DO NOT git add / commit / push. The runner commits data/SLE when the country ends.
+DO NOT edit py/ scripts, reference/ files, the baseline files
+   (./data/SLE/cholera_data_jhu.csv, ./data/SLE/metadata_jhu.csv), or any other
+   country's data directory.
+DO NOT hand-edit ./data/SLE/cholera_data_ai.csv, ./data/SLE/metadata_ai.csv or
+   ./data/SLE/cholera_presence_ai.csv.
+   New rows/sources : python py/add_observation.py {register-source|add|add-zero|add-presence} SLE ...
+   Existing rows    : python py/revise_observation.py SLE --index N ... --reason "..."
+                      (--append-note, --confidence, --sch/--cch/--deaths, --tl/--tr,
+                       --location, --set-evidence, --delete [writes a tombstone to
+                       ./data/SLE/retracted_rows_ai.csv]; --meta-index with
+                       --set-description / --set-status for metadata). There is no
+                       verb to change a row's source_index: to re-cite a row, add the
+                       correctly-cited row and --delete the old one (tombstone reason
+                       names the new Index). The duplicate guard (same location, TL, TR,
+                       counts) means you must delete BEFORE adding an identical-count row.
+Tools: WebSearch / WebFetch are deferred tools - load them first with
+   ToolSearch query "select:WebSearch,WebFetch".
+   WHO IRIS (iris.who.int) WORKS from this machine (tested 2026-10-01 19:58). WebFetch
+     on iris.who.int returns 403; the DSpace REST API does not. Helpers:
+       python3 /tmp/SLE_orch/iris_find.py "cholera in 1980" 20     (uuid | date | handle | title)
+       python3 /tmp/SLE_orch/iris_text.py <uuid>                   (OCR TEXT bundle)
+       python3 /tmp/SLE_orch/iris_text.py <uuid> --pdf /tmp/SLE_orch/aN_x.pdf   (original PDF)
+     TEXT bundles sometimes mangle tables - then get the PDF and `pdftotext -layout`.
+     WER annual cholera reviews on IRIS (uuid of the review of year Y, published in Y+1):
+       1972  db7c265d-971f-4eb6-aae5-cce48ee14d8e   1975  707929f0-4347-431a-aa11-8aad6320d669
+       1980  9d17d309-c20a-4d4c-a596-c3d5702d2dee   1983  a571a2d3-dd19-4059-85f1-63bd9662837f
+       1985  be30c26f-beee-4f5b-adec-734e34479420   1990  69b7dcf9-ca8e-499d-8197-9c1f9ba1eb4c
+       1993  c5260dc2-6300-4559-aa9f-55406d0a11e0 (Part I), c0893ee0-8bd3-4bf4-8a9b-8738ad561305 (Part II)
+       2010  011d02cd-618f-4a61-aa79-fa3ee6a32241
+       (find the other years with iris_find.py "cholera in 19xx"). WER full weekly issues
+       are also on IRIS ("Weekly Epidemiological Record, 1985, vol. 60, 01 [full issue]")
+       and carry the weekly "diseases subject to the Regulations" notification tables.
+     ORCHESTRATOR PROBES (leads, not rows - verify before use):
+       "Cholera in 1980" Africa table lists 14 countries (Burundi ... Liberia ... Zambia);
+         Sierra Leone is NOT listed. "Cholera in 1985" table lists Liberia; Sierra Leone
+         is NOT mentioned anywhere in the OCR text. "Cholera, 2010" (WER 86(31)) does not
+         mention Sierra Leone anywhere. Copies: /tmp/SLE_orch/orch_cholera1980.txt,
+         orch_cholera1985.txt, orch_cholera2010.txt.
+   WHO GHO OData (works): https://ghoapi.azureedge.net/api/CHOLERA_0000000001?$filter=SpatialDim%20eq%20'SLE'
+     (_0000000002 deaths, _0000000003 CFR). GHO holds SLE only for 1970, 1971, 1977,
+     1986, 1987, 1994, 1995, 1998, 1999, 2004-2008, 2012, 2013 (cases field is in "Value"
+     for older years; deaths 74, 13, 0, 669, 30, 623, 447, 57, 5, 42, 0, 99, 84, 1, 299, 32).
+   WHO global cholera dashboard ArcGIS layer: ZERO features for SLE (no WHO weekly data
+     for Sierra Leone 2023-2026). There is no ./data/SLE/cholera_data_who.csv.
+   reliefweb.int: WebFetch may 403; curl with a desktop UA works (200 tested):
+       curl -s -L -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" "https://reliefweb.int/updates?search=sierra%20leone%20cholera"
+     ReliefWeb carries UNDRO/DHA situation reports back to the 1980s-1990s and OCHA
+     Sierra Leone humanitarian sitreps 1997-2004 - prime territory for 1985-87, 1994-95,
+     1997-2003.
+   Europe PMC REST (works): https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=...&format=json
+   ECDC cholera monthly page (works, 200). WHO DON listing (works, 200).
+   PDFs: curl -L -A "<desktop UA>" -o /tmp/SLE_orch/aN_x.pdf URL ; pdftotext -layout.
+   No tesseract on this machine (no local OCR of image-only PDFs).
+   Scratch files: /tmp/SLE_orch/ with your agent prefix (a1_, a2_, ...).
+Validator: `python py/validate_quality.py SLE` must exit 0 before you report done.
+   Its "row N" is the CSV LINE number (header = line 1), NOT the Index value. Look up
+   the Index column (Index 10 and 11 do not exist - they were moved to the presence file
+   by an earlier repair - so line numbers and Index values diverge after Index 9).
+State: record your run with py/workflow_state.write_agent_state(...), batch_yields in
+   PERCENT units (0-100). Yield = queries that produced >=1 committed NEW row / 20.
+   Never above 100. write_agent_state REPLACES your agent's entry and preserves the
+   "orchestrator" key; a resumed agent writes CUMULATIVE figures.
+Log: ./data/SLE/search_log_agent_{N}.txt - create it at your start (Agent 1: the
+   orchestrator has written its INITIALIZATION header; APPEND below it). Append one
+   block per batch in the protocol's shape, and a final summary.
+Deaths: source-reported deaths are data. If a small denominator gives CFR >15%, still
+   record the deaths (the writer caps confidence at 0.7) and add a context note.
+
+2. STATE AT CYCLE START (measured by the orchestrator 2026-10-01 19:51)
+--------------------------------------------------------------------------------
+./data/SLE/cholera_data_ai.csv    18 rows (Index 1-9, 12-20; Index max 20)
+./data/SLE/metadata_ai.csv        24 sources (Index 1-24)
+./data/SLE/cholera_presence_ai.csv 2 records (1970 presence; 1994-1995 presence)
+./data/SLE/cholera_data_jhu.csv   58 964 rows (read-only)   - no WHO baseline file
+validate_quality.py SLE : exit 0, ERROR 0, WARN 3, INFO 15
+   3 x national_subnational_overlap - 2012 national rows vs the legacy district rows
+       (no double-counting phrase); 12 x metadata_unused INFO.
+Effective coverage (JHU+WHO+AI): 65.8% (449/682 months), months_ai_only 41,
+   positive months 196, latest observation 2026-05-31 (AI zero row), latest POSITIVE
+   observation 2018-06-17 (JHU/UNICEF suspected case).
+Formal effective gaps (./reference/effective_surveillance_gaps_detailed.csv):
+   Sierra Leone,SLE,1972-01-01,1976-12-31,1827,60,5.0,historical
+   Sierra Leone,SLE,1979-01-01,1985-12-31,2557,84,7.0,historical
+   Sierra Leone,SLE,1988-01-01,1993-12-31,2192,72,6.0,historical
+   Sierra Leone,SLE,2010-01-01,2010-12-31,365,12,1.0,modern
+   Sierra Leone,SLE,2026-06-01,2026-10-01,123,4,0.34,recent
+Baseline-only (JHU only): 59.4% (405/682), 8 gaps: the five above plus 1997, 2014,
+   2018-10..2018-12, 2025-01..2026-10. The AI layer "covers" 1997, 2014, 2018 Q4 and
+   2025-26 ONLY through weakly-sourced or contradicted zero rows (section 3) - treat
+   1997, 2014 and 2018 Q4 as LATENT GAPS that may re-open.
+
+3. DEFECTS THE ORCHESTRATOR FOUND BEFORE AGENT 1 (they change what is valuable)
+--------------------------------------------------------------------------------
+(D1) Index 12 - AFR::SLE 1996-01-01..1999-12-31 sCh 0, "Inferred_Absence ... due to
+     surveillance system collapse", cites metadata 14 whose URL is fabricated
+     (https://www.ncbi.nlm.nih.gov/pmc/articles/civil-war-health -> 404, listed in
+     ./reference/url_check_broken.csv). It is CONTRADICTED by the WHO annual series in
+     the baseline: 1998 = 2 096 cases / 57 deaths, 1999 = 863 / 5 (JHU UID 335 and 68,
+     also GHO). Its own note describes a SURVEILLANCE GAP, which CLAUDE.md forbids as a
+     zero. Its only effect on the model: 1997 is rendered as zero (weekly preview: 1997
+     total 0) - a fabricated negative for the AFRC-junta year. OWNER: Agent 5 retracts or
+     narrows it on evidence; Agent 3/6 decide whether ANY real source supports 1997
+     absence (expect not). Nobody builds on Index 12.
+(D2) Index 17 - AFR::SLE 2018 full year sCh 0 "Documented_Absence from WHO report", cites
+     metadata 13 (generic URL https://www.who.int/emergencies/surveillance/cholera-cases-
+     and-deaths). The baseline holds a 2018 UNICEF/IDSR weekly series with 37 SUSPECTED
+     cases nationally (Jan-Jun 2018: Kambia, Western Area, Bombali, Port Loko) and GHO has
+     no 2018 entry for SLE. "WHO confirms zero in 2018" is unsupported. OWNER: Agent 3
+     verifies (were the 2018 suspected cases ever confirmed? did WHO's 2018 annual report
+     list SLE?), Agent 5 resolves (re-cite, narrow to the JHU-silent Oct-Dec 2018, relabel
+     Inferred_Absence, or retract).
+(D3) Index 13, 14, 15, 16, 18 - 2014, 2015, 2016, 2017, 2019 zeros, all citing the same
+     generic metadata 13 URL. 2015-2016 are corroborated by baseline UNICEF weekly zeros,
+     2017 and 2019 by WHO annual zeros (JHU UID 335). 2014 (Ebola year) is corroborated by
+     NOTHING in the baseline. Index 19 (2020-2024 zero) cites metadata 17 = the MoHS
+     homepage; it is corroborated by WHO annual zeros 2020-2024 in the baseline but the
+     citation is not a document. OWNER: Agent 3 finds the real documents (WER annual
+     "Cholera, 2014" ... "Cholera, 2024" country tables; IDSR bulletins) and Agent 5
+     re-cites or retracts.
+(D4) 2012 legacy district rows contradicted by the baseline. The JHU daily chiefdom series
+     (UID 20355; NO deaths recorded) sums for 2012 to: Western Area Urban 9 021 + Rural
+     2 147; Port Loko 3 319 (+141 under "SL-N"); Kambia 1 456 (+136); Bombali 1 164 (+164);
+     Tonkolili 876 (+361); Kenema 767 (+70); Pujehun 652 (+380); Bo 515 (+156); Moyamba
+     393; Bonthe 213 (+112); Kono 193; Koinadugu 94. Against that:
+       Index 3 Western_Area 2012 4 965 / 63 (cites Nguyen et al., PMC4055609) - verify
+         what the paper actually says (Eastern Freetown? to a date?);
+       Index 7 Tonkolili 22 cases and Index 8 Kenema 18 cases (cite a generic WHO DON
+         URL, metadata 9) - implausible against 1 237 and 837;
+       Index 6 Moyamba 20 deaths (generic DON URL); Index 5 Bombali 798 / 18 is Makeni
+         Hospital admissions, not a district total; Index 4 Port Loko 2 806 / 45.
+     All of Index 4-8 sit at the wrong depth (a DISTRICT written at ADM1 depth, e.g.
+     AFR::SLE::Port_Loko). OWNER: Agent 5 (verify against the sources; retract
+     unsupported values; relocate supported ones to the section-6 names; add the
+     double-counting phrases that clear the 3 WARNs). District DEATHS for 2012 are
+     genuinely new information (the JHU chiefdom series has none) - Agent 2 lead.
+(D5) Index 9 - AFR::SLE 2012-08-01..2012-08-31 13 934 / 232 is a CUMULATIVE since
+     1 Jan 2012 ("13,934 cumulative cases ... by end of August") entered with an August-
+     only window. Same figure is in JHU (UID 20408, 2012-01-01..2012-08-30). OWNER: Agent 5
+     (correct TL to 2012-01-01 or retract as a duplicate of the baseline). Index 2 (2012
+     22 815 / 296) vs JHU UID 10016 (22 815 / 269) vs WHO annual (23 124 / 299): check the
+     death figure against the cited paper (296 vs 269 transposition?).
+(D6) Fabricated / dead metadata URLs: Index 11 (.../pmc/articles/post-ebola-surveillance,
+     404) and Index 14 (.../pmc/articles/civil-war-health, 404). Other legacy entries point
+     at homepages (Index 2 afro.who.int/health-topics/cholera; 6 WER journal page; 7 and 17
+     mohs.gov.sl; 9 DON listing; 13 WHO cholera page; 22 ECHO homepage). OWNER: Agent 5/7
+     mark unused bad entries Superseded (revise_observation.py --meta-index N --set-status
+     Superseded) once no live row cites them; never cite them for new rows.
+
+4. WHAT THE BASELINE ALREADY HOLDS - DO NOT RE-TRANSCRIBE IT
+--------------------------------------------------------------------------------
+./data/SLE/cholera_data_jhu.csv holds:
+  * National ANNUAL totals (WHO annual report / JHU UID 335, 68): 1970 293/74, 1971 211/13,
+    1977 12/0, 1978 0, 1986 8 957/669, 1987 557/30, 1994 9 709/623-626, 1995 10 285/447,
+    1996 0, 1998 2 096/57, 1999 863/5, 2000-2003 0, 2004 513/42 (WHO) vs 1 747/47 (JHU
+    UID 68 - an unresolved conflict INSIDE the baseline), 2005 6/0, 2006 2 560/99 (WHO) vs
+    2 699/124 (UID 68), 2007 2 219/84, 2008 62/1, 2009 0, 2011 0, 2012 23 124/299,
+    2013 377/32, 2017 0, 2019-2024 0.
+  * 2006 sub-national: Western Area 2006-08-15..10-18 1 188/74; Kenema 2006-06-24..07-03
+    51/5; Bonthe 2006-01-01..01-19 18 deaths.
+  * 2012-2013 DAILY chiefdom-level series (UID 20355, ~57 000 rows, no deaths) + national
+    weekly 2012-01..2013-02 (UID 810) + many 2012 national cumulative snapshots.
+  * 2015-2016 national WEEKLY zeros (UNICEF); 2018 Jan-Sep and 2019 weekly national/
+    province/district (UNICEF IDSR; 2018 has 37 suspected cases).
+  => Re-entering these at the SAME resolution adds nothing and only inflates yield.
+     NEW information = (a) anything inside a gap (section 5); (b) a finer resolution than
+     the baseline holds: monthly/weekly national figures for the annual-only years 1970,
+     1971, 1977, 1986, 1987, 1994, 1995, 1998, 1999, 2004-2008, 2013; provincial/district
+     figures for any year except the 2012-13 chiefdom series; (c) deaths where the
+     baseline has none (2012-13 districts/chiefdoms); (d) a different, better-sourced
+     figure for a baseline conflict (2004, 2006) - record both numbers in the notes.
+  PIPELINE NOTE (orchestrator, for your awareness, do not change behaviour because of it):
+     py/build_weekly_timeseries.py ranks SOURCE before method (WHO > JHU > AI), so in a year
+     where JHU holds an annual total, AI sub-annual national rows do not reach
+     ./data/SLE/cholera_weekly_SLE.csv (JHU's Fourier-split annual wins). Gap years have no
+     JHU rows, so AI rows there DO drive the series - and weeks with no source at all are
+     currently filled as "assumed_zero" (conf 0.5). A POSITIVE count inside a gap year is
+     therefore the single highest-impact finding for the model; sub-annual detail for JHU
+     years is still real data for the AI product and is still wanted.
+
+5. TARGETS - IN PRIORITY ORDER
+--------------------------------------------------------------------------------
+G1  1979-01-01..1985-12-31 (7 y, historical)   G2  1988-01-01..1993-12-31 (6 y, historical)
+G3  1972-01-01..1976-12-31 (5 y, historical)   G4  2010-01-01..2010-12-31 (1 y, modern)
+G5  2026-06-01..2026-10-01 (recent; today is 2026-10-01 - TR may not be in the future)
+LATENT  1997 (if Index 12 goes), 2014 (Ebola year; zero row has no real source),
+        2018-10..2018-12, and the civil-war years the baseline records as 0 (1996,
+        2000-2003) - a source showing cholera in those years is new information
+        (e.g. displaced-persons camps, Kenema/Bo/Freetown).
+First look for POSITIVE evidence inside each gap (a notified case count, an outbreak with
+numbers); only then document absence. For the historical gaps the decisive documents are
+the WER annual reviews ("Cholera in 19xx") and the WER weekly notification tables; WHO
+World Health Statistics Annual; UNDRO/DHA reports; ProMED (1994+); West African Medical
+Journal; Sierra Leone Medical & Dental Association; theses (COMAHS / Fourah Bay College /
+University of Sierra Leone); the 1970-71 introduction literature (Guinea Aug 1970 ->
+Sierra Leone); MSF / IFRC archives. Known outbreak years whose sub-annual or sub-national
+detail is missing: 1970-71, 1977, 1985?-1987, 1994-95, 1998-99, 2004-2008, 2013.
+
+ABSENCE CLASSIFICATION RULE FOR SLE (Agents 3 and 6 apply it; everyone else respects it)
+  * Sierra Leone simply NOT LISTED in a WER annual "countries reporting cholera" table =
+    Inferred_Absence at most (confidence <= 0.7, --surveillance partial or unknown), and
+    only if (i) the table is the comprehensive annual list, (ii) there is evidence SLE's
+    notification system was operating that year (it notified other diseases to WHO, or
+    cholera in an adjacent year), and (iii) the regional picture is stated (Guinea/Liberia
+    epidemic or quiet). Not listed is NOT "listed with 0".
+  * Documented_Absence needs a positive statement: SLE listed with 0, "no cases reported
+    by Sierra Leone", "free of cholera since 19xx", a functioning IDSR bulletin showing 0.
+  * A period the source itself describes as collapsed / no reporting (civil war, Ebola
+    disruption of IDSR) is a SURVEILLANCE GAP: no zero row; record it in
+    ./data/SLE/cholera_presence_ai.csv only if there is presence evidence, and in the log.
+  * The 2025-01..2026-05 zero (Index 20, ECDC/WHO multi-country tables, operational IDSR)
+    stands as the precedent for the modern era: a comprehensive multi-country active-
+    country table plus an operational IDSR may support Documented_Absence.
+
+6. COUNTRY PROFILE (./reference/country_profiles.json - authoritative) + NAMING
+--------------------------------------------------------------------------------
+Name Sierra Leone, ISO2 SL, West Africa. Neighbours: GIN (Guinea), LBR (Liberia) - both
+  MOSAIC countries: search them for cross-border evidence, never create data for them.
+ADM1 (profile, post-2017): Eastern Province, Northern Province, North West Province,
+  Southern Province, Western Area.  Cities: Freetown, Bo, Kenema, Makeni, Koidu, Port Loko.
+Languages: en (Krio press and radio exist; French is useful for Guinea-side material).
+Terms: cholera, acute watery diarrhoea (AWD). AWD counts are NOT cholera counts unless the
+  source calls them suspected cholera.  Ministry domain: mohs.gov.sl. Also try the National
+  Public Health Agency (NPHA, est. 2022) and the IDSR weekly epidemiological bulletins.
+Season: Freetown coastal slums; rainy season May-Oct; 2012 major epidemic.
+CANONICAL Location spelling (underscores, no spaces; CURRENT 5-province structure):
+  AFR::SLE::Eastern_Province      ::Kailahun ::Kenema ::Kono
+  AFR::SLE::Northern_Province     ::Bombali ::Falaba ::Koinadugu ::Tonkolili
+  AFR::SLE::North_West_Province   ::Kambia ::Karene ::Port_Loko
+  AFR::SLE::Southern_Province     ::Bo ::Bonthe ::Moyamba ::Pujehun
+  AFR::SLE::Western_Area          ::Western_Area_Urban ::Western_Area_Rural
+  District rows: AFR::SLE::{Province}::{District}, district placed under its CURRENT
+  province for every year (Kambia and Port Loko -> North_West_Province even for 2012;
+  Karene/Falaba only for data that names them). Chiefdom: add a 4th level, e.g.
+  AFR::SLE::Southern_Province::Moyamba::Kagboro. Freetown -> AFR::SLE::Western_Area::
+  Western_Area_Urban (quote "Freetown" in the notes); Makeni -> ::Bombali; Koidu -> ::Kono.
+  A pre-2017 "Northern Province" TOTAL (which then included Kambia and Port Loko) goes to
+  AFR::SLE::Northern_Province with the note "Pre-2017 boundary: then included Kambia and
+  Port Loko (now North_West_Province)". Do not invent a district for a source that only
+  names a province. Several units combined with no split: AFR::SLE::Multi_Provincial with
+  the members listed and "Multi-unit aggregate - do not sum with member units".
+DOUBLE-COUNTING PHRASES (the validator greps for them; EVERY row in an overlapping
+  national/sub-national group must carry one, including national ZERO rows):
+  sub-national rows : "Provincial subset - do not sum with national row"
+  national case rows: "National total - includes provinces not individually listed"
+  national zero rows: "National total (zero) - primary count; do not sum with sub-national rows"
+
+7. AGENT ASSIGNMENTS (who owns what; details are in each agent's prompt)
+--------------------------------------------------------------------------------
+A1 Baseline   : G1, G2, G3, G4, G5 longest first; all four institutional families (WHO
+                WER/DON/AFRO/GHO; ReliefWeb/OCHA/UNICEF; MSF/IFRC; academic reviews);
+                sub-annual national detail for the annual-only outbreak years.
+A2 Geographic : province/district/chiefdom detail for every outbreak year except the
+                2012-13 chiefdom series (but 2012-13 district DEATHS are new); border
+                districts with Guinea (Kambia, Port Loko, Koinadugu/Falaba, Kailahun) and
+                Liberia (Pujehun, Kenema, Kailahun); Freetown slums.
+A3 Zero valid.: every absence claim - G1-G5, latent 1997/2014/2018-Q4; verify or refute
+                the legacy zero rows (D1-D3) with real documents.
+A4 Obscure    : G1-G3 (+1997 and the civil-war years) in WER weekly tables, IRIS,
+                UNDRO/DHA, ProMED, theses, colonial/missionary/West African Medical Journal.
+A5 Cross-ref  : D1-D6; re-mine every productive source the collectors registered;
+                citation chains; arithmetic.
+A6 Gap context: classify every remaining gap >= 6 months (non-reporting vs true absence).
+A7 Auditor    : validator, repairs (scoped to SLE), coverage before/after via the
+                read-only helper, ./data/SLE/search_report.txt.
+
+8. YIELD RULE, LOGGING, STATE
+--------------------------------------------------------------------------------
+Batch = 20 queries. Minimum 3 batches, always. Then stop only at 3 consecutive batches
+below 5% yield, or 12 batches. Yield = queries that produced >= 1 NEW committed row in
+./data/SLE/cholera_data_ai.csv, divided by 20, in percent (0-100). Rows added to
+cholera_presence_ai.csv or tombstones do not count. A "query" may be a WebSearch, a
+WebFetch of a specific document, an IRIS search/text pull, or a scripted API call - log
+each one. Log each batch as:
+  === BATCH {n} | PHASE {p} | SLE ===
+  Gap targeted / Queries (list all 20) / Sources found + registered indices /
+  Rows added + Index list / Successful queries k/20 / Yield % / Consecutive sub-5% /
+  Decision CONTINUE or STOP (reason)
+Final summary in the log: batches, yields, rows added (Index list), sources registered,
+gaps filled / validated / remaining, stopping reason in the words of the yield rule.
+Then write_agent_state(...) and `python py/validate_quality.py SLE` (exit 0).
+
+9. TRAPS (do not repeat)
+--------------------------------------------------------------------------------
+* "Cholera in Sierra Leone 1994-1995" as a presence row exists already (presence file):
+  WHO annual has the counts (9 709 and 10 285) - do not add count-less rows for it.
+* WER issues list smallpox, yellow fever, plague and cholera side by side - check which
+  disease a Sierra Leone figure belongs to before writing it.
+* 2012 YTD cumulatives are everywhere (DONs, OCHA, UNICEF); a cumulative is never an
+  increment for the window between two reports unless you subtract and say so.
+* JHU 2012 chiefdom rows are daily incident counts; do not add district totals derived
+  from them as if they were a new source.
+* AWD numbers in IDSR bulletins are not cholera.
+
+10. ORCHESTRATOR HANDOVER NOTES (appended after each agent)
+--------------------------------------------------------------------------------
+(none yet - Agent 1 starting)

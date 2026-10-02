@@ -1,0 +1,240 @@
+=== WORKFLOW ORCHESTRATOR LOG - Democratic Republic of Congo (COD) ===
+Cycle: 2026-09-29 Opus 5.5 max-effort re-run (first COD attempt this cycle; no COD row in
+       ./reference/run_manifest.csv before this run)
+Orchestrator start: 2026-10-01 19:49 (local). Runner: reference/.runner.pid = 19720
+       (bash run_all_countries.sh --unattended --publish-progress --parallel 10). Only one runner may
+       be live, so anything already in ./data/COD is earlier work, not a concurrent writer.
+
+================================================================================
+1. COMMON BRIEF - EVERY AGENT READS THIS SECTION BEFORE ITS FIRST QUERY
+================================================================================
+1.1 Stopping rule (Agents 1-6). NO TIME LIMIT. Batch = 20 queries. Minimum 3 batches, then
+    continue until 3 consecutive batches are below 5% yield, or 12 batches in total. Elapsed time,
+    deadlines, "time boxes", context size or tool exhaustion are NEVER stopping reasons.
+    Yield = (queries that produced >=1 NEW committed row in ./data/COD/cholera_data_ai.csv) / 20,
+    in PERCENT (0-100). Count queries, not rows. Above 100 means you counted rows.
+    Agent 7 has no batch limit.
+
+1.2 Do NOT write shared files. Countries run in parallel (10 at once). Never run
+    py/analyze_effective_gaps.py without arguments, update_dashboard.sh, py/update_dashboard_data.py,
+    py/build_weekly_timeseries.py, git, or anything that writes ./reference/ or ./dashboard/.
+    For gap/coverage numbers use the READ-ONLY per-country call (writes nothing):
+      python3 -c "import sys; sys.path.insert(0,'py'); from datetime import date; \
+        from analyze_effective_gaps import analyse; \
+        d,a,c,r = analyse('COD','Democratic Republic of Congo',['JHU','WHO','AI'],date.today(),7); \
+        print(d); print(c); print(r)"
+    (layers ['JHU','WHO'] gives the baseline-only view). This OVERRIDES the "run
+    analyze_effective_gaps.py" step in templates/template_search_protocol.txt and in the
+    cholera-quality-auditor definition.
+    Never write ./data/COD/cholera_data_jhu.csv, ./data/COD/cholera_data_who.csv (read-only
+    baselines, chmod a-w) or any other country's directory.
+
+1.3 Writers - never hand-edit the CSVs.
+      New source/row : python py/add_observation.py {register-source|add|add-zero|add-presence} COD ...
+      Existing row   : python py/revise_observation.py COD --index N ... --reason "..."
+                       (--append-note, --confidence, --sch/--cch/--deaths, --tl/--tr, --location,
+                        --set-evidence, --delete [tombstone -> ./data/COD/retracted_rows_ai.csv],
+                        --meta-index N with --set-description/--set-status for metadata)
+    Validator: python py/validate_quality.py COD must exit 0 (ERROR 0) before you report done.
+      Its "row N" is the CSV LINE number (header = line 1): row N is the (N-1)th data row, NOT
+      Index N. Look up the Index column (today "row 7" = Index 6, "row 14" = Index 13).
+    State: py/workflow_state.write_agent_state(...) with batch_yields in PERCENT. It REPLACES your
+      agent's entry, so a resumed/redeployed agent writes CUMULATIVE figures.
+    Log: ./data/COD/search_log_agent_{N}.txt - create it at your start (Agent 1: the orchestrator
+      wrote the INITIALIZATION header; APPEND below it). One block per batch in the protocol's shape,
+      plus a final summary with the stopping reason.
+
+1.4 Tools and access (tested by the orchestrator 2026-10-01 19:55):
+    - WebSearch / WebFetch are deferred tools: load with ToolSearch query "select:WebSearch,WebFetch".
+    - If WebSearch stops returning results (other countries exhausted a ~200-search session
+      allowance), continue the batch with WebFetch / curl against search endpoints and APIs: Europe
+      PMC REST, Crossref, WHO IRIS DSpace REST (helpers below), Internet Archive CDX/Wayback,
+      ReliefWeb listing pages, IFRC GO API, WHO dashboard ArcGIS. Each executed request = 1 query.
+    - WHO IRIS works via REST (WebFetch on iris.who.int returns 403; these do not):
+        python3 /tmp/COD_orch/iris_find.py "cholera in 1974" 20     -> uuid | date | handle | title
+        python3 /tmp/COD_orch/iris_text.py <uuid>                   -> OCR text
+        python3 /tmp/COD_orch/iris_text.py <uuid> --pdf /tmp/COD_orch/aN_x.pdf ; pdftotext -layout ...
+      Verified hits: "CHOLERA IN 1974 = LE CHOLERA EN 1974" uuid 2c2cdd15-dfc7-433e-ad1b-cba48b24ca09
+      (WER 1975); "CHOLERA IN THE FIRST HALF OF 1974" uuid b0abdd10-0b4e-4f19-a4ab-4665801e69db.
+      WER annual reviews ("Cholera in 19xx") and weekly notification tables are the richest route
+      to 1970s-1990s national figures. The prior cycle wrongly concluded "WER not accessible online".
+    - WHO global cholera dashboard back-end for COD (works, Level 1):
+        https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services/cholera_adm0_week/FeatureServer/0/query?where=iso_3_code%3D%27COD%27&outFields=*&orderByFields=date_wk%20ASC&returnGeometry=false&f=json
+      date_wk = true week start (Monday). WHO epiwk for 2026 = ISO week - 1. Copy at
+      /tmp/COD_orch/cod_who_dash_all.json (193 weeks, 2023-01-02 .. 2026-09-07 = epiwk 36/2026).
+      ./data/COD/cholera_data_who.csv is ALIGNED to date_wk (checked weeks 14-16/2026 exact match) and
+      ends at TL 2026-05-11 (epiwk 19). Dashboard has since revised epiwk 17-19/2026 (958->945,
+      922->907, 899->826): do NOT re-add or "correct" baseline weeks - log revisions only.
+    - reliefweb.int: WebFetch may 403; curl -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" works
+      (listing: https://reliefweb.int/updates?search=...). Europe PMC REST is reliable;
+      pubmed/pmc may show cookie walls or captchas.
+    - PDF: pdftotext (poppler) and python pypdf are installed; no tesseract (no local OCR).
+    - Scratch space: /tmp/COD_orch/ with your agent prefix (a1_, a2_, ...).
+
+1.5 Geography (./reference/country_profiles.json is authoritative):
+    - From the 2015 decoupage onward use the 26 profile provinces with the profile's spellings:
+      Bas-Uele, Equateur, Haut-Katanga, Haut-Lomami, Haut-Uele, Ituri, Kasai, Kasai-Central,
+      Kasai-Oriental, Kinshasa, Kongo-Central, Kwango, Kwilu, Lomami, Lualaba, Mai-Ndombe, Maniema,
+      Mongala, Nord-Kivu, Nord-Ubangi, Sankuru, Sud-Kivu, Sud-Ubangi, Tanganyika, Tshopo, Tshuapa.
+      (JHU writes "Kasai Oriental", "Kongo Central", "Kasai Central" - same units; the AI layer uses
+      the profile's hyphenated forms.)
+    - Before 2015 use the legacy province the SOURCE names: Katanga, Orientale, Bandundu, Bas-Congo,
+      Equateur, Kasai-Occidental, Kasai-Oriental, Kinshasa, Maniema, Nord-Kivu, Sud-Kivu. Do not remap
+      legacy -> new provinces yourself; if a health zone (zone de sante) is named, use
+      AFR::COD::{Province}::{HealthZone} with the province of that period and note any mapping.
+    - Double counting: every sub-national row whose period overlaps a national row must carry one of
+      these exact phrases in processing_notes: "National total - includes provinces not individually
+      listed" (on national rows) / "Provincial subset - do not sum with national row" (on
+      sub-national rows). Health-zone rows under a province row: say "District subset - do not sum
+      with provincial row".
+
+1.6 What is NOT a duplicate (prior cycles under-collected by rejecting these):
+    - A sub-period (week, month, quarter, sitrep interval) inside a year that only has an annual
+      total is RESOLUTION, not duplication. Add it.
+    - A province or health-zone figure for a period that has a national figure is GEOGRAPHY. Add it
+      (with the double-counting phrase).
+    - Do not re-enter what the baselines already hold at the same resolution: WHO weekly national
+      2023-01-02..2026-05-17; JHU weekly national 2015-01..2022-07-10; JHU annual national 1978-2014;
+      JHU dense province/health-zone weekly 2015-2021 (check ./data/COD/cholera_data_jhu.csv before
+      adding a province-week in 2015-2021).
+    - Cumulative vs increment: prefer non-overlapping period increments where the source gives them.
+      Derive an increment by subtraction only between two cumulative figures of the SAME series, and
+      say so ("derived by subtraction: cumulative X at A minus Y at B"). Do not leave a cumulative row
+      and its derived increments both live without a note saying which is primary.
+    - Deaths are data: if a small denominator gives CFR >15%, still record the deaths (the writer
+      caps confidence at 0.7) and add context.
+    - >1000 cases: second independent source before committing, or record single-source status and
+      weight accordingly (protocol section 6). Record both numbers when sources disagree; never average.
+
+1.7 Prior-cycle material (READ to avoid repeating, do not trust its conclusions):
+    ./data/COD/search_log_agent_{1..7}_legacy_*.txt, ./data/COD/search_log_recent_update_2026-06-18.txt,
+    ./data/COD/search_report_legacy_2025-08-06.txt. The 2025 report claimed "97.6% coverage validated
+    by negative results across 260 queries" - that was under-collection: it counted annual totals as
+    coverage and rejected sub-period and provincial data as duplicates.
+
+================================================================================
+2. STARTING STATE (measured by the orchestrator 2026-10-01 19:51)
+================================================================================
+./data/COD/cholera_data_ai.csv   17 rows (Index 1-17)       ./data/COD/metadata_ai.csv 19 sources (1-19)
+./data/COD/cholera_presence_ai.csv  absent                  ./data/COD/workflow_state.json absent
+./data/COD/cholera_data_jhu.csv  14,304 rows (read-only)    ./data/COD/cholera_data_who.csv 176 rows
+py/validate_quality.py COD : exit 0, ERROR 0, WARN 5, INFO 7   (JSON /tmp/COD_pre.json)
+   WARN notes_missing_quote + zero_row_no_evidence_type : row 7 = Index 6 (1970-1972 national zero)
+   WARN CFR_high_flagged_for_review : row 14 = Index 13 (Tshopo 2025, 57/292 = 19.5%)
+   WARN national_subnational_overlap x2 : 2025 periods (Index 2,3 national vs Index 7,9-14 provincial)
+Effective coverage (read-only analyse, JHU+WHO+AI, horizon 2026-10-01):
+   682 months, 617 with data, 65 missing -> 90.5%; months_jhu 564, months_who 41, months_ai 60,
+   months_ai_only 36, months_with_positive_cases 581; observations 14,497;
+   latest_observation 2026-05-31 (AI Index 16, Sud-Kivu cumulative), 123 days stale.
+   Formal effective gaps (./reference/effective_surveillance_gaps_detailed.csv):
+     COD 1973-01-01..1977-12-31  1826 d  historical
+     COD 2026-06-01..2026-10-01   123 d  recent
+Baseline-only (JHU+WHO): 581/682 = 85.2%; gaps 1970-01-01..1977-12-31 and 2026-06-01..2026-10-01.
+The 36 AI-only months = AI Index 6 (1970-1972 zero, no evidence label) + 2026 May AI rows.
+
+================================================================================
+3. TEMPORAL / SPATIAL RESOLUTION PROFILE (finest row per period, all layers)
+================================================================================
+National (AFR::COD):
+  1970-1972  AI multi-year zero only (Index 6; unlabelled evidence)
+  1973-1977  NOTHING in any layer (formal gap). AI Index 6 notes say cholera entered western Zaire
+             (Kongo Central) in 1973 and the east (Kalemie) in Sept 1977 - so this is presence, not
+             absence: WER annual reviews should give Zaire national totals.
+  1978-2009  ANNUAL totals only (JHU "WHO Annual Cholera Report" + JHU UID 21376 for 2000-2014).
+             No sub-annual national series at all.
+  2010-2014  annual + a handful of sub-annual rows (2011 Jan-Aug, Mar-Aug; 2012 two weeks + Q1;
+             2014 Q1, Jan-Apr).
+  2015-2021  weekly (JHU), plus dense province and health-zone weekly series.
+  2022       weekly national only 2022-01-03..2022-07-04; 2022-07-11..2022-12-31 has NO weekly
+             national rows (covered only by multi-month/annual rows).
+  2023-01-02..2026-05-17  WHO weekly national baseline.
+  2026-05-18..2026-10-01  nothing national (WHO dashboard now holds epiwk 20-36 = 2026-05-18..09-13).
+Sub-national:
+  pre-2014   almost nothing (JHU: 8 health-zone rows 2010, a few 2011-2013; AI: two 1997 camp
+             events coded national - see T7).
+  2014-2021  dense (JHU).
+  2022-2024  sparse: JHU province rows 2022 (9 provinces), 2023 (Sud-Kivu, Tanganyika only),
+             2024 (5 provinces); AI Index 4 Nord-Kivu 2022-11..2023-02.
+  2025       AI cumulative/annual rows for Kinshasa, Haut-Lomami, Sud-Kivu, Mai-Ndombe, Lualaba,
+             Tshopo, Tanganyika (Index 7, 9-14). No weekly/monthly provincial series.
+  2026       AI Sud-Kivu Jan-May cumulative (Index 16) only.
+
+================================================================================
+4. WORK LIST (targets; every agent works its speciality across these)
+================================================================================
+T1 RECENT GAP 2026-05-18..2026-10-01 (national + provincial). WHO dashboard epiwk 20-36/2026 =
+   17 weekly national rows (Level 1; use date_wk..date_wk+6). Then anything after 2026-09-13:
+   WHO AFRO weekly bulletins, WHO multi-country epi updates (#38+), INSP / PNECHOL-MD sitreps, OCHA,
+   UNICEF, Africa CDC weekly briefs, provincial DPS figures (French press: actualite.cd, radiookapi.net,
+   7sur7.cd, mediacongo.net). 2026 provincial breakdowns -> Agent 2.
+T2 HISTORICAL GAP 1973-01-01..1977-12-31 (national). WER annual reviews "Cholera in 1973/74/75/76/77"
+   and the half-year reviews, WER weekly notification tables (Zaire), WHO AFRO archives; BMC Infect
+   Dis 2024 spatiotemporal 1973-2022 (metadata 8) and BMC Infect Dis 2021 westward spread (metadata 9)
+   - read their tables/supplements, not just abstracts. Also check WER 1970-1972 tables for Zaire
+   (decides AI Index 6 - Agent 3 owns that decision).
+T3 SUB-ANNUAL NATIONAL SERIES 1978-2014. WER weekly/periodic notifications, WHO AFRO weekly
+   epidemiological bulletins (2000s-2014), OCHA RDC cholera sitreps (2008-2016), UNICEF, PNECHOL-MD,
+   papers with national epi curves (Bompangue et al. 2009 PLoS NTD = metadata 6; Ingelbeen et al.
+   2019 EID "Recurrent cholera outbreaks, DRC, 2008-2017"; Muyembe et al. 2013 J Infect Dis national
+   policy paper; Bompangue et al. 2008 EID "Lakes as source of cholera outbreaks, DRC").
+T4 SUB-NATIONAL 1978-2014 (legacy provinces / health zones). Kivu lakes 1978-2008, Katanga lakes
+   2000s, 1994 Goma refugee epidemic (Goma Epidemiology Group, Lancet 1995; MMWR), 1997 refugee camps,
+   2008 Katanga, 2011 Congo-river epidemic (Bandundu, Equateur, Kinshasa, Orientale), 2012-2013
+   Katanga/Orientale, OCHA/UNICEF provincial sitreps.
+T5 SUB-NATIONAL 2022-2026. 2023 Nord-Kivu IDP-camp epidemic (Goma/Nyiragongo/Karisimbi), 2024
+   Haut-Katanga/Lualaba/Tanganyika, 2025 nationwide (21+ provinces), 2026 provinces. The June-2026
+   pass SKIPPED Jan-May 2025 provincial figures as "out of window" (Haut-Katanga 4943/113, Haut-Lomami
+   4211/81, Nord-Kivu 4168/4, Tanganyika 2420/43, Sud-Kivu 2691/14, Maniema 1669/91 per
+   ./data/COD/search_log_recent_update_2026-06-18.txt) - in scope now; locate and verify the source.
+T6 NATIONAL 2022-07-11..2022-12-31 weekly/monthly (no weekly national rows in any layer): WHO AFRO
+   weekly bulletins (OEW), UNICEF/OCHA sitreps, WHO DON 2023-DON441 (metadata 1) tables.
+T7 EXISTING-ROW DEFECTS (Agents 3/5/7 via revise_observation.py, after checking the source):
+   - Index 5 (Tingi-Tingi camp near Lubutu, Jan 1997, 56 cases) and Index 15 (Kisangani-Ubundu
+     corridor refugees, Apr 1997, 545) are local outbreaks coded national AFR::COD -> recode to the
+     period's province (Maniema; Orientale) so they stop reading as national totals.
+   - Index 6 (1970-1972 national zero) has no evidence label and no verbatim quote (Agent 3).
+   - 2025 national/provincial overlap phrasing (Index 2,3 vs 7,9-14); Index 13 CFR 19.5%.
+   - Index 17 (2026 cumulative 23,971 to 26 Apr) vs WHO weekly sum ~21,492 - reconcile (Agent 5).
+
+================================================================================
+5. ORCHESTRATOR DECISIONS
+================================================================================
+D1 (19:51) Fresh cycle for COD: no ./data/COD/workflow_state.json and no manifest row, so nothing to
+   resume. All seven agents deploy from scratch, in order.
+D2 (19:53) Prior-cycle logs archived by rename (mtime preserved, so the runner's completion check
+   ignores them): search_log_agent_1/2/3/7 -> *_legacy_2026-05-14.txt, agent_4/5/6 ->
+   *_legacy_2025-08-06.txt; search_report.txt copied to search_report_legacy_2025-08-06.txt (original
+   left until Agent 7 rewrites it). Same convention as TZA/NAM/AGO/CIV.
+D3 Shared gap files are read-only for this country (section 1.2). Gap and coverage numbers in this
+   log come from the read-only analyse() call.
+D4 The headline 90.5% coverage is NOT treated as "finished" (CLAUDE.md percent_coverage caveat):
+   1978-2009 is annual-resolution only, 2022 H2 has no weekly national series, sub-national data is
+   near-absent before 2014 and sparse after 2021. Agents are briefed on T1-T7.
+D5 Agents run in the background and the orchestrator waits for the completion notification (TZA/NAM
+   lesson: an interrupted orchestrator tool call must not kill an in-flight batch).
+D6 No agent is given any deadline, wall-clock budget or time box. Every brief states the yield rule.
+
+O1 OBSERVATION (pipeline; not actioned by this orchestrator - shared code, runner-owned):
+   py/build_weekly_timeseries.py applies SOURCE_PRIORITY WHO > JHU > AI per ISO week regardless of
+   temporal resolution, and uses national rows only. So new AI weekly/monthly NATIONAL rows inside
+   1978-2014 and 2022 H2 are shadowed by Fourier-spread JHU annual/multi-month rows in
+   ./data/COD/cholera_weekly_COD.csv, and AI sub-national rows never reach it. AI national rows land
+   in the weekly series only where JHU/WHO have nothing (1973-1977, 2026-05-18 onward). Same finding
+   as TZA O1 / NAM O1. The rows are still collected: they are the data product, and the builder can
+   be made resolution-aware later.
+
+O2 OBSERVATION (baseline; read-only, not actionable by agents): the weekly-builder preview for 2022 sums to
+   ~39,175 cases, about double the WHO 2022 national total (WHO DON 2023-DON441: 18,403 cases / 302 deaths; JHU
+   "WHO Annual Cholera Report" row 18,961/298). Cause: JHU national 2022 holds conflicting multi-period rows (five
+   2022 "WHO Annual Cholera Report" rows of 18961/11064/4751/7530/8234 - most are evidently not national totals -
+   plus a 2022-01-01..2024-05-31 row of 88,403 and a 2022-01-01..2023-03-20 row of 24,657); the builder's
+   same-source tie-break keeps the larger Fourier slice per week. AI rows cannot override JHU under WHO>JHU>AI.
+   Preview snapshot: /tmp/COD_orch/year_check_cycle_start.txt (read-only script /tmp/COD_orch/cod_year_check.py).
+
+================================================================================
+6. AGENT DEPLOYMENTS AND GATES
+================================================================================
+[A1] 2026-10-01 19:58 deployed cholera-baseline-collector (background). Briefed: T1 WHO dashboard epiwk 20-36/2026
+   (17 weekly national rows) + post-2026-09-13 search; T2 1973-1977 via WER/IRIS + BMC 1973-2022 tables; T3 sub-annual
+   national 1978-2014; T6 2022 H2 national; corroboration of 2025-26 >1000-case rows; register every source. Told to read
+   legacy Agent 1 log and 2026-06-18 update log and not repeat them. Yield rule stated; no time limit.

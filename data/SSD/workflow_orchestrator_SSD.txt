@@ -138,3 +138,37 @@ O2 OBSERVATION (AI layer, assigned to Agent 5): overlapping national windows fro
    has no sub-national rows), G3 2016-2017 (Lancet PH supplement, UNICEF 2018 via metadata 78), G4 2006-2009, G5 2022-2023,
    G6 border counties, G7 historical localities (light; Agent 4 owns archives). Current-boundary rule, exact double-count
    phrases, parts<=whole arithmetic, yield rule with no time limit, WebSearch fallback, read-only analyse() override.
+
+================================================================================
+--- RESUME (attempt 2) - orchestrator restarted 2026-10-01 19:49 (local) ---
+================================================================================
+Context: the runner was stopped at ~19:48 and relaunched at 19:49 with --parallel 10 (supervisor log
+  logs/supervisor_20261001-194905.log; new runner PID 19720 in reference/.runner.pid). The previous SSD
+  orchestrator process and its background Agent 2 died with it. The only live `claude -p SSD` process is this
+  session, so everything on disk in ./data/SSD is earlier work of this cycle, not a live competitor.
+R1 (19:50) Resume audit of ./data/SSD/workflow_state.json:
+   Agent 1: 12 batches, stopping_reason '12-batch maximum reached' -> genuinely COMPLETE, not redeployed.
+   Agent 2: 8 batches (yields 80,45,40,30,40,50,40,30), stopping_reason 'IN PROGRESS - checkpoint after batch 8'
+            -> NOT complete (stopped by process kill, not by the yield rule) -> redeploy to continue from batch 9.
+   Agents 3-7: never started.
+R2 (19:50) State on disk at resume: ./data/SSD/cholera_data_ai.csv 1041 live rows (Index max 1243),
+   ./data/SSD/metadata_ai.csv 240 sources, ./data/SSD/retracted_rows_ai.csv 202 tombstones,
+   ./data/SSD/cholera_presence_ai.csv 13 rows. validate_quality SSD: ERROR 0 | WARN 21 | INFO 114 (exit 0).
+   Rows 1240-1243 (IDSR 2025-series wk51 file 'As of 15th January 2026': Duk 1, Juba 2, Mayendit 40, Mayom 70,
+   7-13 Jan 2026, source_index 133) were committed at 19:42 in an UNLOGGED partial batch 9 - the Agent 2 log
+   ends at batch 8. The redeployed Agent 2 verifies them and logs them as batch 9 Q1.
+   Read-only analyse() at resume (horizon 2026-10-01): 671/682 months = 98.4%; months_ai_only 477; positive
+   months 182; gaps 2005-02-01..05-31 (120 d), 2005-07-01..09-30 (92 d), 2005-11-01..2006-01-31 (92 d);
+   latest_observation = latest_positive = 2026-09-20 (days_stale 11).
+R3 Snapshots kept for the final before/after report: cycle start /tmp/SSD_pre.json (12:14, 52 rows/22 sources,
+   NOT overwritten) and /tmp/SSD_pre_{cholera_data_ai,metadata_ai}.csv; resume point /tmp/SSD_pre_resume.json and
+   /tmp/SSD_resume_{cholera_data_ai,metadata_ai,cholera_presence_ai,retracted_rows_ai}.csv.
+R4 The orchestrator 'initialise' step (printf > search_log_agent_1.txt) is NOT re-run: it would truncate Agent 1's
+   completed 12-batch log. Instead a dated orchestrator resume-verification block is APPENDED to
+   ./data/SSD/search_log_agent_1.txt recording that Agent 1 was verified complete and not redeployed. (The
+   runner counts canonical logs touched during the current runner window; the append is a genuine record of
+   this decision, and Agent 1's batches are not re-run or re-counted.)
+R5 Wait pattern: agents are deployed in the background and the orchestrator is re-invoked by the completion
+   notification (the pattern that carried Agent 1 -> Agent 2 earlier today). No deadlines or time boxes are
+   given to any agent.
+[A2-resume] 2026-10-01 19:55 redeployed geographic-expansion-specialist (background) to continue from batch 9 (batches 1-8 logged, yields 80,45,40,30,40,50,40,30). Briefed: verify + log unlogged rows 1240-1243 as batch 9 Q1; Phase 3 targets P1 2006-2009 state/county (WHO S. Sudan health updates/EWARN), P2 2022-2024 beyond Rubkona/Malakal (also tests Agent 3 zero rows AI 21/43), P3 2024-26 IDSR county completeness, P4 border counties via neighbour reports, P5 corroboration of single-source >1000-case county rows, Arabic queries. Yield rule stated, explicitly no time limit; cumulative write_agent_state; read-only analyse(); WebSearch fallback.

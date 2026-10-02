@@ -320,3 +320,57 @@ Yield        : 10%
 Consecutive sub-5% batches: 0
 Validator    : exit 0 (ERROR 0)
 Decision     : CONTINUE (yield above 5%)
+
+=== RESUME NOTICE (orchestrator, 2026-10-01 19:51:40) ===
+The previous orchestrator session died during BATCH 6 (runner restart at 19:49 PDT); no BATCH 6 block was logged.
+Orphaned writes from that interrupted batch: data rows 1802-1803, sources 393-395, presence rows (WER 2001 No 9 infected areas).
+Agent 4 is NOT complete (5 batches; last yield 10%; consecutive sub-5% = 0). Redeployed to verify the orphaned writes,
+complete BATCH 6, and continue until 3 consecutive batches <5% yield or 12 batches.
+
+=== RESUMED SESSION (Agent 4, redeployed by orchestrator) | started 2026-10-01 after the 19:49 PDT runner restart ===
+Re-read: ./templates/template_search_protocol.txt, this log (batches 1-5 + resume notice), ./data/ZMB/workflow_state.json (Agents 1-3,
+         gates, redeployment), Agent 1-3 logs (queries not repeated). Gap analysis NOT regenerated (runner owns it; 0 ZMB gap periods).
+Step 1 - verification of the orphaned writes of the interrupted batch 6 (written after the batch-5 block, never logged):
+  * row 1803 (national 5-25 Mar 2001 492/26, source 394 WER 2001 No. 15): VERIFIED. Born-digital text layer and page image of p. 8 read
+    'Zambia / Zambie 5.III-25.III 492 26' under 'Notifications of diseases received from 6 to 12 April 2001'; IRIS handle 10665/231485
+    confirmed by IRIS REST title lookup. Fills the 5-25 Mar 2001 hole between rows 356 and 357. Verification note appended.
+  * presence rows 59-63 (Copperbelt, Luapula, Northern, Southern, Lusaka::Lusaka; 2001-01-01..03-01; source 395 WER 2001 No. 9):
+    VERIFIED from the page image (Zambia: 'Central Province / Lusaka; Copperbelt Province; Eastern Province; Luapula Province; Northern
+    Province; Southern Province'); handle 10665/231444 confirmed. Eastern not written by the dead session; kept that way because presence
+    line 10 (OCHA, Eastern, 2001-01-01..03-10) already covers it. 'Central Province / Lusaka' read as Lusaka district (WHO's pre-1976
+    province name; Lusaka Province was split from Central in 1976).
+  * row 1802 (Lusaka 1 Feb-30 Apr 1990 2,166/128, source 393 Ngoma et al 1992): quote VERIFIED verbatim (Europe PMC abstract PMID 1560488)
+    but RETRACTED (tombstone in ./data/ZMB/retracted_rows_ai.csv): above 1,000 with no independent second source for Lusaka; it
+    contradicts row 642 (Chibale 1997, Lusaka Province Dec 1989-Jun 1990 = 1,745/98, a longer containing window) and the Minister's
+    six-district 1,763/113 by 26 Mar 1990; no period end in the abstract; magnitude equals the national WER total to 20 Apr 1990 (2,231).
+    Probably a national or multi-province total. Source 393 description annotated (no live row). Passed to Agent 5.
+
+=== BATCH 6 | PHASE 3 | ZMB === (in progress; query lines appended as each completes)
+Gap targeted : 1990-1991 and 2001 national WER resolution; unscanned IRIS WER issue ranges (1979 Nos 25-39, 1981 Nos 1-29, 1990 Nos 1-13,
+               1991 Nos 1-24, 1985-1988, 1994-1995); 2007 Apr-Dec; 2011-2015 sub-annual
+Queries      :
+  1 [recovered from interrupted session] Europe PMC REST search 'cholera AND Zambia' 1970-2005 -> Ngoma et al 1992 JTMH abstract
+    (Lusaka 1990 2,166/128) -> row 1802 written by the dead session, RETRACTED on verification -> none (not counted)
+  2 [recovered from interrupted session] WHO IRIS REST, WER 2001 Nos 1-19 (not previously cached) -> No. 15: 5-25 Mar 2001 492/26 ->
+    ROW 1803 (verified) [source 394]; No. 9 infected areas as at 1 Mar 2001 -> presence rows 59-63 [source 395] -> COUNTED
+  Note: the cache shows the dead session also touched JPRS Sub-Saharan Africa Report texts (DTIC), AllAfrica, DON 1996-2010, UNZA
+  theses, ProMED, Daily Mail WordPress, The Health Press, and began IRIS downloads of WER 1990 Nos 1-13, 1979 Nos 25-39, 1981 Nos 1-27
+  and 1991 Nos 1-24. None of it was logged or produced writes; those are NOT counted unless re-run below.
+  3 IRIS WER 1990 Nos 1-13 (cached by the dead session; scanned now, page images of Nos 8 and 9 checked) -> No. 8 printed 12-19 Feb 1990
+    394/70, superseded by No. 9 '12-19.II 523r 30r' (already row 455); Nos 6-7 newly infected areas Lusaka and Copperbelt already in
+    presence -> NOTE on row 455 -> none
+  4 IRIS WER 1981 Nos 1-29 (cached; scanned now) -> no Zambian cholera notifications Jan-Jul 1981, only the standing infected-area listing
+    'Northern Province, Mbala D.: Mpulungu'; No. 13 p. 93 'Cases of Cholera Notified to WHO, 1980' gives Zambia 50 (page image) vs JHU 57/17
+    and MoH 128/11 -> NOTES on rows 448 (conflict) and 1734 (corroboration) -> none
+  5 IRIS WER 1979 Nos 25-39 (cached; scanned now) -> no Zambian cholera entries (Zambia appears only in trachoma/blindness tables)
+    -> none (consistent with Agent 3's 1979-04..12 absence)
+  6 IRIS WER 1991 Nos 1-24 (cached; scanned now) -> only already-entered items (No. 9 6,149/556 = row 430; No. 16 XII.90-4.IV = row 1601;
+    No. 19 annual 1990 3,717 = JHU) plus a French-text-only corrigendum in No. 11 and AIDS tables -> none
+  7 IA full-text search over the JPRS Sub-Saharan Africa Report + Epidemiology series ('cholera' + Zambia; 246 hits; 41 texts downloaded
+    by the dead session, extracted now) -> JPRS-TEP-90-008 (20 Jun 1990, never registered): 1989 Lake Tanganyika final account (Northern
+    310/36 4 Feb-13 Nov 1989; Nsumbu 137/21; Mpulungu 173/15 derived; Mpulungu no case 14 Nov 1989-29 Mar 1990), 1990 six-district
+    ministerial total 1,763/113 by 26 Mar and 1,486/98 by 6 Mar (both corroborated by the WER national series), Luangwa 6/4, Kitwe 64
+    (19 confirmed)/6, Kabwe Urban 9 deaths to 5 Jun 1990 -> ROWS 1804-1812 [source 396]; row 1586 (Kitwe 6 deaths dated April) RETRACTED as
+    superseded by row 1811; JPRS 81201 (Times of Zambia 4 Jun 1982) -> Nchelenge no new cases 28 May-3 Jun 1982 -> ROW 1813 [source 397];
+    JPRS-TEP-94-011 (ZNBC 8 Jun 1994, Minister denies cholera in Kaputa, dysentery only) -> NOTE on zero row 1514; notes on rows 1579, 1583.
+    Other texts (SSAR 1982-85, TEP-84-014/-016, TEP-85-006) carry no Zambian cholera counts -> COUNTED

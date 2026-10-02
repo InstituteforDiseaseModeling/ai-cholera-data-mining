@@ -1,0 +1,41 @@
+=== WORKFLOW ORCHESTRATOR (AGENT 0) - EQUATORIAL GUINEA (GNQ) ===
+Cycle start: 2026-10-01 19:53 (Opus 5.5 re-run, runner PID file reference/.runner.pid)
+Shared gap files: READ ONLY (refreshed by runner 2026-10-01 19:49; not regenerated here because
+countries run in parallel). GNQ-only gap figures below are computed read-only via
+py/analyze_effective_gaps.analyse() and written nowhere.
+
+--- STARTING STATE ---
+validate_quality GNQ: ERROR 0 WARN 1 INFO 2 (/tmp/GNQ_pre.json)
+cholera_data_ai.csv: 7 rows | metadata_ai.csv: 6 sources | no cholera_data_who.csv (GNQ not on WHO dashboard)
+Effective coverage (shared file, runner refresh): 81.7% (557/682 months), months_ai_only 353, 2 gaps
+  1970-01-01..1979-12-31 (3652d historical) ; 2026-06-01..2026-10-01 (123d recent)
+Baseline-only (JHU+WHO) coverage: 29.9% (204/682 months), 5 gaps
+  1970-1983, 1986-2003, 2007-2010, 2022-2023, 2025-01..2026-10
+
+--- PRE-FLIGHT ADJUDICATION (resolved by orchestrator under CLAUDE.md source hierarchy) ---
+1. AI row Index 1 (AFR::GNQ 1980-01-01..2004-12-31, sCh=0, Documented_Absence, conf 0.85) RETRACTED
+   (tombstone ./data/GNQ/retracted_rows_ai.csv).
+   Why: it claimed "WHO annual cholera surveillance database shows zero cases reported for GNQ in all
+   years prior to 2005". The Level 1 baseline ./data/GNQ/cholera_data_jhu.csv (digitised WHO annual
+   reports, UID 320, Phantom False) reports 1984 = 404 cases/31 deaths, 1985 = 108/1, 2004 = 59/1.
+   The weekly builder (WHO>JHU>AI) let JHU win in those 3 years but rendered every week of 1980-83
+   and 1986-2003 as documented_zero conf 0.85 - ~22 years of asserted absence with no source.
+   Chosen: retract. Rejected: (a) narrow to 1980-83+1986-2003 as Documented_Absence (no source;
+   a WHO table omitting a non-reporting country is not a reported zero); (b) relabel
+   Inferred_Absence (requires surveillance known operational - undocumented for GNQ 1980-2003, and
+   Cameroon/Nigeria had epidemics then).
+2. AI row Index 2 (2005-01-01..2005-12-31, 946 sCh/15 deaths) flagged MIS-DATED: the prior-run
+   Agent 1 log records the New Humanitarian figure covers ~11-25 Feb 2005 (cumulative snapshot);
+   WHO annual 2005 = 6391/33, JHU 2005-02-01..03-13 = 4400/30. Assigned to Agent 1 (verify +
+   revise period via py/revise_observation.py), Agent 5 backstop.
+3. AI rows Index 3-6 (2006-01-01..2025-05-14 zero, Documented_Absence conf 0.9) flagged WEAKLY
+   SOURCED: all cite a 2024 WHO AFRO topic page (metadata Index 3) that cannot document 2006-2010
+   absence; their "Source states" texts are paraphrases. JHU 2011-2021 zeros are Phantom (JHU-
+   inferred), only 2006 and 2024 zeros are WHO-reported. Assigned to Agent 3 for re-validation
+   (re-source, re-label Documented/Inferred, re-weight, or retract), Agent 7 audit.
+
+--- POST-ADJUDICATION GNQ GAPS (read-only recompute) ---
+coverage 43.0% (293/682 months), months_ai_only 89, 3 gaps:
+  1986-01-01..2003-12-31  6574d  (18.0 y)  modern/pre-2000 - Agents 1,4,6
+  1970-01-01..1983-12-31  5113d  (14.0 y)  historical      - Agents 1,4,6
+  2026-06-01..2026-10-01   123d            recent          - Agents 1,3
