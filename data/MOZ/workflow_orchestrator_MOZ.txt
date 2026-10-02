@@ -1,0 +1,30 @@
+=== WORKFLOW ORCHESTRATOR LOG - Mozambique (MOZ) ===
+Cycle: 2026-09-29 Opus 5.5 max-effort re-run (runner: run_all_countries.sh --parallel 10, log logs/run_20261001-194905/MOZ.log)
+Orchestrator start: 2026-10-02 10:16 (runner mark), initialised 10:18
+
+--- STARTING STATE (python py/validate_quality.py MOZ --json /tmp/MOZ_pre.json) ---
+./data/MOZ/cholera_data_ai.csv : 50 rows    ./data/MOZ/metadata_ai.csv : 18 sources
+Validator: ERROR 0, WARN 19, INFO 8 (7 reporting_date_blank, 5 notes_missing_quote,
+  5 national_subnational_overlap, 1 multiyear_aggregate, 1 CFR_high_flagged_for_review)
+Baselines (read-only): cholera_data_jhu.csv 605 rows (1973-2024), cholera_data_who.csv 177 weekly rows (2023-01-02..2026-05-24)
+Effective coverage (reference/effective_surveillance_gaps_coverage.csv, refreshed by runner 2026-10-02 10:00):
+  682 months, 677 with data, 5 missing, 99.3%; months_jhu 576, months_who 41, months_ai 209, months_ai_only 84, gap_periods 1
+Effective gaps (reference/effective_surveillance_gaps_detailed.csv): ONE
+  2026-06-01 .. 2026-10-02  124 d  recent
+Recency: latest_observation 2026-06-06 (118 d stale), latest_positive 2026-06-06
+
+--- ORCHESTRATOR ASSESSMENT (why the agents still have real work) ---
+1. 99.3% headline coverage is mostly LOW-RESOLUTION: JHU 1973-2004 is one national annual row per year;
+   2011-2014 one national annual row per year; 2020-2021 only 4+2 rows.
+2. All 84 AI-only months rest on 5 national zero rows: 1970-1972 (Documented_Absence, pre-introduction),
+   1978 (labelled "Evidence type: Surveillance_Gap" with sCh=0 - INVALID per CLAUDE.md zero-row rule),
+   1987 (Inferred_Absence), 1988 (Documented_Absence, CDC MMWR), 1995 (Inferred_Absence). 1978/1987/1995 are weak.
+3. Pre-existing AI-vs-JHU conflicts to resolve (Agent 5): 1973 AI 753/90 vs JHU 453; 1983 AI national row
+   (Index 5) = 205 Pemba-only cases mislabelled national vs JHU 10745; 1992 AI 31731 vs JHU 30802;
+   1975-1977 AI 29 vs JHU 11+3+18=32.
+4. WHO week-shift bug: already repaired for MOZ (commit e909991, fix_who_week_shift.py) - 2026 WHO rows carry WHO calendar dates.
+5. ERI run (metadata 259) found WHO's ArcGIS Online backend (owner maps_WHO, item cholera_adm0_week) with weekly
+   national cases/deaths to 2026-09-14 - primary candidate for closing the 2026-06..2026-09 MOZ gap.
+DECISION: target the effective gap first, then the weak/low-resolution periods above. All seven agents will run
+regardless (orchestrator spec), each under the yield rule with NO time limit.
+
