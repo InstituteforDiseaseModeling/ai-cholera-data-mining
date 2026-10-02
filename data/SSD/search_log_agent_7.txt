@@ -14,3 +14,144 @@ Pre-write snapshots (taken before any write):
 Hard overrides in force: no py/analyze_effective_gaps.py runs (read-only analyse() only);
 no update_dashboard.sh; no git; no builder in write mode; no hand edits of CSVs.
 
+=== STEP 1: VALIDATOR (authoritative) - BEFORE ANY AGENT 7 WRITE (13:15) ===
+python py/validate_quality.py SSD --json /tmp/SSD_audit_pre.json -> exit 0 | ERROR 0 | WARN 13 | INFO 172
+  (same result with --no-baseline: reference/validation_debt.json holds no SSD entries, so nothing is being suppressed)
+  WARN rows mapped to AI Index (validator 'row' = physical file line):
+    CFR_high_flagged_for_review (8): AI 69, 92, 123, 131, 154, 721, 1252, 1663
+    period_single_day (5): AI 1266, 1267, 1268, 1282, 1286
+  INFO: 102 national_subnational_overlap (all 'documented'), 70 metadata_unused
+python py/repair_data_integrity.py --dry-run SSD -> 'TOTAL: 0 change(s)' (/tmp/SSD_a7_repair_dryrun.txt). Nothing to apply.
+./data/SSD/attribution_review.csv does not exist (no citation withheld for review).
+
+=== STEP 2: AGENT RECORD CHECK (workflow_state.json vs logs vs orchestrator gate records) ===
+Agent | batches | yields % (workflow_state)              | stop rule            | consistent with log/gate?
+  1   | 12 | 15,10,15,35,10,25,10,0,5,20,20,0            | 12-batch ceiling     | yes (log final summary, [A1 DONE])
+  2   | 12 | 80,45,40,30,40,50,40,30,25,45,45,10         | 12-batch ceiling     | yes; killed after b8, resumed b9 (11 pre-kill queries recovered)
+  3   | 12 | 50,15,20,10,20,10,30,10,10,15,10,10         | 12-batch ceiling     | yes
+  4   | 10 | 5,10,0,10,0,10,5,0,0,0                      | 3 consec. sub-5%     | yes (b8-b10 = 0%)
+  5   | 12 | 5,5,25,40,55,5,0,10,5,5,25,0                | 12-batch ceiling     | yes; API outage after b8, resumed b9
+  6   |  5 | 10,5,0,0,0                                  | 3 consec. sub-5%     | yes (b3-b5 = 0%)
+No agent ran <3 batches; no yield >100% (max 80%, Agent 2 b1 = 16/20 queries); stops all valid (rule a or b).
+Row claims re-derived from Index ranges + tombstones: every Index 1-1789 is either live (1502) or tombstoned (287); 0 missing,
+  0 duplicates; the 35 retired cycle-start rows' tombstones preserve their original values exactly.
+ITEM 6 (Agent 3 sources 16 vs 289->306): metadata Index 290-306 = 17 entries registered by Agent 3; 293 is a Superseded
+  duplicate of 294 (same WHO DON 2014DON016, wrong URL) -> 16 distinct active sources. workflow_state (16) counts sources;
+  the orchestrator (+17) counts metadata rows. Both are right for what they count. Per-agent registrations: A1 110 (23-132),
+  A2 157 (133-289), A3 17 (290-306), A4 24 (307-330), A5 29 (331-359), A6 3 (360-362) = 340 = 362 - 22.
+
+=== AUDIT FINDINGS SO FAR ===
+F1 DUAL-REFERENCE: 0 source_index without metadata, 0 label mismatches, metadata Index 1..362 contiguous, source_database all 'AI'.
+   DEFECT: AI 1780 (2014 national 586/22, Agent 5 b11) cites metadata 293, which Agent 3 marked Superseded (wrong URL).
+   Checked: https://www.who.int/emergencies/disease-outbreak-news/item/2014_05_30-en -> HTTP 404;
+            https://www.who.int/emergencies/disease-outbreak-news/item/2014DON016 (metadata 294) -> HTTP 200; the quote and
+            figures (index onset 23 Apr 2014; 586 cases, 22 deaths as of 25 May 2014) are verbatim in the DON (cached copy
+            /tmp/ssd_a2/b9/d_2014DON016.html re-read). -> correct the citation (retire + re-add against 294; no --source-index verb).
+F2 LOCATIONS: every Location is AFR::SSD or an SSD ADM1 unit in ./reference/country_profiles.json (0 illegal names).
+F3 NATIONAL ZEROS (item 3a, all 22): every row has a verbatim quote, an Evidence type token and a surveillance status.
+   No overlap with any positive or presence record in any layer except aggregates whose TR is a reporting date
+   (JHU annual/YTD/wave totals; AI 1707 vs AI 1439 [wave total to 7 Dec 2014, last case 13 Nov]; AI 14 vs AI 1449 [424
+   cumulative 'to 20 Nov 2022', last case 14 Oct]) - overlap by construction, documented in the notes.
+   Contested but kept: AI 1437 (2023-12-08..2024-01-09, Documented 0.55) - BMC Public Health 2024 reports an 'ongoing
+   cholera outbreak' in Ruweng Town (second-hand, 'reportedly'); IDSR had no confirmed case with lab-backed Renk screening.
+   Agents 3 and 5 both lowered the weight; label kept as the IDSR statement is an official no-confirmed-case record.
+   AI 1476 cites the Lancet retrospective (source 4) but its Documented label rests on WHO EHA Q4-2011 (metadata 322,
+   verbatim quote in the appended note) - acceptable, recorded.
+F4 CFR_high WARN rows (item 3d): all 8 share numerator/denominator statement and period; conf 0.4-0.7 (<= 0.7);
+   context documented (pre-ORS 1979, 1996/1999 war-zone community deaths, late death registration Yei 2006, Uror 2026
+   facility looting). AI 1663 (Bentiu/Rubkona 1999 'diarrhoea' 145/26) is an aetiology inference from the UN SG report's
+   'outbreaks of cholera in the area' (conf 0.4) - kept, flagged in the report (cf. Juba 1998 'gastro-enteritis' NOT stored).
+   period_single_day (5): verbatim single-day UN sitrep CTC counts (Yei/CE 2006), sub-national, conf 0.5 - justified.
+F5 D8 (item 3f): 47 national pre-independence rows; each quote localises to the southern territory ('Southern Sudan',
+   'Sudan (South)', 'rebel-held areas in southern Sudan', MoH-GoSS) or, for 1979-80 WHO IHR notifications, by the
+   infected-area lists (Equatoria towns only). No whole-Sudan total stored as AFR::SSD (WHO 2009 13,681 and the 1970 Sudan
+   detection are in notes only). AI 1724 and AI 1710 are in the source re-verification set.
+F6 DOUBLE COUNT (item 3e): validator 0 WARN (102 overlap groups documented). Own scan: 1375/1377 sub-national rows carry a
+   'do not sum'/'subset' statement; the 2 without (AI 58 Narus Jul 2005, AI 94 Marial-Lou Jun 2005) overlap no national row.
+   13 county rows overlap a same-state row with only generic 'subset/do not sum' wording (no explicit 'state row') - minor.
+F7 TOMBSTONES (item 3g): complete (see Step 2).
+
+=== WRITES (all through the tooling; tombstones in ./data/SSD/retracted_rows_ai.csv) ===
+W1 (item 1) AI 1789 RETIRED (py/revise_observation.py --delete). AFR::SSD 1970-01-01..07-31 zero, Inferred/disrupted 0.4.
+   Evidence judged sound (Jan-Jul 1970 very probably cholera-free: WHO smallpox history - cholera first detected in Sudan
+   end-Aug 1970; Weill 2017; Delpher wire 29 Aug 1970). Retired for its downstream effect only: py/build_weekly_timeseries.py
+   starts assumed_zero at the earliest national row with a count (deaths-only rows are skipped), so the row pulled the SSD
+   series start from 1979-06-18 to 1969-12-29. Read-only builder check (/tmp/ssd_orch/az_check.py, writes nothing):
+     BEFORE: series first week 1969-12-29, 2960 weeks; 1970 inferred 30 + assumed 22; 1971-1978 all assumed (417 weeks);
+             1979 assumed 41; assumed-zero weeks 1970-2010 = 1,651
+     AFTER : series first week 1979-06-18, 2466 weeks; 1970-1978 NA; 1979 assumed 17; assumed-zero weeks 1970-2010 = 1,188
+     -> 463 fabricated assumed-zero weeks removed (incl. all 52 weeks of the 1971 epidemic year), ~30 true-but-low-weight
+        inferred-zero weeks (Jan-Jul 1970) given up. Output: /tmp/SSD_a7_builder_after1789.txt.
+   Trade-off accepted as the orchestrator recommended (7 months of 0.4-weight pre-introduction zero do not justify ~9 years of
+   fabricated zeros). Coverage effect: 1970-01..07 reopens (G1 back to 1970-01-01..1971-02-28).
+W2 (item 2) AI 1589 RETIRED. Jonglei::Uror 2026-06-05..07-30 zero (Documented/partial 0.5, Agent 3 b8 Q5).
+   Rested only on drop-out from IDSR 4-week county case lists; MoH/WHO IDSR itself flagged 'Continued underreporting of cholera
+   cases ... in counties affected by the recent insecurity in ... Jonglei (e.g., Uror and Fangak)' (2025 wk23 bulletin, the
+   mis-uploaded file /tmp/ssd_a2/idsr/wk23.txt); 2026 Q1 IDSR attributes Uror's 18.9% CFR to facility looting and displaced
+   health workers (AI 154); last count before the drop-out only 3 cases (AI 181); Agent 3's own handoff lists Uror among
+   insecure counties deliberately left without zero rows. -> surveillance gap, left empty.
+   CLARIFICATION to the tombstone reason: the bulletins report Uror among counties with <80% bOPV round-2 coverage but do NOT
+   state access as the cause ('(access)' in the tombstone is my inference, not the source's wording).
+W3 (item 2) AI 1588 REVISED (not retired). Jonglei::Ayod 2026-06-05..07-30 zero: Evidence Documented_Absence -> Inferred_Absence,
+   confidence 0.55 -> 0.4, appended note: surveillance re-assessed DISRUPTED (OCHA 18-30 Apr 2026: >=33 facilities destroyed/
+   looted/damaged in Fangak, Nyirol, Akobo, Ayod, Pigi; Jonglei completeness 75% 2026). Kept because Ayod kept reporting after
+   the destruction with a coherent decline (265 -> 159/5 -> 44 in the 18 May-18 Jun table) and Fangak (same list) kept
+   reporting to Sep 2026 - a real end of the local outbreak is plausible; the zero now reads as weak inferred absence.
+W4 (F1) AI 1780 RETIRED and RE-ADDED as AI 1790 (identical values: AFR::SSD 2014-04-23..05-25, 586/22, conf 0.9, same quote)
+   citing metadata 294 instead of the Superseded metadata 293 (wrong URL, HTTP 404). Attribution correction only.
+Validator after W1-W4: exit 0 | ERROR 0 | WARN 13 (unchanged) | INFO 174 (+2 metadata_unused: 293 Superseded, 361 Fenner -
+   now cited only in the AI 1789 tombstone; 360 Weill was already uncited).
+Read-only analyse() after W1-W4 (horizon 2026-10-02): 303/682 = 44.4% (was 310 = 45.5%); months_ai 303; months_ai_only 109
+   (was 116); positive months 187; 11 gap periods; latest_observation = latest_positive = 2026-09-20.
+
+=== VERIFICATION PASS 1 - NATIONAL ZERO QUOTES (item 3a, Agent 7 own re-fetch, cache /tmp/SSD_a7_own/) ===
+Re-fetched from LIVE sources and found verbatim (19 of 21 live national zeros):
+  AI 1432 WHO AFRO 7 Feb 2018 end-of-outbreak ('no new cases of cholera reported in over seven weeks'; last case discharged 18 Dec 2017)
+  AI 1433 PAMJ 2022 PMC9474851 ('no cholera cases were confirmed in 2018, 2019, and 2020'; 105 stools culture-negative 2019)
+  AI 1434 MoH/WHO sitrep No. 001 7 May 2022 (ReliefWeb) ('first cholera case ... since ... 2017'; RDT+ 21 Mar 2022)
+  AI 1435 upgrade: WHO AFRO OEW wk5 2023 (IRIS 10665/365810, OEW05-232901.pdf) 'No new cases have been reported since week 47'
+  AI 1436, 1450 IDSR 2023 wk21 + wk22 PDFs ('no cholera case or death reported in the last 2 week'; last cases 16 May 2023; 1471)
+  AI 1437 IDSR 2023 wk52 PDF ('31 samples were tested for culture in Renk since December 23, 2023, and none showed growth')
+  AI 1438 IDSR 2024 wk16 PDF (Renk 132 suspected, 78 RDT, 5 positive, all culture-negative)
+  AI 1439, 1440, 1443, 1480 Lancet Planet Health 2020 PMC7750463 (27-week and 34-week lulls; last cases 13 Nov 2014 / 15 Oct 2015;
+          'then no cholera cases were reported until 2014'; 'After 3 years without cases')
+  AI 1441 WHO DON 2014DON016 (index onset 23 Apr 2014)       AI 1442 WER 2011;86(31) 'However, no cases were reported from Sudan.'
+  AI 1446 WHO CD Toolkit Sudan 2005 Part 1 (IRIS)            AI 1449 WHO results report 2022 country story (Rubkona zero wk42)
+  AI 1476 WHO EHA quarterly Oct-Dec 2011 (Wayback PDF)       AI 1477 EHA wk5 2012 PDF ('There were zero Case of ... Cholera')
+  AI 1479 EHA wk36 2012 PDF ('No cholera alert or confirmed case of cholera was reported this period')
+Pending (Wayback HTTP 429 rate limit at time of check): AI 1445 (WHO South Sudan Annual Report 2004), AI 1788 (Dec 2005 health update).
+
+=== VERIFICATION PASS 2 - R6 SINGLE-SOURCE >1000, GROUP A1 (subagent, read-only; /tmp/SSD_a7_verify/result_A1.json) ===
+13/13 supported: VERIFIED 8 (AI 557, 558, 559, 560, 561 - OCHA Sep 2006 state chart bars 8,782/4,554/1,104/1,404/1,609;
+  AI 7 MMWR 3,157/74; AI 1227 WHO Sep-Oct 2008 '1600 cases ... from Aweil'; AI 1700 UNICEF HSR #111 13,880/243 'in 2017 alone'),
+  VERIFIED_DERIVED 5 (AI 1724 UN SG A/54/295 para 62 ~1,000 + 3,654 = 4,654; AI 1705 0.496 x 19,277 = 9,561; AI 1759
+  9,012/376 - Apr-Jun 3,889/237 - OCHA 804/33 = 4,319/106; AI 1763 11,684 - 9,012 = 2,672, 417 - 376 = 41; AI 1710
+  16,931 - 8,703 = 8,228, 101 - 57 = 44). 0 discrepancies. Side findings acted on:
+  - AI 7 reporting_date 2007-07-31 is not a publication date -> REVISED to 2009-04-10 (MMWR 2009 Apr 10;58(13):337-41, PMID
+    19357634 confirmed via NCBI E-utilities).
+  - AI 1710: EMRO WEM 1(33) footnotes 'Sudan (South) [8703 (57), 0.65%]*' as '(*=Unofficial figures)' (verified in the subagent's
+    extract) -> caveat APPENDED to the row; conf 0.5 kept (annual total is official).
+  - metadata 78 (UNICEF 2018 Wayback 20221207011651) reported truncated at 1 MiB; complete capture 20220220221020 - to confirm
+    once Wayback stops rate-limiting, then record in the metadata Description (no URL-edit verb exists).
+  - AI 557-561 window (28 Jan-24 Sep 2006) is inferred from the text beside an undated chart; five bars sum 17,453 < 18,021 (OK).
+
+=== VERIFICATION PASS 3 - R6 GROUP A2 (subagent, read-only; /tmp/SSD_a7_verify/result_A2.json) + Agent 7 follow-up ===
+15 rows: all stored counts match their sources; VERIFIED 2 (AI 33 Ayod 3,855/39; AI 12 Tonj 1,451/44/14 cCh), VERIFIED_DERIVED 5
+  (AI 1102 Mayom 4,433 - 3,353 = 1,080; AI 1212 Juba 4,297 - 2,638 = 1,659; AI 1037 Rubkona 1,465/21 - 363/6 = 1,102/15; AI 1038 Rubkona
+  4,972 - 1,465 = 3,507; AI 539 Nyirol 5,320/58 - 345/29 = 4,975/29), MINOR 6 (AI 492, 494, 501, 502, 508, 512 Lancet wave-3 county
+  totals verbatim; TR 2017-12-18 = WHO 'last confirmed case discharged 18 December 2017', not in the paper, whose last suspected case is
+  29 Nov 2017 - window still encloses the wave; kept, aligned with the national zero AI 1432 from 2017-12-19), NOT_FOUND 2 (AI 15, 37).
+Agent 7 follow-up (own re-fetch, /tmp/SSD_a7_own/):
+  - metadata 14 page lists sitreps #1-#39 only; #39 = 1,027 cases/2 deaths to 16 Apr 2023; #38 = 1,004/2 to 15 Apr 2023 (verified).
+  - IDSR 2023 wk21 (metadata 292) states verbatim: 'Ministry of Health Republic of South Sudan declared cholera outbreak in Malakal with a
+    total of 1471 cases reported with Two (2) death giving a CFR of 0.14% from February 22 to 16 May 2023 from both Malakal IDP camp and town'.
+  -> W5 AI 15 (national) RETIRED, RE-ADDED as AI 1791 citing metadata 292 (identical values 2023-02-22..05-16, 1,471/2, conf 0.75).
+  -> W6 AI 37 (Malakal) RETIRED, RE-ADDED as AI 1792 citing metadata 292 (identical values; unverifiable '61% town / 39% PoC' split dropped).
+  -> W7 AI 1233 (Malakal derived link 467/0) ANNOTATED: start input verified in metadata 14 (#38); end input re-attributed to metadata 292;
+     the legacy 'As of 31 May ... since 16 May 2023' wording exists in no source found. No value change.
+  -> W8 reporting_date aligned to the cited paper's publication (Lancet Planet Health 2020 Dec, PMID 33278375; 101 of 106 rows citing
+     metadata 4 already used 2020-12-01): AI 8 (2014-12-01), 10 (2015-11-03), 11 (2018-02-07), 33 (2017-07-31), 42 (2014-12-01) -> 2020-12-01.
+Earlier in this pass (group A1 side findings): W9 AI 7 reporting_date 2007-07-31 -> 2009-04-10 (MMWR publication); W10 AI 1710 note
+  (EMRO 8,703/57 input footnoted 'Unofficial figures').
+Index mapping of Agent 7 re-citations: AI 1780 -> 1790 (2014 DON), AI 15 -> 1791 (2023 national), AI 37 -> 1792 (2023 Malakal).
+Validator after W1-W10: exit 0 | ERROR 0 | WARN 13 | INFO 174.
