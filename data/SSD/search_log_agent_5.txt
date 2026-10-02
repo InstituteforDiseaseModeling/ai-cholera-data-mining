@@ -1,0 +1,72 @@
+=== AGENT 5 (CROSS-REFERENCE INTEGRATOR) INITIALIZATION ===
+Country: South Sudan (SSD)
+Start Time: 2026-10-02 (local), log created before the first query
+Agent 5 Status: INITIALIZED
+Cycle: 2026-09-29 Opus 5.5 re-run; prior-cycle log preserved as ./data/SSD/search_log_agent_5_legacy_2026-05-15.txt (untouched)
+Inputs read: ./CLAUDE.md, ./templates/template_search_protocol.txt, ./data/SSD/workflow_orchestrator_SSD.txt,
+  ./data/SSD/workflow_state.json, ./data/SSD/search_log_agent_1..4.txt (920 queries by Agents 1-4 not to be repeated)
+Starting state (orchestrator brief, verified below): ./data/SSD/cholera_data_ai.csv 1,427 live rows,
+  ./data/SSD/metadata_ai.csv 330 sources, ./data/SSD/cholera_presence_ai.csv 23, ./data/SSD/retracted_rows_ai.csv 242.
+Gap analysis: read-only analyse() only (D3) - py/analyze_effective_gaps.py is NOT run (shared reference files).
+Work list: R1-R6 reconciliation (mandatory regardless of yield) + search batches S1 (registry re-mining),
+  S2 (citation networks depth 3), S3 (refugee-camp channel). Yield rule: >=3 batches; stop at 3 consecutive
+  sub-5% batches or 12 batches. Attribution-only re-adds do NOT count toward yield.
+
+BEFORE STATE (verified 2026-10-02): ./data/SSD/cholera_data_ai.csv 1,427 live rows (Index max 1669); metadata 330; presence 23; tombstones 242.
+  python3 py/validate_quality.py SSD -> exit 0, ERROR 0, WARN 28 (12 notes_missing_quote, 9 CFR_high_flagged_for_review, 5 period_single_day,
+  2 same_period_conflict), INFO 138 (saved /tmp/SSD_a5_validate_before.txt). Snapshots /tmp/SSD_a5_pre_{cholera_data_ai,metadata_ai,retracted_rows_ai,
+  cholera_presence_ai}.csv.
+  Read-only analyse() (horizon 2026-10-02): 305/682 months = 44.7%; months_ai 305, months_ai_only 111, positive months 191; 9 gap periods.
+BUILDER FACTS USED FOR R1 (py/build_weekly_timeseries.py, read only): only Location == 'AFR::SSD' rows enter the national series; priority
+  WHO > JHU > AI per ISO week; within AI: observed (span <= 7 d) > documented_zero > fourier > inferred_zero, ties -> larger sCh; a non-weekly
+  row is skipped if >= 50% of its weeks are covered by same-layer weekly rows; blank sCh rows are skipped. processing_notes are NOT read for
+  'non-primary' -> labelling is documentation; only retirement, or same-layer weekly coverage, changes builder output.
+  Consequence: AI national rows matter only where JHU/WHO are absent: 1971, 1979-80, 1996, 1999, 2002-2010, 2026-05-25..09-20.
+
+=== BATCH 1 | PHASE 1 (S1 registry re-mining + R1/R2 verification) | SSD ===
+Gap targeted : recent 2026-05-25..2026-09-20 (AI-only national window, O1/R1) + R2 attribution debt (2024-26 national checkpoints)
+Queries      : 20
+  1 ArcGIS REST cholera_adm0_week iso_3_code='SSD' (WHO dashboard API; Agent 1 B9 lead) -> 119 weekly records 2023-02-20..2026-09-14 with
+    date_wk; wk21-36 2026 = 7,151 cases/36 deaths (= cum_case 105,258 -> 112,409) -> ROWS 1670-1685 (one national weekly chain). SUCCESS
+  2 WebFetch metadata 9 (WHO AFRO 'Managing an explosive Cholera Outbreak', 28 Oct 2025) -> contains only 'nearly 95 000 suspected cases and
+    over 1 500 deaths' and 'a record lowest of 114 in the week ending 28th September'; NONE of the figures quoted by AI 16, 17, 26, 29, 35, 40,
+    41, 47, 48 (all cite 9) -> attribution debt confirmed
+  3 WebFetch metadata 10 (UN News 8 Jul 2025) -> only 'over 80,000 cholera cases and 1,400 deaths' -> AI 25 and AI 32 mis-cited
+  4 WebSearch '"77,555" cholera South Sudan 1,401 deaths 30 June 2025' -> WHO AFRO 25 Jul 2025 lead
+  5 WebFetch WHO AFRO 'Rainy season increases cholera threat in South Sudan' (25 Jul 2025) -> verbatim 77 555/1 401 as of 30 Jun 2025;
+    11 554 RDT+; 424 culture-confirmed -> registered 332; AI 25 re-added as 1686 (re-dated)
+  6 WebSearch '"From 28 September 2024 to 18 March 2025" ... 40,000 ... 694' -> UNICEF ESARO lead
+  7 WebFetch UNICEF ESARO press release 24 Mar 2025 -> verbatim -> registered 333; AI 32 re-added as 1687
+  8 WebSearch '"26,341" cholera South Sudan 451 deaths 31 January 2025' -> not located
+  9 WebSearch 'UNICEF South Sudan Humanitarian Situation Report January 2025 cholera "26,341"' -> HSR No.1 PDF (text layer verified) ->
+    registered 334; AI 40 re-added as 1688 (source CFR '1.9 per cent' inconsistent with 451/26,341 = 1.71% - recorded)
+ 10 WebSearch '"97,516" cholera South Sudan 1,600 deaths January 2026' -> not located (97,801/1,608 in OCHA Jan 2026 snapshot - later vintage)
+ 11 WebFetch WHO AFRO 'Sustained response curbing cholera outbreak' (9 Feb 2026) -> no 97,516 -> not the source
+ 12 Re-read registered source metadata 133 (IDSR 2025 week-51 bulletin, cached /tmp/ssd_a2/idsr25/wk51.txt) -> verbatim 'As of 15th January
+    2026 ... 97,516 cases and 1,600 deaths' -> AI 41 re-added as 1689 against 133
+ 13 WebSearch '"South Sudan" "2,924" cholera August 2025 multi-country' -> WHO sitreps 30/31
+ 14 curl WHO multi-country sitrep 30 (data to 31 Aug 2025) -> verbatim 2924/38; August = epi weeks 32-35 -> registered 336; AI 47 re-added as 1690
+    with TL 2025-08-04 (was calendar 08-01..08-31)
+ 15 curl WHO sitrep 31 (data to 28 Sep 2025) -> verbatim 2036/22; September = epi weeks 36-39 -> registered 337; AI 48 re-added as 1691
+    (2025-09-01..09-28)
+ 16 WebSearch '"South Sudan" cholera "14 361" ... "29 December 2024"' -> WHO sitrep 22
+ 17 curl WHO sitrep 22 -> verbatim 14 361/265 (1 Jan-29 Dec 2024) + December 2024 12 897/237 -> registered 335; AI 16 RETIRED (provisional vintage,
+    superseded by WER final 20,132/360 = JHU 387)
+ 18 WebSearch '"71,825" cholera South Sudan "1,194" deaths August 2025' -> DON579 lead
+ 19 WebFetch WHO DON579 (29 Aug 2025) -> verbatim 71 825/1194 (1 Jan-17 Aug 2025); 21 Jul-17 Aug 2025 = 2472/36 (CONFLICT with dashboard
+    4,273/47 - recorded, not stored) -> registered 338; AI 17 re-added as 1692
+ 20 ReliefWeb RSS 'Ongoing Health Emergency Events' South Sudan -> latest = W38 (14-20 Sep 2026); W39 not yet published -> no row
+Sources found: 9    Registered: index 331, 332, 333, 334, 335, 336, 337, 338
+Rows added   : 16 new-information rows (1670-1685) + 7 corrected re-adds (1686-1692; attribution/dating only, NOT counted in yield)
+Rows retired : AI 25, 32, 40, 41, 47, 48, 17 (each replaced, values preserved in tombstones), AI 16 (superseded provisional)
+Rows revised : AI 53, 54, 55, 56, 57, 95, 96 -> 'non-primary - superseded by AI 1670-1685 ...; do not use for weekly series', confidence
+  lowered (0.85->0.65, 0.9->0.7, 0.8->0.6); AI 130 annotated PRIMARY for 2026-09-14..20 (W38 flash 24 vs dashboard wk37 = 1, incomplete)
+Successful queries: 1/20 (Q1)
+Yield        : 5%
+Consecutive sub-5% batches: 0   (5% is not below 5%)
+Decision     : CONTINUE (minimum 3 batches)
+BASELINE NOTE (for Agent 7/orchestrator, O1): the WHO dashboard has REVISED 2026 weeks already in ./data/SSD/cholera_data_who.csv: epiwk 14 451->465,
+  16 265->270, 17 180->203, 18 212->199, 19 290->365, 20 121->468 (2026-05-18..24). 65 of 119 weeks differ (mostly +/-1%); dashboard date_wk for
+  2024-09-27, 2024-10-15 and 2025-01-01 is not a Monday (baseline file uses 09-23, 10-14, 12-30). SSD's baseline file uses the same calendar as
+  date_wk (epiwk 20 = 2026-05-18) - the 2026 week-shift bug does not appear in SSD's file. Baseline refresh recommended.
+
