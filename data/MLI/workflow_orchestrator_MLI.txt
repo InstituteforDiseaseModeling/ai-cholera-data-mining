@@ -118,3 +118,32 @@ D9 Pipeline observation (not actioned, same as TZA O1): py/build_weekly_timeseri
    (gather only; Agent 3 owns zero rows, Agent 5 owns count conflicts). Given the JHU WHO-annual year list so it does
    not re-enter baseline totals. Told to read legacy A1 log (1 batch) + recent-update log. Yield rule stated, explicitly
    no time limit; WebSearch-exhaustion fallback; read-only analyse(); no dashboard/git.
+
+=== ORCHESTRATOR RESUME - 2026-10-02 10:00 (local), runner attempt after API outage ===
+Process: claude -p MLI (PID 63356, started 09:59). Only MLI orchestrator alive (ps checked); runner PID 19720 unchanged.
+Cause of previous exit: logs/run_20261001-194905/MLI.log ends with two lines
+  "API Error: Can't reach the API server - check your internet or DNS (ENOTFOUND)" -> network/DNS outage, not a
+  workflow fault. MAX_ATTEMPTS=3, so this is probably the final attempt: all seven agents must finish in this session.
+State found on disk (pre-existing work of this cycle, reconciled not discarded):
+  ./data/MLI/workflow_state.json : agent 1 only, batches_completed 11, stopping_reason
+    "INTERIM checkpoint after batch 11 (not stopped)" -> NOT a yield-rule stop => Agent 1 is NOT complete.
+  ./data/MLI/search_log_agent_1.txt : BATCH 1-11 blocks; last Decision "CONTINUE ... batch 12 is the last permitted batch".
+  Artifacts of an INTERRUPTED batch 12 with no log block (written 01:09-01:27, before the outage):
+    metadata 255 'WHO WER 2018 93(38) Cholera, 2017', 256 'Mali MoH Situation epidemiologique 51eme semaine 2016';
+    rows 373-377 (2005 district-month rows: Kayes/Kati/Nara Aug 2005 from metadata 214; Kayes/Nara Dec 2005 from
+    metadata 216); row 368 retracted (annotated in batch-11 block); row 318 re-added (annotated in batch-10 block).
+  Counts now: ./data/MLI/cholera_data_ai.csv 374 rows (Index 1-377; 11, 174, 368 absent), ./data/MLI/metadata_ai.csv
+    256 sources. validate_quality.py MLI: ERROR 0 | WARN 115 | INFO 124 (/tmp/MLI_resume_pre.json).
+  The cycle's true starting state remains /tmp/MLI_pre.json (30 rows, 13 sources, WARN 20) - not overwritten.
+Runner-refreshed gap files (10:00): ./reference/effective_surveillance_gaps_detailed.csv MLI = ONE gap
+  2026-09-01..2026-10-02 (32 d, recent); coverage 680/682 = 99.7%; months_ai 595, months_ai_only 260;
+  recency latest_observation 2026-09-13, latest_positive 2021-12-31.
+  Caveat (CLAUDE.md): 99.7% leans on long zero rows; pre-existing weak rows still in place and unresolved:
+  AI 2 (zero 1985-1994, contradicted 1985-1987), AI 6/7 (1999/2000 zero vs JHU), AI 25 (2021 2220/854, probable
+  mis-dated 2011 total), AI 21 (2011 TR), AI 23 (Gao 2013 = 2012 duplicate?), AI 26 (2022-2024 conf 1.0 from Jan-2025
+  bulletin), AI 27 (2025 zero; WHO received NO 2025 data from Mali), AI 28 (2007 zero vs WHO 7 cases), AI 29/30.
+D10 Agent 1 redeployed to run batch 12 (12th = final permitted batch) with 20 fresh queries, write the missing BATCH 12
+    block, account for rows 373-377 / metadata 255-256 as interrupted-session work (not credited to batch-12 queries
+    unless genuinely produced by them), correct its batch_yields from the log (batch 11 = 15% after the 368 retraction),
+    then write its final state with stopping_reason '12 batches (maximum)'. Not a re-run of the agent.
+D11 Agents run in the background; orchestrator waits for completion notifications (D7 retained).

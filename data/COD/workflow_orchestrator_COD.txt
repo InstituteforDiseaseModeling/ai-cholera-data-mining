@@ -294,3 +294,40 @@ D8 Province-year matrix after A1 (AI vs JHU rows, ./data/COD): sub-national thin
    (Kinshasa W15-17/2025), Z4 Agent-1 zeros 1586/1749/1843/1844/1893/1902 + Index 243 (Kalemie 1980-86), Z5 new province-level
    absence periods (non-endemic provinces; complete province tables; explicit "aucun cas depuis" statements), Z6 regional
    cross-check, Z7 no national zeros after 1977 without explicit Level-1 statement. Yield rule stated; no time limit.
+
+================================================================================
+7. ATTEMPT 3 (runner retry 3/3) - RESUME, 2026-10-02 10:00 local
+================================================================================
+What happened: attempt 1 (19:49 Oct 1) ran A1, A2 and A3 batches 1-3 (A3 log ends 07:30, last CSV write
+   07:28). The supervisor heartbeat stops at 07:36 and every live orchestrator then died with "API Error: Can't
+   reach the API server (ENOTFOUND)" - a host-wide network/DNS loss, not a COD fault. Attempt 2 (09:33) died
+   on the same error before doing anything. This is attempt 3 (09:59). No other COD writer is live
+   (ps: one `claude -p COD` = this session; runner pid 19720).
+Starting state (attempt 3): ./data/COD/cholera_data_ai.csv 9,727 rows (max Index 9797); metadata 825
+   sources; presence 10; tombstones 70; zero rows 1,339. validate_quality COD: exit 0, ERROR 0, WARN 100
+   (66 CFR_high, 29 same_period_conflict, 4 multiyear, 1 single-day), INFO 186 ->
+   /tmp/COD_pre_attempt3.json. Cycle-start snapshot kept as /tmp/COD_pre.json (= copy
+   /tmp/COD_pre_cycle_start.json; 17 rows, 19 sources) - NOT overwritten, so before/after stays honest.
+D9 RESUME RULE applied: A1 (12 batches) and A2 (12 batches) stopped at the 12-batch ceiling = genuinely
+   complete, NOT re-run. A3 had 3 batches (yields 45, 70, 60 %), last decision CONTINUE -> NOT complete
+   (stopped by session loss). A3 checkpoint entry written to ./data/COD/workflow_state.json (stopping_reason
+   INTERRUPTED ...) and A3 redeployed to resume at batch 4, appending to its existing log.
+D10 COVERAGE ARTIFACT: the runner-refreshed ./reference/effective_surveillance_gaps_*.csv (10:00) now show COD
+   681/682 months = 99.9%, 0 gap periods, months_ai 662, months_ai_only 100. The 1973-1977 "closure" comes from
+   A3's nine province-level 1973-1999 Inferred_Absence zeros (Index 9738-9746, conf 0.4, Taty 2024 Additional
+   file 2: never-affected provinces) plus Kalemie 9/1977 (Index 242) - NOT from national data. Zaire national
+   counts for 1973-1977 remain UNKNOWN (presence window in ./data/COD/cholera_presence_ai.csv). Per the CLAUDE.md
+   percent_coverage caveat this is not treated as "no gaps": Agents 4-6 get explicit targets from the
+   resolution profile (section 3) and A1/A2 gaps_remaining, not from the gap file.
+D11 iris.who.int answers HTTP 200 again (10:10; A3 found it unreachable all of batches 1-3). WER annual reviews
+   1970-1977 are fetchable again -> A3 (Z1 check of 1970-1972 against WER tables) and A4 (T2 1973-1977
+   national counts) are told so.
+D12 Resilience: every agent is told to call write_agent_state after EVERY batch with cumulative figures and
+   stopping_reason "IN PROGRESS after batch N - not a stop" so that a future session loss leaves a
+   resumable checkpoint (the A3 loss this morning left none).
+[A3 RESUME] 2026-10-02 10:14 redeployed zero-transmission-validator (background) to continue from BATCH 4 (yields so far
+   45,70,60 %), appending to ./data/COD/search_log_agent_3.txt. Briefed: hand-over state (9,727 rows / 825 sources / validator
+   exit 0), yield rule restated with NO time limit (at most batches 4-12), per-batch cumulative checkpoint (D12), Z1b WER
+   1970-1972/1975 check now that IRIS is reachable (D11), D10 coverage artifact, Z5 remaining complement-zero years (2010, 2012,
+   2014, 2016, 2018-2021, year-end tables 2022-2025, 1978-1999 period panels) + lull statements 2008-2019, Z6 regional check,
+   Z8 further sample of existing zeros (bulletin own-week zeros). Leads already logged for Agent 5 left to Agent 5.
