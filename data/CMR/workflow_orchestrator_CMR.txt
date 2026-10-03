@@ -1,0 +1,152 @@
+=====================================================================
+WORKFLOW ORCHESTRATOR BRIEF - CAMEROON (CMR)
+Cycle: Opus 5.5 max-effort re-run, runner start 2026-10-03 15:06:34 (attempt 1)
+Written by the orchestrator (Agent 0) on 2026-10-03. Every agent (1-7) reads this.
+=====================================================================
+
+0. STOPPING RULE - THE ONLY ONE (Agents 1-6)
+---------------------------------------------
+There is NO time limit, deadline, wall-clock budget or time box. Elapsed time is
+never a stopping reason. Run batches of exactly 20 queries:
+  - minimum 3 batches (60 queries) whatever the yield;
+  - then continue until 3 CONSECUTIVE batches are below 5% yield, OR 12 batches total.
+Yield = (queries that produced >=1 NEW committed row in cholera_data_ai.csv) / 20 * 100.
+Count queries, not rows. Record batch_yields in PERCENT (0-100) in workflow_state.json.
+Agent 7 has no batch limit.
+
+1. FILE LOCATIONS (all relative to /Users/johngiles/MOSAIC/ai-cholera-data-mining)
+-----------------------------------------------------------------------------------
+  ./data/CMR/cholera_data_ai.csv        AI observations (write ONLY via py/add_observation.py / py/revise_observation.py)
+  ./data/CMR/metadata_ai.csv            AI sources (write ONLY via py/add_observation.py register-source)
+  ./data/CMR/cholera_presence_ai.csv    count-less "cholera was present" evidence (py/add_observation.py add-presence)
+  ./data/CMR/cholera_data_who.csv       WHO baseline, READ-ONLY (190 weekly national rows, 2023-01-02..2026-08-23)
+  ./data/CMR/cholera_data_jhu.csv       JHU baseline, READ-ONLY.  ** 45 MB, 193,516 rows. DO NOT open it with
+                                        Read/cat/head - it will blow your context or time out the socket. If you
+                                        need something from it, use a short pandas query with usecols=[...] and
+                                        print only a summary. Section 3 below already summarises it. **
+  ./data/CMR/search_log_agent_N.txt     YOUR log. OVERWRITE it at start (fresh header for this cycle); the old
+                                        logs are preserved as search_log_agent_N_legacy_YYYYMMDD.txt. Do not
+                                        append to the old content.
+  ./data/CMR/workflow_state.json        inter-agent state (py/workflow_state.py write_agent_state)
+  ./reference/effective_surveillance_gaps_*.csv   gap targeting files - READ ONLY. Do NOT run
+                                        py/analyze_effective_gaps.py: countries run in parallel and the runner
+                                        owns these shared files. They were refreshed before CMR started.
+  Do NOT run update_dashboard.sh or anything that commits to git. The runner owns the dashboard and git.
+
+2. COUNTRY PROFILE (from ./reference/country_profiles.json - use this, not memory)
+---------------------------------------------------------------------------------
+  Name: Cameroon (iso2 CM), Central Africa. Languages: French, English (bilingual reporting;
+  North-West and South-West regions are anglophone, the rest francophone).
+  ADM1 (10 regions): Adamawa (Adamaoua), Centre, East (Est), Far North (Extreme-Nord), Littoral,
+       North (Nord), North-West (Nord-Ouest), South (Sud), South-West (Sud-Ouest), West (Ouest)
+  Major cities: Douala, Yaounde, Garoua, Bamenda, Maroua, Bafoussam, Kousseri
+  Land neighbours: NGA, TCD, CAF, COG, GAB, GNQ
+  Disease terms: cholera / cholera (fr: "cholera", "diarrhee aqueuse aigue", also "choléra", "cas suspects")
+  Ministry domain: minsante.cm  (also try onsp.minsante.cm, the Observatoire National de Sante Publique,
+       DLMEP = Direction de la Lutte contre la Maladie, les Epidemies et les Pandemies; Centre Pasteur du
+       Cameroun = national reference lab; CCOUSP = public-health emergency operations centre)
+  Seasonality / geography: South-West (Bakassi peninsula, Ekondo Titi, Bamusso) and Littoral/Douala dominated
+       the 2021-23 epidemic, the largest recent event - Far North had almost no cases in it. Far North
+       (Logone-et-Chari, Mayo-Sava, Mayo-Tsanaga, Mayo-Danay, Diamare; Lake Chad basin) is the HISTORICAL
+       pre-2020 focus. Rainy season roughly Jun-Oct in the north; bimodal in the south.
+  Location code format: AFR::CMR, AFR::CMR::Far_North (existing AI rows use underscores, e.g. Far_North,
+       South-West, North-West); district = AFR::CMR::{Region}::{District}. JHU uses "Far North", "Adamaoua".
+       Be consistent within your own rows and use the region names above.
+
+3. WHAT THE BASELINE ALREADY HAS (do not re-add it)
+---------------------------------------------------
+Effective coverage (all layers): 96.2% of 682 months; months_ai_only = 0; 3 gap periods.
+Effective gaps remaining (./reference/effective_surveillance_gaps_detailed.csv):
+    1970-01-01..1970-12-31  365 d  historical   (no row at all; 7th-pandemic introduction is 1971)
+    1977-01-01..1977-12-31  365 d  historical   (no row at all; JHU has 1976=135 cases, 1978=3 cases)
+    2026-09-01..2026-10-03   33 d  recent       (WHO weekly ends 2026-08-23; an outbreak is ongoing)
+
+JHU national rows: ONE annual national row per year 1971-2009 (except 1970, 1977), 2012, 2013, 2017, 2020,
+2023, 2024; plus weekly national/district rows in 2010-2011, 2014-2016, 2018-2019, 2021-2022.
+JHU national annual totals (sCh / deaths):
+  1971 2167/336  1972 362/27   1973 206/16   1974 83/16    1975 3/0     1976 135/27   1977 --
+  1978 3/0       1979 16/4     1980 229/23   1981 243/17   1982 5/3     1983 55/18    1984 392/60
+  1985 1158/103  1986 165/12   1987 94/6     1988 4/0      1989 4/2     1990 16/0     1991 4026/491
+  1992 1268/66   1993 648/19   1994 527/61   1995 615/21   1996 5796/485 1997 1709/180 1998 4603/316
+  1999 1584/35   2000 123/29   2001 259/7    2002 66/8     2003 207/36   2004 8005/137 2005 2847/110
+  2006 922/35    2007 10/1     2008 0/0      2009 804/89
+  (WHO Annual Cholera Report figures carried in JHU, plus weekly series where noted:)
+  2010 10759/657 (+35 weekly rows May-Dec, several sitrep cumulatives)
+  2011 22433/783 (+38 weekly rows Jan-Sep, sitrep cumulatives to Sep)
+  2012 363/5     2013 29/0     2014 3355/184 2015 124/6 (+48 weekly rows)  2016 74 (weekly rows only)
+  2017 22/0      2018 1052/58 (+232 weekly rows; ~30 WHO AFRO sitrep cumulatives May 2018-May 2019)
+  2019 1840/93 (+101 weekly rows)  2020 1890/73 and 1848/79 Jan-Sep  2021 728/23 (+52 weekly rows)
+  2022 14431/279 (WHO annual) and 14029/303 (3 Jan 2022-1 Jan 2023)  2023 6470/209  2024 199/2
+WHO weekly national 2023-01-02..2026-08-23: 2023 6,477/209; 2024 81/1; 2025 3/0;
+  2026 1,529 cases / 41 deaths, almost all in weeks 22-33 (1 Jun - 23 Aug 2026) - a NEW 2026 OUTBREAK whose
+  regional/district location is NOT in any baseline file.
+JHU sub-national (ADM1) rows exist only for 2010, 2011, 2018-2022. District-level weekly rows exist 2010-2019
+  (UNICEF/MINSANTE line-list derived), a handful in 2020, one in 2022.
+  => NO sub-national data at all for 1971-2009, and none for 2023, 2024, 2025, 2026.
+
+WHERE NEW ROWS ADD REAL INFORMATION FOR CMR (because the coverage % is already high, "fill a gap" is mostly
+about resolution, geography and recency):
+  (a) The 2026 outbreak: region/district breakdowns, sitrep cumulatives, and anything for Sep-Oct 2026
+      (closes the only modern gap). MINSANTE / CCOUSP sitreps, WHO AFRO weekly bulletins, Africa CDC weekly
+      briefs, OCHA Cameroon, UNICEF Cameroon humanitarian sitreps, ReliefWeb, Cameroonian press
+      (Cameroon Tribune, Journal du Cameroun, Actu Cameroun, Mimi Mefo Info, The Guardian Post, CRTV).
+  (b) Sub-national data where none exists: 1971-2009 (e.g. 1971 Far North / Lake Chad introduction; 1985;
+      1991 Far North; 1996 Douala; 1997-1999; 2004 Douala/Littoral; 2005; 2009 Far North) and 2023-2025.
+  (c) Sub-annual national data (monthly, epi-week cumulative, outbreak-period) for years where JHU has only
+      ONE annual row: WER weekly notifications 1971-2000, WHO AFRO bulletins, MINSANTE sitreps.
+  (d) The 1970 and 1977 gaps: explicit statements of absence or presence (Agents 3, 4, 6).
+  (e) Deaths, confirmed counts (cCh), CFR and outbreak-period detail the baseline lacks.
+A row that merely restates a JHU/WHO national annual total for the same year adds nothing - do not add it.
+A row from an independent Level 1-2 source whose numbers MATERIALLY differ from the baseline is useful:
+add it with both numbers recorded in processing_notes and reduced confidence (conflict for Agent 5).
+
+4. EXISTING AI ROWS (22 rows, 21 sources) - HANDLE WITH CARE
+-------------------------------------------------------------
+The previous search report (./data/CMR/search_report_legacy_20260513.txt) states that the 2025-08 run's
+output files were lost and "Agent 7 reconstructed cholera_data_ai.csv and metadata_ai.csv from the documented
+extractions in the agent search logs ... could not independently re-execute the original WebSearch queries to
+verify source URLs". Consequently AI rows 1-20 (metadata Index 1-19) are UNVERIFIED: most cite only a domain
+root (https://www.minsante.cm, https://pubmed.ncbi.nlm.nih.gov/, https://www.msf.org/cameroon,
+https://www.ifrc.org/appeals, https://ec.europa.eu/echo, https://www.afro.who.int ...). Rows 21-22 (metadata
+20-21, added 2026-06-19) have specific URLs and are more trustworthy.
+  Row  2  Douala 2004: 5020 cases / 69 deaths ("Ngwa et al", pubmed root URL)
+  Row  3  Far North 2010: 5560 / 385 (UNICEF, unicef.org/cameroon root)
+  Row  4  Yaounde 2011: 1757 / 71 (MSF root)
+  Row  5  National 2011: 23152 "affected" / 843 (IFRC appeals root) - "affected" is a REJECT term
+  Row  6  Far North 2014: 1321 / 61 (IFRC DREF root)
+  Row  7  Multi_Provincial 2010: 6900 / 455 (IMC root)
+  Rows 8-9 Mayo Sava 139, Mayo Tsanaga 118/3 Oct-Dec 2022 (minsante root)
+  Rows 10-13 North 2019 613/31; Garoua I 309, Pitoa 213, Bibemi 209 (2018-19) (minsante root)
+  Row 14  South-West Dec2021-Dec2022: 6023 / 93 (minsante root)
+  Row 15  Biyem-Assi Oct-Nov 2021: 50 / 1 (minsante root)
+  Row 16  Kribi 2020: 762 (minsante root)
+  Row 17  Littoral 2020: 979 / 49 (minsante root)
+  Row 18  Bertoua Apr-May 2023: 3 sCh / 2 cCh (minsante root)
+  Row 19  Maroua 2, Oct-Nov 2024: 7 sCh / 2 cCh (afro.who.int root)
+  Row 20  National 2022: 14885 / 298 (ECHO root)
+  Row  1  ZERO row 2008 (Documented_Absence) - JHU also has 2008 = 0; check that a source actually says so.
+Rule for every agent: if you find the REAL primary source for one of these, register it with its exact URL and
+note the match/mismatch in your log. Agents 5 and 7 own the adjudication: verify, re-attribute (retract the
+legacy row with py/revise_observation.py --delete and add a verified replacement via add_observation.py, since
+the duplicate guard blocks re-adding identical counts), re-weight, or retract rows whose numbers cannot be found
+in any source. Never silently overwrite; tombstones go to ./data/CMR/retracted_rows_ai.csv automatically.
+validate_quality currently WARNs that 2022 national + sub-national rows (9, 10, 15, 21 by file position) lack a
+"primary level" statement in processing_notes.
+
+5. RULES THAT BITE (summary - CLAUDE.md and templates/template_search_protocol.txt are authoritative)
+----------------------------------------------------------------------------------------------------
+  - Rows need a number (sCh, cCh or deaths) or a validated zero. Count-less presence -> add-presence.
+  - Surveillance_Gap is not a zero label. Zero rows: Documented_Absence (explicit statement) or
+    Inferred_Absence (strong indirect evidence); surveillance status operational|partial|disrupted|unknown.
+  - "cases", "patients", "hospitalised" = cases. "affected", "targeted", "beneficiaries", "doses" = NOT cases.
+  - >1000 cases needs 2 independent sources before committing; 100-1000 seek a second source.
+  - Sub-national rows overlapping national rows: say in processing_notes which level is primary
+    ("Sub-national subset - do not sum with national row").
+  - Quote the source verbatim in --quote. Give the exact page/table where possible.
+  - python py/validate_quality.py CMR must exit 0 before you report done.
+  - Write your state: python -c "import sys; sys.path.insert(0,'py'); from workflow_state import write_agent_state;
+      write_agent_state('CMR', agent_num=N, batches_completed=B, batch_yields=[...percent...], rows_added=R,
+      sources_discovered=S, stopping_reason='...', gaps_filled=[...], gaps_validated_absent=[...], gaps_remaining=[...])"
+    stopping_reason must name the yield-rule condition met (e.g. "3 consecutive batches below 5% (batches 5-7)"
+    or "12-batch maximum reached").
+=====================================================================
