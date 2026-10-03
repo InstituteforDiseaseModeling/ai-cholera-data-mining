@@ -33,3 +33,164 @@ Command: python py/repair_data_integrity.py --dry-run GIN -> TOTAL: 0 change(s);
 Command: python py/repair_data_integrity.py --apply GIN -> TOTAL: 0 change(s); md5 of cholera_data_ai.csv, metadata_ai.csv,
   cholera_presence_ai.csv unchanged before/after (no file written).
 
+=== STEP 2: AGENT VERIFICATION (workflow_state.json vs search logs vs CSV) ===
+Batch blocks ('=== BATCH' headers) per log: A1 12, A2 12, A3 12, A4 12, A5 12, A6 5 = workflow_state batches_completed.
+Logged yields match workflow_state for all six agents; every yield <= 100% (max 55%, Agent 5 batch 12 = 11/20 successful
+  queries for 13 rows - queries were counted, not rows). Agent 6 stop (B3-B5 0%, after B2 5%) is a valid 3-consecutive-
+  sub-5% stop after the 3-batch minimum.
+Discrepancy (self-corrected, minor): Agent 1 batch 6 block logs yield 5% and omits row 112 / meta 58; Agent 1's own final
+  summary corrects batch 6 to 10% (row 112 committed during the batch). Stopping decision unaffected.
+Row reconciliation (Index ranges vs live CSV + ./data/GIN/retracted_rows_ai.csv):
+  pre-existing 1-12: 9 live (7, 10 retracted by A5; 8 by A3)
+  A1 13-323: 309 live (161, 168 own retractions)          = claimed 309
+  A2 324-1191: 832 live (21 own retractions + 15 by A5)    claimed 847 at hand-off; 15 later retracted by A5 (685-693, 701, 709, 739-741, 843)
+  A3 1192-1403: 202 live (1223, 1306, 1309, 1336-1342)    = claimed 202
+  A4 1404-1410: 7 live                                    = claimed 7
+  A5 1411-1591: 180 live (1555 retracted)                 = claimed 180
+  A6 1592: 1 live                                         = claimed 1
+  Total live 1540 = file; tombstones 52 = file; metadata 1-279 sequential, no duplicate Index;
+  sources by agent: pre 12, A1 145 (13-157), A2 34 (158-191), A3 15 (192-206), A4 21 (207-227), A5 36 (228-263), A6 16 (264-279) = 279.
+  No agent claimed rows it did not add. No agent ran < 3 batches.
+Process note: WebSearch quota exhausted during Agent 3 batch 2; Agents 3-6 worked through direct APIs/curl (IRIS REST, ReliefWeb,
+  Europe PMC, Wayback, Gallica IIIF, stat-guinee.org, anss-guinee.org) - logged by each agent.
+
+=== STEP 4 (consistency checks) ===
+(a) Overlapping national zero rows 11 x 1206, 1206 x 12, 1206 x 1274, 12 x 1274, 1274 x 23: all zero, mutually consistent;
+    1206 and 1274 state 'not additive (all zero)', 11 states '2025 part ... covered by row 1206 (not additive)'. 23/24/33 contiguous.
+(b) Zero vs positive (same unit or descendant, AI layer): only strict containment = national row 11 (2024-01-01..2025-05-14) x
+    Mandiana 2024 row 1288 (1 unconfirmed suspect) - already adjudicated by Agent 3 (WHO official 2024 zero report retained;
+    Mandiana kept as provincial subset). 268 'spanning' overlaps are zero windows inside annual/cumulative positive rows;
+    examined the riskiest: 1463 Faranah wk5-11 2006 vs Kissidougou 357 (digitised Kissidougou bars start wk12 and sum to 149 =
+    row 357 exactly - consistent); 1372/1374 Kankan/Mamou 2012 (APHM: no inland case before wk20/wk16 - consistent); 1196
+    (final 2012 case 11 Dec 2012 per Rebaudet 2014; 2013 cases from 19 Mar) consistent; 1197/1198 leave ISO weeks 7-8 2014 for
+    the single 2014 case (HDX weeks 7-8 = 1) - consistent; 104/106 narrowed by Agent 3 to end the day before digitised Kankan
+    (2007-11-05) and Dalaba (2007-11-12) counts - consistent.
+(c) All 1,223 sub-national rows carry strict do-not-sum/subset phrasing; validator's 282 national_subnational_overlap groups all
+    'documented' (INFO). 6 national rows without primacy phrasing (12, 23, 24, 31, 33, 317) overlap no sub-national row.
+(d) Count-less rows: 0. Deaths-only rows: 6 (257, 429, 1405, 1408, 1409, 1585) - allowed by the executable rules; blank sCh is
+    skipped by py/build_weekly_timeseries.py (no zero-fill). cCh-only rows: 4 (226, 395, 421, 423).
+(e) Presence entries superseded by data rows (no CLI verb exists to delete/revise presence entries; NOT hand-edited):
+    P5 Kindia 1986-07-12..07-24 (src 70) -> row 1586; P6 Mamou 1986-11-01..12-17 (src 71) -> row 1406; P17 Dalaba 2007-08..10
+    (src 174) MISDATED (diagram shows Aug-Oct 2007 Dalaba-free) -> superseded by rows 1089-1092 (Nov-Dec 2007); P18 Kankan wk45
+    2007 -> row 786; P20 Beyla Jul 2012 -> row 530; P12/P13/P14/P15/P16/P21 (2003-2004 Sudre diagram presence) -> digitised count
+    rows 855-858, 935, 1082-1085, 1086-1088, 851-852, 1012-1015; P51 Nzerekore Aug-Nov 2001 partly -> row 2 (Aug-Sep);
+    P1/P2 1978 national partly -> row 317 (Jul-Oct). Stale 'CONFLICTS with AI row 104/106/176' notes in P17/P18/P20 were
+    resolved by Agent 3's narrowing of those rows. All 51 presence entries carry evidence 'presence_confirmed_count_unknown';
+    none is used by the weekly builder.
+(f) 51 metadata entries unused by data rows: 15 cited by presence entries; 16 gap-context sources (A6 264-279 etc.); the rest
+    corroboration/duplicate registrations (10 dup of 1; 21 abstract of 157; 245 Superseded dup of 48). Checked the ones whose
+    descriptions carry counts: 17 (5,699/109 entered as row 1557 under meta 246), 113 (AFRO H1-1999 GUI 1,183 - deliberately
+    withheld, conflicts with WHO annual 599/546, documented in row 273), 186 (Conakry 2001 18/2 -> row 461), 25 (Boiro 2016
+    1970-2014 aggregate 94,302 - 45-year total, not a row), 39 (IRIN 2011 '2 cases' = JHU UID 21257). None should have produced
+    a missing row.
+
+=== STEP 3: 4-STAGE SPOT-CHECK (verified against the source text, not the agents' notes) ===
+Method: fetched/cached source text (WHO IRIS DSpace REST incl. TEXT bundles; ReliefWeb pages + PDF attachments; Gallica IIIF
+page images for Boiro 1999; stat-guinee.org yearbooks cached by A2/A3; anss-guinee.org; ECDC; Delpher; l'Unita archive; World
+Bank text; Europe PMC/E-utilities). Helper scripts: /tmp/gin_a7/iris_fetch.py, /tmp/gin_a7/verify_src.py (read-only).
+VERIFIED (quote/numbers/period/location match the source):
+  pre:  2 (WHO DON 26 Sep 2001 155/12), 6 (PLoS Med 2013 8,289/295 - quote paraphrased), 9 (Rebaudet 2014 7,350/133; end declared 6 Feb 2013), 12 (AFRO Jun 2025: 20 countries, Guinea absent)
+  A1:   317, 318 (Boiro 1999 p.303 image: 1978 13 251/9 010 hosp./59; 1970 6 378/1 848/150), 319, 320 (p.304: 1986 9 222/1 461/78;
+        1994 31 442/232), 276 (WER 2000;75(47) 'Guinea 1.I-31.VII 519 32'), 282 (WER 2003;78(3) '21.X-15.XII.2002 45 11'),
+        309 (WER 1998;73(40) '18.IX 132 41'), 308 (WER 1986;61(37) '1-10 VIII 286 14'), 23, 24 (OEW wk30/wk36 2026 event tables:
+        Guinea = Mpox, Diphtheria, Measles, Lassa; no cholera), 33 (ECDC CDTR wk40 2026: Guinea in neither list), 31 (Karnaukhov
+        2017 'za isklyucheniem 1997 i 2010'), 96 (Moore 2018 Table 1/Discussion), 112 (MSF 24 Apr 2012 152/6), 44 (IFRC bulletin 2
+        2004 Coyah 43/7), 251 (OCHA Jul 2009 '229 cas et 42 deces'), 255 (OCHA 2-9 Nov 2009 'aucun nouveau cas ... depuis plus de 6
+        semaines'), 110 (santetropicale 2013 '6 morts sur les 104'), 27 (Jeune Afrique Jul 2012 Mamou '7 deces pour 35 cas')
+  A2:   441-451 (11 rows, Keita 2014 Table 3 to 15 Oct 2012 - exact), 430 (+ table rows 431-439; IFRC MDRGN005 launch Table 1
+        19 Aug 2012, total 4,102/93), 1186 (OCHA Apr 2006 Gueckedou 416/47), 1191 (IRIN 28 Aug 2007 Conakry 1,260), 415 (yearbook
+        2019 T11-6 Dixinn 19/3/3), 357 (Kissidougou 149/13: digitised wk12-20 bars sum exactly 149), digitised Fig. 6 calibration:
+        Conakry 2004-2007 sums (incl. rows retracted as redundant) = Sudre Tableau V within 1% (850/857, 1542/1538, 991/996, 3794/3799);
+        Kindia prefecture runs +3% to +50% high in small years (minimum-height bar convention, documented, conf 0.45-0.6).
+        National sums of the digitised SAP series are 10-24% BELOW the official annual totals in 2005-2007 (SAP database
+        incompleteness, consistent with Sudre's own evaluation) - the digitised rows are a lower-bound weekly shape, not totals.
+  A3:   1206 (WER 2026;101(38) Table 5: Guinea zero report 2025), 1274 (ANSS S29 2026 Tableau VIII cholera 0/0/0 S01-S29),
+        1233 (yearbook 2021 T162 national cholera 0/0/0), 1211 (yearbook 2020 T11-4 'Guinee 5'), 1288 (yearbook 2024 T95b
+        Mandiana 1/0/0), 1276 (Karnaukhov 2017 '319 - 2013, 2 - 2014, 0 - 2015 i 2016'), 1289 (ANSS 2017 S24 'Cholera ... 1 ...
+        27/05/2017')
+  A4:   1404, 1468 (Boiro 2020 avtoreferat Table 2 '2002 1361 142', '2008 257 16'), 1405 (World Bank SAR 14831 '675 persons (330 in
+        Conakry alone)'), 1407 (Het Parool 20 Aug 1970: 27 dead + 230 hospitalised), 1410 (l'Unita 28 Jul 1994 'almeno 5.000')
+  A5:   1563 (Keita T3 total 7,147/127), 1585 (WER 1986;61(15) 'GUINEA 7 IV .. 44'; 44+14 = WHO 58), 1557 (IFRC MDRGN005 upd 1
+        5,699/109 to 2 Sep 2012), 1569 (IRIN 31 Oct 2008 UNICEF 'no new cases ... for two months'), 1581 (IRIN 28 Aug 2007 2,496/90),
+        1584 (OCHA map PDF 'Cas : 2384 Deces : 182'), 1586 (JPRS: Kindia six confirmed, first case 12 Jul 1986), 1591 (OCHA ROWA
+        Feb 2007 PDF '3 230 cas ... dont 218 deces'; = Boiro 2020 Table 2), 1489-1492 + 1469-1475 (WER 1994/1995 notification
+        arithmetic: 31,415/671 and 6,506/565 = WHO annual exactly)
+  A6:   1592 (OCHA Guinee Feb 2005: IASC/COPIA 10 Feb 'la fin des epidemies (cholera, ...)')
+  Total rows checked against source text: 64 (plus aggregate checks on the 621 digitised rows).
+DEFECTS FOUND:
+  D1 row 4 (pre-existing, national 2005 3,797): MIS-CITED to meta 3 (Keita 2014) - the paper has no '3797'/'102 deaths'/'Moyenne';
+     the text is OCHA Guinea Dec 2005 (meta 78, verified verbatim) / OCHA Nov 2005 FR ('3,797 cas dont 102 deces ... en Guinee').
+     Deaths 102 were also omitted. FIX: retract + re-enter under meta 78 with deaths 102.
+  D2 row 5 (pre-existing, national Jan-23 Jul 2006 1,623/143): MIS-CITED to meta 3 - quote not in Keita 2014 (full text cached);
+     figure is OCHA ROWA Bulletin aout 2006 (meta 257, verified) / Reuters 20 Aug 2006 (meta 32). FIX: retract + re-enter under meta 257.
+  D3 row 3 (pre-existing, national 2004 333/31): quote IS in the cited PDF, but meta 9 'WHO Cholera Outbreaks 2004 Annual Report'
+     (Level 1) is a press digest hosted on astrium.com ('Source: promedmail, who.int/wer, eurosurveillance, allafrica, reuters')
+     whose Guinea item cites 'All Africa.com & UN IRIN [edited]'. FIX: retract + re-enter under meta 187 (IFRC Information Bulletin
+     3/2004, Level 2, identical figure verified); correct meta 9 Description and set Status Superseded.
+  D4 row 6: numbers right but quote paraphrased. FIX: append exact source sentence.
+  D5 row 1 (pre-existing, St Louis 1990 1,169/43): quoted sentence NOT in the PubMed abstract (E-utilities), full text paywalled
+     (OUP 403), no open citing source repeats it; meta 8 labels the paper 'AJPH' but it is Am J Epidemiol 1990;131(4):719-28.
+     FIX: flag UNVERIFIED, confidence 0.45 -> 0.3 (already NON-PRIMARY; outranked by JHU in the builder); correct meta 8 Description.
+  D6 Keita 2014 Table 3 Dabola line (13 cases/2 deaths to 15 Oct 2012) never entered - the 11 entered lines + Dabola are needed to
+     reach the printed total 7,147/127. Conflicts with yearbook 2012 (8/5, row 163) and APHM (8, row 527). FIX: add as NON-PRIMARY
+     sub-national row (conf 0.5).
+  Lead not acted on: Boiro 1999 Fig. 1 monthly 1986 national curve (bars ~460 Jan ... ~800 Nov, sum ~9,200) - never digitised
+     (Agent 3 deferred it to Agent 4); would not reach the national weekly series while JHU holds the 1986 annual row.
+
+=== FIXES APPLIED (all via py/revise_observation.py / py/add_observation.py; no hand edits) ===
+  F1 Index 3 RETRACTED (tombstone) -> re-entered as Index 1593: AFR::GIN 2004-06-01..2004-08-31 333/31, meta 187 (IFRC Information
+     Bulletin 3/2004, Level 2), conf 0.8 (was 0.85 on a mislabelled 'Level 1' source); TL aligned with IFRC rows 34/39/40.
+  F2 meta 9 Description corrected (press digest on astrium.com citing All Africa/IRIN, not a WHO annual report) and Status -> Superseded.
+  F3 Index 4 RETRACTED -> re-entered as Index 1594: AFR::GIN 2005-04-01..2005-12-05 3,797/102, meta 78 (OCHA Guinea Dec 2005), conf 0.75;
+     deaths restored; TR = 'a la date de debut decembre' (FR OCHA Nov 2005 report) instead of year-end (WHO notified 140/5 more 21 Nov-31 Dec, row 260).
+  F4 Index 5 RETRACTED -> re-entered as Index 1595: AFR::GIN 2006-01-01..2006-07-23 1,623/143, meta 257 (OCHA ROWA Bulletin aout 2006), conf 0.8.
+  F5 Index 6: exact source sentence appended (paraphrased quote).
+  F6 Index 1: confidence 0.45 -> 0.3, UNVERIFIED note (quote absent from PubMed abstract; full text paywalled); meta 8 Description corrected
+     (Am J Epidemiol 1990, not AJPH; figures unverified).
+  F7 Index 1596 ADDED (new row): AFR::GIN::Faranah::Dabola 2012-02-02..2012-10-15 13/2, meta 3 Keita Table 3 line, NON-PRIMARY, conf 0.5.
+  Net: rows 1540 -> 1541 (3 retractions, 4 additions = 3 re-entries + 1 new); sources 279 (0 added, 1 superseded); tombstones 52 -> 55.
+  Validator after fixes: ERROR 0, WARN 25 (same set), INFO 333; repair_data_integrity --dry-run: 0 changes.
+  Mechanical screen of all 1,541 rows for quote-vs-source organisation mismatch: 3 flags, all legitimate secondary mentions (12, 365, 1404).
+  Other checks: 0 rows above the confidence ceiling of their source tier; all ADM1 tokens in country profile (+ Multi_Provincial);
+  41 ADM1/ADM2 pairs all hierarchically correct; all 81 rows >1000 cases carry a corroboration/conflict statement.
+
+=== STEP 5: IMPACT (computed in memory; no ./reference file written) ===
+analyse('GIN', ..., date.today(), 7):
+  JHU+WHO baseline only          : 372/682 = 54.5%, 5 gaps (1971-1985, 1987-1993, 1997, 2010, 2025-01..2026-10)
+  JHU+WHO+AI pre-cycle (12 rows) : 402/682 = 58.9%, months_ai 164, months_ai_only 30, 4 gaps
+  JHU+WHO+AI now (1,541 rows)    : 421/682 = 61.7%, months_ai 401, months_ai_only 49, 3 gaps:
+                                   1971-01-01..1978-06-30 (2738 d), 1978-11-01..1985-12-31 (2618 d), 1987-01-01..1993-12-31 (2557 d)
+  National-rows-only variants give identical coverage (sub-national rows add no covered month).
+  Cumulative by agent (live rows): pre remnants 390 -> +A1 421 -> +A2..+A7 421 (unchanged). All 19 months gained this cycle
+  (1978 Jul-Oct 4, 1997 12, 2026 Jul-Sep 3) come from Agent 1 rows 317, 31, 23, 24, 33.
+  months_ai_only 49 = 1978 Jul-Oct (4, counts) + 1997 (12, zero) + 2010 (12, zero) + 2025-01..2026-09 (21, zero) -> 45 of 49 are zero assertions.
+  Recency: latest observation 2026-09-28 (zero, row 33); latest positive 2024-12-31 (Mandiana 2024 suspect, sub-national) /
+  national 2020-12-31 (5 SAP suspects, row 1211).
+build_weekly_timeseries.process_country('GIN') in memory (nothing written):
+  2,961 weeks 1970-W02..2026-W40. Winning source: JHU fourier 1042, JHU observed 389, JHU inferred_zero 186, AI documented_zero 196,
+  AI fourier 18 (1978), assumed_zero 1,130 (1971-1993 except Jul-Oct 1978; 1986 1 week).
+  Without the AI layer: 2,870 weeks, assumed_zero 1,253, series ends 2025-W01. Only 1978 changes a national annual total (0 -> 13,251).
+  JHU outranks AI: national totals reaching the model stay 1970 2,000 (MoH 6,378), 1986 286 (MoH 9,222), 1998 881 (MoH 1,232),
+  2002 61 (MoH 1,361). Week 2026-W40 (28 Sep-4 Oct) is labelled documented_zero from one covered day (row 33 TR 2026-09-28).
+
+CORRECTION to the Step 3 note on digitised totals (Agent 7, same session): the '10-24% below' figure summed only the LIVE
+  digitised rows. Including the 41 digitised bars Agent 5 retracted as duplicates of printed figures (tombstones), the full SAP
+  series vs MoH annual totals is: 2004 +9% (1,644 vs 1,507), 2005 -15% (3,232 vs 3,819), 2006 +2% (3,289 vs 3,230), 2007 -12%
+  (7,553 vs 8,546), 2008 +1% (260 vs 257), 2009 +14% (48 vs 42). Report text uses the corrected figures.
+
+=== STEP 6: REPORT ===
+Wrote ./data/GIN/search_report.txt (overwrote the stale 2026-05-14 report; its 2009-2011 zero, 2004 'WHO annual report' and
+2005 'deaths unclear' statements are corrected in the new report).
+
+=== STEP 8: FINAL GATE ===
+python py/validate_quality.py GIN -> exit 0; 1541 data rows | 279 metadata sources | ERROR 0, WARN 25, INFO 333
+  (same WARN set as the initial run; validator line numbers shifted by 3 because Index 3-5 were re-entered as 1593-1595)
+python py/repair_data_integrity.py --dry-run GIN -> 0 changes; no ./data/GIN/attribution_review.csv
+workflow_state.json: Agent 7 entry written (batches 0, rows_added 4 = 3 re-entries + 1 new, sources 0); orchestrator notes kept.
+Not done by design (parallel-run safety): no py/analyze_effective_gaps.py run (in-memory analyse() only), no dashboard update,
+  no git commit, no cholera_weekly_GIN.csv write (process_country in memory only), no edits to JHU/WHO baselines or MOSAIC-data/raw.
+Helper files written only under /tmp/gin_a7/ (iris_fetch.py, verify_src.py, fetched sources, ai_upto_*.csv filtered copies, impact.json).
+Final file counts: ./data/GIN/cholera_data_ai.csv 1,541 live rows; ./data/GIN/metadata_ai.csv 279 sources; ./data/GIN/cholera_presence_ai.csv 51;
+  ./data/GIN/retracted_rows_ai.csv 55 tombstones.
+End: 2026-10-03 16:53:29
+Agent 7 Status: COMPLETE
