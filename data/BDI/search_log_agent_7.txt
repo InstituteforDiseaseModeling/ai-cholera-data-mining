@@ -5,3 +5,173 @@ Agent 7 Status: INITIALIZED (cholera-quality-auditor, cycle 2026-10-02 Opus 5.5 
 Mode: UNATTENDED. WebSearch unavailable (session cap exhausted); verification via curl/WebFetch against metadata URLs, Wayback, Europe PMC, OpenAlex, ReliefWeb HTML, Google News RSS, WHO ArcGIS.
 Shared-file rules: no analyze_effective_gaps.py run (in-memory analyse() only), no dashboard/weekly builder, no git commit; writes only under ./data/BDI/ via py/revise_observation.py / py/add_observation.py.
 
+=== STEP 1: VALIDATOR (start) ===
+Command: python py/validate_quality.py BDI --json /tmp/BDI_agent7.json
+Result : EXIT 0 | 1359 data rows | 512 metadata sources | ERROR 0 | WARN 34 | INFO 408
+         WARN classes: multiyear_aggregate 15 (Index 4, 790-803), CFR_high_flagged_for_review 9 (Index 89, 160, 280, 342, 344,
+         358, 404, 408, 1087), same_period_conflict 9 (pairs 411/88, 511/85, 513/86, 515/87, 516/88, 1088/344, 1211/960,
+         1365/88, 1377/165), period_single_day 1 (Index 73).
+         INFO: national_subnational_overlap 364 (all documented - 0 WARN), metadata_unused 44.
+         --no-baseline run identical (no tracked validation debt for BDI in reference/validation_debt.json).
+Note   : validator 'row N' = physical CSV line, not Index (e.g. line 71 = Index 73; line 1360 = Index 1377).
+
+=== STEP 4 (task 4): PRESENCE-FILE TL CORRECTION (authorised exception) ===
+File   : ./data/BDI/cholera_presence_ai.csv, first row (AFR::BDI, source_index 3 CDC EID)
+Change : TL 1977-01-01 -> 1978-05-25 (TR 1978-12-31 unchanged); correction note appended to processing_notes.
+Basis  : verified by Agent 7 on the ITG Antwerp scan (https://lib.itg.be/open/ASBMT/1979/1979asbm0413.pdf, metadata 354),
+         p.417 rendered: 'a) Les premiers cas : Ils survinrent a Rumonge, sur la rive du lac a 75 km de Bujumbura, le 25 mai,
+         trois jours apres le passage de l'equipe mobile ...'; same page: '150 cas se produiront ... entre le 25 mai et le 30 juin'.
+Method : python script under the add_observation.locked() file lock; timestamped backup
+         ./data/BDI/.backup_cholera_presence_ai_20261003-130723.csv; only line 2 rewritten (csv.DictWriter, same field order,
+         '\n' terminator); asserted rows 2-77 byte-identical and column order preserved. 77 presence rows before and after.
+
+=== STEP 2 (task 2): 4-STAGE QC - SAMPLE DESIGN ===
+Frame  : ./data/BDI/cholera_data_ai.csv, 1,359 rows. Strata = collecting agent (by Index range: pre-cycle 1-19; A1 20-584;
+         A2 585-906; A3 907-954; A4 955-1344; A5 1345-1377; A6 added none) x decade of TL x level (national/sub-national)
+         x row type (zero/count). Quotas per stratum, random draw within stratum (pandas .sample, random_state=20261003).
+Sample : 66 rows = 65 random + Index 907 purposive (A3's only 1970s row; verified by Agent 7 on the Storme scan).
+         By agent: pre-cycle 3, A1 20, A2 13, A3 8 (incl. 907), A4 16, A5 6 (A6 contributed 0 rows - nothing to sample).
+         By decade (all agents): 1970s 11, 1980s 4, 1990s 10, 2000s 13, 2010s 9, 2020s 19. Zero rows 14; count rows 52; national 30; sub-national 36.
+Indices: 2, 8, 11, 38, 87, 91, 94, 104, 112, 113, 135, 138, 158, 160, 183, 223, 235, 293, 328, 350, 358, 404, 579, 594, 654, 675, 717, 746, 786, 809, 812, 848, 860, 864, 870, 880, 911, 925, 927, 934, 938, 940, 953, 972, 980, 993, 1039, 1071, 1081, 1084, 1088, 1096, 1102, 1163, 1164, 1172, 1207, 1281, 1336, 1355, 1359, 1364, 1365, 1369, 1372, 907
+Method : Stages 1-2 (source re-opened: URL/archive, quoted text, numbers, dates, place/level) delegated to 5 read-only
+         verification sub-agents grouped by host (IRIS REST API; ReliefWeb; MoH/Wayback/UB repository/ITG; Internet
+         Archive/NARA AAD/CDC/PMC/WHO/UNICEF; media/IFRC/Africa CDC/WHO ArcGIS); results in /tmp/bdi7/result_*.json.
+         Stages 3-4 (cross-reference vs other rows/baseline, duplication, do-not-sum, confidence band vs reliability) by Agent 7.
+
+=== STEP 3 (task 3): INTEGRITY CHECKS ===
+Dual reference : validator - 0 source_index orphans, 0 source-name mismatches, metadata Index 1..512 contiguous, no duplicates.
+Out-of-country : notes of 81 rows mention TZA/RWA/COD/camps; every one describes cases inside Burundi (1994-95 Rwandan refugee
+                 camps in Burundi; 2025 Congolese refugees at Ndava/Busuma/Gatumba camps in Burundi; imported cases detected in
+                 Burundi e.g. Gihofi 2024 'dont 9 importes de la Tanzanie'; Isare 2023 = 471 excludes the separate 'RDC-Uvira
+                 (Importe) 1'). No Nyarugusu/Nduta/Uvira/Rwanda event rows. PASS.
+Dates          : validator - no TL/TR/reporting_date in the future (today 2026-10-03), no TL>TR, no reporting_date<TR, none blank.
+Locations      : 79 distinct; ADM1 segments all legacy 18-province names as JHU spells them (incl. 'Isale' JHU spelling of
+                 Isare) or '(A|B)' pseudo-locations; no 5-province (post-2025) codes; health districts '{X} Sanitary District';
+                 communes (Gihanga, Musaga, Mutimbuzi, Rugombo...) at level 3 as in JHU. 26 '(A|B)' pseudo-location rows (task
+                 brief said 25; one more since) - all 26 annotated (no per-unit split in source). Old non-conforming codes
+                 (AFR::BDI::Isale, ::Bujumbura, ::Bujumbura_Rural) no longer present. PASS.
+Do-not-sum     : validator national_subnational_overlap 364 groups, ALL documented (INFO), 0 WARN. PASS.
+Zero rows      : 147 (92 Documented_Absence, 55 Inferred_Absence); all carry the canonical 'Evidence type:' and 'Surveillance
+                 system status during absence:' tokens (145 operational, 2 partial). PASS.
+Count-less rows: 0 (validator no_quantitative_value). PASS.
+Confidence     : 0 rows above the ceiling of their source's reliability band; 546 rows below the band floor (342 L1, 204 L2) =
+                 deliberate downgrades (allowed: band is a ceiling). Multi-year count rows all <=0.7; CFR>15% rows all <=0.7.
+Near-duplicates: 6 same-count pairs within +/-7 days checked: 215/216 (WER 1979 no.18 '19-25.III 8 0' and no.25 '26.III-1.IV
+                 8 0' - verified by Agent 7 on IRIS PDFs; consecutive weeks, not duplicates); 1118/1119 (AFRO 2003 table gives
+                 67 in both wk7 and wk8); 429/715, 430/716, 432/713 (district cumulatives unchanged between 11 and 15 Jan 2023);
+                 1073/1074 (Muramvya 1 case in consecutive 1978 weeks). 37 same-count overlapping pairs = repeated cumulative
+                 snapshots of districts whose totals did not change. No double entries found. PASS.
+Unused metadata: 44 sources cited by no data row. 2 were already labelled (38 Superseded; 485 Unused-retracted). The other 42
+                 had Status 'Active'; Agent 7 set role labels with py/revise_observation.py --meta-index N --set-status:
+                 21 Presence-only, 6 Corroboration-only, 9 Context-only (incl. UNICEF HSR No.17-23 and ECDC CDTR wk40),
+                 6 Unused-row-retracted (71, 72, 73, 317, 464, 512). Labels in /tmp/bdi7/meta_labels.tsv.
+
+=== STEP 1b (task 1): WARN-CLASS REVIEW (34 WARN; all reviewed-and-accepted, no edits needed) ===
+Source re-opened by Agent 7 for every WARN row not in the QC sample (sample rows 160, 358, 404, 1088 checked in step 2):
+multiyear_aggregate (15)
+  Index 4   2008-01-01..2020-12-31 6949/43 (Debes 2021, PMC8163194). Europe PMC full text: 'From 2008-2020, 6949 cases and 43
+            deaths were officially reported' - VERIFIED. Genuine 13-year period total; conf 0.5; NON-PRIMARY, do-not-sum note. ACCEPT.
+  Index 790-803 district cumulatives 2022-12-01..2024-12-31 (MSPLS T4 2024 bulletin Fig.4 'depuis decembre 2022 jusqu'au
+            decembre 2024'); 14 districts sum 2 309; Agent 5 arithmetic check vs yearbooks 2023+2024 per district; conf 0.6-0.7;
+            all carry 'NOT an annual count' + do-not-sum notes. Genuine period totals (outbreak-to-date). ACCEPT.
+CFR_high_flagged_for_review (9) - all <=0.7, all with same-line/same-sentence denominator checks by Agent 5 (C14):
+  Index 89  AP/Spokesman-Review 8 Sep 1995 '... killed at least 10 people ... 38 cases of cholera have been reported since
+            Aug. 19' - VERIFIED (live page). NON-PRIMARY vs 1087. ACCEPT (0.5).
+  Index 280 WER 1984 no.17 'BURUNDI 1-31.XII.1983 ... 35 6' - VERIFIED (IRIS PDF text). ACCEPT (0.7).
+  Index 342 WER 1994 no.42 p.8 'Burundi 1-30.IX ... 81 20' - VERIFIED on the page image (OCR drops the numbers). ACCEPT (0.7).
+  Index 344 WER 1995 no.38 p.8 'Burundi 9-15.IX ... 98 15' - VERIFIED on page image. NON-PRIMARY (preliminary) vs 1088. ACCEPT (0.5).
+  Index 1087 WER 1995 no.37 p.268 'Notifications received from 8 to 14 September 1995 ... Burundi 21.VIII-8.IX ... 54 13' -
+            VERIFIED on page image (box at foot of p.268). ACCEPT (0.7).
+  Index 408 Marek News Briefs (Reuters 14 Dec 1999) '... cost at least 48 lives in the last week ... registered 200 more cases
+            of cholera in two regroupment camps ... Kabezi and Ruziba' - VERIFIED (ReliefWeb). Level 4, conf 0.25, NON-PRIMARY,
+            period-mismatch caveat in notes. ACCEPT.
+  Index 160, 358, 404 - in QC sample (160 VERIFIED by Agent 7: WER 1998 no.34 'Burundi 24.VII-7.VIII ... 54 10').
+same_period_conflict (9) - structural check (does not read notes); every pair carries an explicit PRIMARY/NON-PRIMARY or
+  complementary-case-definition note: 411 vs 88 (cCh-only subset), 511/513/515/516 vs 85/86/87/88 (MoH yearbook HMIS series
+  NON-PRIMARY), 1088 vs 344 (final vs preliminary; 1088 PRIMARY), 1211 vs 960 (EPISTAT suspected vs Institut Pasteur lab
+  isolates, complementary), 1365 vs 88 (WHO AFRO 95/1 NON-PRIMARY vs Debes 139/1), 1377 vs 165 (Govt 207 vs WER 218, WER
+  PRIMARY). ACCEPT all.
+period_single_day (1)
+  Index 73  Bujumbura Mairie 2026-04-01, 18 cases. Xinhua 2 Apr 2026 '18 new cases recorded on Wednesday alone ... we had 18
+            patients admitted to the Prince Regent Charles Hospital' - VERIFIED (live page). Single-day admissions; subset of
+            Index 38 and WHO national week; do-not-sum. ACCEPT.
+Validator after review: unchanged (0 ERROR / 34 WARN) - no WARN was suppressed or 'fixed' by relabelling.
+
+=== STEP 2 (task 2): 4-STAGE QC RESULTS - partial (groups A, D2 + Agent 7 own) ===
+Group A IRIS (WER/OEW via DSpace REST API): 14 rows
+    138 PASS_WITH_NOTE  S1 OK. https://iris.who | ev: DISEASES SUBJECT TO THE REGULATIONS | Notifications received from 22 to 28 May 1998 | C – cases, D – deaths, ... – data not yet received, | Cholera •  | Cosmetic only: the quoted heading adds 'of diseases'. Data is unaffected.
+    158 PASS            S1 OK. Item URL returns | ev: INTERNATIONAL HEALTH REGULATIONS / RÈGLEMENT SANITAIRE INTERNATIONAL | Notifications of diseases received from 19 to 25 August 2005 / Notifications de | 
+    160 PASS            S1 OK. Item URL returns | ev: Notifications received from 14 to 20 August 1998 | Cholera • Choléra | Africa • Afrique | C D | Burundi 24.VII-7.VIII | .......... 54 10 | Chad – Tcha | 
+    183 PASS            S1 OK. Item URL returns | ev: DISEASES SUBJECT TO THE REGULATIONS — MALADIES SOUMISES AU RÈGLEMENT | Notifications Received from 24 to 30 November 1978 | CHOLERA¹ — CHOLÉRA¹ | Afri | Cosmetic metadata inaccuracy only: meta_desc says the OCR text layer omits the Burundi lines, but in this copy it contains them (OCR reads '21-27JC ... 323 5').
+    223 PASS            S1 OK. Item URL returns | ev: DISEASES SUBJECT TO THE REGULATIONS — MALADIES SOUMISES AU RÈGLEMENT | Notifications Received from 12 to 18 October 1979 | CHOLERA † — CHOLÉRA † | Afr | 
+    235 PASS            S1 OK. Item URL returns | ev: DISEASES SUBJECT TO THE REGULATIONS — MALADIES SOUMISES AU RÈGLEMENT | Notifications Received from 3 to 10 April 1980 | CHOLERA † — CHOLÉRA † | Africa | 
+    293 PASS            S1 OK. Item URL returns | ev: DISEASES SUBJECT TO THE REGULATIONS - MALADIES SOUMISES AU RÈGLEMENT | Notifications received from 16 to 22 August 1985 | CHOLERA† - CHOLÉRA† | Africa | 
+    328 PASS            S1 OK. Item URL returns | ev: DISEASES SUBJECT TO THE REGULATIONS - MALADIES SOUMISES AU RÈGLEMENT | Notifications received from 17 to 23 February 1989 | CHOLERA - CHOLÉRA | Africa | 
+    654 PASS            S1 OK. Item URL returns | ev: Burundi Cholera Grade 3 01-Jan-23 01-Jan-25 13-Jul-25 382 4 1.0% | During epidemiological week 28 ( week ending on 13 July 2025), 58 cases and four de | None material. reporting_date follows the pipeline convention of using the bulletin week-end date (the PDF is dated 2025-07-23).
+    675 PASS_WITH_NOTE  S1 OK. Item URL returns | ev: Burundi Cholera Grade 3 1-Jan-23 14-Dec-22 2026-08-01 1662 4 1 | Burundi continues to experience annual cholera outbreaks. This year, between 1 Januar | The zero is a complement inference and depends on an HD-to-legacy-province mapping the source does not give. The mapping checks out. The source does not attest surveillan
+    717 PASS_WITH_NOTE  S1 OK. Item URL returns | ev: Burundi Cholera Ungraded 01-Jan-23 01-Jan-23 25-Jan-23 99 66 1 1,00% | An outbreak of cholera has been declared in Burundi on 1 January 2023. As of 25 | The TL (onset) is not in the cited source, and the cited source shows cases notified about 8-13 Dec 2022, before TL. Minor date-bound issue. Options: set TL=2022-12-08 (f
+   1088 PASS_WITH_NOTE  S1 OK. Item URL returns | ev: Notifications received from 29 September to 5 October 1995 | Cholera • Choléra | Africa • Afrique | C D | Burundi 9-15.IX1 | .......... 126 14 | Côte  | sCh=224 and deaths=29 are not printed in the cited source; they are a correct two-issue sum (98+126, 15+14) and both components were verified. No change needed.
+   1096 PASS_WITH_NOTE  S1 OK. Item URL returns | ev: DISEASES SUBJECT TO THE REGULATIONS | Notifications received from 5 to 11 January 1996 | C – cases, D – deaths, ... – data not yet received, | Cholera | TL is an assumption, and the true start is unknown. The notes' reconciliation (eight 1995 notifications summing to 2 297/61) is arithmetically correct: 57+14+54+98+126+13
+   1365 PASS            S1 OK. Item URL returns | ev: Closed Events | Burundi Cholera Ungraded 15-Nov-21 7-Nov-21 10-Nov-21 1 1 0 0.0% | During week 44 (ending 7 November 2021), one confirmed case of chol | None for S1/S2. The conflict with the WER 2020 annual of 277/5 is already flagged in the notes and is a matter for Agent 7.
+Group D2 media/IFRC/Africa CDC/WHO ArcGIS: 10 rows
+     38 PASS_WITH_NOTE  S1 PASS | ev: Dans la capitale économique du Burundi, une flambée de cas a été signalée depuis le début de la semaine dans plusieurs quartiers du nord de la ville,  | Minor: date window (5 days) wider than the 3-day count; acceptable and documented. No contradiction found.
+    870 PASS_WITH_NOTE  S1 PASS | ev: Depuis le 1er janvier 2025, 2401 cas ont été notifiés dans 12 districts sanitaires : Cibitoke, Bujumbura Nord, Bujumbura Centre, Bujumbura Sud, Isare, | processing_notes opens with boilerplate 'Source confirms zero cholera transmission 2025-01-01..2025-11-02', which overstates a source that never mentions Kirundo; the sou
+     91 PASS            S1 PASS | ev: Les dernières données de l'Organisation mondiale de la santé indiquent qu'au 6 janvier 2023, 42 cas suspects ont été signalés, mais aucun décès n'a ét | Context only (no fidelity issue): WHO ArcGIS layer shows cum_case 24 at 2023-W01 (date_wk 2023-01-02, weekly 0) and 49 in W02, i.e. lower than this WHO-attributed 42 by 6
+     94 PASS            S1 PASS | ev: Quatre districts ont signalé un ou plusieurs cas : Bujumbura Nord (19 cas), Cibitoke (17 cas), Isale (quatre cas) et Bujumbura Centre (deux cas). | 
+    350 PASS            S1 PASS | ev: Table 1: Reported cholera cases as of 28 November, 2012 | District | New Cases | Cumulative Cases | Hospitalized | Deaths | ... Rumonge (Bururi Provin | 
+    358 PASS_WITH_NOTE  S1 PASS | ev: From June 5th 2013 to July 5th 2013 there were 75 cases of cholera and 12 casualties only in Gihofi, and four patients were in critical condition. | deaths=12 rests on reading 'casualties' as deaths (disclosed in notes); single-source; CFR 16% depends on it.
+    104 PASS_WITH_NOTE  S1 PASS | ev: p.2 table: "Cholera | Burundi | Moderate | N/A | 1,104 (57) | 0 (0) | 0 (0) | 2 (0)". p.6: "Burundi: In epidemiological week 22, the MoH reported 57 n | reporting_date is the nominal issue date, not the actual publication date (>= 7 Jun 2026; file dated 11 Jun 2026). Optional fix: reporting_date=2026-06-11. Notes' WHO-das
+    135 PASS            S1 PASS | ev: {"adm0_name": "BURUNDI", "epiyr": 2025, "epiwk": 3, "date_wk": 1736726400000, "cases": 0, "deaths": 0, "cum_case": 2311, "cum_death": 12, "ObjectId":  | Documented_Absence label consistent with an explicit WHO zero. Epidemiological caveat (already handled by Agent 3's down-weighting): W3-W4 zeros sit between weeks of 18 a
+    594 PASS            S1 PASS | ev: Table image p.3: "Situation épidémiologique du 01 Janvier au 13 Avril 2026" | "CUMUL DES CAS PAR DS" MUTIMBUZI 336; MUKAZA 137; NYANZA 97; KAMENGE 58; | 
+    864 FAIL            S1 PASS | ev: Au total, 134 cas de choléra ont été enregistrés à Nyanza-Lac depuis le 6 septembre dernier. [...] Jusqu’au 27 septembre, Cibitoke a déjà enregistré 1 | TR not supported: the source gives the 134 figure 'Jusqu'au 27 septembre'.
+Agent 7 own: 907 PASS (Storme 1979 p.417 rendered: 'Les premiers cas : Ils survinrent a Rumonge ... le 25 mai'; Documented_Absence, partial, 0.8).
+Actions: Index 864 FAIL -> TR 2011-10-03 corrected to 2011-09-27 (Iwacu 4 Oct 2011 'Jusqu'au 27 septembre ... A Nyanza-Lac, ce sont
+         134 cas enregistres' - re-verified by Agent 7 on the live page). Index 870: note appended (absence inferred from the MoH
+         12-district list; template wording 'Source confirms' overstated). Index 717: note appended documenting TL 2022-12-14 basis
+         (WHO 'start of reporting period'; cited OEW wk5 epi curve shows ~6 cases 8-13 Dec 2022); TL kept for series consistency.
+         Index 104: reporting_date 2026-05-31 = printed Africa CDC issue date (file generated 11 Jun) - kept, defensible.
+Stage 3-4 (Agent 7) for these rows: no duplicates, do-not-sum notes present, confidence within band ceilings; 135 zero is an
+         explicit WHO dashboard 0 (cum unchanged 2 311) - Documented_Absence correct, conf 0.6 reflects mid-outbreak timing caveat.
+Extra (non-sample) checks by Agent 7 on rows that REACH the model series: WER annual 1986-1989 Index 61-64 (243, 523, 564*, 94*)
+         VERIFIED on IRIS PDFs (1988 read on page image); WER monthly 303 (Aug 1986 18/1), 316 (Dec 1986 75/1), 323 (1.IX-31.XII.87
+         206/23), 324 (Jan 1988 143/15), 330 (Dec 1988 5/0), 331 (Jan 1989 14/2), 335 (1.VI-30.IX.89 36/0) VERIFIED; 2026 weekly
+         Index 104-106, 109, 102, 119-130 (17 rows, 2026-05-25..09-20) match WHO ArcGIS cholera_adm0_week exactly (cases and deaths);
+         ArcGIS still ends epiwk 37 (2026-09-14..20). Index 10 CDC EID quote is a condensation of 'Except for some limited epidemics,
+         AGLR was long free from cholera, which emerged in 1977-1978 when the 6 countries were simultaneously affected' (PASS_WITH_NOTE).
+         'Burundi 1408 30.06.88' in WER 1989 no.22 is the AIDS table, not cholera - no conflict with 1988 = 564*.
+
+=== STEP 5 (task 5): WEEKLY-BUILDER IMPACT (reasoning only - builder NOT run) ===
+Method: read py/build_weekly_timeseries.py (national rows only; sources processed AI -> JHU -> WHO; a higher-priority source
+  overwrites a week regardless of method; within one source: observed > documented_zero > fourier > inferred_zero, ties -> higher
+  sCh). Re-implemented only the WHICH-SOURCE-WINS logic read-only in /tmp/bdi7/reach.py against the current CSVs (no outputs);
+  magnitudes taken from the existing ./data/BDI/cholera_weekly_BDI.csv (built 2026-10-03 07:21, before Agents 4-6).
+AI national rows that REACH the model series (no JHU/WHO national row covers the week):
+  1969-12-29..1977-12-26 (418 ISO weeks; series starts Mon 1969-12-29): Index 10 documented_zero 0.8 (907 only touches the
+    week of 1977-12-26; its 1978 weeks are JHU's).
+  1986-1989 (208 weeks): WER annual rows 61-64 + monthly IHR rows 299-335, 1084-1085, Fourier-disaggregated. Same-source
+    max-per-week tie-break inflates the series: stale weekly file sums 289/641/714/138 vs WER annual 243/523/564*/94*
+    (+19%/+23%/+27%/+47%) because each week keeps the larger of (annual x template weight) and (month x template weight).
+  2025-W03/W04: Index 135/136 explicit WHO-dashboard zeros (observed 0, conf 0.6) - WHO baseline has blank sCh those weeks.
+  2026-05-25..2026-09-20 (17 weeks): Index 104-106, 109, 119-130, 102 observed (match WHO ArcGIS exactly); 2026-09-21 onward
+    has no source (NA) - reporting lag.
+AI national rows OVERRIDDEN by JHU (examples, magnitudes from stale weekly file):
+  1978: JHU annual 8 297/248 Fourier-spread puts 2 173 cases in the 20 weeks BEFORE the documented 25 May 1978 onset
+    (contradicting AI 907 documented absence and the WER weekly series 164-186 + Storme monthly 964-971, which sum exactly to
+    8 297/248 with onset 25 May).
+  1979-1985: WER weekly/monthly IHR rows (199-298) overridden by JHU annual Fourier spreads.
+  1992: JHU 479/29 (= WER notifications to 28 Apr only) vs MMWR 1 044 Feb-May (Index 2) - Feb-May gets ~91 cases in the series.
+  1993: JHU 78 spread over the whole year incl. Jan-Apr (~17.5) and the Nov 1993-Jan 1994 non-reporting window.
+  1998 (JHU 1 067 vs EPISTAT 3 137/UN CAP 1 400 Jan-Aug), 2007 (365 vs >=436 sub-national), 2012 (214 vs MoH 284+):
+    JHU under-counts propagate. 2020: JHU 277/5 outlier (95-139 cluster) propagates, and 18.8 cases are spread into
+    2020-01-06..02-16 where AI 927 and JHU's OWN district weeklies (UID 21375/21433, 46/46 districts) are all zero.
+  2013-11-04..12-31: 338 cases spread despite 'Since 3 November, no new cholera cases' (AI 953).
+  2021-01..10 (8.4) and 2022-01-24..03-31 (3.1): small JHU spreads over AI documented absences 908/932.
+  2024 blank WHO weeks (09-16, 10-07, 10-14, 12-09): WHO baseline sCh blank -> JHU aggregates (905 annual; UID 20579 2 216
+    cumulative 2023-01..2024-11; UID 21406 to-date totals) fill them with ~61, 63, 62, 22 cases while the WHO dashboard
+    records explicit 0 (AI 131-134; Oct 2024 MoH total 11 = WHO weekly sum).
+Recommendations (NOT edits): (1) let AI observed/documented_zero weekly rows override JHU Fourier-disaggregated aggregates
+  (method-aware precedence) or restrict JHU annual spreading to weeks after a documented onset; (2) within a source, spread
+  only the residual of an annual total after more specific sub-period rows, instead of max-per-week; (3) regenerate
+  ./data/BDI/cholera_data_who.csv with the fixed converter writing explicit zeros (2024-W38, W41, W42, W50; 2025-W03, W04);
+  (4) fix JHU UID 20579 TL 2023-12-14 -> 2022-12-14 upstream (21 cumulative rows).
+
