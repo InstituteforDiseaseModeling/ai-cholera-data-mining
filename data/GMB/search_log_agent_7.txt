@@ -29,3 +29,246 @@ Confidence-band sweep (hand): 0 rows above their source's CLAUDE.md reliability 
   downgrade reason in processing_notes; every zero row carries a canonical "Evidence type:" token; Documented_Absence rows weighted
   0.6-0.9, Inferred_Absence rows 0.30-0.60 (rule-10 ceiling 0.6 respected).
 
+=== CHECK ROUND 2 | AGENT PERFORMANCE (workflow_state + logs) | GMB ===
+Source: py/workflow_state.read_workflow_state('GMB') and ./data/GMB/search_log_agent_1..6.txt (batch blocks parsed).
+Agent | batches | yields % (state = log)        | rows claimed -> live / tombstoned | sources | stop reason
+  1   |   9     | 15,5,20,5,5,10,0,0,0          | 19 (Idx 6-24) -> 18 live, 17 tombstoned by A3 | 35 (meta 9-43) | yield rule (b7-9 = 0%)
+  2   |   6     | 5,0,5,0,0,0                   | 14 (Idx 25-38) -> 14 live                      |  2 (44-45)     | yield rule (b4-6)
+  3   |   7     | 0,0,20,5,0,0,0                | 9 (Idx 39-47) -> 8 live, 44 self-retracted     | 11 (46-56)     | yield rule (b5-7)
+  4   |  12     | 5,5,5,0,10,0,5,5,5,0,0,0      | 10 (Idx 48-57) -> 10 live                      |  9 (57-65)     | yield rule + ceiling
+  5   |   7     | 5,0,0,20,0,0,0                | 7 (Idx 58-64) -> 7 live                        |  2 (66-67)     | yield rule (b5-7)
+  6   |   4     | 10,0,0,0                      | 2 (Idx 65-66) -> 2 live                        |  3 (68-70)     | yield rule (b2-4)
+Checks: every agent >= 3 batches (PASS); every yield in 0-100 and logged yields = workflow_state yields (PASS); every batch block lists
+  20 queries (45/45 batches; Agent 4 b7 groups them as Q1-Q10/Q11-Q18/Q19/Q20) (PASS); no claimed row missing - each is live or
+  tombstoned (PASS); all stops are yield-rule stops, none time-based (PASS). Legacy Index 1-5 all tombstoned with reasons (PASS).
+  Totals this cycle: 61 rows added, 2 of them later retracted (17, 44) + 5 legacy retractions = 7 tombstones; 62 sources registered.
+Yield arithmetic: successful queries = 12 (A1), 2 (A2), 5 (A3), 8 (A4), 5 (A5), 2 (A6) = 34 of 900 queries (3.8%) produced the 61 rows;
+  re-mined rows from already-registered sources were mostly NOT credited (conservative, not inflated).
+Constraint: the session WebSearch cap (200) was exhausted after Agent 4; Agents 5-6 (and this audit) worked through curl/WebFetch/APIs.
+  Agent 6 ran the minimum-plus-one (4 batches, 80 queries): the shortest run, a valid yield-rule stop, but thin for an agent whose
+  brief covered 10+ periods.
+
+=== CHECK ROUND 3 | STAGE 2 (epidemiological/temporal) + STAGE 3 (cross-reference) - ALL 59 ROWS | GMB ===
+S2 programmatic (all 59 rows): TL<=TR<=reporting_date, no future dates, cCh<=sCh, deaths<=sCh, CFR = deaths/sCh*100 (+-0.1),
+  no CFR on blank-sCh rows, no non-zero CFR on zero rows, no multi-year positive rows -> 0 issues (59/59 PASS).
+  CFR > 15%: Index 6, 7 (1/3 = 33.3%), 21 (4/17 = 23.5%), 51 (1/6 = 16.7%) - all below the 25-case denominator threshold, documented,
+  weights 0.85/0.9/0.6/0.5 (no validator CFR flag because sCh < 25). Accepted.
+  Reporting windows < 14 days on positive rows: 6, 7, 12, 13, 23, 26, 48, 49, 51 - these are notification/press snapshots, not outbreak
+  durations; accepted.
+  Rule 10 (suspected vs confirmed): every sCh=0 row rests on a source that tabulates/reports cases of any status (WHSR/WER nil entries,
+  MoH notifiable/IDSR tables with explicit suspected 0, WAHO 'suspects et/ou confirmes' nil entries, WHO zero report) or is labelled
+  Inferred_Absence <= 0.6; the five 'no outbreak / no confirmed' statements are cCh=0 with sCh blank (55, 58, 59, 61, 64). PASS.
+S3 cross-reference:
+  Zero-vs-positive overlaps in ANY layer (same place, or national zero over sub-national positive): exactly ONE - AI Index 63
+  (AFR::GMB 2008-01-01..08-27 sCh 0, Inferred 0.45) inside JHU 2008 = 1 case (undated). Assessed in round 4.
+  Index 46 (2018-01-01..04-01, 8 sCh) and 47 (2018-04-02..12-31, sCh 0) do not overlap; 59 (2018 cCh 0, sCh blank) overlaps both
+  and is consistent (no confirmed cholera in 2018; 46 has cCh blank).
+  Regional zeros 27-32 (2020) and 33-38 (2021) cover only the health regions with 0 suspected; the positives sit in West Coast (19) and
+  North Bank (14) - no conflict with national 2020 (Index 18, 2 sCh) or JHU 2021 (3 sCh).
+  Nested national rows: 26 (7-18 Sep 2005, 38/2) inside 25 (7-30 Sep 2005, 54/2); 52 (cCh >=20 to 10 Oct) overlaps both; 51 inside 21.
+  All carry do-not-sum text. NOTE for modellers: the weekly builder's same-source rule keeps the HIGHER per-week value, so 25+26 would
+  inflate Sep-2005 weeks if JHU 2005 were ever absent; today JHU 2005 (214/13) overrides every 2005 week, so no effect.
+  AI positive rows inside JHU annual years (13 rows: 12, 13, 14, 21, 23, 25, 26, 48, 49, 50, 51, 52, 57) all carry 'Sub-annual detail
+  inside JHU annual total - do not sum with annual row' (or the provincial-subset form); parts vs wholes: 1994 1<=1; 1995 8<=15;
+  2005 national Mar-Apr 3 + Sep 54 <= 214, deaths 1 + 2 (AFRO) <= 13, or 1 + 4 (OCHA WC) + 4 (NB) = 9 <= 13; 2021 NB 3 = 3.
+  The one parts>whole case is 1985 (press 4 hospitalised vs WHO 2 imported) - documented conflict at 0.4. PASS.
+S4 duplication: validator duplicate/same-period checks clean; no AI row re-enters a JHU value for the same place and period (Index 1,
+  the only exact duplicate, was retracted by Agent 5); Index 57 (1994 1 case, 1 Jan-10 Nov) and 39 (2009-2015 zeros over JHU phantom
+  zeros 2011-2015) add finer timing / extra years. 7 tombstones intact with reasons. PASS.
+Weekly-builder impact (Agent 7 in-memory approximation of py/build_weekly_timeseries.py rules, /tmp/GMB_a7/week_attribution.py;
+  the builder itself was NOT run): national series 2960 weeks (1970-01 to 2026-09); AI governs 1889 weeks (63.8%) = 516 documented
+  zero + 1306 inferred zero + 67 positive (Fourier); JHU governs 838; 233 weeks are ASSUMED_ZERO (no source, sCh 0, conf 0.5):
+  Jan-Feb 1975 (6), Dec 1978 (4), 1982-84 (157), 2019 (52), 19 Sep-25 Dec 2022 (14). Pre-run: 2163 weeks (series began 1985), AI 491
+  (mostly the false blanket zero, incl. a false 0 for 2020), assumed_zero 834.
+  CAVEAT: assumed_zero (0.5) outranks in weight the low-weight inferred zeros (0.35-0.45) of 1973-1993, so the 'deliberately empty'
+  unknown periods enter the model as zeros with MORE weight than the probable-absence periods. Pipeline-level issue, not fixable in
+  GMB data; reported in search_report.txt.
+
+=== CHECK ROUND 5 | PRESENCE RECORDS (./data/GMB/cholera_presence_ai.csv, 5 records) | GMB ===
+(no CLI verb edits this file; annotations are recorded here and in search_report.txt, file left untouched)
+P1 AFR::GMB::Kanifing 2005 (meta 24, The Point 9 Jun 2010): re-fetched - verbatim 'He said in 2005, cases of cholera a killer disease,
+   were reported within the KMC particularly in Ebo-Town.' SUPPORTED. No Kanifing 2005 count row exists -> not superseded. KEEP.
+P2-P4 AFR::GMB::North Bank / Lower River / Central River 2005-09-07..09-30 (meta 44, WHO AFRO 30 Sep 2005 'All Regions are affected,
+   except Upper River Division'): supported by AFRO wording (re-fetch result in round 6); CONTRADICTED for 8-23 Sep by OCHA ('All the
+   reported cases are from Western Division') and by the DoSH coordinator on 10 Oct ('Western Division is the only area affected').
+   North Bank presence is independently corroborated by Index 50 (4 deaths at Kerewan Health Center, reported 22 Nov 2005, timing within
+   Sep-Nov unknown); Index 50 is deaths-only, so it does not supersede the count-less presence record. Lower/Central River rest on AFRO
+   alone. KEEP all three (weight 0.6, conflict documented in each record).
+P5 AFR::GMB 2005-03-01..06-30 (meta 34, OCHA Flash Appeal 'previous epidemic of cholera between March and June 2005'): partial counts
+   exist (Index 12 Banjul 3 cases; Index 23 one border-village death) but no wave total -> not superseded. KEEP.
+Downstream: py/build_weekly_timeseries.py ignores presence; all five fall in 2005, which JHU (214/13) governs week by week -> no effect
+   on the national series.
+
+=== CHECK ROUND 4 | JUDGEMENT ITEMS (deaths-only rows; Index 63 vs JHU 2008; known orchestrator items) | GMB ===
+D1 DEATHS-ONLY ROWS Index 23 (2005 border-village death), 50 (North Bank 4 deaths 2005), 60 (Banjul 1869 1700 deaths): DECISION = KEEP.
+   Reasoning: (a) CLAUDE.md's MANDATORY entry list requires 'specific numbers for cases, deaths, or CFR' and the inclusion rule's
+   closing sentence names 'death counts' as qualifying; the stricter 'at least one sCh or cCh' sentence targets count-less mentions,
+   which belong in cholera_presence_ai.csv - a death count is not count-less; (b) a death implies a case, so each row is lower-bound
+   case evidence (sCh deliberately blank - writing sCh=deaths would invent a number no source printed); (c) no downstream harm:
+   py/build_weekly_timeseries.py skips blank-sCh rows (no false zero), Index 23/50 lie inside JHU-governed 2005, Index 60 is pre-1970;
+   (d) the presence file has no count column, so moving them would destroy the death counts; py/add_observation.py and
+   py/repair_data_integrity.py both accept them (dry-run proposed no quarantine). CFR correctly blank on all three.
+D2 INDEX 63 (2008-01-01..08-27 sCh 0, Inferred 0.45) vs JHU 2008 = 1 case: WER 84(31) 'Cholera, 2008' Table 1 (IRIS 10665/241396,
+   downloaded by Agent 7) gives 'Gambia - Gambie 1 ... 0' with NO imported mark and no month; WER 83(31) 'Cholera, 2007' (10665/241187)
+   gives 12 cases / 1 death, no imported mark. Agent 6's counter-indication (BMJ GH 2025 groups 2007+2008 into one outbreak) re-examined:
+   the paper's Methods state case data were 'extracted from WHO Global Health Observatory' (annual) while 'The count of outbreaks was
+   based on the WHO Event Management System data' - so '2 outbreaks / 227 cases' joins an EMS event count to GHO annual sums and says
+   nothing about whether the 2008 case continued a late-2007 episode. Remaining evidence: The Point 28 Aug 2008 nationwide statement during
+   an active alert + Senegal's 2008 Kaolack wave (Sep-Oct, adjoining North Bank) -> the case most plausibly fell Sep-Dec 2008.
+   DECISION = KEEP at 0.45 (point-in-time statement, Level 3); note appended. Row has no effect on the weekly series (JHU 2008 governs).
+D3 Index 16 'downgraded to 0.6' vs weight 0.7: the note itself later records 'Confidence raised 0.6 -> 0.7' (Agent 1 batch 9, ECHO 2006
+   WHO table zero for 2004) - weight and history are consistent; clarifying note appended so the first sentence is not misread.
+D4 Index 6 / 7 stale 'TL 1971-08-01' text: already superseded by Agent 5 C6 notes on both rows (TL 1971-08-29 from Stock 1974 onset
+   week 55); no further action.
+D5 Index 41 TR 2026-09-20: 2026-09-14 (HDX last_epiwk) is the Monday of ISO week 38, which ends Sunday 2026-09-20 - TR is the last
+   day of the last covered epi week. Correct; no change.
+D6 Metadata 61 Cross_References 'Derman & ? 1987 bibliography lists Schneider ...': an incompletely identified bibliography (co-author
+   unknown) that only corroborates the volume's existence, not its content. No tool verb edits Cross_References -> noted here only.
+D7 Metadata 55 live URL 404: its Description already carries the Wayback copy
+   (web.archive.org/web/20250805113110/...waho-epidemiological-bulletin-q1-2018-en.pdf); URL column has no edit verb. Re-checked in round 6.
+
+=== CHECK ROUND 7 | COVERAGE / IMPACT (in-memory probes only; ./reference not written) | GMB ===
+Probes: python3 /tmp/GMB_orch/gmb_coverage.py GMB; python3 /tmp/GMB_orch/gmb_coverage_sch.py GMB; Agent 7 variant
+  /tmp/GMB_a7/coverage_variants.py <ai_csv> (same analyse() with three loaders, run on the pre-run snapshot and on the current file).
+Horizon 2026-10-03, 682 months (1970-01..2026-10).
+                                   analyzer def (any sCh/cCh/deaths)   numeric sCh only        numeric sCh, zero rows conf>=0.5
+  Baseline only (JHU+WHO)          192 m  28.2%  7 gaps                 (same)                  (same)
+  Pre-run all layers               306 m  44.9%  4 gaps                 306 m 44.9%             306 m 44.9%
+    of which months_ai_only        114 (96 of them from the false 2008-2024 blanket zero, Index 3; without it 210 m = 30.8%, 7 gaps)
+  Post-run all layers              668 m  97.9%  2 gaps                 627 m 91.9%  5 gaps     426 m 62.5%  4 gaps
+    months_ai / months_ai_only     575 / 476                            532 / 435               323 / 234
+  months_with_positive_cases       96 -> 114
+Gaps now (analyzer): 1978-12 (31 d); 1982 (365 d).
+Gaps now (numeric sCh): 1975-01..02 (59 d); 1978-12; 1982-1984 (1096 d); 2019 (365 d); 2022-10..12 (92 d).
+Gaps now (sCh, zero conf>=0.5): 1973-1984 (4383 d); 1986-1993 (2922 d); 2019; 2022-10..12.
+Recency: latest observation 2026-09-20 (AI Index 41, Inferred_Absence); latest POSITIVE 2021-12-31 (JHU 2021, 3 suspected).
+Baseline gap list (./reference/baseline_surveillance_gaps_detailed.csv, 7 periods) status:
+  1970-1984  PARTIAL: 1970-72 STRONG (nil entries + 1971 cases); 1973-81 WEAK low-weight inferred zeros; Dec 1978 and 1982 EMPTY;
+             Jan-Feb 1975 and 1983-84 no-outbreak (cCh 0) only.
+  1986-1993  CLOSED-WEAK: inferred zeros 0.35/0.40 (1986-88 UNCERTAIN).
+  1997-2004  CLOSED: 1997-2000 inferred 0.5; 2001-04 MoH documented 0.70-0.75.
+  2009-2010  CLOSED-WEAK: inferred zero (non-submission years).
+  2016-2020  MOSTLY CLOSED: 2016-17 WAHO documented; 2018 Q1 8 suspected + Apr-Dec inferred; 2020 2 suspected; 2019 OPEN for suspected.
+  2022       PARTIAL: Jan-18 Sep inferred 0.6; 19 Sep-Dec OPEN for suspected (cCh 0 only).
+  2025-2026  CLOSED to 20 Sep 2026: 2025 WHO zero report 0.9; 2026 list exclusion 0.5; 21 Sep-3 Oct = publication lag.
+  => 2 of 7 closed with moderate/strong evidence (1997-2004, 2025-26), 3 mostly/partly closed (1970-84, 2016-20, 2022),
+     2 closed only with weak evidence (1986-93, 2009-10); suspected-count status still unknown for ~4.5 years in total.
+
+=== CHECK ROUND 6 | STAGE 1 SOURCE AUTHENTICATION - RE-FETCH OF ALL 37 CITED SOURCES (59 rows) | GMB ===
+Method: the 37 metadata sources cited by live rows were split into 4 groups and re-fetched by read-only helper processes
+  (curl/WebFetch/Wayback; pdftotext; pdftoppm page images read visually for scanned WHO tables). Evidence files: /tmp/GMB_a7/src/,
+  verdicts: /tmp/GMB_a7/verify_result_{A,B,C1,C2}.json. Agent 7 spot-checked the evidence images itself (e.g. C1_44_pg3_gambia_crop.png:
+  WHO AFRO 30 Sep 2005 '7. GAMBIA ... All Regions are affected, except Upper River Division (URD) Onset: 7th September 2004 ... 54 as of
+  30th September 2005 ... 2 deaths ... 3,7 % ... Ogawa' - confirmed by eye).
+Group C1 (2005 outbreak; 8 sources, 9 rows) - all sources retrieved, all quotes and numbers found:
+  12 VERIFIED (IRIN 5 Apr 2005, Wayback 20240217151444, verbatim); 23 VERIFIED (IRIN 8 Apr 2005 = Friday -> 'Thursday' = 7 Apr);
+  21 VERIFIED (ReliefWeb summary + docsbay full text: 17 cases/4 deaths 8-23 Sep, Western Division; 'between March and June 2005';
+  'formal declaration ... 27 September 2005'); 52 VERIFIED (ProMED 20051014.2997: 'over 20' / 'at least 20 ... confirmed').
+  25, 62 VERIFIED-WITH-DISCREPANCY: onset literally '7th September 2004' (row reads 2005; typo reading supported by Gambia's absence
+  from every archived AFRO update Sep 2004-Apr 2005 and from the week-34 2005 sheet) - already disclosed in both rows' notes.
+  26 VERIFIED-WITH-DISCREPANCY: sheet onset 'Week 1 of 2005' (generic placeholder; Gambia absent from week-34 sheet, confirmed) -
+  disclosed. 50 VERIFIED-WITH-DISCREPANCY: TL 2005-09-07 borrowed from national onset (lead gives no period; story page has no
+  archive copy) - disclosed as an upper bound. 51 VERIFIED-WITH-DISCREPANCY: sCh 6 = '5 suspected cases' + '1 death' (derived, source
+  never says 6) and TL 2005-09-18 from JHU raw UID 58 - both disclosed in the row.
+  => C1: 9/9 authenticated; 0 corrections required (every discrepancy is an interpretation already documented in processing_notes).
+
+Group A (WHO/IRIS historical tables + Stock thesis; 10 sources, 14 rows) - all retrieved; scanned tables read from page images:
+  6, 8, 9, 10 VERIFIED (WHSR 25(4) p.216 image: Gambia 1970 Total '-'; 1971 Total 3 / deaths 1 with note 5 'Including 2 suspected
+  cases' (p.222); periods I-VIII and X-XIII '-'). Gambia reported by FOUR-WEEK periods (column VII filled), so 'A/IX' = period IX
+  (~15 Aug-11 Sep 1971) and period VIII (~18 Jul-14 Aug) is nil -> Index 9 (to 31 Jul) and 10 (from 13 Sep) are conservative;
+  Index 24 (1-28 Aug): 1-14 Aug is inside the nil period VIII, 15-28 Aug rests on Stock's onset week alone. Index 6 cCh=1 rests only on
+  the WHSR note (WER 46(37) marked all three '3s 1s') - already disclosed.
+  7 VERIFIED (WER 46(37) p.390/392: 'Bathurst (P) (excl A) 3s 1s', notification 7 IX); 13 VERIFIED (WER 70(50) p.360: 'Gambia 4.XII 8i 0')
+  but its note misdates Senegal's 731/37 'to 12 Dec' - source prints '15.VIII-12.XI'; 57 VERIFIED (WER 69(47) p.356 '1 I-10 XI 1 0');
+  66 VERIFIED (WER 69(28) p.207, 16 African entries sum to 76 713, no Gambia); 20 VERIFIED (WER 81(31) p.300 verbatim);
+  40 VERIFIED (WER 101(38) p.231 Table 5 African Region 22 incl. Gambia; meningitis trap confirmed - Gambia 15/22, 2/2, 9.1% are
+  Table 6 / pp.236-240 meningitis); 22, 24 VERIFIED (Stock App.3 p.220 'GAMBIA Bathurst 55 3/1/1', 1972-74 blank; App.1 p.210 'Week
+  55 Aug.29-Sept.4'; p.102 sentence) - App.3 header warns 'The 1974 time period varies' (Index 22 TR may outrun coverage).
+  11 VERIFIED-WITH-DISCREPANCY: 1972 nil fully supported (WHSR 26(4) p.284), but the quote's '(note 3)' is wrong - Gambia's 1971
+  superscript is illegible in that volume; note 3 = Chad 'Of which 216 confirmed', 'Including 2 suspected cases' = note 6 (Kenya).
+  65 VERIFIED-WITH-DISCREPANCY: Gambia absent 1975-78 and Senegal absent 1975-77 / 315 in 1978 confirmed (each list sums to its printed
+  total); quote's 1975 'Uganda 31' is 'Uganda 3' + note 1 (imported) - OCR error.
+Group B (MoH statistics reports + WAHO; 9 sources, 24 rows) - all retrieved; text layer AND page images:
+  14, 33, 34, 35, 36, 37, 38 VERIFIED (MoH 2021 PDF p.54, Table 23 NBER 2/0, NBWR 1/0, WHR1 0/0, WHR2 0/0, CRR/LRR/URR 0/0, NATIONAL 3/0;
+  narrative 'three (3) suspected cases ... none were confirmed positive'). 18, 29, 30, 31, 32 VERIFIED (MoH 2020 PDF p.44 Table 26,
+  National 2/0, WHR2 2/0, others 0/0; complete capture Wayback 20250516211346). 59 VERIFIED (MoH 2018 p.25 Table 16 all 0/0; complete
+  capture Wayback 20210813175459; cross-disease 19/59/11/4 confirmed). 15, 16 VERIFIED (2001-2004 report p.17 Table 2.10 'Cholera 0 0 0 0
+  0') BUT caveats stronger than recorded - p.5 'The data contained in this report does not include the hospitals and some of the NGO and
+  private clinics'; p.31 'The reportable diseases data is very deficient in quantity, quality and coverage ... grossly under reported';
+  2004 column visibly incomplete (meningitis 0, syphilis 0, TB 20 vs 430 on DOTS). 42, 43 VERIFIED (WAHO 2016 p.6-7, 2017 p.7 explicit
+  0/0). 58 VERIFIED (WAHO 2019 p.37 text + Tableau 16 image, Gambia cholera cell blank, events 0). 46 VERIFIED (WAHO Q1-2018 p.6 'The
+  Gambia 8 0 6 0 11 0 2 0 2 0 0 0', 'Total ECOWAS 1339 38', 'Sources: IDSR country services'; p.4 Lassa '2 suspected cases in Gambia';
+  p.2 'reports for the thirteen weeks from all member countries' - the per-country 13/13 cited in the note is from the separate
+  week-13 weekly bulletin, not re-verified). Working copies: Wayback 20250805113110 and live mirror archivedsite.wahooas.org/.../1732/...
+  19, 27, 28 VERIFIED-WITH-DISCREPANCY: the MoH reports never define WHR1/WHR2; their population tables (2020 WHR1 950,266 / WHR2 514,999;
+  2021 WHR1 985,183 / WHR2 544,354 - Agent 7 confirmed in the 2021 PDF p.16) show WHR1 >> Banjul + Kanifing (~413,000 at the 2013
+  census), so WHR1 also covers part of West Coast; values unaffected (WHR1 = 0 in both years). 45 VERIFIED-WITH-DISCREPANCY: S1 2022
+  began Monday 3 Jan 2022 (row TL 1 Jan); bulletin labels Gambia's event 'Undiagnosed disease'. 47 VERIFIED-WITH-DISCREPANCY: Apr-Dec
+  split is the agents' reconciliation of a full-year table - disclosed.
+  Metadata URL defects: meta 26 (Wayback 20211016215025) and meta 25 (Wayback 20200930185347) point to captures truncated at exactly
+  1,048,576 bytes (unparseable); complete captures 20250516211346 and 20210813175459 are named in the row notes.
+Group C2 (press, academic, databases, Google Books; 10 sources, 12 rows) - all retrieved (Books via in-volume search, with pages):
+  48, 49 VERIFIED (JPRS-TEP-85-013 printed p.26 / PDF p.35 image; Kenya Times Thu 13 Jun 1985 -> 'Banjul, Wednesday' = 12 Jun = TR);
+  63 VERIFIED (The Point, Pa Modou Faal, 28 Aug 2008 5:45 AM; 'yesterday' = 27 Aug = TR); 39 VERIFIED (Europe PMC: Table 1 Gambia 0
+  2009-2015; ref [2] = WHO GHO repository, not WER); 41 VERIFIED (HDX cholera_adm0_public modified 2026-09-28: 28 countries, no Gambia,
+  no Senegal, latest last_epiwk 2026-09-14; minor: only 16 of 28 rows have first_epiwk 2025-12-29); 53 VERIFIED (Schneider p.30);
+  54 VERIFIED (Hunter et al. p.855); 55 VERIFIED (Sessional Paper No. 3 of 1975 p.7, full sentence 'Vigorous campaigns against cholera
+  ...'; date from title only); 56 VERIFIED (AFMIC DEAR Gambia report p.4, both copies identical).
+  60 VERIFIED-WITH-DISCREPANCY: The Point, Yunus S Saliu, 24 Mar 2020 - verbatim 'Then Bathurst population was at the time was 5000
+  while 1700 died...' (recorded quote drops words); same article says 'about 40%' died (1700/5000 = 34%); reporting_date 1869-12-31
+  should be the source date. 61 VERIFIED-WITH-DISCREPANCY: Table 2 is in the online supplement (p.2), columns are rates per 100,000;
+  cumulative 2000-2023, nothing specific to Q4 2022 (inference disclosed). 64 VERIFIED-WITH-DISCREPANCY: p.31 verbatim; 'currently'
+  undated (1983-84 inferred, disclosed); basin-level statement.
+  Meta 61 Cross_References 'Derman & ? 1987': Schneider's volume does not cite Derman (only p.312 team roster 'Dr. Bill Derman,
+  Socioeconomic Team Leader'); the 1987 bibliography was not located.
+STAGE 1 TOTALS: 59/59 rows authenticated (100%); 44 VERIFIED clean, 15 VERIFIED-WITH-DISCREPANCY; 0 NOT-FOUND; 0 UNREACHABLE.
+  Of the 15: 7 are interpretations already disclosed in the row (25, 26, 47, 50, 51, 62, 64) -> no change; 8 need correction or
+  annotation (11, 19, 27, 28, 45, 60, 61, 65), plus 3 VERIFIED rows whose notes or labels need fixing (13 Senegal date; 15, 16 evidence
+  grade) -> applied in round 8.
+
+=== CHECK ROUND 8 | REVISIONS APPLIED (py/revise_observation.py only; --agent 7; drivers /tmp/GMB_a7/apply_*.py) | GMB ===
+Value / label changes (5 rows):
+  Index 15 (2001-2003 zero): canonical Evidence type Documented_Absence -> Inferred_Absence; confidence 0.75 -> 0.5. Why: source report
+           excludes hospitals and calls reportable-disease data 'grossly under reported'; WHO held no Gambian data 2001-2003 (ECHO 2006
+           Table III, Source WHO: ND, ND, blank - Agent 7 re-read the 20-page attachment, Table III on p.16).
+  Index 16 (2004 zero): Documented_Absence -> Inferred_Absence; confidence 0.7 -> 0.6. Why: same report defects + visibly incomplete
+           2004 column; WHO-held 0 (ECHO Table III) keeps it at the Inferred ceiling; weight-history sentence clarified (D3).
+  Index 39 (2009-2015 zero): confidence 0.6 -> 0.5. Why: only 2009-2010 reach the weekly series (JHU phantom zeros override 2011-15)
+           and those years rest on non-submission - same class as Index 20 (1999-2000 ND) and Index 15.
+  Index 45 (2022 zero): TL 2022-01-01 -> 2022-01-03 (WAHO S1 2022 = Mon 3 Jan; source does not cover 1-2 Jan).
+  Index 60 (1869 Banjul deaths): reporting_date 1869-12-31 -> 2020-03-24 (publication date of The Point article; verbatim wording and
+           the article's own '40%' vs 1700/5000 = 34% inconsistency recorded).
+Note-only corrections / annotations (18 rows):
+  11 (quote's '(note 3)' unsupported), 13 (Senegal period 15.VIII-12.XI), 65 (Uganda 3 imported, not 31), 61 (supplemental Table 2,
+  rate columns, EMS-vs-GHO basis), 63 (S3 adjudication kept at 0.45; BMJ one-outbreak argument withdrawn), 19/27/28/33/34/35 (WHR1/WHR2
+  composition undefined - mapping caveat, values unaffected), 22 (Stock 1974 coverage caveat), 24 (1-14 Aug 1971 inside WHSR nil period
+  VIII; 15-28 Aug on Stock alone), 53/54/55/56/64 (page references p.30 / p.855 / p.7 / p.4 / p.31 for traceability).
+Metadata (7 entries): meta 5 Status Active -> Superseded (no Gambian content; no live row cites it); Description appended for meta 25
+  and 26 (URL fields are truncated 1 MiB captures; complete captures named), 10 (note-number attribution), 17 (Senegal period),
+  61 (page numbers; Derman cross-reference explained - Cross_References has no edit verb), 52 (event label 'Undiagnosed disease';
+  S1-S37 = 3 Jan-18 Sep 2022).
+No rows added, no rows retracted, no presence records changed, no sources registered by Agent 7.
+Post-revision validator: python3 py/validate_quality.py GMB --json /tmp/GMB_post_agent7.json -> exit 0, ERROR 0 / WARN 0 / INFO 40
+  (33 metadata_unused incl. the now-Superseded meta 5; 7 documented national/sub-national overlaps).
+Post-revision coverage: unchanged (97.9 / 91.9 / 62.5%). Weekly-series approximation: AI documented_zero weeks 516 -> 307, inferred_zero
+  1306 -> 1515 (2001-2004 relabelled), positives 67, assumed_zero 233. Zero rows now 20 Documented_Absence / 15 Inferred_Absence.
+Unused metadata review (33): 32 are corroboration/context sources cited in processing_notes (e.g. 13/14 WHO zero reports for 2023-24
+  that JHU already holds - correctly not re-entered under rule 6; 27/28/53/54 corroborating Index 39; 66 resolving the 1991 claim);
+  1 retired (meta 5). Kept Active.
+
+=== CHECK ROUND 9 | FINAL GATE | GMB ===
+python3 py/validate_quality.py GMB --json /tmp/GMB_post_agent7.json -> exit 0; ERROR 0 / WARN 0 / INFO 40 (59 rows, 70 sources).
+./data/GMB/search_report.txt rewritten (replaces the May 2026 report): executive summary + appendix A1-A13 (validator, repair tool,
+  QC pass rates, sources by level, observations/retractions, coverage before/after under three definitions, weekly-series
+  attribution, per-period evidence table 1970-2026, agent performance incl. disappointing numbers, Agent 7 changes, presence
+  records, modelling caveats, next-run recommendations).
+workflow_state.json: write_agent_state('GMB', agent_num=7, batches_completed=9 (check rounds), batch_yields=[], rows_added=0,
+  sources_discovered=0, stopping_reason='audit complete - validator exit 0', gaps_filled/validated_absent/remaining as audited);
+  orchestrator keys and gates 1-6 preserved.
+Files changed by Agent 7: ./data/GMB/cholera_data_ai.csv (23 rows revised, via py/revise_observation.py), ./data/GMB/metadata_ai.csv
+  (7 entries, via py/revise_observation.py), ./data/GMB/search_report.txt, ./data/GMB/search_log_agent_7.txt, ./data/GMB/workflow_state.json.
+  Not touched: cholera_data_jhu.csv, metadata_jhu.csv, cholera_presence_ai.csv, retracted_rows_ai.csv, ./reference/*, dashboard, git.
+Working files (outside the repo): /tmp/GMB_a7/ (verification specs, verify_result_{A,B,C1,C2}.json, src/ downloads and page images,
+  coverage_variants.py, week_attribution.py, apply_*.py revision drivers), /tmp/GMB_audit.json, /tmp/GMB_post_agent7.json.
+End Time: 2026-10-03 12:50:58 PDT
+Agent 7 Status: COMPLETE
