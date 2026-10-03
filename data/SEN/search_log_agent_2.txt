@@ -19,3 +19,152 @@ Double-counting convention: every sub-national row overlapping a national row ca
 Yield unit: percent (0-100). Cached-document retrieval unit = one bulletin-week processed or one
   cached document read; counts as successful only if it produced >=1 committed new row.
 
+=== BATCH 1 | PHASE 1 | SEN ===
+Gap targeted : GEOGRAPHIC gap inside the 2005 epidemic (national weekly rows exist, regional weekly rows did not) and
+               years with national rows but no geography (1978-79, 1987-88, 1995-97, 2006, 2008, 2012)
+Method note  : MoH daily bulletins cached by Agent 1 (/tmp/sen_a1/sante = sante.gouv.sn Internet Archive captures,
+               metadata 146; /tmp/sen_a1/r05 = ReliefWeb copies, metadata 207) re-parsed by Agent 2 with a new parser
+               (/tmp/sen_a2/parse3.py, canon05.py, gen05.py): 216 days 15 Apr 2005-1 Jan 2006, all 11 regions on every day
+               (three typo variants fixed: 'Kaoloack', 'Ziguichor', 'Tambacounda : 00 nouveau 00 deces'). Retrieval unit =
+               one bulletin ISO week (or contiguous partial week of >=3 days). Region rows = sum of the daily region lines;
+               regional zero spans = consecutive spans in which every daily bulletin lists the region at 00/00 (>=7 days,
+               aligned to span boundaries so they never overlap a positive row for the same region). Day-level arithmetic:
+               regions sum to 'Total pays' on 207/216 days; mismatches on 11 May (+15), 17 May (+1 death), 1-2 Jul (+1 each),
+               24 Sep (-12), 28 Oct (-21), 2 Nov (-30), 9 Nov (+3), 18 Nov (-1): region values kept as stated, noted per row.
+               Duplicate captures 7 Sep (ids 255/256), 31 Oct (313/314), 1 Dec (339/340/RW): sum-consistent version used.
+Queries      : 20
+  Q1  Bulletin unit 15-17 Apr 2005 (ids 17-19, 'Region de X Cas : N Deces : N' format)   -> rows 391-399 [SUCCESS]
+  Q2  Bulletin unit 25-27 Apr 2005 (ids 33, 36, 38)                                      -> rows 400-404 [SUCCESS]
+  Q3  Bulletin unit 9-12 May 2005 (11 May bulletin regions sum 70 vs total 55; conf 0.75) -> rows 405-411 [SUCCESS]
+  Q4  Bulletin unit 16-22 May 2005 (= national row 120 766/8; Diourbel 370/0 = row 121)  -> rows 412-417 [SUCCESS]
+  Q5  Bulletin unit 23-28 May 2005                                                       -> rows 418-424 + zero rows 468, 470, 472 [SUCCESS]
+  Q6  Bulletin unit 30 May-1 Jun 2005                                                    -> rows 425-429 [SUCCESS]
+  Q7  Bulletin unit 8-12 Jun 2005 (positive rows skipped: MoH communique rows 363-369 already give 6-12 Jun by region)
+                                                                                         -> zero rows 469 (Kolda 8-26 Jun), 471 (Tambacounda 8-26 Jun) [SUCCESS]
+  Q8  Bulletin unit 13-19 Jun 2005 (= national row 225)                                  -> rows 430-435 + zero row 467 (Kaolack) [SUCCESS]
+  Q9  Bulletin unit 20-26 Jun 2005 (= row 290)                                           -> rows 436-442 [SUCCESS]
+  Q10 Bulletin unit 27 Jun-3 Jul 2005 (row 4; regions 471 vs 469: 1-2 Jul bulletins)     -> rows 443-451 [SUCCESS]
+  Q11 Bulletin unit 4-10 Jul 2005 (row 5)                                                -> rows 452-458 [SUCCESS]; Saint-Louis 119/2 not added (= row 126, see revisions)
+  Q12 Bulletin unit 11-17 Jul 2005 (row 321)                                             -> rows 459-466 [SUCCESS]
+  Q13 WebSearch (FR) 'epidemie de cholera Senegal 1987 Kaolack Fatick Sine-Saloum cas deces region' -> IRD Horizon 010016982
+      (Roquet et al. 1998 Cahiers Sante 8:421-8, full text fetched): Niakhar study area only (646/46 = rows 21/289), village-level
+      tables too fine for MOSAIC -> no row
+  Q14 WebSearch (FR) 'cholera Ziguinchor 1997 OR 1996 Casamance epidemie cas Guinee-Bissau frontiere Senegal' -> nothing regional
+  Q15 WebSearch '"934" cholera Fann Dakar 1995 1996 Vibrio cholerae infectious diseases department patients' -> true source of
+      row 13's quote = Sow PS et al. 1999 Med Mal Infect 29(2):105-9 (doi 10.1016/S0399-077X(99)80018-3; ScienceDirect 403,
+      no abstract in Crossref/OpenAlex/S2/PubMed; figures confirmed by search-engine abstract summary). Registered 212; row 13
+      (cited IRD metadata 9, cCh only) RETRACTED and replaced by row 473 (Dakar 1995-08..1996-12, sCh 934, cCh 323) -> replacement,
+      NOT counted as yield
+  Q16 Cached-corpus query: all Agent 1 WER issue texts 1971-1997 (~600 files) for Senegal + area names -> 'newly infected areas'
+      lists only (Cap-Vert Region 14 Dec 1978; Thies Region 22 Dec 1978-4 Jan 1979; Fleuve/Dagana Dec 1984; 1985 lists Cap-Vert/Dakar,
+      Casamance/Ziguinchor, Diourbel, Louga, Sine-Saloum/Fatick and Kaolack, Thies); WER 60(9) regional table = dracunculiasis,
+      not cholera -> presence only, no row
+  Q17 Cached IRD chapter 12 (OpenEdition full text) for regional counts 1995-96/2005 -> none
+  Q18 Cached-corpus query: Agent 1's ANSD SES Thies reports 2005-2012 (7) -> Thies 2012 Tableau 88: cholera/confirmed/deaths 0 in all
+      9 districts -> zero row 474 (registered 213) [SUCCESS]
+  Q19 Cached-corpus query: ANSD SES Kaolack 2007/2009/2011/2013/2014/2015 + Kaffrine 2013 -> only hygiene/IEC mentions -> no row
+  Q20 Cached-corpus query: ANSD SES Diourbel 2006/2013/2014/2016, Dakar 2005/2010 -> Diourbel health district 2006 zero (row 475,
+      registered 214); Dakar 2008 cholera by district (Tableau 24 of SES Dakar 2008 = metadata 151; also Tableau 5.4 of SES Dakar
+      2010): rows 476-480 (Guediawaye 22, Pikine 14, Mbao 1, Rufisque 2, Dakar department 5 = 44 = regional row 257) [SUCCESS].
+      Dakar 2005 'Morbidite Poste/Centre de sante' tables (10 and 2 'cholera') are routine registers, not surveillance -> not used
+Sources found: 7    Registered: index 212, 213, 214 (bulletins cite existing 146/207; Dakar 2008 cites existing 151)
+Rows added   : 89 net (Indices 391-480 created; Index 473 replaces retracted Index 13)
+Revised      : 126 (location AFR::SEN::Fatick::Foundiougne -> AFR::SEN::Saint-Louis: WER 'district of Foundiougne (region of Saint Louis)
+               ... 119 cases and 2 deaths' = bulletins' Saint-Louis regional total 119/2 for 4-10 Jul 2005, while all of Fatick had 84/4);
+               125 (0.9 -> 0.75, district attribution unverified: WER 'district of Kaolack 26' = bulletins' Kaolack regional 26);
+               121 (deaths '' -> 0 from bulletins; corroboration); 305 and 109 (CONFLICT notes: bulletin of 15 Apr 2005 lists
+               'Region de Matam Cas : 1'); 13 retracted (see Q15)
+Successful queries: 14/20 (Q1-Q12, Q18, Q20)
+Yield        : 70%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 2: remaining 2005 bulletin weeks 18 Jul-6 Nov; ANSD corpus Saint-Louis/Tambacounda/Kolda/Ziguinchor/
+               Matam/Kedougou/Sedhiou; web: 2007 Aug-Sep and 2008 Kaolack geography)
+
+=== BATCH 2 | PHASE 1 | SEN ===
+Gap targeted : 2005 regional weekly series 18 Jul-16 Oct 2005 (Dakar flood-driven wave); sub-national 2006-2015 from ANSD regional
+               yearbooks (Agent 1's cache, unconverted reports); 2007 Aug-Sep and 2008 Kaolack geography (web)
+Queries      : 20
+  Q1  Bulletin unit 18-24 Jul 2005 (national row 322)                           -> rows 481-488 [SUCCESS]
+  Q2  Bulletin unit 25-31 Jul 2005 (row 323)                                    -> rows 489-496 [SUCCESS]
+  Q3  Bulletin unit 1-7 Aug 2005 (row 386)                                      -> rows 497-504 [SUCCESS]
+  Q4  Bulletin unit 8-11 Aug 2005 (partial week, no national row)               -> rows 505-511 + zero rows 577 (Kolda 4 Jul-11 Aug), 581 (Ziguinchor 8 Jun-11 Aug) [SUCCESS]
+  Q5  Bulletin unit 15-21 Aug 2005 (row 325)                                    -> rows 512-519 + zero row 578 (Kolda) [SUCCESS]
+  Q6  Bulletin unit 22-28 Aug 2005 (row 326)                                    -> rows 520-527 [SUCCESS]
+  Q7  Bulletin unit 29 Aug-4 Sep 2005 (row 327)                                 -> rows 528-535 [SUCCESS]
+  Q8  Bulletin unit 5-11 Sep 2005 (row 175; Dakar 549/15)                       -> rows 536-543 [SUCCESS]
+  Q9  Bulletin unit 12-18 Sep 2005 (row 176; Dakar 710/16)                      -> rows 544-550 + zero row 579 (Kolda) [SUCCESS]
+  Q10 Bulletin unit 19-25 Sep 2005 (row 387; regions 1212/25 vs 1224/23 - 24 Sep bulletin) -> rows 551-558 + zero row 582 (Ziguinchor 15 Aug-25 Sep) [SUCCESS]
+  Q11 Bulletin unit 26-30 Sep 2005 (partial; first Ziguinchor cases 26 Sep)     -> rows 559-567 + zero row 580 (Tambacounda 22 Aug-30 Sep) [SUCCESS]
+  Q12 Bulletin unit 10-16 Oct 2005 (row 339)                                    -> rows 568-576 [SUCCESS]
+  Q13 Cached-corpus query: ANSD SES Saint-Louis 2006/2012/2013/2014 and Matam 2010/2014/2015/2016 -> Matam Tableau 5.14: cholera 0 in
+      every district 2013, 2014, 2015 -> zero rows 583 (Matam 2013-2014, registered 215), 584 (Matam 2015, registered 216) [SUCCESS]
+      (Saint-Louis 2006 'Cholera aviaire' = avian cholera, excluded)
+  Q14 Cached-corpus query: ANSD SES Tambacounda 2006/2009, Kolda 2007/2011/2012, Kedougou 2011, Sedhiou 2014/2016, Ziguinchor 2012/2016
+      -> Tambacounda 2006 nosology annex 'Cholera: cas confirme (MDO) ... 1' -> row 585 (cCh 1, conf 0.6, registered 217) [SUCCESS];
+      Ziguinchor 2011 and 2015 zeros already rows 278/345 (corroboration only); Kolda 2007 'cholera aviaire' excluded
+  Q15 WebSearch (FR) 'cholera Senegal septembre 2007 Touba Mbacke Diourbel Kaolack Louga nombre de cas par region' -> Croix-Rouge
+      22 Oct 2007 (85% of new cases in Diourbel; affected regions listed, no counts) -> no row
+  Q16 Cached-page query: Agent 1's ReliefWeb/IRIN 2005-2008 copies -> IRIN 25 Apr 2005 (metadata 143): Thies chief medical officer
+      'no case at all for more than 20 days in Tivaouane and the nearby area' -> district zero row 586 (Tivaouane 5-24 Apr 2005, 0.5) [SUCCESS]
+  Q17 WebSearch 'Kaolack cholera 2008 "481" cases ProMED Senegal Kasnack Medina Baye' -> nothing (lead from ../jhu_cholera_data
+      Senegal collection 71: ProMED 20081007.3174 Kaolack 481 1 Jul-4 Oct 2008, Ndoffane 14, Kaffrine 2 - primary text not reachable)
+  Q18 WebSearch '"20081007.3174" cholera Senegal' -> ProMED post not indexed/mirrored -> no row (kept as lead)
+  Q19 WebSearch 'reliefweb Senegal cholera Kaolack 2008 IRIN ... floods September October 2008' -> UNICEF HAU West Africa floods
+      9 Oct 2007 (curl; no Senegal cholera counts) -> no row
+  Q20 ReliefWeb listing PC208 Sep 2006-Jan 2007 'cholera senegal 2006' (looking for a WHO map 16 Oct-19 Nov 2006 behind JHU
+      collection 74 Diourbel 180/3) -> only the 3 Dec 2006 map (metadata 208, already used) -> no row
+Sources found: 6    Registered: index 215, 216, 217 (bulletins cite 146/207; Tivaouane cites existing 143)
+Rows added   : 106 (Indices 481-586)
+Revised      : none
+Successful queries: 15/20 (Q1-Q14, Q16)
+Yield        : 75%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 3: last 11 bulletin units 17 Oct 2005-1 Jan 2006 + web: 1978-79, 1984-88, 1997 geography, 2007 weekly)
+
+=== BATCH 3 | PHASE 1->2 | SEN ===
+Gap targeted : end of the 2005 regional weekly series (17 Oct 2005-1 Jan 2006); 2007 regional AND health-district series from the
+               MoH bulletins 12 Oct-18 Nov 2007 (ReliefWeb copies, metadata 203; Agent 1 had used them only for national rows 356-358
+               and Diourbel 359-361); MoH yearbook 2011; national plans with historical regional tables
+Method note  : 2007 bulletins list only affected regions (UPPERCASE heading) with health-district lines; regions not listed are NOT
+               turned into zeros (silence). Facility lines ('M. Fawzaini' = Hopital Matlaboul Fawzaini, Touba; 'M. Infectieuses' =
+               Service des Maladies Infectieuses, CHU Fann; 'Hopital Regional(e)' = Saint-Louis regional hospital; one bare 'Dakar' line)
+               counted in regional totals only. Guinguineo (printed under FATICK) coded to Kaolack, its current region; the Matam line
+               printed under SAINT - LOUIS (14 Oct) coded to Matam. Partial weeks of >=2 contiguous days kept for 2007 (sparse coverage).
+               Day-level arithmetic 2007: lines vs TOTAL PAYS mismatch on 14 Oct (+2), 15 Oct (-1), 1 Nov (-3), 5 Nov (-1), 7 Nov (+1),
+               11 Nov (-6); values kept as stated and noted. Regional parts never exceed the containing national weekly rows
+               (12-14 Oct 229 <= row 383 588; 15-21 Oct 356 <= row 384 404; 22-25 Oct 148 <= row 385 259).
+Queries      : 20
+  Q1  Bulletin unit 17-20 Oct 2005 (partial; JHU/ProMED 824/13 week not entered)  -> rows 587-595 + zero row 664 (Tambacounda 10-20 Oct) [SUCCESS]
+  Q2  Bulletin unit 24-30 Oct 2005 (row 388; 28 Oct bulletin lines 63 vs total 84) -> rows 596-605 [SUCCESS]
+  Q3  Bulletin unit 31 Oct-6 Nov 2005 (row 389; 2 Nov lines 49 vs total 79)       -> rows 606-615 [SUCCESS]
+  Q4  Bulletin unit 7-10 Nov 2005 (partial)                                       -> rows 616-623 [SUCCESS]
+  Q5  Bulletin unit 14-16 Nov 2005 (partial)                                      -> rows 624-630 [SUCCESS]
+  Q6  Bulletin unit 22-27 Nov 2005 (partial)                                      -> rows 631-638 [SUCCESS]
+  Q7  Bulletin unit 28 Nov-4 Dec 2005 (row 373; 1 Dec three versions)             -> rows 639-645 [SUCCESS]
+  Q8  Bulletin unit 5-11 Dec 2005 (row 374)                                       -> rows 646-648 + zero rows 665 (Tambacounda 28 Nov-11 Dec), 668 (Ziguinchor 5-11 Dec) [SUCCESS]
+  Q9  Bulletin unit 12-18 Dec 2005 (row 375)                                      -> rows 649-652 [SUCCESS]
+  Q10 Bulletin unit 19-25 Dec 2005 (row 376)                                      -> rows 653-655 + zero row 663 (Saint-Louis 12-25 Dec) [SUCCESS]
+  Q11 Bulletin unit 26 Dec 2005-1 Jan 2006 (row 390)                              -> rows 656-658 + zero rows 659 (Fatick), 660 (Kaolack), 661 (Kolda),
+                                                                                     662 (Louga), 666 (Tambacounda), 667 (Thies), 669 (Ziguinchor) [SUCCESS]
+  Q12 Bulletin unit 2007 week 8-14 Oct (12-14 Oct)                                -> rows 670-687 (7 regions incl. Matam 2; Touba 124, Mbacke 34 ...) [SUCCESS]
+  Q13 Bulletin unit 2007 week 15-21 Oct (15-18 and 20-21 Oct; 19 Oct not posted)  -> rows 688-719 [SUCCESS]
+  Q14 Bulletin unit 2007 week 22-28 Oct (22-25 Oct; 26-27 not posted)             -> rows 720-735 (incl. Kaolack::Guinguineo 3, Thies::Joal 5) [SUCCESS]
+  Q15 Bulletin unit 2007 week 29 Oct-4 Nov (national row 356, Diourbel 359)       -> rows 736-748 (Touba 108, Mbacke 34, Diourbel 13 ...) [SUCCESS]
+  Q16 Bulletin unit 2007 week 5-11 Nov (rows 357/360)                             -> rows 749-761 [SUCCESS]
+  Q17 Bulletin unit 2007 week 12-18 Nov (rows 358/361)                            -> rows 762-770 [SUCCESS]
+  Q18 WebSearch (FR) 'district sanitaire de Guinguineo region medicale de Kaolack departement de Guinguineo region de Kaolack 2008'
+      -> confirms Guinguineo department is one of the 3 departments of Kaolack region (created 2008) -> supports recoding; no new row
+  Q19 Direct download MoH 'annuaire statistique 2011' (informationsanitaire.sec.gouv.sn; curl TLS1.2, WebFetch) -> connection reset,
+      no Wayback copy -> no row (lead stays open)
+  Q20 WebSearch (FR) 'Senegal plan national de preparation et de riposte au cholera historique des epidemies 1995 1996 2004 2005 cas par
+      region tableau' -> only known sources (IRD, Manga, de Magny) -> no row
+Sources found: 1 new lead (annuaire 2011, unreachable)   Registered: none (2007 rows cite existing 203)
+Rows added   : 184 (Indices 587-770)
+Revised      : 262 and 267 (AFR::SEN::Fatick::Guinguineo -> AFR::SEN::Kaolack::Guinguineo: Guinguineo department is in Kaolack region
+               since 2008; boundary caveat added), 258 and 265 (notes: historical Fatick totals include Guinguineo)
+Successful queries: 17/20 (Q1-Q17)
+Yield        : 85%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (cached bulletin corpus exhausted; batch 4 onward = web/cached-source discovery for 1978-79, 1984-88, 1995-97,
+               2006-2012 geography and border regions)
+
