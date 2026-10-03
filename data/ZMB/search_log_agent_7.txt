@@ -1,0 +1,76 @@
+=== AGENT 7 INITIALIZATION ===
+Country: Zambia (ZMB)
+Role: Agent 7 - Quality Auditor (cholera-quality-auditor), 2026-09-30 Opus 5.5 full re-run cycle
+Start Time: 2026-10-03 03:45:43
+Agent 7 Status: INITIALIZED
+Start state (orchestrator gate, 2026-10-03):
+  ./data/ZMB/cholera_data_ai.csv 2057 rows (max Index 2090)
+  ./data/ZMB/metadata_ai.csv 536 sources
+  ./data/ZMB/cholera_presence_ai.csv 83 rows
+  ./data/ZMB/retracted_rows_ai.csv 32 tombstones
+  validator (orchestrator): exit 0, ERROR 0, WARN 32, INFO 307
+Hard rules observed: no analyze_effective_gaps.py runs (in-memory analyse() only, /tmp output);
+  no update_dashboard.sh / build_weekly_timeseries.py; no git commits; baselines read-only;
+  all row writes via py/add_observation.py / the revision mechanism used by Agents 3-6.
+Legacy log ./data/ZMB/search_log_agent_7_legacy_2026-05-15.txt left untouched.
+
+=== STEP 1 | VALIDATOR + REPAIR DRY-RUN (2026-10-03 03:46) ===
+python py/validate_quality.py ZMB --json /tmp/ZMB_audit.json -> exit 0; ERROR 0, WARN 32, INFO 307
+  WARN: 20 CFR_high_flagged_for_review, 5 period_single_day, 5 multiyear_aggregate, 2 same_period_conflict
+  INFO: 257 national_subnational_overlap (all 'documented'), 50 metadata_unused
+  Validator 'row N' = CSV line number (header = line 1); mapped to Index (data position = N-2 in 0-based list):
+    CFR>15%: Index 67, 344, 347, 426, 436, 443, 881, 1597, 1605, 1611, 1626, 1645, 1654, 1696, 1697, 1700, 1715, 1732, 1753, 1805
+    single-day: Index 108, 115, 1692, 1716, 1915; multiyear: Index 613-617; same-period: 882 vs 130, 2058 vs 1922
+python py/repair_data_integrity.py --dry-run ZMB -> TOTAL: 0 change(s); no ./data/ZMB/attribution_review.csv written. --apply not run (nothing to apply).
+
+=== STEP 2 | WORKFLOW STATE CHECK ===
+read_workflow_state('ZMB'): agents 1-6 present; agent 4 carries targeted_runs (1 record). Batches 12,12,12,12(+5 T),12,5.
+  All batch yields in percent, max 60 (<=100): no row-counting error. No agent below the 3-batch minimum.
+  Row arithmetic: 25 (cycle start, git cf1c3ad) +431 +925 +176 +348 +148 +1 +3 = 2057 = current row count. Claims reconcile.
+  Index ranges by writer: legacy 1-26 (16 live), A1 27-460, A2 461-1386, A3 1387-1565, A4 1566-1921, A5 1922-2081, A6 2082-2087, A4T 2088-2090.
+
+=== STEP 3 | COVERAGE (in-memory analyse(); no shared files written; /tmp/zmb7/coverage_audit_start.txt) ===
+JHU+WHO+AI 681/682 = 99.9%, 0 gap periods, months_ai_only 88, months_with_positive_cases 490, latest obs 2026-09-29 (4 d)
+JHU+WHO    592/682 = 86.8%, 2 gap periods (1970-01..1976-12; 2026-05..2026-10), latest 2026-05-10 (146 d)
+AI only    670/682 = 98.2%, 7 gap periods; JHU only 576/682 = 84.5%
+Old ./reference/baseline_surveillance_gaps_coverage.csv (21 Sep 2026, py/analyze_baseline_gaps_optimized.py): 576/681 = 84.6%.
+  Its rule counts a month only if ONE observation covers >50% of its days (max, not union), so 7-day WHO weekly rows never count:
+  it is effectively JHU-only to Sep 2026. analyse() uses the union of covered days, 1970-01..2026-10 (682 months).
+
+=== QUOTE VERIFICATION (running) ===
+V01 Index 10 (national 2023-10-15..2024-07-11, 23,382/740, src 11 ReliefWeb disaster page) -> CITATION FAIL / VALUE PASS.
+    Live https://reliefweb.int/disaster/ep-2024-000002-zmb (fetched 2026-10-03) does not contain the quote; its description ends at
+    'Cumulative cases stand at 23 221 with 740 deaths (WHO, 23 Jun 2024)'. One WebSearch ('Zambia cholera "23,382" cases 740 deaths')
+    located the sentence on WHO AFRO news 'Zambia: Rallying to control cholera outbreak' (14 Aug 2024), verified verbatim (curl):
+    'Between 15 October 2023 and 23 July 2024, Zambia had recorded 23 382 cumulative cases and 740 deaths. No new cases have been
+    reported since 11 July 2024'. Action: re-cite (see FIXES).
+V02 Index 1904 (WER 'Cholera, 1999' 11,535/535, src 482) -> PASS. IRIS REST 10665/231231, WER7531_249-256.pdf text layer:
+    'Zambia - Zambie ... 11 535  535'; text 'major outbreaks occurred in Malawi, Nigeria, Somalia, Zambia and Zimbabwe'.
+V03 Index 2088 (1973-1975 zero, src 530 + corroborations 533-536) -> PASS. IRIS TEXT bundles: Sixth Report part 2 'Although cholera
+    has spread since 1973 to neighbouring countries (...), there have so far been no cases in Zambia'; WHA29/VR/5 'Cholera has never
+    been reported in Zambia'; WHA27/VR/4 '... preventing and containing cholera should it occur'; WHA28/VR/7 '... we have been able
+    to prevent the occurrence of cholera in the country'; archive.org State-Dept-cable-1973-131127 djvu text 'MINISTRY OF HEALTH
+    PERMSEC DANCEWELL BOWA ANNOUNCED OCT. 23 THERE NO CASES OF CHOLERA IN ZAMBIA'. All five verbatim.
+V04 Index 2062 (national 2013 = 704, src 501) -> PASS (quote + derivation). Europe PMC PMC7159183 fullTextXML: quoted sentences
+    verbatim ('In total, 34,950 cases ...', '(31 cases) were in 9 districts in 2015', 'decreased from 2013-2017'). The quote holds no
+    2013 number; the value is the column sum of read-only JHU UID 21243 (source_index 72 in cholera_data_jhu.csv), recomputed here:
+    2008 144, 2009 9,371, 2010 17,348 (35 districts), 2011 1,252, 2012 667, 2013 704 (17), 2014 96 (10), 2015 31, 2016 3,371,
+    2017 1,966; 2008-2017 = 34,950 = paper. District list for 2013 and 2014 matches the row notes exactly.
+V05 Index 2063 (national 2014 = 96, src 501) -> PASS (same derivation; 10 districts, Kapiri-Mposhi 47 largest).
+V06 Index 2085 (2020 zero from 23 Mar, src 522) -> PASS. IRIS 10665/345271 WER9637 p.449 Table 2 'Countries reported 0 cases and
+    deaths in 2020, fulfilling ... "zero reporting"' lists Zambia; text 'In southern Africa, Zambia and Zimbabwe reported no cholera,
+    and Malawi reported only 3 cases'.
+V07 Index 2086 (2021 zero, src 523) -> PASS. IRIS 10665/362858 WER9737 p.456 Table 2 lists Zambia; 'Zambia and Zimbabwe did not
+    report any cholera cases in 2021, as in 2020.'
+V08 Index 2083 (4 Jul-3 Aug 2025 zero, src 526) -> PASS. WHO PDF 20250828_multi-country_outbreak-of-cholera_sitrep_29.pdf Table 1:
+    'Zambia§ 483 9 2 1.9'; footnote '§ Countries which did not report cholera cases between 1 and 27 July 2025'.
+V09 Index 1916 (Lusaka 1996/97 4,792/85, src 157) -> PASS on quote; location caveat. UNZA DSpace REST bitstream (105-page scan, no
+    text layer) downloaded; PDF page 23 rendered and read: 'The 1996/1997 cholera outbreak in Lusaka was reported by the University
+    Teaching Hospital (UTH) to the Ministry of Health Headquarters on 27th August 1996. The last case during the previous outbreak was
+    discharged on the 14th June, 1996. During the period of August 1996 to 9th April 1997 accumulative totals were 4792 cases with 85
+    deaths. The cases in few other districts have remained sporadic. (National Cholera Surveillance Committee Report, 1997).'
+    Whether 4,792 is Lusaka-only or the committee's national total is not stated; the row's note already says so (conf 0.5). Also
+    documents Lusaka cases to 14 Jun 1996 (relevant to the 1996-06..08 window).
+V10 Index 2040 (national 13 Aug-29 Sep 2026 304/62c/11, src 503) -> PASS. IFRC GO API v2 field-report 18595: 'As of 29 September
+    2026, seven districts across five provinces had reported 304 cases, including 62 laboratory-confirmed cases, with 35 patients
+    receiving treatment and 11 reported deaths'; epi_suspected 304, epi_confirmed 62, epi_num_dead 11, start_date 2026-08-13.
