@@ -15,3 +15,199 @@ Starting state:
   Prior cycle log archived: ./data/BFA/search_log_agent_6_legacy_2026-05-13.txt
   Working dir for downloads: /tmp/BFA_a6/
 
+=== PLAN (Agent 6, BFA) ===
+Question per period: was there no cholera, or was nobody reporting? Highest model impact first. Only NATIONAL rows
+(Location == AFR::BFA) enter py/build_weekly_timeseries.py; a week with no source becomes assumed_zero at 0.5, and inferred
+zeros are capped at 0.6 there - so a national zero re-weighted to <=0.5 carries no more weight than no row at all.
+
+Targets (brief order):
+ T1 National zero years resting on WHO-table omission: 1977 (row 35), 1980 (37), 1981 (38), 1982 (39); 1976 row 34 (redundant,
+    1976 documented by 124 + 672). Evidence sought: Upper Volta notifying OTHER diseases to WHO in those years (WER IHR indexes,
+    meningitis/yellow-fever reports), the 21-kit laboratory network after 1976, the 1982 Dori 'cholera alert' (= anthrax), and
+    neighbour activity per year (MLI, NER, GHA, CIV, TGO, BEN; WER annual tables), especially whether Ghana's 1977/1982 epidemics
+    reached its Upper Region on the border. Documentary absence or cases -> rows (yield); else annotate/re-weight only.
+ T2 Conflict-era surveillance 2015-2026, region-year by region-year (rows 536-654 and 433-464): MoH yearbook tables already on
+    local disk from Agents 2-3 (2015-2018, 2020-2025): public TLOH weekly completeness by region (Tab 4.90/4.104/4.98/4.97/4.82/
+    4.70/4.84/4.87/4.93), public RMA monthly completeness by region (raw denominators keep insecurity-closed facilities), RMA
+    non-transmission for insecurity by region-month (2020 Tab 1.11; 2023-25 Tab 1.09); plus Health Cluster/OCHA/HeRAMS closure
+    counts (ReliefWeb curl, PC46), INSP 'Etat de sante 2019' (98 closed + 133 reduced at 30 Dec 2019), the 2019 health-worker
+    data-retention action, Djibo blockade, AWD in IDP sites.
+    Rule (stated before applying it): T = public TLOH completeness; R = public RMA completeness on the raw denominator (2020: R
+    rebuilt as received / (expected + insecurity non-transmitted facility-months) because the 2020 table excludes them);
+    C = TLOH received as % of the region's 2018 (pre-crisis) TLOH expected.
+      operational = min(T,R) >= 90 and C >= 90; partial = min(T,R) 70-<90 or C 60-<90; disrupted = min(T,R) < 70 or C < 60.
+    Action: partial -> append 'SURVEILLANCE STATUS REVISED (Agent 6): partial - <evidence>' and lower confidence to 0.7;
+    disrupted -> same with 'disrupted', confidence 0.5. operational -> confirmation note, confidence unchanged. No region-year
+    had zero reporting (every region kept some reporting units), so no retraction is expected. National rows: annotate with
+    the national T and the regional blind spots; modest down-weight only if justified.
+ T3 2020 (COVID year; no WHO report): national row 495 (2019-20) and regional 2020 rows 601-611.
+ T4 Recent 2026-01-01..10-02: rows 33 and 363 (Inferred); MoH 2025-26 weekly bulletins unpublished = publication gap;
+    neighbour activity 2026; displacement. 2026-09-29..10-02 -> UNRESOLVED (too recent), NO zero row.
+ T5 Epidemics without location: 2000 (617 cases), 1995-1999 national-only, 2001 (163 cases 17 Sep-14 Oct outside Ouargaye).
+    Any count by place -> new row (yield).
+ T6 Ministry-series zero years 1986-89 (487), 1997 (488), 2002 (489), 2004 (490): surveillance context (DLM/TLOH completeness,
+    IDSR adoption 1998, meningitis-era reporting, 2000 71% -> 2004 99% completeness).
+Batches: 20 queries each, >=3 of the 7 categories per batch, all 7 across the run. Phase 1 (b1-2) conflict-era + recent;
+Phase 2 (b3-4) historical 1977-82 + MoH-series years + epidemics without location; Phase 3 (b5+) cross-border, citation chains,
+archives. Minimum 3 batches; stop at 3 consecutive <5% batches or 12 batches. No time limit.
+Writers: py/add_observation.py, py/revise_observation.py (--agent 6 on every revision). Validator after every batch.
+
+=== BATCH 1 | PHASE 1 | BFA ===
+Gap targeted : T2/T3 conflict-era and 2020 surveillance (region-year zero rows 2013-2025: rows 536-654, 433-464; national 494/495)
+               plus regional context 2019-2025. Categories: WHO/official, humanitarian, regional, linguistic (fr), news, technical.
+Queries      : 20
+ Q01 [Official] MoH Annuaires 2013-2018 TLOH tables (local copies of metadata 194-198 + 2018 Wayback, fetched by Agents 2-3):
+     public TLOH completeness 98-100% in every region 2013-2018; 2018 'TLOH attendus' = pre-crisis network baseline (Sahel 6 232,
+     Djibo district 2 363, Centre-Nord 8 751, Est 8 035, Nord 11 620, BdM 13 350) -> context, no row
+ Q02 [Official] MoH Annuaire 2020 (metadata 199) Tab 1.10 RMA completeness, Tab 1.11 'Formations sanitaires n'ayant pas transmis
+     de RMA pour raisons d'insecurite en 2020' (Sahel 34-53 FS/month, Djibo 26-33; Centre-Nord 10-15; Nord 10-18; BdM 7-8; Est 2-7;
+     Centre-Est 3), Tab 4.97 TLOH (Sahel 100% but on 4 558 expected = 73% of 2018; Centre-Nord 90.7%; Nord 94.2%) -> context
+ Q03 [Official] MoH Annuaire 2021 (metadata 177) Tab 1.08 + 4.82: Sahel TLOH 63.6%, RMA 74.5% (Djibo 53.9%) -> context
+ Q04 [Official] MoH Annuaire 2022 (metadata 184) Tab 1.09 raw vs Tab 1.10 insecurity-adjusted RMA completeness (proves the raw
+     denominator keeps closed facilities), Tab 4.70 TLOH by district: Sahel 84.8% on 3 749 expected (51% of 2018), Djibo RMA 25.0%,
+     Titao TLOH 13.5%, Barsalogho 23.7%, Pama 56.8%, Gayeri 78.7%, Fada 83.7% -> context
+ Q05 [Official] MoH Annuaires 2023 (187) and 2024 (188) Tab 1.08 RMA, Tab 1.09 'Rapports non transmis pour raison d'insecurite
+     par mois des FS publiques' (2023: Centre-Nord 58-94/month, Nord 36-89, Sahel 63-68, BdM 48-66, Est 24-53; 2024: Centre-Nord
+     82-93, Sahel 74-80, Nord 66-84, BdM 63-82, Est 41-71), Tab 4.84/4.87 TLOH (2024 Centre-Nord 58.9%, Est 69.0%, Nord 72.6%)
+ Q06 [Official] MoH Annuaire 2025 (185) Tab 1.08/1.09/4.93 (17 regions): TLOH Tapoa 40.5%, Sirba 60.7%, Goulmou 61.2%, Koulse
+     61.6%, Yaadga 75.6%; Soum = DS Djibo 207 expected TLOH (8.8% of Djibo's 2 363 in 2018) at '100%'; RMA Soum 26.2%,
+     Tapoa 46.1%, Liptako 53.0%, Sourou 58.8% -> context
+ Q07 [Official] INSP/MoH 'Etat de sante de la population 2019' (local copy, Agent 3; p.36 map read as image): '98 [FS] en arret
+     et 133 en fonctionnalite reduite ... au 30 decembre 2019'; map labels Sahel 55, Centre-Nord 19, Nord 12, BdM 8, Est 4,
+     Centre-Est 3 -> context
+ Q08 [Humanitarian] ReliefWeb API v1/v2 -> 410 (v1 decommissioned) / 403 (appname not approved) -> ACCESS PROBLEM; used RSS
+ Q09 [Humanitarian] ReliefWeb RSS (PC46) 'formations sanitaires fermees' / 'cluster sante bulletin' / 'health facilities closed'
+     -> Health Cluster monthly bulletins 2021-2024 located -> leads
+ Q10 [Humanitarian] Health Cluster bulletin n22 (Nov 2021) Tableau 3 (source MoH, 30 Nov 2021): closed FS BdM 11/282, Centre-Nord
+     15/171, Est 11/174 (+95 a minima), Nord 18/253, Sahel 48/123 (39.0%); total 103 closed, 288 a minima -> context
+ Q11 [Humanitarian] Health Cluster bulletin n35 (Dec 2022) Tableau 3 (24 Dec 2022; text layer swaps the Centre-Est/Centre-Nord
+     rows - matched by percentage/denominator): Centre-Nord 58/171 (33.9%), Sahel 80/123 (65.0%), Nord 30/253, Est 16/174 (+124
+     a minima), BdM 13/282, Cascades 4/110, Centre-Est 4/183, Sud-Ouest 6/152; total 211 closed + 408 a minima -> context
+ Q12 [Humanitarian] Health Cluster bulletin n9 (Nov 2023) Tableau 3 (30 Nov 2023): Sahel 88/133 (66%), Centre-Nord 93/189 (49%),
+     Nord 68/265 (26%), Est 43/189 (23%; +115 a minima), BdM 55/282 (20%), Cascades 16/126, Centre-Est 22/205, Sud-Ouest 10/145,
+     Centre-Ouest 6/247, Hauts-Bassins 1/336; total 402 (19.0%) + 374 a minima -> context
+ Q13 [Humanitarian] Health Cluster bulletin n11 (Nov 2024) Tableau 2 (31 Aug 2024): Sahel 94/143 (66%), Centre-Nord 91/221 (41%),
+     Est 62/221 (28%), BdM 76/307 (25%), Nord 66/283 (23%), Centre-Est 20/249, Hauts-Bassins 11/362; total 424/2 389 (17.7%) closed,
+     309 a minima -> context
+ Q14 [Humanitarian/Technical] Health Cluster/OCHA district functionality maps Aug 2022 (fonctionnalitemapsvf.pdf): 195 closed,
+     369 a minima, 2 131 842 people without care, DS Djibo 448 959 -> context
+ Q15 [Linguistic/News] WebSearch 'SYNTSHA retention des donnees sanitaires 2019' -> SYNTSHA abstained from statistical reports
+     7 Jun-1 Sep 2019, extended 2 Sep-27 Nov 2019 (burkina24, wakatsera) -> explains 2019 national TLOH 58.0% -> context
+ Q16 [News] burkina24.com/?p=196032 (4 Jun 2019) 's'abstenir de fournir les rapports statistiques' - no exemption stated for
+     epidemic-disease notification -> context
+ Q17 [Humanitarian] ReliefWeb RSS 2020 -> Health Cluster snapshot 2 Mar 2020 ('135 formations sanitaires (soit 10,6%) ... fermees',
+     140 a minima), OCHA apercu 10 Aug 2020 (294 closed or a minima), WHO-CORUS Kaya mission Feb 2020 (Centre-Nord 19 FS = 11%
+     closed; Barsalogho 11 of 16 closed) and Fada mission Mar 2020 (Est 3 closed, 18 a minima) -> context
+ Q18 [Regional/WHO] WER annual cholera reports 2019-2025 (IRIS, sibling-verified URLs) Table 1: neighbours with cases - 2019 Benin 50,
+     Ghana 1; 2020 Benin 232, Togo 67 (Ghana, Mali, Niger zero-reporting); 2021 Niger 5 591, Benin 1 298, Togo 40, CIV 12, Mali 12,
+     Ghana 2; 2022 Benin 433 (Niger, CIV did not report); 2023 Benin 28, Togo 3; 2024 Niger 1 066, Ghana 423, Togo 281; 2025 Ghana
+     2 442, CIV 556, Niger 14 -> regional context, no row
+ Q19 [WHO] WER 101(38) Table 6 (enhanced meningitis surveillance 2025): Burkina Faso 1 862 suspected meningitis cases, 64 deaths ->
+     the national notification system was demonstrably reporting another epidemic disease in 2025 -> context
+ Q20 [Humanitarian] WebSearch MSF Djibo blockade water/diarrhoea 2022-2023 -> Djibo under blockade, 'diarrhoea, malnutrition,
+     malaria' main conditions, water points attacked; no cholera/AWD count -> context, no row
+Sources found: 14 (yearbook tables already registered as 177, 184-188, 194-199; new: INSP 2019 report, Health Cluster bulletins
+               Nov 2021/Dec 2022/Nov 2023/Nov 2024, HC snapshot Mar 2020, OCHA Aug 2020, WER 2019-2025 annual reports)
+Registered   : none yet (context sources cited in annotations; registration only where a row is written)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Revisions (annotations/re-weights, do not count toward yield): 147 region-year Documented_Absence rows annotated with
+               python py/revise_observation.py BFA --index N --append-note "SURVEILLANCE STATUS CONFIRMED|REVISED (Agent 6): ..." --agent 6
+               [--confidence X]; driver /tmp/BFA_a6/region_revisions.py + run_region.py (147 ok, 0 fail).
+   Rule applied (stated in PLAN; K added after the bulletins were read): status = worst of min(TLOH, RMA) completeness
+   (>=90 operational / 70-<90 partial / <70 disrupted), C = weekly reports received vs the region's 2018 expected TLOH (2020+;
+   >=90 / 60-<90 / <60) and K = share of facilities closed by insecurity (MoH via Health Cluster 219-222; 2020 and 2025 from the
+   yearbooks' insecurity non-transmission tables) (<5 / 5-<25 / >=25). partial -> 0.7; disrupted -> 0.5; disrupted with K>=50%
+   or C<40% -> 0.4.
+   CONFIRMED operational (113, confidence unchanged): all 2013-2017 region rows (536-600; TLOH 98-100% everywhere); 2020: 601-609,
+     611 (all regions except Sahel); 2021: 433-436, 438-440, 442, 444; 2022: 448-451, 453-455, 457, 459, districts Bogande 460,
+     Manni 463; 2023: 614, 617, 618, 620, 622; 2024: 627, 628, 631, 632, 634, 636, 638; 2025: 640, 642, 646, 647, 648, 652.
+   REVISED partial (16) -> 0.7: 437 Centre-Nord 2021 (8.8% closed), 441 Nord 2021 (7.1% closed), 456 Nord 2022 (TLOH 86.4%,
+     11.9% closed), 461 Fada 2022 (TLOH 83.7%), 462 Gayeri 2022 (TLOH 78.7%), 612 BdM 2023 (RMA 78.6%, 19.5% closed), 613 Cascades
+     2023 (RMA 86.3%, 12.7% closed), 615 Centre-Est 2023 (10.7% closed), 619 Est 2023 (TLOH 70.0%, 22.8% closed + 115 a minima),
+     624 Sud-Ouest 2023 (6.9% closed), 626 BdM 2024 (TLOH 78.8%, 24.8% closed), 629 Centre-Est 2024 (8.0% closed), 635 Nord 2024
+     (TLOH 72.6%, 23.3% closed), 639 Bankui 2025 (RMA 86.0%), 645 Nakambe 2025 (TLOH 88.9%; Ouargaye 55.1%), 654 Yaadga 2025 (TLOH
+     75.6%, 20.7% not transmitting).
+   REVISED disrupted (18) -> 0.5 / 0.4: 610 Sahel 2020 (0.75->0.5; 25-28% closed, Djibo 26-33 FS not transmitting), 443 Sahel 2021
+     (TLOH 63.6%, 39.0% closed; 0.5), 452 Centre-Nord 2022 (33.9% closed; 0.5), 458 Sahel 2022 (RMA 56.3%, 65.0% closed; 0.4), 464
+     Pama 2022 (TLOH 56.8%; 0.5), 616 Centre-Nord 2023 (TLOH 56.5%, 49.2% closed; 0.5), 621 Nord 2023 (25.7% closed; 0.5), 623 Sahel
+     2023 (66.2% closed; 0.4), 630 Centre-Nord 2024 (TLOH 58.9%, 41.2%; 0.5), 633 Est 2024 (TLOH 69.0%, 28.1%; 0.5), 637 Sahel 2024
+     (65.7% closed, network 44%; 0.4), 641 Goulmou 2025 (TLOH 61.2%; 0.75->0.5), 643 Kuilse/Koulse 2025 (TLOH 61.6%; 0.75->0.5),
+     644 Liptako 2025 (RMA 53.0%, 50% not transmitting; 0.75->0.4), 649 Sirba 2025 (TLOH 60.7%; 0.75->0.5), 650 Soum 2025 (Djibo
+     network 8.8% of 2018, 63% of FS not transmitting; 0.75->0.4), 651 Sourou 2025 (RMA 58.8%, 40% not transmitting; 0.85->0.5),
+     653 Tapoa 2025 (TLOH 40.5%, 78% not transmitting; 0.75->0.4).
+   No retraction: every region-year kept some reporting units (none had zero surveillance). Sub-national rows are not read by
+   py/build_weekly_timeseries.py, so these changes do not alter the national weekly series; they correct what the dataset asserts.
+validate_quality BFA: ERROR 0 / WARN 49 (unchanged: 47 CFR_high historical, 1 period_single_day, 1 same_period_conflict)
+Decision     : CONTINUE (minimum 3 batches; 1 consecutive sub-5% batch)
+
+=== BATCH 2 | PHASE 1 | BFA ===
+Gap targeted : T3 2019-2020 national (row 495), T4 recent 2023-2026 national (rows 30-33, 363; effective gap 2026-07-01..2026-10-02,
+               94d, recent), T1 start (1977, 1980-82). Categories: academic, WHO/official, regional, humanitarian, linguistic (fr),
+               historical, news.
+Queries      : 20
+ Q01 [Academic] WebSearch 'Burkina Faso COVID-19 2020 utilisation des services ... DHIS2' -> Countdown 2030 12-country study (incl. BFA,
+     BMJ Glob Health): outpatient consultations and admissions -7% to -17% Mar-Dec 2020 -> context for 2020
+ Q02 [Official] MoH Annuaire 2022 indicator summary (metadata 184, local copy): 2019 public TLOH 58.0%, RMA 62.6%; 2020 TLOH 99.9%,
+     RMA 95.9%; new contacts/inhabitant 1.22 (2019) -> 1.08 (2020); meningitis 1 865 (2019), 2 514 (2020); measles 1 148, 4 488 ->
+     system notified other epidemic diseases in both years -> context
+ Q03 [WHO] WER 95(37) and 96(37) (IRIS, local downloads) re-read: 2019 zero-reporting footnote lists Burkina Faso, Mali, Niger, Togo;
+     2020 footnote b: 'did not report cholera data to WHO for 2020: Angola, Burkina Faso, Cote d'Ivoire, Ghana, Guinea, ... Mali, ...
+     Niger' -> CORRECTION to Batch 1 Q18: in 2020 Ghana, Mali, Niger and CIV did NOT zero-report; they, like BFA, sent no cholera
+     data - the 2020 WHO silence is a regional COVID-era reporting failure, not specific to BFA -> context
+ Q04 [WHO] IRIS discover 'Weekly bulletin on outbreaks and other emergencies 2026' -> latest = week 36 (31 Aug-6 Sep 2026, 10665/
+     387727, already used by Agent 3) -> no newer bulletin -> no row
+ Q05 [Regional] Africa CDC September/October 2026 report pages (curl) -> September page still ends at the issue dated 2026-09-20
+     (file ...28Sep26.pdf = metadata 19); October page 404 -> no row
+ Q06 [Regional/Linguistic] WebSearch 'cholera 2026 Niger OR Mali OR Ghana OR Togo OR Benin OR Cote d'Ivoire' -> search summary claims
+     '6 000 cases in 2026 across Benin, Chad, CIV, Ghana, Togo' - unsourced and contradicted by Africa CDC's 2026 list; treated as
+     misdated (2025) -> no row
+ Q07 [Humanitarian] OCHA West & Central Africa 'Latest events at a glance' 14-20 Jul 2026 (libnanews mirror) -> cholera only in CAR;
+     no BFA, no neighbour -> regional quiet in the 2026 rainy season -> context
+ Q08 [Humanitarian] ReliefWeb RSS (PC46) 'cluster sante' 2025-2026 -> monthly bulletins stop after Nov 2024; only 2025 meeting minutes
+ Q09 [Humanitarian] Health Cluster minutes 24 Jun 2025 (ReliefWeb attachment): 'La non-disponibilite des informations en rapport avec
+     la fonctionnalite des formations sanitaires' (closure data no longer shared in 2025); measles detected district by district
+     (Bogande 346, Gaoua 245, Koudougou 213, Kaya 138; active foci S24 Bogande, Manni); polio case managed in Kantchari (Est) ->
+     surveillance active but facility-functionality reporting stopped -> context
+ Q10 [Linguistic/News] WebSearch '"Burkina Faso" cholera 2026 cas suspects OR aucun cas' -> only the July 2022 Kantchari case (afrik,
+     allodocteurs, wakatsera; already row 682) -> no 2026 event -> no row
+ Q11 [WHO] AFRO 'SITREP 001 du 17 juin 2026' (Agent 1 local copy) -> Chad (Hadjer-Lamis, Karal) cholera, not a BFA neighbour -> no row
+ Q12 [Linguistic/Humanitarian] WebSearch '"diarrhee aigue" OR DAA Burkina Faso 2025 deplaces Kaya Djibo Dori Fada' -> displacement
+     230 000 in 2025; diarrhoea cited only as a malnutrition driver; no AWD/cholera alert -> no row
+ Q13 [Historical] orchestrator WER cache (/tmp/BFA_orch/wer_cache_bfa_lines.txt) for 1977-1983 Upper Volta lines -> Upper Volta
+     appears in programme tables (yaws, tuberculosis, trypanosomiasis, yellow-fever entomology) and the 1983 yellow-fever IHR
+     notifications; no cholera -> context
+ Q14 [Historical/WHO] WER OCR pages (sibling SWZ_a2 copies): WER 56(31) 7 Aug 1981 'Reported Cases of Yaws' - Upper Volta series
+     405, 284, 156, 1131, 1428, 706 (1970s, to 1979); WER 57(3) 22 Jan 1982 tuberculosis notifications - Upper Volta 523, 1047, 2437,
+     1060 (late 1970s) -> Upper Volta's routine programme reporting to WHO continued through 1977-1981 -> context
+ Q15 [WHO/Historical] WER 53(17) 'Cholera in 1977' and WER 58(27) 'Cholera in 1982' (IRIS bitstreams) -> 'very large outbreak in
+     Ghana' (1977) without regional detail; Ivory Coast 34 (1982) -> context
+ Q16 [Regional/Academic] WebSearch Ghana cholera 1977/1982 by region (Upper Region, Bawku, Bolgatanga) -> no regional detail for 1977
+     or 1982 (Upper East outbreaks documented only for 1997 and 2014) -> regional picture for 1977/1982 unresolved
+ Q17 [Linguistic/Historical] WebSearch '"Haute-Volta" surveillance epidemiologique 1978-1981 ... Centre Muraz' -> USAID/OFDA disaster
+     reports PBAAH017 / PBAAH013 cited for meningitis epidemics Dec 1978-May 1979 (1 612 cases) and Jan-Jun 1981 (3 801 cases) ->
+     lead (snippet only)
+ Q18 [Historical] USAID PBAAH017/PBAAH013 (pdf.usaid.gov DNS failure; Wayback availability API OK but web.archive.org refused curl and
+     WebFetch) -> ACCESS PROBLEM; snippet figures NOT verified and NOT cited as evidence
+ Q19 [WHO/Historical] WER 52(52), 29 Dec 1977, 'INDEX of information published in 1977 - Notifications of diseases' (IRIS 10665/
+     221668, page image p.418 read): CHOLERA Africa = Angola, Benin, Cameroon, Cape Verde, Djibouti, Ghana, Kenya, Liberia, Malawi,
+     Mozambique, Nigeria, Sierra Leone, Tanzania, Togo; no Upper Volta under any disease (plague, cholera, yellow fever, smallpox) ->
+     second WHO record of 1977 non-notification (corroboration for row 35; not evidence of absence)
+ Q20 [Linguistic/Historical] WebSearch '"Haute-Volta" cholera 1984 "depuis 1978" ... reapparition' -> IRD fdi 13891 = Centre Muraz
+     1969 yellow-fever report ('dispositif de surveillance recommande en 1966', Direction de la Sante Rurale - Centre Muraz alert
+     exchange) - context for the historical alert system; no 1977-83 cholera statement -> no row
+Sources found: 12   Registered: none in this batch
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Revisions (do not count toward yield): national rows annotated via /tmp/BFA_a6/rev.py (revise_observation.py --agent 6):
+   494 (2013-2018) CONFIRMED operational, 0.85 unchanged; 495 (2019-2020) 0.7 -> 0.6 (2019 SYNTSHA report boycott Jun-Nov through the
+   rainy season, TLOH 58%; 2020 WHO non-reporting shared with CIV/Ghana/Mali/Niger); 32 (2023) 0.95 -> 0.9; 31 (2024) 0.95 -> 0.85;
+   30 (2025) 0.95 -> 0.85 (national TLOH 87-89%, conflict blind spots, neighbour epidemics 2024-25); 33 (2026 to 09-20) 0.7 -> 0.6;
+   363 (09-21..28) annotated, 0.5 unchanged. 2026-09-29..10-02 left empty (UNRESOLVED).
+validate_quality BFA: ERROR 0 / WARN 49 (unchanged)
+Decision     : CONTINUE (minimum 3 batches; 2 consecutive sub-5% batches)
+

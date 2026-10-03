@@ -37,3 +37,65 @@ Rules: rows only via python py/add_observation.py / py/revise_observation.py; a 
 Method: ./templates/template_search_protocol.txt - batches of exactly 20 queries; yield = queries producing >=1 NEW committed row / 20
   (percent); revisions logged but not counted; min 3 batches; stop at 3 consecutive batches <5% or 12 batches. No time limit.
 
+
+=== BATCH 1 | PHASE 1 (broad discovery: WHO IRIS full text, PubMed/OpenAlex/Crossref, Internet Archive full text, national statistics, ReliefWeb) | BWA ===
+Gap targeted : 1970-01-01..2004-12-31 (12784d; historical 1970-1999 + 2000-2004) - contradiction hunt 1970-2007 and year-specific corroboration
+Queries      : 20
+Q1  IRIS OpenSearch full-text 'dc.title:cholera AND Botswana' (15 items, all years) + fetch of 4 historical items -> WER 66(42) 18 Oct 1991 'Cholera in Africa': 'Since 1970, only 8 of the 52 countries in Africa have never reported autochthonous cases of cholera to WHO (Botswana, ...)'; WER 72(13) 28 Mar 1997 'Cholera in Africa' ('Botswana has never experienced any cholera outbreaks'); WHA24/A-11 & EB47/WP/8 (1971) Annex 1: Botswana among countries receiving WHO cholera emergency supplies in 1970 (preparedness) -> registered 68, 69; REVISION row 15 -> 0 new rows
+Q2  IRIS full-text 'cholera AND imported AND Botswana' 1970-1992 (576 items; WER weekly notification/infected-area pages dominate) -> listing reviewed; contradiction check carried into Q4 -> 0
+Q3  IRIS full-text 'dc.title:cholera AND imported AND (Seychelles OR Mauritius OR Lesotho OR Madagascar OR Namibia OR "Central African")' 1970-1992 (13) + 4 fetched -> WER 47(30) 1972 'Cholera in 1971': 'Imported cases were reported from Berlin (West), France, Hebron District, Madagascar, Sweden and the United Kingdom' => the 'one of these countries has notified imported cases' caveat of WER 1991 = MADAGASCAR, not Botswana (contradiction lead closed) -> 0
+Q4  IRIS bulk full-text 'Botswana AND cholera' 1970-1979: all 365 items' TEXT bitstreams downloaded; 47 passages with Botswana within 300 chars of cholera read -> Botswana appears only under SMALLPOX in WER weekly notifications/infected-area lists 1971-73 (district-level), cholera-programme funding tables, WHO project 'Botswana 4001' (Special Account for the Cholera Programme), Malawi 1971 cholera-certificate exemption for arrivals from Botswana; no cholera notification -> REVISION row 15 (surveillance status 1971-73) -> 0 new rows
+Q5  IRIS 'dc.title:"International Health Regulations" AND Botswana' 1970-1999 (26) + 7 functioning reports fetched (1976, 1977A, 1978A, 1979, 1981A, 1982, 1985 II) -> Annex listings only (as Agent 3; no country-specific cholera statement) -> 0
+Q6  PubMed E-utilities esearch Botswana[ti] AND diarrhoea/gastro-enteritis 1965-1999 + Cooper[au] Botswana 1973 + efetch -> PMID 4586461 (Cooper & Johnson, S Afr Med J 1973;47:1705-7) has NO abstract; PMID 8870398 (1990-91 hygiene study, no pathogens) -> lead (c) cannot be resolved online -> 0
+Q7  scholar.archive.org search (Cooper & Johnson title) -> JavaScript proof-of-work bot challenge (not circumvented) -> 0
+Q8  Internet Archive full-text search (fts) '"Botswana" "cholera" "never"' -> JPRS World Epidemiology Review No. 96 (14 Jul 1978, DTIC ADA376933) reprinting Botswana Daily News 1 Jun 1978 p3 'CHOLERA SPREADS IN EAST AFRICA; BOTSWANA UNAFFECTED' (MoH spokesman) -> registered 67; ROW 74 (AFR::BWA 1978-01-01..1978-06-01, Documented_Absence, partial, 0.8) [SUCCESS]
+Q9  IA fts '"cholera" AND "Botswana" AND title:(epidemiology)' -> 247 hits (JPRS World Epidemiology Review 1977-79, Worldwide Report: Epidemiology 1979-87, JPRS Report: Epidemiology 1988-95); 199 texts downloaded (paced 7-8 s; 39 lending-library books not downloadable, 9 JPRS issues HTTP 500) and every Botswana-cholera proximity (<=250 chars) read -> Botswana items in the series are measles, rabies, plague (1989), TB, malaria, schistosomiasis, FMD; Radio Botswana relays of Zambia's 1993 epidemic; Botswana delegation at the Lusaka regional cholera meeting (Mar 1991); no Botswana cholera case or alert 1977-1995 other than the 1978 statement already used -> 0 additional rows
+Q10 OpenAlex works search Glass et al. 1991 Lancet 'Cholera in Africa: lessons...' -> no OA copy, no abstract (29 refs) -> 0
+Q11 Europe PMC Gaffga, Tauxe & Mintz 2007 AJTMH -> abstract only (no PMC full text) -> 0
+Q12 WebFetch ajtmh.org Gaffga 2007 full text -> HTTP 403 -> 0
+Q13 IA fts '"Botswana" AND ("free of cholera" OR "cholera free" OR "no cholera" ...)' -> 0 hits (phrase-OR syntax unsupported) -> 0
+Q14 IA fts '"no cholera" Botswana' (274) -> document-level co-occurrence only (travel guides, JPRS issues) -> 0
+Q15 Statistics Botswana latest-publications listing re-crawled (96 pages, 1,194 PDFs) -> pre-1997 health items = Medical Statistics 1978-79, 1980-81, 1982, 1983; HSR 1984; HS 1986, 1992, 1993, 1995, 1996 (all examined by Agent 1); no Statistical Abstracts; nothing new -> 0
+Q16 IA fts '"cholera" AND "Botswana" AND title:("sub-saharan africa")' -> 195 JPRS Sub-Saharan Africa Reports / FBIS Daily Reports; no snippet pairs Botswana with cholera; bulk reading queued -> 0
+Q17 ReliefWeb site search 'cholera AND Botswana', 1994-01-01..2001-12-31 (215 items; all pages fetched; proximity read) -> Botswana only 'at risk of cholera' in Feb-Apr 2000 flood reports (MoH-at-risk statements), regional IRIN items; no Botswana case or explicit absence -> 0
+Q18 IRIS bulk full-text 'Botswana AND cholera' 1980-1989 (188 items; texts read) -> no Botswana cholera notification; WHO 'assistance to Front-Line States' 1984/1985: Botswana paragraphs list drugs/drought/malnutrition aid while anticholera aid listed for Lesotho (1984) and Angola (1985) -> 0
+Q19 PubMed southern-Africa cholera titles 1970-1999 (24 abstracts: SAMJ 1974 mines, 1981 spread, 1991 1980-87 epidemic, CAJM, Med J Zambia) -> no Botswana mention -> 0
+Q20 Crossref query.bibliographic 'cholera Botswana' <=2007 -> noise; lead Barua 1992 'History of Cholera' chapter (Springer, paywalled) -> 0
+Sources found: 9    Registered: index 67, 68, 69
+Rows added   : 1    Indices: 74
+Revisions    : row 15 (x4: WER 1991 cases-worded statement 1970-1991 + Madagascar caveat resolution + WER 72(13) + 1978 MoH statement + WHA24/A-11 1970 supplies; precision note; 1970s WHO sweep with 1971-73 IHR smallpox notifications; 1980s-1990s WHO sweep with 1989-90 plague notifications)
+Successful queries: 1/20 (Q8)
+Yield        : 5%   (NOT below the 5% threshold)
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum not reached)
+
+=== BATCH 2 | PHASE 1-2 (gap-bound: 1987-1996 and 2002/2004 national records, regional/humanitarian archives, WHO corpus 1990-2007) | BWA ===
+Gap targeted : 1970-01-01..2004-12-31 (12784d) - focus 1985, 1987-1996, 2002, 2004; contradiction hunt continued to 2007
+Queries      : 20
+Q1  IA fts '"Botswana" AND title:(cholera)' (5) + 2 phrase-snippet requests -> Echenberg 2011 'Africa in the time of cholera' (CUP): 'Botswana, Swaziland, and Namibia have only had light cholera outbreaks'; '... Gabon, Congo-Brazzaville, Botswana, Namibia, and Lesotho have never reported more than a handful of imported [cases]' (multi-year, 2011, consistent with 2008-09 importation; search-inside API 403) -> 0
+Q2  IA advancedsearch metadata: Botswana + health/'development plan'/Hansard/'national assembly'/medical (13 items) + fts 'cholera' inside NDP 1968-73, NDP 1970-75 (microfilm, OCR indexed: 'The greatest disease hazard in Botswana is foot and mouth disease') and Family Health Survey 1984 -> no cholera mention -> 0
+Q3  World Bank Documents API 'Botswana cholera' 1966-2007 (23) + fetch Family Health Project Staff Appraisal Report 1984 (230 KB text) -> no 'cholera' in text -> 0
+Q4  JSTOR basic search 'cholera Botswana' -> bot challenge page (not circumvented) -> 0
+Q5  UBRISA (ubrisa.ub.bw) discover 'cholera' -> host unreachable -> 0
+Q6  AJOL search 'cholera Botswana' (20 results) -> none historical/Botswana-specific (SADC cholera preparedness paper, Water SA 2011, is post-2008) -> 0
+Q7  IA fts '"Epidemiological Comments" AND cholera AND Botswana' (3) -> noise (UNICEF 'Children on the front line') -> 0
+Q8  IA fts '"Central African Journal of Medicine" AND cholera AND Botswana' (21) -> noise -> 0
+Q9  IA fts '"Botswana Epidemiological Bulletin"' (19) -> WER 1982-1985 items based on the quarterly Botswana Epidemiological Bulletin (TB, rabies, EPI, yellow-fever vaccination) -> national bulletin functioning 1982-85; no cholera -> 0
+Q10 IA advancedsearch Botswana + health/medical/disease/epidemiology subjects (pre-2008: 3) -> nothing relevant -> 0
+Q11 IRIS '"Botswana Epidemiological Bulletin"' (11) -> EPI review 1983, human rabies 1983, TB 1983/1986, parasitic diseases 1985 -> 0
+Q12 IRIS 'Botswana AND dc.title:(surveillance OR notifiable OR "communicable diseases")' 1975-1999 (45) -> rabies/TB/measles/AIDS/nutrition/IHR annexes; no cholera -> 0
+Q13 SADC site search 'cholera' (sadc.int/search/node) -> only 2019+ items -> 0
+Q14 ReliefWeb site search 'cholera AND Botswana', 2005-01-01..2007-12-31 (22 items; read) -> 2006 Botswana diarrhoea outbreak (22,063 cases/446 deaths, RIACSO Mar 2006) reported as 'severe diarrhea' distinct from cholera in ZWE/MOZ/MWI/ZMB; no explicit cholera exclusion; no Botswana cholera -> 0
+Q15 OpenAlex works search 'cholera Botswana' 1965-2008 (365; abstracts screened) -> no abstract mentions Botswana with cholera -> 0
+Q16 IRIS bulk full-text 'Botswana AND cholera' 1990-1999 (249 texts; read) -> plague notifications 1989-90 (Boteti, 163 cases/12 deaths), WER 1991/1997 statements, malaria epidemics 1994, drought 1992-93; no cholera -> REVISION row 15 -> 0
+Q17 IA fts '"cholera" AND "Botswana" AND title:("Africa news" OR "Africa report" OR "Africa research bulletin")' (116) -> 21 hits = Africa Research Bulletin (Political, Social and Cultural Series) annual INDEX volumes 1970-75, 1978-80, 1985-86, 1989-96, 2000 (20 downloaded, paced); BOTSWANA country sections list 'Medical and health' only for Norwegian rural health aid (1980) and HIV prevalence (2000); none of the 2-17 cholera entries per volume is adjacent to Botswana -> 0
+Q18 Wayback fetch (paced) of 10 archived WHO AFRO surveillance files 2002-2004 located via existing CDX listings: Southern Africa IDS Network Feedback Bulletins Jan/Apr/May/Jun/Jul/Aug 2002 and Jun 2004 (AFP/measles/NNT; Botswana appears only in AFP/measles tables; the only cholera item is Zimbabwe 2002), IDS cumulative weeks 1-39 2002 table (no Botswana), 'Weekly highlights on reported epidemic prone diseases' week 49 2003 (cholera reported only by affected countries; Botswana not named), 'Update on current epidemics 2004' index -> silence only, no positive zero -> 0
+Q19 IRIS bulk full-text 'Botswana AND cholera' 2000-2007 (155 texts incl. AFRO RD reports 2000-2007; read) -> only an unrelated map mention (children's environmental health atlas 2004); no Botswana cholera -> 0
+Q20 ProMED site search 'cholera Botswana' (promedmail.org ?s=) -> archive search requires login; query returns the homepage only -> 0
+Sources found: 5 (Echenberg 2011 book; WER items on the Botswana Epidemiological Bulletin; AFRO Southern IDS bulletins 2002/2004; AFRO weekly highlights 2003; ARB indexes - none with a Botswana cholera count or a positive absence statement)   Registered: none
+Rows added   : 0
+Revisions    : row 15 (1980s-1990s WHO sweep; plague notifications 1989-90 = IHR notification functioning 1987-1996 window)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch minimum not reached; queued: Mmegi 2002/2004 news-section scan, FBIS/JPRS Sub-Saharan Africa reports)
