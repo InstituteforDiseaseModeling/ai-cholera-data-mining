@@ -1,0 +1,70 @@
+=== AGENT 3 INITIALIZATION ===
+Agent        : 3 - Zero-Transmission Validator (zero-transmission-validator)
+Country      : Burkina Faso (BFA)  [Upper Volta / Haute-Volta until 4 Aug 1984]
+Cycle        : 2026-10-02 full 7-agent re-run (workflow orchestrator)
+Start time   : 2026-10-02 22:29:08
+Starting state:
+  ./data/BFA/cholera_data_ai.csv     470 rows (Index max 482)
+  ./data/BFA/metadata_ai.csv         193 sources (12 and 13 Superseded - never cite)
+  ./data/BFA/cholera_presence_ai.csv 25 rows
+  ./data/BFA/retracted_rows_ai.csv   8 tombstones (24, 25, 28, 9, 6, 13, 4, 64 - Agent 1; not to be undone)
+  python py/validate_quality.py BFA -> ERROR 0 / WARN 43 (40 CFR_high, 2 notes_missing_quote rows 26/27,
+                                       1 same_period_conflict Idx 15 vs 125) / INFO 78; exit 0
+Prior-cycle log archived as ./data/BFA/search_log_agent_3_legacy_2026-05-13.txt (not overwritten).
+Inputs read before first query: ./CLAUDE.md (MANDATORY ZERO-TRANSMISSION DOCUMENTATION PROTOCOL); ./templates/template_search_protocol.txt;
+  ./data/BFA/cholera_data_ai.csv (all national rows + notes of every national zero row); ./data/BFA/metadata_ai.csv (1-45, 160-193);
+  ./data/BFA/cholera_presence_ai.csv; ./data/BFA/retracted_rows_ai.csv; ./data/BFA/workflow_state.json (orchestrator gates, Agent 1
+  and Agent 2 entries); ./data/BFA/search_log_agent_1.txt; ./data/BFA/search_log_agent_2.txt; /tmp/BFA_orch/bfa_context.md (incl.
+  STATE AFTER AGENT 1 / AGENT 2); /tmp/BFA_orch/zero_inventory_after_a2.txt; py/build_weekly_timeseries.py (how AI zero rows enter
+  the national weekly series); py/add_observation.py and py/revise_observation.py (writer rules).
+Not run (orchestrator instruction, countries run in parallel): py/analyze_effective_gaps.py, update_dashboard.sh, git.
+Working directory for downloads: /tmp/BFA_a3/
+Effective gap row (verbatim): Burkina Faso,BFA,2026-07-01,2026-10-02,94,3,0.26,recent  (rows 33/363 cover it to 2026-09-28)
+
+Builder facts that set my priorities (py/build_weekly_timeseries.py):
+  - Only Location == AFR::BFA rows enter the national weekly series; priority WHO > JHU > AI per ISO week.
+  - Within AI: observed weekly (<=7 d) > documented_zero > Fourier-disaggregated positive > inferred_zero; the canonical
+    'Evidence type: X' token written at insert time decides documented vs inferred.
+    => a positive AI annual row beats an AI Inferred zero in the same week but LOSES to an AI Documented zero.
+  - Weeks with no row at all are later filled as assumed_zero (conf 0.5) for historical periods.
+  - No WHO baseline file exists for BFA; JHU national coverage ends 2024-09-29, so 2024-09-30 onward is AI-only.
+
+=== AGENT 3 PLAN ===
+Definition of a query (same as Agents 1-2): one WebSearch, or one targeted retrieval and read of a specific document
+  (WebFetch / curl download + text or page-image read). Local greps of the orchestrator cache only LOCATE issues and are not counted.
+Yield = queries with >=1 NEW committed row in ./data/BFA/cholera_data_ai.csv / 20 x 100 (percent). Re-grades, retractions,
+  notes and sources registered without a row do not count.
+UPGRADE APPROACH (chosen once, used consistently): RETRACT-AND-REPLACE. Where a documentary source upgrades an Inferred zero
+  (or corrects an over-graded one), I retract the old row with py/revise_observation.py --delete (reason names the replacement)
+  and add a new row citing the documentary source. Rationale: with --set-evidence the canonical label would say Documented_Absence
+  while source_index still points at a WHO table that only OMITS Burkina Faso, i.e. the label and the cited evidence would
+  disagree - the exact provenance drift this pipeline is trying to eliminate. The old citation is kept in the new row's note and
+  in the tombstone. revise_observation.py --append-note / --confidence is used only for rows I do not replace.
+Targets (orchestrator brief), highest model impact first:
+ T1 Contradicted zeros 1990 (row 45), 1992 (46), 1993 (47), 1994 (48): read MoH DGISS 'Annuaire serie longue' (metadata 186)
+    Tableau 56 myself; establish what it counts (DLM/MS = Direction de la lutte contre la maladie notifications vs hospital
+    diagnoses); seek corroboration (WER weekly IHR notifications 1990-94, other MoH/INSD yearbooks, theses, press, neighbours);
+    apply the hierarchy (official MoH positive count > absence inferred from WHO omission). Check the same series for the other
+    no-JHU years (1986-89, 1997, 2002, 2004, 2007, 2009-10) - an explicit 0 there is documentary support.
+ T2 Weak national zeros: row 21 (2013-2020 Documented 0.9 resting on an EASTERN-only RTSL quote; 2013 is AI-only) -> national
+    documentary evidence (MoH yearbook 2013, INSD 2022 Tableau 2.7.07, WER zero-reporting lines) and fix grade/scope;
+    rows 57 (2008), 53 (2009), 54 (2010) -> MoH yearbook district tables (metadata 175, 174, 183);
+    remaining Inferred years 1976-77, 1980-83, 1986-89, 1997, 2002, 2004, 2007, 2013 -> MoH series, WHO WHSQ/WHSA country tables
+    with explicit nil entries, WER texts naming Upper Volta/Burkina as reporting no cases, AFRO reports, academic reviews.
+    Absence found only by omission from a list stays Inferred_Absence.
+ T3 Recent 2026-01-01..2026-10-02 (rows 29, 33, 363; 09-29..10-02 open): MoH/IDSR weekly bulletins 2024-2026 with 'Cholera 0',
+    AFRO weekly bulletins, Africa CDC, ECDC, WAHO; 2026 rainy season Sahel/Centre-Nord. Never assert absence past a source's last
+    covered date. Also check row 29 (labelled Documented 0.85 although its basis is list omission).
+ T4 Sub-national Documented_Absence from MoH yearbook region tables for 2006-2010, 2013-2020, 2023-2025 where the table prints
+    cholera 0 for the region (2006/2007 yearbooks have no cholera column; skip JHU 2018-2019 region/district zeros). Positive
+    surveillance-table counts in WHO-zero years -> positive row + conflict note + flag for Agent 5. Hospital-nosology 'Cholera'
+    codes are not surveillance notifications: logged and noted on the zero row, not entered as cases (decision explained in log).
+ T5 Positive-count conflicts (Centre 2005, 2011 national, Dori 2012 deaths, 1984-2001 WHO vs MoH) belong to Agent 5: log only.
+Regional cross-check: neighbours BEN, CIV, GHA, MLI, NER, TGO checked per period (WHO annual tables already quoted in row notes;
+  re-checked where I write a new row) and the case (regionally quiet vs neighbours in epidemic) stated in each note.
+Phases: 1 broad discovery (batches 1-4: T1, T2 national, T3), 2 targeted (batches 5-8: T4 yearbook regional tables, remaining
+  Inferred years, French queries), 3 deep validation (batches 9-12: citation chains, archives, cross-border, corroboration).
+Every batch mixes >=3 of the 7 categories; all 7 covered over the run; many French queries.
+Stopping rule: >=3 batches; then stop at 3 consecutive batches <5% yield, or 12 batches (240 queries). No time limit.
+Validation: python py/validate_quality.py BFA after every batch (must end ERROR 0).
+
