@@ -1,112 +1,177 @@
-ZAMBIA (ZMB) CHOLERA DATA ENHANCEMENT - SEARCH REPORT
-Generated: 2026-05-14
-Workflow: 7-Agent Sequential Enhancement (Real Data Collection)
+ZAMBIA (ZMB) - CHOLERA DATA ENHANCEMENT - SEARCH REPORT
+Cycle 2026-09-30 (Opus 5.5 full re-run) | Agent 7 quality audit, 2026-10-03 | supersedes the May-2026 report
+(now ./data/ZMB/search_report_legacy_2026-05-14.txt). Audit log: ./data/ZMB/search_log_agent_7.txt.
 
-== EXECUTIVE SUMMARY ==
+1. WHAT THIS CYCLE ADDED
+- ./data/ZMB/cholera_data_ai.csv: 25 -> 2,056 live rows (net +2,031); 1,810 case rows and 246 zero rows (cycle start: 20 / 5).
+  By level: national 297, ADM1 612, ADM2 980, ADM3+ 167. Zero rows: 53 national (28 Documented_Absence, 25 Inferred_Absence),
+  193 sub-national. Rows by decade of TL: 1970s 27, 1980s 82, 1990s 216, 2000s 323, 2010s 281, 2020s 1,127.
+- ./data/ZMB/metadata_ai.csv: 20 -> 537 sources (L1 213, L2 79, L3 235, L4 10); 485 are cited by a live row. Live rows by source
+  level: L1 1,347 (66%), L2 276 (13%), L3 423 (21%), L4 10.
+- ./data/ZMB/cholera_presence_ai.csv: 1 -> 82 presence-only records. ./data/ZMB/retracted_rows_ai.csv: 0 -> 34 tombstones.
+- Validator: python py/validate_quality.py ZMB -> exit 0, ERROR 0, WARN 31, INFO 309 (start of audit: ERROR 0, WARN 32, INFO 307).
 
-The 7-agent workflow for Zambia (ZMB) successfully enhanced the AI cholera surveillance dataset
-with 24 new data observations and 19 validated sources via actual internet searches. The workflow
-targeted two primary gaps identified in the baseline analysis: 1970-1976 (pre-baseline, 7 years)
-and 2025 (recent partial year, 9 months). Both gaps were addressed. The 2025 gap was
-comprehensively filled with 14 new observations covering December 2024 through April 2026
-across multiple outbreaks and inter-wave zero-transmission periods.
+2. COVERAGE - AND WHY THE HEADLINE NUMBER OVERSTATES IT
+In-memory analyse() from py/analyze_effective_gaps.py (union of covered days, >50% of a month; shared ./reference files not
+rewritten):
+- All layers: 681/682 months = 99.9%, 0 gap periods (cycle start: 676/681 = 99.3%, 1 gap 2026-05-01..2026-09-30). The one missing
+  month is October 2026, three days old. Latest observation 2026-09-29 (4 days); cycle start 2026-05-10 (143 days stale).
+- JHU+WHO only: 592/682 = 86.8%, 2 gap periods (1970-01..1976-12; 2026-05..2026-10), both closed by the AI layer.
+- The old ./reference/baseline_surveillance_gaps_coverage.csv (21 Sep 2026, py/analyze_baseline_gaps_optimized.py) reports
+  576/681 = 84.6%. It counts a month only if ONE observation covers >50% of it, so 7-day WHO weekly rows never count: effectively
+  JHU-only to Sep 2026. The two figures use different maths and are not comparable.
+- months_ai_only = 88: the 84 months of 1970-1976 (three zero rows: 2087, 2088, 2082) plus Jun-Sep 2026. Three rows earn most of it.
+- Coverage is inflated by annual and multi-year rows. At national level 50% of months are resolved only by annual rows and 11% only
+  by multi-year rows; only 26% have quarterly-or-finer resolution (weekly 8%, monthly 5%, quarterly 13%). The AI layer improved the
+  national resolution of 337 months (163 annual -> quarterly/half-year, 44 -> monthly/weekly, 128 empty months filled).
 
-== TOTAL SOURCES DISCOVERED ==
+3. THE DISAPPOINTING NUMBERS
+- The MOSAIC weekly series uses almost none of this work. py/build_weekly_timeseries.py reads national rows only and ranks
+  WHO > JHU > AI. Of its 2,960 weeks, only 557 come from the AI layer, and 366 of those are the 1970-1976 zeros. For every week of
+  1977-2012 the series is a JHU annual total spread by a K=2 Fourier template. Hundreds of AI sub-annual national rows (WER
+  notifications 1978-2007, MoH monthly series, AFRO weekly tables) and all 1,759 sub-national rows never reach it.
+- The builder places 27,021 cases in weeks that the AI layer records as zero-transmission (37 of 53 national zero rows), all from
+  read-only JHU annual totals. The largest single error is 10,958 cases in Jul-Dec 2024: weeks with no new cases after
+  29 Jun / 11 Jul 2024 (documented absence, rows 367/368/1408) receive up to 1,124 cases/week from the JHU 2024 annual 23,380,
+  because WHO's weekly rows for those weeks are blank. The series' 2024 total is 31,190 against about 20,232 actually reported
+  (+54%).
+- Quote re-verification: 55 of 58 rows strictly correct (94.8%). The national 2023/24 epidemic total (23,382/740), the single
+  largest number in the file, carried a citation to a page that never contained it, through the May-2026 run and this cycle's six
+  agents, until this audit.
+- Eleven windows remain without counts (section 6). For most of them the counts exist only in offline Ministry records.
+- 9 of the 58 verifications rest only on collectors' cached copies, because parliament.gov.zm, the WHO Power BI API and
+  allafrica.com refused connections from here.
 
-19 sources:
-- Level 1 (WHO/Official/Academic): 8 sources (42%)
-- Level 2 (UN agencies/Established NGOs): 3 sources (16%)
-- Level 3 (Reputable news/NGO): 8 sources (42%)
+4. AUDIT RESULTS AND FIXES (Index numbers; full detail in ./data/ZMB/search_log_agent_7.txt)
+Repair tool: python py/repair_data_integrity.py --dry-run ZMB -> 0 changes; no attribution_review.csv; --apply not needed.
+Quote verification: 10 high-impact rows plus a seeded stratified random sample of 48 (all writers, all decades), each read at the
+source (IRIS REST, Europe PMC, UNZA DSpace scans read as page images, archive.org, Wayback, live sites): numbers confirmed 58/58;
+strict pass 55/58 = 94.8% (high-impact 9/10, random 46/48). With 13 further WARN rows checked: 68/71.
+- Index 10 FAIL (citation). The quote is on WHO AFRO news, 14 Aug 2024, not on ReliefWeb page source 11 (checked live and in Wayback
+  captures from 2024 to 2026). Retracted and re-cited as Index 2091 with identical figures, against new source 537. Confidence
+  0.95 -> 0.9 (UNICEF/ZNPHI 23,378 with last case 29 Jun, vs WHO AFRO 11 Jul). Source 11's description corrected. 188 rows that
+  cited row 10 were annotated.
+- Index 18 PARTIAL. The source gives Monze's 43 cases and 3 deaths; the row was coded to Southern Province (province: 44 cases,
+  4 deaths). Relocated to AFR::ZMB::Southern::Monze.
+- Index 647 label: an exclusion from a list of affected provinces was labelled Documented_Absence. It and its siblings 643-648 were
+  relabelled Inferred_Absence; 637-638 stay Documented because the source states the exception explicitly.
+Validator WARNs:
+- same_period_conflict 2058/1922: FIXED. WHO weekly (38/1, Level 1) kept. Africa CDC (74/15c/1) retracted: it is a reporting-week
+  figure including backlog, and the builder's max rule had put it in 2026-W38 (+36). The figure is preserved in 2058's notes.
+- same_period_conflict 882/130 (Lusaka Province 2010): JUSTIFIED. Two Level 1 streams; 130 is primary and 882 is kept for its deaths.
+  The rows are sub-national, so the builder never sees them; the WARN persists by design.
+- 20 CFR>15%: JUSTIFIED. All annotated and weighted <=0.7; 5 re-read at source (436, 443, 1697, 1715, 1753), all as published.
+- 5 single-day (108, 115, 1692, 1716, 1915): JUSTIFIED. All verified as genuine point events.
+- 5 multi-year (613-617, Kapansa 1984 Tables 1.1/1.2, re-OCR'd from the scan): JUSTIFIED. Genuine Oct 1978-Dec 1982 totals, <=0.6.
+Other changes:
+- Cross-references: 277 rows (278 notes) annotated where notes pointed at retracted rows (2, 6, 10, 11, 12, 15, 19, 20, 22, 27,
+  183, 339, 1718, 1899, 1922, 2007), giving the replacement Index where one exists; 1468 is covered by 2063's audit note and the
+  references to row 1 were already explained.
+- Presence file: Lusaka 'Nov 1993-Apr 1994' re-dated to 1992-11..1993-04. Chanda's UTH label is a year error, checked against Mwansa
+  2007 Table 2 (end-year caveat noted). The Chibale Lusaka 1996/97 record was removed as redundant with count row 1916.
+- 2063 weight 0.45 -> 0.4. Audit notes added to 2062, 2088, 2089 and a builder note to 1746.
 
-Notable sources: Xinhua/MoH press statements, News Diggers, PMC academic studies,
-WHO/UN official reports, ReliefWeb, Africa CDC, CIDRZ, IWA Publishing narrative review.
+5. DECISIONS ON THE ORCHESTRATOR'S QUESTIONS
+(a) 2088 (1973-75 zero, 0.7): CONFIRMED at 0.7. Five statements verified verbatim. They come from one MoH reporting chain, so they
+    are not independent; the Kapansa counter-claim concerns uncounted, possibly imported cases with no local outbreak.
+(b) 2062/2063: KEPT as primary national 2013/2014 values (both now 0.4). The column sums of the read-only JHU UID 21243 recompute
+    exactly (704; 96). The uncertainty runs both ways (Luanshya 252; JHU Central 562; Kabwe 224 / Chiengi 208), but retracting the
+    rows would make every 2013 week assumed_zero. The Mar-Aug 2014 absence row they 'overrode' (1468) was already retracted.
+(c) Agent 5's 130-row TL harmonisation: CONFIRMED. A git diff shows only TL changed, and every TL equals the provincial onset,
+    re-derived from the dashboard's daily table. An 18-row spot-check passed. North-Western uses the ZNPHI index date (27 Dec 2023).
+(d) Agent 6's yield accounting: AGREE. Re-citations are not novel rows; counting them would have let bookkeeping extend the run.
 
-== TOTAL DATA OBSERVATIONS ADDED ==
+6. GAPS STILL OPEN (none written as zeros) - with an assessment of whether the data exists
+- 1997 Feb-Dec: Lusaka epidemic to 9 Apr 1997 (row 1916, cumulative only); Kawambwa Sep 1997; Kabwe 1997 = 129. WHO notified 36.
+  Counts exist offline (National Cholera Surveillance Committee 1997, CBoH, district offices); not found online.
+- 1998 Jan-Oct: presence, timing unknown (WHO annual small; Kabwe 18). Likely in CBoH bulletins; not online.
+- 2000 Aug-Oct: AFRO weekly marked 'no report'; probably little transmission (dry season); a count is unlikely to surface.
+- 2001 Jul-Oct: about 310 WHO-annual cases cannot be placed in time; they exist in WHO/CBoH records.
+- 2002-05..2003-03: reporting gap (AFRO '-' after week 17 of 2002; the Nchelenge Oct 2002 outbreak was never notified). CBoH
+  Annual Health Statistical Bulletins 2002-2003 are held by the provider and not open.
+- 2005 Feb-Aug (except Jul): no WHO notification; Lukanga May 2005 presence. HMIS bulletin, provider-held.
+- 2007 May-Dec: presence, timing unknown. HMIS.
+- 2011-10..2012-12: HMIS exceeds WHO; Mpulungu outbreaks. Hansard written answer W41 (cholera by province Jan 2012-Mar 2013)
+  exists; parliament.gov.zm was down.
+- 2013-2016: Zambia absent from WHO's annual tables. Only the HMIS annual district series exists (rows 2062, 2063, 2036);
+  sub-annual MoH data is not published.
+- 2019-10-07..11-10: tail of a 6-case Nsama event, probably near zero. ZNPHI weekly IDSR bulletins could settle it.
+- 2026-09-30 onward: outbreak declared 30 Sep 2026 (304 suspected, 62 confirmed, 11 deaths to 29 Sep; row 2040). WHO's weekly layer
+  stops at the week of 14 Sep. The data will exist within weeks; the window needs a recency re-run.
+- 1973-1975: closed as a documented absence. Any counts for the uncited 'scattered imported cases' would be in National Archives /
+  MoH annual reports 1973-75.
 
-24 observations in cholera_data_ai.csv spanning 1970-2026:
-- Zero-transmission periods: 5 observations
-- National outbreak data: 12 observations
-- Provincial-level: 5 observations
-- District-level: 7 observations (some overlap)
+7. AGENT PERFORMANCE
+A1 baseline: 12 batches (15-50%), +431 net, 114 sources - productive. A2 geographic: 12 batches (5-55%), +925, 120 sources - the
+most productive (WHO Power BI dashboard, ZNPHI sitreps), but it exhausted the shared WebSearch cap in batch 7. A3 zeros: 12 batches
+(0-55%), +178 own rows (dataset +176 after it retracted legacy row 2 and Agent 1's row 424) - productive, mainly zero rows; several
+of its absences
+were later retracted or relabelled by A5/A6. A4 obscure: 12 batches across three sessions. Two sessions died (runner restart
+1 Oct 19:49 PDT; API outage 2 Oct ~05:55); both were redeployed and resumed, and the orphan writes were verified. +348 rows,
+216 sources (WER/JPRS/FBIS/The Post archives), the best historical yield. Targeted re-run: 5 batches, +3 (2088-2090).
+A5 cross-reference: 12 batches (0-35%), +148, with heavy adjudication (12 retractions, 130 TL fixes, 20 CFR reviews) - productive.
+A6 context: 5 batches (5, 5, 0, 0, 0), +1 net, stopped on the yield rule - the least productive, but its window classification and
+its citation-integrity retractions (1, 19, 20) were valuable. No agent ran fewer than 3 batches, reported a yield >100%, or claimed
+rows it did not add: per-writer Index tallies reconcile with every claim.
 
-== KEY GAPS FILLED ==
+8. BUILDER ARTEFACTS (documented, shared code not changed; full list A1-A9 in the audit log)
+UPWARD: JHU annual totals fill AI-documented absences (27,021 cases; Jul-Dec 2024 10,958; Jul 2018-Jan 2019 2,804; 1993 H2 3,517;
+1977 144; 1978 Jan-Oct 170). JHU/GHO 1999 13,511 vs WER 11,535 (+1,976). 2000 4,504 vs WER 2,283 (+1,700 to +2,200). Overlapping
+JHU 2022 rows give 346 vs about 184. 2023 is +1,181. 2014 is 123 vs 96 (AI max rule). WHO-blank weeks 2026-W01/W02 get 208 cases
+vs 5 reported. 2026-W38 had 74 vs 38 until this audit's D2 fix.
+DOWNWARD: JHU 1989 has 44 cases with 44 deaths, while the Lake Tanganyika outbreak had 286 cases by Oct 1989. The current outbreak's
+declaration total is dropped by the 50% weekly-coverage rule (series 210 vs 304 for Aug-Sep 2026). Timing in every 1977-2012
+epidemic is the template, not the WER notifications. GRADING: JHU's 2020 zero is graded inferred_zero (0.6) over the WHO-documented
+zeros 2085/2086 (values agree).
+./data/ZMB/cholera_weekly_ZMB.csv was rebuilt by the runner at 03:52 today, before this audit's changes; it is stale for them.
 
-Gap 1: 1970-1976 (Pre-Baseline, 7 years)
-Status: VALIDATED AS ZERO-TRANSMISSION
-Evidence: Multiple peer-reviewed sources confirm 1977 as Zambia's first cholera year.
-IWA Publishing: "The first cholera outbreak recorded in Zambia occurred in 1977 with 178 cases."
-Surveillance functional (post-independence public health system). Confidence 0.90.
+9. RECOMMENDATIONS FOR THE NEXT RUN
+- Builder (largest gain):
+  * let documented zeros from any layer veto Fourier shares of a higher-priority annual total;
+  * use JHU annual totals as a constraint that rescales AI sub-annual national rows, not as a replacement;
+  * replace the same-source max rule by confidence or the source hierarchy;
+  * treat duplicate annual rows (JHU 2022-2024) as alternatives;
+  * keep a declaration total's remainder when the 50% weekly-coverage rule fires.
+- Baseline maintainers: JHU 1999/2000 totals, 1977 = 144, 1989 = 44/44, duplicate 2022-2024 annual rows, UID 21270 placeholder 39s,
+  UID 21243 year assignment.
+- Tooling: add a source_index re-point verb to py/revise_observation.py. Fixing one citation here took a retraction, a new row and
+  188 cross-reference notes. Have the validator check 'row N' references in notes against tombstones.
+- Collection:
+  * Hansard W41 (Jan 2012-Mar 2013 by province);
+  * CBoH/MoH Health Statistical Bulletins 2002-2008 (provider request);
+  * National Cholera Surveillance Committee reports 1996-97;
+  * ZNPHI weekly IDSR bulletins 2019-2022;
+  * van Bergen 1996 full text (Kaputa 1994);
+  * National Archives of Zambia, MoH annual reports 1973-1977;
+  * a recency update for the outbreak from 30 Sep 2026 in about 4 weeks.
+- Process: re-verify legacy rows' quotes at the start of a cycle. Start site-native API work early, because WebSearch caps out.
+  Keep raw API responses: they made the Power BI checks possible after the API closed.
 
-Gap 2: 2025 (Recent partial year, 9 months - Dec 2024 to Aug 2025)
-Status: COMPREHENSIVELY FILLED
-- Wave 1: Dec 24 2024 - Jul 3 2025: 496 cases, 9 deaths, CFR 1.8% (national)
-  - Nakonde District Dec 2024: 21 cases (first wave epicenter)
-  - Copperbelt Province: 140 cases by Feb 6 2025
-  - Chililabombwe District: 70 cases by Jan 30 2025
-  - Kabwe District (Central Province): 68 cases by Apr 1 2025
-- Zero-transmission: Jul 4 - Aug 4 2025 (32 days between waves)
-- Wave 2: Aug 5 2025 - Apr 6 2026: 1,415 cases, 22 deaths, CFR 1.55% (cumulative)
-  - Mpulungu District Northern Province: 29 cases by Sep 7 2025 (initial detection)
-  - Northern Province total: 570 cases across 5 districts by Jan 2026
-  - Lusaka District: 170 cases, 2 deaths by Feb 11 2026
-  - Southern Province (Monze): 43 cases, 3 deaths at close of 2025
-
-Additional gaps discovered and filled:
-- 2020-2021: ZERO cases confirmed ("devoid of cholera") per PMC academic review
-- Jun 16-Oct 17 2023: Zero-transmission between first and second 2023 waves
-- Jul 12-Dec 23 2024: Zero-transmission after 2023-24 major outbreak
-- 2023 first wave total: 757 cases, 14 deaths by July 24 2023 (updated from partial data)
-- 2023 first wave Eastern Province: 191 cases, 4 deaths by Feb 28 2023
-- 2023 Chienge Luapula District: 79 cases, 1 death CFR 1.27% (May-June 2023)
-
-== DATA QUALITY ASSESSMENT ==
-
-Overall quality: EXCELLENT
-
-Validation results:
-- All 24 observations pass 4-stage validation protocol
-- CFR ranges: 0.0-7.0% (Southern Province 7.0% reflects small sample of 43 cases)
-- Date logic: 100% compliance (TL <= TR <= reporting_date)
-- Dual-reference indexing: 100% integrity verified
-- Source attribution: 100% (all rows have matching metadata entries)
-- Geographic coding: 100% compliance (AFR::ZMB format)
-- Deaths <= suspected cases where both present: VERIFIED
-
-Confidence weight distribution:
-Mean: 0.855 (Good to Excellent)
-Range: 0.75-0.95
-
-== REMAINING LIMITATIONS ==
-
-1. The 2023-2024 major outbreak (23,382 cases/740 deaths) is already in JHU baseline.
-   Row 10 provides AI-confirmed cross-reference and does not duplicate.
-2. The 2023 inter-wave zero-transmission period (Jun-Oct) is inferred from surveillance
-   bulletins noting "no cases since June 15" rather than direct MoH declaration.
-3. Some district-level data lacks death counts (only suspected cases reported in sources).
-4. 2025 Wave 2 is ongoing; cumulative totals will continue to evolve beyond April 2026.
-5. Some CFR calculations use suspected (not laboratory-confirmed) cases as denominator.
-
-== APPENDIX: VALIDATION METRICS ==
-
-Queries executed: approximately 150 (Agents 1-6 combined)
-Agent performance:
-- Agent 1 (Baseline): ~30 queries, 10 initial rows established, 12 sources
-- Agent 2 (Geographic): ~40 queries, 5 new rows, 4 new sources
-- Agent 3 (Zero-trans): ~40 queries, 1 new row validated
-- Agent 4 (Obscure): ~40 queries, 1 new district row, 1 new source
-- Agent 5 (Cross-ref): ~40 queries, 1 new cumulative update row
-- Agent 6 (Gap context): ~40 queries, 2 new rows including inter-wave zero, 1 new source
-- Agent 7 (Quality): Validation and this report
-
-Geographic coverage:
-Provinces documented: Lusaka, Copperbelt, Northern, Muchinga, Eastern, Southern, Luapula, Central (8/10)
-Districts documented: Mpulungu, Nakonde, Chililabombwe, Chienge, Vubwi, Kabwe, Lusaka District, Monze
-Cross-border areas: Nakonde/Tanzania, Kasumbalesa/DRC, Eastern Province/Mozambique border
-
-Temporal coverage improvement:
-- Before: 1977-2024 (86.1% coverage per gap analysis)
-- After: Pre-1977 validated as zero-transmission; 2025 data comprehensively added through Apr 2026
-- New zero-transmission periods documented: 1970-1976, 2020-2021, Jun-Oct 2023, Jul-Dec 2024, Jul-Aug 2025
-
-FINAL STATUS: ZAMBIA CHOLERA DATA ENHANCEMENT COMPLETE
-24 observations, 19 sources, APPROVED FOR MOSAIC MODELING INTEGRATION
+APPENDIX - METRICS
+A. Counts (cycle start 2026-09-30 -> orchestrator gate 2026-10-03 -> end of audit)
+   data rows 25 -> 2,057 -> 2,056 | sources 20 -> 536 -> 537 | presence 1 -> 83 -> 82 | tombstones 0 -> 32 -> 34
+   Agent 7 writes: +1 row (2091), 2 retractions (10, 1922), +1 source (537), 1 relocation (18), 6 relabels (643-648), 1 re-weight
+   (2063), 1 metadata description (11), 277 rows annotated with cross-references (278 notes), 6 audit/builder notes, 2 presence
+   edits.
+B. Per-writer Index ranges (allocated / live / retracted): legacy 1-26 25/15/10; A1 27-460 434/426/8; A2 461-1386 926/925/1;
+   A3 1387-1565 179/176/3; A4 1566-1921 356/347/9; A5 1922-2081 160/157/3; A6 2082-2087 6/6/0; A4T 2088-2090 3/3/0; A7 2091 1/1/0.
+C. Batches and yields (%, queries with >=1 committed row / 20): A1 30,45,35,30,15,15,20,15,35,20,50,40 | A2 45,10,30,30,20,10,5,
+   55,55,25,20,20 | A3 55,55,45,30,5,15,0,10,5,35,35,10 | A4 40,55,55,45,10,60,30,0,5,20,10,20; targeted T1-T5 5,5,0,0,0 |
+   A5 35,25,15,10,0,5,5,10,15,15,0,5 | A6 5,5,0,0,0. Agent 7: 0 search batches (audit); 1 WebSearch; ~150 site-native fetches.
+D. Confidence distribution (live rows): >=0.9 388 | 0.7-0.89 1,003 | 0.5-0.69 353 | 0.3-0.49 311 | <0.3 1.
+E. Zero rows by evidence: Documented_Absence 114, Inferred_Absence 132. National zeros: 28 documented / 25 inferred.
+F. Coverage by layer (in-memory analyse(), 2026-10-03): all 681/682 99.9% (months_jhu 576, months_who 41, months_ai 674,
+   months_ai_only 88, months_with_positive_cases 490, gap periods 0) | JHU+WHO 592/682 86.8% (2 gaps) | AI only 670/682 98.2%
+   (7 one-to-five-month gaps) | JHU only 576/682 84.5%.
+G. National month resolution (union of rows by duration class, all layers / JHU+WHO): weekly 54/37, monthly 34/0, quarterly 87/0,
+   half-year 91/12, annual 343/504, multi-year 72/0, none 1/129.
+H. Weekly series (in-memory reproduction, identical to the 03:52 file): 2,960 weeks; source JHU 2,281, AI 557, WHO 122; method
+   fourier 1,933, inferred_zero 469, documented_zero 380, observed 178. After Agent 7's fixes, one week changes value (2026-W38
+   74 -> 38) and the 2014 weeks change confidence (0.225 -> 0.2).
+I. Validator: start ERROR 0 / WARN 32 (20 CFR, 5 single-day, 5 multiyear, 2 same-period) / INFO 307 -> end ERROR 0 / WARN 31
+   (same-period 1) / INFO 309 (257 national_subnational_overlap all 'documented'; 52 metadata_unused, of which 22 are cited by
+   presence rows, 30 only in notes or retired). Final JSON: /tmp/ZMB_post.json.
+J. Open conflicts (recorded, never averaged): 2000 national (WER 2,283/156 vs GHO/JHU 4,504/303 vs WER weekly ~2,800); Chiengi 2014
+   (JHU 208 vs MCEP 0); Kabwe 2014 224 undated; Lukanga 2013 (9 vs 0 vs 47; UID 21250 looks year-shifted); May 2026 tail (Africa CDC
+   weekly 10 vs WHO 5; the series follows Africa CDC, +5); Kaputa May-Jun 1994 (press 82+33 cases / 7+5 deaths vs the Minister's
+   'dysentery'; not entered; zero row 1514 at 0.5 with the conflict noted).

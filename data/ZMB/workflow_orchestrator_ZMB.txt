@@ -1,0 +1,83 @@
+================================================================================
+WORKFLOW ORCHESTRATOR RECORD - ZAMBIA (ZMB)
+Cycle: 2026-09-30 Opus 5.5 full re-run (Agent 1 initialised 2026-09-30 22:59:33)
+Final orchestrator session: PID 63351, launched by runner PID 19720 at ~2026-10-02 09:59 PDT
+(run dir logs/run_20261001-194905). Repo root: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+All paths below are repo-relative. Machine-readable record: ./data/ZMB/workflow_state.json
+================================================================================
+
+1. SESSIONS AND RESUMES
+   - Session A (2026-09-30 22:59 -> runner restart 2026-10-01 19:49 PDT): Agents 1-3 complete
+     (12 batches each); Agent 4 died in batch 6.
+   - Session B (PID 19988, 2026-10-01 19:49 -> API outage ~2026-10-02 05:55/07:30): Agent 4 resumed,
+     verified the batch-6 orphan writes, ran batches 6-11 and batch 12 Q1-Q18, then died when the API
+     became unreachable (logs/run_20261001-194905/ZMB.log: "API Error: Can't reach the API server
+     (ENOTFOUND)"; runner retries 2/3 and 3/3 failed 09:33 and 09:59).
+   - Session C (this one, PID 63351, from ~2026-10-02 09:59): Agent 4 finished batch 12; Agents 5, 6,
+     a targeted Agent 4 re-run, and Agent 7.
+   Both session ends were treated as "not complete" and resumed. Neither was accepted as a stopping
+   reason.
+
+2. STOPPING RULE GIVEN TO EVERY COLLECTOR
+   Minimum 3 batches of 20 queries; then stop at 3 consecutive batches below 5% yield, or at 12 batches.
+   No time limit, deadline or time box was given to any agent. Yield = queries with >=1 committed row
+   / 20 x 100. WebSearch was described as a shared, capped tool, and explicitly NOT a stopping reason.
+
+3. AGENTS, GATES AND VERDICTS
+   Agent | batches | yields (%)                                  | net rows | stop rule            | gate
+   1     | 12      | 30,45,35,30,15,15,20,15,35,20,50,40         | +431     | 12-batch ceiling     | ACCEPTED
+   2     | 12      | 45,10,30,30,20,10,5,55,55,25,20,20          | +925     | 12-batch ceiling     | ACCEPTED
+   3     | 12      | 55,55,45,30,5,15,0,10,5,35,35,10            | +178*    | 12-batch ceiling     | ACCEPTED
+   4     | 12      | 40,55,55,45,10,60,30,0,5,20,10,20           | +348     | 12-batch ceiling     | ACCEPTED
+   4-T   | 5       | 5,5,0,0,0  (1973-75; 1993-11..1994-04)      | +3       | 3 consecutive <5%    | ACCEPTED
+   5     | 12      | 35,25,15,10,0,5,5,10,15,15,0,5              | +148     | 12-batch ceiling     | ACCEPTED
+   6     | 5       | 5,5,0,0,0                                   | +1       | 3 consecutive <5%    | ACCEPTED
+   7     | audit   | -                                           | -1       | audit complete       | ACCEPTED
+   * Agent 3's own rows. The dataset grew +176 because Agent 3 also retracted legacy row 2 and Agent 1's row 424.
+   Suspect-report checks at every gate: the row count moved by the claimed amount; no agent ran fewer than 3
+   batches; no yield exceeded 100%. Agent 4 batch 6 was corrected from 65 to 60 after it retracted row 1881.
+
+4. ORCHESTRATOR DECISIONS (each also recorded in workflow_state.json)
+   - Agent 4 redeployed twice after session deaths. Each time the dead session's orphan writes were
+     verified before the agent continued.
+   - Agent 6 yield accounting accepted. Its re-citations of retracted rows (2083, 2085, 2086, 2087) are
+     not novel observations under CLAUDE.md, so batch 5 stays at 0% and the yield-rule stop is valid.
+     Agent 7 concurred.
+   - Targeted Agent 4 re-run. Agent 6 trimmed the unverifiable 1970-1976 zero (old row 1), which opened a
+     new 1,095-day historical gap, 1973-01..1975-12, in Agent 4's speciality. Agent 4 was redeployed
+     once on that window, under the yield rule.
+   - 1973-1975 conflict. CHOSEN: Agent 4's Documented_Absence row 2088 (0.7). It rests on Level-1
+     statements: WHO Sixth Report on the World Health Situation, the MoH Permanent Secretary in Oct 1973,
+     and the Zambian WHA delegate in 1974-76. Notification was working (meningitis was notified by
+     province), and none of 153 WER weekly issues carries a Zambian notification. REJECTED: leaving the
+     window empty on the strength of Kapansa 1984's uncited "scattered occurrences ... possibly
+     imported" (Level 3). The Kapansa presence record is kept as counter-evidence. Agent 7 confirmed
+     the 0.7 weight.
+   - No shared files were touched. None of py/analyze_effective_gaps.py, update_dashboard.sh or
+     py/build_weekly_timeseries.py was run, and no git commits were made. Coverage was measured with
+     the module's analyse() function, in memory.
+
+5. RESULT (cycle start -> end)
+   ./data/ZMB/cholera_data_ai.csv     25 -> 2,056 rows (1,810 case rows, 246 zero rows)
+   ./data/ZMB/metadata_ai.csv         20 -> 537 sources (L1 213, L2 79, L3 235, L4 10)
+   ./data/ZMB/cholera_presence_ai.csv  1 -> 82 rows;  ./data/ZMB/retracted_rows_ai.csv 0 -> 34 tombstones
+   Validator                          ERROR 0 / WARN 8  ->  ERROR 0 / WARN 31 / INFO 309 (exit 0)
+   Effective coverage (all layers)    676/681 = 99.3%, 1 gap (2026-05-01..2026-09-30)
+                                      -> 681/682 = 99.9%, 0 gaps
+   JHU+WHO only (same maths)          592/682 = 86.8%, 2 gaps (1970-1976; 2026-05..2026-10), both closed
+   months_ai_only                     84 -> 88
+   Latest observation                 2026-05-10 (143 d stale) -> 2026-09-29 (4 d)
+   Caveat: 61% of national months still rest only on annual or multi-year rows.
+
+6. OPEN (classified as reporting gaps or presence of unknown timing; deliberately NOT zeros)
+   1997-02..12; 1998-01..10; 2000-08..10; 2001-07..10; 2002-05..2003-03; 2005-02..08 (exc. Jul);
+   2007-05..12; 2011-10..2012-12; 2013-2016 (WHO non-reporting; HMIS annual only); 2019-10-07..11-10;
+   2026-09-30 onward (ongoing outbreak declared 30 Sep 2026).
+
+7. FOR THE RUNNER / MAINTAINERS (see section 8 of ./data/ZMB/search_report.txt)
+   py/build_weekly_timeseries.py uses national rows only, with WHO > JHU > AI priority. Only 557 of
+   2,960 weeks come from the AI layer. About 27,021 cases land in weeks the AI layer documents as zero;
+   the largest block is Jul-Dec 2024 (10,958), which puts the 2024 series at 31,190 against ~20,232
+   reported (+54%). ./data/ZMB/cholera_weekly_ZMB.csv (built 03:52 on 2026-10-03) predates Agent 7's
+   fixes and needs the runner's rebuild.
+================================================================================
