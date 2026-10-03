@@ -1,0 +1,143 @@
+=== AGENT 7 INITIALIZATION ===
+Country: Gabon (GAB)
+Cycle: opus55_rerun_2026-09-29, orchestrator session 3
+Start Time: 2026-10-03 14:24:16
+Agent 7 Status: INITIALIZED (cholera-quality-auditor)
+
+=== BLOCK 0 | INPUTS READ | 2026-10-03 ===
+Read: ./data/GAB/workflow_state.json (Agents 1-6 final entries, orchestrator pre_state/notes/gates),
+      closing summaries of ./data/GAB/search_log_agent_1.txt .. _6.txt,
+      ./data/GAB/cholera_data_ai.csv (39 rows), ./data/GAB/metadata_ai.csv (127 sources, Index 1..127 sequential),
+      ./data/GAB/cholera_presence_ai.csv (1 row: AFR::GAB 1997, isolate CNRVC970170, metadata 40),
+      ./data/GAB/retracted_rows_ai.csv (16 tombstones: 1-8 Agent 1; 22, 33, 40 Agent 2; 23, 24, 26, 28, 29 Agent 3),
+      read-only ./data/GAB/cholera_data_jhu.csv (19 rows 1979-2024) and ./data/GAB/metadata_jhu.csv (1 source).
+      No WHO baseline file for GAB. No ./data/GAB/attribution_review.csv exists.
+
+=== BLOCK 1 | VALIDATOR + REPAIR TOOL (pre-audit) ===
+python py/validate_quality.py GAB --json /tmp/GAB_audit.json -> exit 0; ERROR 0, WARN 0, INFO 94
+  INFO breakdown: 93 x metadata_unused, 1 x national_subnational_overlap (1988-03-11..04-26, rows 47/48, 'documented').
+python py/repair_data_integrity.py --dry-run GAB -> TOTAL: 0 change(s). Nothing to apply; --apply not run (no-op).
+
+=== BLOCK 2 | ROW-LEVEL CHECKS (programmatic) ===
+All 39 rows: TL <= TR; reporting_date >= TR; no TR or reporting_date after 2026-10-03; CFR = deaths/sCh*100 to 0.01
+  (13: 40.00, 47/48: 11.11; zero rows 0.0; 42/43 blank deaths -> blank CFR); source text == metadata Source for its
+  source_index (dual reference intact); source_database = AI on every row.
+Confidence vs source level: every Level-2/3 row inside its band. Level-1 rows below 0.9 are (a) Inferred_Absence rows at
+  0.5-0.7 (9, 11, 14-21, 25, 27, 30-32, 34-39), each with its reason in the notes, or (b) Documented rows deliberately lowered
+  with a stated reason: 46 (0.6, 5 undated 1981 cases could fall inside), 52 (0.7, IDSR completeness 22%), 54 (0.8, completeness
+  not stated), 55 (0.75, map-derived).
+Double-count phrases: every sub-national row (13, 42, 43, 44, 47, 53) carries 'Provincial subset - do not sum with national
+  row'; national row 48 carries 'National total - includes provinces not individually listed'. Nesting: 50/51 in 21 and 52 in
+  16 are described as 'not additive; supersedes'; the parents (21, 16) say so too. 54/55 in JHU 2015/2016 are described as
+  'nested ... not additive'; they do not supersede in the builder (JHU outranks AI), which the notes state correctly.
+  41 (2002 national, same 6 cases as JHU 2002) says 'not an additional 6 cases' but lacks an explicit do-not-sum phrase -> fix.
+Builder check (py/build_weekly_timeseries.py read): load_national_rows() reads ONLY Location == 'AFR::GAB'; SOURCE_PRIORITY
+  WHO 3 > JHU 2 > AI 1; inferred_zero capped at 0.6; weeks with no national source between the first observation and
+  latest-52 wk become assumed_zero (0.5); rows of <= 7 days are inserted as 'observed' whatever their evidence label.
+  Current ./data/GAB/cholera_weekly_GAB.csv (built 14:07): 1994 = 52/52 assumed_zero and 1996 = 53/53 assumed_zero, although
+  Index 42/43 hold laboratory-confirmed V. cholerae O1 cases (Libreville rows are invisible to the national builder).
+  Index 49 (7-day Inferred_Absence) appears as 'observed' sCh 0 at 0.7, i.e. above the 0.6 inferred cap.
+
+=== BLOCK 3 | SOURCE SPOT-VERIFICATION, POSITIVE ROWS (all re-fetched by Agent 7 and read on the page) ===
+V1 Index 13 - WHO IRIS WER 54(32) 10 Aug 1979 p.248 (page image): 'GABON 1-7.VIII  1i 0 / 4s 2' + 'Newly Infected Areas as on
+   9 August 1979 ... GABON Libreville'. 5 cases (1 imported + 4 suspect), 2 deaths, 1-7 Aug 1979, Libreville -> MATCHES.
+   Citation note: the row cites Carme 1983 (metadata 18: 5 cases, Aug 1979, Libreville); dates and deaths come from
+   metadata 88/82 as its notes say. All values are on the primary WER page -> verification note appended (no re-cite: a
+   delete/re-add would break Index 13 cross-references in rows 44, 53 and the agent logs).
+V2 Index 53 - WHO IRIS WER 54(39) 28 Sep 1979 p.303 (page image): 'Areas Removed from the Infected Area List between 21 and 27
+   September 1979 ... CHOLERA ... Africa ... GABON Libreville' -> MATCHES. Criteria (WER 54(27) p.215, text): an area entered on a
+   first non-imported case is deleted on negative weekly reports for the Art.7 interval, or on an Art.7 freedom notification
+   after that interval since the last case -> the row's bracketed paraphrase is accurate.
+V3 Index 45/46 - WHO IRIS WER 56(18) 8 May 1981 p.144 (page image): 'GABON 2-14.II  2 0' and 'GABON (contd - suite) 15.II-9.IV
+   0 0' -> MATCH (45: 2 sCh/0 d; 46: nil return).
+V4 Index 41 - Wayback AFRO 'Cholera weekly trends ... 2002 and 2003' (capture 2003-03-05): 'Gabon | Cases/Cas | 6 ... Deaths 0 |
+   CFR 0' -> MATCHES. TR source (metadata 85, Wayback 2003-04-21): Word export Created/LastSaved 2002-10-04; Gabon '- ... - | 6 |
+   6' in the Unknown-week column, deaths 0 -> TR 2002-10-04 justified.
+V5 Index 42/43 - JLE PDF Okome-Nkoumou et al. Med Trop 2001;61:143-147: Tableau II 'Vibrio cholerae 1992 0 | 1993 0 | 1994 2 |
+   1995 0 | 1996 2 | Total 4 | 1,1'; Tableau I (monthly, 5 years pooled) V. cholerae March 3, October 1; text 'Quatre cas de
+   Vibrio choleræ de sérogroupe O : 1 biotype El Tor ont été notés' -> MATCH (2 cCh each year; Mar-Oct window correct).
+V6 Index 47/48 - lunion-archives.org N3688-27-04-1988-001.jpg and -006.jpg (page images): p1 'Une vingtaine de décès ... sur les
+   180 cas de diarrhée aiguë diagnostiqués, récemment dans notre capitale ... selles liquides (couleur eau de riz ou vin de
+   palme)'; p6 'une vingtaine de décès du type cholériforme sur la centaine de cas diagnostiqués ... tout a commencé le 11 mars
+   dernier ... 20 à 40 fois dans la journée' and the Dr Békalé vaccine statement -> MATCH (180 sCh, ~20 d, 11 Mar-26 Apr 1988).
+
+=== BLOCK 4 | SOURCE SPOT-VERIFICATION, ZERO ROWS (re-fetched by Agent 7) ===
+Z1 Index 10 - who.int WER101-38 (25 Sep 2026, pp.221-251) Table 5 'Countries, territories, and areas reporting zero cholera
+   cases, by WHO region, 2025 - African Region 22 - Algeria, Benin, ..., Eswatini, Gabon, Gambia, ...' -> MATCHES; Documented,
+   operational, 0.95 justified; reporting_date 2026-09-25 = issue date.
+Z2 Index 12 - africacdc.org Africa-CDC-Epidemic-Intelligence_Weekly-Report_24-September-2026.pdf p.9 (page image): 119,052 cases
+   from 20 AU MS, enumerated, Gabon absent -> MATCHES; Inferred, unknown, 0.7 (Level 2 band).
+Z3 Index 49 - africacdc.org Africa-CDC-Epidemic-Intelligence-Report-28Sep26.pdf (byte-identical to Agent 3's cache), cover 'Date
+   of Issue: 2026-09-20', p.11 '122,367 cases ... from 20 AU MS: Angola ... Zimbabwe' + 'Since the last update (13 September,
+   2026) ... five AU MS: Angola, Burundi, Mozambique, Rwanda and Zambia' -> MATCHES; Inferred (absent, not listed with 0).
+Z4 Index 50 - africacdc.org CENTRAL-AFRICA-RCC_Bulletin-No-5.pdf: completeness Gabon 5 expected / 4 received / 80%; text 'Gabon
+   (0 / 0 / 0)'; synthesis table Choléra 'Nouveaux cas SE 35-39' Gabon 0, deaths 0 (columns sum to 4,191 / 51); measles Gabon
+   24 new -> MATCHES; Documented, operational, 0.8 (Level 2).
+Z5 Index 52 - Wayback afro.who.int CDER 2004-09.pdf, Table 2 (Jan-Aug, updated 23 Nov 2004): 'Gabon 0 0 0 | 76 3 3.9 | 564 1 0.2
+   | - | 261 0 0.0'; legend '"-" no report or no case' -> MATCHES. Narrative check: the 16-country list containing Gabon is the
+   MENINGITIS paragraph; the cholera paragraph's 16 countries exclude Gabon (no trap). Documented, partial, 0.7 justified.
+Z6 Index 53 - see V2 (WER 54(39) p.303 removal notice) -> MATCHES.
+Z7 Index 54 - WHO IRIS 10665/204516 (dc.date.issued 2015-12-31 = reporting_date) 'IDS_2_2015.pdf' s.2.1: '18 countries that
+   reported zero cases (Angola, Benin, Botswana, Burkina Faso, Chad, Comoros, Eritrea, Ethiopia, Gabon, ...)' -> MATCHES.
+Z8 Index 55 - WHO IRIS 10665/251728 (dc.date.issued 2016-11-29 = reporting_date) p.9 Fig.5 cholera map weeks 1-22 2016, read at
+   300 dpi: Gabon dark green = 'Countries that reported zero case'; Congo grey; Cameroon light green with cases -> MATCHES.
+Z9 Index 46 - see V3 (WER 56(18) nil return) -> MATCHES.
+Z10 Index 9 - cdn.who.int Epi Update 37 PDF: 'Data as of 26 April 2026'; Table 1 'as of 26 April 2026'; Gabon absent.
+   DEFECT: row TR is 2026-05-26, one month past its citation's data-as-of date (27 Apr-26 May rests only on metadata 12/15).
+   Also the legacy note says 'Surveillance system status: Fully operational' (unsupported; 11/12/49 say unknown).
+   Epi Update 38 PDF (metadata 15): 'Data as of 31 May 2026'; Table 1 African Region rows exclude Gabon.
+Z11 Index 11 - who.int WER101-35: 'Data as of 26 July 2026'; Table 1 '1 January to 26 July 2026' African Region rows (Angola ...
+   Zimbabwe, 19) exclude Gabon -> MATCHES, and covers 27 Apr-26 May 2026 too. DEFECT: the issue list on who.int gives 'Issue 35
+   4 September 2026 pp. 193-202' (epi week 35 = 24-30 Aug 2026), so reporting_date 2026-08-31 and the metadata 14 description
+   '(31 Aug 2026)' are wrong; WER101-39 (2 Oct 2026) Gabon mentions are lymphatic filariasis / yellow fever, not cholera.
+RESULT: 7/7 positive rows and 11/11 zero rows checked are supported by their sources; 2 date defects (Index 9 TR, Index 11
+  reporting_date + metadata 14) to fix; no mis-attribution found.
+
+=== BLOCK 5 | IMPACT MEASUREMENT (in memory only; py/analyze_effective_gaps.py NOT run - orchestrator override) ===
+analyse('GAB', ['JHU','WHO','AI']): 591/682 months = 86.7%; months_jhu 228, months_who 0, months_ai 387, months_ai_only 363,
+  months_with_positive_cases 78; 6 gap periods: 1988-01-01..02-29 (60 d), 1988-05-01..12-31 (245 d), 1991-01-01..12-31 (365 d),
+  1994-01-01..02-28 (59 d), 1994-11-01..1996-02-29 (486 d), 1996-11-01..2000-12-31 (1522 d); latest obs 2026-09-20 (13 d stale),
+  latest positive 2008-12-31; 58 observations.
+analyse('GAB', ['JHU','WHO']) (baseline only): 228/682 = 33.4%; 60 positive months; 8 gap periods: 1970-1978 (3287 d), 1980
+  (366 d), 1982-2001 (7305 d), 2004, 2007, 2009-2010, 2022-2023, 2025-01-01..2026-10-03 (641 d); latest obs 2024-12-31.
+Evidence class of the 591 covered months (script /tmp/a7gab/evidence_months.py; a month goes to the strongest class that alone
+  covers >50% of its days; same >50% rule as the analyser):
+    positive rows ..................... 78  (60 = JHU annual totals 1979, 1981, 2002, 2003, 2008 spread over 12 months each;
+                                             18 AI-only = 1988 Mar-Apr, 1994 Mar-Oct, 1996 Mar-Oct)
+    AI Documented_Absence ............. 30  (2004 Jan-Aug 8, 2015 Apr-Jun 3, 2016 Jan-May 5, 2023 Sep-Oct 2, 2025 12; 22 AI-only)
+    JHU genuine WHO zero reports ...... 48  (2005, 2006, 2021, 2024)
+    JHU phantom zeros ................. 112 (2011-2020 less the documented 2015 Q2 / 2016 Jan-May)
+    AI Inferred_Absence ............... 323 (all AI-only: 1970-78, 1980, 1982-87, 1989-90, 1992-93, 2001, 2004 Sep-Dec, 2007,
+                                             2009-10, 2022, 2023 less Sep-Oct, 2026 Jan-Sep)
+  -> 435 of 591 covered months (73.6%) rest on non-listing/phantom zeros; only 78 (13.2%) on an explicit zero report.
+  months_ai_only 363 = 323 Inferred + 22 Documented + 18 positive.
+Baseline gap periods: 7 of 8 closed (1970-78, 1980, 2004, 2007, 2009-10, 2022-23 in full; 2025-2026 to 2026-09-20); the 240-month
+  1982-2001 gap is 150 months covered (1982-87, 1988 Mar-Apr, 1989-90, 1992-93, 1994 Mar-Oct, 1996 Mar-Oct, 2001), 90 open.
+Versus the cycle start (pre_state 99.3%, 677/682, 1 gap, months_ai_only 449, 9 AI rows): -86 months, gap periods 1 -> 6.
+
+=== BLOCK 6 | STEP 4 - FINAL RECENT-WINDOW CHECK (2026-09-21 onward) | 2026-10-03 ~14:40-14:50 PDT ===
+R1 [direct] africacdc.org/download/africa-cdc-epidemic-intelligence-weekly-report-september-2026/ -> still exactly two files
+   (..._24-September-2026.pdf = issue 2026-09-13; ...-Report-28Sep26.pdf = issue 2026-09-20); package modified 2026-10-02 13:57.
+R2 [direct] .../africa-cdc-epidemic-intelligence-weekly-report-october-2026/ -> HTTP 404 (no October package).
+R3 [direct] africacdc.org WP API wpdmpro (search 'epidemic intelligence', and all downloads by modified date) -> newest EI item
+   is the September package; nothing newer under another slug.
+R4 [direct] who.int WER101-39 issue list -> latest issue 101(39), 2 Oct 2026 (cholera data as of 30 Aug 2026); no 101(40).
+R5 [direct] ECDC cholera worldwide overview page -> still the 26 Aug 2026 edition. ECDC CDTR wk 40 PDF re-read: monthly update
+   'as of 28 September 2026' but every African country entry is 'as of 13 September 2026'. CDTR wk 41 PDF -> HTTP 404.
+R6 [direct] WHO IRIS discover 'Weekly bulletin on outbreaks and other emergencies' -> newest AFRO OEW = Week 36 (31 Aug-6 Sep 2026).
+R7 [direct] WHO Global Cholera/AWD dashboard ArcGIS cholera_adm0_week -> dataLastEditDate 2026-09-28, 5,208 rows, max week start
+   2026-09-14 (data to 2026-09-20), iso_3_code='GAB' -> 0 rows. Unchanged.
+R8 [direct] eventtracker.afro.who.int API (api.techziward.com initial-data) -> header shows 'Saturday, 03rd October, 2026',
+   epiweek 2026-40, but the content is STALE: weekline 2023-01..2024-45, newest quoted date 9 March 2025, no Gabon entry.
+   TRAP: the live header date makes it look current; it is not an enumeration for 2026. Not used.
+R9 [direct] khub.africacdc.org Epidemic intelligence weekly report records -> 2025 issues only.
+WebSearch (6 of 30 used): 'Africa CDC Epidemic Intelligence Report 27 September 2026 cholera' (no 27 Sep issue);
+   'Gabon choléra cas septembre 2026' (only Gabonreview 5 Aug 2025 = metadata 43, plus DRC/Cameroon items; the engine's
+   summary claiming 'no confirmed case in Gabon in September 2026' recycles the 2025 article - FALSE SUMMARY, not used);
+   'Gabon cholera October 2026' (nothing); 'Gabon bulletin épidémiologique hebdomadaire 2026 semaine 38 OR 39' (nothing);
+   'WHO AFRO regional cholera bulletin September 2026 week 38 week 39' (nothing after Epi Update 38); 'reliefweb Africa CDC
+   epidemic intelligence weekly report October 2026' (nothing).
+RESULT: no enumerating source covers any day after 2026-09-20. The window 2026-09-21..2026-10-03 (13 days) stays OPEN; no row
+   written (a zero ahead of an enumerating source would be invented). Next sources to check: Africa CDC issue dated 2026-09-27
+   (expected ~5-6 Oct 2026), WER 101(40)+ monthly cholera update (data to ~27 Sep 2026), ECDC CDTR wk 44 (late Oct), AFRO OEW
+   wk 37-39. Any new row must start 2026-09-21 and end at the source's data-as-of date.

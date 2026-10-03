@@ -1,115 +1,127 @@
 === AGENT 1 INITIALIZATION ===
 Country: Niger (NER)
-Start: 2026-09-18 19:06:44
+Start: 2026-10-03 14:17:09
 Status: INITIALIZED
+Cycle: opus55-rerun-2026-09-29 (orchestrator-initialised; prior-cycle log archived at ./data/NER/prior_cycle_logs_pre_2026-10-03/search_log_agent_1.txt)
 
-================================================================================
-TOOLING CONSTRAINT (recorded for auditability)
---------------------------------------------------------------------------------
-WebFetch is DENIED by .claude/settings.json for this project (only WebSearch is
-in permissions.allow). All extraction below therefore comes from WebSearch
-result text/snippets and answer-engine summaries of the target pages. PDFs on
-iris.who.int / cdn.who.int / stacks.cdc.gov that hold the historical country
-tables could be LOCATED but not READ. This materially caps what is extractable
-for the 1975-1993 gaps, which live almost entirely in scanned WER/MMWR PDFs.
-================================================================================
 
-=== BATCH 1 | PHASE 1 | NER ===
-Gap targeted : 1975-01-01..1980-12-31 (2192d, historical) + 1985-1988 + 2025-02-01..2026-09-18 (recent)
+=== BATCH 1 | PHASE 1 (WHO systematic: WER annual cholera summaries) | NER ===
+Start: 2026-10-03 ~14:18
+Gap targeted : 1975-01-01..1980-12-31 (2192d, historical) first, then 1982-1983, 1985-1987, 1990, 1992-1993
+Channel      : all 20 = WHO IRIS DSpace 7 REST (iris.who.int/server/api/discover/search/objects, default curl UA)
+               + bitstream download + pdftotext; table pages rendered (pdftoppm) where OCR dropped names
 Queries      : 20
-  1  WHO Global Health Observatory cholera number of reported cases Niger annual 1949-2023
-  2  WHO Weekly Epidemiological Record "Cholera in 1976" Africa country table cases deaths
-  3  Niger cholera outbreak 2025 cases deaths WHO
-  4  Niger cholera epidemie 2025 cas deces Maradi Zinder [FR]
-  5  "Niger" cholera reported cases 1975 1976 1977 1978 1979 1980 zero cases WHO annual
-  6  ActuNiger 213 cas de cholera 12 deces Zinder Maradi Dosso ministre [FR]
-  7  WHO AFRO Monthly Regional Cholera Bulletin 2026 Niger cases deaths
-  8  Niger cholera 1985 1986 1987 1988 epidemic cases deaths Sahel
-  9  Cholera Worldwide 1989 MMWR Africa reported cases Niger Chad Mali table [domain:cdc.gov]
-  10 Cholera 1981 international notes Africa countries reported cases Niger [domain:cdc.gov]
-  11 WHO multi-country cholera sitrep 2025 countries reporting Africa list Niger
-  12 "cholera" Niger 1992 1993 epidemie cas Niamey Tillaberi [FR]
-  13 Evaluation surveillance system high-risk cholera vaccination Niger epidemic years history
-  14 Niger cholera epidemics history "since 1970" epidemic years list
-  15 how many cholera cases did Niger report in 1989 MMWR worldwide [domain:cdc.gov]
-  16 Niger cholera 1984 epidemie 3788 cas Maradi histoire [FR]
-  17 "Africa in the Time of Cholera" Echenberg appendix cases deaths by country 1970-2005 Niger
-  18 MesVaccins le point sur l'epidemie de cholera qui sevit au Niger [FR]
-  19 bulletin hebdomadaire morbidite mortalite surveillance nutritionnelle Niger cholera 2025 [FR]
-  20 iris.who.int WER cholera 1986 1987 annual cases Africa Niger [domain:iris.who.int]
-  (+ MSF Niger FR, Niger cholera 2026, ReliefWeb Niger FR, "aucun cas de cholera" FR -
-     these four were run as part of the 20; queries 3/4 counted once each)
-Sources found: 11 promising, 0 with extractable in-gap numbers
-Registered   : none
-Rows added   : 0
-Successful queries: 0/20
-Yield        : 0%
-Consecutive sub-5% batches: 1
-Findings (no in-gap numbers, but directional):
-  - Niger is NOT among the 20 WHO AFRO countries reporting cholera in 2025, nor
-    among the 10 reporting in May 2026. Directional evidence for the recent gap,
-    but no source yet states absence positively.
-  - BMC Res Notes Niger paper: "major epidemics in the region were documented in
-    1970-1971, 1991, 1995-1996, 1999 and 2010" - positive enumeration that skips
-    1975-1990, useful for Inferred_Absence but not a documented zero on its own.
-  - MesVaccins: 2024 outbreak was "the first outbreak reported since the last
-    epidemic in 2022" -> corroborates the existing 2023 zero row (row 22).
-  - Historical country tables located but unreadable without WebFetch:
-    stacks.cdc.gov/view/cdc/1094 (Cholera in 1975 - Worldwide),
-    cdc.gov/mmwr/preview/mmwrhtml/00001155.htm (Cholera, 1981),
-    cdc.gov/mmwr/preview/mmwrhtml/00001634.htm (Cholera -- Worldwide, 1989),
-    iris.who.int/.../bitstreams/40c4256e-... (Cholera, 2021 WER).
-Decision     : CONTINUE (3-batch floor; pivot to national statistical yearbooks,
-               GTFCC national cholera plan, and FR historical literature)
+  1  IRIS "cholera in 1975" -> WER 1976 51(18):137-138 Table 1 (all countries notifying, 1975): Africa 13-14 countries
+     (Algeria, Angola, Benin, Cape Verde, Comoros, Ghana, Kenya, Liberia, Mozambique, Nigeria, S. Rhodesia, Uganda,
+     Cameroon, Upper Volta) - NIGER ABSENT. [handle 10665/... item 707929f0]
+  2  IRIS fetch WER 1991 66(42):305-311 "Cholera in Africa: summary background 1970-1991" -> narrative only (1970-71
+     Mopti->Niger route; figures 1970-1991 by continent); no Niger counts.
+  3  IRIS "cholera in 1976" -> WER 1977 52(19) Table 1 1976: Africa 11 countries - NIGER ABSENT.
+  4  IRIS "cholera in 1977" -> WER 1978 53(17) Table 1 1977: Africa 12 countries - NIGER ABSENT.
+  5  IRIS "cholera in 1978" -> WER 1979 54(17) Table 1 1978: Africa 18 countries - NIGER ABSENT.
+  6  IRIS "cholera in 1979" (+ corrigendum WER 55(21)) -> WER 1980 55(18) Table 1 1979: Africa 18 countries - NIGER ABSENT
+     (text names re-appearances in Ivory Coast, Mozambique; not Niger).
+  7  IRIS "cholera in 1980" -> WER 1981 56(13) Table 1 1980: Africa 14 countries - NIGER ABSENT.
+  8  IRIS "cholera in 1981" -> WER 1982 57(17) Table 1 1981 (page rendered): "Niger ... 7i" = 7 IMPORTED cases; the only
+     imported cases in Africa that year ("TOTAL 17 521 (7i)"). = JHU 1981 7/0, so no new row; NOTE for the JHU 1981 row:
+     the 7 cases were imported, i.e. no autochthonous transmission 1975-1981 in WHO's record.
+  9  IRIS "cholera in 1982" (+ full issue WER 58(27) p.210, page rendered) -> Table 1 1982: Africa 16 countries (Benin,
+     Burundi, Cameroon, Ghana, Ivory Coast, Kenya, Liberia, Mozambique, Nigeria, Rwanda, S.Africa, Swaziland, Tanzania,
+     Uganda, Zaire, Zambia) - NIGER ABSENT.
+ 10  IRIS "cholera in 1983" -> WER 1984 59(19) Table 1 1983: Africa 13 countries - NIGER ABSENT; same issue: WHO
+     epidemiologist stationed in Niger June 1983 (smallpox-rumour item) = WHO presence in country.
+ 11  IRIS "cholera in 1984" -> WER 1985 60(20):149-151: "19 countries reporting infection as compared with 13 in 1983.
+     This was primarily the result of outbreaks which occurred in a number of West African countries that had been free
+     of cholera in 1983. The first report of an outbreak was received from Niger on 23 May, then from Burkina Faso on
+     17 June and Mali on 13 July" -> EXPLICIT Niger absence 1983 -> ROW 35 (1983 Documented_Absence, conf 0.9).
+     Table 1 1984 Niger 3,788 = JHU. 1984 onset: first report 23 May 1984.
+ 12  IRIS fetch "Cholera in 1990" (WER 1991 66(19)) -> Table 2 1990: Africa 10 countries (Algeria, Angola, Burundi,
+     Cameroon, Ghana, Malawi, Mozambique, Sao Tome, Tanzania, Zambia) + Morocco unquantified - NIGER ABSENT. Text: "Seven
+     countries that had experienced cholera in 1989 apparently remained free in 1990". By the WER's own 1989 table (16
+     countries incl. Niger 166) and 1990 table (9 of them continuing), the seven are Kenya, Liberia, Mauritania, NIGER,
+     Nigeria, Rwanda, Zaire -> derived-explicit; Niger not named -> LEFT FOR AGENT 3 (strong Inferred/Documented case).
+ 13  IRIS "cholera in 1985" -> WER 1986 61(26):197-198 Table 2 1985 (page rendered): Africa 19 countries - NIGER ABSENT.
+     CAUTION: text says "The absence of notifications from several West African countries that had experienced large
+     outbreaks in 1984 was offset by..." - Niger (3,788 in 1984) is the prime example; WHO itself frames this as absence
+     of NOTIFICATIONS, not of disease. Mali reported 3,759 in 1985. => 1985 is NOT a clean zero; Agent 3/6 to treat as
+     possible non-reporting (see JPRS-TEP-85-013/-020 Mali items).
+ 14  IRIS "cholera in 1986" -> WER 1987 62(20) Table 2 1986: Africa 17 countries - NIGER ABSENT ("5 countries that had
+     reported cases in 1985 apparently remained free" - Niger was not a 1985 reporter, so not among them).
+ 15  IRIS "cholera in 1987" -> WER 1988 63(20) Table 2 1987: Africa 17 countries - NIGER ABSENT.
+ 16  IRIS "cholera in 1988" (+ Update) -> WER 1989 Table 1988: Africa 12 countries - NIGER ABSENT (consistent with row 34).
+ 17  IRIS "cholera in 1989" (+ update + 2 corrigenda) -> WER 1990 65(19): "cholera appeared again in Mozambique, Niger,
+     and Zambia, which had not reported cases in the previous year" (WHO primary behind MMWR row 34); Niger 1989 = 166 = JHU.
+ 18  IRIS "cholera in 1991" -> WER 1992 67(34): Niger 3,238 cases / 367 deaths = JHU; "In West Africa, transmission ...
+     took in Burkina Faso, Niger and Chad in the Sahel" (no sub-annual detail).
+ 19  IRIS fetch "Cholera in 1992" (WER 1993 68(21):149-155 = Bull WHO 71(5) PMC2393471) -> Table 1 1992: Africa 20
+     countries - NIGER ABSENT.
+ 20  IRIS "cholera in 1993" (Part I WER 69(28), Part II, "Update end of 1993") -> Table 1993: Africa 16 countries - NIGER
+     ABSENT; text lists 1992 reporters not reporting in 1993 (Algeria, Angola, Kenya, Swaziland, Uganda) - Niger not a 1992
+     reporter.
+Sources found: 20 WER annual-summary items read   Registered: index 31 (WER 60(20) Cholera in 1984), 32 (WER 59(19) Cholera in 1983)
+Rows added   : 1    Indices: 35 (AFR::NER 1983-01-01..1983-12-31 zero, Documented_Absence, operational, conf 0.9)
+Successful queries: 1/20 (Q11)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+EVIDENCE FOR AGENT 3 (Inferred_Absence; Niger absent from WHO's complete annual tables of notifying countries; no
+  explicit Niger statement found): 1975, 1976, 1977, 1978, 1979, 1980 (and 1981 = only 7 IMPORTED cases), 1982, 1986,
+  1987, 1992, 1993. 1990 = derived-explicit (above). 1985 = WHO flags "absence of notifications" -> do NOT zero without
+  more evidence. IRIS handles: 1975 item 707929f0; 1976 957a94d7; 1977 401a1cac; 1978 ceb5741b; 1979 ffb03253;
+  1980 9d17d309; 1981 e4185b46; 1982 3b92e08c (full issue); 1983 a571a2d3; 1985 be30c26f; 1986 38bade5e; 1987 94a6edb2;
+  1988 e26c5ea9; 1989 35ba2581; 1990 69b7dcf9; 1991 7fa9db11; 1992 d9853256; 1993 c5260dc2.
+Decision     : CONTINUE (3-batch floor). Next: WER WEEKLY notification tables for sub-annual national series of the
+               1984/1989/1991 epidemics + recent 2025-2026 + retrospective literature.
 
-=== BATCH 2 | PHASE 1->2 | NER ===
-Gap targeted : 1975-1993 historical block + 2025-02-01..2026-09-18 (recent)
+=== BATCH 2 | PHASE 1 (WHO weekly IHR notifications 1984; UN humanitarian 2025-2026) | NER ===
+Gap targeted : sub-annual national/sub-national 1984 (JHU annual only); recent 2025-02-01..2026-10-03 (baseline-only gap; AI zero rows 32/33)
 Queries      : 20
-  21 Niger "plan national" lutte contre le cholera historique des epidemies GTFCC [FR]
-  22 snis.ne annuaire statistiques sanitaires Niger cholera serie historique [FR]
-  23 cholera Niger Bulletin Societe Pathologie Exotique epidemie 1984 Maradi [FR]
-  24 OCCGE cholera Sahel Niger Haute-Volta Mali 1970s bulletin epidemiologique [FR]
-  25 "Etude des facteurs de recurrence des epidemies de cholera au Niger" 2013 [FR]
-  26 Cholera Factsheet Niger 2017 plateforme cholera cas par an 1970-2016 [domain:plateformecholera.info]
-  27 cholera West Central Africa 1970-2016 database annual cases by country UNICEF
-  28 Niger cholera epidemie 1991 1992 1993 nombre de cas deces [FR]
-  29 "Cholera in 1992" WHO annual review Niger cases deaths table [domain:pmc]
-  30 "Cholera in 1990"/"1991"/"1993" WER annual review Africa Niger [domain:pmc]
-  31 Niger cholera factsheet annual cases deaths 1970-1995 [domain:plateformecholera.info]
-  32 plateformecholera.info Niger cholera cas et deces par annee depuis 1971 [FR]
-  33 ECDC cholera worldwide overview 2025 Africa countries Niger [domain:ecdc.europa.eu]
-  34 Africa CDC epidemic intelligence weekly 2026 cholera West Africa Niger
-  35 Niger dernier cas de cholera 2024 / situation 2025 [FR]
-  36 UNICEF West Central Africa cholera 12 countries 2025 Niger status
-  37 ANP Niger "20 cas suspects" cholera 29 aout-5 septembre [FR]
-  38 Niger cholera aout septembre 2025 cas suspects district riposte [FR]
-  39 Niger cholera 2026 cas suspects juillet aout Maradi Zinder Dosso [FR]
-  40 "Niger" cholera "no cases" 2025 WHO AFRO bulletin countries not reporting
-Sources found: 9 registrable; 0 yielded an in-gap NUMBER this batch
-Registered   : none (deferred to batch 3 after corroboration)
-Rows added   : 0
-Successful queries: 0/20
-Yield        : 0%
-Consecutive sub-5% batches: 2
-Findings:
-  - plateformecholera.info/niger (UNICEF WCARO regional cholera platform) states
-    "Le cholera est apparu pour la premiere fois au Niger en 1971. Depuis 1990,
-    des epidemies importantes ont ete enregistrees notamment en 1991, 1996, 2004
-    et 2010-12" and "Between 1994 and 2016, epidemiological surveillance reported
-    23,740 cases with 1,064 deaths (CFR 4.5%)". The 1994-2016 aggregate spans an
-    already-covered span, so it was NOT added (a 23-year aggregate row would
-    inflate month-coverage without informing the model).
-  - "Cholera in 1992" (Bull WHO 71(5):641-647, from WER 68(21):149-155) located
-    at PMC2393471 - the exact annual country table needed for the 1992-1993 gap.
-    Full text is on PMC but could not be read: WebFetch denied, and the WebSearch
-    answer engine would not surface the Niger row.
-  - ANP "20 cas suspects, 0 deces, 29 Aug-5 Sep" resolves to 2022, not 2025.
-    Dungass(Zinder) 2 + Madarounfa(Maradi) 16 + Maradi commune 2. 2022 is not a
-    gap year; left for Agent 2 (geographic).
-  - CONVERGENT EVIDENCE FOR THE RECENT GAP: WHO AFRO 2025 bulletins enumerate the
-    20 African-region countries reporting cholera in 2025 and Niger is not among
-    them; UNICEF (Jul 2025) places Niger in the "under close surveillance"
-    (not-affected) group. To be corroborated in batch 3 before committing a
-    ~11-month absence row.
-Decision     : CONTINUE (3-batch floor not yet reached; recent-gap absence rows
-               pending corroboration)
+  1  [IRIS REST] "cholera in 1994" Parts I/II (WER 70(28-29)) -> Niger 732/83 = JHU; no pre-1994 absence statement. No row.
+  2  [IRIS REST] "Weekly Epidemiological Record 1984 cholera Niger" + fetch WER 59(26) (29 Jun 1984) -> notifications
+     index Jan-Jun 1984 has NO Niger cholera entry; infected-area list 28 Jun 1984 has no Niger. No row.
+  3  [IRIS fetch] WER 59(44) 2 Nov 1984 -> NIGER 8-14.X 4/0 (15-21.X 12/0 later revised) -> ROW 44.
+  4  [IRIS REST] WER vol.59 1984 annual index (Notifications of diseases subject to IHR): "Niger 220, 228, 236, 256, 296,
+     304, 328, 336, 344, 360" + page-to-issue mapping of Nos.27-52. Navigation. No row.
+  5  [IRIS fetch] WER 59(28) 13 Jul 1984 p.220 -> NIGER telegram 9 VII 13/0; Newly infected: Niamey Departement -> ROW 36.
+  6  [IRIS fetch] WER 59(29) 20 Jul -> NIGER 8-14.VII 5/0 -> ROW 37.
+  7  [IRIS fetch] WER 59(30) 27 Jul -> NIGER telegram 20.VII 1/0 = probable duplicate of 15-22.VII -> no row.
+  8  [IRIS fetch] WER 59(33) 17 Aug -> NIGER 15-22.VII 1/0; 23-29.VII 1/0 -> ROWS 38, 39.
+  9  [IRIS fetch] WER 59(38) 21 Sep -> NIGER 6-26.VIII 1/0 -> ROW 40.
+ 10  [IRIS fetch] WER 59(39) 28 Sep -> NIGER 26.VIII-16.IX 4/0; infected list Niamey Dept only -> ROW 41.
+ 11  [IRIS fetch] WER 59(42) 19 Oct -> NIGER 24-30.IX 23/0 (preliminary, superseded); NEWLY INFECTED Maradi + Zinder
+     Departements -> 2 PRESENCE records (Maradi, Zinder 1984-09-24..10-18). No row.
+ 12  [IRIS fetch] WER 59(43) 26 Oct -> NIGER 1-7.X 33/1; 24-30.IX revised 75r/7r -> ROWS 42, 43.
+ 13  [IRIS fetch] WER 59(46) 16 Nov -> NIGER 22-28.X 29/2; 15-21.X revised 39r/0 -> ROWS 45, 46.
+     (1984 weekly IHR notifications total ~206 cases/10 deaths vs annual 3,788/308 -> rows carry a magnitude caveat,
+      conf 0.7; value = timing (first IHR notice 9 Jul; Niamey Dept Jul-Sep; Maradi/Zinder from late Sep) + geography.)
+ 14  [ReliefWeb C174 river, desktop UA] search=cholera DO20250101-20261003 -> 20 hits incl. Niger Health Cluster bulletins
+     N1 (9 Apr 2026), N2 (19 May 2026), N4 (30 Aug 2026), UNICEF Niger SitRep No.3 end-2025, OCHA WCA weekly. Navigation.
+ 15  [ReliefWeb fetch + PDF] Niger Cluster Sante bulletin N4 2026 (30 Aug 2026; DSRE data) -> annual chart 2021 5591/166,
+     2022 71/1, 2023 0/0, 2024 1066/23, 2025 10/0, 2026 70/1; weekly 2026 S26 2, S27 3, S28 13, S29 18 (+1 death), S30 34;
+     70 suspected / 35 culture-confirmed / 1 death, ALL IN DIFFA REGION from 23 Jun 2026; Diffa health district 41 cases
+     11 CSI 23 Jun-21 Jul -> ROWS 47-51 (national weekly), 52 (Diffa cumulative, cCh 35), 53 (Diffa district), 54 (2025
+     annual 10/0).
+ 16  [ReliefWeb fetch + PDF] UNICEF Niger HSR No.3 end-2025 -> "cholera (10 cases)" in 2025 -> corroboration note on row 54;
+     no timing/location. No new row.
+ 17  [ReliefWeb fetch + PDFs] OCHA "West and Central Africa: Latest Events at a glance" 11-17 Aug, 18-24 Aug, 1-7 Sep 2026
+     -> Niger item = floods only (34,000 affected, 44 deaths); no Niger cholera. No row.
+ 18  [ReliefWeb fetch] KSrelief-WHO Lake Chad Basin cholera agreement (24 Sep 2026) -> Niger named in project only; no counts.
+ 19  [WebSearch #1, standard] "Niger cholera Diffa 2026 cas suspects aout septembre" -> only old-year articles (vidal.fr,
+     mesvaccins 6063: 1,365 cases/51 deaths in Tahoua/Maradi/Diffa/Zinder - a post-2013 year, NOT 2026). No row.
+ 20  [IRIS REST] WHO AFRO "Weekly Bulletin on Outbreaks and other Emergencies" 2026 -> fetched Week 36 (31 Aug-6 Sep 2026):
+     Niger events listed = diphtheria, hepatitis E, humanitarian crisis, measles; NO Niger cholera event, although the
+     Health Cluster reports 70 cases/35 culture-confirmed. No row.
+Sources found: 14   Registered: index 33-42 (WER 59(28),(29),(30),(33),(38),(39),(42),(43),(44),(46)), 43 (Health Cluster
+               bulletin N4 2026), 44 (UNICEF Niger HSR No.3 2025)
+Rows added   : 19   Indices: 36-54
+Presence added: 2 (AFR::NER::Maradi and ::Zinder 1984-09-24..1984-10-18, WER 59(42))
+Revisions    : row 33 (2026 zero) TR cut 2026-08-11 -> 2026-06-21 (contradicted by Diffa outbreak from 23 Jun 2026);
+               row 32 (2025 zero) Documented_Absence -> Inferred_Absence, conf 0.9 -> 0.4, CONFLICT note (2025 had 10
+               suspected cases per Health Cluster + UNICEF) - retract/split left to Agent 3; row 54 corroboration note.
+Successful queries: 9/20 (Q3, Q5, Q6, Q8, Q9, Q10, Q12, Q13, Q15)
+Yield        : 45%
+Consecutive sub-5% batches: 0
+NOTES FOR AGENTS 3/6: (a) WHO AFRO OEW wk36 2026 omits Niger cholera despite 70 Health-Cluster cases -> absence from WHO
+  event/sitrep lists is demonstrably NOT absence in Niger 2025-2026. (b) Health Cluster 2026 annual = sum of weeks 26-30
+  -> weeks 1-25 2026 positively zero. (c) 2022 conflict: Health Cluster 71/1 vs JHU UNICEF 142/1 vs WHO SURGE 68/2 (row 4).
+Decision     : CONTINUE (3-batch floor; yield high). Next: WER 1971 weekly series (largest epidemic), 1989/1991 weekly,
+               recent Aug-Oct 2026 follow-ups, academic retrospective reviews, IFRC DREFs.
