@@ -73,3 +73,176 @@ Productivity (new rows per 20 queries): A1 9.1, A2 13.1, A4 9.1, A3 1.6, A5 0.67
 VERDICT T3: no agent ran < 3 batches, none reported a yield > 100%, every stop matches the yield rule, every claimed row exists.
   One discrepancy: Agent 3 batch 12 logged 18 queries, not 20.
 
+=== T4 FOUR-STAGE VALIDATION (sampling far beyond the 10% minimum) ===
+Sample: 337 of 379 rows (89%) checked against the source text, stratified by agent:
+  legacy 2/2 (100%) | A1 74/96 (77%) | A2 157/157 (100%) | A3 19/19 (100%) | A4 62/82 (76%) | A5 22/22 (100%) | A6 1/1 (100%)
+  incl. EVERY row > 1000 cases (73/73) and EVERY zero row with confidence >= 0.8 (7/7: Index 42, 287, 288, 295, 299, 301, 303).
+  Not individually re-read: A1 60-61, 69-88 (1971-72 WER weekly lines) and A4 337-339, 353-369 (1971 WER weekly lines) - same
+  WHO notification stream in which ~150 sampled lines showed zero transcription errors.
+Per-row results: /tmp/SLE_orch/a7_sample.csv (scratch; Index, agent, stage results, how verified, note).
+Tools/routes used (all logged queries, Agent 7 has no batch budget):
+  - Python urllib/curl with desktop UA on ReliefWeb report pages + attachment PDFs (helpers /tmp/SLE_orch/a7_verify.py,
+    a7_tables.py, a1_rw.py), who.int DONs, cerf.un.org, afro.who.int PDFs, ecdc.europa.eu CDTR PDFs, africacdc.org downloads,
+    politicosl.com, ipsnews.net, sierra-leone.org archives, pmc.ncbi.nlm.nih.gov, Europe PMC REST fullTextXML.
+  - WHO IRIS DSpace REST (/tmp/SLE_orch/a7_wer.py): full WER issues re-fetched INDEPENDENTLY of the Wayback copies the agents
+    used: 1970 Nos 40, 44, 48; 1971 Nos 1-2, 3, 5, 6, 9, 12, 33, 47, 48; 1972 No.2; 1977 No.43; 1986 Nos 9, 11, 27, 39;
+    1994 Nos 36-42, 44, 48; 1995 Nos 1, 25, 26, 28, 30, 38; 1998 Nos 43, 44; 1999 Nos 2, 38, 41, 48; 2007 No.10; plus IRIS text
+    of 'Cholera in 1975', '1977', '1984', '1997', WER 1991 66(42), WHO AFRO OEW 2018 wk34. macOS Vision OCR (/tmp/SLE_orch/ocr/
+    pdfocr) + page-image crops (/tmp/SLE_orch/a7_crop.py, a7_c_*.png) read for every WER line that the OCR text left ambiguous.
+  - Internet Archive djvu text: JPRS-TEP-86-006, 87-010, 94-016 (item live, text HTTP 500 today -> Agent 2 copy), 94-017,
+    FBIS-AFR-95-133.
+  - Wayback (GTFCC 2013 profile: 200 on retry; other WER captures throttled 429 - see Stage 1).
+
+STAGE 1 - authentication / URL live (all 111 metadata entries cited by live data rows + 19 cited only by presence rows;
+  /tmp/SLE_orch/a7_urlcheck.py -> a7_urlcheck.csv):
+  98 URLs HTTP 200 with the expected document title (no soft-404 / challenge page); 32 Wayback captures returned 429 (rate
+  limit) or connection refusal today - throttling, not dead links: the same captures were downloaded by Agent 1 on 1-2 Oct
+  (local PDFs in /tmp/SLE_orch/a1_wer_*), 5 of them returned 200 for me (metadata 40, 46, 48, 56, 58) and every WER page they
+  hold was re-read from WHO IRIS. Slow retry (75 s spacing) running: /tmp/SLE_orch/a7_wbretry.csv.
+  Sample rows: 295 pass with a live direct fetch of the cited URL; 42 pass via an independent route (IRIS / agent copy) while
+  the cited Wayback URL was throttled = 337/337 (100%) authenticated. Durability notes: Index 20 cites ECDC's rolling monthly
+  page (current version no longer shows the cited May-2026 period; content consistent with the dated CDTR lists, caveat already on
+  the row); Index 301 cites a GHDx catalogue record -> direct PDF URL appended; ECDC CDTR week 31 PDF (part of metadata 33) now
+  404 (weeks 26 and 35 live; agent copy of wk31 read). No dead or fabricated URL found among live citations (the fabricated/dead
+  legacy URLs 11, 14 and the truncated 69 are Superseded and uncited).
+STAGE 2 - epidemiological bounds and date logic (programmatic, ALL 379 rows; /tmp/SLE_orch/a7_stage24.py):
+  0 unparseable dates, 0 TL>TR, 0 TR or reporting_date in the future, 0 reporting_date<TR, 0 deaths>sCh, 0 cCh>sCh, 0 CFR-column
+  mismatches (>0.1 pt), 0 confidence outside 0.1-1.0, 0 confidence above its source's reliability band, 0 non-zero rows > 2 years,
+  0 non-canonical locations, 0 citations of Superseded metadata, 0 source-label mismatches, every zero row carries an evidence
+  label + surveillance status, 0 Inferred_Absence rows above 0.7, every row has a 'Source states' quote. Pass 379/379 (100%).
+  CFR > 15%: the 6 validator WARNs (n >= 25) + 33 small-denominator rows (mostly 1970-71 WER weeks with 1-17 cases; WHO's 1970
+  annual itself is 293/74 = 25%). All as printed by the source.
+STAGE 3 - source agreement (value re-read in the source) and the >1000-case two-source rule:
+  337/337 sampled rows (100%) match the source text (cases, deaths, window, place). No transcription error found.
+  2012 district snapshots: all 151 rows (14 WHO/UNICEF, WHO AFRO, IFRC, CERF, IRIN documents) re-fetched and matched line by line;
+  the two image-only tables (24 Sep, 11 Sep 2012) were OCR'd and their 12 rows sum exactly to the printed totals (19,680/278;
+  17,319/259); independent second stream: JHU daily chiefdom series (UID 20355) cumulated to each snapshot date agrees within 6%
+  for every row > 1000 cases (median |diff| 0.4% over all 151 rows; Western Area runs 5-6% above JHU from mid-Oct).
+  >1000-case rule (73 rows): 58 district rows - second independent stream (JHU chiefdom series); Index 1, 27, 48, 50, 51, 401 -
+  second source in another document (JHU UID 20407/10016, WHO annual, WER, GTFCC, Nguyen); Index 56, 378 - WER + WHO annual (+ We
+  Yone 1987); Index 97, 99, 101 (1994), 105, 123, 127, 386 (1995) - the WHO weekly notification stream is the only source at the
+  window level, corroborated at outbreak level (AFP/JPRS 1994, FBIS/DHA 1995, WHO annual); Index 403 (Freetown 1,441/47) -
+  conflicting location vs SLBS (5 districts 1,396/57), already 0.5 and flagged. Rule judged met at outbreak level for all 73.
+  Interpretation issues found and acted on: Index 46 (Port Loko 'some 400 cases currently being treated' = prevalent, possibly
+  all-cause per IPS) -> 0.7 -> 0.6; Index 52 (Agent 3's 0.6 recommendation for the Bo 1990 conflict never applied) -> 0.6.
+  Judged and kept: Index 409 ('ten people had been affected at the Tesana Health Post' = 2 dead + 8 critically ill patients, not an
+  'affected population'); Index 340-343 C2 (WER No.12 34/1 kept over No.9 20/9 by Agent 5; note: WHO's 1971 annual deaths 13
+  match the No.9 version's deaths - both versions recorded on the rows, conf 0.6; JHU annual ranks first in 1971 so the choice
+  does not reach the weekly series).
+STAGE 4 - duplicates / overlaps / double counting (programmatic, ALL rows + review):
+  0 exact duplicates (repair tool and own key check), 0 rows sharing location+window, 0 identical-window groups where ADM1 sums
+  exceed the national row or districts exceed their province; 74 national/sub-national overlap groups all carry the double-counting
+  phrases (validator INFO 'documented'); every overlapping national case row carries a nesting / 'do not sum' / primary-series
+  phrase. Non-monotonic cumulative series (both documented by Agent 5): 2013 national 371 (Index 408, 4 Aug) -> 368 (406, 12 Sep);
+  Moyamba 2012 deaths 12 (136, 23 Aug) -> 9 (237, 28 Aug). Cross-stream (documented, not errors): 1999 OCHA Western Area 927 +
+  Port Loko >=400 exceed the WHO 1999 stream (766) - WHO annual is an undercount; 1998 WHO 2,053 vs SLBS 2,477. Pass 379/379.
+PASS RATES: Stage 1 337/337 sampled (100%; 32 cited Wayback captures throttled today, content re-read via IRIS) | Stage 2 379/379
+  (100%) | Stage 3 337/337 (100%; 2 rows re-weighted for interpretation) | Stage 4 379/379 (100%).
+
+=== T5 SPECIFIC ITEMS ===
+(a) Deaths-only rows: 7 rows (244 Kambia 1986 70 d; 245 Kambia 1994 15 d; 246 Freetown 1994 2 d; 248 Southern_Province 1994 60 d;
+    249 Bo 1995 33 d; 387 Bombali Mar 1999 15 d; 404 Malal Mara 2012 7 d). DECISION: KEEP all 7 (consistent). Reasons: CLAUDE.md
+    admits death counts ('cases, deaths, or CFR'; 'death counts'); validator accepts; repair tool quarantines only rows with no
+    deaths/sCh/cCh; py/build_weekly_timeseries.py lines 400 and 417 skip blank-sCh rows ('do NOT emit a zero') - verified by reading
+    the code - so they cannot create false zeros; moving them to presence would reduce the count to free text. All 7 sources
+    re-verified. Rejected: retract + add-presence. Decision note appended to all 7 rows (--agent 7).
+(b) Presence records contradicted / legacy (no tool verb to annotate or retire presence rows - NOT hand-edited; listed in the report):
+    Northern_Province 1997-06-25..27 (metadata 96, Makeni '320 children') contradicted by the same-week ICRC assessment;
+    Northern_Province::Tonkolili 2000-07-27..29 (metadata 104, Bumbuna 45 deaths) refuted ('confirmed to be false', UNICEF Aug 2000);
+    Western_Area_Urban 1999-01-17..21 (metadata 169) contested by USAID #7; AFR::SLE 1994-1995 (metadata 6, Superseded) and
+    AFR::SLE 1970 (metadata 18, now Superseded by Agent 7) - legacy records redundant with counted data, citing retired entries.
+(c) '[AGENT 5 REVISION]' stamps on notes written by Agent 3 (Index 289, 290, 302): confirmed - revise_observation.py defaults
+    --agent to 5; the note text itself names Agent 3. Documented, not rewritten.
+(d) CFR WARNs - denominators checked in the sources: Index 24 (IRIN 14 Sep 1999: '14 deaths and 29 cases ... 9-10 September ... Port
+    Loko'), 39 (IFRC DREF table Kambia wk41 50/12, CFR printed 24.00%), 54 (WER 1986 No.9 telegram 21.II 517/100), 55 (WER 1986
+    No.11 telegram 10.III 890r/171r), 313 and 317 (WER 1971 No.6 p.55 lines 198/43 national = sum of 5 lines; Northern 60/33). All six
+    share one statement / table line for cases and deaths; all genuine as reported; confidence <= 0.7; context documented. Kept.
+(e) Weekly-builder caveat confirmed with the in-memory builder (/tmp/SLE_orch/a7_weekly_summary.py): 1997 W21-52 = 31
+    assumed_zero (src none, conf 0.5) + 1 inferred_zero; 2014 W21-52 = 31 assumed_zero + 1 inferred_zero. Not changed (no pipeline
+    edits); stated in the report.
+(f) Baseline (read-only) issues: listed in the report (JHU UID 10016 deaths 269 = 296 transposed; 2015 W1-35 UNICEF zeros = blank-to-
+    zero, and the builder reads them as 35 'observed' JHU zero weeks; UID 68 2004 1,747/47 unexplained; 2011 WHO 'phantom' zero vs
+    Nov-Dec 2011; 1977 12/0 vs WHO 23 October-only; 1998 2,096 vs 2,053 stream; 2013 deaths 32 doubtful; UID 60 Bonthe Jan 2006 18
+    deaths called diarrhoea by the source; 1978 zero while Freetown stayed on WHO's infected-area list to >= 26 May 1978).
+(g) Open: 2026-09-29..2026-10-02 (no source after 28 Sep; Africa CDC 24/28 Sep issues checked - SLE absent from cholera, present in
+    measles/mpox lists); WER 1970 No.41 p.465 unreachable.
+
+=== REVISIONS APPLIED BY AGENT 7 (all via py/revise_observation.py --agent 7) ===
+  Index 46  confidence 0.7 -> 0.6 + note (sCh 'some 400 cases currently being treated' prevalent / possibly all-cause)
+  Index 52  confidence 0.7 -> 0.6 + note (Agent 3's recommendation for the Bo May 1990 conflict, never applied)
+  Index 301 note: direct URL of the MoHS/WHO AFRO bulletin behind the GHDx catalogue citation
+  Index 244, 245, 246, 248, 249, 387, 404  note: T5(a) deaths-only decision (kept)
+  metadata 18, 20, 21 -> Superseded (unused generic fact sheet / misdescribed generic health-topic page / Wikipedia), descriptions
+    prefixed with the reason. No row added, none deleted, no source registered.
+Validator after revisions: exit 0, ERROR 0, WARN 6, INFO 151 (/tmp/SLE_orch/a7_mid_audit.json).
+
+=== T6 COVERAGE IMPACT (read-only: helper + in-memory module calls; nothing written to ./reference) ===
+  cycle start (start copy of the AI file + current JHU): 65.8% (449/682), months_ai 209, months_ai_only 41, positive months 196,
+    5 gaps: 1972-76, 1979-85, 1988-93, 2010, 2026-06-01..10-02; latest obs 2026-05-31, latest positive 2018-06-17
+  now: 97.8% (667/682), months_ai 424, months_ai_only 260, positive months 197, 2 gaps: 1997-06..12, 2014-06..12 (NON_REPORTING by
+    Agent 6, empty on purpose); latest obs 2026-09-28, latest positive 2018-06-17
+  baseline only (JHU; no WHO file): 59.4% (405/682), 8 gaps (1972-76, 1979-85, 1988-93, 1997, 2010, 2014, 2018-10..12, 2025-01..2026-10)
+  Month attribution now: 407 covered months touched by JHU; 260 covered ONLY by AI ZERO rows; 0 covered only by an AI positive count.
+    AI-zero-only months by carrying row: 289 (84, Inferred 0.55), 290 (60, Inferred 0.55), 52 (36, Documented 0.6), 53 (36,
+    Documented 0.6), 20 (17, Documented 0.7), 287 (12, Documented 0.8), 293 (5, Inferred 0.45), 292 (5, Inferred 0.5), 42 (3, 0.8),
+    291 (1, 0.75), 302 (1, 0.75). Inferred rows carry 154 months; rows at confidence <= 0.6 carry 226 months (33% of the 682-month
+    series); four rows (289, 290, 52, 53) carry 216 months. Coverage without Inferred_Absence rows would be 75.2%; without zero rows
+    at confidence < 0.7, 64.7%.
+  The +1 positive month is July 2000 (Index 129, MSF Kenema ~100 clinical cases, conf 0.4, contested).
+  Weekly series (in-memory builder, 2,962 weeks 1970-2026 W40): AI drives 1,135 weeks - 467 documented_zero, 667 inferred_zero, 1
+    'observed' 7-day zero row; NO AI positive count reaches the national weekly series (JHU annual totals rank first). 63 weeks are
+    assumed_zero (1997 and 2014 NON_REPORTING windows); 778 weeks are JHU annual totals spread by Fourier.
+
+  Weekly builder - cases placed BEFORE documented onsets (in-memory builder, /tmp/SLE_orch/a7_onset.py; JHU annual totals are
+    Fourier-spread over the whole year and rank above AI rows, so the AI onset/zero rows cannot constrain them):
+    1970: 192 of 293 (65.5%) before 17 Sep 1970 (WHO: West Africa cholera-free until Aug 1970; Index 299)
+    1977: 8 of 12 before 1 Oct 1977 ('October only'; Index 304)      1994: 3,546 of 9,709 (36.5%) before 1 Aug 1994 (Index 298)
+    2004: 705 of 1,747 (40.4%) before 2 Aug 2004 (Index 294) - and the year total used is JHU UID 68's unexplained 1,747, not the
+          best-sourced outbreak total 633/56 (Index 128) or WHO 513/42
+    1998: 595 of 2,096 before 19 Jul 1998; 1999: 460 of 863 before 1 Sep 1999 (some early-1998/early-1999 activity is documented)
+    2006: 1,210 of 2,699 before 20 Aug 2006 (JHU 2006 may include the Jan Bonthe and Jun-Jul Kenema events)
+    Also: 2015 W1-35 enter as 35 'observed' JHU zero weeks at confidence 0.9 (Agent 6: blank-to-zero conversions);
+    2026 W40 (28 Sep-4 Oct) is rendered documented_zero from Index 302, which covers only Monday 28 Sep.
+  Pipeline behaviour only - nothing changed (no py/ edits); stated in the report as caveats and recommendations.
+
+=== STAGE 1 SUPPLEMENT (Wayback) ===
+  Slow retry (/tmp/SLE_orch/a7_wbretry.py, 75 s spacing, 2 attempts per URL): metadata 40 -> 429, 42-44 -> connection refused;
+  stopped after 4 URLs (no orphan process left). archive.org availability API (/tmp/SLE_orch/a7_wbavail.csv): 429 for all 32.
+  => the whole Wayback service is rate-limiting this machine today (agents saw the same since 1 Oct). Evidence the captures resolve:
+  31 of the 32 throttled captures exist as genuine PDFs that Agent 1 downloaded from those URLs on 1-2 Oct (a1_wer_*.pdf, a1_cp2013.pdf);
+  5 Wayback captures returned 200 to Agent 7 today (40 on a manual retry, 46, 48, 56, 58); every WER page they hold was re-read from IRIS.
+  The one without a local copy (metadata 92) backs presence records only.
+  Report correction (weekly builder): the 1997 NON_REPORTING window renders as 32 assumed_zero weeks (1997 W22-52 + 1998 W1,
+  29 Dec 1997-4 Jan 1998); with 2014 W22-52 (31) that is 63 assumed_zero weeks. 1970-71 WER weekly rows = 128.
+
+=== T7 REPORT ===
+  ./data/SLE/search_report.txt OVERWRITTEN (legacy kept read-only at ./data/SLE/search_report_legacy_20260515.txt): executive summary
+  (bottom line, additions, coverage, gaps, quality, agents, modeller caveats, recommendations) + appendix A-M (files, per-agent table,
+  coverage table, inventory, zero rows, retractions, validator, 4-stage detail, primary series, Agent 7 decisions, known defects,
+  baseline issues, weekly-builder caveats).
+
+=== T8 STATE AND GATE ===
+  write_agent_state('SLE', agent_num=7, batches_completed=14, batch_yields=[], rows_added=0, sources_discovered=0, ...) - orchestrator
+  key verified unchanged after the write. 14 = ~273 logged verification queries / 20 (130 scripted URL checks + ~143 source re-reads).
+  Final validator: python py/validate_quality.py SLE --json /tmp/SLE_post_audit.json -> exit 0 | 379 rows | 188 sources |
+  ERROR 0 | WARN 6 | INFO 151.
+
+=== FINAL SUMMARY - AGENT 7 (cholera-quality-auditor) - SLE ===
+Validator      : before ERROR 0 / WARN 6 / INFO 151 -> after ERROR 0 / WARN 6 / INFO 151 (WARNs = genuine source-reported CFR flags on
+                 Index 24, 39, 54, 55, 313, 317; denominators confirmed in the sources; all <= 0.7 and documented).
+Repair tool    : --dry-run SLE -> 0 changes; --apply not needed; no attribution_review.csv.
+Sample         : 337/379 rows (89%); all 73 rows > 1000 cases; all 7 zero rows >= 0.8. Pass: S1 337/337, S2 379/379, S3 337/337,
+                 S4 379/379. No transcription error found anywhere.
+Revisions      : Index 46 0.7->0.6 (prevalent / possibly all-cause '400 cases'); Index 52 0.7->0.6 (Agent 3's unapplied Bo 1990 re-weight);
+                 notes on 301 (direct bulletin URL) and on 244, 245, 246, 248, 249, 387, 404 (deaths-only rows kept - T5a); metadata 18, 20,
+                 21 -> Superseded. Rows added 0, retracted 0, sources registered 0.
+Agent findings : all collectors >= 3 batches, no yield > 100%, every stop per the yield rule, every claimed row present; Agent 3 batch 12
+                 logged 18 of 20 queries.
+Coverage       : 65.8% (449/682) at cycle start -> 97.8% (667/682); baseline-only 59.4% (405/682); months_ai_only 41 -> 260, ALL on zero
+                 rows (154 months on Inferred_Absence; 226 months on rows <= 0.6; 4 rows carry 216 months); positive months 196 -> 197
+                 (Jul 2000, contested). 5 cycle-start gaps closed by zero rows, none by counts; 2 NON_REPORTING gaps left empty on purpose.
+Known defects  : see ./data/SLE/search_report.txt Appendix K-M (contradicted presence records, tooling stamps, citation durability,
+                 weekly-builder assumed_zero / Fourier pre-onset placement / 2015 observed zeros / 2004 JHU 1,747).
+End Time       : 2026-10-02 (local PDT)
+=== AGENT 7 CLOSE ===
+End Time (exact): 2026-10-02 17:52:48 PDT
