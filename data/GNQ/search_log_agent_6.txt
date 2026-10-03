@@ -1,145 +1,51 @@
-=== AGENT 6 INITIALIZATION ===
+=== AGENT 6 (GAP CONTEXT INVESTIGATOR) INITIALIZATION ===
 Country: Equatorial Guinea (GNQ)
-Start Time: 2025-01-24 17:25:00
-Agent 6 Status: INITIALIZED
+Cycle: 2026-10-01 Opus 5.5 re-run
+Start: 2026-10-02 (local session; the prior-cycle Agent 6 log of 2025-01-24, which was a quality-audit log, is overwritten per house rule 7)
+Status: INITIALIZED
+Scratch directory: /private/tmp/gnq_a6 (read-only use of /private/tmp/gnq_a4*, /private/tmp/gnq_a5)
 
-OBJECTIVE: Final quality audit & comprehensive validation - validate data quality, cross-reference sources, finalize dataset
-REQUIREMENT: No query limit - complete validation until all quality objectives achieved
-MANDATE: Create brief search_report.txt summarizing key outcomes
+=== PRE-SEARCH (Agent 6) ===
+Read in full: ./templates/template_search_protocol.txt, ./.claude/agents/gap-context-investigator.md,
+  ./data/GNQ/workflow_state.json (Agents 1-5, orchestrator decisions incl. the three made after Agent 5, gates, resume note),
+  ./data/GNQ/cholera_data_ai.csv (40 live rows), ./data/GNQ/metadata_ai.csv (78 sources), ./data/GNQ/cholera_presence_ai.csv (17),
+  ./data/GNQ/retracted_rows_ai.csv (Index 1, 3, 4, 5, 6, 35), ./data/GNQ/cholera_data_jhu.csv (19 rows, read-only) +
+  ./data/GNQ/metadata_jhu.csv, ./data/GNQ/workflow_orchestrator_GNQ.txt, ./data/GNQ/search_log_agent_3.txt (in full, incl. the
+  zero-grading table), final summaries of ./data/GNQ/search_log_agent_1.txt, _2.txt, _4.txt, _5.txt (Agent 5 log read in full).
+Gap file NOT regenerated (house rule 1). Read-only recompute (analyse(), JHU+WHO+AI) at start:
+  coverage 39.7% (271/682 months), months_ai 182, months_ai_only 67, positive-case months 62, 5 gaps:
+  1970-01-01..1973-02-28 1155d historical | 1974-01-01..1983-12-31 3652d historical | 1986-01-01..2003-12-31 6574d modern |
+  2007-01-01..2007-12-31 365d modern | 2022-01-01..2023-12-31 730d modern
+validate_quality.py GNQ at start: ERROR 0 WARN 0 INFO 55 (exit 0).
+Tooling check: py/revise_observation.py writes a tombstone to ./data/GNQ/retracted_rows_ai.csv ONLY on --delete; --tl/--tr narrowing
+  leaves its audit trail in processing_notes only. House rule 3 requires narrowings to leave a tombstone in retracted_rows_ai.csv, so a
+  narrowing is executed as RETRACT (--delete, full original row tombstoned) + RE-ADD of the surviving years via add-zero (new Index).
+  Such re-adds are narrowings, NOT new rows, and are not counted toward yield.
 
-VALIDATION METHODOLOGY:
-- Quality audit of all extracted data observations
-- Cross-reference validation of sources
-- URL verification and accessibility
-- Data integrity and consistency checks
-- Final dataset optimization
-- Comprehensive search report generation
+TASKS (orchestrator brief):
+  T1 Index 31 (2008-2010 Inferred 0.4): 2008 meets the emptying test; check 2009 and 2010 separately; narrow or retract.
+  T2 Same test, year by year, for Index 32 (2012-2014 Inferred 0.5) and Index 34 (2017-2019 Inferred 0.6).
+  T3 Do not touch 2026 rows (7, 11, 33, 36, 37, 41), Bioko 1984-88 rows (38, 39, 40), documented zeros (29, 30, 44, 46) unless direct
+     counter-evidence; do NOT execute the Index 13/43 duplicate decision (Agent 7).
+  T4 Classify every remaining gap >= 6 months (P1-P11): TRUE ABSENCE / NON-REPORTING WITH CHOLERA PRESENT / NON-REPORTING (UNKNOWN) /
+     MIXED BY SUB-PERIOD, with confidence and key quotes.
+  T5 Leads: ASODEGUE continuation pages 2008-2012 (/private/tmp/gnq_a5/aso/targets_cont_b.txt, _c.txt); AEO 2008 'poor country'
+     diseases chapter; Spanish BES 2007-2010 imported cholera by origin; Cholera_WCA 2015/2016; Africa CDC 27 Sep 2026 + AFRO wk 37-39;
+     Spanish press 1986-2003; French 'Guinee equatoriale cholera 1991'; AECID/Medicus Mundi; PNUD/UNICEF 1990s; Google Books;
+     AFRO RD 1994-95/1996-97; MSF-E 1999; March 2003 consular line; 2022 Black Beach (one outbreak or two; any case count).
 
-=== QUALITY AUDIT PHASE 1: Data Validation ===
-Audit Start Time: 17:25:00
-Focus: Validate cholera_data.csv entries, cross-reference with metadata.csv, ensure data integrity
+THE ORCHESTRATOR RULE (applied verbatim to every Inferred_Absence year):
+  'A year keeps an inferred zero only if no WHO, AFRO or government source documents either that GNQ cholera/IDSR surveillance was not
+  operating, or that no cholera data were received from GNQ for that year. EPI measles, yellow fever and polio counts show partial
+  activity but do not override an explicit non-operation statement. Cholera-specific negative findings can support a year: negative
+  RDTs, or a Ministry statement that no case was detected.'
+  Reading applied by Agent 6: the statement must be GNQ-specific and must refer to the year in question (a document's present tense
+  applies to the period its situation analysis describes, established from its own dating); statements about reliability or
+  weakness alone ('not sufficiently reliable', 'insuffisances') are recorded but do not empty a year; statements about a different
+  surveillance system (e.g. AFP only) do not count either way.
 
-CURRENT DATASET STATUS:
-- cholera_data.csv: 6 total observations (1 outbreak + 5 zero-transmission periods)
-- metadata.csv: 5 source references with dual-reference indexing
-- Coverage span: 1980-2025 (45-year comprehensive coverage)
-- Cholera-free validation: 20-year period (2006-2025) + 25-year historical absence (1980-2005)
+QUERY COUNTING: every WebSearch, database/API/full-text/CDX search = 1 query; one re-mining pass of a registered source for a new
+  period = 1 query; fetching/reading a hit found by a query = extraction (not a new query). WebSearch allowance <= ~90 calls of the
+  shared session budget; after that direct fetches/APIs only. Yield counts only queries that commit >= 1 NEW row (incl. add-zero)
+  to ./data/GNQ/cholera_data_ai.csv; retractions, narrowings (incl. their re-adds), classifications and presence entries do not count.
 
-DATA VALIDATION FINDINGS:
-✓ Dual-reference indexing system: source_index column matches metadata Index column exactly
-✓ Source attribution: All data observations have corresponding metadata entries
-✓ Geographic consistency: All locations use AFR::GNQ format correctly
-✓ Temporal logic: TL ≤ TR for all observations, reporting_date ≥ TR
-✓ Zero-transmission documentation: Properly documented with 0 values, appropriate confidence weights
-✓ Historical cholera outbreak: 2005 outbreak properly documented with WHO confirmation
-✓ Confidence weights: Appropriately assigned (0.8-1.0 range) based on source reliability
-✓ Processing notes: Include exact source quotes supporting interpretations
-
-CRITICAL VALIDATION FINDINGS:
-- Single cholera outbreak documented: 2005 Malabo epidemic (15 deaths, 946 cases, CFR 1.6%)
-- Comprehensive absence validation: 45-year period with 5 zero-transmission observations
-- WHO surveillance exclusion: Confirmed by multiple Level 1 sources
-- Regional comparison validation: Cross-border analysis confirms GNQ cholera-free status
-- Epidemic intelligence excellence: GNQ among top performers for WHO EIOS detection
-
-=== QUALITY AUDIT PHASE 2: Source Verification ===
-URL Verification Start Time: 17:30:00
-Focus: Validate source accessibility, cross-reference information, ensure citation accuracy
-
-SOURCE VERIFICATION RESULTS:
-❌ The New Humanitarian 2005 Report: URL accessible but 403 forbidden (content access restricted)
-❌ Lancet Global Health Cholera Seasonality Study: URL accessible but 403 forbidden (paywall/subscription required)
-✓ BMC Public Health Cameroon Cholera Study: VERIFIED - Confirms "Equatorial Guinea last reported in 2005"
-✓ WHO AFRO Cholera Surveillance Reports: VERIFIED - GNQ NOT listed among 14 cholera-affected countries (July 2024)
-❌ American Journal Tropical Medicine EM-DAT Study: URL accessible but 403 forbidden (paywall/subscription required)
-
-CRITICAL VERIFICATION FINDINGS:
-- 60% of sources verified successfully (3/5 URLs accessible with content)
-- BMC Public Health study CONFIRMS 2005 last cholera report for GNQ
-- WHO AFRO surveillance CONFIRMS GNQ exclusion from current cholera-affected countries
-- Two premium journal sources blocked by paywalls but metadata preserved
-- One humanitarian source blocked but historical context validated through other means
-
-SOURCE RELIABILITY REASSESSMENT:
-- BMC Public Health (Level 1): Peer-reviewed confirmation of cholera-free status ✓
-- WHO AFRO (Level 1): Official surveillance validation of current status ✓
-- Restricted access sources maintain Level 1-2 ratings based on institutional credibility
-- Cross-validation through accessible sources confirms key data points
-- Source diversity includes academic, WHO official, and regional comparative studies
-
-=== QUALITY AUDIT PHASE 3: Data Integrity Validation ===
-Data Integrity Check Start Time: 17:35:00
-Focus: Mathematical consistency, epidemiological plausibility, temporal logic validation
-
-DATA INTEGRITY ASSESSMENT:
-✓ Mathematical Consistency: CFR calculation (15/946 × 100 = 1.6%) accurate
-✓ Epidemiological Plausibility: CFR 1.6% within normal cholera range (0.1-15%)
-✓ Temporal Logic: All TL ≤ TR relationships correct
-✓ Geographic Coding: AFR::GNQ format consistent throughout
-✓ Source Indexing: Perfect dual-reference alignment (source_index ↔ Index)
-✓ Confidence Weights: Appropriate range (0.8-1.0) for source reliability levels
-✓ Zero-Transmission Logic: Absence periods properly documented with evidence
-✓ Historical Consistency: 45-year timeline coherent and validated
-
-FINAL DATA QUALITY SCORE: 95% (Excellent)
-- Points deducted for limited source accessibility (paywalls/restrictions)
-- Core data integrity: 100% validated
-- Cross-reference validation: 100% successful where accessible
-- Epidemiological plausibility: 100% validated
-
-=== QUALITY AUDIT PHASE 4: Final Dataset Optimization ===
-Dataset Finalization Start Time: 17:40:00
-Focus: Optimize final dataset, generate search report, complete workflow documentation
-
-FINAL DATASET SUMMARY:
-Total Data Observations: 6
-├─ Cholera Outbreak: 1 (2005 Malabo epidemic)
-└─ Zero-Transmission Periods: 5 (comprehensive absence validation)
-
-Coverage Timeline: 1980-2025 (45-year span)
-├─ Historical Absence: 1980-2005 (25-year pre-outbreak)
-├─ Single Outbreak: 2005-02-11 to 2005-02-25 (15 days)
-└─ Current Absence: 2006-2025 (20-year cholera-free)
-
-Source Portfolio: 5 institutional references
-├─ Level 1 Sources: 4 (WHO AFRO, BMC Public Health, Lancet, AJTM)
-└─ Level 2 Sources: 1 (The New Humanitarian)
-
-Quality Metrics:
-├─ Data Integrity: 100% validated
-├─ Source Verification: 60% accessible, 100% credible
-├─ Cross-Reference: 100% successful validation
-└─ Epidemiological Plausibility: 100% confirmed
-
-=== SEARCH REPORT GENERATION ===
-Report Generation Time: 17:45:00
-
-✓ Search Report Created: search_report.txt
-Content Summary:
-- Executive summary of 6-agent workflow execution
-- Key findings: 6 data observations, 45-year timeline coverage
-- Quality assessment: 95% final score with detailed validation
-- Surveillance infrastructure documentation
-- Gap-filling impact analysis
-- Limitations and recommendations
-- Workflow performance metrics
-
-=== AGENT 6 COMPLETION ===
-Agent 6 Status: COMPLETED
-Completion Time: 17:50:00
-
-FINAL VALIDATION SUMMARY:
-✓ All data observations validated for mathematical consistency
-✓ Source reliability confirmed through cross-reference analysis  
-✓ URL verification completed with accessibility assessment
-✓ Zero-transmission periods properly documented with evidence
-✓ Cholera-free status validated through WHO surveillance exclusion
-✓ Regional epidemiological context confirmed through academic studies
-✓ Search report generated with comprehensive workflow summary
-✓ Dataset optimized for MOSAIC modeling integration
-
-TOTAL AGENT 6 EXECUTION TIME: 25 minutes (17:25:00 - 17:50:00)
-VALIDATION QUERIES: 5 WebFetch operations for source verification
-DELIVERABLES: Comprehensive quality audit + search_report.txt generation
-
-Agent 6 End Time: 17:50:00
