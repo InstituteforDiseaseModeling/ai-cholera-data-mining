@@ -56,3 +56,184 @@ Command : python py/repair_data_integrity.py --dry-run MLI --log /tmp/MLI_a7/rep
 Result  : TOTAL 0 change(s) proposed (no label normalisation, no quarantine, no multi-year or high-CFR downweight,
           no duplicate merge, no attribution flags). --apply NOT run (nothing to apply).
 ./data/MLI/attribution_review.csv: does not exist and is not created (0 review items). Nothing to resolve.
+
+=== CHECK 3 | ZERO ROWS (worklist item 2) | 2026-10-03 06:55 ===
+162 zero rows (83 national, 79 sub-national); 0 rows without any count (no count-less row in cholera_data_ai.csv).
+Evidence labels (canonical first 'Evidence type:' token, the one py/build_weekly_timeseries.py reads):
+  Documented_Absence 131, Inferred_Absence 31, Surveillance_Gap 0. On every relabelled row (31, 314, 315, 347; 231,
+  316, 882 mention both labels) the canonical token equals the final adjudicated label.
+Surveillance status: 159 rows carry 'Surveillance system status during absence: operational|partial'; rows 5, 7, 31
+  did not (5 'functional', 7 none, 31 'partial/unknown') -> CHANGED: standard phrase appended (--agent 7):
+  Index 5 operational, Index 7 operational (with Q4-2000 caveat + JHU-override note), Index 31 partial.
+Against Agent 6's surveillance-gap list:
+  - 1971-11-28..1972-01-07, 1973-12-09..31, 1984-11-01..04, 1984-11-26..12-09, 1984-12-31, 1985-01-01..06,
+    1987-01-01..10-06, 1987-11-26..12-31, 1986-09-15..12-31, 2008-06-16..29, 2026-09-29 onward: NO zero row. OK.
+  - 1974-H2: row 888 (Inferred, 0.4) - arithmetic inference from WHO totals (1974 annual = H1 total); Agent 6 kept it
+    below the assumed-zero level on purpose; JHU 1974 annual overrides it in the weekly series anyway. Kept.
+  - North 1990-96: national rows 308-312 (Inferred 0.45-0.5, status partial, northern rebellion caveat in every note),
+    285 (Documented, DNS), 841 (Kidal 1995-2005, explicit thesis statement 'a Kidal on n'a enregistre aucun cas',
+    separate from the corrupted 1997 column). Kept as documented.
+  - North Apr 2012-Jan 2013: national 361, 362, 319, 314 rest on positive weekly/explicit zeros (Regional Cholera
+    Platform, DNS 7 Jun 2012, OCHA/Protection Cluster) and carry the northern-occupation caveat; Gao district 1033/1034
+    are outbreak-mode zeros. Kept.
+  - 17 Aug-28 Sep 2026 (SISE cholera field null): rows 222 (0.45), 223 (0.5), 380 (0.5), 379 (0.45), all Inferred_Absence,
+    status partial, each note states the cholera-specific national null. Basis: Africa CDC weekly MoH-sourced list
+    (Mali's MoH reported other diseases to Africa CDC in the same weeks), ECDC to 28 Sep, WHO to 30 Aug, no neighbour
+    with cholera, Council of Ministers briefings dengue only. NOT Surveillance_Gap zeros; Agent 6 (owner, with
+    retraction authority) classed the window 'Inferred absence of a declared/notified outbreak with a cholera-specific
+    national publication gap' and downweighted rather than retracted. KEPT. DISCREPANCY RECORDED: the orchestrator's
+    A6-gate line lists this window under 'surveillance gaps (no zero rows)'; four zero rows exist. These rows turn six
+    recent weeks from NA into zeros (0.45-0.5) in the weekly series - flagged in the report as the most consequential
+    judgement call of the recent era.
+Zero-vs-positive contradiction scan (zero row vs positive AI/JHU row at the same or a lower level, overlapping):
+  256 overlaps; 249 are zero sub-periods partly overlapping cumulative/annual totals, each annotated in the zero row.
+  7 fully nested: 7 vs JHU 15 (2000 Malawi mislabel, documented); 890 vs 147 (documented same_period pair);
+  361 vs 1006-1009 (documented both sides, sub-national at 0.3-0.5); 844 vs 1006 (NOT documented) -> CHANGED:
+  conflict record appended to Index 844 (PRIMARY) and Index 1006 (NON-PRIMARY).
+  Boundary case checked, consistent: 313 (Gao zero from 22 May 2013) vs 842/148 (week 21 ends 26 May; OCHA 'no cases
+  since 21 May', ICRC 'since 23 May, no new cases') - the ISO-week TR is not the case date. No change.
+
+=== CHECK 4 | DUAL REFERENCE + METADATA HYGIENE (worklist item 3) | 2026-10-03 07:05 ===
+Validator dual-reference checks: 0 orphan source_index, 0 name mismatches, metadata Index 1-418 contiguous.
+Presence file (validator does not check it): 85 rows, 0 orphan indices, 0 name mismatches, 0 bad dates/locations.
+Superseded 20, 117, 176: cited by 0 live rows, 0 presence rows, 0 tombstones. OK.
+Metadata 1 = Tauxe RV et al. 1988 (label 'Merson et al 1988 Epidemiology Infection'), metadata 2 = Dao S et al. 2009
+  (label 'Dembele et al 2009 Sante Publique Cairn'): descriptions carry Agent 5's LABEL ERROR notes; labels kept because
+  the tooling cannot rename a Source without rewriting the 7 + 7 citing rows' source column. Recorded for the report.
+Metadata 12 (UNICEF/Regional Cholera Platform Mali factsheet, plateformecholera.info): verified 2026-10-03 that the URL
+  redirects to https://www.geoffroy-guichard.com/ with title 'INDOSLOT303 # Situs Slot Gacor ...' (gambling spam).
+  Wayback CDX: captures 20240718173418 (interstitial only) and 20250516173136 (genuine page; text 'Entre 2003 et 2017
+  ... 6 864 cas avec 474 deces' checked). 0 live rows cite it (former rows 28-30 retracted by Agent 3).
+  CHANGED (revise_observation.py --meta-index 12): Description now carries a LINK WARNING with the verified Wayback URL
+  and the 2000-mislabel content caveat; Status Active -> Superseded (tool's documented use: URL found wrong, so no
+  future agent re-cites it). The URL field cannot be edited with the tooling.
+  Cross-country note (read-only grep): BEN, BFA, CIV, COD, GHA, GIN, GNB, GNQ, MRT, SSD, TGO metadata also cite live
+  plateformecholera.info URLs - for the pipeline owners; not touched.
+attribution_review.csv: none for MLI (repair dry-run raised 0 attribution items).
+URL check (in-memory call of py/check_urls.check_url; check_urls.py main() NOT run, it writes ./reference/):
+  418 URLs: 388 OK on first pass; 30 re-tested sequentially with GET:
+  - recovered (transient): 5 Wayback WER PDFs (22, 28, 32, 35, 36), 11 IRIS bitstreams (228, 229, 237-240, 252-255,
+    409), Wayback .xls 329 -> 405 of 418 reachable.
+  - bibliosante.ml 503 (outage): 189, 205, 206, 207, 208, 209, 277, 313 (content was read earlier by Agents 1-4).
+  - bot-blocked 403 (not dead): 8 (unicefusa.org), 261 (europepmc Cloudflare), 290 (PubMed search URL).
+  - dead 404: 297 (sante.gov.ml communique 1409), 393 (afrol.com 11583); both uncited evidence sources.
+  - off-domain redirects: 12 (hijack, above); 40-42 apps.who.int -> iris.who.int (legitimate WHO migration).
+  CHANGED (descriptions only, uncited entries): 290 -> PMID 3854707 (verified via E-utilities); 297 -> verified
+  Wayback 20180130010514 copy; 393 -> verified Wayback 20040628000816 copy.
+
+=== CHECK 5 | REVISION AUDIT TRAIL (worklist item 4) ===
+Revision stamps parsed from processing_notes; stamp agent vs agent named in the reason text:
+  '[AGENT 5 REVISION 2026-10-01]' x10 and '[AGENT 5 REVISION 2026-10-02]' x30 = 40 stamps on 33 rows were written
+  by AGENT 1 (each reason starts 'Agent 1:' or 'REVISED (Agent 1, batch N)'): Index 32, 34, 39, 50, 69, 145, 146, 148,
+  188, 199, 221, 222, 223, 227, 228, 231, 232, 233, 258, 282, 283, 284, 285, 292, 293, 314, 315, 319, 363, 364, 365,
+  366, 367. Cause: py/revise_observation.py --agent defaults to 5. Agent 5's own stamps are all dated 2026-10-03.
+  Every other stamp's date falls inside its agent's run window. Decision: documented here and in the report; no
+  33 extra stamps appended (each stamp's own reason text already names Agent 1, so adding notes would add noise).
+
+=== CHECK 6 | LOCATION CONVENTIONS (worklist item 5) ===
+Depth: national 401, region 199, cercle/district 457, level-5 88, level-6 13 rows; 132 distinct sub-national codes;
+  no non-ASCII codes. ADM1 segment always one of the 9 pre-2023 regions (no post-2023 region code anywhere; all
+  2023-2026 rows are national). 45 cercle units, each under its pre-2023 region (e.g. Koulikoro::Nara, Kayes::Nioro,
+  Segou::San, Sikasso::Koutiala, Gao::Menaka, Tombouctou::Niafunke/Goundam/Dire); 1971 rows whose 1971 region differed
+  (Nara in Bamako Region, Goundam/Dire in Gao, Niafunke in Mopti) are mapped to the 1977-2023 region and say so.
+Level 5/6: Region::District::Health area::Village is used consistently for Gao district (Wabaria::<village>) and Nara
+  (Sampaga::<village>, Boulal::Fofara). Ansongo mixes: 3 villages under their health area (Ansongo ville::Ansongo,
+  Bentia::Bentia, Ouattagouna::Ouatagouna) and 7 at level 5 directly under the district (Bagoundje, Fafa Gourma,
+  Fissakaden, Gadeye, Hara, Katakembe, Tansinane) because the source gives no health-area attribution (stated in each
+  note). Accepted - inventing a health area would be worse - but level 5 under Ansongo now mixes health areas and
+  villages; CLAUDE.md defines levels only to Municipality. Recommendation in report.
+Spelling split found: 'Kemene Tambo' (770, 2005) vs 'Kemeny-Tambo' (748, 854, 2008) = one place.
+  CHANGED: Index 748 and 854 Location -> 'AFR::MLI::Kayes::Kayes::Kemene Tambo' (official commune spelling; source
+  spelling recorded in the note).
+Level phrases: all 757 sub-national rows carry a machine-checkable phrase ('do not sum' / 'provincial subset' / 'not
+  additive' / 'national total' ...); validator overlap groups 292, all 'documented'. Only national row without a phrase:
+  31 (no sub-national row overlaps it). No change.
+
+=== CHECK 7 | TIER-1 CORROBORATION + INDEPENDENT SOURCE VERIFICATION | 2026-10-03 07:20 ===
+37 rows have sCh > 1000. All belong to outbreaks with >= 2 independent Level 1 streams (WHO annual via JHU, DNS
+  register, WHO DON / AFRO, UNDRO, Tauxe 1988). Cumulative-snapshot series (927-930 CDER 2004, 932-937 AFRO DDC
+  2003-04) are tied to WHO annuals at their end points (930 = WHO 2004 2839/205 exactly; 937 deaths 324 = WHO 2003+2004
+  deaths 119+205). Rows 1 and 10 stated no second source -> CHANGED: Tier-1 corroboration note appended (Index 1, 10).
+Primary-document re-verification by Agent 7 (fetched 2026-10-03), all MATCH:
+  Index 1     Tauxe 1988 abstract (Europe PMC, PMID 3356224): '1793 cases and 406 deaths'
+  Index 32,33 Tauxe 1988 p.286 PAGE IMAGE: '3805 cases and 836 deaths (DCR = 22%)'; '1062 cases and 66 deaths ... 1 January
+              and 15 May (DCR = 6%)'. The PDF text layer reads 830 / 1002 / 00 / 0% (OCR errors) -> CHANGED: warning
+              appended to Index 32 and 33 so no future agent 'corrects' them from pdftotext.
+  Index 3,4,8,9,14 Dao 2009 abstract (PMID 19863017): 12,176 cases 1995-2004 = 2254+5541+68+16+1437+2860 exactly.
+  Index 10    WHO DON 2003_12_17c: 'As of 12 December 2003 ... 1216 cases, including 106 deaths'
+  Index 113   WER 60(25) p.8 PAGE IMAGE: 'MALI 3-9.VI ... 324 53' (text layer misreads the period as '5-9.VI')
+  Index 175   WER 46(20) (IRIS bitstream WER4620.PDF): Koulikoro Cercle 10 2; Mopti Cercle 5 0; (continued) Niono 63 14,
+              Segou 15 3 = 93/19
+  Index 230   SNIS 2011 yearbook Tableau 94: 'CHOLERA 1308 56 4,3 303 111'
+  Index 870   WER 93(38) zero-reporting footnote lists Mali for 2017
+  Index 380   Africa CDC report, date of issue 2026-09-20 (PAGE IMAGE p.11; image-only DHIS2 print): 20 AU MS listed, Mali
+              absent; 'Since the last update (13 September, 2026) ... five AU MS: Angola, Burundi, Mozambique, Rwanda and Zambia'
+  Index 883   same report p.12 PAGE IMAGE: 2025 note lists 24 AU MS; Mali absent (Cote d'Ivoire 556 the only neighbour)
+  Index 1171,1172 UNDRO Oct 1984 (ReliefWeb): '1,614 CASES RECORDED WITH 368 DEATHS AS OF 31 OCT. (1,475 CASES/331 DEATHS 26 OCT)'
+  Index 39, 222, 223, 379, 380 context: MoH SISE dashboard re-fetched 2026-10-03: S33 cholera 0 in all regions; S34-S39
+              cholera 'null' in all regions while malaria/measles/dengue/meningitis/mpox/COVID-19/Ebola carry values; S40
+              not yet published. Africa CDC: the newest issue on the site is 2026-09-20 (the '24 September' PDF is the
+              13 Sep issue) - no issue covering 21-27 Sep yet. The 2026-09-29 onward lag stands.
+
+=== CHECK 8 | JHU-LAYER DEFECTS (read-only baseline; documented, not edited) ===
+  JHU Index 15  2000 1885/51 - probable Malawi mislabel (WER 75(25) list 1.I-8.V 2000 has 'Mali 1 885 51' and no Malawi;
+                WHO 'Cholera, 2000' table omits Mali; AFRO West Block/CDER Mali 0 to Aug/Sep 2000). Drives 2000 in the
+                weekly series (1885 cases Fourier-spread) over AI zeros 7 and 921.
+  JHU Index 7164 2011-07-26..08-06 419/23 - a cumulative 5 Jul-3 Aug 2011 figure (Le Republicain 9 Aug 2011). Because the
+                builder keeps only weeks whose Monday >= TL, all 419 land in ONE week (1-7 Aug 2011).
+  JHU 2011 stack: annual 23 (2220/95) + overlapping cumulative snapshots 7170 (880/36 to 23 Aug), 7166 (882/36), 7168
+                (860/35), 7169 (deaths only). The builder takes the per-week maximum across them, so the 2011 weekly total
+                is 2693 = +21% over WHO 2220 and +106% over the DNS final 1308/56 (Index 230, verified).
+  JHU 7167 AFR::MLI::ML-1 2011-07-01..09-03 50/21 = the AFP 'Kayes 21 deaths among 50 cases' figure that WHO and SLIS
+                contradict (Agent 5 item 11); JHU also uses ISO-style codes ML-1/ML-5/ML-6 for 2011 region rows.
+  JHU 2018-2019 district layer: 12,036 district-week rows, all zero, incl. 816 for the 4 Kidal districts and 204 for Menaka
+                (filed as ADM1 'AFR::MLI::Menaka', whereas the AI layer uses pre-2023 'Gao::Menaka'); routine completeness
+                Kidal 26%, Menaka 51%, Taoudenit 71% (2018) -> probably zero-filled non-reports (Agent 6 group L).
+  JHU 13/14     1997 6/3 and 1999 6/3 identical; 1997 has no WER weekly notification and the DNS register has no 1997
+                epidemic; 1999 may be a carry-over. Unresolved (see report).
+
+=== CHECK 9 | PIPELINE BEHAVIOUR (in-memory py/build_weekly_timeseries.py; nothing written) ===
+Note: all 40 cholera_weekly_*.csv files (incl. ./data/MLI/cholera_weekly_MLI.csv) were rewritten 06:35:57-06:37:46 by
+  another process (the runner's rebuild), not by Agent 7. The on-disk MLI file equals my in-memory build (2961 weeks,
+  34,105.21 cases). Agent 7's edits change 0 weeks (re-run after the edits: 0 differing weeks).
+Actual vs JHU-only counterfactual (AI rows removed):
+  - case counts identical in every year 1970-2026 except 2010 W14-25 (+0.16 of one case): AI adds 0 cases to the series.
+  - AI relabels 1045 assumed_zero weeks: documented_zero 565 (mean conf 0.72), inferred_zero 467 (mean 0.51), fourier 12
+    (2010), observed 1 (2016-12); and adds 91 recent weeks (2025-W01..2026-W39) that would otherwise be NA.
+  - AI national rows reaching the series: positive 1 of 318 (row 226, 2010, fractional); zero 34 of 83 (upper bound).
+    Sub-national rows: 757, never read (builder uses Location == 'AFR::MLI' only).
+  - Inside the 25 JHU-annual positive years the AI-only series holds 189 observed weeks (184 positive, 12,623 cases),
+    571 documented-zero weeks and 324 sub-annual Fourier weeks; 0 of them reach the series.
+Resolution-first counterfactual (method rank first, source priority as tie-break): 1251 weeks would change and annual
+  totals break (1970 2665->1612, 1984 1795->2284, 1986 1916->3123, 1999 6->435 from the 0.3-confidence AFRO '438' row,
+  2000 1885->0) - NOT a drop-in fix.
+Remainder-preserving variant (AI weekly observed conf>=0.6 and documented zeros conf>=0.7 override; JHU annual minus AI
+  observed re-spread over remaining weeks): annual totals preserved except where AI weekly sums exceed them (1986 2022 vs
+  1916; 2021 15 vs 12); 2000 -> 0 (mislabel removed); 2011 -> 2220 (snapshot inflation removed); 1970's 2665 cases
+  confined to the post-introduction weeks instead of Jan-Nov; 1971 40 observed weeks, 1985 46, 2003 16, 2012 13.
+
+=== CHECK 10 | WORKFLOW STATE + PROTOCOL COMPLIANCE ===
+read_workflow_state('MLI'): agents 1-6 present.
+  A1 12 batches [25,25,20,5,5,15,10,15,10,5,15,20] max 25 | A2 12 [65,15,0,5,10,10,5,0,5,0,0,10] max 65 |
+  A3 5 [30,5,0,0,0] max 30 | A4 10 [5,5,40,25,5,15,15,0,0,0] max 40 | A5 12 [60,30,15,15,25,0,0,5,10,20,5,5] max 60 |
+  A6 7 [0,10,0,5,0,0,0] max 10.
+  All >= 3 batches; no yield > 100% (no row-counting); every stop is legitimate (12-batch max for A1/A2/A5; three
+  consecutive sub-5% batches for A3 (B3-5), A4 (B8-10), A6 (B5-7)). Each logged batch lists 20 queries (A5 groups them
+  as 'Q5-Q6', 'Q9-Q13'; many A5/A4 queries are single WER-issue fetches counted as queries under orchestrator D8).
+  In-block yields were later revised by documented late credits (A1 B1-B3, B11; A2 B1-B2; A3 B1; A4 B1); none changed a
+  stopping decision.
+Row claims reconcile with the file: A1 wrote Index 32-384 (353), retracted 174, 368 -> 351 net (2 more, 144 and 272,
+  later retracted by A5); A2 385-869 = 485; A3 870-889 = 20 (+7 retractions of pre-cycle rows); A4 890-1090 = 201, 5 own
+  retracted -> 196; A5 1091-1173 = 83 (incl. 1091 re-entry), 13 retracted -> +70 net (state file says rows_added 82 =
+  gross new rows); A6 1174-1186 = 13. Total 12 pre-cycle + 349 + 485 + 20 + 196 + 83 + 13 = 1158. No claimed row missing.
+Sources reconcile: A1 251 (14-264), A2 38, A3 8, A4 39, A5 48, A6 21 -> 13 + 405 = 418.
+
+=== CHECK 11 | COVERAGE (read-only analyse(); ./reference/ NOT written) ===
+Horizon 2026-10-03, min gap 7 d (identical at the brief's 2026-10-01 horizon):
+  baseline JHU+WHO      419/682 = 61.4% | 7 gaps | latest obs 2024-12-31 | latest positive 2021-12-31
+  pre-cycle JHU+WHO+AI  568/682 = 83.3% | months_ai 367 | ai_only 149 | positive months 312 | 3 gaps (reproduces brief)
+  after     JHU+WHO+AI  681/682 = 99.9% | months_ai 667 | ai_only 261 | positive months 324 | 0 gaps
+                        latest obs 2026-09-28 | latest positive 2021-12-31 (unchanged) | missing month = Oct 2026 (3 days)
+AI-only months by strongest AI evidence: pre-cycle 149 = inferred-zero 132 / documented-zero 5 / sub-national positive 12;
+  after 261 = documented-zero 111 / inferred-zero 126 / national positive 24 (2007, 2010).
+  Inferred-only AI months after: 126 = 1981-82 (24), 1988-94 (84), 2025 (12), 2026 (6).
