@@ -1,0 +1,43 @@
+=== AGENT 6 INITIALIZATION | gap-context-investigator | ZMB ===
+Country      : Zambia (ZMB)
+Cycle        : 2026-09-30 Opus 5.5 full re-run (deployed by orchestrator after gate 5, 2026-10-03)
+Start Time   : 2026-10-03 00:30:34 PDT
+Start state  : ./data/ZMB/cholera_data_ai.csv 2053 rows (max Index 2081); ./data/ZMB/metadata_ai.csv 517 sources;
+               ./data/ZMB/cholera_presence_ai.csv 83 rows; ./data/ZMB/retracted_rows_ai.csv 27 tombstones;
+               python py/validate_quality.py ZMB exit 0 (ERROR 0, WARN 32, INFO 293) at the orchestrator gate.
+Subject      : ./reference/effective_surveillance_gaps_detailed.csv has no ZMB gap periods (681/682 months covered). The subject is
+               the set of windows where the NATIONAL series rests only on annual or multi-year rows (>183 d) - orchestrator table
+               /tmp/ZMB_resolution_months_20261003.txt - plus the shorter windows Agents 3-5 left open, and the existing zero rows
+               inside them (1, 1566, 447, 1387, 1734, 1673-1675, 1390, 1391, 1514, 1468, 1394, 19, 20).
+Protocol     : ./templates/template_search_protocol.txt and ./.claude/agents/gap-context-investigator.md read. 20 queries per batch;
+               minimum 3 batches; stop at 3 consecutive batches below 5% yield or after 12 batches. Yield = queries that produced
+               >=1 NEW committed row in ./data/ZMB/cholera_data_ai.csv (zero rows included) / 20. A "query" includes a site-native
+               fetch (WHO IRIS REST, WHO GHO OData, Europe PMC REST, IA full-text search, Wayback CDX/id_, ReliefWeb, WordPress REST)
+               as well as WebSearch, which is capped and shared with Agent 7 and is used sparingly.
+Tooling      : new rows/sources/presence via python py/add_observation.py (register-source, add, add-zero, add-presence);
+               re-weights, notes, evidence relabels and tombstoned retractions via python py/revise_observation.py --agent 6.
+               No hand edits to the CSVs. No runs of py/analyze_effective_gaps.py, update_dashboard.sh or py/build_weekly_timeseries.py;
+               no git commits.
+Prior records read: ./data/ZMB/workflow_state.json (agents 1-5, orchestrator gates 1-5); ./data/ZMB/search_log_agent_1.txt ..
+               ./data/ZMB/search_log_agent_5.txt (incl. AGENT 4 and AGENT 5 FINAL SUMMARY blocks); the legacy May-2026 logs
+               ./data/ZMB/search_log_agent_1_legacy_2026-05-14.txt and ./data/ZMB/search_log_agent_6_legacy_2026-05-14.txt (left untouched).
+
+PRE-SEARCH FINDINGS (no queries; how the national series is actually built - py/build_weekly_timeseries.py read, not run)
+  The builder uses AFR::ZMB rows only and ranks sources per ISO week WHO > JHU > AI; within one source observed > documented_zero >
+  Fourier share of a non-weekly positive row > inferred_zero (capped at 0.6) > assumed_zero (0.5, weeks with no row at all).
+  Consequences for the windows (checked against ./data/ZMB/cholera_weekly_ZMB.csv, last built 2026-10-02 21:05, i.e. before
+  Agent 5's late rows 2062/2063):
+   - 1970-1976: JHU has NO national row; AI row 1 is the ONLY national signal -> documented_zero 0.7 for all 365 weeks.
+   - 1977, 1978, 1981, 1982-83, 1989, 1993, 1997, 2000, 2007-08, 2012, 2018: JHU annual totals are Fourier-spread over every week
+     of the year and OVERRIDE all AI rows (AI zeros and AI sub-annual counts alike). E.g. 1978 W1 = 13.9 cases although WHO/MoH
+     document Zambia as uninfected before 21 Oct 1978; 2018 W30 = 26, W40 = 55, W50 = 240 cases although the MoH documents no
+     cholera from June 2018 to 26 Jan 2019 (row 1394). AI zero rows in these years do not reach the series.
+   - 1984-88, 1994-95, 2020-21: JHU annual zeros (inferred_zero 0.6) override the AI zero rows (1390, 1673-1675, 1391, 1514, 19)
+     AND the AI positive row 1430 (2 confirmed cases, Mar 2020).
+   - 2013-2015: no JHU/WHO national row; AI rows 2062 (2013 = 704), 2063 (2014 = 96), 2036 (2015 = 31), 2037 and zero row 1468 are
+     the only national signal. Within AI, the Fourier share of 2063 outranks the inferred zero 1468.
+   - 2025-W27..W31: WHO baseline rows exist but carry blank sCh (notes say '0.0 cases ... reported'), so AI fills them. Row 20
+     (Inferred_Absence) is outranked by the Fourier share of AI row 231 (2025 annual 1,210): weeks 28-31 of 2025 carry ~6 cases each
+     in the weekly output, inside the inter-outbreak interval (end declared 3 Jul 2025; next index case 5 Aug 2025).
+  These are builder behaviours (runner-owned, not changed here); they decide which of my classifications change what MOSAIC sees.
+
