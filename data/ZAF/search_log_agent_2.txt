@@ -1,0 +1,40 @@
+=== AGENT 2 INITIALIZATION ===
+Agent: 2 (Geographic Expansion Specialist)
+Country: South Africa (ZAF)
+Start: 2026-10-03 (session start; local clock)
+Status: INITIALIZED
+
+=== AGENT 2 PLAN (written before first query) ===
+Files read: ./templates/template_search_protocol.txt, ./CLAUDE.md, workflow state (Agent 1 entry: 12 batches, 735 rows, 353 sources),
+  ./data/ZAF/search_log_agent_1.txt (all 12 batch blocks + final summary + orchestrator gate check),
+  ./data/ZAF/cholera_data_ai.csv (795 rows, max Index 798), ./data/ZAF/metadata_ai.csv (385 sources),
+  ./data/ZAF/cholera_presence_ai.csv (7 records), ./data/ZAF/cholera_data_jhu.csv (272 rows), ./data/ZAF/cholera_data_who.csv (151 rows),
+  ./reference/country_profiles.json (ZAF entry, as given by the orchestrator).
+Environment decisions (per orchestrator instructions for the 10-country parallel run): did NOT run py/analyze_effective_gaps.py or any
+  gap/profile regeneration; no update_dashboard.sh; no git. All writes via py/add_observation.py; py/revise_observation.py only on my own rows.
+Pre-run validator: python py/validate_quality.py ZAF -> exit 0, ERROR 0, WARN 182, INFO 212 (64 national_subnational_overlap WARN periods,
+  all pre-existing; validator requires EVERY row in an overlap group to carry 'do not sum'/'national total'/'provincial subset' wording).
+
+Query-counting convention (same as Agent 1, decided up front): one query = one WebSearch call, OR one direct WebFetch/API retrieval of a
+  document/listing not surfaced by a search in the same batch. Follow-up fetches of documents surfaced by a query count under that query.
+  A query is successful only if >=1 NEW row was committed to ./data/ZAF/cholera_data_ai.csv from it.
+
+Sub-national coverage audit (AI+JHU, rows with >=2 '::' levels) - what is already dense vs thin:
+  DENSE (Agent 1 + JHU): KZN 2000-2004 district cumulatives (Nov 2001, May 2004, Aug 2003); KZN weekly (JHU); 2008-09 Limpopo districts and
+    weeks; Mpumalanga 2009 municipal (3 Feb, 12 Feb); 2008-09 provincial series (NICD/OCHA); 2023 provincial series (DoH/NICD/WHO AFRO);
+    1980-1985 provincial annual + 5-year aggregates 1986-2000 (DoH Statistical Notes via Said 2006).
+  THIN / TARGETS (priority order):
+    P1 2023 outbreak: districts other than Tshwane (Johannesburg, Ekurhuleni, Sedibeng, West Rand; Fezile Dabi/Ngwathe; Bojanala
+       Moretele/Madibeng; Waterberg/Sekhukhune/Vhembe; Nkangala) at dated points.
+    P2 2008-09 outside Limpopo/Mpumalanga: Gauteng sub-districts (Tshwane/Johannesburg/Ekurhuleni), Western Cape (Cape Town), KZN
+       (Zululand/eThekwini), Free State/Northern Cape single cases; Mpumalanga municipal after 12 Feb 2009.
+    P3 2000-2004 outside KZN: Eastern Cape districts 2001-2004 (OR Tambo, Alfred Nzo, Amathole, Chris Hani); Limpopo (Northern Province)
+       2000-02 districts; Mpumalanga 2000-01 (Nkomazi/Mbombela); KZN districts for 2001-04..2002-12 at dated points.
+    P4 1980-1987 within-epidemic regional detail (homelands: KaNgwane, Gazankulu, Lebowa, Venda, Bophuthatswana, KwaZulu; districts
+       named in WER 'newly infected areas'); 1987, 1992-1994, 1999 provincial location.
+    P5 2005 WHO 3,503 vs NICD laboratory zero - which province(s)/what case definition; 2010-2014, 2022, 2025 single cases - districts.
+    P6 cross-border: Limpopo/Musina-Zimbabwe, Mpumalanga/Nkomazi-Mozambique/Eswatini, KZN/Umkhanyakude-Mozambique/Eswatini.
+Double-counting: every sub-national row I add will carry 'Provincial subset - do not sum with national row' (district rows additionally
+  'district subset of the provincial row'); before committing I check which national AI rows overlap the period so as not to create new
+  national_subnational_overlap WARN groups (a new group is created only when the overlapped national AI row lacks the phrase).
+
