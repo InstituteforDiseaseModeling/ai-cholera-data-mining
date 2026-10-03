@@ -1,0 +1,119 @@
+=== AGENT 6 INITIALIZATION ===
+Agent      : 6 - Gap Context Investigator (gap-context-investigator)
+Country    : Mali (MLI)
+Cycle      : 2026-09-29 Opus 5.5 re-run (Agents 1-5 complete; Agent 7 follows)
+Start Time : 2026-10-03 04:10:31
+Agent 6 Status: INITIALIZED
+
+Question answered: for every period whose coverage rests only on inferred zeros, unresolved count conflicts or nothing,
+was there no cholera, or was nobody reporting?
+
+Inputs read before the first query:
+  ./templates/template_search_protocol.txt
+  ./data/MLI/workflow_orchestrator_MLI.txt (D1-D12, gates A1-A5, A6 deployment brief)
+  ./data/MLI/workflow_state.json (agents 1-5)
+  ./data/MLI/search_log_agent_1.txt .. search_log_agent_5.txt (completion summaries + handoffs)
+  ./data/MLI/search_log_agent_6_legacy_2025-07-25.txt (read only; it is a 2025 quality-audit log, not gap context)
+Tool rules: no hand edits of CSVs; py/revise_observation.py always with --agent 6; read-only analyse() only; no dashboard,
+  no git, no writes to ./reference/effective_surveillance_*.
+Stopping rule: >= 3 batches of 20; then stop at 3 consecutive batches < 5% yield, or 12 batches. No time limit.
+
+Brief: 12 period groups A-L (1970-74 inter-epidemic; 1975-84; 1988-94; 1997-2000; 2006-10; 2012-13 northern conflict;
+  2014-20; 2021; 2022-24; 2025; 2026; northern sub-national zeros after 2012).
+
+PRE-SEARCH STATE (2026-10-03 04:15)
+  python py/validate_quality.py MLI -> exit 0 | ERROR 0 | WARN 131 | INFO 368 (1145 data rows, 397 sources)
+  read-only analyse('MLI','Mali',['JHU','WHO','AI'],date.today(),7): 681/682 months (99.9%), 0 gap periods >= 7 d,
+    months_ai 667, months_ai_only 261, latest_observation 2026-09-28, latest_positive_observation 2021-12-31.
+  ./data/MLI/cholera_presence_ai.csv: 83 rows. add-presence only accepts 'presence_confirmed_count_unknown', so a
+    surveillance gap WITHOUT evidence of cholera cannot be written there; such findings are recorded in this log only.
+  PIPELINE FACT (relevant to every classification below): py/build_weekly_timeseries.py fills every historical ISO week
+    that has no source row with method 'assumed_zero' (confidence 0.5, ASSUMED_ZERO_LAG_WEEKS = 52), and renders an
+    Inferred_Absence row as 'inferred_zero' (confidence capped at 0.6). Retracting an inferred zero therefore does NOT
+    produce NA in ./data/MLI/cholera_weekly_MLI.csv; it produces an assumed_zero at 0.5. Leaving a surveillance gap
+    empty changes the label, not the number. Logged for Agent 7 and the modellers.
+  Cached documents re-used (read, not re-fetched): SNIS/SNISS 2010-2023 and SLIS 2000-2013 yearbook texts in
+    /private/tmp/mli_a1/instat and /private/tmp/mli_a2/instat (Agents 1-2). Re-mined evidence is NOT credited to yield.
+
+RE-MINED SYSTEM-FUNCTIONING EVIDENCE (cached yearbooks; no query credit)
+  Routine SLIS report completeness (curative-activity reports, national): 2004 94% (Kidal 71%); 2005 96% (Menaka 88%,
+    Abeibara 58%, Tessalit 60%, Tin-Essako 50%); 2008 80% (Kidal 89%); 2009 83% (Tombouctou 69%); 2010 88% (Tombouctou
+    77%); 2011 80% (Kidal 88%); 2012 66% - Tombouctou 8%, Gao 10%, Kidal 35% ('Cette incompletude des donnees est liee a
+    l'insecurite qui regnait dans ces zones occupees'; Kidal absent from the PEV table; Tombouctou and Gao one district
+    each); 2013 65% - Tombouctou 9%, Gao 9% (Ansongo 7%), Kidal 21%.
+  Weekly IDSR report completeness (SNISS Tableau 103/106/107/106): 2020 national 89.8% (Tombouctou 91.7, Gao 85.6,
+    Kidal 76.8, Taoudenit 58.7, Menaka 1.3); 2021 90.9% (Tombouctou 82.1, Gao 66.6, Kidal 41.9, Taoudenit 86.7, Menaka
+    0.63); 2022 90.0% (Tombouctou 98.1, Gao 49.8, Kidal 47.8, Taoudenni 41.5, Menaka 1.5); 2023 91.6% (Tombouctou 95.8,
+    Gao 75.5, Kidal 51.7, Taoudenni 23.3, Menaka 10.1). Routine RMA completeness 2018: national 85.2%, Kidal 26.4%,
+    Menaka 51.2%, Taoudenit 70.7% (SNIS 2018 Tableau 2; the 2019 table shows 96-100% but repeats the 2018 text verbatim).
+  => From 2004 to 2011 the national system reported 80-96% of routine reports; 2012-2013 the three northern regions
+     reported about 10%; from 2018 to 2023 the national weekly IDSR system ran at about 90% while Menaka (0.6-10%),
+     Kidal (26-77%) and Taoudenni (23-87%) were largely silent and Gao fell to 50% in 2022.
+
+=== BATCH 1 | PHASE 1 (broad context: recency K, 2025 J, northern conflict F, 1988-94 C) | MLI ===
+Gap targeted : K 2026-08-17..2026-10-03; J 2025; F 2012-04..2013-01; C 1988-1994; E 2006
+Queries      : 20
+  Q1  WebSearch "Africa CDC Epidemic Intelligence Weekly Report 27 September 2026 cholera" + africacdc.org Sept-2026
+      download page: only the issues of 13 Sep (posted 24 Sep) and 20 Sep (posted 28 Sep) exist - both already used
+      (rows 223, 380). Nothing newer.
+  Q2  curl africacdc.org October-2026 download pages (EI weekly; EBS weekly): HTTP 404 - not published.
+  Q3  WebSearch "Mali cholera septembre 2026": no outbreak report; the engine's '0 confirmed S37' comes from the MoH
+      homepage tile already judged a display default (Agent 1/3).
+  Q4  curl MoH SISE dashboard (sante.gov.ml, 04:20): unchanged - S25-S33 cholera 0 in all 20 regions; S34-S39 cholera
+      'null' in all 20 regions while malaria (19/20 regions) and dengue are populated; S34-S39 source = 'Conseil des
+      Ministres - Situation epidemiologique Sxx'. No S40 yet.
+  Q5  WebSearch Council of Ministers communique 30 Sep 2026 (kaweru.com, 1 Oct 2026): 'Le ministre de la Sante ... a
+      informe le Conseil des Ministres de la situation epidemiologique du pays, marquee notamment par une diminution du
+      nombre de cas confirmes de dengue' - dengue only, no cholera statement (not a zero source).
+  Q6  WebSearch WHO AFRO weekly bulletin week 39 2026: no week 37-39 issue.
+  Q7  WHO IRIS API (OEW 2026, newest first): latest = Week 36 (31 Aug-6 Sep 2026, handle 10665/387727, already metadata
+      229). Nothing for late September.
+  Q8  ECDC cholera monthly page: still 'as of 26 August 2026'; Mali absent (the 28 Sep CDTR is already row 379).
+  Q9  WebSearch "Mali cholera 2025 cas suspect Gao/Menaka/Kayes/Mopti": engine again attributes '429 suspected/29
+      deaths/46 confirmed (11 Nov 2025)' to cholera - this is Mali's 2025 DIPHTHERIA outbreak (WHO DON 21 Nov 2025,
+      metadata 309; Agent 3). Not used. No 2025 cholera report found.
+  Q10 WebSearch Niger cholera 2025 Tillaberi/Tahoua: latest Niger outbreak found = 2024 (Tahoua, Zinder: 273 cases/10
+      deaths to 15 Sep 2024, 'first since 2022'); none for 2025 (consistent with Africa CDC 2025 list).
+  Q11 WebSearch AES exit from ECOWAS / WAHO: withdrawal effective 29 Jan 2025 (ECOWAS communique). WAHO (OOAS) is an
+      ECOWAS institution; IHR reporting to WHO is separate. No statement on Mali's health-data sharing found.
+  Q12 WebSearch MSF northern Mali 2012 + msf.org (17 Apr 2014): MSF 'began working in Ansongo in September 2012'
+      (31-bed referral hospital + 4 CSCOMs); 'the health staff also fled due to the violence, and the health system
+      totally collapsed'; MSF Timbuktu mobile teams from 2012 for ~133,000 people.
+  Q13 WebSearch Health Cluster 2012 northern surveillance + WHO AFRO news 'Premiere Mission du Cluster Sante dans le
+      Nord du Mali' (2 Jul 2012): mission left 9 Jun 2012 (Tenenkou, Youwarou, Douentza, Niafunke, Goundam,
+      Gourma-Rharous, Bourem, Gao town): 'La surveillance epidemiologique est interrompue.' 'Le personnel qualifie sur
+      place est peu disponible: 18% a Tombouctou, 25% a Gao, 19% a Kidal et 27% dans les zones occupees de Mopti.'
+      Same search surfaced DNS 'Rapport annuel de la surveillance de certaines maladies prioritaires en 2018'
+      (ahofiles.afro.who.int): Tableau II cholera 0/0 in all 11 regions incl. Kidal, Menaka, Taoudenit (which did report
+      maternal deaths 10, 9, 4); 'Aucun cas de cholera ... n'a ete enregistre'; difficulties: sample transport 'ne
+      desert pas les districts sanitaires non situes sur les principaux axes routiers'.
+  Q14 WebSearch ICRC Gao 2012: ICRC began supporting Gao regional hospital in April 2012 after it 'effectively
+      collapsed'; Wabaria outbreak (32 cases from 2 Jul 2012) handled by a treatment centre 'set up by health
+      authorities' with ICRC supplies (ICRC news release 5 Jul 2012).
+  Q15 WebSearch Mali meningitis 1988-1994 + PubMed: Koumare et al., Bull WHO 1996;74(4):375-9 - INRSP isolated '570
+      strains of Neisseriaceae ... between 1989 and 1994 in Mali: 396 ... from cerebrospinal fluid'; serogroup A clone
+      III-1 'responsible for the 1994 epidemic'. Philippon et al., IJID 2009;13:103-9 - 'a strengthened health
+      information system, based upon weekly collected data, was set up in Mali' (weekly district meningitis data
+      1992-2003; '1997 big epidemics').
+  Q16 WebSearch yellow fever Mali 1987 + PubMed: Kurz X, Disasters 1990;14(1):46-54 - western Mali Sept-Nov 1987: '305
+      cases and 145 deaths were officially notified, but estimates revealed true figures abut five times higher'
+      (insufficient clinical training, no preparedness plan, no laboratory confirmation).
+  Q17 WebSearch Tuareg rebellion 1990-1996 health services: rebellion from June 1990 (Menaka raid); thousands of
+      Tuareg refugees by end-1992 (Mauritania, Algeria, Burkina, Niger); MSF first worked in Mali in 1992 and in
+      south-east Mauritania with Malian refugees 1992-1998; health services withdrawn in parts of the north.
+  Q18 WebSearch "Mali cholera 1991-1994 epidemie": nothing for 1991-1994; Dao et al. 2009 (Sante Publique) abstract
+      lists Mali's epidemics as '1984, 1986, 1995 and 1996' before 1995-2004.
+  Q19 WebSearch Niger cholera 1991 + Manzo et al., Int J Infect 2017;4(3):e15591: Niger 1991 = 3238 cases; Niger's
+      cases cluster 'near Niger River (Dosso, Tillabery and Niamey)'; Niger 'has endured cross-border outbreaks coming
+      from Nigeria (2008, 2010, and 2011) and from Mali (1996, 2004, and 2006)'; the Tillaberi-Tahoua axis is the entry
+      point connected to Mali.
+  Q20 WebSearch Niger 2006 cholera origin (Ayorou/Tillaberi): no origin statement found; WER 82(31) (cached): Mali 2006
+      = 7 cases/0 deaths, Niger 1232/81. The Manzo 2017 '2006 from Mali' claim is unexplained by Mali's 7 cases (lead).
+Sources found: 9 relevant (WHO AFRO 2 Jul 2012; MSF 17 Apr 2014; ICRC 5 Jul 2012; DNS surveillance report 2018;
+               Koumare 1996; Philippon 2009; Kurz 1990; Manzo 2017; kaweru 30 Sep 2026)   Registered: none yet
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (batch 1 of the 3-batch minimum)
+
