@@ -1,90 +1,118 @@
-=== AGENT 3 ZERO-TRANSMISSION VALIDATOR ===
-Country: Gambia (GMB)
-Start Time: 2026-05-14 (New Format Workflow)
-Agent 3 Status: INITIALIZED
+=== AGENT 3 INITIALIZATION ===
+Agent: 3 (zero-transmission-validator)
+Country: Gambia / The Gambia (GMB)
+Cycle: opus55-rerun-2026-09-29 (runner logs/run_20261001-194905)
+Start Time: 2026-10-03 (log created/overwritten at start; prior-cycle content archived in ./data/GMB/.prev_cycle_logs_pre_opus55_20261002.tar.gz)
+Status: INITIALIZED
 
-Mission: Validate and document all cholera-free periods for Gambia
-Primary target: 2008-2024 (17-year absence), 2009-2010 gap, 2016-2020 gap, 2022 gap
-Key validation question: Which gap periods represent true zero-transmission vs surveillance failure?
+Pre-state read (in order): /tmp/GMB_orch/shared_context.md (incl. UPDATE AFTER AGENT 1 and AGENT 2), ./templates/template_search_protocol.txt,
+  ./data/GMB/cholera_data_ai.csv (38 rows, Index 1-38), ./data/GMB/metadata_ai.csv (45 sources), ./data/GMB/cholera_presence_ai.csv (4 records),
+  ./data/GMB/cholera_data_jhu.csv (16 rows, read-only), ./data/GMB/search_log_agent_1.txt (180 queries) and search_log_agent_2.txt (120 queries) -
+  not repeated; workflow_state (Agents 1-2 blocks); py/revise_observation.py --help; py/add_observation.py (add-zero, confidence ceilings).
+py/analyze_effective_gaps.py NOT run (orchestrator hard rule 2). GMB-only coverage: python3 /tmp/GMB_orch/gmb_coverage.py GMB
+  -> all layers 67.0% (457/682 months), months_ai_only 265; gaps 1974-08-01..1984-12-31 (3806d), 1986-01-01..1993-12-31 (2922d),
+     2026-07-01..2026-10-03 (95d).
+Validator pre-state: python3 py/validate_quality.py GMB -> ERROR 0, WARN 2 (Index 3: notes_missing_quote, zero_row_no_evidence_type), exit 0.
+Stopping rule: >=3 batches of 20 queries, then stop at 3 consecutive batches <5% yield, or 12 batches. No time limit.
+Yield = queries that produced >=1 NEW committed row / 20 x 100 (percent). A replacement row that only re-expresses a retracted row's evidence
+  does NOT count; a replacement backed by evidence newly found by an Agent 3 query does.
+Query-counting convention (same as Agents 1-2): one query = one distinct search action against a new target (search engine query, API search,
+  or direct fetch of a document not surfaced earlier in the batch); reading a document surfaced by a query belongs to that query.
 
-Gap summary from baseline analysis:
-- 1970-1984 (15yr): Likely surveillance gap - 7th pandemic reached West Africa in 1970 but Gambia may have had cases
-- 1986-1993 (8yr): Likely surveillance gap - JHU has data for 1985, 1994-1995-1996 but not intervening years
-- 1997-2004 (8yr): Likely surveillance gap - JHU has data for 1994-1996, 2005 but not intervening years
-- 2009-2010 (2yr): Validated ZERO-TRANSMISSION based on PLOS NTDs study
-- 2016-2020 (5yr): Validated ZERO-TRANSMISSION based on multiple sources
-- 2022 (1yr): Validated ZERO-TRANSMISSION - not in WHO AFRO affected countries lists
-- 2025-2026 (ongoing): Validated ZERO-TRANSMISSION - not in current affected countries
+Agent 3 targets (orchestrator brief):
+  T1 Restructure AI Index 3 (blanket ZERO 2008-01-01..2024-12-31, Moore 2018) - contradicted by JHU 2008 (1), MoH 2020 (2 susp), 2021 (3 susp);
+     source cannot speak for 2016-2024. Retract (tombstone) and replace with evidence-backed zero rows avoiding every positive year.
+  T2 2025: replace Index 4 (list-exclusion basis, meta 7) with a row citing WER 101(38) Table 5 zero report (meta 15), after checking for 2025
+     suspected-case evidence (rule 10).
+  T3 2026: decide on Index 5 (Jan 1-Jun 19 2026 Inferred 0.6, list exclusion) and the open recent gap 2026-07-01..2026-10-02.
+  T4 Historical absence evidence 1974-08..1984-12 and 1986-1993 (+ upgrade Index 22, Jan 1973-Jul 1974 Inferred 0.5): nil entries in tables that
+     distinguish nil from not-available = Documented_Absence; list exclusion = not evidence.
+  T5 Regional cross-check (Senegal) for every absence period.
 
-=== BATCH 1: Zero-Transmission Validation Searches ===
+Per-year status at start (national AFR::GMB):
+  2008 JHU 1 case (WHO annual) | 2009-2010 only AI Index 3 | 2011-2015 JHU phantom zeros + Index 3 | 2016-2017 only Index 3 | 2018 Index 17 zero
+  (+Index 3) | 2019 only Index 3 | 2020 Index 18 2 susp (+Index 3 conflict) | 2021 JHU 3 susp (+Index 3 conflict) | 2022 only Index 3 |
+  2023-2024 JHU WHO-annual zeros (+Index 3) | 2025 Index 4 zero (meta 7) | 2026-01-01..06-19 Index 5 zero 0.6 | 2026-07-01..10-02 empty.
 
-Queries executed:
-1. "Gambia cholera free 2008 2009 2010 zero cases WHO confirmed absence" - CONFIRMED: PLOS NTDs "not reported since 2008"
-2. "Gambia cholera zero reporting 2016-2020 WHO IHR annual report" - CONFIRMED: excluded from affected countries analysis
-3. "Gambia cholera 2022 WHO annual Africa zero cases" - CONFIRMED: not in 15 affected countries 2022
-4. "Gambia 2009 2010 cholera since 2008 Benin Mauritania study" - CONFIRMED: PMC5908202 quote confirmed
-5. "Gambia cholera 2021 3 cases WHO surveillance" - Could not confirm source of 3 cases in JHU 2021 data
-6. "Gambia cholera 2022 2023 2024 2025 current status WHO" - CONFIRMED: Not in affected countries 2024-2025
-7. "Gambia cholera 1986-1993 absence records WHO" - UNCERTAIN: likely surveillance gap, insufficient evidence
-8. "Gambia cholera 1997-2004 absence absence WHO records" - UNCERTAIN: likely surveillance gap, insufficient evidence
-9. "Gambia cholera 1970-1984 seventh pandemic West Africa absence" - UNCERTAIN: may have had cases; no specific data
-10. "Gambia cholera 1970 1971 El Tor West Africa introduction cases" - West Africa outbreak 1970-1971 but no Gambia data
-11. "Gambia cholera IDSR surveillance system 2016 2020 functioning" - IDSR adopted 2003, functional; absence valid
-12. "WHO Gambia annual report 2016 cholera surveillance zero" - PDF accessed, confirmed WHO country report exists
-13. "Gambia cholera 2009 2010 2011 absence validated academic literature" - Confirmed via PMC5908202
-14. "Gambia cholera 2016 2017 2018 absence validated geographical shifting" - Confirmed: excluded from studies
-15. "Gambia cholera 2019 2020 West Africa surveillance confirmed absence" - Confirmed: West Africa cholera shifted east
-16. "Gambia cholera 2022 2023 2024 not reported WHO Africa" - Confirmed: not in 14-country list 2024
-17. "Gambia surveillance cholera case definition IDSR IHR 2005" - IHR 2005 framework: Member States encouraged to report absence
-18. "Gambia cholera pilgrimage Touba Senegal 2006 2007 2008 cases" - 2007: 12 cases JHU (already in baseline); 2008: 1 case JHU (already in baseline)
-19. "Gambia cholera West Africa 2009 2010 absence neighboring countries" - PLOS NTDs confirmed Gambia and Senegal absence
-20. "Gambia cholera 2011 2012 2013 2014 2015 absence" - JHU shows 0 cases 2011-2015, confirmed
+=== BATCH 1 | PHASE 1 | GMB ===
+Gap targeted : T1 per-year evidence 2008-2024 (Index 3 restructuring: thin years 2009-2010, 2012-2014, 2016, 2017, 2019, 2022);
+               T2 2025 (rule-10 check before replacing Index 4); T3 2026 (Index 5, recent gap 2026-07-01..10-02, 95d recent);
+               T4 1974-08-01..1984-12-31 (3806d, historical) / 1986-01-01..1993-12-31 (2922d, historical); T5 Senegal status all periods
+Queries      : 20
+  Q1  [Academic] Europe PMC fullTextXML PMC5908202 (Moore 2018, basis of Index 3) -> KEY FINDING: national databases were collected only from
+       Benin, Togo, Ghana and Guinea; Table 1 note 'The data is based on Weekly Epidemiological Records [2]' with ref 2 = WHO GHO 'Cholera,
+       number of reported cases (data by country)' (accessed 25 Feb 2016). GHO holds NO Gambian record after 2008 (orchestrator pre-check; Q16),
+       so Moore's Gambia zeros 2009-2015 = non-reporting to WHO, not reported zeros. The 'lull ... not due to inadequate surveillance or
+       laboratory incompetence' sentence refers to the study's investigated countries, not to Gambia (Index 3 misapplied it) -> 0 rows
+  Q2  [Official/Web] '"Gambia" "no case of cholera" OR "no cholera case" OR "cholera-free" 2016-2022' -> only 2008/2012 statements -> 0
+  Q3  [Official/Web] 'The Gambia cholera "since 2008" OR "last cholera outbreak" MoH surveillance' -> Multimed 2014 'Perspectiva epidemiologica
+       ... Gambia 2008-2013' (5 notifiable diseases; no cholera at all) ; SORMAS rolled out in Gambia 2025 (EDC unit) -> 0
+  Q4  [WHO/IRIS API] JEE Gambia 2017 mission report (10665/259715) full text -> no cholera history; NPHL is reference lab for 'Shigella/Cholera'
+       (lab capacity context only) -> 0
+  Q5  [Archive] Wayback CDX moh.gov.gm/* filter 'bulletin' + downloads: Epi Bulletin wk36 2017 (14 Sep 2017; table = AFP, measles, bloody
+       diarrhoea, meningitis, YF, schistosomiasis, food poisoning - NO cholera row; 'All the other diseases under surveillance during this week
+       were reported zero' never names cholera), HMIS bulletins Q1 2012, Q1 2014, Q1 2016, Q2 2024 (no cholera) -> 0
+  Q6  [Official] DNS check of MoH domains -> moh.gov.gm RESOLVES AGAIN (102.140.149.3, HTTPS 200; Agents 1-2 found it offline); www/moh.gm/
+       health.gov.gm/nphi.gm none -> lead
+  Q7  [Official/Web] 'Gambia MoH EDC weekly epidemiological bulletin 2025 IDSR priority diseases' -> PAMJ 2025 'Assessment of the National
+       Disease Surveillance System in The Gambia, January 2025' -> 0 directly
+  Q8  [Official] moh.gov.gm WordPress REST API media library (66 PDFs) -> NEW: 'SERVICE-STATISTICS-REPORT-2017-ZERO-DRAFT' (84 pp; Table 76
+       priority diseases = AFP, hepatitis B, measles, meningitis, schistosomiasis, smallpox, yellow fever - cholera OMITTED, as in 2016) ; other
+       2025/12 uploads (validation report, 2014 final, 2025 press release, newsletter) - server then refused connections (retry later) -> 0
+  Q9  [Academic/Official] Europe PMC PMC12535593 (PAMJ 2025;51:91, WHO/MoH authors) -> no cholera mention; IDSR 'Timeliness and completeness
+       > 80% at the national level', SCD posters in 90% of facilities, DHIS2 at regional/national level => surveillance OPERATIONAL Jan 2025 -> 0
+  Q10 [Official/press] 'Gambia suspected cholera case 2025 MoH OR Foroyaa OR The Point OR Standard' -> nothing for 2025 -> 0
+  Q11 [Linguistic] '"Gambie" choléra 2025 cas suspect OR "aucun cas" Banjul' -> mpox outbreak confirmed Jul 2025 (level-2 response = system
+       detecting/responding); no cholera -> 0
+  Q12 [Linguistic-press] WordPress API search 'cholera' on foroyaa.net (16 posts) and standard.gm (50) + sentence extraction for 9 items
+       2014-2026 -> Foroyaa 7 Jul 2025, 2 Sep 2025, 10 Jul 2026, 14 Aug 2026; Standard 1 Dec 2025: cholera named only as a RISK; no case and no
+       explicit absence statement -> 0
+  Q13 [Humanitarian/NGO] ReliefWeb RSS 'MDRGM007' + IFRC DREF final report PDF (30 Sep 2012) -> preparedness only, no statement on Gambian
+       cases; notes 'Most of Senegal border health facilities close to the Gambia do their case referrals to the Gambia health facilities' -> 0
+  Q14 [Regional/Linguistic] 'Sénégal choléra 2026 cas confirmés ministère de la santé' -> no Senegal cholera in 2026; Senegal reporting
+       diphtheria (57 confirmed to 9 Sep 2026) and Rift Valley fever (140 confirmed) => neighbour surveillance active, region QUIET -> 0
+  Q15 [Historical/IRIS API] title search 'reported cases and registered deaths' -> WHSR 1975 28(9) pp340-351, WHSR 1976 29(3) pp118-131
+       (1974-1975), WHSR 1976 29(9) pp480-492 (1975-1976), WHSR 1977 30(2) pp155-165 (monthly 1975-1976) read: Gambia appears ONLY in Table
+       1.7 INFLUENZA (1974 monthly figures 6, 29, 12, 10, 24, 22; 1975 '+'); Table 1.1 CHOLERA lists only countries with cases (Gambia and
+       Senegal absent) => NO nil entry for Gambia -> no Documented_Absence for 1974-1976 (list exclusion only; 1974 reporting channel to WHO
+       demonstrably operational); 1976 29(9) and 1977 30(2) have no Gambia row at all -> 0
+  Q16 [Regional/WHO] WHO GHO OData CHOLERA_0000000001/2 for SEN, GMB, GNB -> Senegal cases: 1971 265, 1972 379, [1973-77 none], 1978 315,
+       1979 103, [1980 none], 1981 428, [1982-83 none], 1984 728, 1985 2988, 1986 476, 1987 3150, 1988 390, [1989-94 none], 1995 3332,
+       1996 16107, 1997 371, 2004 1227, 2005 31719, 2006 365, 2007 3984, 2008 1283, 2009 4, 2010 3, 2011 5, 2012 1; Guinea-Bissau 1986 200,
+       1987 6000, 1994 15296 ... 2012 3068, 2013 969, 2014 11; Gambia only 1985, 1994-96, 2005-08 (= JHU) -> regional context for T5 -> 0
+  Q17 [Historical/Web] 'Gambia cholera history 1971 1985 imported "first" "since 1971"' -> only Parnis 1971 (meta 21); DTIC ADA357376 URL -> 0
+  Q18 [Historical/IRIS] titles 'world health statistics annual' (only WER announcement stubs 1985-1992, not the volumes) and 'Cholera in
+       1984..1987' (WER items 225369, 225862, 226262, 226718 - read by Agent 1: Gambia only 1985 '2i') -> 0
+  Q19 [Archive] DTIC ADA357376 PDF (curl -> HTML block page; WebFetch HTTP 403) -> DEAD END confirmed (for Agent 4) -> 0
+  Q20 [WHO/Web] WHO AFRO 'Weekly Bulletin on Outbreaks and other Emergencies' 2026 weeks 36-38 Gambia -> latest indexed issues week 12 2026;
+       nothing for Sep 2026 (list exclusion at best) -> 0
+Sources found: 3 usable (PAMJ 2025 assessment; WHSR 1976 29(3); MoH 2017 zero-draft report)   Registered: none yet (registered when cited)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Verification (not counted as queries): WER 101(38) full issue re-read - Table 5 'Countries, territories, and areas reporting zero cholera
+  cases, by WHO region, 2025' African Region (22) includes Gambia AND Senegal; text 'A zero report is distinct from the absence of a
+  submission: it indicates that no cases were detected by a surveillance system that was in operation'. Same issue Table 12 (plague):
+  Gambia among countries reporting no human plague cases in every year with data 2019-2025 (WHO reporting channel active).
+Decision     : CONTINUE (minimum 3 batches). Restructuring of Index 3/4 executed next (see LEDGER), using evidence verified in this batch.
 
-BATCH 1 RESULTS: Strong validation of zero-transmission 2008-2024 except for 3 cases in 2021 (JHU baseline only - may be WHO reporting artifact). Gap periods 1986-1993 and 1997-2004 remain uncertain - surveillance gaps more likely than true zero transmission. 1970-1984 gap likely involves missed surveillance data during pandemic introduction.
-BATCH 1 YIELD: 0/20 = 0% (no new CSV rows - zero-transmission entry already added by Agent 1)
+=== LEDGER (retractions / replacements / revisions) - part 1, after batch 1 ===
+L1 RETRACT Index 3 (AFR::GMB 2008-01-01..2024-12-31 sCh 0, conf 0.9, no evidence label; Moore 2018, metadata 2) -> tombstone in
+   ./data/GMB/retracted_rows_ai.csv. Why: contradicted by JHU WHO-annual 2008 = 1 case, MoH 2020 = 2 suspected (Index 18), 2021 = 3
+   suspected (Index 14 / JHU UID 21392); source cannot speak for 2008 or 2016-2024; its Gambia zeros are WHO-GHO non-reporting (batch 1 Q1).
+L2 ADD Index 39 (replacement) AFR::GMB 2009-01-01..2015-12-31 sCh 0 - Inferred_Absence, surveillance partial, conf 0.6, metadata 2 (Moore 2018
+   Table 1 + 'has not reported a single suspected cholera case since 2008'); corroborated by MoH 2011 (meta 27), MoH 2015 (meta 28), MoH
+   'no reported case' statements Jan/Aug 2012; Senegal 13 suspected cases 2009-2015 (regionally quiet). Spans JHU Phantom zeros 2011-2015 as
+   a longer documented period (same value, not additive). NOT credited to any query (re-expresses retracted row's source).
+L3 REVISE metadata 2 Description (Moore 2018): provenance caution added (GHO-derived zeros; lull sentence not about Gambia).
+L4 RETRACT Index 4 (AFR::GMB 2025-01-01..2025-12-31 zero, Documented_Absence 0.85, metadata 7 = list exclusion) -> tombstone.
+L5 ADD Index 40 (replacement) AFR::GMB 2025-01-01..2025-12-31 sCh 0 - Documented_Absence, surveillance operational, conf 0.9, metadata 15
+   (WER 101(38) Table 5 zero report; Senegal also zero-reporting). Rule-10 check: no 2025 suspected-case evidence (batch 1 Q10-Q12).
+   NOT credited to any query (metadata 15 was found by the orchestrator/Agent 1).
+L6 REGISTER metadata 46 (PAMJ 2025;51:91 national surveillance assessment, Jan 2025) - surveillance-status evidence cited in Index 40 notes.
+Years now deliberately EMPTY at national level (log as Surveillance_Gap / unknown, not zero): 2016, 2017 (MoH reports omit cholera), 2019 (no
+   cholera table), 2022 (no report found). 2008 = JHU 1 case (cannot date it -> no sub-annual zero). 2023-2024 = JHU WHO-annual zeros (not
+   duplicated; MoH 2023 report and 2024 weekly bulletins agree).
+Validator after L1-L6: ERROR 0, WARN 0, INFO 32 (exit 0) - the two pre-existing WARNs on Index 3 are gone.
 
-=== BATCH 2: Historical Zero-Transmission Validation ===
-
-Queries executed:
-21. "Gambia cholera 1985 2 cases surveillance West Africa WHO report" - 1985: 2 cases in JHU (confirmed in baseline)
-22. "Gambia cholera 1994 1 case WHO report West Africa" - 1994: 1 case in JHU (confirmed in baseline)
-23. "Gambia cholera 1995 15 cases West Africa outbreak" - 1995: 15 cases in JHU (confirmed in baseline)
-24. "Gambia cholera 1996 7 cases WHO annual report" - 1996: 7 cases in JHU (confirmed in baseline)
-25. "Gambia cholera 2006 zero cases WHO report" - 2006: 0 cases in JHU baseline
-26. "Gambia cholera 2007 12 cases 1 death WHO report" - 2007: 12 cases, 1 death in JHU baseline
-27. "Gambia cholera 2008 1 case WHO report" - 2008: 1 case in JHU baseline
-28. "Gambia cholera 2009 WHO annual report zero cases" - No sources found for 2009 specifically
-29. "Gambia cholera 2010 WHO annual zero cases" - No sources found for 2010 specifically
-30. "Gambia cholera 2011 2012 zero cases JHU WHO report" - JHU confirms 0 cases 2011-2015
-31. "Gambia cholera 2022 absence WHO Africa bulletin" - Not in 2022 affected countries (15 countries listed)
-32. "Gambia cholera 2023 2024 WHO Africa bulletin absence" - Not in 2023-2024 affected countries
-33. "Gambia cholera 2025 WHO AFRO current outbreak status" - Not in 2025 affected countries
-34. "Gambia IDSR surveillance system cholera notification 2015 2016 2017" - IDSR functional; no reports filed
-35. "Gambia cholera 2021 JHU WHO 3 cases source documentation" - Could not find primary source for 2021 3 cases
-36. "Gambia cholera 2022 zero cases WHO AFRO annual report confirmed" - Confirmed excluded from AFRO data
-37. "Gambia cholera 2020 absence COVID-19 cholera surveillance West Africa" - No reported cases during COVID
-38. "Gambia cholera absence validation academic literature 2020-2025" - Consistent exclusion from African cholera studies
-39. "Gambia cholera 2008 last case WHO documentation end epidemic" - 2008 had 1 case per JHU; validated final year
-40. "Gambia cholera 2009 first year zero cases post-2005 epidemic" - Confirmed cholera-free post-2008
-
-BATCH 2 RESULTS: Strong validation of zero-transmission 2009-2024. JHU baseline data for 2011-2015 already has 0 values documented. Zero-transmission entry covering 2008-2024 already added. 2021 has 3 cases in JHU which need checking.
-BATCH 2 YIELD: 0/20 = 0%
-
-STOPPING CRITERIA: 2 consecutive batches <5% yield (Batch 1: 0%, Batch 2: 0%)
-STOPPING CRITERIA MET: Yes
-
-=== ZERO-TRANSMISSION VALIDATION SUMMARY ===
-
-Validated Zero-Transmission Periods:
-1. 2008-2024: VALIDATED (confidence 0.9) - PLOS NTDs PMC5908202 states "The Gambia has not reported a single suspected cholera case since 2008" and attributes this to "absence of cholera cases" not surveillance failure. Already documented in cholera_data_ai.csv (Index 3).
-
-Note on 2021 JHU data: JHU records 3 cases in 2021. This is in baseline data and is marked as non-phantom. However, PLOS NTDs study (through 2015 with its statement) and multiple more recent exclusions from African cholera analyses suggest this may be a WHO reporting anomaly. The JHU data captures this and it remains in the baseline.
-
-Uncertain Gap Periods (insufficient evidence to validate as zero-transmission):
-- 1970-1984: Seventh pandemic introduced West Africa 1970-1971. Gambia not specifically documented but likely had exposure. Surveillance gap more probable.
-- 1986-1993: Between documented small outbreak periods. Could be genuine absence or surveillance gap.
-- 1997-2004: Between 1994-1996 small cases and 2005 epidemic. Could be genuine absence or surveillance gap.
-
-Decision: Not adding zero-transmission entries for uncertain gap periods to avoid false positive validations. Existing JHU baseline data covers what WHO recorded.
-
-AGENT 3 COMPLETED: 2026-05-14
