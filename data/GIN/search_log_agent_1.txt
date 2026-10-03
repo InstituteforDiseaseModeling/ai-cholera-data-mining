@@ -19,3 +19,111 @@ WebFetch of a page surfaced by a query is follow-up of that query (not counted s
 fresh direct navigation to a new resource (then counted as its own query).
 Writer: py/add_observation.py only. Yield = queries with >=1 committed new row / 20 * 100 (percent).
 
+=== BATCH 1 | PHASE 1 | GIN ===
+Gap targeted : 1971-01-01..1985-12-31 (5479d, historical); 1987-01-01..1993-12-31 (2557d, historical);
+               1997-01-01..1997-12-31 (365d, historical); 2026-07-01..2026-10-02 (94d, recent)
+Families     : WHO systematic (GHO, WER/IRIS, AFRO OEW), academic (PubMed/Med Trop/IRD), humanitarian (OCHA,
+               ReliefWeb), NGO (MSF, IFRC). Categories: 1,2,3,5,7 (+4 regional via refugee-camp query)
+Queries      : 20
+  Q1  GHO OData WHS3_40 / WHS3_41 SpatialDim=GIN (WHS3_41 is not cholera deaths - discarded)
+  Q2  GHO OData CHOLERA_0000000001/2/3 SpatialDim=GIN -> values only for 1970,1986,1994-2009,2011-2014
+      (identical to JHU UID 317); NO records 1971-1985, 1987-1993, 1997, 2010 (absent, not zero)
+  Q3  WebSearch: Weekly Epidemiological Record "cholera in 1971" Africa Guinea cases reported
+  Q4  WebSearch: iris.who.int "Weekly Epidemiological Record, 1972, vol. 47" full issue
+  Q5  IRIS DSpace API: "Weekly Epidemiological Record, 1972, vol. 47, 30" -> WER 1972 No.30 'Cholera in 1971'
+      Table 1: 22 African notifying countries, GUINEA ABSENT
+  Q6  IRIS API decade scan: WER 'Cholera in YYYY' articles 1970,1972-1978 -> Guinea only in 1970 table
+      (2000 cases, first notified ~3.9.1970); absent 1972-1978
+  Q7  IRIS API decade scan 1979-1988 -> Guinea absent 1979-1985, 1987, 1988; 1986 'Guinea 286*'
+      (* = 'Incomplete figures')
+  Q8  IRIS API decade scan 1989-1999 -> Guinea absent 1989-1993 and 1997 (1997 Table 1 lists Guinea-Bissau
+      20555/905 only); present 1994 (31415/671), 1995, 1996 (287/17) - all already in JHU
+  Q9  IRIS API: "cholera Guinea Conakry" -> WER 1970 notes (imported cases from Conakry to Ghana 1-2 Sep 1970)
+  Q10 IRIS API: "choléra Guinée" -> WER 1997 'Cholera in Africa' review (no country-year table)
+  Q11 WebSearch: Guinea cholera epidemic 1970-1973 Conakry Sekou Toure history -> Boiro 1999 Med Trop
+      ('Until 1994, epidemics recurred every 8 years')
+  Q12 WebSearch: Boiro ... "Le cholera en Guinee" 1994-1995 Med Trop 1999 -> Rebaudet 2013 JID coastal review
+  Q13 WebSearch: "Guinee" cholera 1978 epidemie Conakry cas -> Carme 1983 Rev Med Congo (IRD): 'aucun cas
+      declare depuis [1970]' + strong reservations on real elimination
+  Q14 WebSearch: "Origine et determinants de l'epidemie de cholera" 2012 Guinee UNICEF (host dead)
+  Q15 WebSearch: Guinea cholera outbreak 1997 cases deaths Conakry ProMED OR ReliefWeb OR WHO
+      -> MSF Oct 2007 + OCHA Sep 2007 (no 1997 data found)                                   [ROWS 13-22]
+  Q16 WebSearch: WHO AFRO weekly bulletin on outbreaks and other emergencies cholera Guinea 2026
+      -> OEW week 30 2026 all-events table, Guinea events = mpox/diphtheria/measles/Lassa    [ROW 23]
+  Q17 WebSearch: Guinee cholera 2026 cas suspects ANSS epidemie -> no Guinea cholera 2026 (supporting)
+  Q18 WebSearch: "Weekly Bulletin on Outbreak and other Emergencies" "September 2026" -> OEW week 36 2026,
+      Guinea events = diphtheria/Lassa/measles/mpox, no cholera                               [ROW 24]
+  Q19 WebSearch: IFRC DREF Guinea cholera MDRGN -> MDRGN005 2012 (5699 cases/109 deaths to 2 Sep 2012;
+      not extracted - 2012 covered by JHU weekly)
+  Q20 WebSearch: Guinea refugee camps cholera 1997 Gueckedou Forecariah ... UNHCR -> nothing Guinea-specific
+Sources found: 11    Registered: index 13,14,15,16,17,18,19,20,21
+Rows added   : 12    Indices: 13 (Conakry wk 8-14 Oct 2007 147/5), 14 (national wk 27Aug-2Sep 2007 573/22),
+               15-22 (Conakry 349/12, Fria 70/4, Coyah 58/3, Kindia 39/3, Dubreka 34, Forecariah 14,
+               Gueckedou 6, Boffa 3 - same week, subsets of row 14), 23 (zero 2026-06-20..2026-07-26),
+               24 (zero 2026-07-27..2026-09-06)
+Successful queries: 3/20 (Q15, Q16, Q18)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Gap status   : 2026 recent gap PARTLY VALIDATED ABSENT (to 2026-09-06); 1971-1985, 1987-1993, 1997 REMAINING
+               (WHO notification record confirmed empty for Guinea in these years - non-notification, not absence;
+               Boiro 1999 implies a ~1978 epidemic; Carme 1983 doubts the post-1970 'elimination')
+Notes for Agent 5: WER 1986 flags Guinea 286 as '* Incomplete figures' -> supports St Louis 1169/43 (row 1).
+               OCHA Sep 2007: cumulative 2007 >3847 cases/~135 deaths to ~2 Sep 2007 vs 1789/148 same time 2006
+               (not extracted: >1000, needs 2nd source).
+Decision     : CONTINUE (minimum 3 batches)
+
+=== BATCH 2 | PHASE 1 | GIN ===
+Gap targeted : 1971-1985 (5479d, historical) esp. reported ~1978 epidemic; 1987-1993 (2557d); 1997 (365d);
+               2026-07-01..2026-10-02 (recent)
+Families     : academic (PubMed E-utilities, Russian/French literature), WHO (IRIS, DON, AFRO OEW), humanitarian
+               (IRIN/OCHA, ECHO), NGO (MSF via news), regional ECDC. Categories: 1,2,3,5,6 (ENA genomics),7 (FR/RU)
+Queries      : 20
+  Q1  PubMed esearch: cholera AND (Guinea OR Guinee OR Conakry) NOT guinea pig NOT New Guinea -> 57 titles;
+      leads Van Damme 2004 TMIH (routine data cholera 1993-95, Forest Region), Moore 2018 PLoS NTD (2009-2015)
+  Q2  WebSearch: Van Damme Van Lerberghe "Strengthening health services to control epidemics" Guinea cholera
+      1993 1994 1995 -> full text 403 (Wiley) - LEAD for Agent 4 (possible 1993 cholera = gap year)
+  Q3  WebSearch: "epidemie de cholera de 1978" OR "cholera en 1978" Guinee Conakry -> Jeune Afrique 11 Jul 2012,
+      RTBF/AFP 9 Aug 2012, EC ECHO IP/95/992 & IP/95/1119 (1995 presence, no counts)          [ROWS 25-30]
+  Q4  WebSearch: Mengel ... "Cholera outbreaks in Africa" Guinea 1970-2011 table -> Karnaukhov 2017 ZhMEI
+  Q5  WebSearch (RU): Buaro Konstantinov Bumbali "Kholera v Gvinee" ... 2016 -> citation only
+  Q6  WebSearch: "Cholera in Guinea" epidemiology control prevention Boiro ... 2016 -> nothing new
+  Q7  WebSearch (RU): "Kholera v Gvinee" Buaro -> Boiro doctoral dissertation (dissercat; cholera since 1970)
+  Q8  WebSearch (RU): Buaro Mamadu Iero avtoreferat ... kholera 1970 -> pasteurorg.ru Guinea_2017.pdf
+      proceedings: 'cholera registered practically annually since 1994 except 1997 and 2010'; 1970 epidemic
+      6378/518; 8-year cycle 1978,1986,1994 with 9-31 thousand cases                       [ROW 31 + presence 1978]
+  Q9  WebSearch (RU): "Kholera v Gvinee: epidemiologiya, mery borby i profilaktiki" -> none; Crossref DOI
+      10.20953/1729-9225-2016-1-24-28 -> Boiro 2016 abstract: 1970-2014 94,302 cases, 3,495 deaths
+  Q10 WebSearch (RU): Gvineya kholera 1978 epidemiya Konakri ... -> nothing
+  Q11 IRIS API: "cholera Guinea 1986" + "cholera Guinee 1978" -> WER 1978/1986 notes, WHO 1978 mission
+      (onchocerciasis) - no Guinea cholera notification
+  Q12 WebSearch: cholera Guinea Conakry 1978 OR 1979 epidemic newspaper Le Monde -> nothing
+  Q13 WebSearch: Van Damme "Medical assistance to self-settled refugees" Guinea 1990-1996 -> not online (LEAD)
+  Q14 WebSearch: WHO "Disease Outbreak News" cholera Guinea 1998-2000 -> DON 14 Oct 1998 (no GIN counts);
+      DON 23 Sep 2005 Guinea 1956/72 mid-Jul..4 Sep 2005 (registered meta 27; NOT extracted, >1000 single src)
+  Q15 WebSearch: Guinea cholera September 2005 cases deaths Conakry Kindia OCHA IRIN -> IRIN 11 Jul 2005
+      377 cases/>=30 deaths since late April 2005                                            [ROW 32]
+  Q16 WebSearch: OEW "Week 37/38/39" 2026 -> not yet published (latest = wk36). Found OEW wk37 2024: contents
+      line 'Cholera in Guinea' is a WHO typo (article is cholera in Niger; Guinea events = floods, dengue,
+      diphtheria, measles, mpox) - NO conflict with AI row 11
+  Q17 WebSearch: ECDC cholera worldwide overview monthly Aug Sep 2026 -> ECDC page (as of 26 Aug 2026) and
+      CDTR week 40 2026 (as of 28 Sep 2026): Guinea absent from all 2026 country lists         [ROW 33]
+  Q18 WebSearch: Weill 2017 Science genomic history Guinea isolates -> HAL bot-blocked; follow-up ENA portal
+      API: 47 V. cholerae samples from Guinea, all collected 1986 (one Forecariah 1986-03-28); none in gap years
+  Q19 WebSearch (FR): cholera Guinee 1993 OR 1992 OR 1991 OR 1990 epidemie ... -> nothing
+  Q20 WebSearch: Guinea cholera epidemic 1994 began Conakry Forest Region refugees DHA -> nothing new
+Sources found: 12    Registered: index 22,23,24,25,26,27,28
+Rows added   : 9     Indices: 25-29 (Jeune Afrique 2012-02-02..07-10: national 615/41, Forecariah 303/24,
+               Mamou 35/7, Boffa 157/6, Conakry 82/1), 30 (Forecariah to 9 Aug 2012 309/25), 31 (ZERO 1997
+               full year, Documented_Absence), 32 (national 2005-04-20..07-10 377/30), 33 (ZERO 2026-09-07..09-28)
+Presence     : ./data/GIN/cholera_presence_ai.csv 1978 national (Karnaukhov 2017 / Boiro 2016)
+Successful queries: 4/20 (Q3, Q8, Q15, Q17)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Gap status   : 1997 FILLED (validated absent); 2026 recent gap VALIDATED ABSENT to 2026-09-28 (rows 23,24,33);
+               1971-1985 REMAINING (presence 1978 recorded; national statistics exist per Boiro 2016 but paywalled);
+               1987-1993 REMAINING (no notification; 8-year cycle implies inter-epidemic, unverified)
+Notes for Agent 5: Karnaukhov 2017 says cholera registered every year 1994-2016 except 1997 and 2010 -> supports
+               JHU 2009 (42) and 2011 (3) against AI row 8 (zero 2009-2011). 1970: national stats 6378/518 vs
+               WHO 2000/60. 1986 national epidemic likely several thousand cases (WHO 286 'incomplete').
+Decision     : CONTINUE (minimum 3 batches)
+
