@@ -163,3 +163,176 @@ Other bounds: no deaths>sCh, no cCh>sCh, no multi-year count aggregates (>760 d)
      with no change; re-run with explicit commands.)
     Validator after (e): ERROR 0 / WARN 48; rows 668.
 
+=== STAGE 2 | S1 AUTHENTICATION: ALL 222 METADATA URLS ===
+Tool: own script /tmp/BFA_a7/urlcheck.py (results /tmp/BFA_a7/urlcheck.jsonl, final classes /tmp/BFA_a7/urlcheck_final.json).
+  py/check_urls.py NOT run (it sweeps all 40 countries and writes shared files under ./reference/).
+  IRIS: the HTML handle page is a 755-byte Angular shell that returns 200 for anything, so every iris.who.int URL was resolved
+  through the DSpace 7 REST API (server/api/pid/find?id=10665/N, server/api/core/items|bitstreams/UUID) and the returned item
+  name was compared with the metadata Source (volume/issue for WER, year/title for annual reports and WHSR).
+  Others: curl GET -L (bodies saved in /tmp/BFA_a7/docs/ for quote checks); Gallica throttled (8 s); Wayback availability/CDX
+  for anything dead or blocked.
+RESULT (222):
+  201 REACHABLE live   = 148 iris.who.int (all resolve; 147 identity-matched by vol/issue or title-year, Idx 86 matched by
+                         dc.date.issued 1973-12-31 because its title carries no year) + 53 other live URLs (reliefweb 11, archive.org 9,
+                         who.int 5, cns.bf 4, gallica 3, pmc 2, sante.gov.bf 2, agritrop 2, and 15 single-domain sources)
+   18 ARCHIVED copies OK (all web.archive.org-cited: MoH yearbooks on data.sante.gov.bf [live 502] and old cns.bf, ReliefWeb
+                         disaster page, Plateforme factsheet). 14 fetched at once; 162 and 199 on retry; 91 and 170 hit Wayback 429 /
+                         connection refusals for >10 min, so their existence and content were verified instead by matching the CDX
+                         SHA-1 digest of the cited capture to the copies earlier agents downloaded:
+                           91  capture 20240519062342 digest NKU65OV7QYULKSRERTEOMEISNXHHURAA = /tmp/BFA_a1/plateforme_bfa_2017.pdf
+                           170 capture 20250912103614 digest 3RTZCHFYMOKBCSCPKQ7GN7J3SXDANOVE = /tmp/BFA_a2/ann_2005.pdf
+                         Note: the 2011 and 2012 yearbook captures (172, 171) arrive as exactly 5 242 880 bytes; 172 opens complete
+                         (243 pp.), 171 has xref damage but its Tableau 4.71 cholera rows extract cleanly (Sahel 143/7, Dori 98/4,
+                         Gorom-Gorom 39/2, Sebba 6/1, Djibo 0/0 - rows 384-386, 361 confirmed).
+    3 DEAD live URL, archived/working copy now recorded in the metadata Description:
+       10  press.un.org AFR/1240 (HTTP 406 to non-browser clients) -> Wayback 20250124215359; text verified: 'To date, 295 cases of
+           cholera, and eight deaths, have been recorded in Burkina Faso'. No data row cites it.
+           python py/revise_observation.py BFA --meta-index 10 --set-description "<old text> [Agent 7 URL check 2026-10-03: ...]" --reason "Agent 7 Stage S1: ..."
+       11  plateformecholera.info factsheet: domain HIJACKED (serves an Indonesian gambling page 'INDOSLOT303'); no capture at this
+           path; the same document is archived at metadata 91's Wayback URL - already recorded in the Description by Agent 1; no
+           change needed. 4 live rows (17-20) cite metadata 11; their figures were verified against the archived copy (see S3).
+       217 hdl.handle.net/20.500.12177/3982 (HTTP 500; prefix 20.500.12177 = DICAMES, the CAMES open archive, whose handle server
+           51.91.122.208 refuses connections) -> working landing page https://dicames.online/jspui/handle/20.500.12177/3982 and
+           Wayback 20250816033332 recorded. No data row cites it.
+           python py/revise_observation.py BFA --meta-index 217 --set-description "<old text> [Agent 7 URL check 2026-10-03: ...]" --reason "Agent 7 Stage S1: ..."
+    0 dead without a copy. No Status changes (the tool's Status vocabulary was not needed; Descriptions only, old text preserved).
+  Duplicate registration noted (not changed): metadata 1 (PMC3201576) and 7 (panafrican-med-journal.com 8/1) are the same article
+  (Kyelem et al., Pan Afr Med J 2011;8:1); 7 is cited by no row. Metadata 11 and 91 are the same factsheet (documented).
+  Access constraint: this session's WebSearch quota was exhausted (200/200, shared with earlier agents); curl and WebFetch used.
+
+=== STAGE 2 | S3 CROSS-REFERENCE: STRATIFIED RANDOM SAMPLE ===
+Frame (live rows Idx < 704; rows 704-708 were verified when I wrote them): A = all Level 3 rows (14; there are no Level 4 sources);
+B = Level 1-2 rows with sCh > 100 (59; 18 drawn); C = Level 1-2 rows with 1-100 cases (296; 8 drawn); D = Level 1-2 zero rows
+(294; 6 drawn). random.seed(20261003). N = 46 (24 of them > 100 cases). Ids in /tmp/BFA_a7/sample_ids.json.
+Method: the quoted text was searched in the source itself (downloaded PDF text, archive.org djvu text, HTML, IRIS bitstreams via
+/tmp/BFA_a7/iris_fetch.py), scored with RapidFuzz (/tmp/BFA_a7/verify_quotes.py -> /tmp/BFA_a7/quote_verification.json); tables and
+scans were read as page images where OCR was ambiguous (WER 46(25) p.251 crop; Chardeau thesis Planche 4 and 4 bis, archive.org
+n106/n108; BSPE 1971 p.568 Gallica IIIF f578).
+RESULT: values (cases/deaths/period/place) CONFIRMED in the source for 46 / 46 rows.
+  Quote fidelity: 18 verbatim prose quotes (88, 346, 347, 655-660, 661, 662, 663 [OCR 99], 664, 682, 690, 675, 702, 703);
+  24 faithful table transcriptions, every cell value checked against the printed table (WER IHR tables 78, 59, 74, 85, 76, 162,
+  163, 216, 219, 303, 159, 134; WHSR 99, 100, 102, 117; MoH yearbooks 418, 431, 372, 525, 540, 544, 487; thesis Planche 677);
+  4 NOT verbatim - paraphrase or translation with correct figures: Idx 1, 2 (paraphrase of Kyelem 2011: the article says 'Dès 1971,
+  l'on y enregistrait 1760 cas de choléra dont 501 décès, soit une létalité de 28,5%'), Idx 11 (close paraphrase of the 26 Sep 2001
+  DON), Idx 19 (English translation of the French factsheet). All 4 are pre-cycle (May-2026) legacy rows; 0 of the 42 sampled rows
+  written in this cycle failed. Agent 5's B7 note calls the Kyelem quote 'verbatim' - only the figures are.
+  Detail found: Idx 675's secondary phrase '27 décès suspects' reads '21' in the OCR (not a row value; page image not re-read).
+FOLLOW-UP over the whole legacy set (13 surviving pre-cycle rows 1, 2, 3, 11, 12, 14, 16, 17, 18, 19, 20, 22, 23): every one was
+  checked; figures confirmed in all 13; quotes are paraphrases/translations/summaries in 12 (16 is verbatim apart from accents).
+  DECISION: append the exact source wording, no data change:
+  python py/revise_observation.py BFA --index {1,2,3,11,12,14,17,18,19,20,22,23} --agent 7 --append-note "AGENT 7 QUOTE AUDIT
+         (2026-10-03): the 'Source states' text above is a {paraphrase|translation|summary} ... Exact source text (...): '...'"
+         --reason "Agent 7 Stage S3: legacy (pre-cycle) row quote re-verified; exact source wording recorded"  (12 x REVISED)
+>1000-CASE ROWS (two independent sources required): Idx 1 (1971 1760/501: Kyelem; WHO WHSR 1972 four-weekly 25+1736; WHO annual
+  1761/495; Felix 184+1541 Jan-Aug), Idx 2 (1973 1114/241: Kyelem; WHO annual 1118/249; WER 48 cercle/four-weekly; US cable 552+104;
+  Saliou 331), Idx 14 (2005 1050/16: WHO annual; WHO IHR series 236+379+284+151; MoH Tableau 56 1050/16; MoH/DLM weekly epicurve
+  sums 1050; UNICEF factsheet regions), Idx 58 (1984 17.VI-20.IX 1067r/80r: WER 59(45) verified by me; MoH Tableau 56 1984 1533/88;
+  Carrefour Africain/Yalgado hospital series 626 by 18 Sep), Idx 703 (1971 Apr-Aug 1541/457: Felix verified on the page image; WHSR
+  periods IV-VIII 1464/390; Chardeau thesis foci). PASS - all five have >= 2 independent sources; discrepancies recorded in notes.
+
+=== STAGE 2 | S4 DUPLICATION AND NESTING ===
+Script /tmp/BFA_a7/stage4_nesting.txt.
+  National positive rows: 102. Overlapping national groups 1970, 1971 (13 rows), 1973 (6), 1974 (25), 1975, 1984, 1985, 1995
+  (70 contains 71: 'NOT additive' stated on both), 2003, 2005 (15). Rows in an overlap lacking a nesting/primary statement: NONE.
+  Sub-national positive rows: 270; rows without a subset / do-not-sum statement: NONE.
+  Validator national_subnational_overlap: 85 INFO groups, all 'documented'.
+  AI rows identical to a JHU row (location, period, sCh, deaths): Idx 3 (1974 632/66), 31 (2024 0), 32 (2023 0), 55 (2003 1),
+  56 (2006 0), 491 (2008 0), 704 (2019 0).
+    31, 32, 55, 56, 491, 704: each adds a primary document with an explicit evidence label and surveillance status that the JHU
+      annual row lacks (WHO zero-reporting tables, WER tables/narrative, MoH yearbook, INSD) - KEPT.
+    3: exact secondary citation (Kyelem 2011) of the WHO annual figure - JUSTIFIED, NOT removed: CLAUDE.md permits 'Agent
+      confirmation of a baseline-source entry'; Agent 5 (B7) kept it deliberately as the in-file 1974 anchor that 14 nesting
+      statements cite (Idx 109, 337-344, 350-352, 665, ...); confidence already 0.7; JHU outranks AI per week, so it cannot double
+      count in the national series. Idx 1 and 2 differ slightly from JHU (1760/501 vs 1761/495; 1114/241 vs 1118/249) and stay as
+      documented secondary conflicts at 0.5.
+  RESULT: PASS.
+
+=== STAGE 3 (continued) | ITEMS (b), (c), (f) - documentation only ===
+(b) Presence rows Boulgou and Soum 1999-2000 (./data/BFA/cholera_presence_ai.csv lines 23-26: Boulgou 1999-08-07..12-02 and
+    2000-01-01..03-16, Soum the same two periods; sources 164 = WER 74(48), 165 = WER 75(11); confidence 0.9).
+    Finding confirmed: WHO's infected-area list carried Boulgou and Soum unchanged from Feb 1997 to 2001, including cholera-free
+    1997, so these are list carry-over, not transmission evidence for those provinces. NOT edited: no tool verb edits or removes
+    presence rows and hand-editing is forbidden. Documented in ./data/BFA/search_report.txt as a known defect for a tooling fix.
+(c) Stale insert-time surveillance tokens: 39 rows, not 34. Agent 6's 34 region/district rows (437, 441, 443, 452, 456, 458, 461,
+    462, 464, 610, 612, 613, 615, 616, 619, 621, 623, 624, 626, 629, 630, 633, 635, 637, 639, 641, 643, 644, 645, 649, 650, 651,
+    653, 654) PLUS 5 national rows Agent 6 re-graded but did not count: 30 (2025), 31 (2024), 32 (2023) token 'operational' vs
+    revised 'partial'; 33 (2026-01-01..09-20) and 363 (2026-09-21..28) token 'operational' vs 'surveillance partial'. Rows 30, 33
+    and 363 feed the national weekly series (no JHU for 2025-26), but py/build_weekly_timeseries.py reads only the canonical
+    'Evidence type' token and confidence, so the series is unaffected. NOT edited (no verb; the retract-and-re-add workaround used
+    for 495/484-486 was judged disproportionate for 39 rows whose token no consumer in the pipeline reads). Tooling gap reported.
+(f) JHU baseline defects (./data/BFA/cholera_data_jhu.csv is READ-ONLY; reported only):
+    - JHU Index 2 'AFR::BFA::Est::Tapoa::Diapaga Health District' 1 case and Index 3 'AFR::BFA::Est::Tapoa::Kantchari' 1 case, both
+      2022-07-03..07-05 (UID 21393), alongside national Index 1 = 2 cases (1 confirmed): Kantchari lies inside DS Diapaga, so the two
+      sub-national entries probably describe one case at two levels (Xinhua 7 Jul 2022: 1 confirmed + 1 suspected, both Kantchari);
+      MoH 2022 yearbook: all 4 Est cases in DS Diapaga.
+    - JHU Index 10482 1999 national 93 cases / 7 deaths vs WHO 'Cholera, 1999' Table 1 (WER 75(31)) 93 / 6 (Agent 5 X3, page image).
+    - JHU 2019 zeros: 54 national, 663 region and 8 466 district rows (UNICEF CP reports UID 5102/21448) assert zero weeks through
+      the 7 Jun-27 Nov 2019 SYNTSHA reporting boycott (TLOH completeness 58%) - they overstate certainty for Jun-Nov 2019.
+
+=== STAGE 4 | BASELINE GAP ASSESSMENT (mandatory, CLAUDE.md) ===
+Not run: py/analyze_effective_gaps.py (rewrites shared ./reference/ files). Used instead, both in memory only:
+  python /tmp/BFA_orch/coverage_inmemory.py /tmp/BFA_orch/ai_before.csv data/BFA/cholera_data_ai.csv  -> /tmp/BFA_a7/coverage_after_repairs.txt
+  g.analyse('BFA', ..., ['JHU','WHO'], today, 7) on a temp copy of the JHU file                       -> /tmp/BFA_a7/baseline_gap_assessment.txt
+  (git status of ./reference/ unchanged afterwards.)
+Coverage (682 months, 1970-01..2026-10):
+                         baseline-only   cycle start (25 AI rows)   after Agents 1-6   FINAL (after Agent 7)
+  standard coverage      58.1% (396)     99.4% (678)                99.9% (681)        99.9% (681/682), 0 gap periods
+  strict coverage*       58.1% (396)     67.7% (462)                91.5% (624)        91.5% (624/682), 3 gap periods
+  months with positives  264             270                        312                312
+  months_ai / ai_only    0 / 0           535 / 281                  635 / 284          635 / 284 (strict: 578 / 227)
+  * strict = counts plus Documented_Absence zeros only (Inferred_Absence zeros excluded).
+  Agent 7's repairs changed no coverage figure: they re-labelled, split or re-sourced rows inside periods already covered.
+Remaining strict gaps: 1977-01-01..1977-12-31 (Inferred row 35 only); 1980-01-01..1982-12-31 (Inferred rows 37-39 only);
+  2026-01-01..2026-10-03 (Inferred rows 33, 363 to 28 Sep; 29 Sep-3 Oct nothing). Standard: only October 2026 (3 days old).
+Per-gap status of the 11 baseline-only gap periods (./reference/baselineonly_surveillance_gaps_detailed.csv):
+   1 1976-01-01..1977-12-31  731 d  PARTIAL  1976 Documented (124 + 672); 1977 Inferred only (35)
+   2 1979-01-01..1983-12-31 1826 d  PARTIAL  1979 Documented (36), 1983 Documented (625); 1980-82 Inferred only (37-39)
+   3 1986-01-01..1990-12-31 1826 d  CLOSED   1986-89 Documented (487, MoH DLM 0); 1990 counts (483: 7 cases, MoH, single source)
+   4 1992-01-01..1994-12-31 1096 d  CLOSED   counts 33 / 36 / 8 (706-708, MoH DLM, single source; WHO never notified; deaths unknown)
+   5 1997                    365 d  CLOSED   Documented (488, 0.5 - contested: INSD prints 'nd')
+   6 2002                    365 d  CLOSED   Documented (489, 0.65)
+   7 2004                    366 d  CLOSED   Documented (490, 0.5 - contested: cholera on the borders, 26 hospital-coded admissions)
+   8 2007                    365 d  CLOSED   Documented (496 + 16)
+   9 2009-01-01..2010-12-31  730 d  CLOSED   Documented (492, 493 + 16; yearbooks print 0 in every region)
+  10 2013                    365 d  CLOSED   Documented (494 + 362; 13 region rows 536-548)
+  11 2025-01-01..2026-09-19  627 d  PARTIAL  2025 Documented (30 + 16 new-region rows); 2026 Inferred only (33, 363)
+  Success rate: 8 / 11 gap periods closed (2 of them wholly or partly by counts), 3 / 11 partial, 0 / 11 untouched.
+  By days (8 662 gap days): counts 1 461 (16.9%), Documented_Absence 5 478 (63.2%), Inferred only 1 723 (19.9%), open 0
+  (plus 2026-09-29..10-03, 5 days, which lie after the reference file's gap end).
+Geographic levels of the 668 live rows: national 141 (102 case / 39 zero); region 227 (17 / 210); province 17 (16 / 1);
+  district/town/village 282 (236 / 46); multi-provincial 1 (1 / 0).
+Cross-agent performance (workflow_state.json; all yields <= 100%, all row claims reconcile with Index ranges and gates):
+  A1 12 batches, yields 55-95%, +326 net (334 gross) - ceiling stop; A2 9 batches, +119; A3 6 batches, +152 net (172 gross);
+  A4 8 batches, +18; A5 9 batches, +28 net (31 gross); A6 3 batches 0/0/0%, +0 (classification only); A7 audit, net 0.
+  No agent ran fewer than 3 batches; no yield above 100%; no claimed-but-absent rows.
+
+=== STAGE 5 | DELIVERABLE ===
+./data/BFA/search_report.txt OVERWRITTEN (the May 2026 report is replaced; git history keeps it). Sections: EXECUTIVE SUMMARY
+(what was added; what it changed; key gaps filled; data quality; remaining limitations; recommendations) | APPENDIX - METRICS
+A1 rows and sources, A2 coverage, A3 baseline gap status, A4 per-agent performance, A5 validation pass rates, A6 source
+distribution, A7 geographic coverage, A8 temporal coverage, A9 confidence weights, A10 retraction log, A11 conflicts resolved,
+A12 open defects | PIPELINE NOTES (i)-(v).
+
+=== FINAL SUMMARY (Agent 7, BFA) ===
+End time      : 2026-10-03 06:24:04 PDT
+Validator     : start ERROR 0 / WARN 49 (47 CFR_high_flagged_for_review, 1 period_single_day, 1 same_period_conflict) / INFO 143
+                end   ERROR 0 / WARN 48 (47 CFR_high_flagged_for_review, 1 period_single_day) / INFO 144; exit 0
+                (python py/validate_quality.py BFA --json /tmp/BFA_a7/v_end.json)
+Repair tool   : python py/repair_data_integrity.py --dry-run BFA -> 0 changes (start and end); --apply not needed
+Rows          : 668 -> 668 (net 0). Added Idx 704 (2019 zero, disrupted, 0.5), 705 (2020 zero, operational, 0.7), 706-708
+                (1992-94 MoH counts 33/36/8 with deaths unknown). Retracted Idx 684 (final > preliminary), 495 (split),
+                484, 485, 486 (deaths printed 0 but lethality 'NA'). Tombstones 31 -> 36.
+Annotations   : Idx 692, 14 (item a); 483 (item e); 1, 2, 3, 11, 12, 14, 17, 18, 19, 20, 22, 23 (exact legacy quotes).
+Metadata      : 222 -> 222; Descriptions of 10 and 217 extended with archived/working copies (old text preserved).
+URL check     : 222 -> 201 reachable live, 18 archived copies valid, 3 dead live URLs with copy recorded (10, 11, 217), 0 dead.
+Sample        : 46 rows; values confirmed 46/46; quotes verbatim/exact-table 42/46; 4 paraphrased legacy rows (1, 2, 11, 19).
+Coverage      : standard 99.9% (681/682), strict 91.5% (624/682), positive months 312, AI-only months 284 (strict 227);
+                baseline-only 58.1% (396/682, 11 gaps) -> 8 closed, 3 partial, 0 open.
+Open defects  : presence carry-over rows (Boulgou/Soum 1999-2000); 39 stale surveillance tokens; JHU baseline defects
+                (Kantchari/Diapaga Jul 2022, 1999 deaths 7 vs 6, 2019 boycott zeros); builder priority/week/template issues.
+Agent 7 Status: COMPLETE
+
+=== ORCHESTRATOR COMPLETION (2026-10-03 06:27:46) ===
+All 7 agents run under the yield rule (no time limit). Final: 668 rows / 222 sources; validate_quality ERROR 0 / WARN 48.
+Coverage (in-memory, BFA only): standard 99.4% -> 99.9%; strict (counts + Documented zeros) 67.7% -> 91.5%; positive-case months 270 -> 312.
+Shared reference/gap files and dashboard left to the runner.
