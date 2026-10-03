@@ -141,3 +141,67 @@ RESULT: no enumerating source covers any day after 2026-09-20. The window 2026-0
    written (a zero ahead of an enumerating source would be invented). Next sources to check: Africa CDC issue dated 2026-09-27
    (expected ~5-6 Oct 2026), WER 101(40)+ monthly cholera update (data to ~27 Sep 2026), ECDC CDTR wk 44 (late Oct), AFRO OEW
    wk 37-39. Any new row must start 2026-09-21 and end at the source's data-as-of date.
+
+=== BLOCK 7 | STEP 2 - DID THE AGENTS DO THE WORK? ===
+Checked against ./data/GAB/cholera_data_ai.csv, ./data/GAB/retracted_rows_ai.csv, ./data/GAB/metadata_ai.csv and the logs.
+  Agent 1: 11 batches (20,10,5,5,10,10,10,5,0,0,0), max 20% (<=100 OK), stop = 3 consecutive sub-5% (B9-B11) - valid.
+           Rows: claimed 29, ACTUAL 31 created (Index 10-40; under-claim, already noted by the orchestrator); 23 live, 8 later
+           retracted (22, 33, 40 by Agent 2; 23, 24, 26, 28, 29 by Agent 3). Retractions 1-8 tombstoned. Sources 13-70 = 58 (match).
+           FLAG: batches 6-11 contain grouped 'Qn-Q20' lines that are document extraction/verification, not queries
+           (B6 7, B7 10, B8 11, B9 10, B10 8, B11 11 = 57 of 120 nominal queries). The stop on B9-B11 therefore rested on ~31
+           distinct queries (10+12+9), not 60. Batch 2 yield (10%) counted coverage-neutral replacement rows (the agent notes
+           it would be 0% otherwise). Neither changes the outcome: Agents 2-6 ran 31 further batches on the same gaps.
+  Agent 2: 9 batches (5,5,0,0,5,10,0,0,0), stop B7-B9 - valid; 8 rows = Index 41-48, all live; retractions 22, 33, 40
+           tombstoned; sources 71-97 = 27 (match). 20 queries logged in every batch.
+  Agent 3: 5 batches (10,5,0,0,0), stop B3-B5 - valid; 4 rows = Index 49-52 live; retractions 23, 24, 26, 28, 29 tombstoned as
+           Surveillance_Gap (reasons recorded); sources 98-109 = 12 (match).
+  Agent 4: 8 batches (5 + 3 on one orchestrator redeployment), all 0%, stop valid (sub-5% from B3; continued voluntarily); 0 rows
+           (consistent); sources 110-113 = 4 (all context/anti-trap). Its revisions carry '[AGENT 5 REVISION]' stamps (tool
+           default --agent 5), clarified by Agent 5 on Index 14, 47, 48.
+  Agent 5: 5 batches (0,5,0,0,0), stop B3-B5 - valid; 1 row = Index 53 live; sources 114-117 = 4 (match).
+  Agent 6: 4 batches (5,0,0,0), stop B2-B4 - valid; 2 rows = Index 54, 55 live; sources 118-127 = 10 (match); Index 32
+           re-weighted 0.6 -> 0.5.
+  Every agent ran >= 3 batches; no yield > 100%; no agent claimed a row it did not add. Canonical logs
+  ./data/GAB/search_log_agent_1.txt .. _7.txt all exist (legacy *_legacy_*.txt files left untouched).
+
+=== BLOCK 8 | FIXES APPLIED (repo tools only; every revise call with --agent 7) ===
+F1 Index 9  TR 2026-05-26 -> 2026-04-26 (Epi Update 37 data as of 26 Apr 2026); note corrects the legacy 'Fully operational'
+            surveillance claim to 'unknown'. Evidence class/weight unchanged.
+F2 Index 11 TL 2026-05-27 -> 2026-04-27 (WER 101(35) Table 1 covers 1 Jan-26 Jul 2026, Gabon absent); reporting_date
+            2026-08-31 -> 2026-09-04 (WER 101(35) issue date). Rows 9/11/12/49 still abut with no overlap.
+F3 metadata 14 Description: '(31 Aug 2026)' -> '(4 Sep 2026, pp.193-202 ...)' via --meta-index 14 --set-description.
+F4 Index 41 note: 'National sub-period of the JHU 2002 annual row ... the SAME 6 cases - do not sum with the JHU national annual
+            row' + verification of metadata 75/85.
+F5 Index 13 note: primary-source verification on WER 54(32) p.248 (all values present); citation kept to preserve the Index 13
+            cross-references.
+F6 NEW ROWS Index 56 (AFR::GAB 1994-03-01..1994-10-31, sCh 2, cCh 2) and Index 57 (AFR::GAB 1996-03-01..1996-10-31, sCh 2, cCh 2),
+            source metadata 20, conf 0.6 (deliberate downgrade: one-ward floor, months uncertain), reporting_date 2001-07-01,
+            'National total - includes provinces not individually listed' + 'NATIONAL MINIMUM (lower bound)'. Reason: the national
+            weekly builder reads only AFR::GAB rows, so the culture-confirmed 1994/1996 cases (Libreville rows 42/43) were
+            invisible and both years rendered 100% assumed_zero. Same construction as the 1988 pair 47/48. In-memory rebuild
+            (process_country, nothing written): 1994 and 1996 now 35 Fourier weeks each, summing to 2.0 cases; 17 gap weeks each
+            stay assumed_zero; 390 assumed_zero weeks remain in the whole series (all inside the six gaps).
+F7 Index 42/43 notes: link to twins 56/57; 'Provincial subset - do not sum with national row'.
+Validator after F1-F7: python py/validate_quality.py GAB -> exit 0; ERROR 0, WARN 0, INFO 96 (93 metadata_unused + 3 documented
+  national/sub-national overlaps 1988, 1994, 1996). In-memory analyse(): unchanged 591/682 (86.7%), 6 gaps, months_ai_only 363.
+JUSTIFIED, NOT CHANGED: 93 metadata_unused (92 by my count; the validator also counts metadata 40, cited only by the presence
+  file) = context, negative evidence, anti-trap entries, the WHO annual tables behind the 13 retracted zero rows, and sources
+  duplicating JHU years (25/26/27 = JHU 2003/2002/2008; 92 = same FJE series as 42/43; 114 = JHU 2024 zero) - none holds an
+  unentered Gabonese count; kept for provenance. Level-1 rows below 0.9 (Inferred 0.5-0.7 by design; 46, 52, 54, 55, 56, 57
+  with stated reasons). CFR 40% on Index 13 (2/5, <25 cases) and 11.1% on 47/48 (documented). Index 46 nil return kept at 0.6
+  (5 undated 1981 cases; JHU 1981 overwrites it in the builder). Index 44 Documented at 0.5 (press-quoted official provincial
+  communique). Index 54/55 described as nested/not additive (correct: they cannot supersede JHU in the builder).
+
+=== BLOCK 9 | REPORT + FINAL VALIDATION | 2026-10-03 14:54:58 ===
+Report: ./data/GAB/search_report.txt OVERWRITTEN (was a stale copy of ./data/GAB/search_report_legacy_20260514.txt, which is
+  left untouched). Executive summary 123 lines (about 2 pages) + MODELLER FLAGS F0-F8 + metrics appendix A1-A11. The legacy
+  report's '8/8 gaps = 100% coverage' claim is explicitly withdrawn in the header.
+FINAL: python py/validate_quality.py GAB --json /tmp/GAB_post.json -> exit 0; 41 data rows, 127 sources; ERROR 0, WARN 0,
+  INFO 96 (93 metadata_unused + 3 documented national/sub-national overlaps 1988, 1994, 1996).
+FINAL in-memory analyse(): 591/682 months (86.7%), 6 gap periods (unchanged), months_ai_only 363, positive months 78,
+  60 observations, latest observation 2026-09-20, latest positive 2008-12-31.
+Agent 7 totals: rows added 2 (Index 56, 57), sources added 0, rows revised 7 (9, 11, 13, 41, 42, 43 + metadata 14), rows
+  retracted 0; WebSearch 6 of 30; 9 audit blocks (B1-B9). Nothing written under ./reference/, no dashboard or git command,
+  py/analyze_effective_gaps.py not run (in-memory analyse() only), py/build_weekly_timeseries.py not run as a script
+  (process_country() called in memory, nothing written; ./data/GAB/cholera_weekly_GAB.csv is stale until the runner rebuilds it).
+Agent 7 Status: COMPLETE (audit complete - validator exit 0)
