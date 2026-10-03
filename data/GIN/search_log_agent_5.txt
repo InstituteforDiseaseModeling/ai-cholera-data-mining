@@ -8,3 +8,72 @@ Inputs read: ./templates/template_search_protocol.txt, ./CLAUDE.md, ./data/GIN/w
   ./data/GIN/retracted_rows_ai.csv, ./data/GIN/cholera_data_jhu.csv, ./data/GIN/search_log_agent_1..4.txt
 Previous-cycle (Aug 2025) Agent 5 log overwritten per orchestrator instruction.
 
+TOOLING NOTES
+- WebSearch: session budget exhausted (200/200) at the first attempt (batch 1 Q12) - all further queries are direct
+  fetches (NCBI E-utilities, Europe PMC REST, IRIS, Wayback, HDX) or re-reads of documents cached by Agents 1-4
+  (/private/tmp/gin_wer, /tmp/gin_a2, /tmp/gin_a3, /tmp/gin_a4). Each counts as one query.
+- ReliefWeb API v1 decommissioned; v2 refuses unapproved appnames -> ReliefWeb only via cached pages.
+- Machine heavily loaded by other countries' jobs (dashboard plots); commands run with long timeouts.
+- Validator baseline before Agent 5: ERROR 0, WARN 29 (16 same_period_conflict, 11 CFR_high_flagged_for_review,
+  2 multiyear_aggregate), INFO 184, 1376 rows, 227 sources. NOTE: same_period_conflict and CFR checks do not read
+  processing_notes, so annotation alone never clears them; only a corrected date/count/location or a retraction does.
+
+=== BATCH 1 | PHASE 1-2 (re-mining of registered sources + conflict tie-breaks) | GIN ===
+Gap targeted : conflict register items 1-17; 2006-2008 weekly detail; 1994-1995 WER notifications
+Queries      : 20
+  Q1  Cache re-read: WHO GTFCC profile Guinea (17 Dec 2007, meta 53) p.2 chart 'WEEKLY NEW CASES 1 JAN-11 NOV 2007'
+      -> vector chart (45 bars, gridlines 0-900): national weekly 2007 weeks 1-45; validated vs printed wk34 778, OCHA
+      cum. to 28 Oct 7,834 (exact), WER wk1-5 27 and wk16-21 77 (exact), wk15 8, wk24 43, wk43 214 (exact)
+      [ROWS 1411-1447: 37 new national weeks; weeks with an existing row were annotated, not duplicated]
+  Q2  Cache re-read: WHO GTFCC profile (3 Sep 2009 update) -> same 2007 chart re-rendered at another scale (second
+      quantisation pins integers); annual chart 1970-2008 has EMPTY categories 1971-1985 (no bars) and omits
+      1987-1993 -> confirms non-reporting, not zero; '2008: 513 cases, 32 deaths'                       [no rows]
+  Q3  Cache re-read: WHO GTFCC profile (5 Jan 2007, meta 55) chart 'Weekly incidence by province 1 Jan-17 Dec 2006'
+      -> vector line chart, 8 regions x 48 categories: proves WHO semaine N = ISO week N and WHO's TEXT dates are one
+      week early (semaine 42 = OCHA's dated 16-22 Oct national 196 / Conakry 150 exactly); regional series equal the
+      digitised SAP prefecture sums (Nzerekore wk6-36, Faranah wk12-41 identical); exact values for SAP
+      minimum-height bars                                    [ROWS 1448-1457 Conakry exact weeks; 1458-1467 zeros]
+  Q4  Cache re-read: HDX WCARO regional workbooks 2012, 2015, 2016, 2017 -> 2017 Guinea week 21 = 1, total 1
+      (tie-breaker vs yearbook 119/36); 2015-2016 all zero (JHU covers); 2012 sum 7,325 vs JHU 7,276   [no rows]
+  Q5  Cache re-read: WHO WER 2018;93(38) 'Cholera, 2017' -> Guinea absent from both the reporting table and the
+      zero-reporting list (tie-breaker 2017)                                                             [no rows]
+  Q6  Cache re-read: MoH Annuaire 2017 Tableaux 69-71 -> 'Kindia Prefecture 82 0 36', 'Guinee 119 0 36' really
+      printed in the cholera columns; no column shift                                                    [no rows]
+  Q7  Cache re-read: Moore et al. 2018 PLoS NTD supplementary list -> no Guinea district data            [no rows]
+  Q8  Cache re-read: Boiro 2020 avtoreferat (meta 207) Table 2 'Cholera in Guinea 1970-2014' -> annual MoH series
+      (1970 6378/518 ... 2008 257/16 ... 2014 2/0); 2008 = exactly half of WHO 513/32               [ROW 1468]
+  Q9  Cache re-read: Sudre & Bompangue 2009 text (2008 section, Tableau II, Figure 5) -> 2008 limited to Boke and
+      Boffa, Conakry 1 case wk21 + 1 confirmed wk29; Figure 5 overlays the regional bars (tallest = Conakry 432 at
+      2007 wk33) - NOT a national series                                                                 [no rows]
+  Q10 Cache re-read: MoH Annuaire 2010 HMIS tables -> 52 health-centre / 17 hospital consultations labelled cholera,
+      0 hospitalised; SAP table 0 -> national zero 2010 (row 96) kept, note appended                    [no rows]
+  Q11 NCBI E-utilities efetch PMID 2316500 (St Louis et al. 1990 AJE) -> studies 'in the capital city' + a rural
+      funeral outbreak; no national count -> 1,169/43 read as study-area subset                         [no rows]
+  Q12 WebSearch '"1169" cholera Guinea 1986 "health centers" St Louis' -> FAILED: session WebSearch quota spent
+  Q13 Cache re-read: WHO WER 1994 Nos 31-45 and 1995 Nos 20-38 (page images rendered for Nos 43, 45) -> Guinea
+      notifications ...-24.VII 4,339/82; 25.VII-3.VIII 3,817/38; 12-19.VIII 3,085/16; 1-8.IX 2,896/13; ...-15.X
+      4,387/212; 4.XI 1,523/137; 1995 19-28.VII 1,782/119 (Agent 1 had transcribed them into meta 40/41 but left the
+      >1000 entries for Agent 5 corroboration: corroborated by WHO annual 31,415, Boiro 31,442, press >=5,000 by 26
+      Jul; notifications sum 20,364 < annual)                                                   [ROWS 1469-1475]
+  Q14 Cache re-read: Karnaukhov et al. 2017 proceedings (meta 24) -> 'every year since 1994 except 1997 and 2010';
+      2013 319, 2014 2, 2015-2016 0 (corroborates Boiro 2020 and rows 31/96/1276)                       [no rows]
+  Q15 Europe PMC REST search cholera AND Guinea AND (Conakry|Forecariah|Boffa|Boke|Kindia|Dubreka|Coyah) -> 147 hits;
+      unregistered candidates: DHIS2 2015-2020, Luquero 2013, Page 2013 RDT, Sako 2016 Donka            [no rows]
+  Q16 Europe PMC full text PMC8811041 (DHIS2 for surveillance, Guinea 2015-2020) -> only case-form completeness
+      (bloody diarrhoea/cholera 0/3, 3/55), no counts                                                     [no rows]
+  Q17 Europe PMC full text PMC3798604 (Luquero 2013 OCV response Guinea 2012) -> no new counts           [no rows]
+  Q18 Europe PMC full text PMC3744445 (cholera RDT during 2012 campaign) -> no new counts                 [no rows]
+  Q19 NCBI efetch PMID 27412979 (Sako et al. 2016, Donka 2012) -> 2,808 cholera patients at Donka 15 May-15 Dec 2012
+      (facility subset of Conakry; corroboration note on row 514, no row)                                [no rows]
+  Q20 ReliefWeb API v1/v2 (decommissioned / appname refused) -> cached DREF MDRGN005 final report (11 Mar 2013) and
+      update 1: only the 5,699/109 national total to August already present; OCHA ROWA 9 Jul 2008 '450 cases incl.
+      29 deaths ... same period last year' too ambiguous                                                 [no rows]
+Sources found: 3 new candidate documents (Sako 2016, DHIS2 2021, Luquero 2013) - none registered (no new rows)
+Registered   : none (all new rows cite existing meta 40, 41, 53, 55, 207)
+Rows added   : 66    Indices: 1411-1447 (37), 1448-1457 (10), 1458-1467 (10 zeros), 1468, 1469-1475 (7)
+Retractions  : 843, 701, 685-693, 709, 7 (13 rows; tombstones in ./data/GIN/retracted_rows_ai.csv)
+Successful queries: 4/20 (Q1, Q3, Q8, Q13)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches)
+
