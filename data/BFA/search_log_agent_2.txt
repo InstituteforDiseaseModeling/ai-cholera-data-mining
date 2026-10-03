@@ -1,0 +1,49 @@
+=== AGENT 2 INITIALIZATION ===
+Agent        : 2 - Geographic Expansion Specialist (geographic-expansion-specialist)
+Country      : Burkina Faso (BFA)  [Upper Volta / Haute-Volta until 4 Aug 1984]
+Cycle        : 2026-10-02 full 7-agent re-run (workflow orchestrator)
+Start time   : 2026-10-02 20:24:15
+Starting state:
+  ./data/BFA/cholera_data_ai.csv     351 rows (Index max 363)
+  ./data/BFA/metadata_ai.csv         169 sources (12 and 13 Superseded - never cite)
+  ./data/BFA/cholera_presence_ai.csv 25 rows
+  ./data/BFA/retracted_rows_ai.csv   8 tombstones (24, 25, 28, 9, 6, 13, 4, 64 - all by Agent 1; not to be undone)
+  python py/validate_quality.py BFA -> ERROR 0 / WARN 43 (40 CFR_high, 2 notes_missing_quote rows 26/27, 1 same_period_conflict 15 vs 125)
+Prior-cycle log archived as ./data/BFA/search_log_agent_2_legacy_2026-05-13.txt (that run: 3 batches, 0 rows).
+Inputs read before first query: ./CLAUDE.md; ./templates/template_search_protocol.txt; ./data/BFA/cholera_data_ai.csv;
+  ./data/BFA/metadata_ai.csv; ./data/BFA/cholera_presence_ai.csv; ./data/BFA/retracted_rows_ai.csv;
+  ./data/BFA/workflow_state.json (orchestrator block, gate log, Agent 1 entry); ./data/BFA/search_log_agent_1.txt;
+  /tmp/BFA_orch/bfa_context.md; /tmp/BFA_orch/wer_cache_bfa_lines.txt (place-name grep: only infected-area lists and
+  non-cholera tables for 1984-85/1995-2001, already used by Agent 1 for presence rows); ./reference/country_profiles.json (BFA).
+Not run (orchestrator instruction, countries run in parallel): py/analyze_effective_gaps.py, update_dashboard.sh, git.
+Working directory for downloads: /tmp/BFA_a2/
+
+=== AGENT 2 PLAN ===
+Definition of a query (same as Agent 1): one WebSearch, or one targeted retrieval and read of a specific document
+  (WebFetch / curl download + text or page-image read). Yield = queries with >=1 NEW committed row in
+  ./data/BFA/cholera_data_ai.csv / 20 x 100 (percent).
+Targets (orchestrator brief), highest value first:
+ T1 Epidemic years with NO sub-national counts: 1984 (2191; Ouagadougou, Gourma), 1985 (1149; Gnagna, Namentenga, Seno,
+    Soum, Kadiogo, Kossi), 1991 (537), 1995 (1451; Soum), 1996 (425), 1998 (1036), 1999 (93; Boulgou, Soum),
+    2000 (617; Boulgou, Soum), 2001 (477; Ourgaye 314 placed), 1975 (3), 1978 (1; Ouagadougou, Manga), 2003 (1).
+    Source types: MoH annuaires statistiques / bulletins, IDSR, WHO AFRO, IFRC, MSF, UNICEF, OCHA/ReliefWeb (curl),
+    theses (Univ. Ouagadougou / Joseph Ki-Zerbo, BEEP/IRD), Persee / BSPE / Med Trop, IRD horizon, Centre Muraz/OCCGE,
+    Sidwaya / Observateur Paalga / Lefaso.net, WER infected-area and narrative pages.
+ T2 Finer detail where one level exists: 2005 Ouagadougou health districts (Pissy, Bogodogo, Nongr-Massom, Signonghin,
+    Baskuy) and provinces outside Centre; 2011-2012 Sahel districts by month (UNICEF Sep/Oct 2012 sitreps);
+    2021-2022 Est districts (Diapaga, Fada, Kantchari/Tapoa).
+ T3 Sub-national documented absence (regional/district tables showing cholera = 0, e.g. annuaire statistique by region),
+    excluding the JHU 2018-2019 weekly region/district zeros already in the baseline.
+ T4 2025-2026 Sahel / Centre-Nord displacement sites: district cholera or AWD reports (AWD kept separate from cholera).
+Not redone: Agent 1's 1970-74 WER cercle tables. Rows 15/125 (Centre 2005) conflict left to Agent 5 - no third Centre-2005 total.
+Phases: 1 broad discovery (batches 1-4: academic/theses, MoH yearbooks, WHO AFRO, humanitarian), 2 targeted
+  (batches 5-8: per-year/per-province French queries, UNICEF/OCHA sitreps via curl), 3 deep validation (batches 9-12:
+  citation chains, archives/Wayback, cross-border GHA/MLI/NER/TGO/BEN/CIV, corroboration).
+Every batch mixes >=3 of the 7 categories; all 7 covered over the run; many French queries.
+Row rules: every sub-national row carries "Provincial subset - do not sum with national row N" (or district/city
+  equivalent) and states which nested level is primary; overlapping national rows get "National total - includes
+  provinces not individually listed" appended via py/revise_observation.py where missing. >1000 cases needs a second
+  source. Conflicts recorded, never averaged. Count-less place mentions -> add-presence.
+Stopping rule: >=3 batches; then stop at 3 consecutive batches <5% yield, or 12 batches (240 queries). No time limit.
+Validation: python py/validate_quality.py BFA after every batch (must end ERROR 0).
+
