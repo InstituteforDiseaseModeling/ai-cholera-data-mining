@@ -1,61 +1,89 @@
-=== AGENT 3 INITIALIZATION ===
-Country: Botswana (BWA)
-Agent: 3 - Zero-transmission Validation
-Start Time: 2025-07-23 01:00:00
+=== AGENT 3 — ZERO-TRANSMISSION VALIDATION — BWA — cycle 2026-10-02 ===
+Agent: 3 (zero-transmission-validator), Opus 5.5 re-run, deployed by workflow orchestrator after Agents 1 and 2
+Start time: 2026-10-03 01:50
+Previous Agent 3 log (2025-07-23, 2 batches, 0 rows) overwritten; prior-cycle copy at /tmp/BWA_prior_logs/search_log_agent_3.txt
+Pre-state: ./data/BWA/cholera_data_ai.csv 67 rows (Index 1-71; 8, 58, 59 retracted -> ./data/BWA/retracted_rows_ai.csv);
+  ./data/BWA/metadata_ai.csv 60 sources (Index 1-60); ./data/BWA/cholera_presence_ai.csv 1 row
+Validator at start: python py/validate_quality.py BWA -> ERROR 0, WARN 0, INFO 33, exit 0
+Effective gap file (./reference/effective_surveillance_gaps_detailed.csv, refreshed 2026-10-02 20:57 mid-Agent-1, read-only):
+  BWA 2002-01-01..2002-12-31 (365d, modern) and 2004-01-01..2004-12-31 (366d, modern) - both since filled by Agent 1 with WEAK
+  Inferred_Absence rows 61, 62 (conf 0.6). Orchestrator briefing list at cycle start: 1970-2004, 2007, 2010, 2022, 2026-07-01..2026-10-02.
 
-=== ZERO-TRANSMISSION VALIDATION MANDATE ===
-Focus: Zero-transmission validation and surveillance gap identification
-Search Strategy: Systematic validation of cholera-free periods and surveillance system functioning
-Target: Comprehensive documentation of absence periods with epidemiological evidence
-Stopping Criteria: 2 consecutive batches <5% yield (minimum 2 batches/40 queries)
-Maximum Queries: 100 (5 batches)
+Evidence labels used (agent definition): Documented_Absence = a functioning system looked and found nothing (explicit statement / zero table);
+  Inferred_Absence = no positive evidence, context makes absence likely; Surveillance_Gap = nobody looking/publishing -> NEVER a zero row
+  (logged here; presence file only if cholera present). Silence / empty search results are never evidence.
 
-=== CURRENT DATA BASELINE ===
-Existing validated zero-transmission periods:
-- 2018-10-08 to 2018-10-19: Laboratory confirmed negative (WHO AFRO)
-- 2023-06-15 to 2023-06-19: Laboratory confirmed negative (MoH)
-Current data: 4 observations, 5 sources (2 zero-transmission validations documented)
+Targets (orchestrator priority order):
+  T1 Strengthen/correct weakest national zeros: 2002 (row 61, 0.6), 2004 (row 62, 0.6), 2003 (row 33, 0.75), 2007 (row 60, 0.8), 2010 (row 18, 0.75)
+     - year-specific positive statements: CSO/Statistics Botswana HSR 2002/2004/2006/2007/2010 (statsbots + Wayback cso.gov.bw), MoH annual
+       reports, IDSR bulletins, WHO AFRO CCS, SADC tables, Hansard; upgrade via revise_observation.py; retract if contradicted.
+  T2 1970-1996 (row 15, surveillance 'unknown'): year/decade-specific corroboration for years not covered by 1982-84, 1986 (MoH/CSO HSRs
+     1970s-1990s, NDP health chapters, WHO AFRO reports, retrospectives); actively look for CONTRADICTING evidence (imported cases 1970s-90s).
+  T3 2018: PMC10953700 (Weldegebriel et al. 2024) + WHO AFRO 2018 report/bulletins -> outbreak window in which cholera was lab-ruled-out.
+  T4 Recent tail 2026-09-21 -> latest supportable date (today 2026-10-03): Africa CDC weekly (late Sep 2026), WHO AFRO weekly bulletins,
+     WHO multi-country updates, ECDC CDTR, MoH/BPHI; also a POSITIVE 2026 statement to upgrade rows 16/19/20.
+  T5 (lower) JHU phantom zeros 2011-2018, 2021: year-specific documented statements (WHO zero tables, HSR footnotes, MoH statements).
+  Context hand-offs: Sept 2026 Ghanzi rotavirus / North West 281 under-5 cases - no zero without a cholera-testing statement.
+Regional check (neighbours NAM, ZAF, ZWE, ZMB) recorded for every absence claim.
+Method: ./templates/template_search_protocol.txt - batches of exactly 20 queries; yield = queries producing >=1 NEW committed row / 20 (percent);
+  revisions/corroboration logged but not counted; min 3 batches; stop at 3 consecutive batches <5% or 12 batches. No time limit.
 
-=== PRIORITY VALIDATION TARGETS ===
-1. Historical absence periods (2010-2017, 2019-2022, 2024-present)
-2. Surveillance system functionality during cholera-free periods
-3. Regional cross-validation with neighboring countries
-4. Academic literature confirming absence periods
-5. Government surveillance reports documenting zero cases
+=== BATCH 1 | PHASE 1 (broad discovery: national statistics, WHO/AFRO, recent tail, 2018 window, regional bodies) | BWA ===
+Gaps/periods targeted: 2002 & 2004 (rows 61, 62); 1970-1996 (row 15); 2018 outbreak window (T3); tail 2026-09-21..10-03 (T4); 2010/2011-2021 (T5)
+Queries (20):
+ Q1  Statistics Botswana publication listing re-crawled (health sector page, 76 PDFs; full listing 91 pages, 1,200 PDFs): no Health/Medical
+     Statistics reports for 1985, 1987-91, 1994, 2002, 2004, 2006-08 exist online; later products (Causes of Mortality 2008-2024, OPD briefs
+     2011-2019, Statistical Year Books 2016/2017, In-Patient Morbidity 2021, Stats Brief 2007-2015) downloaded + grep: no cholera line (ICD
+     chapter ranges only) -> 0 rows
+ Q2  Wayback CDX cso.gov.bw (5,247 URLs) + archived CSO health tables (2001, 2003, 2004 captures; tab_health1-13, health_stats): notifiable
+     table = malaria, measles, rabies, viral hepatitis, diarrhoea only (no cholera); text confirms 'Fourteen such diseases are reported on a
+     weekly basis' (surveillance-functioning context only) -> 0 rows
+ Q3  Africa CDC Epidemic Intelligence download page (Sep 2026): newest files are issues dated 2026-09-13 and 2026-09-20 (already row 20);
+     October page 404 -> tail cannot be extended -> 0 rows
+ Q4  WHO IRIS AFRO Weekly Bulletin on Outbreaks 2026: latest = week 36 (31 Aug-6 Sep 2026) -> 0 rows
+ Q5  Europe PMC full text PMC10953700 (Weldegebriel et al., Vaccine 2024): 'Microbiological analysis ruled out cholera as cause of the
+     outbreak'; outbreak = IDSR weeks 36-42 of 2018 ('week 36 (week ending 9 September 2018)' ... 'came out of the epidemic phase during
+     week 42'); 634 stool samples, Table 1 no Vibrio -> registered index 61; ROW 72 (AFR::BWA 2018-09-03..2018-10-21, Documented_Absence,
+     operational, 0.9); row 3 (8-19 Oct) cross-referenced as nested   [SUCCESS]
+ Q6  WebSearch WHO DON Zimbabwe Sep 2018 (regional cross-check): Harare outbreak declared 6 Sep 2018, 3,621 suspected/32 deaths by 15 Sep ->
+     context for row 72 (absence during neighbour epidemic, lab-tested source) -> 0 rows
+ Q7  ReliefWeb HTML search 'Cholera and AWD Outbreaks in Eastern and Southern Africa' -> 30 UNICEF ESARO bulletins (Feb 2018-Jun 2019)
+     downloaded: Botswana always blank in annex tables (map 'No outbreak reported'); bulletin No.6 (6 Apr 2018) Annex 3: 'Botswana and South
+     Africa reported 0 and 1 cases of cholera over the 2010-2016 period' (source WHO GHO = no BWA records, i.e. zero REPORTED) -> registered
+     index 62; corroboration appended to row 18 (2010), label/confidence unchanged -> 0 new rows
+ Q8  WER 86(31) 'Cholera, 2010' (IRIS 10665/241791) regional check: Zambia 6,794, Zimbabwe 951; Namibia not listed; 'No cases were reported
+     from the Republic of South Africa' -> CORRECTION appended to row 18 (my first note wrongly included Namibia) -> 0 rows
+ Q9  WER 'Cholera, 2011' (87(31)) and 'Cholera, 2021' (97(37)): Botswana absent from 2011 table; NOT in the 2021 zero-reporting Table 2
+     (Namibia, Zambia, Zimbabwe are) -> no documented WHO zero for 2011 or 2021 -> 0 rows
+ Q10 IRIS 'World health statistics annual' (1985-1992 items are WER publication notices only; volumes not deposited) -> 0 rows
+ Q11 WebSearch Glass et al. 1991 Lancet 'Cholera in Africa: lessons...' (30 of 46 countries affected 1970-1990; list not accessible) -> 0 rows
+ Q12 Wayback CDX afro.who.int/* 2002-2007 with 'cholera' URL filter (whole range and per year 2003-2005) -> HTTP 504 x4 -> 0 rows
+ Q13 WebSearch SADC member states cholera 2004 table Botswana -> New Era (Namibia) 12 Sep 2019 -> original SADC RVAA Synthesis Report 2019
+     (Update II, p.13): 'Cholera cases vary widely among SADC Member States, with some countries like South Africa, Lesotho, Eswatini,
+     Madagascar, Botswana and Namibia recording no cases since 2018.' -> registered index 63; ROW 73 (AFR::BWA 2018-01-01..2019-06-30,
+     Documented_Absence, operational, 0.75)   [SUCCESS]
+ Q14 WER 94(48) 'Cholera, 2018' + 95(37) 'Cholera 2019' (cross-check of the SADC claim): 2018 table has Zambia 4,082, Zimbabwe 10,692, no
+     South Africa/Namibia/Botswana; Lesotho/Eswatini zero-reported 2018 (Botswana NOT on the 2018 zero list); Botswana on the 2019 zero list
+     (= JHU baseline 2019) -> claim consistent; recorded in row 73 notes -> 0 additional rows
+ Q15 SADC RVAA synthesis reports 2018, 2020, 2021, 2022 downloaded: 2021 'Cholera cases have been reported in two SADC Member States this
+     year' (Mozambique, DRC; Jan-May 2021) -> 2021 Inferred only (absence from list); JHU phantom zero already covers 2021; no row
+     (not year-specific documented evidence) -> 0 rows
+ Q16 WebSearch SADC Regional Report 2025/2026 cholera -> reports not retrievable -> 0 rows
+ Q17 IRIS AFRO 'Regional Cholera Bulletin' series: latest deposited = Monthly bulletin June 2025 -> no 2026 bulletin -> 0 rows
+ Q18 IRIS dc.title:cholera 1977: WER 52(19) 1977 'Cholera' (1976 review, Table 1: 11 African countries notified, Botswana not among them;
+     closes Agent 1's '1976 not located') + WER 52(50) 1977 'Functioning of the IHR (1969) ... 1976', Annex 1 lists BOTSWANA among States
+     reporting on IHR functioning -> registered index 64; surveillance-status note appended to row 15 -> 0 new rows
+ Q19 Wayback CDX mmegi.bw/2002 (2,117) and /2004 (7,954) -> background full-text scan of all 10,071 archived Mmegi pages for
+     cholera/kholera/vibrio started (results reviewed in batch 2) -> 0 rows so far
+ Q20 WebSearch (extended) Botswana cholera 2026 'no case'/'cholera-free' -> only 2023-2025 items already on file -> 0 rows
+Sources found: 14   Registered: index 61, 62, 63, 64
+Rows added   : 2    Indices: 72, 73
+Revisions    : row 3 (nested in 72), row 15 (1976 WER + IHR reporting status), row 18 (UNICEF corroboration + regional correction)
+Successful queries: 2/20 (Q5, Q13)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Validator    : ERROR 0, WARN 0, INFO 35 (exit 0)
+Decision     : CONTINUE (minimum 3 batches; yield 10%)
+Regional notes: 2018 - Zambia (Lusaka, to May) and Zimbabwe (Harare, from Sep) in epidemic, South Africa/Namibia none -> absence during
+  neighbour epidemics backed by laboratory testing (rows 72, 3) and SADC (73). 2010 - Zambia, Zimbabwe in epidemic; SA none; Namibia none listed.
 
-=== AGENT 3: BATCH 1 START ===
-[01:00:15] Starting Batch 1 (1-20/100 queries)
-Focus: Zero-transmission validation and surveillance system functionality
-[01:06:45] Batch 1 searches completed (20/20)
-[01:07:00] Batch 1 Results:
-  - Queries executed: 20/20
-  - New data observations: 0 (comprehensive zero-transmission validation searches found supporting evidence but no new quantitative data)
-  - Data observation yield: 0%
-  - Files unchanged: cholera_data.csv (4 total rows), metadata.csv (5 total sources)
-  - Key findings: BWA absent from WHO AFRO outbreak lists, excluded from academic studies due to insufficient data, strong SADC surveillance participation
-  - Zero-transmission validation: Evidence supports BWA's cholera-free status but lacks specific quantifiable absence periods for CSV documentation
-
-=== AGENT 3: BATCH 2 START ===
-[01:07:15] Starting Batch 2 (21-40/100 queries)
-Focus: Historical absence documentation and cross-validation with regional patterns
-[01:18:30] Batch 2 searches completed (40/40)
-[01:18:45] Batch 2 Results:
-  - Queries executed: 20/20
-  - New data observations: 0 (comprehensive historical absence documentation searches found supporting evidence but no new quantitative data)
-  - Data observation yield: 0%
-  - Files unchanged: cholera_data.csv (4 total rows), metadata.csv (5 total sources)
-  - Key findings: BWA excluded from academic studies due to insufficient data, government cholera preparedness documented, cross-border surveillance active
-  - Historical validation: Academic evidence supports BWA's low cholera burden but lacks specific quantifiable absence periods for CSV documentation
-
-=== AGENT 3: COMPLETION ASSESSMENT ===
-[01:19:00] STOPPING CRITERIA EVALUATION:
-✓ Minimum 2 batches completed (40 queries)
-✓ Consecutive low-yield batches: 1, 2 both achieved 0% yield (<5% threshold)
-✓ Meets 2-consecutive requirement for stopping
-✓ Comprehensive zero-transmission validation coverage completed
-
-AGENT 3 STATUS: COMPLETED
-- Total queries: 40/100 (40% of maximum, stopped due to yield criteria)
-- Total data observations: 0 (comprehensive zero-transmission validation searches found supporting evidence but no quantifiable data)
-- Overall yield: 0% (below 5% threshold for 2 consecutive batches)
-- Zero-transmission validation confirmed BWA's exceptionally low cholera burden through multiple evidence sources
