@@ -187,3 +187,83 @@ not override an explicit non-operation statement; cholera-specific negatives (RD
         caveats, correctly reflected by 0.6 on Index 41.
   Rows changed by Task D: NONE (no verdict required a value change).
 
+=== TASK F | DID THE AGENTS DO THE WORK? (workflow_state.json + logs + CSV/tombstone reconciliation) | 2026-10-02 20:15 ===
+  Agent | batches (queries) | yields % (per batch)          | rows claimed -> verified                         | sources | presence | stop             | gate
+  1     | 8 (160)           | 0,5,10,5,5,0,0,0              | 5 -> 5 live (Index 8-12)                         | 18 (7-24)  | 4 (0->4) | yield (B6-B8)    | ACCEPTED
+  2     | 5 (100)           | 15,5,0,0,0                    | 16 -> 16 (13-28; 13 retracted by Agent 7 today)  | 16 (25-40) | 3        | yield (B3-B5)    | ACCEPTED
+  3     | 10 (200)          | 20,5,5,0,5,0,5,0,0,0          | 11 net -> 12 added (29-40) - 1 self-retracted 35 | 17 (41-57) | 2        | yield (B8-B10)   | ACCEPTED
+        |                   |                               |   (31, 32 later narrowed by Agent 6); also retracted 3, 4, 5, 6
+  4     | 7 (140) 1st pass 3 + redeployment B4-B7 | 0 x7    | 0 -> 0 (revisions: Index 8 TL; metadata 5 Superseded) | 10 (58-67) | 7   | yield (B1-B3; B4-B7) | ACCEPTED after redeployment
+  5     | 10 (200)          | 5,5,0,10,0,0,10,0,0,0         | 6 -> 6 live (41-46)                              | 11 (68-78) | 1        | yield (B8-B10)   | ACCEPTED
+  6     | 4 (80)            | 0,0,0,0                       | 0 new (+2 narrowing re-adds 47, 48; retracted 31, 32) | 8 (79-86) | 2     | yield (B1-B3, B4 in progress) | ACCEPTED
+  Row ledger: 7 (cycle start) - 1 (orchestrator: Index 1) + 5 + 16 + 12 - 5 (A3: 3,4,5,6,35) + 0 + 6 + 2 - 2 (A6: 31,32) - 1 (A7: 13)
+    = 39 live; tombstones 9 (1, 3, 4, 5, 6, 35, 31, 32, 13). Sources 6 + 80 = 86 (A7 registered none). RECONCILES EXACTLY.
+  FLAGS:
+    - Fewer than 3 batches: NONE (minimum 4 batches, Agent 6).
+    - Yield above 100% (row-counting error): NONE (max 20%, Agent 3 B1). All yields recorded in percent units.
+    - Claimed rows that do not exist: NONE (every claimed Index exists live or as a tombstone with a matching reason).
+    - Stop not on the yield rule: NONE (no stop on time, on the 12-batch cap or on tool exhaustion).
+    - Agent 2 B1 yield logged 5% then retro-updated to 15% when queued OCR from B1 Q6/Q7 committed rows 21-28 during B3 (documented,
+      log line 167). Credit follows the protocol's 'count QUERIES' rule; it did not change the stop decision.
+    - Agent 4: zero rows in 7 batches while its three speciality gaps stayed open. Redeployed once by the orchestrator (WebSearch
+      exhausted from its first call, IRIS down from ~04:05, Gallica 403); the redeployment straddled the ~07:30 API-outage session
+      end and was finished as a CONTINUATION (same redeployment, not a second), finalising provisional B4-B6 yields after the
+      orphaned WER OCR streams completed and completing B7. Its negative result is real and useful: WER 1970-1983 swept end to end
+      (all but 3 issues) - GNQ never notified cholera.
+    - DEGRADED DISCOVERY: WebSearch quota was exhausted in Agent 3 batch 2, so Agent 3 batches 3-10 ran on direct database/API/
+      full-text queries; Agent 4's whole first pass and redeployment B4-B6 had no WebSearch at all (earlier session). Fresh budget
+      after the resume: Agent 4 continuation ~6 units, Agent 5 24 calls, Agent 6 22 calls.
+    - Agent 6 corrected its own WebSearch counts (B1 header 7 -> 6, B3 header 4 -> 3; whole run 22). Honest correction, no effect.
+    - Agent 6's 0 new rows is by design (gap-context role); its output is the year-by-year rule execution + 14-period classification.
+
+=== TASK G | IMPACT (read-only analyse(); nothing written to ./reference) | 2026-10-02 20:10 ===
+  Reproduced read-only from scratch copies (/private/tmp/gnq_a7/recon; pre-cycle AI file = git a618e60):
+    cycle start (runner refresh)  81.7% (557/682)  months_ai 557  months_ai_only 353  gaps 2  (1970-1979; 2026-06..10)   INFLATED
+    post-adjudication (-Index 1)  43.0% (293/682)  months_ai 257  months_ai_only  89  gaps 3  (1970-1983; 1986-2003; 2026-06..10)
+    baseline only (JHU+WHO)       29.9% (204/682)  -              -                   gaps 5
+    NOW (after Agent 7)           38.0% (259/682)  months_ai 146  months_ai_only  55  gaps 5  positive-case months 62 (baseline 48)
+  months_ai_only 55 = Mar-Dec 1973 (10; ONE deaths-only island row, conf 0.3) + 2009-2010 (24; ONE Inferred row, conf 0.3) +
+    2025 (12; WHO zero report, 0.9) + Jan-Sep 2026 (9; six Inferred rows, 0.6-0.7).
+  Sensitivity: excluding the 11 JHU 'Phantom: True' zero rows (2011-2021): 25.7% (175/682) with AI vs 10.6% (72/682) baseline-only.
+  Shared ./reference/effective_surveillance_* files: mtimes unchanged (diff vs /private/tmp/gnq_a7/ref_mtimes_before.txt).
+
+=== TASK H | JHU BASELINE CONFLICTS (read-only; NOT edited) and builder consequences | 2026-10-02 20:15 ===
+  Quantified from ./data/GNQ/cholera_weekly_GNQ.csv (runner build 18:04; read only):
+    H1 UID 894 GQ-BN 400 (to 25 Feb 2005) < Malabo 946/15 same date (Index 2): impossible if both complete; sub-national, so no
+       effect on the national weekly series.
+    H2 UID 894 national 4400/30 (1 Feb-13 Mar 2005, 'Primary: False') nested in UID 320 annual 6391/33: the builder keeps the larger
+       per-week value of the two JHU rows -> ISO-year 2005 in the weekly series = 10,237 cases / 60.1 deaths vs WHO 6,391/33 (+60%
+       cases, +82% deaths). Weeks of 7 Feb-7 Mar 2005 carry 832-938/week from UID 894.
+    H3 2004 (59/1) and 2005 (6391/33) overlap (2005 total starts Dec 2004): 59 cases double counted; 43.2 of the 2004 cases are
+       spread over Jan-Sep 2004, which AFRO documents as zero (Index 44).
+    H4 2006 = 0 (WHO-reported) vs culture-confirmed cases to Mar 2006 (Index 12): weekly series = 0 for all 52 weeks of 2006.
+    H5 1985 = 108/1 is WHO's '108*' incomplete figure: spread at ~2/week over all 1985 instead of 45/38/25 in 4-24 Feb (AI Index
+       23/25/27 shadowed); epidemic continued to Apr-May 1985.
+    H6 1984 = 404/31 includes 279 undated cases: spread at ~7-8/week from January 1984, before the 26 Mar 1984 onset (Index 42).
+    H7 Phantom zeros 2011-2021 (conf 0.7 -> builder inferred_zero 0.6): 574 weeks of zeros override the AI layer's deliberate
+       emptying of 2011, 2013-2016 and 2020-2021 (documented non-reporting / adjacent Cameroon epidemics).
+    H8 (found here) JHU 2024 = 0 (no evidence token) -> 52 weeks inferred_zero 0.6 override AI Index 29 Documented_Absence 0.9.
+    H9 (builder, not JHU) assumed_zero gap fill: 1,143 weeks rendered sCh=0 (conf 0.5, source 'none') - 938 in 1986-2003, 101 in
+       2007-2008, 104 in 2022-2023 - i.e. the periods the AI layer left EMPTY as non-reporting (with cholera present in 1992-99 and
+       Oct-Dec 2022) reach the model as zeros. Weekly Inferred rows (Index 36, 37, 41) are emitted as 'observed' zeros.
+
+=== TASK I | REPORT | 2026-10-02 20:04 ===
+  ./data/GNQ/search_report.txt REPLACED (Aug 2025 version kept at /private/tmp/gnq_a7/prior_cycle_search_report.txt).
+  Main body sections 1-8 (bottom line; four coverage figures; additions split case/zero; gaps closed/opened/open with Agent 6
+  classification; validator + repairs; agent productivity; JHU conflicts and builder consequences; recommendations) + Appendix A1-A7.
+  Facts re-checked against the CSVs after drafting; 6 wording corrections applied (Pagalu 1977/78 epidemic is unnamed; 20 not 19
+  case rows inside JHU years; 16 presence-only sources; 2007 evidence includes the 15-day MoH zero; 14 documents + GHO API).
+
+=== TASK J | FINAL GATE | 2026-10-02 20:04 ===
+  python py/validate_quality.py GNQ --json /tmp/GNQ_post.json -> 39 rows | 86 sources | ERROR 0 WARN 0 INFO 63 | EXIT 0
+    (copy /private/tmp/gnq_a7/GNQ_post.json; INFO = 7 national_subnational_overlap '- documented' + 56 metadata_unused)
+  write_agent_state('GNQ', agent_num=7, batches_completed=0, batch_yields=[], rows_added=0, sources_discovered=0, ...) written;
+    ./data/GNQ/workflow_state.json keeps the 'orchestrator' key (13 sub-keys: 7 decisions, 7 gates, 1 redeployment, 1 resume) and
+    agents 1-7.
+  Files changed by Agent 7: ./data/GNQ/cholera_data_ai.csv (Index 13 retracted; notes appended to 2, 7, 8, 9, 10, 12, 14-20,
+    23-29, 43), ./data/GNQ/retracted_rows_ai.csv (+1 tombstone), ./data/GNQ/metadata_ai.csv (6 description; 2, 3, 4 Superseded),
+    ./data/GNQ/search_log_agent_7.txt, ./data/GNQ/search_report.txt, ./data/GNQ/workflow_state.json (agent 7 entry).
+  NOT run (house rules): py/analyze_effective_gaps.py, py/build_weekly_timeseries.py, update_dashboard.sh, git commit/push.
+    (The runner's own checkpoint commit 33fb634 at 19:56 captured in-progress Agent 7 CSV edits; Agent 7 committed nothing.)
+  WebSearch calls by Agent 7: 0 (all verification by direct fetch/curl/API).
+Agent 7 Status: COMPLETED
