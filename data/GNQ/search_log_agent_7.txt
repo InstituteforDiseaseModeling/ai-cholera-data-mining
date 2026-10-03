@@ -1,33 +1,189 @@
-=== AGENT 7 QUALITY AUDIT - EQUATORIAL GUINEA (GNQ) ===
-Date: 2026-05-15
-Status: COMPLETED
+=== AGENT 7 INITIALIZATION ===
+Agent: 7 - Quality Auditor (cholera-quality-auditor)
+Country: Equatorial Guinea (GNQ)
+Cycle: 2026-10-01 Opus 5.5 re-run
+Start Time: 2026-10-02 19:31:53 PDT
+Agent 7 Status: INITIALIZED
+Working directory: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Scratch directory: /private/tmp/gnq_a7
+Prior-cycle file replaced: ./data/GNQ/search_log_agent_7.txt (May 2026, git-tracked; copy kept at
+  /private/tmp/gnq_a7/prior_cycle_search_log_agent_7.txt). Prior report ./data/GNQ/search_report.txt
+  (Aug 2025) copied to /private/tmp/gnq_a7/prior_cycle_search_report.txt before replacement.
+Pre-audit snapshots (scratch, read-only reference): /private/tmp/gnq_a7/*_pre_a7.csv, workflow_state_pre_a7.json
 
-=== QUALITY AUDIT SUMMARY ===
-Data reconstructed from validated agent 1-6 findings. All 6 observations confirmed from search report and agent 6 validation log.
+House rules in force (orchestrator brief, binding):
+  - NO py/analyze_effective_gaps.py (any form); impact measured with read-only analyse() recompute.
+  - NO py/build_weekly_timeseries.py, update_dashboard.sh, py/update_dashboard_data.py, git commit/push.
+  - py/repair_data_integrity.py only with GNQ passed explicitly.
+  - CSV writes only via py/add_observation.py / py/revise_observation.py.
+  - JHU baseline (./data/GNQ/cholera_data_jhu.csv, metadata_jhu.csv) read-only: report conflicts, never edit.
+  - WebSearch shared by session: <=~40 calls for verification, then WebFetch/curl.
 
-=== FILE VALIDATION ===
-cholera_data_ai.csv: 6 data rows - VALIDATED
-metadata_ai.csv: 5 source entries - VALIDATED
-search_report.txt: EXISTS
-Agent logs 1-6: ALL PRESENT
+Inputs read before first check:
+  ./data/GNQ/workflow_state.json (Agents 1-6, orchestrator pre_*, decisions, gates, redeployments, resumes)
+  ./data/GNQ/workflow_orchestrator_GNQ.txt
+  ./.claude/agents/cholera-quality-auditor.md, ./templates/template_search_protocol.txt, ./CLAUDE.md
+  ./data/GNQ/cholera_data_ai.csv (40 live rows), ./data/GNQ/metadata_ai.csv (86 sources)
 
-=== FORMAT VALIDATION ===
-✓ 14 required columns present
-✓ Date format YYYY-MM-DD verified
-✓ Location codes AFR::GNQ format verified
-✓ Dual-reference indexing verified
-✓ source_database = 'AI' for all rows
+=== CHECK A1 | VALIDATOR BEFORE ANY CHANGE | 2026-10-02 19:32 ===
+Command: python py/validate_quality.py GNQ --json /tmp/GNQ_audit.json   (copy: /private/tmp/gnq_a7/GNQ_audit_pre.json)
+Result : 40 data rows | 86 metadata sources | ERROR 0  WARN 0  INFO 63 | exit 0
+INFO review:
+  8 x national_subnational_overlap, all '- documented' (validator line numbers = CSV physical lines; line N = data row N-1):
+    1984-03-29..04-06 (Index 21 nat, 22 Bioko, 42 Bioko); 1985-02-04..10 (23/24); 1985-02-11..17 (25/26); 1985-02-18..24 (27/28);
+    2004-12-01..2006-03-31 (Index 12 nat with 2, 9, 10); 2004-12-13..2005-01-30 (19 with 9); 2004-12-13..2005-02-27 (43 with 2, 9, 10);
+    2005-01-31..2005-02-27 (13 with 2, 9, 10). Every row in each group carries an explicit 'National total - includes provinces not
+    individually listed' or 'Provincial subset - do not sum with national row' statement (verified by reading all 40 notes).
+  55 x metadata_unused: 1 legacy/retired (5 Superseded), 3 legacy entries cited only by tombstoned rows (2, 3, 4), and 51 context or
+    presence sources (cited from cholera_presence_ai.csv or from processing_notes). Not defects: CLAUDE.md requires every DATA row to
+    cite metadata, not every metadata entry to carry a data row.
 
-=== DATA QUALITY VALIDATION ===
-✓ 2005 outbreak: 946 sCh, 15 deaths, CFR 1.6% - mathematically verified (15/946 = 1.585%)
-✓ Zero-transmission periods: 5 entries covering 1980-2004 and 2006-2025
-✓ Temporal logic: TL <= TR satisfied
-✓ Evidence type documented in processing_notes
+=== CHECK E | MECHANICAL REPAIR TOOL (GNQ only) | 2026-10-02 19:40 ===
+Command: python py/repair_data_integrity.py --dry-run GNQ
+Result : 'TOTAL: 0 change(s)'. No ./data/GNQ/attribution_review.csv exists (no unverifiable citation queued).
+Decision: --apply NOT run (nothing mechanical to apply).
 
-=== COVERAGE ASSESSMENT ===
-- Single outbreak: 2005 Malabo epidemic (only documented event)
-- Cholera-free: 1980-2004 (25 years pre-outbreak) and 2006-2025 (20 years post-outbreak)
-- Source quality: 100% Level 1-2 institutional sources
-- Final quality score: 95%
+  ERRATUM to the metadata_unused breakdown above (verified programmatically, 2026-10-02 19:45): of the 55 unused sources, 16 are
+    cited by cholera_presence_ai.csv entries, 25 are cited only inside data-row processing_notes, 2 (metadata 2, 3) are cited only by
+    tombstoned rows, and 12 (4 Restricted, 5 Superseded, 11, 12, 52, 57, 65, 78, 81, 83, 84, 85) are cited nowhere in the CSVs but are
+    named in the agent logs (gap-classification context). None is a defect.
 
-=== AGENT 7 STATUS: COMPLETED ===
+=== CHECK V | SOURCE RE-VERIFICATION (direct fetch/curl; 0 WebSearch calls used) | 2026-10-02 19:41-19:48 ===
+Copies in /private/tmp/gnq_a7. Each verdict = quoted text found in the document as the row claims.
+  V1 Index 43 / metadata 73: AFRO 'WEEKLY OUTBREAK/EPIDEMICS MONITORING SHEET, AS OF WEEK 9, 2005' (Wayback 20070610103846id_):
+     'EQUATOR. GUINEA  Bata and Malabo Regions  Week 51 of 2004  3568  28  0,0 %  Vibrio cholerae O1 Ogawa ... WHO 06/03/05 (Week 9)'
+     under column heads 'Cumulative number of cases' / 'Cumulative number of deaths'. CONFIRMED.
+  V2 Index 13 / metadata 25: WER No. 10, 11 Mar 2005, 'Notifications of diseases received from 4 to 10 March 2005', Cholera:
+     'Equatorial Guinea / Guinee equatoriale 31.I-27.II ... 3568 28' (Wayback 20050319213947id_). CONFIRMED - identical count.
+  V3 Index 7 / metadata 6 (paraphrased 'Source states'): ECDC cholera-monthly page, dated captures of the SAME URL:
+     Wayback 20260714135539 (update as of 22 Jun 2026): 'Since 1 January 2026 and as of 22 June 2026, 105 813 cholera cases, including
+     1 216 deaths, have been reported worldwide.' Africa section names Angola, Burundi, Congo, DRC, Kenya, Malawi, Mozambique,
+     Nigeria, Zambia with 'Since 1 January 2026 ...' totals and 'Since 26 May 2026, no updates have been reported by: Ethiopia,
+     Namibia, Rwanda, Somalia, South Sudan, Sudan, United Republic of Tanzania, or Zimbabwe.' Equatorial Guinea: not on the page.
+     Wayback 20260523072019 (update as of 30 Mar 2026): 'Since 1 January 2026 and as of 30 March 2026, 44 602 cholera cases,
+     including 496 deaths, have been reported worldwide.' GNQ not on the page. No capture exists between 23 May and 14 Jul 2026
+     (CDX), so the '26 May 2026' update itself cannot be read. VERDICT: omission evidence for 1 Jan-26 May 2026 CONFIRMED from
+     verbatim text; the row's 'Source states' is a paraphrase -> verbatim quote to be appended (no value change).
+  V4 Index 46 / metadata 77: ASODEGUE 16 Jan 2007 'Peligro de colera' (Wayback 2007id_): MoH communique via AFP Malabo
+     '... acaba diciendo que "no se ha detectado todavia ningun caso"'. CONFIRMED verbatim; the same sheet recalls the 2005
+     cholera epidemic, so 'ningun caso' refers to cholera.
+  V5 Index 44 / metadata 74: AFRO CDER Oct 2004, Table 2 (Jan-Sep 2004, updated 23 Nov 2004): 'Equatorial Guinea 0 0 0 5 3 60.0
+     259 0 0 - - - - 40 0 0'. CONFIRMED (cholera 0/0 in a row that reports meningitis, dysentery, measles); Table 3 of the same
+     issue shows GNQ AFP surveillance active (3 AFP cases, 100% stool adequacy).
+  V6 2008 emptying (orchestrator rule): WER 84(31) 2009 (Wayback 20100326023428): 'Cameroon did not report any cases, and no
+     information was available from the Central African Republic, Chad and Equatorial Guinea.' CONFIRMED.
+  V7 2013-2016 emptying: WHO AFRO IDS Quarterly Bulletin Q2 2015 (IRIS 10665/204516): 'Twelve countries (Algeria, Angola, Botswana,
+     Equatorial Guinea, ...) that did not report data to WHO since 2013 on critical outbreak prone diseases are however sharing
+     information either on maternal death and/or virological surveillance of influenza' and 'since the beginning of 2015, no data
+     on cholera has been received by WHO from 10 countries (Algeria, Cabo Verde, Congo, Equatorial Guinea, ...)'. CONFIRMED.
+  V8 Index 34 / metadata 45: Impouma et al. 2020 EID 26(11): 'Sao Tome and Principe, Guinea-Bissau, Gabon, Equatorial Guinea,
+     Eritrea, and Eswatini did not report any disease outbreak with a start date during the study period'. CONFIRMED.
+  V9 Index 45 / metadata 76: SOMOS+ note (Wayback 20221026003549id_): 'En las dos ultimas semanas han fallecido mas de nueve ( 9)
+     persona por dicho brote', signed 'Malabo, 25 de Octubre de 2022'; headline puts 'brote de colera' in quotation marks. CONFIRMED.
+  V10 Index 29 / metadata 41: WER 100(36) Table 2 'Countries reported 0 cases and deaths in 2024, fulfilling the public health
+     surveillance service of "zero reporting"' lists Equatorial Guinea (Africa). CONFIRMED.
+  V11 Index 30 / metadata 42: WER 101(38) (No. 38, 2026, 101, 221; 25 Sep 2026) 'Countries reporting zero cases' African Region 22:
+     '... Comoros, Equatorial Guinea, Eritrea ...'. CONFIRMED.
+
+=== TASK B | ORCHESTRATOR DECISION ON INDEX 13 EXECUTED | 2026-10-02 19:50 ===
+Basis re-verified (CHECK V1, V2): both WHO tables carry the identical 3568/28; AFRO labels it cumulative from onset week 51 of 2004.
+  RETRACTED Index 13 (AFR::GNQ 2005-01-31..2005-02-27, sCh 3568, deaths 28, conf 0.8, metadata 25) via
+    py/revise_observation.py GNQ --index 13 --delete --agent 7 -> tombstone row appended to ./data/GNQ/retracted_rows_ai.csv
+    (full original notes preserved there; tombstones 8 -> 9).
+  APPENDED to Index 43 (AFR::GNQ 2004-12-13..2005-02-27, 3568/28, conf 0.9, metadata 73): WER 2005 No.10 corroboration with the WER
+    label verbatim ('Equatorial Guinea / Guinee equatoriale 31.I-27.II ... 3568 28'), why the label is not used for dating, and the
+    restated primary-count map. Values/confidence unchanged.
+  PRIMARY-COUNT MAP RE-CHECK (national 2004-06): Index 43 (3568/28) + Index 14 (1360/4) + 15 (1107/1) + 16 (290/0) + 17 (66/blank)
+    = 6391 cases / 33 deaths = WHO annual 2005 (JHU UID 320). Arithmetic CONFIRMED.
+  CLARIFYING NOTES APPENDED (no value changes; history kept): Index 2, 9, 10 (pointer: 13 retracted, series unchanged, subset status);
+    Index 12 (pointer + stale 'conflict with AI Index 3' flag resolved - Index 3 retracted by Agent 3 - + JHU 2006 conflict remains
+    + builder skips cCh-only rows); Index 14-17 ('map on Index 13' -> restated on Index 43; increment status unchanged);
+    Index 18 (batch-1 'not double-counted by Index 13-17' explicitly superseded); Index 19 (batch-1 point (b), the 'AFRO pair
+    2698/14' sentence and the 18+33=51 arithmetic explicitly superseded; conf 0.5 still justified); Index 20 ('Index 13-17'
+    references superseded by the re-split; HQ overlap = Index 14-17).
+  Post-check: every live row that mentions Index 13 (2, 9, 10, 12, 14-20, 43) now carries an Agent 7 superseding line.
+  Validator after Task B: 39 rows | ERROR 0 WARN 0 INFO 63 (overlap group 2005-01-31..02-27 gone; metadata 25 now 'unused' - cited
+    in Index 43's notes as corroboration). Net rows: 40 -> 39.
+
+=== TASK C | INTERNAL CONSISTENCY SWEEP OVER ALL LIVE ROWS | 2026-10-02 19:35-20:00 ===
+Method: all 40 (now 39) processing_notes read in full (/private/tmp/gnq_a7/notes_dump.txt) + programmatic checks.
+  C1 CFR: recomputed deaths/sCh*100 for every row with sCh>0 and deaths present - all match the CFR column (CFR blank where no
+     denominator: Index 8, 9, 12, 17, 45). PASS.
+  C2 confidence_weight vs final weight stated in notes: every 'conf X -> Y' chain ends at the column value (2, 7, 10, 11, 19, 20,
+     37, 39, 47 checked; 47 phrased 'Confidence lowered 0.4 -> 0.3'). PASS.
+  C3 zero-row labels: canonical 'Evidence type' token (the one the builder reads) - Documented: 29, 30 (WHO zero reports), 38, 40
+     (IHR infected-area removals), 44 (AFRO country table 0/0), 46 (MoH 'ningun caso'); Inferred: 7, 11, 33, 36, 37, 41 (omission
+     from comprehensive lists), 34 (AFRO event database + EBS), 39 (bracketed interval), 47, 48 (general notifiable-disease
+     activity). Surveillance: operational for 29, 30 (annual return submitted); partial for all others. All correct. Prose
+     'Documented_Absence' mentions in 7 and 11 are explicit relabelling history (Agent 3 REGRADE), not live labels. PASS.
+  C4 national/sub-national: every overlap group states its level; Bioko 38-40, 42 and Malabo 45 are marked provincial subsets;
+     Index 8 (Annobon) states 'Island-only event: no national row exists for 1973'. PASS.
+  C5 deaths-only rows: Index 45 marked 'DEATHS-ONLY ROW and LOWER BOUND ... 9 is recorded as the stated floor' (source re-read,
+     CHECK V9) - AGREE, no change. Index 8 deaths-only status was stated only in the first paragraph of a 15k-char note, and 400 is an
+     estimate, not a floor -> consolidating AUDIT line appended (no value change).
+  C6 self-contradictions / stale pointers fixed by appended superseding lines (no value changes):
+     - Index 2, 9, 10, 12, 14-20, 43: Index 13 pointers (Task B).
+     - Index 12: stale 'CONFLICT ... AI zero row Index 3' resolved (Index 3 retracted by Agent 3).
+     - Index 19: batch-1 point (b), 'AFRO pair 2698/14' sentence and 18+33=51 arithmetic explicitly superseded.
+     - Index 7: 'Source states' was a paraphrase -> verbatim ECDC quotes from dated captures appended (CHECK V3).
+     - Index 23-28: '1985 SERIES = WHO annual 108/1' now carries WHO's own '108*' incomplete flag (WER 61(26) re-read via IRIS
+       10665/225862: 'Equatorial Guinea ... 108*', '* Incomplete figures') -> lower bound; no zero after 24 Feb 1985.
+     - Index 29: FALSE corroboration claim 'WHO GHO 2024 = 0 (metadata 7)' corrected - GHO API re-queried 2026-10-02 holds GNQ
+       cholera values only for 1984, 1985, 2004, 2005, 2006. The WER 100(36) zero report alone carries 2024.
+     - GHO measles counts cited as reporting-activity evidence (Index 34, 47, 48) re-queried (WHS3_62): 2009 78, 2010 0, 2012 1190,
+       2017 1, 2018 0, 2019 0 - CONFIRMED. Note GHO also has GNQ measles 2013 321, 2014 13, 2015 1250, 2016 1699: EPI reporting ran
+       while AFRO says no outbreak-prone-disease data arrived - the orchestrator rule (EPI counts do not override an explicit
+       non-operation statement) is what keeps 2013-2016 empty.
+  C7 METADATA corrections (py/revise_observation.py --meta-index; original descriptions kept verbatim inside the new text):
+     - metadata 6 (cited by Index 7): description claimed 'documented zero-transmission' for omission evidence -> corrected; dated
+       Wayback captures added; Status stays Active.
+     - metadata 2 -> Superseded: description FALSE (claims WHO database shows GNQ cases only in 2005 '946/15' and zeros elsewhere;
+       WHO GHO holds 1984 404/31, 1985 108/1, 2004 59/1, 2005 6391/33). Cited only by tombstoned Index 1.
+     - metadata 3 -> Superseded: WHO AFRO health-topic fact page mis-described as 'official surveillance'; basis of retracted Index
+       3-6; no country content on the live page (2024 capture not checkable: Internet Archive offline 19:52). 2024 = metadata 41.
+     - metadata 4 -> Superseded (was 'Restricted'): DOI 10.1016/S2214-109X(19)30087-4 does not exist (doi.org 404; handle API
+       'Handle Not Found'). No row cited it.
+  Validator after Task C: see next line.
+Validated 1 countries | 39 data rows | 86 metadata sources
+ERROR 0   WARN 0   INFO 63
+
+=== TASK D | JUDGEMENT-CALL VERDICTS | 2026-10-02 20:05 ===
+Rule applied (orchestrator, workflow_state.json decisions): a year keeps an inferred zero only if no WHO/AFRO/government source
+documents that GNQ cholera/IDSR surveillance was not operating or that no cholera data were received for that year; EPI counts do
+not override an explicit non-operation statement; cholera-specific negatives (RDTs, MoH 'no case detected') can support a year.
+  D1a 2008 EMPTIED (Agent 6) ............ AGREE. WER 84(31) re-read: 'no information was available from the Central African
+        Republic, Chad and Equatorial Guinea' - explicit WHO statement for 2008; fails the rule. (GHO shows 436 measles cases
+        reported for 2008: EPI reporting does not override it.)
+  D1b Index 47 2009-2010 Inferred 0.3 KEPT  AGREE under the rule as written (no explicit non-operation statement for 2009 or 2010;
+        GHO measles 2009 = 78 re-queried; AFR/RC60/9 event channel). Weakest retained zero (APA Jan 2009 counter-claim). Note: the
+        weekly builder renders it as inferred_zero at 0.3, BELOW the 0.5 assumed_zero it gives an emptied year - keeping it lowers
+        the weight of the zeros the model sees for 2009-2010; it does not add certainty.
+  D1c Index 48 2012 Inferred 0.5 KEPT ... AGREE (measles JRF 2012 = 1190 re-queried in GHO; 'did not report ... since 2013'
+        implies AFRO received data before 2013; Spain detected no GNQ-acquired cholera in 2012; regionally quiet).
+  D1d 2013-2014 EMPTIED (inclusive 'since 2013') AGREE. IDS Q2 2015 sentence re-read verbatim. The inclusive reading is the
+        conservative one; under the exclusive reading 2013 would still have no cholera-specific evidence (<=0.4 at best) and the
+        read-only JHU phantom zero for 2013 outranks any AI row in the builder anyway.
+  D1e Index 34 2017-2019 Inferred 0.6 KEPT  AGREE under the rule as written. Basis is better than silence: WHO AFRO's event
+        database (Impouma 2020, re-read) and WHO EBS media monitoring for 2018 found no GNQ outbreak. The stricter reading (GNQ
+        absent from WHO's annual zero-report enumerations = no cholera return received) would empty 2017-2019, and by the same
+        logic 2012 and 2009-2010. NOT adopted: it is a different rule from the one issued, and it would need to be applied
+        pipeline-wide for consistency. Moot for the model as currently built: read-only JHU phantom zeros 2017-2019 outrank this
+        row in py/build_weekly_timeseries.py, so emptying it would not change one week of cholera_weekly_GNQ.csv.
+  D2  Index 38 (Bioko 20-30 Nov 1984 Documented 0.6) KEPT; Index 39 (Bioko 1 Dec 1984-27 Jan 1985 Inferred 0.3) KEPT (Agent 5) -
+        AGREE. 38 rests on an official IHR Art. 7 freedom notification (WHO removal list; CAREC reprints concordant); 39 is bracketed
+        by two official IHR statements with the GNQ channel active on both sides, and Klitgaard's 'two big outbreaks' plus the 279
+        undated 1984 cases are real but undated counter-evidence - correctly handled by 0.4 -> 0.3 with an explicit retraction
+        trigger. Sub-national: neither row enters the national weekly series.
+  D3  Index 8 (Annobon 1973, deaths 400, conf 0.3) .......... AGREE. Consolidating note added (estimate not floor; deaths-only).
+  D4  Index 46 (1-15 Jan 2007 Documented 0.4) ............... AGREE. Quote re-read verbatim; a cholera-specific MoH 'no case
+        detected' statement, which the orchestrator rule explicitly admits; 0.4 reflects the AFP->ASODEGUE relay and short window.
+  D5  Index 44 (Jan-Sep 2004 Documented 0.7) ................ AGREE. AFRO CDER table re-read: GNQ cholera 0/0 in a row reporting
+        other diseases; AFP indicators show an active channel; 0.7 reflects partial surveillance and Cameroon's 2004 epidemic.
+  D6  2026 Inferred_Absence chain Index 7, 11, 33, 36, 37, 41 . AGREE (contiguous 2026-01-01..2026-09-28, no overlaps; all
+        omission-based, partial, 0.6-0.7). Spot checks: Index 7 ECDC captures (V3), Index 41 ECDC CDTR wk 40 re-read ('Since 26
+        August 2026 and as of 28 September 2026, 46 153 new cholera cases ...'; GNQ named nowhere), Index 37 WHO dashboard layer
+        re-queried 2026-10-02 20:03 (iso_3_code='GNQ' count = 0). No statement of non-operation for 2026 exists (GAT-Report: 'weak
+        surveillance system' = weakness only). Nigeria's 2026 epidemic and the unnamed WHO week-39 African signal are recorded
+        caveats, correctly reflected by 0.6 on Index 41.
+  Rows changed by Task D: NONE (no verdict required a value change).
+

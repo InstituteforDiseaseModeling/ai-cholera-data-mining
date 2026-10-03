@@ -28,3 +28,459 @@ Inputs read before first query: shared_context.md (all UPDATE sections), templat
 ./data/LBR/cholera_data_ai.csv 1453 live rows (max Index 1520); ./data/LBR/metadata_ai.csv 324 sources;
 ./data/LBR/cholera_presence_ai.csv 71 records; validator 0 ERROR / 14 WARN; effective coverage 94.4% (644/682), months_ai_only 20.
 
+=== PRE-BATCH LOCAL ANALYSIS (no new retrieval; NOT counted as queries) ===
+  L1 Weekly suspected-value map of JHU+AI (/tmp/LBR_a6/weekly_cov.py; read-only). National runs >=26 weeks with no sCh value at any
+     duration: 1990-01-01..1990-12-30 (52 wk) and 1991-12-30..1994-01-02 (105 wk) = the effective gaps G1/G2 (plus Q4 1991, covered only by
+     JHU's annual). Runs with no national row of <=93 days (i.e. only annual totals exist): 1970-01..08 (pre-introduction), 1982,
+     1984 Apr-Dec, 1985 Mar-Dec, 1986-03..1991-06, 1991-10..1995-06, 1997-02..1998-05, 1998-09..2000-05, 2000-08..2002-02, 2002-10..2003-06,
+     2007-11..2011-09, 2014-06-02..2014-12-28 (30 wk), 2025-08-04..2026-05-10 (40 wk). The 2015 JHU weekly zeros count as 'values', which
+     is exactly why S-c matters.
+  L2 Local EM-DAT snapshots (MOSAIC-data/raw/EMDAT, read-only): no Liberian epidemic event 1990-1993; region 1990-1993 only CIV 1991
+     cholera (16 deaths/50 affected). EM-DAT's first post-war LBR cholera event is 2000 (Maryland/Grand Kru, 112/3).
+  L3 Agent 3 WER corpus (/tmp/LBR_a3/wer9093) - AIDS 'cases reported to WHO' tables, read on page images:
+     WER 65(1) data to 31 Dec 1989: Liberia last report 11.03.88; WER 66(27) 5 Jul 1991 (data to 1 Jul 1991): 'Liberia - Libéria 5 01.04.90';
+     WER 69(26) 1 Jul 1994 (data to 30 Jun 1994) p.189: 'Liberia - Libéria 191 10.12.93'.
+  L4 Agent 4 WER annual cholera reviews (/tmp/LBR_a4/eha): 'Cholera in 1990' (WER 66(19)) Africa list = Algeria, Angola, Burundi, Cameroon,
+     Ghana 2 937, Malawi, Mozambique, Sao Tome, Tanzania, Zambia - no CIV/GIN/SLE/LBR. 'Cholera in 1992' (WER 68(21)): CIV 37/7; GIN, SLE,
+     LBR absent; W.Africa Benin 413, Ghana 228, Nigeria 7 671, Togo 753. 'Cholera in 1993' (WER 69(28)): CIV 724; GIN, SLE, LBR absent;
+     Ghana 1 448, Nigeria 4 160. 'Cholera in 1994' (WER 70(28)): Guinea 31 415/671, Sierra Leone 9 709/623, CIV 1 108/55, Liberia 764/17.
+
+=== BATCH 1 | PHASE 1 | LBR ===
+Gap targeted : G1 1990-01-01..1990-12-31 (365d, historical); G2 1992-01-01..1993-12-31 (731d, historical); G3 2026-09-01..10-02 (32d,
+               recent); S-a 2025 wk32-52; S-c 2014-2015 (health-system state, other notifiable diseases, WHO relationship, regional picture)
+Queries      : 20
+  Q1  WHO IRIS WER 67(27), 3 Jul 1992, p.1 'AIDS - data as at 1 July 1992' (IRIS 10665/228411; page image) -> 'Liberia - Libéria 24
+      31.12.91': a Liberian AIDS report dated 31 Dec 1991 reached WHO. [WHO/official; G1/G2 health-system indicator] No row.
+  Q2  WHO IRIS WER 68(27), 2 Jul 1993, p.1 'AIDS - data as at 30 June 1993' (IRIS 10665/228766; page image) -> 'Liberia - Libéria 28
+      30.09.92'. Together with L3: Liberian reports to WHO are dated 1 Apr 1990, then 31 Dec 1991, 30 Sep 1992, then 10 Dec 1993 -> NO
+      report of any kind dated Apr 1990-Nov 1991 (covers all of G1) or Oct 1992-Nov 1993 (Operation Octopus onward); a thin channel
+      existed only in Dec 1991-Sep 1992. [WHO/official] No row.
+  Q3  WHO IRIS WER 67(40) Oct 1992 and 68(1-2) Jan 1993 infected-area lists (IRIS 10665/228496, 10665/228581) -> 'Liberia - Libéria:
+      Bong County, Montserrado County' still carried unchanged (static IHR carry-over, as Agent 3 found for 1990-07..1993-07; Liberia
+      neither notified cases nor declared itself free). [WHO/historical] No row.
+  Q4  WebSearch AP-style 'Monrovia cholera 1990 refugees port camp deaths' (apnews.com filter refused; ran unfiltered) -> only 1996
+      Greystone/BTC items (already rows 1427/1428/1444). No 1990 count. [news] No row.
+  Q5  WebSearch NYT-style 'Liberia cholera 1990 Monrovia starvation' (nytimes.com filter refused) -> WaPo 'Monrovia Diary' 8 Aug 1990 (403,
+      known), HRW Oct 1990, State Dept '50 to 60 deaths are reported daily in Monrovia due to severe malnutrition and diseases'. No cholera
+      count. [news/humanitarian] No row.
+  Q6  WebSearch 'Liberia cholera 1992 Monrovia Operation Octopus displaced epidemic' -> Octopus 15 Oct 1992, ~200 000 displaced into
+      central Monrovia; no 1992 cholera report. [humanitarian/G2] No row.
+  Q7  WebFetch HRW 'Waging War to Keep the Peace: The ECOMOG Intervention and Human Rights' (Jun 1993) -> no cholera/diarrhoea; 'In early
+      November, the World Health Organization estimated that up to 3,000 civilians and combatants had died since October 15'; ECOMOG air
+      strikes on Firestone Hospital (Nov 1992), Phebe Hospital, Bong (Mar 1993) and F.J. Grant Hospital, Greenville (Mar 1993) - hospitals in
+      NPFL territory evacuated. [humanitarian/G2 health-system] No row.
+  Q8  NPHIL WordPress media API, newest 100 uploads (2 Oct 2026, 19:15 PDT) -> newest bulletin still epi-week 36 2026 (uploaded 16 Sep 2026);
+      wk29-35 were uploaded together on 11 Sep, wk28 on 27 Aug, wk25-27 on 14 Jul (no bulletin uploads 15 Jul-26 Aug = 6 weeks). A 2-3 week
+      silence after wk36 is inside the observed posting pattern. [official/G3] No row.
+  Q9  NPHIL media API, all uploads 1 Jun 2025-31 May 2026 (4 pages) -> NO IDSR bulletin for 2025 wk25-30 or wk32-52 or 2026 wk1-19 was ever
+      uploaded (2025 wk18-24 and wk31 uploaded together on 4 Sep 2025); but Mpox sitreps Nos 61-82 and Lassa fever sitreps Nos 165-175
+      (to 16 Oct 2025) kept being uploaded Aug-Nov 2025 -> event-based surveillance operated while the weekly IDSR bulletin did not.
+      [official/S-a, S-b] No row.
+  Q10 NPHIL '2025 Annual Report' (uploads/2026/02/NPHILs-2025-Annual-Report-.pdf, 27 pp) -> 'responded to multiple outbreaks-including
+      Mpox, Lassa fever, Measles, Cholera alerts, Influenza'; 'By Quarters Two and Three, NPHRL maintained continuous testing for IDSR priority
+      diseases, including ... Cholera'; outcomes tabulated 'Cumulative Q1-Q3' only; no counts, no Q4 data, no mention of the officers'
+      action. [official/S-a] No row.
+  Q11 WebSearch surveillance officers / USAID funding cut 2025 -> Liberian Observer and allAfrica 11 Aug 2025 'Surveillance Officers Angry
+      Over NPHIL's Neglect': county, district and zonal surveillance officers threatened to halt all surveillance reporting from Monday
+      11 Aug 2025 over operational-support arrears dating back to Oct 2024, unserviceable motorbikes, payroll and insurance; Africanews
+      8 Jul 2025: USAID shutdown, US funds ~48% of Liberia's health budget. Corroborates metadata 150 (FrontPage Africa). [news/S-a] No row.
+  Q12 Europe PMC 'Liberia AND IDSR AND Ebola 2015-2021' (106 hits) + full text Nagbe et al. 2019 PAMJ 33(Suppl 2):3 (PMC6675929) -> Liberia
+      adopted IDSR in 2004; 'after the re-introduction of IDSR in 2015'; 'There was no information available about the implementation of
+      IDSR in Liberia before the EVD outbreak'; EVD ran on a parallel VHF-Epi-Info system. [academic/S-c] No row.
+  Q13 Europe PMC full text 'Ebola Response Impact on Public Health Programs, West Africa, 2014-2017' (EID 2017, PMC5711323) -> Table 1:
+      'Acute watery diarrhea (cholera)' laboratory capacity in Liberia 'not available' Q1-Q2 2016, 'partially established' Q3 2016,
+      established Q4 2016; 'Before the Ebola epidemic, sentinel and event-based disease surveillance systems were generally limited in all
+      3 affected countries; these were further disrupted by the epidemic.' [technical/S-c] No row.
+  Q14 WebSearch 'Liberia cholera 2014 Ebola West Point' -> MMWR 63(46):1082-6 (Nyenswah et al., 14 Nov 2014; verified in PMC5779504):
+      'With an overwhelming demand for beds, the government converted a cholera ward at JFK Hospital into a treatment unit'; PLoS Med 2018:
+      35-67% of primary-care outputs lost Jun-Sep 2014. [academic/S-c] No row.
+  Q15 WebSearch measles/IDSR 2015 -> Masresha et al. 2020 (PAMJ, PMC7196330): 'In Liberia, the proportion of districts reporting suspected
+      [measles] cases with blood specimens decreased from 88% in 2012 to 44% in 2013 and to 6% in 2014'; 'no confirmed measles cases reported
+      through the case based surveillance system in 2013-14, but measles incidence rose to 108.5 per million in 2015'. Other notifiable-
+      disease reporting collapsed in 2014 and was recovering in 2015. [academic/S-c] No row.
+  Q16 WHO IRIS WER 90(40) 2015 'Cholera, 2014' and WER 91(38) 2016 'Cholera, 2015' -> 2014: 'Liberia - Libéria 44 0 0.00' (= JHU 2014),
+      Guinea 1, CIV 235/12, Sierra Leone not listed; 2015: Liberia absent from the case table, from 'Countries reporting zero cases' and
+      from 'Countries where data were not available' -> no Liberian cholera submission at all for 2015. [WHO/S-c] No row.
+  Q17 WebSearch (French) 'choléra Côte d'Ivoire 1993 réfugiés libériens Danané Guiglo' -> no location for CIV's 1993 cases. [regional/
+      linguistic/G2] No row.
+  Q18 IRD document W. Van Damme 'Les réfugiés du Liberia et de Sierra Leone en Guinée forestière (1990-1996)' (horizon.documentation.ird.fr
+      010017920) -> MSF weekly epidemiological reports from refugee health posts from 1990; first wave 1990 'aucune épidémie grave ne se
+      produisit'; only cholera named: Diecké transit camp, Sep-Dec 1994 (refugees from Gbarnga). [regional/linguistic] No row.
+  Q19 ReliefWeb API for Liberia documents dated <=1995 -> v1 decommissioned (410), v2 refuses unapproved appname (403). Dead end (Agent 1
+      had already shown ReliefWeb holds nothing for Liberia 1990-1994). [humanitarian] No row.
+  Q20 Europe PMC 'Liberia/Monrovia AND cholera' in title/abstract 1991-2026 (9 hits) + PubMed abstracts -> no retrospective on 1990-1993;
+      Boiro et al. 1999 Med Trop 59:303 (Guinea): 'Until 1994, epidemics recurred every 8 years ... Spread of the disease from war-torn
+      Sierra Leone and Liberia where epidemics have also been reported cannot be ruled out'; Barth 1991: 'Despite evidence that the patients
+      indeed had cholera, the US embassy physician refused to admit it for a long time'. [academic/retrospective] No row.
+Sources found: 14 (all context; none with a usable count)   Registered: none (no row or presence record cites them yet)
+Rows added   : 0    Indices: -
+Presence     : 0 (no new contemporaneous, dated cholera confirmation in Liberia)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch minimum not yet met)
+
+=== LOCAL ANALYSIS L5 (not counted): ANNUAL-TOTAL COVERAGE AUDIT, national, JHU annual vs AI sub-annual WHO notifications ===
+  (/tmp/LBR_a6/annual_vs_sub.py, annual_detail.py; read-only.) Years where the WHO 'annual' total that JHU holds is in fact the sum of
+  notifications covering only PART of the year - the rest of that year was never notified to WHO, yet py/build_weekly_timeseries.py
+  spreads the JHU annual over all 52 weeks (JHU > AI per week):
+    1971: 606/106 = Jan-May notifications (rows 1311, 1429-1432); Jun nil (row 1441, WHSR 25(10)); Jul-Dec '+' (not received) in WHSR 25(4)
+          1972 p.216 (IRIS 75344) and 1971 total '...' (not available) in WHSR 26(4) 1973 -> Jul-Dec 1971 NEVER RECEIVED (6 months).
+    1982: 670/8 = 1 Jan-30 Jun notification (row 1404, WER 57(50)) -> Jul-Dec 1982 not notified; yet WHO listed Bong, Cape Mount and
+          Maryland as NEWLY infected on 16 Dec 1982 (presence records 65-67) -> cholera present, uncounted (6 months).
+    1984: WHO 'Cholera in 1984' gives Liberia 17* (incomplete); notifications Jan-Mar only (9, rows 1413-1415); JHU 492 = Mauritania's
+          figure (Agent 4/5 L27). Apr-Dec 1984 not notified (9 months); IHR lists: 4 counties declared free Aug 1984, Grand Bassa and
+          Montserrado listed Sep 1984 (Agent 5) -> communication existed, counts did not.
+    1986: 59/0 = 1 Jan-31 Mar notification (row 1418) -> Apr-Dec 1986 not notified (9 months); 1987-1989 reached WHO only as annual
+          returns (33, 68, 28; Agent 5 full-year WER scans) - a minimal but functioning annual channel, low counts.
+    1994: 764/17 = '...-30.VI' notification (row 1266, WER 69(38)) -> Jul-Dec 1994 never notified despite the Monrovia epidemic declared
+          July 1994 (AI Montserrado rows 468 = 300 hospital cases 15 Jun-27 Jul; 1006 = 600 cases 31 Jul-6 Aug; 1487 = 85 deaths 11-25 Jul;
+          MSF-B ~3 000 treated, held) (6 months; JHU understates H2 1994 badly).
+    1997: 91/0 = 1-31 Jan notification only (row 1419, WER 72(13); Agent 5 full-year WER 1997 scan) -> Feb-Dec 1997 never notified
+          (11 months); MSF-B Monrovia CTU treated 2 282 in 1997 (held, WHO mission annex) -> cholera present, uncounted.
+    1999: 215/0 = single notification '...-26.XI' (WER 74(48)); MSF-B CTU 2 305 (held); Grand Kru Mar 1999 'up to 20 dying daily'
+          (presence 8) -> WHO total is a lower bound (~10x below one Monrovia CTU).
+    2001: 1 062 via annual return only; WER 76 index has NO Liberian cholera notification (Agent 5) -> sub-annual unknown.
+    2002: 1 115/0 = 661 (1 Jul-1 Sep) + 235 (2-22 Sep) + 219 (23 Sep-13 Oct) (rows 1451-1453) EXACTLY -> 1 Jan-30 Jun and 14 Oct-31 Dec
+          2002 never notified; but MoH weekly active surveillance existed (row 291: 'Cholera (11)' 15 Feb-15 Mar 2002) and cholera was
+          reported in Maryland/River Cess Mar-Apr 2002 (presence 6-7) (6 months).
+  Fully or largely notified (no >=6-month hole): 1973-1981, 1983 (Jan-Aug = 171 of 183), 1985 (only Jan-Feb split; total 355 reported),
+  1995-1996, 1998 (holes <6 months), 2000, 2003-2007; 2008-2011 annual returns (1 236, 1 070, 1 546, 1 146) with little sub-annual detail.
+
+=== BATCH 2 | PHASE 2 | LBR ===
+Gap targeted : G2 1992-01-01..1993-12-31 (731d); G1 1990 (365d); S-c 2014-2015; S-e partial-notification years 1982, 1994, 1997, 2002;
+               S-a 2025 wk32-52 / S-b 2026 wk1-19 (publication record); S-d 2004-2011 (surveillance functioning)
+Queries      : 20
+  Q1  UN ODS S/26422 (SG report on Liberia, 9 Sep 1993) -> no cholera; 'as a result of events in October 1992, there has been a major
+      increase in the number of internally displaced persons requiring assistance, and access to some areas has been severely constrained';
+      cross-line routes 'into NPFL areas to bring needed food and medical supplies' opened only after the Jul 1993 Cotonou Agreement.
+      [humanitarian/official, G2] No row.
+  Q2  UN ODS S/26868 (13 Dec 1993) -> no cholera/health content beyond UNOMIL medical staff. [official, G2] No row.
+  Q3  WebSearch 'Liberia 1993 cholera Buchanan/Kakata/Harbel/Gbarnga displaced' -> only 2002-2003 IRIN items (Buchanan/Totota camps 2003).
+      No 1993 count. [humanitarian, G2] No row.
+  Q4  WebSearch + WebFetch International Review of the Red Cross 1990 'Liberia' (IRRC vol. 30 Suppl., Dec 1990, pp. 20-22) -> abstract:
+      ICRC delegation in Monrovia from January 1990; full PDF 403 on international-review.icrc.org, no Wayback copy. Dead end. [humanitarian,
+      G1] No row.
+  Q5  WebSearch 'Monrovia cholera July-August 1994 3,000 cases MSF' (second source for the held MSF-B ~3 000) -> 2003 items only. No row.
+      [humanitarian, S-e 1994]
+  Q6  Internet Archive full-text '"cholera" "Liberia" 1997 ...' (0 hits) and '"cholera" "Monrovia" 1997' -> UN A/52/678 (SG to GA 52,
+      micro_IA40243809_3233): 'Owing largely to the efforts of the Committee, an outbreak of cholera in August 1996 was successfully
+      contained. To combat a recurrence ... WHO assisted the Ministry of Health and Social Welfare in the establishment of an early warning
+      epidemiological surveillance system'; 'the containment of cholera and measles outbreaks in Monrovia and elsewhere' (past year, undated).
+      No dated 1997 presence. [historical/official, S-e 1997] No row.
+  Q7  WebSearch 'Liberia cholera 1997 outbreak cases Monrovia/Harper/Buchanan' -> 2003+ items only. [news, S-e 1997] No row.
+  Q8  WebSearch 'Liberia cholera January-June 2002 LURD displaced camps' -> LURD took Klay Junction, Gbarnga, Tubmanburg early 2002;
+      no H1 2002 cholera count. [humanitarian, S-e 2002] No row.
+  Q9  WebSearch + PDF 'Cholera outbreak in the West and Central Africa: Regional Update, 2015 - Week 29' (UNICEF WCARO, ReliefWeb
+      attachment 27c9e096..., image-only, read on the page image) -> Liberia 2015 cells w1-5, w6-10, w11...w29 all printed 0 (green, not
+      'NA'), 'Total 2015' '-'; 'Cases in 2014' Week 1-29 60, Total 60; Sierra Leone and Guinea also 0 throughout. Contrast: Agent 3's 2014
+      W37 interim update printed Liberia w21-w37 'NA'; the final HDX 2015 workbook leaves W1-W9 blank. A platform 0 for 29 weeks while IDSR
+      was only being re-introduced and no cholera laboratory capacity existed (Q13 of batch 1) is not a documented zero of SUSPECTED cases.
+      [regional/humanitarian, S-c] No row.
+  Q10 Internet Archive advancedsearch Liberia hearings 1990-1994 -> US Senate S.Hrg. 103-357 'U.S. policies toward Liberia, Togo and Zaire'
+      (9 Jun 1993; full text read) -> no cholera; ICRC 'providing medical assistance'; ECOMOG air strikes 'attacks on hospitals'; 'independent
+      observers have been prevented for security reasons from travelling to the sites'. [historical/official, G2] No row.
+  Q11 WebSearch 'ECOMOG troops cholera Monrovia 1990/1991' -> nothing. [technical/regional, G1] No row.
+  Q12 WebSearch 'Liberia 1992 cholera Lofa/Voinjama/Monrovia ULIMO' -> nothing for 1992. [humanitarian, G2] No row.
+  Q13 WebSearch 'Monrovia November 1992 cholera fear displaced' -> only 2003/1995 items. [news, G2] No row.
+  Q14 WHO IRIS 'Cholera in 1991' (WER 67(34), 21 Aug 1992, IRIS 10665/228456) and 'Cholera in Africa' (WER 72(13), 1997) -> 1991: Liberia
+      132/40; 'In West Africa, transmission covered the coastal countries from Liberia to Cameroon'; CIV 604/116, Ghana 13 172, Nigeria
+      59 478; Guinea and Sierra Leone absent. 1996: 'Increased numbers of cases were, however, observed in Burundi, Cape Verde and Liberia'.
+      No retrospective account of 1990. [WHO/regional, G1/G2] No row.
+  Q15 WebSearch 'Liberia cholera 1982 December Cape Mount/Maryland/Bong' -> nothing (Daily Observer digital archive exists at NCSU/OU
+      libraries, subscription). [news, S-e 1982] No row.
+  Q16 WebSearch 'Liberia 2015 acute watery diarrhoea outbreak county' -> nothing for Liberia 2015. [humanitarian, S-c] No row.
+  Q17 WebSearch 'Sierra Leone/Guinea cholera 2014-2015 Ebola surveillance' -> Ebola-surveillance literature only; surfaced Umutesi et al.
+      2023 (Q18). [regional, S-c] No row.
+  Q18 Europe PMC full text Umutesi et al. 2023 PAMJ 45:190 (PMC10656592) 'Evaluation of AFP surveillance ... before and during the
+      2014-2015 EVD outbreak in Guinea and Liberia' -> 'In Liberia, 56 ... AFP cases were reported in 2012, 50 ... in 2013, 23 ... in 2014,
+      and 22 ... in 2015'; 'No AFP cases were reported from Lofa County, the epicenter of Liberia's EVD outbreak, beginning in 2014';
+      NP-AFP target missed in 10 of 15 counties during Ebola. A vertical, WHO-backed notifiable-disease stream kept running at about half
+      its pre-Ebola sensitivity. [technical/academic, S-c] No row.
+  Q19 NPHIL WordPress posts API 'bulletin'/'IDSR'/'surveillance officers' since Jun 2025 -> bulletin posts dated 4 Sep 2025 (2025 wk18-24,
+      wk31 and back-posted 2023-2024 items), then NONE until 5 Jun 2026 (2026 wk20-21); 2025 wk25-30 never posted. Publication hiatus
+      4 Sep 2025-5 Jun 2026 covers epi-weeks 2025-32..2026-19. [official, S-a/S-b] No row.
+  Q20 WebSearch 'Liberia IDSR implementation 2008-2010 completeness' -> BMC Public Health 2023 'Documenting the development, adoption and
+      pre-ebola implementation of Liberia's IDSR strategy' (PMC10601278): IDSR adopted 2004 but early implementation 'limited to AFP
+      surveillance', low timeliness/completeness (to be read in batch 3). [academic, S-d] No row.
+Sources found: 12 (context only)   Registered: none
+Rows added   : 0    Indices: -
+Presence     : 0 (A/52/678 gives no dated 1997 occurrence; no new dated confirmation)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE (3-batch minimum not yet met)
+
+=== LOCAL CHECKS BEFORE BATCH 3 (not counted) ===
+  L6 WER 68(1/2), 8 Jan 1993, p.7 infected-area list (page image): 'Côte d'Ivoire - Département de l'Ouest - Man Sous Préfecture';
+     'Guinea - Guinée: Conakry Province, Forecariah Prefecture'; 'Liberia - Libéria: Bong County, Montserrado County'. The 1992 list
+     (WER 67(12)) and 1993 lists (68(15), 68(28)) also carry CIV 'Département de l'Ouest'.
+  L7 WER 68(46), 12 Nov 1993, p.344 'Notifications received from 5 to 11 November 1993' (page image): 'Côte d'Ivoire ..-14.X 689 27'.
+     -> Côte d'Ivoire's 1992 (37) and 1993 (689 by 14 Oct; 724 for the year) cholera sat in its western department around Man, the
+     Liberian-refugee zone bordering Nimba County, while Liberia notified nothing. (Guinea notified no cases in 1992-1993, so its
+     Conakry/Forecariah entry is itself a carry-over.)
+  L8 WER annual tables 1994-1999 (/tmp/LBR_a4/eha): Liberia lines carry no incompleteness marker (764/17, 8 922/450, 91/0, 2 123/17, 215/0).
+
+=== BATCH 3 | PHASE 3 | LBR ===
+Gap targeted : G1 1990, G2 1992-1993 (health-system and cross-border evidence); G3 2026-09 (re-check); S-a/S-b 2025-26 (was the system
+               running?); S-c 2014-2015; S-d 2004-2013 (IDSR functioning); S-e 1982/1986/2002 (WHO incompleteness flags)
+Queries      : 20
+  Q1  Europe PMC full text Nyenswah et al. 2023 BMC Public Health (PMC10601278) 'Documenting the development, adoption and pre-ebola
+      implementation of Liberia's IDSR strategy' -> key informant (southeastern region, pre-2014): '...only AFP surveillance was functioning
+      .... we were not collecting data for the other diseases'; another: 'in 2013 ... As faulty as it was, facilities were reporting to
+      central level'. [academic, S-d/S-c] No row.
+  Q2  WHO IRIS WER 66(16), 19 Apr 1991, p.112 'Health and nutritional status of Liberian refugee children, 1990' (Guinea, CDC survey May
+      1990) -> '65% ... had had an episode of diarrhoea during the 2-week period before the survey'; no cholera. [regional, G1] No row.
+  Q3  Europe PMC '"Liberian refugees" 1990-1998' (4 hits) -> no cholera paper. [academic/regional, G1/G2] No row.
+  Q4  WebSearch (French) 'choléra Guinée forestière 1990 réfugiés libériens' -> only 1995 EC releases (IP/95/992, IP/95/1119: cholera in
+      Guinea among Guineans and Liberian/Sierra Leonean refugees). [linguistic/regional] No row.
+  Q5  WebSearch 'Liberia cholera September 2026 suspected cases NPHIL alert' -> nothing (local Africa CDC 24 Sep 2026 weekly report has no
+      Liberian entry). [official/G3] No row.
+  Q6  WHO 'Multi-country outbreak of cholera, epidemiological update #34' (21 Feb 2026, data Jan 2026) -> 13 African countries with cases;
+      Liberia not among them although NPHIL's own stream recorded suspected cases then (row 122) - WHO lists track declared/confirmed
+      outbreaks, not suspected-case surveillance. [WHO, S-b] No row.
+  Q7  WHO IRIS AFRO 'Weekly Bulletin on Outbreaks and other Emergencies' week 36 (1-7 Sep 2025, OEW36-0107092025) -> Liberia events: Lassa
+      fever (data to 7 Aug 2025: 179 confirmed since 2022...), Mpox (727 cumulative to 8 Sep 2025); no cholera event. [WHO, S-a] No row.
+  Q8  WebSearch 'Liberia suspected cholera 2014/2015 Ebola-era' -> no cholera report for 2014 H2-2015 in any source. [humanitarian, S-c]
+      No row.
+  Q9  WebSearch 'JFK Medical Center Monrovia 1990 looted closed' -> ICRC (ReliefWeb 2003): the hospital 'gradually reduced its services,
+      finally closing down altogether' over the 1989-2003 conflict. [humanitarian, G1] No row.
+  Q10 WebSearch + WebFetch MSF history 1990 (observatoire-humanitaire.org) -> MSF in Liberia from 1990 (via the Ivorian border); no
+      cholera/CTU passage for 1989-1997 (the JFK CTU is the 2003 era). [humanitarian, G1] No row.
+  Q11 Internet Archive micro_IA41948439_0047 = WHO AFRO 'The Work of WHO in the African Region' (1991-1992 biennium), Liberia section ->
+      'health services are being provided as part of emergency relief operations'; 'In January 1992, WHO conducted an assessment for the
+      expansion of WHO collaborative activities into areas controlled by the NPFL ... a WHO field office was opened in Gbarnga'; Gbarnga
+      office trained staff in 'case management of victims of diarrhoeal diseases'; 'Due to the evacuation of most international staff in
+      the wake of the 15 October 1992 civil crisis, the WHO field officer based in Gbarnga also served as the coordinator of UN
+      activities in NPFL territories'; epidemics investigated: Lassa (105 samples, 40% positive), whooping cough Little/Grand Cola (Grand
+      Bassa, 236 of 500 children), fever in Gbalatuah (Bong); JPAG of 'MOH-Gbarnga and MOH-Monrovia' (two parallel ministries) - NO
+      cholera outbreak named for 1991-1992. [WHO/historical, G2] No row.
+  Q12 Europe PMC full text Wagenaar et al. 2018 PLoS Med (PMC5819774, HMIS 2010-2016) -> monthly HMIS facility reporting continued through
+      Ebola with only 'relatively small' increases in missingness (outputs fell 35-67%); no diarrhoea/cholera indicator. [academic, S-c]
+      No row.
+  Q13 NPHIL Lassa fever sitreps No. 170 (11 Sep 2025) and No. 175 (10-16 Oct 2025) -> weekly Lassa case-based reporting continued
+      (2025: 155 suspected / 24 confirmed by 16 Oct). [official, S-a] No row.
+  Q14 NPHIL Mpox sitrep No. 82 (14-16 Oct 2025) -> 'Eighty-one (81) new suspected cases reported from 9 Counties'; 1 095 confirmed in 2025
+      from all 15 counties -> county case-based surveillance demonstrably running in Oct 2025 while the weekly IDSR bulletin (the only
+      public source of suspected-cholera counts) went unpublished; the 11 Aug 2025 threat did not halt all reporting. [official, S-a]
+      No row.
+  Q15 WHO IRIS WER 62(20), 1987, 'Cholera in 1986' (IRIS 10665/226262) -> 'Libéria ... 59*' with '* Incomplete figures': WHO itself
+      flagged Liberia's 1986 total (= the Jan-Mar notification, row 1418) as incomplete. [WHO/historical, S-e 1986] No row.
+  Q16 WHO IRIS WER 58(27), 8 Jul 1983, 'Cholera in 1982' (item 224544 = p.205 only; full issue 224549, Table 2 p.210, page image) ->
+      'Liberia - Libéria* 670' with '* incomplete figures' (= Jan-Jun notification, row 1404). [WHO/historical, S-e 1982] No row.
+  Q17 NPHIL WP media API re-check (2 Oct 2026 19:42 PDT) + direct probes of 2026/09 and 2026/10 upload paths for epi-week 37/38 (6 URL
+      variants) -> newest bulletin still epi-week 36 (uploaded 16 Sep 2026 16:46); all wk37/38 paths 404. [official, G3] No row.
+  Q18 WHO IRIS WER 78(31) 'Cholera, 2002' -> 'Liberia - Libéria 1 115 0' (no narrative, no flag) = the three Jul-Oct 2002 notifications
+      exactly (rows 1451-1453). [WHO, S-e 2002] No row.
+  Q19 WebFetch ProPublica 'Firestone and the Warlord' (Harbel/NPFL 1990-1993) -> no cholera or health passage. [news, G1/G2] No row.
+  Q20 WebSearch 'Greater Liberia NPFL 1992-1993 health epidemic cholera Gbarnga Phebe ECOMOG blockade' -> only the known HRW/AI items
+      (ECOMOG strikes on Phebe, Greenville, Firestone hospitals); no cholera. [humanitarian, G2] No row.
+Sources found: 16 (context only)   Registered: none (no row or presence record cites them)
+Rows added   : 0    Indices: -
+Presence     : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 3 (batches 1, 2, 3 all 0%)
+Decision     : STOP - 3-batch minimum met and 3 consecutive batches below 5% yield (B1 0%, B2 0%, B3 0%). Classification work and
+               annotations follow.
+
+================================================================================
+=== GAP CLASSIFICATION | AGENT 6 | LBR | 2026-10-02 ===
+================================================================================
+Labels: True_Absence_Documented / True_Absence_Inferred / Non_Reporting_With_Presence / Non_Reporting_Unknown / Publication_Lag.
+'Confidence' is confidence in the CLASSIFICATION (silence = reporting failure vs genuine absence), not in any transmission level.
+No zero row was written for any gap below: none has a source stating zero SUSPECTED cases with surveillance operating.
+
+---------------------------------------------------------------------------------------------------------------------------------
+G1  1990-01-01 .. 1990-12-31 (365 d, effective gap)  ->  Non_Reporting_With_Presence  |  confidence HIGH
+---------------------------------------------------------------------------------------------------------------------------------
+Health system / other notifiable diseases: Liberia sent WHO NOTHING after April 1990. Its AIDS case report to WHO is dated 01.04.90
+  (WER 66(27), 5 Jul 1991, page image) and the next is dated 31.12.91 (WER 67(27)); there is no Liberian cholera, yellow-fever or other
+  IHR notification in any 1990 WER table or in the 1990 annual index (Agents 3/4; WER 65(51-52)). Hospitals in Monrovia were failing:
+  Barth 1991 (Links 8(3)) describes a teacher running the Island Hospital cholera ward because the physician had left, and 'the US embassy
+  physician refused to admit it [cholera] for a long time'. The JFK Medical Center 'gradually reduced its services, finally closing down
+  altogether' over the war (ICRC, 2003). CDC MMWR 41(RR-13): the death rate of civilians displaced in Monrovia in 1990 was 7 times the
+  pre-war rate (Agent 4).
+Conflict / displacement: NPFL invasion from Nimba 24 Dec 1989; siege of Monrovia Jun-Sep 1990; President Doe killed 9 Sep 1990; ECOMOG
+  landed 24 Aug 1990; IGNU in Monrovia vs NPFL's NPRAG in Gbarnga ('Greater Liberia') from Nov 1990; about 750 000 refugees in Guinea,
+  Côte d'Ivoire and Sierra Leone (S/26422); UN relief (UNSCOL) only from Dec 1990.
+WHO reporting relationship: suspended for all diseases from Apr 1990 to Dec 1991 (cholera itself resumed with the 1991 H1 return, row 1264).
+  The WHO IHR infected-area entry 'Bong, Montserrado' is a static carry-over (Agent 3; WER 67(25) criteria) - not evidence either way.
+Presence: cholera confirmed in Monrovia Jul-Oct 1990 - Het Vrije Volk 1 and 10 Aug 1990, BBC/FBIS Sep-Oct 1990 (port camp), Barth 1991,
+  US Congressional Record 11 Oct 1990 (presence records 1, 3, 46; Agents 1/4). No count anywhere.
+Regional: WHO's 1990 Africa list has 10 countries (Algeria, Angola, Burundi, Cameroon, Ghana 2 937, Malawi, Mozambique, Sao Tome,
+  Tanzania, Zambia) - none of CIV, GIN, SLE (WER 66(19)). But WHO data were silent for the region, not the region itself: USCR 1991 reports
+  'an outbreak of cholera and severe diarrhoea in late 1990' among Liberian refugees in Guinea's forest region (unnotified by Guinea);
+  a May 1990 CDC survey found 65% of Liberian refugee children in Guinea had diarrhoea in the prior 2 weeks (WER 66(16)). In 1991 'transmission
+  covered the coastal countries from Liberia to Cameroon' (WER 67(34)): CIV 604, Ghana 13 172, Liberia 132.
+Retrospective literature: none quantifies 1990; Barth 1991 is the only near-contemporary account.
+Verdict: cholera present, system and WHO channel collapsed -> missing data. Expected burden unknown but non-trivial (Monrovia epidemic
+  conditions; 1991 Jan-Sep alone 132 notified with CFR 30%).
+
+---------------------------------------------------------------------------------------------------------------------------------
+G2  1992-01-01 .. 1993-12-31 (731 d, effective gap; plus 1991-10-01..1991-12-31, covered only by JHU's annual)
+---------------------------------------------------------------------------------------------------------------------------------
+  G2a 1991-10-01 .. 1992-10-14  ->  Non_Reporting_Unknown  |  confidence LOW (weak lean toward low transmission in the Monrovia enclave)
+  G2b 1992-10-15 .. 1993-12-31  ->  Non_Reporting_With_Presence  |  confidence MODERATE-HIGH
+Health system / other notifiable diseases: a thin WHO channel existed only from late 1991 to Sep 1992 - Liberian AIDS reports dated
+  31.12.91 (24 cumulative cases) and 30.09.92 (28) (WER 67(27), 68(27), page images), then none until 10.12.93 (191; WER 69(26)). WHO AFRO
+  'The Work of WHO in the African Region' (1991-92 biennium, IA micro_IA41948439_0047): 'health services are being provided as part of
+  emergency relief operations'; two parallel ministries ('MOH-Gbarnga and MOH-Monrovia'); a WHO field office opened in Gbarnga in Jan 1992
+  and investigated epidemics (Lassa: 105 samples, 40% positive; whooping cough in Little/Grand Cola, Grand Bassa: 236 of 500 children)
+  and trained staff in 'case management of victims of diarrhoeal diseases' - and names NO cholera outbreak for 1991-92 (also Agent 4).
+  'Due to the evacuation of most international staff in the wake of the 15 October 1992 civil crisis' a single WHO officer coordinated
+  all UN work in NPFL territory. ECOMOG then bombed hospitals in NPFL areas: Firestone (Nov 1992), Phebe, Bong and F.J. Grant, Greenville
+  (Mar 1993) (HRW Jun 1993; US Senate hearing 9 Jun 1993: 'independent observers have been prevented ... from travelling to the sites').
+  No Liberian cholera notification in WHO's 1992 or 1993 annual tables or indexes (Agents 3/4).
+Conflict / displacement: relative calm Jun 1991-Jun 1992 (Van Damme, IRD); ULIMO incursions 1992; Operation Octopus 15 Oct 1992 (WHO
+  estimated up to 3 000 dead by early Nov; ~200 000 displaced into central Monrovia; S/26422: 'a major increase in the number of internally
+  displaced persons ... access to some areas has been severely constrained'); ECOMOG blockade of NPFL areas; Harbel/Carter Camp massacre
+  Jun 1993; Cotonou Agreement 25 Jul 1993 (cross-line medical supply routes opened only afterwards); UNOMIL Sep 1993.
+WHO reporting relationship: no cholera return Oct 1991-Jun 1994; general reporting lapsed Oct 1992-Nov 1993; resumed Dec 1993 (AIDS) and
+  Sep 1994 (cholera Jan-Jun 1994, row 1266). Infected-area entry static (carry-over; also Guinea's Conakry/Forecariah entry).
+Presence: G2a none (press only 'fears' cholera in Nov 1992, Agent 4). G2b: Panta, Bong (NPFL territory), Feb-Apr 1993 - 'more than 125
+  persons have died ... as a result of the outbreak of cholera and measles epidemics' (Information Ministry via Gbarnga radio; JPRS-TEP-93-013;
+  presence record 2).
+Regional: Côte d'Ivoire notified 37/7 (1992) and 724 (1993; 689/27 by 14 Oct, WER 68(46) p.344), its infected area being the 'Département
+  de l'Ouest - Man Sous Préfecture' (WER 68(1/2) p.7, 68(15), 68(28)) - the Liberian-refugee zone bordering Nimba, the NPFL heartland.
+  Guinea notified nothing 1987-1993 (8-year cycle 1986 -> 1994, Boiro 1999) and Sierra Leone nothing (war from Mar 1991). Both exploded in
+  1994 (Guinea 31 415/671, Sierra Leone 9 709/623; WER 70(28)), when Liberia also re-notified (764 Jan-Jun). A neighbouring epidemic next to
+  Nimba with Liberian silence is the 'regional activity, local silence' pattern of a reporting failure.
+Retrospective literature: none describes 1992-1993 Liberian cholera.
+Verdict: G2a - a WHO presence that detected other outbreaks and a thin reporting channel, with no cholera named: weak evidence of low
+  transmission in Monrovia, not enough for a zero (no source states zero suspected cases; laboratory confirmation capacity undocumented).
+  G2b - general collapse of reporting plus documented presence in Bong and active cholera across the Ivorian border -> missing data.
+
+---------------------------------------------------------------------------------------------------------------------------------
+G3  2026-09-07 .. 2026-10-02 (effective gap row 2026-09-01..10-02)  ->  Publication_Lag  |  confidence HIGH
+---------------------------------------------------------------------------------------------------------------------------------
+NPHIL's newest bulletin is epi-week 36 2026 (uploaded 16 Sep); wk37/38 paths 404 at 19:42 PDT 2 Oct 2026. NPHIL uploads in batches (wk25-27
+  on 14 Jul, nothing 15 Jul-26 Aug, wk28 27 Aug, wk29-35 11 Sep, wk36 16 Sep). Surveillance operational: wk20-36 bulletins report ~99%
+  facility completeness; IFRC DREF 12 Sep 2026 (Agent 3). No cholera alert for Liberia in WHO, Africa CDC (24 Sep 2026) or press. Expected
+  suspected cases at the 2026 rate (142 in 36 weeks, ~4/week). Missing data, not zero; re-check NPHIL in 2-6 weeks.
+
+---------------------------------------------------------------------------------------------------------------------------------
+S-a 2025 epi-weeks 32-52 (2025-08-04 .. 2025-12-28)  ->  Non_Reporting_Unknown (suspected counts)  |  confidence HIGH that it is a reporting gap
+---------------------------------------------------------------------------------------------------------------------------------
+NPHIL uploaded no IDSR bulletin between 4 Sep 2025 (2025 wk18-24 and wk31, posted together) and 5 Jun 2026 (2026 wk20-21) - a nine-month
+  publication hiatus covering 2025 wk32 - 2026 wk19 (wk25-30 never posted either). Cause context: officers threatened to halt all
+  surveillance reporting from 11 Aug 2025 over operational-support arrears since Oct 2024 (FrontPage Africa, metadata 150; Liberian
+  Observer 11 Aug 2025) after the early-2025 USAID shutdown (US funds ~48% of the health budget); NPHIL Director General dismissed Oct 2025
+  (Agent 3). The system did NOT stop: Mpox sitreps 61-82 (81 new suspected mpox cases from 9 counties on 14-16 Oct 2025 alone; 1 095
+  confirmed in 2025, all 15 counties) and Lassa sitreps to No. 175 (16 Oct 2025) were published; WHO AFRO OEW wk36 2025 lists Liberian
+  Lassa/mpox events; NPHIL's 2025 Annual Report cites 'Cholera alerts' and continuous IDSR priority-disease testing but tabulates
+  outcomes for Q1-Q3 only. WHO WER 101(38): Liberia 2025 zero report (123 cultures, none positive) = confirmed-case statement (row 1232).
+  Regional: Côte d'Ivoire 2025 epidemic (556 cases, coastal, declared over 1 Dec 2025; border districts unaffected - Agent 3); Guinea and
+  Sierra Leone not listed by WHO for 2025-26.
+Verdict: suspected-case data probably collected in part but never published -> missing data, not zero. Expected ~3-9 suspected/week (2025
+  H1 279 in 31 weeks; 2026 wk1-19 66), i.e. very roughly 70-190 suspected cases, essentially all lab-negative.
+
+---------------------------------------------------------------------------------------------------------------------------------
+S-b 2026 epi-weeks 1-19 (2025-12-29 .. 2026-05-10)  ->  Publication_Lag (weekly resolution only)  |  confidence HIGH
+---------------------------------------------------------------------------------------------------------------------------------
+Bulletins never posted (same hiatus) but surveillance collected: Index 122 = wk20 cumulative 69 minus wk20's 3 = 66 suspected; wk20
+  bulletin reports 99% completeness/timeliness. The count exists; only the weekly split is unknown. Same for 2025 wk25-30 (Index 123, 23).
+
+---------------------------------------------------------------------------------------------------------------------------------
+S-c 2014-06-02 .. 2015-12-31 (Ebola period)  ->  Non_Reporting_Unknown  |  confidence HIGH that the record (incl. JHU 2015 zeros) is not absence
+---------------------------------------------------------------------------------------------------------------------------------
+Health system: JFK Hospital's cholera ward converted into an Ebola treatment unit in 2014 (MMWR 63(46):1082-6, Nyenswah et al.);
+  35-67% of primary-care outputs lost Jun-Sep 2014 (Wagenaar 2018, PLoS Med) although monthly HMIS reporting continued; measles case-based
+  surveillance: districts reporting suspected cases with specimens 88% (2012) -> 44% (2013) -> 6% (2014), measles incidence 108.5/million
+  detected in 2015 (Masresha 2020); AFP notifications 56/50 (2012/13) -> 23 (2014) -> 22 (2015), none from Lofa from 2014 (Umutesi 2023);
+  IDSR adopted 2004 but 're-introduction of IDSR in 2015' (Nagbe 2019) and pre-Ebola 'only AFP surveillance was functioning' in parts of
+  the country (Nyenswah 2023); NO cholera laboratory capacity until Q3 (partial) / Q4 (full) 2016 (EID 2017 Table 1).
+WHO relationship: 2014 annual Liberia 44/0 (WER 90(40); = JHU, all from Jan-May); 2015: Liberia absent from the case table, the zero-report
+  list and the 'data not available' list (WER 91(38)) - no submission at all.
+Platform record: UNICEF WCARO 2014 W37 interim printed Liberia w21-w37 'NA' (Agent 3), the final workbook converted them to 0; the 2015 W29
+  interim printed 0 for w1-w29 (also for Sierra Leone and Guinea); the final 2015 workbook leaves W1-W9 blank and W10-W53 0 (Agent 5).
+  JHU's 2015 weekly zeros (read-only) come from this platform -> fill values, not reports of zero suspected cases.
+Regional: Guinea 1 case (2014), Sierra Leone none notified 2014-2015, Côte d'Ivoire 235/12 (2014) and 199/6 (2015) - the two Mano River
+  neighbours were silent for the same Ebola reason, so their silence is uninformative.
+Verdict: missing data; transmission probably low (pre/post baselines ~2-3 suspected/week: 2013 ~130-159, 2016 155) but unobserved.
+  Annotated on AI Index 281 (last count before the gap).
+
+---------------------------------------------------------------------------------------------------------------------------------
+S-d Inter-war and post-war years 1999-2002, 2004-2011  ->  reported (WHO annual totals every year) with uneven sensitivity; one >=6-month
+    documented non-notification: 2002-01-01..2002-06-30 Non_Reporting_With_Presence (MODERATE-HIGH)
+---------------------------------------------------------------------------------------------------------------------------------
+1999: WHO 215 = a single notification to 26 Nov (WER 74(48), Agent 5), while MSF-B's Monrovia CTU alone admitted 2 305 (held) and Grand Kru
+  had 'up to 20 dying daily' in Mar 1999 (presence) -> the WHO total is a lower bound, not a full-year count. 2000: Jan-Jul notified (205)
+  + annual 365. 2001: annual return only (no IHR notification in WER 76; 1 062). 2002: WHO 1 115 = the Jul-Oct notifications exactly
+  (rows 1451-1453); Jan-Jun 2002 never notified though MoH weekly active surveillance recorded cholera (row 291) and Maryland/River Cess
+  reported cholera (presence), and MSF-B's CTU admitted 1 617 in 2002. 2004-2011: annual totals 2 786, 3 823, 4 929, 3 063, 1 236, 1 070,
+  1 546, 1 146 with sub-annual detail for 2004-2007; IDSR formally adopted 2004 but weakly implemented ('we were not collecting data for the
+  other diseases', Nyenswah 2023) - outbreak reporting ran through WHO/UNMIL humanitarian channels. No source states an explicit >=6-month
+  non-reporting or cholera-free period in 2004-2011, so these years stay as JHU annual totals (sub-annual resolution simply unknown).
+
+---------------------------------------------------------------------------------------------------------------------------------
+S-e Other >=6-month stretches inside 'covered' years (WHO annual = partial-year notifications; JHU annual Fourier-spread over all weeks)
+---------------------------------------------------------------------------------------------------------------------------------
+  1970-01-01..1970-07-24  True_Absence_Inferred  HIGH  (Agent 3 row 1246, pre-introduction; I concur: first West African cases Aug-Sep 1970)
+  1971-07-01..1971-12-31  Non_Reporting_Unknown  MODERATE  (WHSR 25(4) '+' Jul-Dec, 26(4) 1971 total '...'; 606 = Jan-May; note on 1441)
+  1982-07-01..1982-12-31  Non_Reporting_With_Presence  MODERATE-HIGH  (WER 58(27): 'Liberia* 670' incomplete = H1; newly infected Bong,
+                          Cape Mount, Maryland 16 Dec 1982; note on 1404)
+  1984-04-01..1984-12-31  Non_Reporting_Unknown  MODERATE  (WHO 17* incomplete; JHU 492 = Mauritania; note on 1413)
+  1986-04-01..1986-12-31  Non_Reporting_Unknown  MODERATE  (WER 62(20): 'Libéria 59*' incomplete = Q1; note on 1418)
+  1987-01-01..1989-12-31  not a gap - annual returns only (33, 68, 28); sub-annual unknown; low-level endemic reporting
+  1994-07-01..1994-12-31  Non_Reporting_With_Presence  HIGH  (WHO 764 = Jan-Jun; Monrovia epidemic Jul-Aug 1994 in AI rows 468/1006/1487;
+                          note on 1266)
+  1997-02-01..1997-12-31  Non_Reporting_With_Presence  MODERATE  (WHO 91 = January; MSF-B CTU 2 282 in 1997; note on 1419)
+  2002-01-01..2002-06-30  Non_Reporting_With_Presence  MODERATE-HIGH  (see S-d; note on 291)
+  2012 W13-W36, 2013 W28-W37/W46-W52, 2018 W47-W52: each < 6 months (Agent 3: platform non-reporting; not re-classified here)
+
+MODELLER NOTE: for 1971, 1982, 1984, 1986, 1994, 1997 and 2002 the JHU 'annual' row is a partial-year notification sum that the weekly
+  builder spreads over 52 weeks: it both inflates the unreported months (with cases that occurred elsewhere in the year) and, where an
+  epidemic went unnotified (1994 H2, 1997, 2002 H1), drastically understates them. These months should be treated as missing, not as data.
+================================================================================
+
+=== FINAL SUMMARY | AGENT 6 (gap-context-investigator) | LBR | cycle opus55-rerun-2026-09-29 ===
+End time        : 2026-10-02 19:50:07 PDT
+Batches         : 3 x 20 = 60 queries. Yields (%): B1 0 | B2 0 | B3 0
+Stopping reason : 3-batch minimum met and 3 consecutive batches below 5% yield (batches 1, 2 and 3 all 0%). Not stopped on time.
+Rows added      : 0 (no count row, no zero row) in ./data/LBR/cholera_data_ai.csv - live rows unchanged at 1453 (max Index 1520)
+Presence records: 0 added (./data/LBR/cholera_presence_ai.csv unchanged at 71)
+Metadata        : 0 registered (./data/LBR/metadata_ai.csv unchanged at 324); ~45 context sources consulted are cited in the batch blocks
+Annotations     : processing_notes appended (py/revise_observation.py --append-note --agent 6) on 14 rows of ./data/LBR/cholera_data_ai.csv:
+                  1264 (G1), 1265 (G2), 1266 (1994 H2), 1404 (1982 H2), 1413 (1984 Apr-Dec), 1418 (1986 Apr-Dec), 1419 (1997 Feb-Dec),
+                  1441 (1971 Jul-Dec), 291 (2002 H1), 1232 (2025 wk32-52), 123 (2025 wk25-30), 122 (2026 wk1-19), 1236 (2026-09), 281 (2014-15)
+CLASSIFICATION TABLE (dates | classification | confidence):
+  G1   1990-01-01..1990-12-31 | Non_Reporting_With_Presence | HIGH
+  G2a  1991-10-01..1992-10-14 | Non_Reporting_Unknown (weak lean to low transmission in Monrovia) | LOW
+  G2b  1992-10-15..1993-12-31 | Non_Reporting_With_Presence | MODERATE-HIGH
+  G3   2026-09-07..2026-10-02 | Publication_Lag | HIGH
+  S-a  2025-08-04..2025-12-28 (2025 wk32-52) | Non_Reporting_Unknown (suspected counts; confirmed = 0 per WHO zero report) | HIGH
+  S-a' 2025-06-16..2025-07-27 (2025 wk25-30) | Publication_Lag (count 23 known, Index 123) | HIGH
+  S-b  2025-12-29..2026-05-10 (2026 wk1-19) | Publication_Lag (count 66 known, Index 122) | HIGH
+  S-c  2014-06-02..2015-12-31 (Ebola) | Non_Reporting_Unknown (JHU 2015 weekly zeros = platform fills) | HIGH
+  S-d  1999-2001, 2004-2011 | reported annually, uneven sensitivity; no >=6-month documented non-reporting | MODERATE
+  S-d  2002-01-01..2002-06-30 | Non_Reporting_With_Presence | MODERATE-HIGH
+  S-e  1970-01-01..1970-07-24 | True_Absence_Inferred (concur with Agent 3 row 1246) | HIGH
+  S-e  1971-07-01..1971-12-31 | Non_Reporting_Unknown | MODERATE
+  S-e  1982-07-01..1982-12-31 | Non_Reporting_With_Presence | MODERATE-HIGH
+  S-e  1984-04-01..1984-12-31 | Non_Reporting_Unknown | MODERATE
+  S-e  1986-04-01..1986-12-31 | Non_Reporting_Unknown | MODERATE
+  S-e  1994-07-01..1994-12-31 | Non_Reporting_With_Presence | HIGH
+  S-e  1997-02-01..1997-12-31 | Non_Reporting_With_Presence | MODERATE
+New evidence this agent contributed (not previously in any LBR log):
+  * Liberia's WHO AIDS-report dates 01.04.90 -> 31.12.91 -> 30.09.92 -> 10.12.93 (WER 66(27), 67(27), 68(27), 69(26), page images): an
+    all-disease reporting indicator separating G1/G2b (no reporting) from late 1991-Sep 1992 (thin channel).
+  * WHO AFRO 1991-92 biennial: Gbarnga field office from Jan 1992, other epidemics investigated, no cholera named; staff evacuated Oct 1992.
+  * Côte d'Ivoire's 1992-1993 cholera located in its Département de l'Ouest (Man), next to Nimba (WER 68(1/2) p.7; 68(46) p.344 689/27).
+  * WHO's own incompleteness flags on Liberia's 1982 (670*) and 1986 (59*) totals; WHSR '+' for Jul-Dec 1971.
+  * Annual-total audit: JHU 'annual' rows for 1971, 1982, 1984, 1986, 1994, 1997, 2002 are partial-year notification sums.
+  * NPHIL publication record: no IDSR bulletin uploaded 4 Sep 2025-5 Jun 2026, while Mpox/Lassa sitreps continued (Oct 2025).
+  * Ebola-period health-system indicators: JFK cholera ward -> ETU (MMWR 63(46)); measles 6% districts (2014); AFP 23/22 (2014/15);
+    no cholera lab until Q3-Q4 2016 (EID 2017); WHO 2015: no Liberian submission; WCARO 2015 W29 interim zeros.
+Caveats / errata: the '~48% of the health budget' (US funding) and '~200 000 displaced' (Operation Octopus) figures come from search-result
+  summaries, not read at source - context only. 'Guinea notified nothing 1987-1993' should read: Guinea notified no cholera in WHO's
+  1990-1993 annual tables; Boiro 1999 describes 8-yearly Guinean epidemics until 1994.
+For Agent 7 / modellers: (1) py/build_weekly_timeseries.py spreads partial-year JHU annuals over 52 weeks - treat the S-e months as
+  missing; (2) JHU 2015 weekly zeros are not documented absence; (3) re-check NPHIL for 2026 wk37+ after mid-October; NPHIL's DHIS2/eIDSR
+  may hold 2025 wk32-52 suspected counts that were never published (human request route, not web).
+Validator / coverage / state: see lines below.
+Validator       : python py/validate_quality.py LBR -> exit 0, ERROR 0, WARN 14 (13 CFR review flags + 1 single-day row; all pre-existing)
+Coverage        : python /tmp/LBR_orch/lbr_coverage.py LBR -> 94.4% (644/682 months), months_ai_only 20; effective gaps unchanged
+                  (1990; 1992-1993; 2026-09-01..10-02) - correctly left empty: all three are missing data, not zeros
+State           : write_agent_state('LBR', 6, 3, [0, 0, 0], 0, 0, ...) -> ./data/LBR/workflow_state.json (17 gaps_remaining entries)
+Agent 6 Status  : COMPLETE
