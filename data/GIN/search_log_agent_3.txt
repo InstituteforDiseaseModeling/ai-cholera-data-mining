@@ -97,3 +97,70 @@ Consecutive sub-5% batches: 0
 Validator    : ERROR 0, WARN 28 (unchanged pre-existing set), INFO 154
 Decision     : CONTINUE (minimum 3 batches)
 
+=== BATCH 2 | PHASE 1->2 | GIN ===
+Timestamp    : 2026-10-03
+Gap targeted : Job B - region-level documented absence from MoH yearbook tables (2010, 2015-2017, 2021-2022) and
+               validation of the JHU/WHO-annual national zeros (2019, 2021-2024); Job C - historical gaps
+               1971-1985 (5479d) and 1987-1993 (2557d): positive absence assertions + neighbour context
+Families     : official (MoH yearbooks via Agent 1/2 caches; WHO WER annual cholera reports 2020-2025 via IRIS API; WHO
+               AFRO OEW listing), academic (Karnaukhov 2017, Europe PMC, OpenAlex), historical (WER annual summaries
+               1970-1997 cache; Wayback CDX), linguistic (FR, RU). Categories 1,2,4,5,7.
+NOTE         : the session-wide WebSearch budget (200 calls, shared with Agents 1-2 and the orchestrator) was exhausted
+               at this batch's 17th search attempt ('web search budget 200 of 200'); that refused call is NOT counted.
+               From here on, queries use direct database/API channels (WHO IRIS DSpace API, Europe PMC, OpenAlex, PubMed
+               E-utilities, ReliefWeb via curl, Wayback CDX, HDX) and cached documents, counted per the convention above.
+Queries      : 20
+  Q1  Cache read: MoH yearbook 2010 Tableau 110 (p.194-195) -> cholera 0/0 in every prefecture, all 8 regions report
+      other MPE                                                                               [ROWS 1212-1219]
+  Q2  Cache read: MoH yearbook 2015 -> no SAP table; HMIS hospital table cholera 0 but Matoto and Ratoma report 0 for
+      every disease incl. TB (non-reporting units) -> NOT used for regional zeros (national 2015 zero = JHU weekly)
+  Q3  Cache read: MoH yearbook 2016 Tableau 66 SAP -> cholera 0 everywhere but the table is clearly incomplete (malaria
+      SAP 0 in Dabola, Dalaba, Dixinn, Gueckedou ...) -> NOT used (Agent 2 reached the same verdict); meta 69's
+      'documented national absence 2016' overstates the table
+  Q4  Cache read: MoH yearbook 2017 Tableaux 69-70 -> cholera alerts only Kindia Pref., Telimele, Siguiri, Yomou; Boke,
+      Conakry, Faranah, Labe, Mamou regions 0/0/0 with PFA/measles reported                  [ROWS 1220-1224]
+  Q5  Cache read + page render: MoH yearbook 2021 (draft, file 30 Jun 2022) Tableau 162 p.225-226 -> cholera
+      suspected/confirmed/deaths 0 in every district                                          [ROWS 1225-1233]
+  Q6  WHO IRIS API: WER 2022;97(37) 'Cholera, 2021' -> Guinea 'did not report cholera data to WHO for 2021'
+      (Table 2 footnote b) => the JHU WHO-annual 2021 zero (UID 317) is NOT a WHO zero report; neighbours 2021:
+      Liberia 167, Mali 12, Cote d'Ivoire 12; GNB/SEN/SLE zero (used to correct my own rows 1225-1232)
+  Q7  WHO IRIS API: WER 2023;98(38) 'Cholera, 2022' -> Guinea in Table 2 zero-reporting countries (JHU 2022 zero valid);
+      Liberia 367; Cote d'Ivoire no report
+  Q8  WHO IRIS API: WER 2020;95(37) 'Cholera, 2019' -> Guinea in the zero-reporting footnote list (JHU 2019 zero is a
+      WHO zero report; conflicts with MoH SAP 2019 45 suspected/10 confirmed - Agent 5)
+  Q9  WHO IRIS API: WER 2024;99(36) 'Cholera, 2023' -> Guinea in Table 2 zero reporting (JHU 2023 zero valid)
+  Q10 WHO IRIS API: WER 2025;100(36) 'Cholera, 2024' -> Guinea in Table 2 zero reporting (JHU 2024 zero valid; note
+      appended to AI row 11)
+  Q11 Cache read: MoH yearbook 2022 Tableau 91 (HMIS district notifications, cholera 0 everywhere) + Tableau 94 (SAP
+      cumulative weeks 1-52: cholera 0/0)                                                     [ROWS 1234-1241]
+  Q12 Cache re-read: WER annual cholera summaries 1970-1997 (Agent 1 IRIS cache art_19xx) for neighbour counts by year
+      (regional cross-check of the historical gaps - see JOB C below)
+  Q13 Cache re-read: Karnaukhov et al. 2017 ZhMEI full text -> no inter-epidemic absence statement; 'importations of
+      V. cholerae into Guinea were officially registered only twice - in 1994 and 2012'
+  Q14 WebSearch (extended): Guinea 1994 cholera 'first since 1986'/'eight years' -> only Boiro 1999 abstract
+      ('Until 1994, epidemics recurred every 8 years') - periodicity, not an absence assertion
+  Q15 WebSearch (FR, extended): Guinee cholera 1994 'reapparition'/'depuis 1986' -> ACF 2012 cross-border report on a
+      mirror host (platefor.mywhc.ca, DNS dead; curl and WebFetch fail)
+  Q16 Wayback CDX for the ACF mirror (platefor.mywhc.ca/sites/default/files/2022-11/*) -> 79 captures, no Guinea file
+  Q17 WebSearch (RU, extended): kholera Gvineya inter-epidemic 1971-1985 Kindia -> only that a Russian-Guinean
+      laboratory worked in Kindia 1978-1991 (laboratory capacity existed; no cholera statement)
+  Q18 WebSearch: St Louis 1990 AJE 'Epidemic cholera in West Africa' history -> abstract only (1986 Conakry risk factors)
+  Q19 Europe PMC REST full-text search (cholera AND Guinea AND 1978/1986 AND epidemic) -> 611 hits, none relevant
+  Q20 OpenAlex API (FR): 'cholera Guinee Conakry' 1971-1995 -> 2 irrelevant works
+Sources found: 6 WER annual reports (2020-2025 issues) + 2 yearbooks   Registered: index 194 (MoH yearbook 2021),
+               195 (MoH yearbook 2022). WER 2020/2022/2023/2024/2025 issues not registered (no row cites them; their
+               content is in row notes 11, 1225-1233 and this log).
+Rows added   : 30   Indices: 1212-1219 (regional zeros 2010, all 8 regions), 1220-1224 (regional zeros 2017: Boke,
+               Conakry, Faranah, Labe, Mamou), 1225-1232 (regional zeros 2021, all 8), 1233 (national zero 2021, MoH SAP
+               basis), 1234-1241 (regional zeros 2022, all 8)
+Revisions    : rows 1212-1224 reporting_date corrected to edition dates; rows 1225-1232 regional-context CORRECTION
+               appended (my first note wrongly said neighbours were quiet in 2021); row 11 WHO 2024 zero-report note
+Successful queries: 4/20 (Q1, Q4, Q5, Q11)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Not added (reasoned): 2015 and 2016 regional zeros (incomplete reporting units); 1996-06-19..12-31 and 2000-08..12 and
+               2002-01..08 national zeros by WHO-notification arithmetic (1996: every neighbour in epidemic - GNB 8,397,
+               SEN 16,107, LBR 8,922, MLI 5,723 - so non-notification is too weak; 2000-2001: Sudre 2009 reports 1,103
+               Forest-region cases vs WHO 910; 2002-2003: IFRC/MoH 1,361 cases vs WHO 67 - WHO under-notified)
+Decision     : CONTINUE (minimum 3 batches; yields 35%, 20%)
+
