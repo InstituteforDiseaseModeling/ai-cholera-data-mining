@@ -6,3 +6,168 @@ Agent 3 Status: INITIALIZED
 Note: this file replaces the July 2025 Agent 3 log from the previous cycle; nothing appended to it.
 
 Start clock: 2026-10-03 15:08:06
+
+=== PRE-SEARCH STATE ===
+Read: ./templates/template_search_protocol.txt; ./.claude/agents/zero-transmission-validator.md; /tmp/CAF_common_brief.txt (in full);
+      ./data/CAF/search_log_agent_1.txt (6 batches, 120 queries) and ./data/CAF/search_log_agent_2.txt (6 batches, 120 queries) - not repeated;
+      ./data/CAF/workflow_state.json (Agent 1/2 gaps_remaining addressed to Agent 3).
+./data/CAF/cholera_data_ai.csv at start: 49 rows (max Index 51; 11 retracted). ./data/CAF/metadata_ai.csv: 53 sources. presence: 9.
+python py/validate_quality.py CAF at start: ERROR 0, WARN 11, exit 0.
+Reference gap files read, NOT regenerated (shared): effective gaps now 2013-01-01..2013-12-31 (365d) and 2014-12-01..12-31 (31d); coverage 97.9%.
+Local read-only checks (not counted as queries):
+  - ../ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv: CAR 2026 rows only wk16-35 (wk16 = 0, wk31 = 1, wk32-35 = 0);
+    NO CAR weeks 1-15 of 2026 -> CAR did not submit weekly zeros Jan-mid Apr 2026 (bears on row 10).
+  - ../ees-cholera-mapping/data/cholera/who/gho/cholera_country_yearly.csv: CAF only 1997, 1998, 2004, 2005(0), 2006(0), 2011, 2012. GHO records
+    explicit zeros for any African country only in 2005-2008, so CAF's absence from GHO in 2009-2016 is uninformative either way.
+  - ../jhu_cholera_data/data/Central African Republic/ObservationCollection5104.csv (UNICEF weekly): national weekly zeros 2020-01-06..2020-11-08
+    are flagged Phantom=True (synthetic, NOT reported); 2013-12-30..2019-04-14 Phantom unset; 2019-04-15..2020-01-05 and 2020-11-09..2021-01-03
+    Phantom=False. UID 21197 (2018-2019, 71 sub-prefecture units, all 0, Phantom=False). Suspects: national 1 case wk 2018-02-12; Bangui Arr.2 1 case
+    wk 2018-02-19; Bangui Arr.2 1 case + 1 death wk 2019-02-18 (national weekly that week = 0). In ./data/CAF/cholera_data_jhu.csv the phantom flag is
+    lost, so the pipeline treats the 2020 phantom zeros as observed zeros (flag for Agent 7 / builder owners).
+
+=== BATCH 1 | PHASE 1 | CAF ===
+Gap targeted : 2013-01-01..2013-12-31 (365d, modern) + 2014-12-08..12-28 (21d) + 2026-09-19..10-03 (tail) + re-audit of zero rows 4, 8
+Categories   : WHO/official (WER annual reports via IRIS API, WHO AFRO), humanitarian (Health Cluster, UNHCR portal), technical (EWARS),
+               academic (PubMed), linguistic (fr), regional (WER neighbour tables)
+Queries      : 20
+  Q1  WHO IRIS API '"Cholera, 2013"' -> WER 2014;89(31) pp.345-355: CAR not mentioned, no zero-reporting list (silence). Regional: Congo 1,624
+      (Pointe-Noire), DRC 26,944 (eastern/southern borders), Lake Chad area no major outbreak, Cameroon 29
+  Q2  WHO IRIS API '"Cholera, 2014"' -> WER 2015;90(40): CAR not mentioned; Chad no major outbreak 2013-2014
+  Q3  WHO IRIS API '"Cholera, 2007"' -> WER 2008;83(31): CAR not mentioned ('No information is available from Chad') - silence
+  Q4  WHO IRIS API '"Cholera, 2009"' -> WER 2010;85(31): CAR not mentioned; WHO verified 47 cholera outbreaks in 29 countries, none in CAR
+  Q5  WHO IRIS API '"Cholera, 2017"' -> WER 2018;93(38) footnote a: CAR among countries that 'reported 0 cases and deaths in 2017' (registered 55)
+  Q6  WHO IRIS API '"Cholera, 2018"' -> WER 2019;94(48) footnote a: CAR 'reported 0 cases and deaths in 2018' (registered 56)
+  Q7  WHO IRIS API '"Cholera 2019"' -> WER 2020;95(37): CAR NOT in zero-reporting footnote (confirms Agent 1)
+  Q8  WHO IRIS API '"Cholera, 2020"' -> WER 2021;96(37) Table 2: CAR NOT zero-reporting; also NOT in footnote b list of at-risk non-reporters
+  Q9  Centrafrique 2013 "aucun cas de choléra" OR "pas de cas de choléra" crise Bangui sites de déplacés -> no explicit statement; measles epidemic notes
+  Q10 WHO "Central African Republic" "public health risk assessment" December 2013 cholera -> WHO AFRO node 6277: cholera = risk; 'weak disease surveillance'
+  Q11 "système d'alerte précoce" Bangui bulletin décembre 2013 janvier 2014 sites de déplacés rougeole diarrhée choléra -> WHO AFRO node 4019 -> MSPPLS/OMS
+      EWARS bulletin N00 (11 Dec 2013-12 Jan 2014): Choléra 0 cases/0 deaths every week S50-2013..S02-2014 in 30 IDP-serving units (Bangui + Ombella-M'Poko);
+      AWD 4,736/18 recorded separately (registered 54)  ** ROW 52 **
+  Q12 Central African Republic measles outbreak 2013 cases reported WHO surveillance -> measles outbreaks Jan-Oct 2013 (>=600 confirmed; Ngaoundaye, Abba,
+      Carnot, Begoua, Mbaiki, Bangui); PMC6426189 measles case-based surveillance 2007-2015 -> other notifiable-disease surveillance WAS functioning in 2013
+  Q13 "Bulletin du Système d'Alerte Précoce" RCA 2014 semaine 50-52 choléra EWARS -> WHO AFRO sitrep N4 (Feb-Mar 2014) lead only
+  Q14 site:afro.who.int Centrafrique "Système d'Alerte Précoce" bulletin 2014 -> WHO CAR biennial report 2014-2015: EWARS in 31 IDP sites (Bangui, Bégoua,
+      Yaloké, Bimbo, Bambari, Kaga Bandoro, Ngakobo); cholera PREPAREDNESS 'Pour éviter l'éclosion d'une épidémie de choléra' (implies none 2014-2015);
+      threat from 'cas suspects et confirmés dans des camps de réfugiés centrafricains à Garoua-Boulaï (Cameroun)' (late 2014)
+  Q15 République centrafricaine "bulletin épidémiologique" hebdomadaire 2013 MSPP -> June 2013 IDSR review meeting (node 4067, no data)
+  Q16 "Bulletin du Cluster Santé" RCA décembre 2014 "alerte précoce" -> UNHCR docs 32730 (Health Cluster bulletin N28, 1-15 Sep 2014: EWARS completeness
+      100% for 7 weeks; cholera contingency only) and 32719 (WHO brief 15 Sep 2014: EWARS covers cholera) - no Dec 2014 issue found
+  Q17 choléra Centrafrique fin septembre 2026 OR octobre 2026 nouveau cas après déclaration de fin d'épidémie [extended] -> nothing after 20 Sep
+  Q18 WHO AFRO OEW week 38 OR 39 2026 CAR cholera closed event [extended] -> weeks 37-39 not indexed
+  Q19 "Bulletin hebdomadaire des Partenaires humanitaires du secteur de la Santé" Centrafrique décembre 2014 -> not found
+  Q20 Bangui suspicion de choléra février 2019 cas suspect décès 2e arrondissement Institut Pasteur -> nothing (Feb 2019 suspect never reported publicly)
+Sources found: 8   Registered: index 54 (EWARS N00), 55 (WER 2018;93(38)), 56 (WER 2019;94(48))
+Rows added   : 1 new (Index 52: AFR::CAF::Bangui 2013-12-11..2014-01-12 ZERO, Documented_Absence, surveillance partial, conf 0.7, provincial subset)
+               + 2 replacement pieces of row 8 (NOT counted in yield - period already covered): Index 53 (2017-01-05..2017-12-31 Documented_Absence,
+               partial, 0.8, WER 2018) and Index 54 (2018-01-01..2018-12-31 Documented_Absence, operational, 0.85, WER 2019)
+Revisions    : row 8 narrowed to 2019-01-01..2020-12-31, Documented -> Inferred_Absence, conf 0.85 -> 0.6, surveillance -> partial (Feb 2019 Bangui
+               suspect + death documented inside the row; 2020 JHU phantom zeros documented). Decision on JHU single suspects: KEEP zero rows across them
+               (documented both options in rows 54 and 8).
+Successful queries: 1/20 (Q11)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Gap status   : 2013 national - REMAINING (WHO silent; EWARS documents Bangui absence only from 11 Dec 2013); 2014-12-08..12-28 - REMAINING (no Dec 2014
+               EWARS/Health Cluster issue found yet); 2026-09-19.. - REMAINING (no post-declaration source); 2017-2020 - RE-GRADED (split).
+Decision     : CONTINUE (batch 1 of minimum 3)
+
+=== BATCH 2 | PHASE 1->2 | CAF ===
+Gap targeted : 2013-01-01..2013-12-31 (365d) and 2014-12-08..12-28 (21d) classification; 2026-09-19..10-03 tail; re-audit of rows 3, 4, 9, 10
+Categories   : academic (PubMed/PMC), WHO/official (IRIS WER annual reports, WHO AFRO), humanitarian (UNICEF, OCHA, UNHCR portal), regional
+               (Cameroon refugee-site cholera 2014; WER neighbour tables), technical (HDX CKAN workbooks), linguistic (fr)
+NOTE ON TOOLING: after Q10 the session-wide WebSearch budget (200 calls, shared with the orchestrator and Agents 1-2) was exhausted
+               ("Web search was not performed: this session has used its web search budget"). No general search engine was used to work
+               around it. From Q11 onward every query is a targeted repository/API query or a document-series probe (WHO IRIS API, PubMed/PMC
+               E-utilities, HDX CKAN, OCHA and UNHCR document series, WHO AFRO listing), counted as a query as Agents 1-2 did.
+Queries      : 20
+  Q1  PubMed efetch PMID 10052560 (Germani 1998: no abstract) + 6330161 (Georges 1984 JCM: 1,197 Bangui children 1981-82; pathogens listed, no V. cholerae)
+  Q2  PMC / Europe PMC full text of Georges 1984 (scanned PDF) -> blocked (HTML/403); whether V. cholerae was cultured stays a lead for Agent 4
+  Q3  WHO IRIS API '"Cholera, 2001"' -> WER 2002;77(31): CAR not mentioned; Chad 5,244 cases Jun-Oct 2001 linked to northern Cameroon; Cameroon 259
+  Q4  WHO IRIS API '"Cholera, 2003"' -> WER 2004;79(31): CAR not mentioned; Chad 55, Cameroon 207, DRC 27,272
+  Q5  WHO IRIS API '"Cholera, 2010"' -> WER 2011;86(31): CAR not mentioned; Lake Chad basin epidemic (Chad 6,395; Cameroon 10,759); no cases in Sudan
+  Q6  WHO IRIS API '"Cholera, 2000"' -> WER 2001;76(31): CAR not mentioned; Cameroon 123, Congo 9
+  Q7  HDX CKAN package_search 'cholera outbreaks central west africa regional update' -> 2012/2013/2014 workbooks: NO blank cells for any country;
+      CAF 0 in all 52 weeks of 2012 (WHO: 21 cases) -> platform zeros are default fills, not reported zeros (applies equally to JHU UID 5104)
+  Q8  Associated Press 2016 CAR cholera "first" "in five years" -> Thomson Reuters Foundation 18 Aug 2016: 'racing to prevent the first outbreak of
+      cholera in five years'; UNICEF 12 Aug 2016 (metadata 4) re-verified: 'the first cholera outbreak in the Central African Republic (CAR) since 2011'
+  Q9  Centrafrique 2013 alerte suspicion de choléra cas suspect prélèvement négatif Institut Pasteur -> nothing for 2013
+  Q10 Garoua-Boulaï Gado choléra nov-déc 2014 réfugiés centrafricains -> first confirmed case of the East region in a CAR refugee child at Gado (Nov 2014)
+  Q11 [WebSearch for OCHA CAR sitreps 45-47 NOT executed - budget exhausted] -> unocha.org URL-slug probe of CAR sitreps N84-N88: N84 (8 Sep),
+      N85 (15 Sep), N86 (22 Sep), N87 (29 Sep, slug 'ndeg-87') found; PDFs contain NO cholera mention. OCHA silence is uninformative: Agent 2 found
+      cholera only in N76-N77 (July) and OCHA silent in N78-N82 while WHO recorded 24, 10 and 1 cases.
+  Q12 WHO AFRO 'outbreaks-and-other-emergencies-updates' listing -> latest OEW is week 36 (31 Aug-6 Sep 2026; metadata 12)
+  Q13 WHO IRIS API 'Weekly bulletin on outbreaks and other emergencies 2026 week 37/38' -> none for 2026
+  Q14 UNHCR data portal document series (IDs 32731-32880; upload dates read from download headers; 77 PDFs Dec 2014-Feb 2015 parsed) -> UNHCR CAR
+      Regional Updates 42-45 (29 Nov-26 Dec 2014) and Cameroon inter-agency reports: Cameroon refugee-site cholera was 'l'épidémie passée' by late Nov
+      (Adamaoua 9 cases/1 death in November); 22-28 Dec 'Aucun nouveau cas de choléra n'a été signalé'; CAR side: no cholera mentioned  ** ROW 56 **
+  Q15 ReliefWeb IFRC measles DREF MDRCF015 (2013) -> HTTP 403
+  Q16 PubMed esearch 'measles AND "Central African Republic" AND 2007-2015' -> PMID 30893336 Farra et al. 2019 PLoS One (registered 57)
+  Q17 PMC efetch Farra 2019 tables -> national measles notifications/district sampling: 2007 302/83%, 2008 117/53%, 2009 126/63%, 2010 95/70%,
+      2013 596/60% (lab investigation <80% in 2011-13 'sociopolitical problems'), 2014 733/83% -> notification system operating  ** ROW 55 **
+  Q18 PMC efetch EID 2021 (PMC7774542; first author Breurec, Quilici co-author) -> 'only 4 outbreaks had been reported by 2020' (1997 x2, 2011, 2016);
+      'since the declaration of the first case in 1997, the small number (< 1,000) of cholera cases in CAR'
+  Q19 UNICEF CAR story 3 Feb 2012 (ReliefWeb + Pambazuka) -> verified verbatim: 'Though neighbouring countries, including Cameroon, Chad and the
+      Democratic Republic of Congo, have experienced outbreaks over the past decade, the Central African Republic had not seen a cholera case in as many
+      as a dozen years'
+  Q20 WHO IRIS full text WER 2026;101(38) 'Cholera Annual Report 2025' -> Table 5 CAR zero report; CAR meningitis 546 suspected/552 CSF tested in 2025;
+      neighbours 2025: South Sudan 79,480, Sudan 73,597, DRC 71,168, Chad 2,979, Congo 822, Cameroon 2
+  (Re-read, not counted: CAFELTP 2011 PDF (metadata 25) - MoH 'Données de surveillance 1997-2000' cited for 1997 and 1999 only.)
+Sources found: 7   Registered: index 57 (Farra 2019), 58 (WHO CAR biennial report 2014-2015, found batch 1 Q14)
+Rows added   : 2 new - Index 55 (AFR::CAF 2013-01-01..2013-12-31 ZERO Inferred_Absence, disrupted, 0.4, source EID 2021 metadata 2);
+               Index 56 (AFR::CAF 2014-12-08..2014-12-28 ZERO Inferred_Absence, partial, 0.45, source WHO CAR biennial report metadata 58)
+               + 2 replacement re-citations (NOT counted in yield): Index 57 (2000-01-01..2003-12-31 replaces retracted row 3; Inferred_Absence, partial,
+               0.75 -> 0.5; cites UNICEF 3 Feb 2012, metadata 49) and Index 58 (2025-01-01..2025-12-31 replaces retracted row 9; Documented_Absence,
+               operational, 0.9; cites WHO annual zero report WER 2026;101(38), metadata 32)
+Revisions    : row 3 RETRACTED (cited Germani 1998 for 2000-2003 - impossible; tombstone); row 9 RETRACTED (re-cited; tombstone); row 4 conf 0.8 -> 0.6,
+               surveillance -> partial, 2008 kept inside with documented reason, Source-states quote added; row 10 Documented -> Inferred_Absence,
+               0.8 -> 0.55, surveillance -> partial; row 28 left at 0.45 (no new evidence after 30 Aug; see batch 3 note)
+Successful queries: 2/20 (Q14, Q17)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Gap status   : 2013 national - VALIDATED as low-confidence Inferred_Absence (row 55; Agent 6 may revisit); 2014-12-08..12-28 - VALIDATED as Inferred_Absence
+               (row 56); 2026-09-19..10-03 - REMAINING, deliberately left EMPTY (no source after the 18 Sep declaration asserts absence; CAR sent no WHO
+               dashboard weeks after wk35, no IHR update since 26 Aug, OCHA N85-N87 silent and OCHA silence shown uninformative)
+Decision     : CONTINUE (batch 2 of minimum 3)
+
+=== BATCH 3 | PHASE 3 (deep validation: archives, decade-by-decade regional check) | CAF ===
+Gap targeted : re-audit of AI row 14 (1970-01-01..1996-12-31, 9862d, historical, Inferred_Absence 0.6) - the row that lifts coverage ~50% -> ~98%
+Categories   : historical/archival (WHO WER annual cholera reports 1970-1995 via IRIS API, OCR text layers), WHO/official (WHO 1991 Africa review),
+               regional (neighbour counts per decade from WER/GHO). WebSearch still unavailable (session budget); all queries are IRIS API searches.
+Queries      : 20 (each = WHO IRIS API search for the annual report + pdftotext of the OCR layer + grep 'centrafric|central african|empire centr')
+  Q1  '"Cholera in 1970"' (WER 1971) -> CAR absent
+  Q2  '"Cholera in 1972"' (2 items) -> CAR absent ('Central Africa' regional phrase only)
+  Q3  '"Cholera in 1973"' (2 items + four-weekly table) -> CAR absent
+  Q4  '"Cholera in 1974"' -> CAR absent
+  Q5  '"Cholera in 1975"' -> CAR absent; result list also gave WHO 'Cholera in Africa' review (WER 1991;66(42), 18 Oct 1991): 'Since 1970, only 8 of
+      the 52 countries in Africa have never reported autochthonous cases of cholera to WHO (Botswana, the Central African Republic, Egypt, Lesotho,
+      Madagascar, Mauritius, Namibia and the Seychelles)' (registered 59)
+  Q6  '"Cholera in 1976"' (item 'CHOLERA' 1977) -> CAR / Empire centrafricain absent
+  Q7  '"Cholera in 1977"' -> absent
+  Q8  '"Cholera in 1978"' -> absent
+  Q9  '"Cholera in 1980"' -> absent
+  Q10 '"Cholera in 1981"' -> absent
+  Q11 '"Cholera in 1982"' -> absent
+  Q12 '"Cholera in 1983"' -> absent
+  Q13 '"Cholera in 1984"' -> absent
+  Q14 '"Cholera in 1986"' -> absent
+  Q15 '"Cholera in 1987"' -> absent
+  Q16 '"Cholera in 1988"' (2 items) -> absent
+  Q17 '"Cholera in 1989"' (2 items) -> absent
+  Q18 '"Cholera in 1990"' (2 items) -> absent
+  Q19 '"Cholera in 1992"' (2 items) -> absent
+  Q20 '"Cholera in 1994"' (Part I/II) -> absent
+  (Q21 '"Cholera in 1995"' was executed in the same loop and is counted as batch 4 Q1.)
+  With Agent 1's checks (1971, 1979, 1985, 1991, 1993, 1996) every annual report 1970-1996 has now been checked: CAR never appears, not even with
+  imported cases, while Cameroon, Chad and Zaire appear in most years.
+Sources found: 1   Registered: index 59 (WER 1991;66(42) Cholera in Africa)
+Rows added   : 0
+Revisions    : row 14 - audit note appended (WHO 1991 'never reported' statement; full 1970-1996 table check; decade-by-decade regional pattern; Egypt-1970
+               caveat that 'never reported' can conceal epidemics) + one correction note (Zaire 1978-85 range); NOT split (no positive evidence of cholera
+               in any 1970-1996 year); label/surveillance/confidence unchanged (Inferred_Absence, partial, 0.6).
+               row 28 - audit note appended: re-weighting rejected (no WHO bulletin after wk36, no WER update after 30 Aug, OCHA silence uninformative,
+               3 undated suspects possible); tail 2026-09-19..10-03 left EMPTY.
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Gap status   : 1970-1996 VALIDATED (robust Inferred_Absence; strongest available source type = WHO never-reported statements); no new gap filled.
+Decision     : CONTINUE (minimum of 3 batches met; 1 consecutive sub-5% batch - need 3)
