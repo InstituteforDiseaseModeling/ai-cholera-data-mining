@@ -16,3 +16,43 @@ Safety scope for this audit (countries run in parallel):
 - All revisions via py/revise_observation.py with --agent 7. No hand-edits of CSVs.
 
 Starting file state (verified at init):
+  ./data/MLI/cholera_data_ai.csv     : 1158 rows, Index 1-1186 (28 Index values absent: 27 tombstoned in
+                                        ./data/MLI/retracted_rows_ai.csv + Index 11, moved to presence by an earlier repair)
+  ./data/MLI/metadata_ai.csv         : 418 sources, Index 1-418 contiguous (415 Active, 3 Superseded: 20, 117, 176)
+  ./data/MLI/cholera_presence_ai.csv : 85 rows
+  ./data/MLI/retracted_rows_ai.csv   : 27 tombstones
+  ./data/MLI/cholera_data_jhu.csv    : 13198 rows (read-only baseline); no cholera_data_who.csv for MLI
+  -> all match the orchestrator brief.
+
+=== CHECK 1 | VALIDATOR (authoritative) | 2026-10-03 06:30 ===
+Command : python py/validate_quality.py MLI --json /tmp/MLI_audit.json
+Result  : exit 0 | ERROR 0 | WARN 131 | INFO 389
+          WARN: CFR_high_flagged_for_review 127, same_period_conflict 3, period_single_day 1
+          INFO: national_subnational_overlap 292 (all 'documented'), metadata_unused 97
+Also    : --no-baseline gives the same counts; reference/validation_debt.json has 0 MLI entries, so no ERROR is
+          being hidden as tracked debt.
+Note    : validator 'row N' = physical CSV line number (header = line 1), NOT the Index. Mapped below to Index.
+
+1a CFR_high (127 rows, all sCh >= 25):
+   - confidence: max 0.7 on all 127 (0.7 x108, 0.6 x18, 0.5 x1) -> rule satisfied.
+   - same period / denominator: every one of the 127 takes cases and deaths from ONE table cell pair or ONE
+     sentence (99 WHO WER IHR weekly notification rows 1970-1996, plus SLIS/DRPSIAP region tables, AFRO IDS/DDC
+     weekly tables, Tauxe 1988, Traore 2008, UNDRO Oct 1984 cumulatives, DNS minutes 2011). None mixes a death
+     count from one period with a case count from another. Years: 1971 65, 1985 22, 1984 7, 1995 5, 1970 5,
+     2004 5, 1996 3, 1986 3, 1973 3, 1974 2, 1987 2, 2003 2, 2005 1, 2001 1, 2011 1.
+   - Additional finding: 290 rows have CFR > 15% in total; 163 have sCh < 25, and 106 of those sit at confidence
+     0.75-0.9. This is consistent with the writer (py/add_observation.py caps confidence only when sCh >= 25) and
+     with the validator's CFR_SMALL_DENOM = 25. No change; noted in the report.
+1b same_period_conflict (3), both sides of each pair carry an explicit PRIMARY / NON-PRIMARY statement:
+   - line 889 = Index 911 (WHO WER 71(21) 1995 2048/307, NON-PRIMARY) vs line 3 = Index 3 (DNS register 2254, PRIMARY)
+   - line 868 = Index 890 (2007 GTFCC zero, PRIMARY) vs line 128 = Index 147 (WER narrative '7 cases', NON-PRIMARY, 0.4)
+   - line 1048 = Index 1075 (June 1996 DNS-derived 421, NON-PRIMARY, 0.5) vs line 25 = Index 43 (WHO 358/45, PRIMARY)
+   -> documented, intentionally retained disagreements. No change.
+1c period_single_day: line 196 = Index 216 (WER 77(13) 'Mali 20.II ... 1 0', 2002). The WER prints a single date
+   for a single notified case; a wider window would be invented. Genuine. No change.
+
+=== CHECK 2 | REPAIR TOOL (scoped) | 2026-10-03 06:45 ===
+Command : python py/repair_data_integrity.py --dry-run MLI --log /tmp/MLI_a7/repair_dryrun.json
+Result  : TOTAL 0 change(s) proposed (no label normalisation, no quarantine, no multi-year or high-CFR downweight,
+          no duplicate merge, no attribution flags). --apply NOT run (nothing to apply).
+./data/MLI/attribution_review.csv: does not exist and is not created (0 review items). Nothing to resolve.
