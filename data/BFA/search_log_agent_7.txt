@@ -1,0 +1,165 @@
+=== AGENT 7 INITIALIZATION ===
+Agent: 7 - Quality Auditor (cholera-quality-auditor)
+Country: Burkina Faso (BFA)
+Cycle: 2026-10-02 full 7-agent cycle (workflow orchestrator)
+Start Time: 2026-10-03 05:34:28 PDT
+Working directory: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Scratch directory: /tmp/BFA_a7/ (all URL-check and audit artefacts written here only)
+Prior cycle's Agent 7 log archived as ./data/BFA/search_log_agent_7_legacy_2026-05-13.txt (not modified)
+Agent 7 Status: INITIALIZED
+
+Inputs at start:
+  ./data/BFA/cholera_data_ai.csv     668 rows
+  ./data/BFA/metadata_ai.csv         222 sources
+  ./data/BFA/cholera_presence_ai.csv 29 rows
+  ./data/BFA/retracted_rows_ai.csv   31 tombstones
+  ./data/BFA/cholera_data_jhu.csv    19050 rows (READ-ONLY baseline); no WHO baseline file for BFA
+
+Rules in force: writers only = py/add_observation.py, py/revise_observation.py, py/repair_data_integrity.py (BFA arg).
+Not run (shared-file writers): py/analyze_effective_gaps.py, py/check_urls.py, update_dashboard.sh, py/update_dashboard_data.py. No git commits.
+
+=== AUDIT PLAN (Agent 7, BFA) ===
+Read before planning: ./CLAUDE.md (validation framework, deliverable standards, Agent 7 baseline gap assessment);
+./templates/template_search_protocol.txt; ./data/BFA/{cholera_data_ai,metadata_ai,cholera_presence_ai,retracted_rows_ai,
+cholera_data_jhu}.csv; ./data/BFA/workflow_state.json; ./data/BFA/search_log_agent_1..6.txt (incl. ORCHESTRATOR GATE blocks);
+/tmp/BFA_orch/bfa_context.md; /tmp/BFA_orch/conflict_register_for_agent5.md and Agent 5's CONFLICT RESOLUTION LEDGER.
+
+Stage 1 FORMAT AND INTEGRITY
+  1a python py/validate_quality.py BFA --json /tmp/BFA_a7/v_start.json  (authoritative; physical line numbers mapped to Index)
+  1b python py/repair_data_integrity.py --dry-run BFA ; --apply BFA only if it proposes mechanical repairs
+  1c own structural script: 14/15-column order, Index uniqueness, metadata Index 1..N with no holes, dual-reference
+     (source_index -> metadata Index, source == metadata Source), no live row citing a non-Active (Superseded) source,
+     tombstone Index never reused, presence-file citations intact.
+Stage 2 4-STAGE QC
+  S1 authentication: all 222 metadata URLs, own script /tmp/BFA_a7/urlcheck.py (IRIS via DSpace REST incl. volume/issue match;
+     curl GET for the rest; Wayback availability for dead/blocked). Results /tmp/BFA_a7/urlcheck.jsonl. Dead links with an
+     archived copy -> metadata Description via py/revise_observation.py --meta-index N --set-description (old text preserved).
+  S2 plausibility: each of the 47 CFR>15% rows checked for era/context (1970-75 El Tor, 1984-85, 1991, 1996, thesis/Felix 1971),
+     shared denominator/period, and confidence <=0.7. No relabelling to silence a warning.
+  S3 cross-reference: stratified random sample (>=40 rows, weighted to Level 3-4 sources and rows >100 cases); quote searched
+     in the source text itself (downloaded PDF/HTML/IRIS bitstream). Every row >1000 cases checked for 2 independent sources.
+  S4 duplication/nesting: national rows nested at different granularities (1971, 1973, 1974, 1984, 1995, 2005) must say
+     'do not sum'/primary; sub-national rows must carry subset notes; no AI row that only duplicates a JHU baseline row.
+Stage 3 ITEMS LEFT BY AGENTS 5-6: (a) Idx684 vs Idx692 2005 week 36; (b) Boulgou/Soum 1999-2000 presence carry-over (document
+  only); (c) 34 stale insert-time surveillance tokens (document only); (d) split row 495 (2019 vs 2020) if it improves fidelity;
+  (e) rows 484-486 deaths 0 vs lethality 'NA'; (f) JHU baseline defects (report only, JHU read-only).
+Stage 4 BASELINE GAP ASSESSMENT: ./reference/baseline_surveillance_gaps_*.csv + baselineonly_* (read-only); per-gap status
+  (filled with counts / validated absent Documented / Inferred / open); coverage via /tmp/BFA_orch/coverage_inmemory.py
+  (in-memory, no shared file written) before and after my repairs; temporal and geographic distribution; cross-agent performance.
+Stage 5 DELIVERABLE: overwrite ./data/BFA/search_report.txt (executive summary + structured appendix + PIPELINE NOTES).
+Final gate: python py/validate_quality.py BFA exit 0 / ERROR 0; then write_agent_state('BFA', agent_num=7, ...).
+Not run (shared writers): py/analyze_effective_gaps.py, py/check_urls.py, update_dashboard.sh, py/update_dashboard_data.py.
+
+=== STAGE 1 | FORMAT AND INTEGRITY ===
+1a  python py/validate_quality.py BFA --json /tmp/BFA_a7/v_start.json  -> exit 0
+    ERROR 0 | WARN 49 | INFO 143
+      47 WARN CFR_high_flagged_for_review  (Idx 1, 2, 61, 76, 90, 95-103, 130, 132, 136, 145, 151, 153, 158, 161, 162, 167, 170,
+                                            171, 179, 180, 183, 184, 196, 197, 207, 209, 212, 214, 216, 283, 315, 663, 666, 670,
+                                            674, 675, 676, 702, 703)
+       1 WARN period_single_day             (validator line 625 = Idx 659, Dori index case 17 Jun 1984)
+       1 WARN same_period_conflict          (validator lines 650/658 = Idx 684 WHO 284/3 vs Idx 692 MoH 164, 2005-09-05..09-11)
+      85 INFO national_subnational_overlap  (all 'documented': every overlapping national/sub-national pair states which is primary)
+      58 INFO metadata_unused               (registered sources cited by no data row; several back presence rows or annotations)
+    NOTE: the validator's "row N" is the physical CSV line, not Index; all findings were mapped line -> Index with my own script.
+1b  python py/repair_data_integrity.py --dry-run BFA --log /tmp/BFA_a7/repair_dryrun_start.json -> TOTAL: 0 change(s)
+    No source_label_normalisation, presence_row_quarantine, multiyear/high-CFR downweight, date fix or duplicate merge needed.
+    No ./data/BFA/attribution_review.csv was produced (none existed before).
+    DECISION: --apply BFA NOT run - the dry run proposes zero mechanical repairs, so --apply would be a no-op.
+1c  Own structural check (/tmp/BFA_a7/structural_check_start.txt):
+    - ./data/BFA/cholera_data_ai.csv: 14 columns in the exact CLAUDE.md order; 668 rows; Index unique (1..703)
+    - ./data/BFA/metadata_ai.csv: 15 columns in order; 222 entries; Index 1..222 contiguous, no duplicates, no holes
+    - dual reference: 0 orphan source_index, 0 source-name mismatches, 0 live rows citing a non-Active source
+      (metadata 12 and 13 are Superseded and cited by no live row; their former rows 24, 25, 28 are tombstoned)
+    - presence file (29 records): all citations resolve, names match
+    - tombstones (./data/BFA/retracted_rows_ai.csv): 31, no duplicate Index, none reused by a live row
+    - Index accounting: 668 live + 31 tombstoned = 699 of 1..703; the 4 missing (5, 7, 8, 10) were quarantined to
+      ./data/BFA/cholera_presence_ai.csv in a pre-cycle repair (moved_from_row 6, 8, 9, 11) - accounted for, not a defect.
+    - claimed gross additions reconcile: A1 Idx 30-363 (334), A2 364-482 (119), A3 483-654 (172), A4 655-672 (18),
+      A5 673-703 (31), A6 none; 25 + 674 - 31 retracted = 668 live rows.
+    RESULT: Stage 1 PASS - no repair required.
+
+=== STAGE 2 | S2 EPIDEMIOLOGICAL PLAUSIBILITY: 47 CFR>15% ROWS (sCh>=25) ===
+Method: listed every row with sCh>=25 and deaths/sCh>15% (/tmp/BFA_a7/cfr_high_rows.txt); for each, read processing_notes for
+the source cell, period and context.
+Years: 1970-71 33 rows (WHSR four-weekly national 95-103; WER cercle weekly 130-197; Chardeau thesis 674-676; Felix 702-703;
+       PMC/Kyelem annual 1), 1973 10 (WER cercle 207-216, 283; national 90; US cable 666; Saliou village 670; PMC annual 2),
+       1974 1 (315), 1984-85 1 (61), 1991 1 (663), 1996 1 (76).
+Confidence: all 47 <= 0.7 (34 at 0.7, 2 at 0.65, 5 at 0.6, 5 at 0.5, 1 at 0.3). None above the cap.
+Shared denominator/period: in every row deaths and cases come from the same table cell or the same sentence for the same
+       period (WER IHR 'C D' columns per cercle-week; WHSR four-week 'C/D' pairs; WER notifications 'cases deaths' per period;
+       cable/radio/thesis cumulatives stating both). No row pairs a cumulative death count with a period case count.
+Context documented in every note: El Tor first wave 1970-74 / early-pandemic Sahel lethality (WHSR/WER rows); pre-ORS,
+       drought-displaced nomads (thesis 674-676, Felix 702-703, cable 666 'refugees'); late-presenting community deaths
+       (Idx 61, 1984-85 tail, 31/9); Sahelian deaths outside facilities (Idx 76, 1996, 158/34); Idx 663 deaths flagged
+       doubtful by Agent 5 C6 (37 radio-relayed deaths exceed WHO 17 to 31 Jul and MoH 33 for all of 1991) - kept at 0.3,
+       sub-national row (not read by the national weekly builder).
+DECISION: all 47 are genuine historical figures, documented and capped. No change, no relabelling; the 47 WARNs stay as
+       review flags (the validator emits CFR_high_flagged_for_review for any capped row; that is correct behaviour).
+Other bounds: no deaths>sCh, no cCh>sCh, no multi-year count aggregates (>760 d), no reporting_date before TR, no future
+       dates (validator); 100% CFRs occur only on 1-3 case rows (below the 25-case denominator rule).
+
+=== STAGE 3 | ITEMS LEFT BY AGENTS 5 AND 6 ===
+(a) same_period_conflict Idx 684 (WHO WER 80(39) 284/3) vs Idx 692 (MoH/DLM final weekly 164), 2005-09-05..09-11
+    Check: downloaded WER 80(39), 30 Sep 2005, p.340 from IRIS (item 207fc987-9513-4d85-ab84-fa4675f415b1, bitstream
+    WER8039_340-340bis.PDF -> /tmp/BFA_a7/docs/iris/WER8039_340.pdf). Text: 'Notifications of diseases received from 23 to 29
+    September 2005 ... Burkina Faso 05-11.IX ... 284 3'. 5-11 Sep 2005 = Monday-Sunday = ISO week 36 (ISO week 1 of 2005 began
+    Mon 3 Jan; +35 weeks = Mon 5 Sep). The MoH epi weeks are ISO weeks (week 32 contains the 12 Aug onset; weeks 32-35 = 8 Aug-4 Sep
+    sum 617 vs WHO DON 615 for exactly that window). => the WER notification period EQUALS the same ISO week; no TL/TR correction.
+    DECISION: final supersedes preliminary -> Idx 684 retracted, its values preserved on Idx 692 and in the tombstone file.
+    Commands:
+      python py/revise_observation.py BFA --index 692 --agent 7 --append-note "AGENT 7 AUDIT item (a): WER 80(39) ... 284 cases /
+             3 deaths preserved here ..." --reason "Agent 7 item (a): 2005 week-36 same_period_conflict resolved, final > preliminary"
+      python py/revise_observation.py BFA --index 684 --delete --reason "Agent 7 item (a): same location and ISO week as Idx 692 ..."
+      python py/revise_observation.py BFA --index 14 --agent 7 --append-note "AGENT 7 AUDIT: Idx 684 ... retracted ..." --reason
+             "Agent 7 item (a): cross-reference after retraction of Idx 684"
+    Effect: same_period_conflict WARN removed; metadata 213 now unused (kept Active: the citation was correct, the row was
+    superseded by a better source, not mis-attributed). No weekly-series effect today (JHU 2005 annual outranks AI rows per week),
+    but the larger preliminary count can no longer win if the builder's priority changes.
+
+(d) Row 495 (national zero 2019-01-01..2020-12-31, metadata 178, conf 0.6) - SPLIT
+    Why: 2019 and 2020 are different surveillance regimes and one row carries one status token. By Agent 6's own stated rule
+    (disrupted = min(TLOH, RMA) < 70%): 2019 TLOH 58.0% / RMA 62.6% (SYNTSHA statistical-report boycott 7 Jun-27 Nov 2019, the
+    whole rainy season) = disrupted; 2020 TLOH 97.8-99.9% / RMA 95.9% = operational nationally (Sahel disrupted).
+    Source re-verified: downloaded https://www.insd.bf/sites/default/files/2023-12/Annuaire_statistique_national_2022.pdf
+    (/tmp/BFA_a7/docs/insd_2022.pdf), p.134 Tableau 2.7.07: 'Cas de choléra 2017 0, 2018 0, 2019 0, 2020 0, 2021 2, 2022 4;
+    Décès de choléra 0 ... 0'; 'Source : DGESS/Ministère de la santé, Annuaire statistique NB: Non compris les données de
+    CHU-YO'. Same table: meningitis 1 865 (2019) and 1 845 (2020) cases notified. (Agent 6's note gives 2 514 meningitis cases for
+    2020; in this table 2 514 is the 2018 value - recorded here, Agent 6's annotation not edited.)
+    Commands (added first, then retracted, so a failed add could not leave the period uncovered):
+      python py/add_observation.py add-zero BFA --source-index 178 --location AFR::BFA --tl 2019-01-01 --tr 2019-12-31
+             --evidence Documented_Absence --surveillance disrupted --confidence 0.5 --reporting-date 2023-12-01 --quote "Tableau
+             2.7.07 ..." --note "National total ... WER 95(37) zero report ... SYNTSHA boycott ..."        -> ADDED Idx 704
+      python py/add_observation.py add-zero BFA --source-index 178 --location AFR::BFA --tl 2020-01-01 --tr 2020-12-31
+             --evidence Documented_Absence --surveillance operational --confidence 0.7 --reporting-date 2023-12-01 --quote
+             "Tableau 2.7.07 ..." --note "National total ... region rows 601-611 provincial subsets ... no WHO report ..."
+                                                                                                             -> ADDED Idx 705
+      python py/revise_observation.py BFA --index 495 --delete --reason "Agent 7 item (d): ... split into Idx 704 / Idx 705 ..."
+    Confidence: 2019 0.5 (disrupted, Agent 6 rule), 2020 0.7 (operational, but no WHO report and 2 censored records - Agent 3's
+    original 0.7). Both Documented_Absence (explicit national 0 in a Level-1 table; WHO zero report for 2019).
+    Validator after (a)+(d): ERROR 0 / WARN 48 (47 CFR_high, 1 period_single_day); INFO 144 (+metadata_unused 213; the
+    2019-2020 overlap group replaced by a documented 2020 group).
+
+(e) Rows 484-486 (1992-94, MoH 'Annuaire serie longue' Tableau 56, metadata 186): deaths printed 0, lethality printed 'NA'
+    Check: downloaded the metadata-186 Wayback PDF (/tmp/BFA_a7/docs/dgiss_serie_longue.pdf, 73 pp.), p.44 Tableau n°56 read:
+      1984 1533 88 5,70 | 1985 1308 179 13,70 | 1986-1989 0 0 NA | 1990 7 0 0,00 | 1991 294 33 11,20 | 1992 33 0 NA |
+      1993 36 0 NA | 1994 8 0 NA | 1995 540 36 6,70 | 1996 188 40 21,30 | 1997 0 0 NA | 1998 1038 52 5,00 | 1999 24 3 12,50 |
+      2000 0 0 ND | 2001 544 9 1,70 | 2002-2004 0 0 NA | 2005 1050 16 1,50 | 2006-2010 0 0 NA | Total 6603 456 6,90 (sums verified).
+    Reading: the table computes lethality for EVERY year with cases and a death figure (1990: 7 cases, 0 deaths -> '0,00');
+      'NA' otherwise appears only where cases are 0 (division undefined). 1992-1994 are the only years with cases > 0 and 'NA',
+      so their death counts were not available. The table also prints 0 for missing data (2000 '0 0 ND' vs WHO 617 cases).
+    DECISION: deaths CLEARED (unknown) for 1992, 1993, 1994; 1990 deaths 0 KEPT (computed 0,00). These are no-JHU years whose
+      national AI rows feed the weekly series directly, so a printed-but-unknown 0 would assert 0 deaths / 0% CFR.
+    Tool constraint: py/revise_observation.py cannot blank a field (--deaths "" means 'no change'; a whitespace value would leave
+      a stale CFR 0.00), so the rows were re-added without deaths and the originals retracted (tombstones keep the printed 0).
+    Commands:
+      python py/add_observation.py add BFA --source-index 186 --location AFR::BFA --tl 1992-01-01 --tr 1992-12-31 --sch 33
+             --reporting-date 2011-02-23 --confidence 0.6 --quote "Tableau n°56 ... 1992 33 0 NA ... Total 6603 456 6,90 Source :
+             DLM/MS" --note "DEATHS NOT ENTERED (Agent 7 audit item (e)) ... Replaces Idx 484 ..."           -> ADDED Idx 706
+      (same for 1993 sCh 36 -> ADDED Idx 707; 1994 sCh 8 -> ADDED Idx 708; notes carry forward the WHO-conflict and regional
+       context of the originals)
+      python py/revise_observation.py BFA --index 484|485|486 --delete --reason "Agent 7 item (e): ... replaced by Idx 706|707|708 ..."
+      python py/revise_observation.py BFA --index 483 --agent 7 --append-note "AGENT 7 AUDIT item (e): deaths 0 kept for 1990 ..."
+    (A first attempt to run the three deletes in a zsh loop passed all three arguments as one string and was REJECTED by the tool
+     with no change; re-run with explicit commands.)
+    Validator after (e): ERROR 0 / WARN 48; rows 668.
+
