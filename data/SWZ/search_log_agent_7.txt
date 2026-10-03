@@ -154,3 +154,72 @@ TASK 4d - 2026 tail: no new source (see tail check above) -> no row; 2026-09-21.
 Validator after fixes: EXIT 0 | 165 rows | 141 sources | ERROR 0 | WARN 0 | INFO 60 (34 unused metadata, 26 documented overlaps)
 In-memory coverage after fixes (analyse(), no shared writes): 99.1% (676/682), months_ai_only 361, 1 gap 1997-08-01..12-31 (153 d)
 
+=== AUDIT STEP 3b | QC EXTENDED TO ALL 160 STARTING ROWS + FIX 4 (row 1) | 2026-10-02 16:56:11 PDT ===
+Additional rows verified against source text (beyond the first 100):
+  1/189, 2, 6 (pre-cycle rows); 34 (EID: 18 Ogawa-only + 8 mixed of 51 = 26); 36 (IFRC: '91 people were treated with four
+  confirmed deaths'); 48 (PANA: '200 are confirmed cases of cholera in the Lubombo region'); 115 (WER 1982 p.136 '7-14.IV 9 0');
+  116, 142, 143 (AFRO 25 Apr 2023: Manzini + Shiselweni cases, 'cumulative cases are two'); 120/121, 129 (WER zero-reporting tables
+  list Eswatini for 2024, 2022); 130 (WER 2024 Table 1 'Eswatini 2 1 0'); 122/156, 123, 131, 132, 150 (OEW 2019-2020: no Eswatini
+  cholera event); 135 (AFRO 12 Apr 2023 '1 0 0 Mar 2023'); 177 (AFRO 31 Jul 2023 'no recent report of new cases from Eswatini
+  (last reported April 18)'); 139-141 (MoH FY2024/25 Table 3.1: only Hhohho); 35, 159 (OCHA RU7/RU9 'No cases of cholera have been
+  confirmed') and 75 (OCHA RU10 'On 26 May 2009, two confirmed cholera cases were reported in the Lubombo region') - these three
+  from Agent 1/2 cached PDFs because ReliefWeb began returning 403 to this host; 38/56, 39/57, 40, 41, 42, 43, 45, 54, 55, 58, 69, 70,
+  71-73, 74 (JPRS djvu text, archive.org); 12, 13, 25, 26, 27 (WER 1971/72/88/89/90 tables: no Swaziland); 125 (Southern Block Jan
+  2001 'seriously affected ... since the mid December'); 138 (EID: 1992 epidemic began as E. coli O157 Oct-Nov); 128 (CDER Oct 2004
+  1,075/16 unchanged); 133, 147, 153, 154 (WER 2004, 2002, 2020, 2021 annual reports); 157 (WHO GHO 2007 = 0); 175 (AFRO 2002 table
+  'Week 01-17' 134, weeks 18-25 '-').
+RESULT: 160/160 starting rows checked (partial checks: 37 image page; 157 GHO part only; 35/75/159 from cache).
+FIX 4 - AI 1 (2023-03-27..04-18, 2 sCh/2 cCh/0 deaths) [Stage 2 FAIL]: cited metadata 1 (AFRO bulletin no.6, 5 Apr 2023: cumulative 1)
+  but its composite quote's second sentence and the 2-case count come from WHO multi-country sitrep no.2 (metadata 2; table 'Eswatini
+  2 0 ... 27/3/2023 18/4/2023'). Retracted (tombstone) and re-added as AI 189 citing metadata 88 (AFRO 25 Apr 2023: 'As of 18 April
+  2023, cumulative cases are two with no death'; both culture-confirmed O1 Ogawa) - identical values, conf 1.0. Metadata 88 Description
+  annotated (its Date_Range understates coverage; no Date_Range edit tool).
+Trivial quote variances noted, not edited: AI 6 omits 'other' ('Eleven other countries ...'); AI 33 'Zimbabwe (38; 2)' vs OCR '36'.
+Period-vs-source Date_Range scan: 8 rows outside the cited source's Date_Range - all edge/inference cases (32, 43, 125, 138, 142, 143,
+  175, 189), justified in the report; no further rows of the AI 1/5/7 type (period wholly outside what the source documents).
+STAGE TOTALS (n=160): S1 160/160 | S2 155/160 (5 FAIL: 1, 5, 7, 148, 149 - all fixed) | S3 159/160 (171 flagged, kept 0.2) | S4 160/160
+Validator after FIX 4: EXIT 0 | 165 rows | 141 sources | ERROR 0 | WARN 0 | INFO 61
+
+=== AUDIT STEP 5 | BASELINE (JHU/WHO, read-only) ISSUES THAT DRIVE THE WEEKLY SERIES | 2026-10-02 16:56:52 PDT ===
+Builder rule (py/build_weekly_timeseries.py read): national rows only; per ISO week WHO > JHU > AI; non-weekly positive rows are
+  Fourier-smeared by the regional template (regional_Southern Africa_k6). Effects measured on ./data/SWZ/cholera_weekly_SWZ.csv
+  (built 14:25) and re-checked in memory (b.process_country, no writes) - JHU/WHO weeks unchanged by AI edits.
+  1978 JHU 2: absent from WER 1979;54(17) 1978 table; 'first time' 1981 (WER 1982); first confirmed case Dec 1980 -> 2.0 smeared cases
+  1982 JHU 538/13: WHO's own '538*' = incomplete (WER 1983;58(27)); weekly IHR notifications 590/25 -> series short by 52 cases/12 deaths
+  1998 JHU 7/0: all 7 notified by 14 May (AI 68); 20 Jun 1998 lab-confirmed isolate (AI 180) in no count -> 7 smeared over the year
+  1999 JHU 7/0: stale copy of 1998 (Southern Block Sep/Oct/Nov 1999 tables) -> 7 unevidenced cases smeared over 1999
+  2000 JHU 141/16: all in Dec 2000 (AFRO tables; onset mid-Dec) -> template puts 81.1 (58%) in Jan-Apr 2000, only 13.5 from 27 Nov
+  2001 JHU 5,612/107: 2.05x AFRO tally 2,742/51 (AI 174) -> series carries 5,410 cases in 2001 ISO weeks
+  2003 JHU 32/13 (CFR 40.6%): AFRO weekly curve 61 (wk3-15); IFRC Kaliba 91/4 -> 35.8 cases/12.6 deaths smeared over 2003
+  2005 JHU 0: 64 notified under IHR Jan-Oct 2005 (AI 59) -> 52 JHU inferred_zero weeks; 64 cases missing
+  2023 WHO wk30 = 1 (24-30 Jul): AFRO 31 Jul 'last reported April 18', WER 2023 = 2 (AI 177); plus JHU annual 2 smeared over 34
+       weeks -> 2023 series total 4.7 vs true 2
+  2015-16, 2019-21 JHU 'phantom' zeros (0.7): no Swazi zero report exists for these years -> treated as inferred_zero (appropriate)
+Structural: in every JHU year (1978, 1981-82, 1992, 1996, 1998-2009, 2015-2024) the AI layer's sub-annual national detail (WER
+  weekly notifications 1981-82, AFRO weekly 2001, weekly curve 2003, monthly 2004) cannot reach the series.
+
+=== AUDIT STEP 6 | COVERAGE (in memory, analyse(); no shared reference writes) | 2026-10-02 16:56:52 PDT ===
+  JHU+WHO only : 46.2% (315/682), 9 gap periods [reference file 21 Sep: 46.3%, 315/681]
+  Cycle start  : 58.4% (398/682), 7 gap periods [orchestrator record]
+  Now          : 99.1% (676/682), 1 gap 1997-08-01..1997-12-31 (153 d, deliberate) ; months_ai_only 361 ; months with positive 294 (base 195)
+  AI-only months by best national AI evidence: positive 87 | Documented zero 73 | Inferred zero only 201 (56%)
+  Weekly series in memory: 2,960 weeks; AI 1,568 (53%: inferred_zero 873, documented_zero 316, fourier 378, observed 1); JHU 1,353;
+    WHO 18; assumed_zero 21 (Aug-Dec 1997 + 2 stray weeks). Cases: JHU 10,112.7 | AI 342.7 (3.3%) | WHO 3.0
+  Latest observation 2026-09-20 ; latest positive 2024-04-30.
+
+  CORRECTION to the line above: the 21 assumed_zero weeks are 1997-W34..1998-W1 (20 weeks = the deliberate Aug-Dec 1997 gap) and
+  1980-W49 (1-7 Dec 1980) - the week that CONTAINS the first confirmed case (3-4 Dec 1980). Builder artefact: AI 37 starts on a
+  Thursday and the Fourier step only fills weeks whose Monday lies inside the row, so its 2 cases go to W50-W53 and W49 is
+  zero-filled. Reported as a builder note; no data change warranted.
+
+=== AUDIT STEP 7 | FINALISATION | 2026-10-02 17:02:33 PDT ===
+Final validator: python py/validate_quality.py SWZ -> EXIT 0 | 165 rows | 141 sources | ERROR 0 | WARN 0 | INFO 61
+write_agent_state('SWZ', agent_num=7, batches_completed=0, batch_yields=[], rows_added=5, sources_discovered=6,
+  stopping_reason='audit complete', gaps_filled=[3], gaps_validated_absent=[6], gaps_remaining=[4]) -> ./data/SWZ/workflow_state.json
+  (agents 1-7 present; orchestrator section preserved)
+New ./data/SWZ/search_report.txt written (executive summary + metrics appendix A-L).
+Not run (per instructions, shared files): py/analyze_effective_gaps.py, update_dashboard.sh, py/build_weekly_timeseries.py, git.
+Final state: rows 160 -> 165 (+8 added: 182-189; -3 retracted: 1, 5, 7) | sources 135 -> 141 (136-141) | tombstones 21 -> 24
+  coverage 99.1% (676/682) unchanged by the audit | 1 deliberate gap (1997-08-01..12-31) | tail uncovered 2026-09-21..10-02
+End: 2026-10-02 17:02:33 PDT
+Agent 7 Status: COMPLETED

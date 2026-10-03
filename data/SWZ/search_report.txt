@@ -1,134 +1,302 @@
-=== ESWATINI (SWZ) CHOLERA DATA MINING SEARCH REPORT ===
-Generated: 2026-05-15 07:30:00
-Workflow: Complete 7-Agent Systematic Search Protocol
+================================================================================================================
+ESWATINI (SWZ) - AI CHOLERA DATA ENHANCEMENT - SEARCH REPORT
+Cycle 2026-10-01 (full 7-agent re-run) | Quality audit: Agent 7 (cholera-quality-auditor), 2026-10-02
+Data: ./data/SWZ/cholera_data_ai.csv (165 rows) | ./data/SWZ/metadata_ai.csv (141 sources)
+      ./data/SWZ/cholera_presence_ai.csv (12 records) | ./data/SWZ/retracted_rows_ai.csv (24 tombstones)
+Audit log: ./data/SWZ/search_log_agent_7.txt | scratch evidence: /tmp/SWZ_a7/ (outside the repo)
+================================================================================================================
 
-EXECUTIVE SUMMARY:
-Complete 7-agent systematic search protocol executed for Eswatini (Swaziland) cholera surveillance data enhancement. The workflow discovered 8 data observations (2 outbreak records and 6 zero-transmission periods) from 8 high-quality sources, all documenting Eswatini as a historically low-burden cholera environment. The most significant discovery was the 2023 cross-border outbreak (2 confirmed cases, 0 deaths), well-documented by WHO and Africa CDC. A key peer-reviewed WHO study (Cambridge Core, 2018) was discovered that explicitly confirms Eswatini had no infectious disease outbreaks in 2018, providing high-confidence zero-transmission validation.
+EXECUTIVE SUMMARY
+-----------------
+1. Bottom line
+ * Coverage rose from 58.4% (398/682 months) at the start of this cycle to 99.1% (676/682) now. JHU+WHO alone
+   give 46.2%. Effective gap periods went from 7 to 1, and the remaining one (1997-08-01..1997-12-31) was left open
+   on purpose (section 3).
+ * Treat the 99.1% with care. Of the 361 months where the AI layer is the only source, 201 (56%) rest only on an
+   Inferred zero: Swaziland simply does not appear on a WHO list. Only 87 (24%) carry a positive count and 73 (20%) a
+   documented zero. Agent 4 showed that WHO-list zeros missed real hospital-diagnosed cholera in 1984-86 and 1994-95.
+ * In the weekly series (py/build_weekly_timeseries.py, recomputed in memory) the AI layer supplies 53% of the weeks
+   (1,568 of 2,960) but only 3.3% of the cases (343 of about 10,458). In every year that has a JHU annual total, the
+   builder ranks JHU above AI, so the AI layer's weekly and monthly detail never reaches the series. Several of those
+   JHU totals are demonstrably wrong (section 6).
+ * Validator: ERROR 0 / WARN 0 at both start and end of the audit. However, the validator does not check whether a
+   cited source actually supports its row. Checking all 160 starting rows against source text, quote by quote, found
+   5 defects that had passed every earlier gate. All 5 are fixed.
+ * 2026 tail: covered to 2026-09-20. 2026-09-21..2026-10-02 is uncovered because no source has been published yet,
+   so no zero was added.
 
-SEARCH METHODOLOGY:
-Agent 1 (Baseline): 80 queries, 4 batches, 30% yield (Batch 1), 0% (Batches 2-4), 6 initial observations
-Agent 2 (Geographic): 40 queries, 2 batches, 0% yield - national level only confirmed
-Agent 3 (Zero-Transmission): 40 queries, 2 batches, 15% yield (Batch 1) - 3 additional rows added
-Agent 4 (Obscure Sources): 40 queries, 2 batches, 0% yield - historical archives inaccessible
-Agent 5 (Cross-Reference): 40 queries, 2 batches, 0% yield - all existing data cross-validated
-Agent 6 (Gap Context): 40 queries, 2 batches, 0% yield - gaps characterized
-Agent 7 (Quality Audit): Comprehensive validation, 1 invalid row removed, files finalized
+2. What was found
+ * Sources: 141, up from 10 at cycle start. By reliability: Level 1 113 | Level 2 8 | Level 3 19 | Level 4 1.
+   106 are cited by live rows. The other 35 are kept as corroboration, presence-only (metadata 133), or for rows
+   whose evidence was later superseded; metadata 96 is marked Superseded (duplicate).
+ * Productive source families:
+     - WHO WER annual cholera tables 1970-2025, and WHO zero-reporting lists for 2018, 2022, 2024 and 2025.
+     - WER weekly IHR notifications 1981-82, 1998 and 2001-02, recovered through Wayback scans and OCR.
+     - WHO AFRO IDS, CDER and Southern Block bulletins 1999-2004.
+     - Swaziland Central Statistical Office (CSO) hospital discharge tables: 1975-77, 1983-86 and 1993-95.
+     - MoH documents: 1973 annual report; HMIS 2010-11; IDSR 2019-20; annual report 2024/25.
+     - JPRS translations of the Times of Swaziland, 1980-93.
+     - Budget Speech 2001.
+     - A clinical V. cholerae O1 isolate dated 20 Jun 1998 (Ceccarelli et al. 2006).
+ * Observations: 165 rows, made up of 78 case rows (count > 0) and 87 zero rows.
+     - National: 119 rows (55 case, 64 zero).
+     - Sub-national: 46 rows (23 case, 23 zero). By region: Hhohho 12 (1 of them Mbabane), Lubombo 15,
+       Manzini 9 (1 of them Manzini North), Shiselweni 10.
+     - Zero rows by evidence: 43 Documented_Absence, 44 Inferred_Absence (national: 25 Documented, 39 Inferred).
+     - 14 rows carry cCh only (sCh blank). The weekly builder ignores these, including the 1998 isolate.
+ * Row history: 9 -> 160 through Agents 1-6 (172 indices created, 21 retracted) -> 165 after the audit
+   (8 added, 3 retracted).
 
-QUANTITATIVE OUTCOMES:
-Total Searches: 280+ systematic queries across 7 specialized agents
-Total Data Observations: 8 (2 active transmission + 6 zero-transmission)
-Total Sources: 8 (87.5% Level 1 reliability - WHO and Africa CDC)
-Key Gap Periods Addressed: 2010-2014, 2015-mid2017, 2018, 2019-2022, 2024, 2025
+3. Coverage, gaps closed, gaps still open
+ * Baseline gaps (JHU+WHO only), 9 in total: 8 closed, 1 partial (1997).
+ * Cycle-start effective gaps, 7 in total: 6 closed, 1 partial (1997). Three of the six closed gaps gained positive
+   counts that WHO never received: 1979-80, 1983-91 and 1993-95.
+ * Open gap (a): 1997-08-13..1997-12-31, deliberate (Agent 6).
+     - Maputo's explosive epidemic began on 13 Aug 1997. The only basis for a zero was WHO non-notification, and
+       that same channel missed a laboratory-confirmed Swazi case in June 1998.
+     - The CSO 1997 hospital table has no cholera row, which is weak evidence that there were no in-patients.
+     - My assessment: a large outbreak is unlikely, but sporadic imported cases cannot be excluded. If evidence
+       exists, it is in print only (Swazi press Aug-Dec 1997, MoH border-post records), not online.
+     - CAUTION FOR MODELLERS: the builder fills these 20 weeks as assumed_zero at weight 0.5, numerically identical
+       to the zero they replaced. Filter on assumed_zero if these weeks should count as missing.
+ * Open gap (b): 2026-09-21..2026-10-02 (12 days). Sources will exist once Africa CDC publishes its epi-week-39
+   report, ECDC its October monthly update, or WHO AFRO its weekly bulletin for week 37 onward.
+ * Weak spots inside covered years (the month rule does not count these as gaps):
+     - 1978: JHU 2 cases, unexplained.
+     - 1979: 10 hospital-coded cases, weight 0.2.
+     - 1987-91: WHO silence only; no hospital tables were ever published for these years.
+     - 1993: the 290 admissions cannot be placed within the year.
+     - 1998: status after the June isolate is unknown.
+     - 1999: JHU's 7 is a stale copy of 1998.
+     - 2001 Aug-Dec: JHU 5,612 vs WHO AFRO 2,742.
+     - Undated or unplaced small counts: 2005 Nov-Dec, 2006 (18), 2008 (1), 2009 (17 of 19).
 
-KEY DATA DISCOVERIES:
-1. 2023 Cholera Outbreak (March 27 - April 18): 2 confirmed cases, 0 deaths, 0% CFR
-   - Cross-border transmission from Mozambique traveler (arrived March 27)
-   - Outbreak declared April 4; last case April 18 (22-day outbreak)
-   - Confirmed by WHO AFRO Bulletin, WHO Multi-country Sitrep 2, Africa CDC July 2023
-   - Contained through existing IDSR/IDNS 977 surveillance infrastructure
+4. Validator status, and what Agent 7 fixed or justified
+ * Validator: ERROR 0 / WARN 0 throughout. INFO 59 at start, 61 at end (35 unused metadata, 26 documented
+   national/sub-national overlaps). Repair dry run (py/repair_data_integrity.py) found 0 changes; no
+   attribution_review.csv was produced.
+ * 4-stage QC on ALL 160 starting rows (Appendix A):
+     S1 authentication 160/160 | S2 quote supports value 155/160 | S3 plausibility 159/160 | S4 duplication 160/160
+ * Fixed (all through py/add_observation.py and py/revise_observation.py; tombstones kept; no coverage or
+   weekly-series value changed):
+   (1) AI 5 (2011-14) and AI 7 (Jul 2015-Jun 2017) cited an 18 Apr 2023 WHO AFRO bulletin that says nothing about
+       any year before 2023. I registered the six WHO annual reports that hold the actual evidence (metadata
+       136-141), added seven per-year rows (AI 182-188) with identical values, label and weight, and retracted
+       AI 5 and AI 7.
+   (2) AI 1 (2023, 2 confirmed cases) cited the 5 Apr 2023 bulletin, which records 1 case. Re-cited to the
+       25 Apr 2023 bulletin ("As of 18 April 2023, cumulative cases are two with no death") as AI 189.
+   (3) AI 148 and 149 (2011 Hhohho and Shiselweni zeros) relabelled Documented -> Inferred. Each zero is derived by
+       complement, and 4 IDNS suspected-cholera notifications in 2011 have no stated region.
+   (4) 28 dead metadata URLs: each archived copy was downloaded and its content checked before being recorded.
+       Five of the snapshots Agent 4 proposed did not resolve and were replaced (Appendix K).
+   (5) Metadata 4, 7, 9 and 10: descriptions corrected where they overstated what the source documents.
+ * Justified, not changed:
+     - AI 171 (1979, 10 hospital cases, weight 0.2): Agent 5's adjudication D upheld.
+     - AI 161 is mixed-source: cases from metadata 117, the death from metadata 118 (documented in its notes).
+     - 8 rows whose periods run slightly past the cited source's Date_Range: all edge or onset-inference cases.
+     - Trivial quote variances in AI 6 and AI 33.
+     - The superseded presence record AFR::SWZ::Hhohho 2003-04-26..06-15 is still in the presence file because no
+       presence-edit tool exists. The corrected record (..2003-05-18) sits beside it. Neither the builder nor the
+       coverage analysis reads the presence file.
+     - Metadata 11 (WER 1994 "Cholera in 1993") is now uncited but kept Active. Its statement is accurate as a
+       record of WHO non-notification; only the absence inference drawn from it was overturned.
 
-2. 2017 Suspected Cases (Q3): 4 suspected cases, unconfirmed, 0 deaths
-   - Source: UNICEF Swaziland Humanitarian Situation Report #4 September 2017
-   - MoH activated Epidemic Task Force for monitoring
-   - No formal outbreak declared by WHO; drought context (Shiselweni/Lubombo)
-   - Confidence weight 0.6 (Level 2 source, unconfirmed suspected cases)
+5. Which agents were productive
+ * All six ran at least 3 batches. None reported a yield above 100%. Every gate's row delta matched the agent's
+   claim (Appendix G).
+ * Most productive by rows: Agent 2 (69 live rows) and Agent 3 (39). Agent 1's WER annual-table sweep and JPRS
+   sweep did most of the coverage work.
+ * Highest value per row: Agent 4. Its CSO hospital counts overturned 6 WHO-silence zeros (1984-86 and
+   1994-95, plus 1979 at weight 0.2), and it found the Budget Speech 2001.
+ * Low row yield: Agent 5 (6 new rows in 100 queries) and Agent 6 (2 rows in 100 queries). This fits their
+   adjudication and classification roles, and Agent 6's one isolate falsified a zero row.
+ * Yield-counting caveats:
+     - Agent 4 counted Inferred->Documented replacements as yield successes. Counted strictly, rule (a) would have
+       stopped Agent 4 after batch 4, before it found the Budget Speech.
+     - Agent 3 counted 8 replacement or re-sourcing successes, and Agent 6 counted 1. Neither changed when those
+       agents stopped.
+ * I do not judge any agent to have under-performed against the protocol. The binding limit was structural:
+   print-only sources (CSO bulletins 1987-2009, MoH reports 1974-95) are out of reach of web search.
 
-3. 2018 Documented Absence (Level 1 confirmed):
-   - Cambridge Core peer-reviewed WHO study: Eswatini among 11 countries with NO outbreaks in 2018
-   - Media monitoring also confirmed: "no signals of potential outbreaks"
-   - Confidence weight 0.9 (Level 1 peer-reviewed WHO analysis)
+6. Baseline (JHU/WHO, read-only) issues that drive the weekly series - for the data maintainers
+   Effect = what py/build_weekly_timeseries.py writes into these weeks today.
+     2005  JHU 0 cases, yet 64 cases were notified under IHR for Jan-Oct (AI 59) -> 52 zero weeks; 64 cases missing
+     2023  WHO dashboard shows 1 case in week 30 (24-30 Jul); AFRO bulletins: last case 18 Apr; WER total = 2
+           (AI 177). With JHU's annual 2 also spread over the year, the series carries 4.7 cases vs the true 2.
+     1999  JHU 7 is a stale copy of the 1998 figure -> 7 cases spread over 1999 without evidence
+     2001  JHU 5,612/107 is about 2.05x the WHO AFRO tally of 2,742/51 (AI 174) -> 5,410 cases in 2001 weeks
+     2000  JHU 141/16 all fell in December 2000 (AI 173) -> the template puts 81 cases (58%) in Jan-Apr 2000
+     1982  JHU 538/13 is marked "incomplete" by WHO itself; weekly notifications sum to 590/25 -> 52 cases and
+           12 deaths short
+     1998  JHU 7 omits the confirmed isolate of 20 Jun 1998 (AI 180); all 7 notified cases fell by 14 May
+     1978  JHU 2 cases: absent from WHO's own 1978 table, and the first confirmed case was in Dec 1980. Unexplained.
+     2003  JHU 32/13 implies a 40.6% CFR; the AFRO weekly curve gives 61 cases and IFRC reports 91/4 (Jan 2003)
+   Recommendation: correct or annotate the 2005, 2023 week-30 and 1999 values first. Then let AI national
+   sub-annual rows set the within-year shape of JHU annual totals instead of a regional template.
 
-4. Multiple Inferred Absence Periods Documented:
-   - 2010-2014: JHU no cases + 2023 outbreak described as "new" (0.7 weight)
-   - 2015-mid2017: JHU phantom/zero entries + academic exclusions (0.7 weight)
-   - 2019-2022: JHU zero entries + COVID-era surveillance + "new" 2023 outbreak (0.8 weight)
-   - 2024: WHO bulletins explicitly confirm "no new cases since April 18" (0.9 weight)
-   - 2025: Multiple WHO/Africa CDC bulletins - Eswatini not listed as affected (0.8 weight)
+7. What a future run should try
+   1. CSO Annual Statistical Bulletin hospital tables for 1987-91 and 1996-2009, from physical or HathiTrust
+      copies. HathiTrust is behind Cloudflare from this host, so it needs a browser session or a library partner.
+   2. Swaziland MoH Annual Reports 1974-95 (the Wellcome digitised series ends in 1973): Swaziland National
+      Archives, the WHO country office, UCT/Wits libraries. Also "A History of Disease and Medicine in Swaziland,
+      c.1870-1993" (1995; 9 pages match cholera, no preview).
+   3. Ceccarelli-style isolate collections: NICD (South Africa) strain archives, Sapienza and Sassari strain
+      collections, seventh-pandemic genome metadata, and ENA/SRA biosamples by country of isolation.
+   4. Africa CDC weekly reports from epi week 39, ECDC's October update, WHO AFRO bulletins from week 37
+      -> extend the 2026 tail past 20 Sep.
+   5. MoH HMIS/IDSR statistics for 2012-18 and 2021-23: only 2010-11 and three 2020 bulletins are archived online.
+   6. WHO HQ country files for 2001 (5,612 vs 2,742) and 2003 (32/13 vs 61 vs 91/4).
+   7. Times of Swaziland / Swazi Observer microfilm for Aug-Dec 1997 and 1998-99. JPRS/FBIS coverage of
+      Swaziland is thin for 1997-99.
+   8. Pipeline changes:
+        - Count cCh-only rows as positive weeks.
+        - Fix the Monday-in-span rule that zero-fills 1-7 Dec 1980, the week of the first confirmed case.
+        - Add edit verbs for metadata URL/Date_Range and for presence records.
 
-CRITICAL GAP ANALYSIS (Baseline Coverage: 46.5%):
-Priority gaps addressed:
-- 2010-2014 (60 months missing): Documented as inferred absence
-- 2015-2017 (partial, 30 months): Documented as inferred absence
-- 2019-2022 (48 months missing): Documented as inferred absence
-- 2024-2025 (20 months): Documented (absence confirmed and inferred)
+================================================================================================================
+APPENDIX - METRICS
+================================================================================================================
+A. VALIDATION PASS RATES (4-stage QC, all 160 rows present at audit start; checked against source text)
+   Stage                                 Pass     Fail/flag   Notes
+   S1 source authenticates               160/160  0           live, IRIS REST, Google Books snippets, archive.org, verified
+                                                              archived copies; 35/75/159 from agents' cached PDFs
+                                                              (ReliefWeb began returning 403 to this host)
+   S2 quote present, supports value      155/160  5 FAIL      1, 5, 7 mis-cited; 148, 149 over-labelled -> all fixed
+   S3 plausibility (CFR/duration/AR)     159/160  1 FLAG      171 (1979) kept at 0.2. CFR >15% only on denominators
+                                                              <= 3 (37/54, 38/56, 39/57, 55, 161) and 95 (3/20)
+   S4 duplication / overlap              160/160  0           26 national/sub-national groups documented; nested
+                                                              national cumulatives (1980-82, 2000-01) designated
+   Partial checks: 37 (image page, consistent); 157 (GHO 0 confirmed; UNICEF part from cache). Alternative readings
+   tested and rejected: CSO R1b "Cholera 1 361" (1984) and "179 0 82 0 261" (1985) are vaccine doses, not cases.
+   The 1985 and 1986 tables were confirmed to be distinct (typhoid 248 vs 318).
 
-Gaps not addressed (insufficient evidence):
-- 1970-1977 (96 months): Pre-first cholera period, no surveillance documentation
-- 1979-1980 (24 months): Historical gap with minimal data
-- 1983-1991 (108 months): Major historical gap; regional context suggests absence
-- 1993-1995 (36 months): Post-1992 gap; Zimbabwe context supports absence
-- 1997 (12 months): Single year gap
+B. SOURCE DISTRIBUTION (./data/SWZ/metadata_ai.csv, 141)
+   Level 1 113 | Level 2 8 | Level 3 19 | Level 4 1. Cited by live rows: 106 (L1 85, L2 6, L3 15). Uncited: 35.
+   Added this cycle: 131 (A1 40, A2 38, A3 28, A4 12, A5 6, A6 1, A7 6).
+   Families: WHO WER annual tables/notifications 52 | WHO AFRO bulletins/IDS/CDER/OEW 29 | press/JPRS/news 24 |
+   MoH/CSO/government 16 | UN/NGO (OCHA, UNICEF, IFRC, UNHCR) 7 | WHO other (DON, updates, GHO) 6 |
+   Africa CDC/ECDC/CDC 4 | academic 3.
+   URL status 2026-10-02:
+     - Live: 95, including 34 IRIS URLs, which serve a DSpace client-side shell but resolve via the REST API.
+     - Already Wayback URLs, all returned 200: 16.
+     - Dead, now annotated with a verified archived copy: 28.
+     - Bot-blocked only, open in a browser: 6 (cdc.gov) and 135 (OUP).
 
-QUALITY ASSESSMENT:
-Data Quality Score: 9.2/10 (excellent source reliability; some absence data inferred)
-Search Completeness: 9.5/10 (comprehensive 7-agent protocol with 280+ queries)
-Validation Rigor: 9.5/10 (all quality stages completed; cross-validation performed)
-Documentation Standard: 9.5/10 (dual-reference indexing, source quotes in notes)
-Source Reliability Distribution: 87.5% Level 1, 12.5% Level 2
-Cross-validation: 2023 outbreak confirmed by 4 independent sources
+C. OBSERVATIONS (./data/SWZ/cholera_data_ai.csv, 165)
+   Case rows 78 (cCh-only 12) | zero rows 87 (cCh-only 2) | national 119 | ADM1 44 | ADM2+ 2
+   Confidence: 0.9-1.0: 15 | 0.7-0.89: 68 | 0.5-0.69: 74 | 0.3-0.49: 7 | <0.3: 1
+   Live rows by creator: pre-cycle 2 | A1 26 | A2 69 | A3 39 | A4 12 | A5 7 | A6 2 | A7 8
+   Tombstones (24) by actor: A3 8 | A4 9 | A5 2 | A6 2 | A7 3
 
-EPIDEMIOLOGICAL SIGNIFICANCE:
-Eswatini represents a unique case in Southern African cholera epidemiology:
-- Historically among 3 lowest-burden countries (Namibia, Botswana, Swaziland)
-- Better WASH infrastructure than regional average (69% water, 58% sanitation)
-- Effective surveillance system demonstrated by 2023 rapid outbreak declaration and containment
-- Excluded from academic cholera studies due to "insufficient sub-yearly data" (low burden)
-- 2023 outbreak described as "new" - confirms preceding multi-year absence
+D. GEOGRAPHIC COVERAGE
+   National: every year 1970-2026 except 13 Aug-31 Dec 1997 and 21 Sep-2 Oct 2026.
+   Region       rows  case  zero  periods
+   Hhohho        12     7     5   1980-81 (incl. Mbabane), 2000-01, Jun 2020 and Apr 2024 (2 suspected each);
+                                  zeros 2011, 2019, 2020, 2023
+   Lubombo       15     9     6   1980-82 (Sithobela), 1992 (Ndzevane 26 cCh), 2000-01, 2009 (2 confirmed);
+                                  zeros 2019, 2020, 2023, 2024
+   Manzini        9     4     5   1981, 2000-01, 2023 index case (Manzini North); zeros 2019, 2020, 2024
+   Shiselweni    10     3     7   2000-01, 2003 (Kaliba 91/4), 2023 second case; zeros 2010, 2011, 2019, 2020, 2024
+   Sub-national data exist only for outbreak windows and a few MoH tables. Region-level series are not usable as
+   continuous time series.
 
-SOURCE VALIDATION SUMMARY:
-Source 1 (WHO AFRO Bulletin April 2023): Active URL, Level 1, primary outbreak documentation
-Source 2 (WHO Multi-country Sitrep 2): Active URL, Level 1, cross-validation of 2023 outbreak
-Source 3 (Africa CDC July 2023): Active URL, Level 1, confirms (2;0) cases/deaths 2023
-Source 4 (WHO AFRO Bulletin Feb 2024): Active URL, Level 1, documents 2024 absence
-Source 5 (UNICEF Swaziland HSR 2017): ReliefWeb (403 blocked, content verified via search), Level 2
-Source 6 (CDC MMWR 1981): Active URL, Level 1, historical validation reference
-Source 7 (WHO AFRO Bulletin April 2023 Context): Active URL, Level 1, outbreak context
-Source 8 (WHO Cambridge Core 2018): Active URL, Level 1, 2018 documented absence
+E. TEMPORAL COVERAGE BY DECADE (months; AI-only split by best national-or-regional AI evidence)
+   Decade  months  JHU+WHO  all layers  AI-only (positive / Documented / Inferred)   AI rows (by TL)
+   1970s    120      12       120        108 (12 / 48 / 48)                            9
+   1980s    120      24       120         96 (39 /  7 / 50)                           36
+   1990s    120      48       115         67 (36 /  0 / 31)                           11
+   2000s    120     120       120          0                                          46 (sub-annual, shadowed by JHU)
+   2010s    120      51       120         69 ( 0 / 12 / 57)                           24
+   2020s     82      60        81         21 ( 0 / 12 /  9)                           39
+   Uncovered months: 1997-08..1997-12 (deliberate) and 2026-10 (current month).
 
-LIMITATIONS AND UNCERTAINTIES:
-1. Historical data (1978-2009): Relies entirely on JHU baseline; no independent AI-discovered sources
-2. 1983-1991 major gap: Regional evidence suggests absence but no formal documentation
-3. 2017 suspected cases: Only UNICEF humanitarian report; unconfirmed suspected cases
-4. Provincial data: No district/provincial breakdown available for any period
-5. Pre-1978 period: No surveillance records exist for Eswatini
+F. MONTH COVERAGE BY EVIDENCE CLASS
+   AI-covered months: 589. Best AI evidence: positive 158 | Documented zero 142 | Inferred zero 289.
+   AI-only months: 361. By national rows: positive 87 | Documented 73 | Inferred only 201.
+     - Positive (87): 1979, Dec 1980, Jan-Feb 1983, 1984-86, 1993-95.
+     - Documented (73): 1973, 1975-77, Mar-Sep 1983, Jan-Jun 2010, 2025.
+     - Inferred (201): 1970-72, 1974, 1980, Oct-Dec 1983, 1987-91, 1997 (to Aug), Jul-Dec 2010, 2011-14, 2017 H1,
+       2017 Q4, 2026.
+   No multi-year zero rows remain: every zero row is at most one calendar year long, because the two multi-year rows
+   (AI 5 and AI 7) were split per year in this audit.
 
-RECOMMENDATIONS FOR FUTURE COLLECTION:
-1. Contact JHU IDD Group directly for year-by-year Swaziland 1978-2009 breakdown
-2. Request WHO country office for historical annual surveillance reports
-3. Contact Eswatini Ministry of Health for provincial surveillance data
-4. Monitor WHO AFRO bulletins for any new cholera activity in Eswatini
-5. Consider Eswatini as model case for low-burden country cholera characterization
+G. CROSS-AGENT PERFORMANCE
+   Agent  batches queries  ok-queries yields %                          stop      rows  live  srcs
+   A1        7      140        7     15,5,10,5,0,0,0                    rule a     37    26    40
+   A2       12      240       22     20,5,20,15,10,0,20,5,5,5,5,0       rule b     70    69    38
+   A3       12      240       28     20,15,10,5,10,30,5,25,5,5,0,10     rule b     44    39    28
+   A4        9      180       11     35,5,0,5,5,5,0,0,0                 rule a     12    12    12
+   A5        5      100        6     25,5,0,0,0                         rule a      7     7     6
+   A6        5      100        2     0,10,0,0,0                         rule a      2     2     1
+   A7     audit       -        -     -                                  -           8     8     6
+   Total agents 1-6: 1,000 queries, 76 successful (7.6%). Row deltas verified at all 6 gates.
+   Main contributions:
+     A1  WER 1970-97 annual tables; JPRS 1980-83 (first cases Dec 1980; MoH 1983 statement); 2017-Q4 and 2026 tail.
+     A2  WER weekly notifications by OCR; AFRO 2000-04 bulletins; MoH 2010-24 regional tables.
+     A3  WHO zero-reporting lists; re-sourcing of mis-cited rows; 1973 MoH documented absence; the 2026 tail.
+     A4  CSO hospital tables (overturned 6 zeros, Documented 1975-77); Budget Speech 2001.
+     A5  Adjudications A-J; AFRO 2000-02 tallies; 2023 week-30 contradiction.
+     A6  1998 isolate (retracted a falsified zero); 1999 carry-over finding; health-system classification;
+         1997 trim.
+   Caveats: A4's replacements counted as yield (stop point affected); A3's and A6's (stop point unaffected);
+   archive sweeps counted as one query (A1, A2, A4).
 
-TECHNICAL IMPLEMENTATION NOTES:
-✓ Dual-reference indexing system implemented (source_index ↔ Index)
-✓ JHU-compatible CSV format maintained (14 columns)
-✓ source_database = 'AI' for all entries
-✓ Confidence weighting applied based on source quality
-✓ Processing notes include exact source quotes
-✓ Metadata CSV: 8 sources with all 15 required columns
-✓ Data CSV: 8 rows with all 14 required columns
+H. BASELINE-GAP ASSESSMENT (FILLED = positive data; ABSENT = zero rows; label in brackets)
+   9 baseline gaps (JHU+WHO only):
+   1970-01..1977-12 (96 mo)  ABSENT     1973 and 1975-77 Documented; 1970-72 and 1974 Inferred
+   1979-01..1980-12 (24)     FILLED     1979 10 hospital cases (0.2); Jan-Nov 1980 Inferred; Dec 1980 2 cCh / 1 death
+   1983-01..1991-12 (108)    FILLED     1983 3 cases + Documented Mar-Sep; 1984-86 counts 3/1/1; 1987-91 Inferred only
+   1993-01..1995-12 (36)     FILLED     hospital 290/3, 26/1, 7 (0.4-0.5); Lubombo presence Q1 1993
+   1997-01..1997-12 (12)     PARTIAL    Jan-12 Aug Inferred; 13 Aug-31 Dec deliberately open
+   2010-01..2014-12 (60)     ABSENT     2010 H1 Documented; Jul 2010-2014 Inferred (per year, AI 181-185)
+   2017-01..2017-06 (6)      ABSENT     Inferred (AI 188)
+   2017-10..2017-12 (3)      ABSENT     Inferred (AI 32)
+   2025-01..2026-09 (21)     ABSENT     2025 Documented (zero report); 2026 to 20 Sep Inferred; 21 Sep-2 Oct open
+   7 cycle-start gaps: 1970-77 ABSENT | 1979-80 FILLED | 1983-91 FILLED | 1993-95 FILLED | 1997 PARTIAL |
+   2017-Q4 ABSENT | 2026-06-01..10-01 ABSENT to 20 Sep (12 days open).
 
-AGENT PERFORMANCE SUMMARY:
-Agent 1 (Baseline): 80 queries, 6 initial observations (highest yield)
-Agent 2 (Geographic): 40 queries, 0 provincial data found
-Agent 3 (Zero-transmission): 40 queries, 3 new absence periods documented
-Agent 4 (Obscure Sources): 40 queries, 0 new data (historical archives inaccessible)
-Agent 5 (Cross-Reference): 40 queries, all existing data cross-validated
-Agent 6 (Gap Context): 40 queries, gaps characterized by type
-Agent 7 (Quality Audit): Comprehensive validation, 1 invalid row removed
+I. AGENT 7 CHANGE LOG (all through the pipeline tools)
+   Rows added:     AI 182 (2011), 183 (2012), 184 (2013), 185 (2014), 186 (Jul-Dec 2015), 187 (2016),
+                   188 (Jan-Jun 2017): zero rows, Inferred, partial, weight 0.6.
+                   AI 189: 2023-03-27..04-18, 2 sCh, 2 cCh, 0 deaths, weight 1.0.
+   Rows retracted: AI 1, 5, 7 (tombstones in ./data/SWZ/retracted_rows_ai.csv).
+   Labels:         AI 148, 149 Documented_Absence -> Inferred_Absence.
+   Metadata:       registered 136-141 (WER annual reports for 2011, 2012, 2013, 2014, 2016, 2017).
+                   Description edits:
+                     - archived-copy notes: 51, 54-56, 58-67, 72-82, 84, 86, 87, plus 6;
+                     - corrections: 4, 7, 9, 10;
+                     - notes: 11 (kept Active), 88 (coverage).
 
-CONCLUSION:
-The systematic 7-agent search protocol successfully enhanced Eswatini cholera surveillance data by:
-(1) Confirming the 2023 cross-border outbreak with multi-source Level 1 evidence
-(2) Discovering the 2017 suspected cases from UNICEF humanitarian reporting
-(3) Documenting multiple absence periods with appropriate confidence levels including one peer-reviewed WHO confirmation of zero outbreaks in 2018
-(4) Characterizing remaining historical gaps as surveillance gaps or inferred absence periods
+J. WEEKLY-SERIES IMPLICATIONS (in memory; the runner rebuilds the file)
+   Weeks by source: AI 1,568 | JHU 1,353 | WHO 18 | assumed_zero 21.
+     - AI: inferred_zero 873, documented_zero 316, fourier 378, observed 1.
+     - assumed_zero: 1997-W34..1998-W1, plus 1980-W49.
+   Cases by source: JHU 10,112.7 | AI 342.7 | WHO 3.0.
+     - The AI total is dominated by the 1993 hospital count (290, weight 0.5).
+   Years driven by AI alone: 1970-77, 1979-80, 1983-91, 1993-95, 1997, 2010-14 (bar one boundary week),
+   2017 H1/Q4, 2025-26.
+   Expected changes since the 14:25 file (all from Agent 6 edits; Agent 7's fixes change no values):
+     - 1988-90 weight 0.5 -> 0.6.
+     - Aug-Dec 1997 inferred_zero -> assumed_zero.
+     - Jul-Dec 2010 weight 0.6 -> 0.55.
 
-Eswatini's historically low cholera burden, better WASH infrastructure, and effective surveillance response capacity are all validated by the systematic search findings. The 2023 outbreak (2 cases, 0 deaths) represents the most significant documented cholera event in recent years, demonstrating effective containment capability.
+K. DEAD-LINK AUDIT (live check of all 135 URLs present at audit start, plus Wayback verification)
+   - Dead (28): gov.sz/parliament.gov.sz unreachable (51, 54, 55, 56, 72, 82, 84); who.int legacy WER 404
+     (58, 64-67); whqlibdoc retired (59-63); afro.who.int legacy csr 404 (74-81, 86, 87); times.co.sz 404 (73).
+   - Every archived copy was downloaded and its content checked: PDF header, issue and number via OCR, quoted
+     values present.
+   - Replaced snapshots (Agent 4's proposal did not resolve when tested):
+       58  -> 20211113045852
+       75  -> 20100112115740
+       81  -> 20090808161105
+       86  -> 20090808161414
+       87  -> 20090808161558
+   - Not dead: 50 (IOL is live and contains the quoted sentence); 6 and 135 (HTTP 403 to automated clients only).
 
-FINAL STATUS: WORKFLOW COMPLETED SUCCESSFULLY
-Quality Audit: PASSED
-Data Validation: PASSED (8/8 rows)
-Deliverable Standards: COMPLIANT
-Integration Readiness: CONFIRMED
-
+L. REPRODUCTION
+   python py/validate_quality.py SWZ                  -> ERROR 0, WARN 0, INFO 61 (165 rows, 141 sources)
+   python py/repair_data_integrity.py --dry-run SWZ   -> 0 changes
+   In-memory coverage (no shared-file writes):
+     analyse('SWZ','Eswatini',[JHU,WHO,AI]) -> 99.1%, 676/682, months_ai_only 361, 1 gap (1997-08-01..12-31)
+     analyse('SWZ','Eswatini',[JHU,WHO])    -> 46.2%, 315/682, 9 gaps
+================================================================================================================
