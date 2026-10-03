@@ -1,80 +1,142 @@
-=== AGENT 5 CROSS-REFERENCE INTEGRATOR ===
-Country: Gambia (GMB)
-Start Time: 2026-05-14 (New Format Workflow)
+=== AGENT 5 (CROSS-REFERENCE INTEGRATOR) SEARCH LOG ===
+Country: The Gambia (GMB)
+Cycle: opus55-rerun-2026-09-29 (runner logs/run_20261001-194905)
+Start Time: 2026-10-03 08:50:19 PDT
 Agent 5 Status: INITIALIZED
+Log file: ./data/GMB/search_log_agent_5.txt (overwritten at start of this run; previous-cycle log archived by the orchestrator in
+./data/GMB/.prev_cycle_logs_pre_opus55_20261002.tar.gz)
 
-Mission: Cross-reference and integrate sources through permutations
-Gap targets: Cross-validate 2005 data, confirm absence periods, verify historical data
-Focus: Source permutations, alternative search methodologies, cross-validation
+Binding inputs read before the first query:
+  /tmp/GMB_orch/shared_context.md (hard rules 1-11; updates after Agents 1-4)
+  ./templates/template_search_protocol.txt
+  ./data/GMB/cholera_data_ai.csv (52 live rows), ./data/GMB/metadata_ai.csv (65 sources), ./data/GMB/cholera_presence_ai.csv (4 records),
+  ./data/GMB/retracted_rows_ai.csv (5 tombstones: Index 3, 4, 5, 17, 44), ./data/GMB/cholera_data_jhu.csv (16 rows, read-only),
+  ../jhu_cholera_data/data/Gambia/*.csv (raw UID 58, 318, 21392; read-only), ./data/GMB/search_log_agent_1.txt .. _4.txt
+Constraints for this run:
+  * WebSearch is EXHAUSTED for the whole orchestrator session (200/200 used by Agents 1-4) - not called by Agent 5.
+    Routes: WebFetch/curl against registry URLs, Wayback (CDX + id_ captures), Marginalia public API, Europe PMC REST, Crossref,
+    OpenAlex, archive.org advancedsearch/full-text, IRIS (iris.who.int), ReliefWeb RSS, WordPress REST on Gambian outlets and
+    moh.gov.gm (curl --resolve moh.gov.gm:443:102.140.149.3), HDX CKAN, World Bank WDS.
+  * Each fetch/API call that targets a new query counts as one of the 20 queries in a batch (orchestrator rule 11).
+  * Coverage readout: python3 /tmp/GMB_orch/gmb_coverage.py GMB (py/analyze_effective_gaps.py NOT run - orchestrator rule 2).
+Effective gaps at start (orchestrator): 1975-03-01..1978-12-31; 1982-01-01..1984-12-31; 1993-04-01..1993-12-31; 2019 (whole year);
+  2022-10-01..2022-12-31; tail after 2026-09-20.
+Stopping rule: >=3 batches of 20 queries, then stop at 3 consecutive batches <5% yield, or 12 batches. No time limit.
+Yield = queries producing >=1 NEW committed row in ./data/GMB/cholera_data_ai.csv / 20 x 100 (percent). Annotations,
+re-weightings and retractions are logged in the LEDGER below and do not count toward yield.
 
-=== BATCH 1: Source Permutation and Cross-Validation ===
+Pre-state: 52 live rows (Index 1-57 minus tombstoned 3, 4, 5, 17, 44); validator ERROR 0 / WARN 0 / INFO 40 (exit 0);
+  coverage (python3 /tmp/GMB_orch/gmb_coverage.py GMB) 84.3% = 575/682 months, months_ai_only 383; latest positive 2021-12-31.
+Query-counting convention (same as Agents 1-4): one query = one distinct search action against a new target (API search, CDX listing,
+  or direct fetch of a document not surfaced earlier in the batch). Re-mining a registered source for a new purpose counts as a query.
+Crediting rule used here: a query is credited only if it produced a NEW row from newly extracted evidence. Adjudication outputs
+  (retractions, re-weightings, replacement rows that re-express evidence already in the dataset) are logged in the LEDGER and NOT credited.
 
-Queries executed:
-1. "Senegal cholera 2005 epidemic Gambia neighboring countries WHO PMC" - Confirmed PMC3432123; 214 cases cross-referenced
-2. "West Africa cholera burden Gambia 2000-2023 WHO AFRO PMC annual cases" - Found PMC11891530 (WHO AFRO 2000-2023 burden study)
-3. "WHO Gambia Country Disease Outlook 2023 cholera surveillance" - PDF accessed but binary content; design file, not data
-4. "UN West Africa cholera 2005 $3.2 million appeal Gambia cases" - Found: $158,000 requested for Gambia 2005; 214 cases confirmed
-5. "BMJ cholera West Africa 2005 700 killed Gambia" - PMC1246118: Gambia NOT mentioned in affected countries list
-6. "Gambia WHO disease outbreak news 2005 March Senegal" - Accessed WHO DON 2005-03-29: No Gambia data in this early report
-7. "WHO Senegal cholera 2005 update 7 July neighboring countries Gambia" - WHO Senegal update July 2005 confirmed but no Gambia specifics
-8. "Gambia cholera 2006 zero WHO annual report West Africa post 2005" - No WHO 2006 report data found
-9. "Gambia cholera 2008 1 case last year WHO WER" - Could not find specific 2008 WHO annual report for Gambia
-10. "Gambia cholera 2012 DREF operation Senegal Red Cross cases prevention" - 2012 DREF: CHF 119,220 for 30,000 persons at risk; no actual cases in Gambia
-11. "Gambia cholera 2005 cases 214 deaths 13 quarterly distribution" - No seasonal breakdown found; annual totals only
-12. "cholera West Africa 2005 UNICEF 12 countries children at risk Gambia" - Found UNICEF report: "80,000 children at high risk" but no Gambia breakdown
-13. "Gambia cholera 2005 cross-border Touba pilgrimage cases Senegal" - Confirmed: Touba pilgrimage transmission mechanism
-14. "Gambia cholera 2005 WHO disease control response local interventions" - No specific response data found
-15. "Gambia cholera 2009 2010 absence PLOS NTDs 2018 dynamics West Africa" - Confirmed PMC5908202 "since 2008" quote
-16. "Gambia cholera 2008 absence validated PLOS NTDs sentinel surveillance" - Confirmed: "absence not due to inadequate surveillance"
-17. "Gambia cholera 2016-2020 excluded geographical shifting Nature Medicine" - Confirmed exclusion from PMC12532610 Nature Medicine study
-18. "Gambia cholera 2011-2015 excluded modeling insufficient data" - Confirmed exclusion from cholera burden studies
-19. "Gambia cholera 2021 cases 3 WHO annual report surveillance" - Could not find source for 2021 3 cases in JHU
-20. "Gambia cholera 2022 2023 2024 absent WHO AFRO affected countries" - Confirmed: not among 14-15 affected countries 2022-2024
+=== BATCH 1 | PHASE 1 (re-mine the registry) | GMB ===
+Gap targeted : 2019-01-01..2019-12-31 (365d, modern); 2022-10-01..2022-12-31 (92d, modern); sub-annual 2005 Oct-Dec (JHU annual only);
+               C1 2018 conflict (third source); C3/C5 2005 reconciliation; C4 1991
+Queries      : 20
+  Q1  [Humanitarian/Marginalia API] 'Flash Appeal 2005 West Central Africa cholera' -> docsbay.net full-text copy (Word version 14 Nov 2005) of
+       the OCHA Flash Appeal (metadata 34): section 2.1 The Gambia adds the 27 Sep 2005 formal declaration, spread 'within the border towns of
+       the Western district', and 'the previous epidemic of cholera between March and June 2005' (count-less); no country table -> 0 rows
+       (1 presence record AFR::GMB 2005-03-01..06-30; metadata 34 description updated)
+  Q2  [Archive/ProMED via Wayback] re-read 20051014.2997 item [7] -> 'confirmed over 20 cases ... at least 20 ... no one is reported death ...
+       Western Division is the only area affected' => JHU raw UID 58 row 2 (GM-W 20 Sep-14 Oct 2005, 15/0) is DERIVED (21 - 6); WER
+       notifications 7-13 Oct 2005 in the same post list no Gambia -> 0 rows (ledger L2)
+  Q3  [Official/Wayback] MoH 2023 Service Statistics report (metadata 30) full text - IDSR section and every 2019-2023 trend table -> no 2022
+       cholera figure (Table 27 is 2023-only) -> 0
+  Q4  [Official/WHO AFRO] MoH 2021 Service Statistics report (metadata 22) full text -> single-year IDSR tables only; no 2019/2020 comparison -> 0
+  Q5  [Regional/Wayback] WAHO Epidemiological Bulletin Q1 2018 (metadata 55) full re-read -> text: 'The number of suspected cases and deaths by
+       country and disease are shown in table 1'; Lassa: 'this included 2 suspected cases in Gambia' (C1 evidence) -> 0
+  Q6  [Official/Wayback] MoH HIS Report 2018 (metadata 25) Tables 16-20 (C1 cross-disease test): full-year meningitis 19, measles 59, yellow
+       fever 11, neonatal tetanus 4 (all >= WAHO Q1 6, 11, 2, 0) but suspected VHF 0 (< WAHO Q1 2 suspected Lassa) and cholera 0 (< WAHO 8)
+       -> 0 credited (adjudication output: replacement cCh-0 row Index 59, ledger L4)
+  Q7  [Linguistic-press/WordPress REST] standard.gm + foroyaa.net 'cholera', 'lassa', 'suspected case' 2018-01-01..06-30 (6 searches) -> no
+       2018 Gambian cholera report; The Standard 18 Jan 2018 letters page: 'In 1982 to 1984, there were TB and cholera out break in Mile Two
+       Prison' (Level 4 recollection, no count; logged as lead for Agent 6, NOT entered as presence) -> 0
+  Q8  [Regional] archivedsite.wahooas.org annual-report listings (EN/FR) -> WAHO annual 2018 summary report (EN/FR): no cholera content -> 0
+  Q9  [Regional] archivedsite.wahooas.org documentation-centre / reports pages (13 pages) -> listings rendered client-side, no PDFs -> 0
+  Q10 [Regional/Wayback CDX] www.wahooas.org/web-ooas/sites/default/files/publications/* (all archived publication PDFs) -> full 2018 annual
+       report (pub. 1813); the 2019 health-situation report (pub. 2312) is the ONLY edition of that series (no 2018/2020/2021 editions) -> 0
+  Q11 [Regional] WAHO 2018 annual report full EN/FR (pub. 1813) cholera section -> regional totals only (64,678 cases 2018; Nigeria 50,719, Niger
+       3,822; 'Senegal ... zero cases reported in the five consecutive years'); no Gambia figure -> 0
+  Q12 [Regional] WAHO 'Situation sanitaire des pays de la CEDEAO, année 2019' (metadata 51) re-mined beyond 7.2.2: section 7.1 'Seuls 4 pays de
+       la région n'ont pas enregistré un seul épisode épidémique (Burkina Faso, Cabo Verde, Gambie et Guiné-Bissau)'; Tableau 16 (page image
+       p.37): Gambia column blank for every disease incl. cholera (legend 'Aucun cas'), 'Num. Epidemic events' Gambia 0 -> ROW 58 (AFR::GMB
+       2019-01-01..2019-12-31 cCh 0, sCh blank - rule 10 no-outbreak encoding; 2019 suspected status stays unknown)  [CREDITED]
+  Q13 [Regional/Wayback CDX] ecowas.int/wp-content/uploads 2022-09..2023-01 (Agent 3's timed-out route, retried) -> only the 16 and 23 Sep 2022
+       WAHO bulletins exist; none for Oct-Dec 2022 -> 0
+  Q14 [WHO/Wayback CDX] afro.who.int/sites/default/files/2017-..2020- (all archived files) -> no WHO AFRO IDS quarterly bulletin 2017-2020;
+       Gambia files = annual/biennial reports, CCS, 'Adolescent health in Gambia 2018' (read: irrelevant) -> 0
+  Q15 [Official/Wayback CDX] moh.gov.gm and www.moh.gov.gm (5,335 distinct URLs) -> no 2018/2019 bulletin; HMIS bulletins only Q1 2012/2014/2016,
+       epi bulletin wk36 2017, weekly bulletins 2023 wk34-2024 wk13, Q2 2024 (all read by Agents 1-3) -> 0
+  Q16 [Official/Wayback] MoH 'FINAL-JAR-REPORT-15-11-22' (Joint Annual Review, Nov 2022; not found by Agents 1-4) -> EDC indicators for 2021:
+       weekly IDSR completeness 100%, timeliness 98%, 'All cases or outbreaks were notified, and investigated within 48 hours'; no cholera -> 0
+  Q17 [WHO/Wayback CDX] who.int/cholera/, who.int/csr/disease/cholera/, who.int/topics/cholera/ 2005-2007 (GTFCC 20 Oct 2005 West Africa table
+       cited by OCHA) -> no situation documents archived -> 0
+  Q18 [Humanitarian/ReliefWeb RSS] (C98) and free-text 'choléra Gambie' Nov 2005-Jun 2006 + OCHA WA sitrep No 22 (Jan 2006) and CAP West Africa
+       revision (Mar 2006) pages -> Gambia only in country tags/footnotes; no 2005 year-end country table -> 0
+  Q19 [Academic/Europe PMC REST] PMC3432123 fullTextXML (source of retracted Index 1) -> Gambia 214 sits in a WHO-cited sentence (refs 12-13; the
+       neighbouring 25,111/4,132/3,821/1,178 are WER 81(31) values) => WHO-derived corroboration, deaths not in paper -> 0 (ledger L1)
+  Q20 [Press/Marginalia + Wayback availability] NYT 23 Jul 1991 Altman 'Catastrophe of Cholera Is Sweeping Africa' (C4): Marginalia (2 queries,
+       empty/timeout), Wayback availability for 3 URL patterns (science/ and health/ slugs) -> no capture -> 0
+Sources found: 4 usable (Flash Appeal full text, WAHO 2018 annual report full, WAHO 2019 Tableau 16, MoH JAR 2022)   Registered: none new
+               (Flash Appeal full text recorded on metadata 34; WAHO 2018 report and JAR carry no Gambian cholera figure)
+Rows added   : 2    Indices: 58 (credited, Q12), 59 (adjudication output, not credited)   [+ 60 = replacement of retracted Index 2, not credited]
+Presence     : AFR::GMB 2005-03-01..2005-06-30 (Flash Appeal 'previous epidemic of cholera between March and June 2005')
+Successful queries: 1/20  (Q12)
+Yield        : 5%
+Consecutive sub-5% batches: 0   (5% is not below 5%)
+Decision     : CONTINUE (minimum 3 batches; yield not below 5%)
 
-BATCH 1 RESULTS: Cross-validation confirms PMC3432123 as primary 2005 source; PMC5908202 confirms absence from 2008 onward. No new data found. 2021 JHU data (3 cases) could not be independently confirmed.
-BATCH 1 YIELD: 0/20 = 0% (no new rows - all data already captured)
+=== LEDGER part 1 (Batch 1) - every adjudication: both figures verbatim, rule applied, kept, rejected ===
+L1 C5 - Index 1 (AFR::GMB 2005 sCh 214 / deaths 13, de Magny 2012 PMC3432123, metadata 1) vs JHU UID 318 WHO-annual 2005 '214 cases, 13 deaths'.
+   Exact duplicate; the paper's 214 is WHO-derived (WHO-cited sentence) and its deaths were copied from JHU. Rule: duplication -> keep one row
+   (JHU baseline, read-only), note the second source. ACTION: Index 1 RETRACTED (tombstone); metadata 1 description rewritten (WHO provenance,
+   corroboration only); stale 'AI Index 1' references annotated on Index 12 and 25.
+L2 C3 - JHU raw UID 58 (not in cholera_data_jhu.csv) row 1 'GM-W 2005-09-18..19 6 / 1' = ProMED 20050923.2812 (= AI Index 51, Agent 4);
+   row 2 'GM-W 2005-09-20..10-14 15 / 0' = derived from ProMED 20051014.2997 'confirmed over 20 cases ... at least 20 ... no one is reported
+   death' ('over 20' read as 21, minus 6). Rule: never enter a number no source reported. KEPT: Index 52 (cCh >= 20, lower bound). REJECTED: the
+   derived 15. Notes appended to Index 21 and 52.
+L3 C3 - OCHA Flash Appeal full text (14 Nov 2005 version): 'During the previous epidemic of cholera between March and June 2005' -> presence
+   AFR::GMB 2005-03-01..06-30 (count-less); '27 September 2005' formal declaration -> note on Index 25. Metadata 34 description updated.
+L4 C1 2018 - WAHO Q1-2018 Table 1 'The Gambia 8 0' (cholera cases/deaths, suspected or confirmed; IDSR country services; WAHO text: table shows
+   'suspected cases') vs MoH HIS 2018 Table 16 'National ... Suspected Cholera 0 / Cholera Confirmed Cases 0'. Third source: none exists online
+   (Q5, Q7-Q11, Q14-Q15; Agents 3-4: WHO OEW 2018 wks 1-16, WER 'Cholera 2018', WAHO 2018 weekly bulletins). Re-mining test: MoH full-year
+   counts >= WAHO Q1 counts for meningitis (19 vs 6), measles (59 vs 11), yellow fever (11 vs 2), neonatal tetanus (4 vs 0), but 0 for the two
+   rare diseases WAHO shows as suspects - cholera (0 vs 8) and suspected VHF (0 vs 2 suspected Lassa, named as 'suspected' by WAHO) -> the
+   HMIS annual compilation omits or discarded IDSR rare-disease suspects. Rules: government over regional and final over preliminary apply
+   to CONFIRMED cases (no conflict: WAHO gives no confirmations, MoH 0 confirmed); rule 10 (MOSAIC fits suspected cases) -> WAHO's 8 suspected
+   stand. DECISION: KEEP Index 46 (sCh 8, 0.6) and Index 47 (Apr-Dec Inferred 0.5), both annotated; RESTORE the uncontradicted part of
+   retracted Index 17 as new row Index 59 (AFR::GMB 2018 cCh 0, sCh blank, conf 0.6, MoH Table 16 'Cholera Confirmed Cases 0'); do NOT
+   retract Index 46 (no evidence it is wrong; the cross-disease pattern explains the MoH zero); do NOT restore a full-year sCh 0 (contradicted).
+L5 C2 1985 - WHO WER 61(26) 'Gambia 2' imported ('2i'; JHU 1985 2/0) vs Kenya Times 13 Jun 1985 (JPRS, metadata 57) 'Four cholera victims have
+   been admitted to hospital in ... Serrekunda ... no death' (Index 48 national, 49 Kanifing) vs AFMIC DEAR Apr 1993 'the 1985 outbreak near
+   Banjul' (derivative, corroborates place only). Rule: WHO over news, final over preliminary -> national 1985 total = JHU 2 (primary). Rows
+   48/49 KEPT as the only timing/place evidence, confidence 0.5 -> 0.4; not summed; most plausible reading (4 suspected admissions, 2 notified
+   imported cases) noted as unverified.
+L6 C3 2005 deaths - WHO AFRO 30 Sep 2005 '54 ... 2 deaths' (Index 25, Level 1) and wk-38 sheet '38 ... 2' (Index 26) vs OCHA '17 Cases with 4
+   deaths ... between 8 and 23 September ... All the reported cases are from Western Division' (Index 21, Level 2) vs ProMED/Daily Observer
+   '1 death ... 19 Sep 2005, in Brikama' + 5 admitted (Index 51) vs Independent/ProMED 10 Oct 'no one is reported death' (deaths blank in
+   Index 52) vs Independent 22 Nov 'Four patients at Kerewan Health Center have succumbed' (Index 50) vs JHU WHO-annual 13 deaths. Rule: WHO over
+   UN appeal over press; final annual for the year. KEPT: Index 25 as national Sep figure; JHU 13 as annual; Index 21 deaths as West Coast figure
+   with confidence 0.7 -> 0.6; Index 51 nested in 21 (consistent 6 <= 17, 1 <= 4); Index 50 (consistent: 4 + 4 + 1 = 9 <= 13). ECHO 2006 'partial'
+   174 vs WHO final 214: final over preliminary -> 174 not entered (undated). Never averaged.
+L7 C6 1971 - WHSR 1972 25(4) (final) '3 (Including 2 suspected cases)' vs WER 46(37) (preliminary) 'Three suspected cases ... including one
+   death'. Rule: final over preliminary -> cCh 1 KEPT as derived value on Index 6, confidence 0.9 -> 0.85; stale 'TL 1971-08-01' text in Index 6
+   and 7 annotated as superseded (TL 1971-08-29). CFR 33.3% (1/3) is a small-denominator value (pipeline CFR cap applies only from 25 cases).
+L8 C7 2020 - MoH Service Statistics 2020 Table 26 'WHR1 0 0' (Banjul + Kanifing) vs The Standard 15 Jun 2020 'A native was reported to have
+   caught cholera after drinking the water' (Bakau, Level 4 hearsay). Rule: government final table over press hearsay. KEPT Index 27 (Banjul) and
+   28 (Kanifing) zeros; Index 28 confidence 0.85 -> 0.8 with note. Press claim not entered (no count, no corroboration).
+L9 C8 arithmetic - overlapping-pair sweep: every sub-national row overlapping a national AI or JHU row carries 'Provincial subset - do not sum
+   with national row'; every sub-annual national row inside a JHU annual year carries 'Sub-annual detail inside JHU annual total - do not sum
+   with annual row' EXCEPT Index 23 (phrase appended); nested West Coast pair 21 x 51 now cross-referenced both ways; nested national 25 x 26 and
+   25/26 x 52 already annotated; Index 39 (2009-2015 zero) spans JHU phantom zeros 2011-2015 (zeros, not additive). Cumulative series 26 (38/2 to
+   18 Sep) <= 25 (54/2 to 30 Sep) monotonic. CFR > 15%: Index 6, 7 (1/3), 21 (4/17), 51 (1/6) = small denominators (< 25 cases, exempt from the
+   pipeline cap), kept; Index 2 (CFR 34.0 = 1700 deaths / 5000 POPULATION) = denominator error -> L10.
+L10 C8 - Index 2 (AFR::GMB 1869 deaths 1700, CFR 34.0) RETRACTED (tombstone) and replaced by Index 60 (AFR::GMB::Banjul 1869 deaths 1700, CFR
+   blank, conf 0.5): revise_observation cannot blank a CFR when sCh is blank. Conflict kept: The Point/historian 1700 deaths vs Wikipedia Half
+   Die 1162 deaths (both Level 3); not averaged. Pre-1970, outside the weekly series window.
+L11 Validator after batch 1: the two new cCh-0 rows (58, 59) triggered zero_row_no_evidence_type; resolved by appending the scoped label
+   'Evidence type: Inferred_Absence (... cCh 0 only - sCh deliberately blank ...)' (same convention as Agent 4's Index 55). ERROR 0, WARN 0.
 
-=== BATCH 2: Extended Cross-Reference ===
-
-Queries executed:
-21. "Gambia cholera 2005 IRIN news report cases hospital border village death" - Confirmed: 3 cases at Banjul hospital, 1 death near border
-22. "Gambia cholera 2005 214 cases WHO WER annual report cited source" - PMC3432123 cites WHO WER; 214 confirmed
-23. "Gambia cholera 1869 Wikipedia Half Die 1162 deaths 4000 population" - Wikipedia: 1162 deaths; The Point: 1700; UK Hansard: "most severe"
-24. "Gambia cholera 1869 UK Parliament 1869 Hansard severe epidemic" - Confirmed: "lamentable visitation of cholera at Gambia, one of the most severe upon record"
-25. "Gambia cholera 1869 four sources cross-reference deaths epidemiology" - Multiple sources: 1162 (Wikipedia) to 1700 (Ceesay/The Point) deaths; ~2000 at Marina Parade obelisk
-26. "Gambia cholera 1869 Fourth Pandemic West Africa sub-Saharan 1865" - Confirmed: 4th pandemic context (1863-1875 reached sub-Saharan Africa via North Africa 1865)
-27. "Gambia cholera DREF 2012 operation Red Cross 30000 persons cases" - Confirmed: No actual Gambia cases; prevention operation for pilgrimage risk
-28. "Gambia cholera 2008 1 case WHO annual JHU historical confirmed" - JHU baseline has 1 case 2008; no independent confirmation found
-29. "Gambia cholera 2007 12 cases 1 death source WHO historical" - JHU baseline has data; no independent confirmation found
-30. "Gambia cholera 2005 13 deaths WHO annual report WER 2006" - JHU baseline: 13 deaths, 214 cases; no additional source found
-31. "Gambia cholera 2021 3 cases source JHU WHO surveillance" - JHU 2021 data likely from WHO report; no additional source found
-32. "Gambia cholera surveillance IDSR third edition 2022 adoption cholera" - IDSR third edition adopted 2022; cholera included as priority disease
-33. "Gambia cholera WHO surveillance 2020 COVID surveillance disruption" - No reports of cholera during COVID pandemic
-34. "Gambia cholera absence 2008-2024 academic literature confirmation" - Multiple studies confirm absence post-2008
-35. "Gambia cholera 2025 surveillance status WHO current" - Not in 2025 affected countries list
-36. "Gambia cholera historical pattern 1985 1994 1995 1996 annual" - Small case years: 1985(2), 1994(1), 1995(15), 1996(7) - confirmed in JHU baseline
-37. "Gambia cholera 2005 214 cases death village border WHO confirmed" - WHO DON March 2005: no Gambia; IRIN April 2005: 3 Banjul cases + border death
-38. "Gambia cholera seventh pandemic T12 2007 introduction West Africa" - T12 wave introduced 2007; Gambia 2007 had 12 cases (JHU confirms)
-39. "Gambia cholera T9 wave 1988-1991 West Africa no cases reports" - T9 wave West Africa 1988-1991; no Gambia data in baseline gap period
-40. "Gambia cholera cross-validation WHO annual surveillance 2006 2007 2008" - JHU baseline has data; no independent academic confirmation found
-
-BATCH 2 RESULTS: Cross-validation confirms existing data. No new observations. Historical 1869 data has minor discrepancy (1162 vs 1700 deaths) - two different location estimates (Mocam Town vs all of Bathurst).
-BATCH 2 YIELD: 0/20 = 0%
-
-STOPPING CRITERIA: 2 consecutive batches <5% yield (Batch 1: 0%, Batch 2: 0%)
-STOPPING CRITERIA MET: Yes
-
-=== AGENT 5 SUMMARY ===
-- Batches completed: 2
-- Total queries: 40
-- New cholera_data_ai.csv rows added: 0
-- Cross-validation summary:
-  * 2005 epidemic (214 cases): Confirmed by PMC3432123, WHO DON, IRIN, UN press release
-  * 2005 deaths (13): Only in JHU baseline, not independently confirmed
-  * 1869 epidemic: Two mortality estimates: Wikipedia (1162 deaths, pop 4000 = 29% CFR) vs Ceesay/The Point (1700 deaths, pop 5000 = 34% CFR). Both sources credible; discrepancy may reflect different geographic coverage (Mocam Town only vs all of Bathurst). Using 1700 deaths as primary.
-  * 2008-2024 absence: Confirmed by PMC5908202, exclusion from Nature Medicine study, WHO AFRO bulletins
-  * T12 wave (2007): Gambia had 12 cases in that year per JHU - consistent with T12 introduction to West Africa
-  * 2012 DREF operation: Prevention only; no actual cholera cases in Gambia
-- Final assessment: All key data points cross-validated; no new discoveries
-
-AGENT 5 COMPLETED: 2026-05-14
