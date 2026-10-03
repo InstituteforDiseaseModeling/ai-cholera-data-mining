@@ -8,3 +8,77 @@ Stopping rule: minimum 3 batches x 20 queries; then stop at 3 consecutive batche
 WebSearch allocation: 40 tool calls (tool-call allocation, not a time budget); beyond it, direct interfaces.
 Yield = queries in batch producing >=1 NEW row in ./data/GAB/cholera_data_ai.csv / 20.
 
+PRE-SEARCH (no queries): read ./templates/template_search_protocol.txt, ./data/GAB/workflow_state.json (Agents 1-4 + orchestrator
+notes/gates), closing summaries of ./data/GAB/search_log_agent_1.txt..4.txt, ./data/GAB/cholera_data_ai.csv (36 rows),
+./data/GAB/metadata_ai.csv (113 sources), ./data/GAB/cholera_presence_ai.csv (1997), ./data/GAB/retracted_rows_ai.csv (16 tombstones),
+./data/GAB/cholera_data_jhu.csv (read-only). No ./data/GAB/attribution_review.csv exists.
+In-memory gap recount (py/analyze_effective_gaps.analyse, shared reference files NOT regenerated): 591/682 months (86.7%), 6 gaps:
+1988-01-01..02-29 (60d), 1988-05-01..12-31 (245d), 1991 (365d), 1994-01-01..02-28 (59d), 1994-11-01..1996-02-29 (486d),
+1996-11-01..2000-12-31 (1522d); latest observation 2026-09-20; recent window 2026-09-21.. open.
+Running jobs checked with ps before touching /private/tmp/lunion: none for GAB (live jobs belong to ETH/GIN workflows).
+Background job started by Agent 5: accurate-OCR (/tmp/ocr/ocr) scan of the 4,214 never-read L'Union 2008 pages
+(/private/tmp/lunion/a5_2008_unread.lst -> /private/tmp/lunion/2008/acc, reocr_accb2.sh P4, log /private/tmp/lunion/a5_2008_reocr.log).
+Query counting rule used: one distinct query string sent to a search interface = 1 query; one fetch of an already-registered or
+already-cached document to extract a new period/place = 1 extraction query.
+
+=== BATCH 1 | PHASE 1-2 (re-mining registered series + recent window) | GAB ===
+Gap targeted : recent 2026-09-21.. (A2); RCC bulletin series (A3); 2003 conflict (B1); 1996-11..2000-12 (A4); 2024 JHU check (A5)
+Method       : 0 WebSearch calls. Direct interfaces: WHO IRIS discover/bitstream API, africacdc.org WordPress wpdmpro API,
+               OpenAlex, Europe PMC; extraction from caches /private/tmp/a3gab/afro, /private/tmp/gab_a1/wer, /private/tmp/gabstat,
+               /private/tmp/a4gab.
+Queries      : 20
+  Q1  [IRIS discover] 'cholera annual report 2024' -> only WHO country/programme annual reports; 0 rows
+  Q2  [IRIS discover] '"Weekly epidemiological record" cholera 2024 annual' (sorted newest first) -> newest WER = 101(39) of
+      2 Oct 2026 (already metadata 99), newest AFRO Weekly Bulletin on Outbreaks = week 36 (31 Aug-6 Sep 2026); no WER 101(40);
+      no source extends the recent window past 2026-09-20; 0 rows
+  Q3  [IRIS discover] '"Weekly Epidemiological Record, 2025, vol. 100"' -> WER 100(36), 5 Sep 2025, pp.347-364 'Cholera, 2024'
+      (IRIS 10665/382541) downloaded via bitstream API. Table 2 'Countries reported 0 cases and deaths in 2024, fulfilling the
+      public health surveillance service of "zero reporting"': Africa (32) '... Equatorial Guinea, Eswatini, Gabon, Gambia ...'.
+      A5 RESOLVED: the JHU 2024 zero (./data/GAB/cholera_data_jhu.csv Index 19, conf 1.0) is a genuine WHO national zero report.
+      DECISION: no AI row - same WHO annual series JHU was built from, same period, same value = a duplicate, which the Agent 5
+      rule forbids (keep one row; note the second source). Source to be registered as corroboration. 0 rows
+  Q4  [africacdc.org] Epidemic Intelligence Weekly Report pages september-2026 / october-2026 -> September page holds only the
+      issues of 13 Sep (metadata 16) and 20 Sep (metadata 98); october-2026 = 'Page not found'; 0 rows
+  Q5  [africacdc WP API wp-json/wp/v2/wpdmpro] 'epidemic intelligence' -> newest weekly-report package dated 2026-09-25 (the
+      September package); no issue for 27 Sep 2026 yet; 0 rows
+  Q6  [africacdc WP API] 'bulletin epidemiologique mensuel' -> RCC Central Africa 2023 No1-No6 (ids 14074-15775) only
+  Q7  [africacdc WP API] 'Centre de coordination regional' -> 2025 N1 (21556), N2 (21558), quarterly Q1-2025 (22540)
+  Q8  [africacdc WP API] 'Afrique centrale' -> same items
+  Q9  [africacdc WP API] 'Central Africa RCC' -> nothing new
+  Q10 [africacdc WP API] 'bulletin' (4 pages x 100) -> adds 2025 N3 (22439) and N4 (22441); NO 2024 issue, NO 2026 issue, NO
+      2023 No7/No8 anywhere on africacdc.org. A3 RESULT: the RCC series is fully enumerated: 2023 No1-No4 (metadata 103,
+      placeholder/low-completeness zeros - correctly not used), No5-No6 (metadata 101-102 -> rows 50-51), 2025 N1-N4 (metadata
+      104, corroboration of Index 10). No further Documented_Absence row is obtainable from this series.
+  Q11 [africacdc WP API] 'trimestriel' -> quarterly bulletin Q1-2025 only
+  Q12 [extraction] RCC 'Bulletin trimestriel N1 janvier-mars 2025' PDF read -> institutional activity report (WHO/Ministry
+      meetings, CIRMF), no surveillance counts; not registered (no data, nothing for later agents to cite)
+  Q13 [extraction, metadata 87] CDER Jan 2004 re-mined for B1: Table 1 Central bloc 2003 = 28,163 cases / 1,032 deaths =
+      DRC 27,272/989 + Cameroon 207/36 + Chad 55/7 + Gabon 629/0 EXACTLY -> Gabon's 629/0 is inside AFRO's own bloc arithmetic.
+      Narrative 'attack rates ranging from 11 to 20 per 100,000 population in Guinea Bissau and Gabon respectively' checked:
+      Liberia 34,740/3.24M = 1,072 (text 1,071), GNB 144/~1.3M = 11 (text 11), Mali 1,456/11.2M = 13, Zambia 1,362/9.8M = 14, but
+      Gabon 629/1.2M = 52 (text 20). Narrative 27 countries/94,011 cases/1,751 deaths vs Table 2 28 countries/94,425/1,758.
+  Q14 [extraction, metadata 25] WER 79(31) 2003 Africa table re-mined for the row-shift test: rows read DRC 27,272/989 | Gabon
+      629/0 | Ghana 204/4 | Guinea 6/1 | Guinea-Bissau 290/2; Congo, Equatorial Guinea, Gambia, Ethiopia absent; column sum of the
+      29 African rows = 108,067 cases / 1,884 deaths = the printed total exactly, with Gabon 629/0 included. No neighbour's value
+      matches 629 -> ROW-SHIFT HYPOTHESIS REFUTED.
+  Q15 [extraction] AFRO Central bloc IDSR bulletins Jan, Feb, Mar, Apr-Jun, Jul, Aug, Sep 2003 (Agent 3 cache) -> July 2003
+      Tableau II-1: Gabon 'IDS' = N (not transmitted), bloc IDS completeness 0%; no Gabon cholera cell in any 2003 issue
+  Q16 [extraction] CDER Sep, Oct, Nov, Dec 2003 (Agent 3 cache) -> Gabon cholera '-' (no report) through Jan-Oct 2003; CDER
+      Dec 2003 AFP table: Gabon total population 1.2 M, under-15 0.5 M (AFRO's own denominator)
+  Q17 [extraction] AFRO Central bloc bulletins Sep 1999, Nov 1999, Feb, Apr, Jun, Sep, Dec 2000, Jan-Mar, Jun, Jul 2001 and
+      CDER Sep/Oct 2000 (cache) for the 1996-11..2000-12 gap -> Gabon cholera 'ND'/'-' throughout ('Le Gabon n'a envoyé que des
+      données PFA', Feb 2000); confirms Agent 3's Surveillance_Gap retractions; 0 rows
+  Q18 [extraction] Agent 1 cache /private/tmp/gabstat: Gabon MoH 'Annuaire statistique 2011', 'Tableau de bord' 2005, carte
+      sanitaire 2008 -> no cholera entry (only 'Diarrhée aiguë, gastro-entérite' morbidity); the PNDS 2021-2025 table 'Cholera
+      78 ... 1885' is CAMEROON's ('Historique de quelques MAPE au Cameroun 2016-2020') - trap, not Gabon; 0 rows
+  Q19 [extraction] InVS 'Surveillance nationale des maladies infectieuses 1998-2000' (Agent 4 cache) -> no Gabon-linked
+      (imported) cholera; only Mayotte 2000; 0 rows
+  Q20 [OpenAlex filter=cites:W2410488953 + Europe PMC MED/11582870/citations] citation network of Okome-Nkoumou 2001 (metadata
+      20, rows 42/43) -> 2 citing works: Vlieghe et al. 2009 AMR review Central Africa 1955-2008 (not OA; abstract has no
+      Gabonese cholera) and a 2024 Campylobacter/Salmonella/Shigella review (PMC11675583; no Vibrio); depth-2 dead end; 0 rows
+Sources found: 1 (WER 100(36))    Registered: pending (registered at start of batch 2)
+Rows added   : 0    Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch floor)
