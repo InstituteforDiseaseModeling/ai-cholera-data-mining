@@ -22,3 +22,23 @@ Command: python py/repair_data_integrity.py --dry-run COD  (/tmp/COD_orch/a7/rep
 Result : TOTAL 0 change(s). No multi-year count row or CFR>15% row above confidence 0.7, no no-value rows, no exact duplicates,
          no label drift. ./data/COD/attribution_review.csv does not exist (nothing withheld for review). --apply not needed.
 
+Coverage (read-only analyse() and /tmp/COD_orch/orch_natcov.py, horizon 2026-10-02) - reproduces orchestrator D14 exactly:
+  JHU+WHO+AI any location : 681/682 = 99.9%, 0 gap periods, months_ai 681, months_ai_only 100, latest obs 2026-09-27 (5 d stale)
+  JHU+WHO baseline        : 581/682 = 85.2%, gaps 1970-01-01..1977-12-31 (2,922 d) and 2026-06-01..2026-10-02 (124 d), latest 2026-05-17
+  National rows only      : JHU+WHO+AI 621/682 = 91.1% (missing 1973-01..1977-12 + 2026-10 partial); JHU+WHO 581/682 = 85.2%;
+                            AI alone 230/682 = 33.7%
+
+=== AUDIT PASS 2: AGENT VERIFICATION (B) ===
+File reconciliation by Index range (./data/COD/cholera_data_ai.csv, csv.DictReader):
+  orig 1-17: 17 live | A1 18-2341: 2,290 live (2,298 claimed net - 8 later retracted by A3 [471] and A5 [864, 874-878, 1625]) |
+  A2 2342-9621: 7,248 live (7,254 claimed - 6 retracted by A3 [2623, 8276, 8281, 8334, 8338, 8342]) | A3 9622-10064: 431 | A4 10065-10257: 191 |
+  A5 10258-11034: 777 | A6 11035-11131: 93 | total 11,047. Every claim reconciles. Tombstones 84 = A1-range 34, A2 32, A3 12, A4 2, A6 4.
+Batch counts: 12 '=== BATCH n' blocks in each of ./data/COD/search_log_agent_{1..6}.txt = workflow_state.json batches_completed (12 x 6).
+Yields: all in percent, none > 100. Per-batch log lines differing from the state are DOCUMENTED self-corrections, not drift:
+  A1 batch 1 30->25 and batch 2 45->40 (log line 185, rows superseded), batch 5 60->55 (line 309); A4 batch 2 5->0 (line 153).
+  A3 batch 5 = 100% (20/20 re-fetches of Agent-2 bulletins yielding complement/derived zeros) and A2 batch 1 = 90% (17 of 18 successes
+  re-mines of Agent-1 documents): legitimate under the per-query definition but they measure re-mining, not discovery - noted in report.
+  A6 batches 3, 4, 6, 11 at exactly 5% (not below 5%): the 3-consecutive rule was never met (run 5/0/5/0 broken at batch 6) - continuing
+  was correct and batches 8-9 then yielded 50%/45%.
+Flags: none of the six ran < 3 batches, none reported yield > 100%, none claimed rows it did not add. B: PASS.
+
