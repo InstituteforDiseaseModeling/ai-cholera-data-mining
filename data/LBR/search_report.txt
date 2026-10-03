@@ -1,116 +1,252 @@
-=== LIBERIA (LBR) CHOLERA DATA ENHANCEMENT - FINAL SEARCH REPORT ===
+================================================================================
+LIBERIA (LBR) - AI CHOLERA DATA ENHANCEMENT - SEARCH REPORT
+Cycle opus55-rerun-2026-09-29 | Agent 7 (quality auditor) | written 2026-10-02
+Files: ./data/LBR/cholera_data_ai.csv (1,453 live rows), ./data/LBR/metadata_ai.csv (324 sources),
+       ./data/LBR/cholera_presence_ai.csv (71 records), ./data/LBR/retracted_rows_ai.csv (67 tombstones),
+       logs ./data/LBR/search_log_agent_1.txt .. _7.txt. Baseline (read-only): ./data/LBR/cholera_data_jhu.csv.
+NOTE: experimental AI-collected data; not yet validated by human experts. Verify before use.
+================================================================================
 
-**Country**: Liberia (LBR)
-**Completion Date**: 2025-07-24
-**Total Agents Deployed**: 6 (systematic 6-agent workflow)
-**Final Status**: COMPLETED
+1. EXECUTIVE SUMMARY
+--------------------
+Bottom line. The AI layer grew from 13 weakly sourced rows to 1,453 audited rows from 324 sources, and it now carries
+Liberia's record to 6 Sep 2026 (the JHU/WHO baseline stops at 31 Dec 2024). Headline coverage, however, barely moved:
+94.0% -> 94.4% of months (641 -> 644 of 682), because most new rows add resolution (weekly, monthly, county) inside
+months JHU already covered. 1990, 1992 and 1993 remain empty - probably in every public source.
 
-=== EXECUTIVE SUMMARY ===
+Coverage (read-only probe /tmp/LBR_orch/lbr_coverage.py; nothing written to ./reference/):
+  * Baseline JHU+WHO: 91.5% (624/682). Effective JHU+WHO+AI: 94.4% (644/682). months_ai_only: 20 (Jan 2025-Aug 2026).
+  * Cycle start: 94.0%, months_ai_only 17. Those 17 months rested on two zero rows (2025; Jan-May 2026) inferred only
+    from Liberia's absence from multi-country lists. Both were retracted; the 20 months now held rest on NPHIL bulletins.
+  * Counting only rows with a suspected count: 93.7% (639/682), AI-only 15. Aug-Dec 2025 is held only by a
+    confirmed-case zero (Index 1232).
+  * Closed: 2025-01..2026-08. Latest observation: 2024-12-31 -> 2026-09-06.
+  * Still open: 1990, 1992-1993 and Sep 2026 onward.
 
-The systematic 6-agent cholera data enhancement workflow for Liberia successfully completed comprehensive data collection and validation. Through 240 total queries across 5 agents (Agent 6 focuses on validation), the workflow identified and validated 11 cholera data observations from 8 high-quality sources spanning 2002-2011, filling critical gaps in WHO surveillance records during this period.
+Open gaps, and does the data exist? (Agent 6 classification, my assessment)
+  * 1990 - Non_Reporting_With_Presence, high. No Liberian disease report to WHO is dated between Apr 1990 and mid-1991
+    (cholera notifications resumed Aug 1991); cholera was present in Monrovia Jul-Oct 1990. No count in >200 targeted queries; public data probably does not
+    exist (unpublished leads: MSF-Belgium, ICRC).
+  * 1992-1993 - Non_Reporting_Unknown (low) to mid-Oct 1992, then Non_Reporting_With_Presence (moderate-high), with
+    Panta, Bong deaths in Feb-Apr 1993. No count anywhere; public data probably does not exist.
+  * 2025 wks 32-52 - suspected counts unpublished (NPHIL posted no bulletin 4 Sep 2025 - 5 Jun 2026; officers'
+    reporting strike threat). Probably exists in NPHIL's DHIS2; obtainable only by request. Confirmed cases = 0 (WHO).
+  * 2026 wks 1-19 and 2025 wks 25-30 - totals known (66 and 23), weekly split not. Sep 2026 onward - publication lag.
 
-=== QUANTITATIVE OUTCOMES ===
+Validator (python py/validate_quality.py LBR): 0 ERROR / 14 WARN at start and end, exit 0.
+  * The 14 WARNs are 13 CFR > 15% review flags (re-read on page images or source text) and 1 genuine single-day count
+    (Index 1510). Each CFR row's cases and deaths come from one source cell pair, or one sentence, for one period.
+  * Context is documented (1970-71 El Tor arrival, war-time 1991/1995, remote 1996/2000) and confidence is <= 0.7.
+    All 14 are justified flags, each now noted.
+What Agent 7 changed:
+  * Four-stage check of a stratified 100-row sample: S1 100%, S2 97%, S3 100%, S4 100%.
+  * 4 zero rows (WHO monthly "nil" entries inside continuing transmission: Index 1440-1443) re-graded from
+    Documented_Absence to Inferred_Absence 0.5.
+  * 31 documentation notes added.
+  * 33 presence records adjudicated; 16 carried-over IHR listings lowered from 0.8 to 0.1.
+  * Repair tool: 0 changes. No row added or retracted by Agent 7.
 
-**Data Observations Added**: 11 cholera data observations
-**Sources Identified**: 8 validated sources  
-**Temporal Coverage**: 2002-2011 (9-year span)
-**Geographic Coverage**: National to community level (AFR::LBR to AFR::LBR::Montserado::New_Kru_Town)
-**Source Quality**: 62.5% Level 1-2 sources, 37.5% Level 3 sources
-**Validation Success**: 100% of extracted data passed all quality control stages
+Retractions this cycle (67 tombstones):
+  * 12 of the 13 legacy rows: false citations, an extrapolated 1,560, an "estimated ~100", a mis-dated duplicate, and
+    the two invalid zero rows.
+  * 50 regional-platform zero cells that were non-reporting fills.
+  * 5 superseded or unsupported figures, including a ministerial "10,000 cases" claim.
 
-=== KEY DATA DISCOVERIES ===
+Agent productivity (batches; live rows; sources) - no yield above 100%; logs, state file and file contents reconcile:
+  * Agent 1 (12; 970; 91) - most productive. NPHIL 2023-2026 national and county weekly series (closed 2025-26), the
+    2003 WHO weekly table, and 1990s sitreps. Shortfall: 49 of its platform zeros were later retracted as fills.
+  * Agent 2 (12; 196; 35) - county and community detail 1996, 2002-06, 2016-17. Shortfall: most of its 26 presence
+    records from 1970-81 WHO lists were carry-over, and it found no county data for 2010, 2015 or 2020 wks 10-53.
+  * Agent 3 (12; 33; 37) - few rows, high value: applied the suspected-vs-confirmed directive, purged platform
+    false zeros, found the 1991 WHO notifications, and listed JHU false zeros.
+  * Agent 4 (12; 176; 98) - WHO WER/WHSR monthly series 1970-98; with Agent 5's additions it sums exactly to the JHU
+    annuals for 1971, 1973-77 and 1979-81.
+    Its 70-90% yields reflect page extraction from known WER issues, not search success. Nothing for 1990 or 1992-93.
+  * Agent 5 (12; 77; 53) - conflict ledger L1-L50, legacy clean-up, WER 2000-08, and the presence adjudication.
+  * Agent 6 (3; 0; 0) - gap classification only. It met the rule (3 batches at 0%); I agree with accepting it, since the
+    gaps were already exhausted. It registered none of its ~45 context sources.
 
-**Major Outbreaks Documented**:
-- 2003 outbreak: 6,353 cases (largest documented)
-- 2005 outbreak: Multiple community-level data points
-- 2008 outbreak: 888 cases in Montserado slums
-- 2002-2011: Systematic coverage of missing surveillance periods
+MODELLING CAVEATS (no shared code changed):
+ (a) The builder ranks WHO > JHU > AI per week, never sums, and Fourier-spreads JHU annuals. AI sub-annual rows inside
+     JHU-annual years - most of 1970-2014, and 2023's 50 NPHIL weekly rows - therefore do not change today's series.
+ (b) JHU "annual" rows for 1971, 1982, 1984, 1986, 1994, 1997 and 2002 are partial-year notification sums spread over
+     52 weeks. Treat the un-notified months as missing (unnotified epidemics in 1994 H2, 1997, 2002 H1).
+ (c) JHU values contradicted by primary sources: 2015 weekly zeros, 2017 annual 0, the 2018-12, 2020-02..04 and
+     2021-05..10 zero runs, 2024 cCh 103, 1984 = Mauritania's 492, 1996 deaths 169 vs 450, and 2022-24 age/sex rows
+     stored as national annual rows. Detail in A8.
+ (d) cCh-only rows 1232 and 1236 credit Aug-Dec 2025 and Jan-May 2026 in coverage, but the builder ignores them.
+     2025 wk32-52 suspected counts are missing (the builder writes wk32-36 as assumed_zero), and 2026 wk1-19 is a single
+     19-week aggregate.
+ (e) No laboratory-confirmed cholera since 2017 (e.g. 2025: 123 cultures negative), while 70-925 suspected cases per
+     year are reported. Positive predictive value is near zero for 2018-2026; the generic ~0.52 would overstate
+     transmission.
+ (f) The builder labels weeks with no row as assumed_zero (sCh 0, confidence 0.5) more than 52 weeks before the latest
+     observation. That writes 156 zero weeks for 1990, 1992 and 1993, when cholera was documented present. Treat as
+     missing.
+ (g) Weekly AI zero rows enter the series as "observed" regardless of evidence label.
+ (h) 2003 AI national weekly rows are WHO's 34-45-facility, mostly-Monrovia emergency system, not a complete national
+     count.
 
-**Geographic Distribution**:
-- National level: Multiple outbreak periods documented
-- Provincial level: Grand Bassa, Maryland, Montserado counties
-- Community level: New Kru Town, Harper, urban slums
+RECOMMENDATIONS:
+ 1. Re-check NPHIL for 2026 epi-week 37+ after mid-October 2026.
+ 2. Request NPHIL's internal 2025 wk32-52 counts (and the weekly splits of 2025 wks 25-30 and 2026 wks 1-19).
+ 3. For 1990 and 1992-93 use non-web archives:
+      - MSF-Belgium Brussels (Wuillaume 1992);
+      - ICRC Geneva;
+      - UNICEF Liberia 1990-93 situation reports;
+      - CDC EPI-AID files;
+      - WHO AFRO printed epidemiological bulletins.
+    WER annual indexes and full-year scans for 1987-1993 are exhausted; do not repeat them.
+ 4. Builder changes, for the modellers:
+      - prefer finer-resolution primary rows;
+      - suppress assumed_zero where a presence record or documented non-reporting exists;
+      - clip partial-year JHU annuals;
+      - honour evidence labels on weekly zeros;
+      - drop JHU age/sex rows.
+ 5. Propose the A8 corrections to the JHU baseline upstream, and fit a Liberia-specific PPV for 2018-2026.
+ 6. Add a presence-record verb that can split carry-over spans. Records 17-20 and 36 still read as presence for spans
+    that are mostly carry-over.
 
-**Epidemiological Insights**:
-- Case fatality rates: 1.0-4.0% (within expected range)
-- Attack rates: Community-specific variations documented
-- Seasonal patterns: Consistent with regional cholera epidemiology
-- Intervention effectiveness: New Kru Town 300→20 cases reduction documented
+================================================================================
+APPENDIX - METRICS
+================================================================================
+A1. SOURCES (./data/LBR/metadata_ai.csv)
+  Total 324 (Index 1-324, no holes): Level 1 228 | Level 2 70 | Level 3 26 | Level 4 0. Status: Active 316, Superseded 8
+  (legacy 1, 3, 4, 5, 6, 7, 9, 10). Registered this cycle: 314 (Index 11-324): L1 223 | L2 65 | L3 26.
+  By agent: A1 91 (L1 36 / L2 43 / L3 12); A2 35 (22/10/3); A3 37 (30/6/1); A4 98 (89/1/8); A5 53 (46/5/2); A6 0.
+  By family (this cycle, approximate): WHO WER/WHSR/DON/sitreps/WHA 180; UN agencies & UNICEF regional platform 49;
+  Liberia MoH/NPHIL/IDSR 38; press & monitored media (IRIN, Daily Observer, Delpher, Le Temps, FBIS/JPRS) 25;
+  donors/NGOs/Red Cross 15; academic/MMWR 6; EM-DAT 1.
+  Not referenced by any data row: 71 (presence-only 19; tombstone-only 10; cited in notes as corroboration/context 42).
 
-=== SURVEILLANCE INFRASTRUCTURE VALIDATION ===
+A2. OBSERVATIONS (./data/LBR/cholera_data_ai.csv, 1,453 live rows)
+  Added this cycle: 1,507 Index values (14-1520); 55 of them later retracted; 1,452 live + legacy row 7 = 1,453.
+  By type: count rows 1,420 (national 435, sub-national 985) | zero rows (sCh = 0) 17, all national | confirmed-only
+  rows (cCh = 0, sCh blank) 7 | cCh > 0 without sCh 1 (Montserrado 2012, 18 confirmed) | deaths-only 8 (1 national).
+  By geography: national 460 | county level 901 (incl. 8 Multi_Provincial) | district/town/community 92.
+  By agent (live): A1 970 | A2 196 | A3 33 | A4 176 | A5 77 | A6 0 | legacy 1.
+  By decade of TL: 1970s 130 | 1980s 40 | 1990s 49 | 2000s 239 | 2010s 187 | 2020s 808.
+  Confidence: 0.9-1.0 1,059 | 0.7-0.89 322 | 0.5-0.69 65 | 0.3-0.49 7.
+  Presence records (./data/LBR/cholera_presence_ai.csv): 71, all this cycle (A1 5, A2 36, A3 3, A4 4, A5 23); after
+  adjudication 16 carry-over records at 0.1.
+  Tombstones (./data/LBR/retracted_rows_ai.csv): 67 = A1 2 (13, 185) | A2 2 (1195, 1198) | A3 50 (12 and 49 platform
+  zeros) | A5 13 (legacy 1-6, 8-11; 1316, 1426, 985).
 
-**Current Capacity Confirmed**:
-- IDSR surveillance system operational since 2015
-- FETP training: 400+ graduates, 1:200,000 epidemiologist ratio
-- Laboratory capacity: 4 labs testing 10 priority diseases
-- Emergency response: EOCs in all 15 counties
-- Community surveillance: 3,177 CHWs deployed across 14 counties
+A3. VALIDATION
+  Validator: start 0 ERROR / 14 WARN; end 0 ERROR / 14 WARN (13 CFR_high_flagged_for_review: Index 290, 1146, 1148,
+  1264, 1265, 1301, 1303, 1311, 1313, 1315, 1378, 1382, 1429; period_single_day: 1510); INFO 301 (230 documented
+  national/sub-national overlaps; 71 unused metadata). Repair tool: 0 changes; no attribution_review.csv.
+  Four-stage sample: 100 rows (A1 31, A2 10, A3 18, A4 21, A5 20; strata 1970s-80s 21, 1990s 19, 2003 13,
+  2004-2014 17, 2016-2026 30; all 14 WARN rows). S1 authentication 100/100; S2 data quality 97/100 (3 FAIL->fixed:
+  zero rows 1440, 1441, 1443; 4 passed with a caveat added: 122, 123, 1251, 1252); S3 cross-reference 100/100
+  (2 caveats added: 130, 1004); S4 integration 100/100.
+  Whole-file checks: 0 duplicate rows; 69 overlapping national pairs, all labelled aggregate/do-not-sum; no county sum
+  above a same-period national value; AI year sums equal JHU annuals exactly in 1971, 1973-1977, 1979-1981; documented
+  excesses 2002 (+11), 2012-2014 (platform suspected counts above WHO annuals), 2017 (JHU false zero).
+  Zero rows (17): accepted 13 (1246 pre-introduction 1970; platform zeros 210, 211, 213, 233, 275, 276 under the
+  <=3-week rule; bulletin zeros 1247, 1242, 1243, 1233; platform zeros 1244, 1245 with caveat); re-graded 4 (1440-1443).
+  Confirmed-only rows (7: 1238, 1239, 1234, 1237, 1235, 1232, 1236): all accepted under the directive.
 
-**Historical Context**:
-- 2003 outbreak during civil conflict (300,000 IDPs)
-- Post-2015 surveillance strengthening after Ebola
-- Current status: High-risk country, no active transmission 2024-2025
+A4. AGENT PERFORMANCE (batches | yields % | rows added (live) | sources | presence)
+  A1 12 | 20,15,10,5,5,5,5,15,30,20,10,25 | 1,019 (970) | 91 | 5    stop: 12-batch maximum
+  A2 12 | 45,5,5,5,5,10,25,10,5,0,0,0    |   198 (196) | 35 | 36   stop: maximum + 3 consecutive sub-5%
+  A3 12 | 5,30,5,0,15,5,5,20,25,0,5,5    | 32+1 (33)   | 37 | 3    stop: maximum (B12 by redeployed instance)
+  A4 12 | 70,90,80,90,55,10,5,0,20,0,0,0 |   178 (176) | 98 | 4    stop: maximum + 3 consecutive sub-5%
+  A5 12 | 70,80,15,5,25,25,45,0,5,10,0,0 | 70+7 (77)   | 53 | 23   stop: maximum (3-consecutive rule never met)
+  A6  3 | 0,0,0                          |     0       |  0 | 0    stop: 3-batch floor + 3 consecutive sub-5%
+  Re-credited batches (documented, no effect on stopping): A1 B1 15->20, A2 B9 0->5, A3 B3 5->0->5 (row 1240 retracted,
+  row 1246 found in B3 and committed in B6).
+  Agent 7: 35 revisions (14 WARN notes, 4 zero re-grades, 13 coverage caveats, 4 cumulative caveats), 33 presence
+  annotations (16 down-weighted), 0 rows added, 0 sources, 0 retractions.
 
-=== GAP-FILLING EFFECTIVENESS ===
+A5. COVERAGE (months with >50% of days observed, 1970-01 .. 2026-10; 682 months)
+  Baseline JHU+WHO 624 (91.5%) | effective JHU+WHO+AI 644 (94.4%) | AI-only 20 | suspected-count-only effective 639
+  (93.7%), AI-only 15 | cycle start 641 (94.0%), AI-only 17.
+  Recency: baseline latest 2024-12-31 (640 days stale) -> now 2026-09-06 (26 days stale).
+  Year table (baseline months | effective months | AI-only months | months >50% covered by AI alone | AI rows by TL
+  year (national/sub-national, zero rows)):
+1970 | 12/12 | 12/12 |  0 | 10 |   14 (4/10, 2)
+1971 | 12/12 | 12/12 |  0 |  6 |   10 (6/4, 1)
+1972 | 12/12 | 12/12 |  0 |  6 |    9 (7/2, 1)
+1973 | 12/12 | 12/12 |  0 | 12 |   21 (12/9, 0)
+1974 | 12/12 | 12/12 |  0 | 12 |   18 (12/6, 1)
+1975 | 12/12 | 12/12 |  0 | 12 |   12 (12/0, 0)
+1976 | 12/12 | 12/12 |  0 | 12 |   12 (12/0, 0)
+1977 | 12/12 | 12/12 |  0 | 12 |   12 (12/0, 0)
+1978 | 12/12 | 12/12 |  0 | 10 |   10 (10/0, 0)
+1979 | 12/12 | 12/12 |  0 | 12 |   12 (12/0, 0)
+1980 | 12/12 | 12/12 |  0 | 12 |   12 (12/0, 0)
+1981 | 12/12 | 12/12 |  0 | 12 |   12 (12/0, 0)
+1982 | 12/12 | 12/12 |  0 |  6 |    2 (1/1, 0)
+1983 | 12/12 | 12/12 |  0 |  8 |    8 (8/0, 0)
+1984 | 12/12 | 12/12 |  0 |  3 |    3 (3/0, 0)
+1985 | 12/12 | 12/12 |  0 |  2 |    2 (2/0, 0)
+1986 | 12/12 | 12/12 |  0 |  3 |    1 (1/0, 0)
+1987 | 12/12 | 12/12 |  0 |  0 |    0 (0/0, 0)
+1988 | 12/12 | 12/12 |  0 |  0 |    0 (0/0, 0)
+1989 | 12/12 | 12/12 |  0 |  0 |    0 (0/0, 0)
+1990 |  0/12 |  0/12 |  0 |  0 |    0 (0/0, 0)
+1991 | 12/12 | 12/12 |  0 |  9 |    3 (2/1, 0)
+1992 |  0/12 |  0/12 |  0 |  0 |    0 (0/0, 0)
+1993 |  0/12 |  0/12 |  0 |  0 |    0 (0/0, 0)
+1994 | 12/12 | 12/12 |  0 |  7 |    4 (1/3, 0)
+1995 | 12/12 | 12/12 |  0 |  8 |    5 (5/0, 0)
+1996 | 12/12 | 12/12 |  0 | 12 |   30 (6/24, 0)
+1997 | 12/12 | 12/12 |  0 |  1 |    2 (1/1, 0)
+1998 | 12/12 | 12/12 |  0 |  3 |    5 (2/3, 0)
+1999 | 12/12 | 12/12 |  0 |  0 |    0 (0/0, 0)
+2000 | 12/12 | 12/12 |  0 |  8 |    4 (2/2, 0)
+2001 | 12/12 | 12/12 |  0 |  0 |    0 (0/0, 0)
+2002 | 12/12 | 12/12 |  0 |  3 |   20 (4/16, 0)
+2003 | 12/12 | 12/12 |  0 | 12 |  124 (21/103, 0)
+2004 | 12/12 | 12/12 |  0 | 12 |   11 (9/2, 0)
+2005 | 12/12 | 12/12 |  0 | 10 |   20 (6/14, 0)
+2006 | 12/12 | 12/12 |  0 | 11 |   45 (24/21, 0)
+2007 | 12/12 | 12/12 |  0 |  3 |   11 (6/5, 0)
+2008 | 12/12 | 12/12 |  0 | 12 |    2 (0/2, 0)
+2009 | 12/12 | 12/12 |  0 |  0 |    2 (1/1, 0)
+2010 | 12/12 | 12/12 |  0 |  0 |    0 (0/0, 0)
+2011 | 12/12 | 12/12 |  0 | 11 |    4 (3/1, 0)
+2012 | 12/12 | 12/12 |  0 |  9 |   25 (23/2, 0)
+2013 | 12/12 | 12/12 |  0 | 12 |   39 (39/0, 4)
+2014 | 12/12 | 12/12 |  0 |  5 |   20 (20/0, 2)
+2015 | 12/12 | 12/12 |  0 |  0 |    0 (0/0, 0)
+2016 | 12/12 | 12/12 |  0 | 12 |   19 (1/18, 0)
+2017 | 12/12 | 12/12 |  0 | 12 |   67 (5/62, 1)
+2018 | 12/12 | 12/12 |  0 |  7 |    5 (3/2, 0)
+2019 | 12/12 | 12/12 |  0 |  8 |    8 (5/3, 4)
+2020 | 12/12 | 12/12 |  0 |  2 |   15 (6/9, 0)
+2021 | 12/12 | 12/12 |  0 | 12 |    3 (3/0, 0)
+2022 | 12/12 | 12/12 |  0 | 11 |    3 (3/0, 0)
+2023 | 12/12 | 12/12 |  0 | 12 |  391 (51/340, 0)
+2024 | 12/12 | 12/12 |  0 | 12 |  197 (25/172, 1)
+2025 |  0/12 | 12/12 | 12 | 12 |  138 (28/110, 0)
+2026 |  0/10 |  8/10 |  8 |  8 |   61 (17/44, 0)
+TOTAL baseline 624 effective 644 ai_only 20 months_with_AI 406 AI_rows 1453
 
-**Priority Gaps Addressed**:
-- 2002-2011 period: Previously missing from surveillance records
-- Community-level data: Granular geographic coverage achieved
-- Intervention outcomes: Treatment effectiveness documented
-- Cross-border context: Regional transmission patterns validated
+A6. HELD-OUT FIGURES (single source >1000 or unresolved; not entered; see Agent 5 ledger L31, L47, L49)
+  WER 1995 7 Sep-20 Oct 2,410/56; WER 1996 '...-5.VII' 2,082/19 and '...-31.X' 1,176/82; WER 1998 27 Jun-22 Jul 1,871;
+  WHO Fifth World Health Situation Report Aug 1970-Feb 1973 3,629/213; MSF-B Monrovia CTU 1997-2002 (2,282 / 4,849 /
+  2,305 / 1,876 / 1,617); Daily Observer 1981 Monrovia 1,604/40; MSF-B 1994 ~3,000; 2003 WER 3,690, 5,724, 2,272; MSF 2003
+  8,132; UNMIL 2007 1,520; WER 2005 1,636; Minister 1994 10,000 (deaths-only row 1487 kept).
 
-**Remaining Limitations**:
-- 2012-2018 period: Limited additional data available
-- Recent years (2019-2025): Surveillance suggests minimal cholera activity
-- Provincial detail: Some counties lack specific outbreak documentation
+A7. REMAINING GAPS AND NON-REPORTING PERIODS (Agent 6 classification; confidence in the classification)
+  1990-01-01..1990-12-31 Non_Reporting_With_Presence HIGH | 1991-10-01..1992-10-14 Non_Reporting_Unknown LOW |
+  1992-10-15..1993-12-31 Non_Reporting_With_Presence MODERATE-HIGH | 2026-09-07..2026-10-02 Publication_Lag HIGH |
+  2025-08-04..2025-12-28 Non_Reporting_Unknown (suspected) HIGH | 2025-06-16..07-27 and 2025-12-29..2026-05-10
+  Publication_Lag (totals known) | 2014-06-02..2015-12-31 Non_Reporting_Unknown HIGH | partial-year JHU annuals 1971 H2,
+  1982 H2, 1984 Apr-Dec, 1986 Apr-Dec, 1994 H2, 1997 Feb-Dec, 2002 H1 | 1970-01-01..1970-07-24 True_Absence_Inferred.
 
-=== METHODOLOGICAL VALIDATION ===
-
-**Search Comprehensiveness**:
-- 15+ search engines systematically covered
-- 486 priority sources evaluated
-- Multi-language approaches (English, Portuguese, French)
-- Historical archives extensively searched (Episcopal, IU Collections)
-
-**Quality Assurance**:
-- Dual-reference indexing system implemented
-- Cross-validation across 8 sources
-- Epidemiological plausibility confirmed
-- Geographic accuracy verified
-
-**Alternative Approaches Tested**:
-- Obscure sources: Extensive infrastructure mapping completed
-- Source permutations: Alternative terminology validated
-- Adjacent domains: WASH, surveillance, treatment data explored
-- Zero-transmission: Absence periods investigated
-
-=== SOURCE RELIABILITY ASSESSMENT ===
-
-**Level 1 Sources (37.5%)**: CDC, WHO, government reports
-**Level 2 Sources (25.0%)**: Academic publications, UNICEF
-**Level 3 Sources (37.5%)**: MSF, news media, NGO reports
-
-**Confidence Weighting Distribution**:
-- High confidence (0.8-1.0): 62.5% of observations
-- Medium confidence (0.6-0.8): 25.0% of observations  
-- Lower confidence (0.4-0.6): 12.5% of observations
-
-=== STRATEGIC RECOMMENDATIONS ===
-
-**For MOSAIC Modeling**:
-- Use confidence weights in likelihood functions
-- Apply temporal interpolation for 2012-2018 gap
-- Consider regional patterns for missing periods
-- Integrate with JHU database using dual-reference system
-
-**For Future Data Collection**:
-- Monitor IDSR bulletins for real-time surveillance
-- Engage with NPHIL for historical data access
-- Track WHO regional reports for outbreak notifications
-- Consider academic partnerships for ongoing monitoring
-
-=== CONCLUSION ===
-
-The Liberia cholera data enhancement achieved significant gap-filling success, adding 11 high-quality observations that improve temporal coverage during the critical 2002-2011 period. The comprehensive methodology validated data completeness while confirming Liberia's current preparedness capacity. The enhanced dataset provides robust foundation for MOSAIC epidemiological modeling while documenting the country's substantial surveillance infrastructure development since the Ebola outbreak.
-
-**Overall Assessment**: SUCCESSFUL - Significant gaps filled with high-quality data, comprehensive validation completed, infrastructure thoroughly documented.
+A8. JHU BASELINE VALUES CONTRADICTED BY PRIMARY SOURCES (JHU read-only; documented on AI rows)
+  * 2015 - 52 weekly zeros are UNICEF platform fills (W1-9 blank in the workbook; no Liberian 2015 submission to WHO).
+  * 2017 - WHO-annual 0 cases / 0 deaths vs IDSR 154 suspected, 2 confirmed, 5 deaths (Index 453).
+  * 2018-12-17..30 - zeros where the platform says 'NA'; W47-50 absent.
+  * 2019-12-30..2020-01-19 and 2020-02-17..04-06 - zeros vs NPHIL 3, 1, 2 and 2, 2 suspected (Index 1256-1261).
+  * 2021-05-31..10-18 - 21-week zero run vs NPHIL 152 suspected (Index 1253); JHU UNICEF-CP stream lags NPHIL by one week.
+  * 2022 wk13 JHU 0 and 9 vs NPHIL 12 (Index 1254); 2022 wk25-26 JHU UNICEF-CP zeros vs NPHIL 8 and 5; duplicate JHU weeks
+    2019 wk15 (2 and 3) and 2024 wk13 (0 and 6); 2024 wks 11/12/15/23/26 differ from NPHIL (Index 1489-1493).
+  * 2024 - cCh 103 (WER 100(36) '105 tested, 103 positive') vs NPHIL 101 negative, 0 positive (Index 1235).
+  * 1984 - 492/8 is Mauritania's figure in WER 60(20) 'Cholera in 1984' (Liberia 17*); WHO notified Liberia 9 cases for Jan-Mar.
+  * 1996 - deaths 169 vs 450 (WER 72(31); UN DHA SitRep 58).
+  * 2022-2024 - WHO age/sex breakdowns stored as extra national annual rows (e.g. 2024: 141, 199, 12, 328).
+================================================================================
