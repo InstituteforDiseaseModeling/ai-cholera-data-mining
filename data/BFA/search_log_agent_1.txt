@@ -8,3 +8,111 @@ Effective coverage at start: 99.4% (678/682 months), 1 gap period (2026-07-01..2
 Coverage caveat: 281 of 535 AI-covered months are AI-only and come almost entirely from 8 long zero rows (1975-1990, 1992-1994, 1997, 2002-2004, 2006-2010, 2013-2020, 2023-2024, 2025-07..2026-06), several Inferred_Absence and two contradicted by JHU.
 Prior-cycle logs archived as search_log_agent_N_legacy_2026-05-13.txt
 
+
+=== AGENT 1 PLAN (cycle 2026-10-02) ===
+Written: 2026-10-02 (before first query)
+Inputs read: ./CLAUDE.md; ./templates/template_search_protocol.txt; ./data/BFA/cholera_data_ai.csv (25 rows);
+  ./data/BFA/metadata_ai.csv (15 sources); ./data/BFA/cholera_presence_ai.csv (4 rows); ./data/BFA/workflow_state.json
+  (orchestrator block only); /tmp/BFA_orch/bfa_context.md; /tmp/BFA_orch/wer_cache_bfa_lines.txt (1,243 cached files);
+  /tmp/BFA_orch/wer_url_map_all_countries.csv (1,830 verified WER/IRIS URLs); legacy log search_log_agent_1_legacy_2026-05-13.txt.
+Start state: validate_quality BFA = ERROR 0 / WARN 12.
+Not run (orchestrator instruction, countries run in parallel): py/analyze_effective_gaps.py, update_dashboard.sh.
+
+Targets, in priority order (orchestrator context pack + longest-duration first):
+ P1 No-JHU periods whose only coverage is an inferred/contradicted AI zero row:
+    1979-83 (1826d), 1986-90 (1826d), 1992-94 (1096d), 1976-77 (731d), 2009-10 (730d), 1997, 2002, 2004, 2007 (365d each).
+    Method: WHO WER annual cholera summaries, one per year ("Cholera in YYYY" / "Cholera, YYYY"), read from the IRIS/Wayback
+    PDF (page images where OCR is unreliable). Listed with cases -> national row; explicit "did not report"/zero-report text
+    -> Documented_Absence; mere omission from the table -> Inferred_Absence (per context-pack rule).
+ P2 Correct suspect rows: 24-25 (ReliefWeb snapshot, suspected Cameroon), 28 (UNICEF 2025 'Central Sahel'),
+    4/6/9/13/16 (multi-year inferred zeros) - retract only on definitive evidence or full-span replacement.
+ P3 Recent gap 2026-07-01..2026-10-02 (94d) and 2025 status: WER 2026 annual report 2025 (zero-reporting table),
+    WER-hosted monthly multi-country cholera updates (Jul-Oct 2026), Africa CDC weekly reports, AFRO bulletins, ECDC,
+    ReliefWeb/OCHA, sante.gov.bf, French-language national media.
+ P4 Intra-year / sub-national detail for JHU-annual-only epidemic years (1970-75, 1978, 1984-85, 1991, 1995-96,
+    1998-2001, 2011-12) from WER weekly IHR notification tables and outbreak papers.
+Phases: 1 broad discovery batches 1-4 (WHO annual tables, humanitarian, academic, recent), 2 targeted batches 5-8
+  (weekly notifications, provinces, French media), 3 deep validation batches 9-12 (citation chains, archives, cross-border).
+Every batch mixes >=3 of the 7 categories; linguistic category uses French ("cholera", "diarrhee aqueuse aigue",
+  "Haute-Volta"). A "query" = one WebSearch or one targeted document retrieval (fetch/download+read of a specific document).
+Stopping rule: >=3 batches; then stop at 3 consecutive batches <5% yield or 12 batches. No time limit.
+Writers only: py/add_observation.py, py/revise_observation.py. Downloads in /tmp/BFA_a1/.
+
+=== BATCH 1 | PHASE 1 | BFA ===
+Gap targeted : 1976-77 (731d, historical), 1979-83 (1826d, historical), 2025 (365d, recent), 2026-07-01..2026-10-02 (94d, recent);
+               suspect rows 24-25 and 28. Categories: WHO/official, historical, humanitarian, regional (Africa CDC), linguistic (fr), academic.
+Queries      : 20
+ Q01 [WHO] WER 101(38) 25 Sep 2026 Cholera Annual Report 2025 (IRIS bitstream 07c30489...) -> Table 5 zero report lists Burkina Faso -> row 30
+ Q02 [WHO] WER 100(36) 5 Sep 2025 Cholera, 2024 (IRIS bitstream 6df56b18...) -> Table 2 zero reporting lists Burkina Faso -> row 31
+ Q03 [WHO] WER 99(36) 6 Sep 2024 Cholera, 2023 (IRIS bitstream 24c7a598...) -> Table 2 zero reporting lists Burkina Faso -> row 32
+ Q04 [WHO] WER 101(39) 2 Oct 2026 monthly multi-country cholera update, data to 30 Aug 2026 (live who.int page) -> BFA absent
+     from 19-country African table (all 12 'Burkina' hits are LF/yellow fever) -> corroboration only, no row
+ Q05 [Regional] Africa CDC Epidemic Intelligence Report issue 2026-09-20 (Sep 2026 download page, 28Sep26 PDF, image pages read)
+     -> 'Cholera in Africa' 2026: 20 AU MS, BFA absent; 2025: 24 AU MS, BFA absent -> row 33 (2026-01-01..2026-09-20 Inferred_Absence)
+ Q06 [Humanitarian] ReliefWeb/OCHA W&C Africa snapshot 4-10 Oct 2022 (live 403; Wayback 20221012193219) -> 12,517/254 paragraph is
+     under CAMEROON heading -> RETRACTED rows 24, 25; metadata 13 set Superseded. No new row.
+ Q07 [Humanitarian] UNICEF BFA HSR No.1 Jan-Apr 2025 PDF (metadata 12 URL) -> no cholera content at all -> RETRACTED row 28;
+     metadata 12 set Superseded. No new row.
+ Q08 [Historical/WHO] WER 52(19) 13 May 1977 Cholera in 1976 (IRIS 10665/221355) -> Upper Volta not among 11 African countries -> row 34
+ Q09 [Historical/WHO] WER 53(17) 28 Apr 1978 Cholera in 1977 (IRIS 10665/221859) -> not among 12 African countries -> row 35
+ Q10 [Historical/WHO] WER 55(18) 2 May 1980 Cholera in 1979 (IRIS 10665/223030) -> text: Upper Volta 'did not report cases in 1979'
+     ('n'en ont notifie aucun') -> row 36 (Documented_Absence)
+ Q11 [Historical/WHO] WER 56(13) 3 Apr 1981 Cholera in 1980 (IRIS 10665/223434) -> not among 14 African countries -> row 37
+ Q12 [Historical/WHO] WER 57(17) 30 Apr 1982 Cholera in 1981 (IRIS 10665/223951; page image) -> not among 15 -> row 38
+ Q13 [Historical/WHO] WER 58(27) 8 Jul 1983 full issue, Cholera in 1982 table p.210 (IRIS item 3b92e08c; page image) -> not among 16 -> row 39
+ Q14 [Historical/WHO] WER 59(19) 11 May 1984 Cholera in 1983 (IRIS 10665/224941; page image) -> not among 13 -> row 40 (conf 0.6, Ghana 1983 epidemic)
+ Q15 [Linguistic] WebSearch "choléra Burkina Faso 2026 cas" -> no 2026 BFA cholera report (hits: Chad AFRO sitrep, 2021-22 Wakat Sera) -> no row
+ Q16 [WHO/news] WebSearch "Burkina Faso cholera outbreak August September 2026" -> summarizer misdated 2005 IPS article; IPS (14 Sep 2005)
+     gives 2005 cumulative 655/10 (7 Sep) and 825/11 (14 Sep), Koudougou 16/1, Ouagadougou >600/8, and '2001: 544 cas dont neuf deces'
+     -> held for corroboration (Level 3, 100-1000 cases), no row yet
+ Q17 [Linguistic/Historical] WebSearch "choléra Haute-Volta 1984 épidémie Ouagadougou cas décès" -> leads only (IRD PDF, Mali 1984) -> no row
+ Q18 [Academic] WebSearch "cholera Burkina Faso epidemiology 1970-2010 review epidemics surveillance data" -> lead: WER 76(38) 2001
+     interim 55 cases/3 deaths (14 Jul-4 Sep 2001, Ourgaye) -> no row yet
+ Q19 [Academic] hsd-fmsb.org article 4409 (Moustapha et al.) -> Niger 2011-2020 only, no BFA data -> no row
+ Q20 [Historical] IRD horizon 13891.pdf -> 1969 yellow fever epidemic report (Centre Muraz), not cholera -> no row
+Sources found: 16    Registered: index 16,17,18,19,20,21,22,23,24,25,26
+Rows added   : 11    Indices: 30,31,32,33,34,35,36,37,38,39,40
+Retractions  : 3     Indices: 24,25 (Cameroon data misattributed), 28 (text not in cited UNICEF source; contradicted by WHO 2025 zero report)
+Successful queries: 11/20 (Q01,Q02,Q03,Q05,Q08,Q09,Q10,Q11,Q12,Q13,Q14)
+Yield        : 55%
+Consecutive sub-5% batches: 0
+validate_quality BFA: ERROR 0 / WARN 10 (all pre-existing rows)
+Decision     : CONTINUE (minimum 3 batches; yield >=5%)
+
+=== BATCH 2 | PHASE 1 | BFA ===
+Gap targeted : 1986-90 (1826d, historical), 1992-94 (1096d, historical), 2009-10 (730d, modern), 1997/2002/2004/2007 (365d each);
+               plus 2003/2006/2008 to complete full-span replacement of weak multi-year rows 13 and 16.
+               Categories: WHO/official, historical, humanitarian (MSF), academic, linguistic (fr national media).
+Queries      : 20
+ Q01 [Historical/WHO] WER 62(20) 15 May 1987 Cholera in 1986 (IRIS 10665/226262; page image) -> BFA absent from 17 African countries;
+     text '5 countries that had reported cases in 1985 apparently remained free of cholera in 1986' -> row 41
+ Q02 [Historical/WHO] WER 63(20) 13 May 1988 Cholera in 1987 (IRIS bitstream 8ec44993) -> absent from 17 -> row 42
+ Q03 [Historical/WHO] WER 64(19) 12 May 1989 full issue, Cholera in 1988 (IRIS 10665/227148; page image) -> absent from 12 -> row 43
+ Q04 [Historical/WHO] WER 65(19) 11 May 1990 full issue, Cholera in 1989 (IRIS 10665/227603; page image) -> absent from 16 -> row 44
+ Q05 [Historical/WHO] WER 66(19) 10 May 1991 Cholera in 1990 (IRIS 10665/228010) -> absent from 10 -> row 45 (conf 0.6; Ghana 2937)
+ Q06 [Historical/WHO] WER 68(21) 1993 Cholera in 1992 (IRIS 10665/228720) -> absent from 20 -> row 46
+ Q07 [Historical/WHO] WER 69(28) 15 Jul 1994 Cholera in 1993 Part I (IRIS 10665/229109) -> absent from 16 -> row 47
+ Q08 [Historical/WHO] WER 70(28) 14 Jul 1995 Cholera in 1994 Part I (IRIS 10665/229467) -> absent from 28 -> row 48 (conf 0.5)
+ Q09 [Historical/WHO] WER 73(27) 3 Jul 1998 Cholera in 1997 (IRIS 10665/230506) -> absent from 26 -> row 51 (row 9 retracted first:
+     writer duplicate guard blocked an identical-period row)
+ Q10 [WHO] WER 78(31) 1 Aug 2003 Cholera, 2002 (IRIS 10665/232224) -> absent from 27 -> row 49
+ Q11 [WHO] WER 80(31) 5 Aug 2005 Cholera, 2004 (IRIS 10665/232852) -> absent; all 6 neighbours reported -> row 50 (conf 0.5)
+ Q12 [WHO] WER 83(31) 1 Aug 2008 Cholera, 2007 (IRIS 10665/241184) -> absent from 34 -> row 52
+ Q13 [WHO] WER 85(31) 30 Jul 2010 Cholera, 2009 (IRIS 10665/241610) -> absent from 30 -> row 53
+ Q14 [WHO] WER 86(31) 29 Jul 2011 Cholera, 2010 (IRIS bitstream 3b6a4ccb) -> absent from 23 (BFA appears only in dracunculiasis table) -> row 54
+ Q15 [WHO] WER 79(31) 30 Jul 2004 Cholera, 2003 (IRIS 10665/232546) -> 'Burkina Faso 1' case -> row 55 (contradicts zero row 13)
+ Q16 [WHO] WER 82(31) 3 Aug 2007 Cholera, 2006 (IRIS 10665/240979) -> 'Burkina Faso and Gambia had zero reporting' -> row 56 (Documented)
+ Q17 [WHO] WER 84(31) 31 Jul 2009 full issue, Cholera, 2008 (IRIS 10665/241396) -> absent from 36; all neighbours reported -> row 57 (conf 0.5)
+ Q18 [Humanitarian] WebSearch "MSF Médecins Sans Frontières Burkina Faso choléra Ouagadougou 2005 cas traités" -> no MSF BFA counts -> no row
+ Q19 [Academic] WebSearch "cholera Burkina Faso 1991 OR 1995 OR 1998 epidemic Ouagadougou Bobo-Dioulasso study Vibrio cholerae O1 cases"
+     -> only the 2005 PAMJ/PMC study and an IRD record (fdi:010072324) -> no row
+ Q20 [Linguistic] WebSearch "lefaso.net choléra Burkina épidémie cas décès ministère de la santé" -> Burkina24/Wakat Séra 2021-22
+     Kantchari items (already in JHU/AI) -> no row
+Sources found: 19    Registered: index 27-43 (17)
+Rows added   : 17    Indices: 41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57
+Retractions  : 3     Indices: 9 (replaced by 51), 6 (replaced by 46,47,48), 13 (contradicted for 2003 by WER 79(31); replaced by 49,55,50)
+Successful queries: 17/20 (Q01-Q17)
+Yield        : 85%
+Consecutive sub-5% batches: 0
+validate_quality BFA: ERROR 0 / WARN 7 (pre-existing rows)
+Decision     : CONTINUE (minimum 3 batches; yield >=5%)
