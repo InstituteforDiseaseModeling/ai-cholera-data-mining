@@ -1,86 +1,142 @@
-=== AGENT 6 INITIALIZATION ===
-Country: Guinea-Bissau (GNB)
-Start Time: 2026-05-14 00:00:00
+=== AGENT 6 (GAP CONTEXT INVESTIGATOR) INITIALIZATION ===
+Country    : Guinea-Bissau (GNB)  [historical: Guine Portuguesa / Portuguese Guinea, to 1973-74]
+Start Time : 2026-10-03 (cycle 2026-10-01 Opus 5.5 re-run; GNB cycle start 2026-10-02 21:05)
 Agent 6 Status: INITIALIZED
+Log file   : ./data/GNB/search_log_agent_6.txt (FRESH - the previous-cycle Agent 6 log of 2026-05-14 is preserved in git;
+             it was overwritten here as instructed. Note: that old log classified 1988-1993 and 1999-2001 as surveillance gaps
+             on the strength of a single PMC8583644 sentence; both are re-examined below with health-system evidence.)
 
-=== AGENT 6 GAP CONTEXT INVESTIGATOR ===
-Objective: Investigate remaining temporal gaps >=6 months to distinguish non-reporting vs zero-transmission
-Requirements: Continue until 3 consecutive batches <5% yield OR 10 total batches maximum
-Target: Characterize surveillance gaps with context - were these reporting failures or true cholera-free periods?
-Method: Parallel batch execution focusing on gap context and surveillance system documentation
+TOOLING NOTE
+  The session-wide WebSearch budget (200 calls shared by all agents) is exhausted. No WebSearch call is made. A "query" in
+  this log = one fetch-based search against an institutional / database / archive endpoint, or one targeted fetch-and-read
+  of a specific document, via curl (-sL -A "Mozilla/5.0") or WebFetch. No general web search engine (Google/Bing/DDG) is
+  routed through curl/WebFetch. No access restriction is bypassed (paywalls, IP-restricted theses, bot challenges):
+  where a host blocks automated access the query is logged as blocked and not retried through another route on that host.
+  Endpoints used: WHO GHO OData API (ghoapi.azureedge.net), WHO IRIS DSpace REST (iris.who.int/server/api) + bitstreams,
+  Europe PMC REST (search, fullTextXML, references), PubMed E-utilities, OpenAlex, Crossref, ReliefWeb API v1,
+  Wayback CDX/snapshots, UN ODS, World Bank documents API, Internet Archive advancedsearch/full text.
 
-=== BASELINE GAP ANALYSIS ===
-Gaps from baseline_surveillance_gaps_detailed.csv:
-1. 1970-01-01 to 1985-12-31 (16.0 years) - pre-surveillance era, no cholera known
-2. 1988-01-01 to 1993-12-31 (6.0 years) - post-1986/1987 epidemic gap
-3. 1999-01-01 to 2001-12-31 (3.0 years) - civil war disruption
-4. 2010-01-01 to 2011-12-31 (2.0 years) - inter-epidemic gap
-5. 2018-01-01 to 2019-12-31 (2.0 years) - recent surveillance gap
-6. 2025-01-01 to 2026-05-31 (1.4 years) - current period
+INPUTS READ (before the first query)
+  ./templates/template_search_protocol.txt; ./.claude/agents/gap-context-investigator.md; CLAUDE.md (zero-transmission rules);
+  ./data/GNB/workflow_orchestrator_GNB.txt (adjudications + gate log after Agents 1-5); ./data/GNB/workflow_state.json;
+  ./data/GNB/search_log_agent_1.txt .. _5.txt (1,140 queries; Leads (A6) blocks; Agent 5 CONFLICT REGISTER C1-C21);
+  ./data/GNB/cholera_data_ai.csv (969 rows; all 50 national zero rows read in full, notes included);
+  ./data/GNB/metadata_ai.csv (260 sources; Superseded 1,2,3,5,6,7,9,10,12,13,15,170,244 - never cited here);
+  ./data/GNB/cholera_presence_ai.csv (32 entries); ./data/GNB/retracted_rows_ai.csv; ./reference/country_profiles.json -> GNB.
+  ./data/GNB/cholera_data_jhu.csv is READ-ONLY (filtered with python only).
 
-Current AI data coverage: 22 rows (agents 1-5 work)
-Key gaps still needing context:
-- 1988-1993: Was cholera absent or was surveillance disrupted?
-- 1999-2001: Civil war - cholera absent or unreported?
-- 2010-2011: Inter-epidemic - confirmed zero or surveillance gap?
-- 2018-2019: Recent gap - confirmed zero or missing data?
-- 2025-2026: Current period - confirmed absence?
+STARTING STATE
+  validate_quality GNB: exit 0, ERROR 0, WARN 22 (21 CFR_high_flagged_for_review, 1 period_single_day), INFO 297
+  Read-only recompute (py/analyze_effective_gaps.analyse in memory; shared ./reference files NOT rewritten):
+    coverage 94.9% (647/682 months), months_ai_only 315, months_jhu 332, positive months 216, 1 effective gap:
+    1972-01-01..1974-10-31 (1035 d, 34 months, historical). Latest observation 2026-09-28; latest positive 2014-12-31.
 
+PLAN (what Agent 6 answers: for each period, was there no cholera, or was nobody reporting?)
+  A. Effective gap 1972-01-01..1974-10-31 (colonial war; unilateral independence 24 Sep 1973; Portuguese recognition
+     10 Sep 1974; IHR binding 29 Oct 1974). Decide surveillance gap vs inferred absence.
+  B. Long low-weight absence rows carrying 1970-1994 coverage: 969/972/973 (1970-71), 953 (1974-11..1982-12), 967 (1983-85),
+     968 (1986-01..11-09), 73 (1988-01..1994-09). Context checks the earlier agents did not run: other notifiable diseases
+     reported to WHO by year (GHO), IHR annual-report filing, conflict/crisis, neighbours' cholera (Senegal, Guinea) and
+     where it was, retrospective statements. Keep / re-weight / narrow / retract with reasons.
+  C. Periods deliberately left empty or flagged: 1986-12-13..1987-09-20; 1998-01-18..1998-06-06 and the 1998-99 war rows
+     (960, 92, 958); Nov-Dec 2007; 2013 W7-9; 2010-11..2012-05 (Bandim qPCR O1); 2020 (rows 959/957/961); 2022 (yearbook);
+     2025 (rows 962/946/23); 2026-06..09 (row 67); 2015-2019 zeros (PLoS NTD 2021 Bandim stool study).
+  D. Agent 5 unresolved conflicts C6 (1998 dating), C14 (2014 WHO 11/2 vs UNICEF 18/3), C17 (2022 yearbook vs WHO 0).
+  Batches of exactly 20 queries; minimum 3 batches; stop at 3 consecutive batches <5% yield or 12 batches. Yield in PERCENT.
+  Low yield is expected for this agent; the classification section at the end is the main product.
 
-=== BATCH 1 EXECUTION - GAP CONTEXT INVESTIGATION ===
-Start Time: 2026-05-14 00:15:00
-Target: Characterize all major surveillance gaps for Guinea-Bissau
-
-Queries executed (20 total):
-Q1: "Guinea-Bissau cholera 1988 1989 1990 WHO annual report cases surveillance" - KEY FINDING: PMC8583644 confirms 1988-1993 gap due to surveillance disruption (not zero-transmission)
-Q2: "Guinea-Bissau cholera 1991 1992 1993 inter-epidemic absence historical" - CONFIRMED: 1988-1993 gap = political instability/civil conflict surveillance disruption
-Q3: PMC8583644 WebFetch - CRITICAL NEW DATA: 1986=200 cases/50 deaths, 1987=6000 cases/68 deaths, 2002=1132/8 deaths, 2004=227/3 deaths, 2007=73/3 deaths, 2008=14228/225 deaths, 2012=3280/22 deaths, 2013=969/28 deaths
-Q4: plateformecholera.info WebFetch - ACCESS DENIED (403)
-Q5: PMC3087718 WebFetch - 2008 confirmed 14228 cases/225 deaths full epidemic; SAB 9394 cases/73 deaths
-Q6: "Guinea-Bissau cholera 2018 2019 WHO surveillance cases zero absent" - NO specific 2018-2019 data
-Q7: "WHO cholera annual data Guinea-Bissau 2018 2019 2020 cases reported" - Post-2013 absence trend confirmed; no specific 2018-2019 data
-Q8: "Guinea-Bissau cholera 1999 2000 2001 civil war cases deaths WHO" - CONFIRMED: 1998-2001 gap = surveillance system collapse (civil war June 1998-May 1999)
-Q9: WHO cholera cases and deaths WebFetch - Interactive dashboard, data not directly extractable
-Q10: "Guinea-Bissau cholera 2010 2011 cases WHO annual surveillance data zero" - PMC8583644 reports "almost no cholera cases for 3 consecutive years after 2008" but 2011+ outbreak confirmed in West Africa
-Q11: WHO AFRO cholera bulletin June 2025 WebFetch - CONFIRMED: Guinea-Bissau NOT in 2025 affected countries list
-Q12: "WHO AFRO cholera bulletin 2025 countries affected Guinea-Bissau absent" - CONFIRMED: 2025 absence confirmed
-Q13: "Guinea-Bissau cholera 2007 cases deaths 73 WHO annual report" - PMC confirms 2007=73 cases/3 deaths (no prior entry in dataset)
-Q14: "Guinea-Bissau cholera 2013 969 cases 28 deaths total epidemic year data" - CONFIRMED: PMC data 969 cases/28 deaths for full year 2013
-Q15: "WHO Weekly Epidemiological Record Guinea-Bissau cholera 2018 2019 annual summary" - WER 2018 issue found but not accessible
-Q16: PMC8583644 second WebFetch - CONFIRMED full year-by-year table
-Q17: Nature Medicine 2025 cholera shifting - PAYWALL, not accessible
-Q18: WHO AFRO bulletin January 2025 context - confirmed 20 affected countries, not including GNB
-Q19: "Guinea-Bissau cholera absence 2018 2019 no cases WHO zero reporting member state" - CONFIRMED post-2013 absence trend
-Q20: "Guinea-Bissau cholera 2025 2026 current status WHO AFRO outbreak reports" - CONFIRMED: GNB absent from all 2025 WHO AFRO reports
-
-BATCH 1 KEY FINDINGS:
-1. PMC8583644 provides authoritative year-by-year data table with CORRECTIONS needed:
-   - 1986: 200 cases (not empty as currently recorded), 50 deaths
-   - 1987: 6000 cases, 68 deaths - MISSING FROM DATASET
-   - 2002: 1132 cases, 8 deaths (vs. current 1355 - source discrepancy)
-   - 2004: 227 cases, 3 deaths (vs. current ~600 - CORRECTION NEEDED)
-   - 2007: 73 cases, 3 deaths - MISSING FROM DATASET
-   - 2008: 14228 cases, 225 deaths (full epidemic May 2008-Jan 2009; vs. current 7166 which was Sep 2008 interim WHO DON figure)
-   - 2012: 3280 cases, 22 deaths (vs. current 3359 - minor difference)
-   - 2013: 969 cases, 28 deaths (vs. current 742 which was interim UNICEF July 2013 figure)
-2. 1988-1993 gap: Confirmed surveillance disruption (political instability/civil conflicts), not confirmed zero-transmission
-3. 1999-2001 gap: Confirmed civil war surveillance system collapse (not confirmed zero-transmission)
-4. 2009-2011 gap: PMC says "almost no cholera for 3 consecutive years" after 2008; 2011 West Africa regional outbreak included GNB
-5. 2018-2019 gap: No specific data found; consistent with post-2013 absence documented in PMC water quality study
-6. 2025-2026: CONFIRMED absence from all 2025 WHO AFRO bulletins
-
-NEW DATA ROWS TO ADD:
-- AFR::GNB 1986: sCh=200, deaths=50 (CORRECTION to existing row which has empty values)
-- AFR::GNB 1987: sCh=6000, deaths=68 (NEW)
-- AFR::GNB 2004: sCh=227, deaths=3 (CORRECTION to existing row)
-- AFR::GNB 2007: sCh=73, deaths=3 (NEW)
-- AFR::GNB 2008 full epidemic: sCh=14228, deaths=225 (correction of existing interim DON figure)
-- AFR::GNB 2013 full year: sCh=969, deaths=28 (correction of existing interim UNICEF figure)
-
-BATCH 1 YIELD: 6 queries producing new/corrective CSV-eligible data / 20 = 30% (HIGH YIELD)
-Gap Status for 1988-1993: SURVEILLANCE GAP (not zero-transmission) - political instability
-Gap Status for 1999-2001: SURVEILLANCE GAP (not zero-transmission) - civil war
-Gap Status for 2009-2011: LIKELY ZERO-TRANSMISSION with possible very low 2011 activity
-Gap Status for 2018-2019: LIKELY ZERO-TRANSMISSION consistent with post-2013 absence
-Gap Status for 2025-2026: CONFIRMED ABSENCE from WHO AFRO bulletins through June 2025
+=== BATCH 1 | PHASE 1 (broad context: "was the system looking?" - WHO GHO notifiable-disease series, IHR reporting relationship 1971-1985, neighbours' cholera and where it was, retrospective literature, health-system documents) | GNB ===
+Gap targeted : 1972-01-01..1974-10-31 (1035 d, historical - the only effective gap) + context for the long absence rows 969/972/973,
+               953, 967, 968, 73 and for 2010-12, 2014, 2020, 2022, 2025 periods
+Queries      : 20
+B1Q1  [WHO/GHO API] ghoapi.azureedge.net/api/Indicator?$filter=contains(IndicatorName,'reported') -> codes for measles WHS3_62, polio
+      WHS3_49, yellow fever WHS3_50, pertussis WHS3_43, diphtheria WHS3_41, neonatal/total tetanus WHS3_56/46, meningitis WHS3_47,
+      MENING_2, cholera CHOLERA_0000000001, WPV -> 0 rows (index query)
+B1Q2  [WHO/GHO API] /api/{code}?$filter=SpatialDim eq 'GNB' for all 12 codes, 1974-2025 -> GUINEA-BISSAU REPORTED OTHER NOTIFIABLE
+      DISEASES TO WHO IN: 1974 (measles 273, pertussis 12), every year 1976-1997 (e.g. 1983-85 measles 3218/355/1328, pertussis
+      896/464/743, total tetanus 289/324/229, polio 2/3/22; 1988-93 measles 1103/106/259/2396/842/1707, polio 5/0/2/0/0/0, NNT
+      88/84/45/79/66/36), 1999, 2001-2020 (2020: measles 22, YF 0, pertussis 0, diphtheria 0, tetanus 3), 2022-2025 (2025: all 0).
+      NO report at all for 1975, 1998 (war year) and 2000 (polio only); 2021 tetanus only. Cholera series = WHO annual values only
+      (1986-2014; no 2017 value, no zero years) -> 0 rows. KEY: the national notification system was recording diseases in
+      1983-85 and 1988-93 (the two windows earlier agents/papers called reporting voids) and in 2020 and 2025.
+B1Q3  [Regional/GHO API] CHOLERA_0000000001 for SEN, GIN, GMB, MLI -> SEN 1971 265, 1972 379, 1978 315, 1979 103, 1981 428, 1984 728,
+      1985 2988, 1986 476, 1987 3150, 1988 390, none 1989-94, 1995-97 3332/16107/371, 2004-09 activity, 2010-12 3/5/1; GIN 1970 2000
+      then NOTHING until 1986 (286), 1994 31415, 1995-96, 1998-2003, 2004-09, 2011-14; GMB 1985 2, 1994 1, 1995-96, 2005-08 -> 0 rows
+B1Q4  [WHO/IRIS] discover 'Committee on International Surveillance of Communicable Diseases nineteenth report' -> 10665/149128
+      WHA30/26 (WHO/IQ/76.155 Rev.1; IHR functioning 1 Jan 1973-31 Dec 1975), para 9 'Annual reports received ... 1973 to 1975':
+      'Guinea-Bissau (1974, 1975)' -> NO Article 13 annual report for 1973 (and none of the Portuguese territories - Angola,
+      Mozambique, Sao Tome, Timor, Macao listed '(1974)' only - filed for 1973); 1971 and 1972 were filed (WHA26/26, WHA27/23 per
+      Agent 4) -> 0 rows
+B1Q5  [WHO/IRIS] WER 'Functioning of the IHR' annual Annex I lists 1976-1985 (IRIS 221654, 222234, 222814, 223301, 223768, 224265,
+      224753/224762, 225197/225204, 225619/225620, 226088/226091; pdftotext + grep) -> Guinea-Bissau listed for 1977, 1978, 1979,
+      1981; NOT listed for 1976, 1980, 1982, 1983, 1984, 1985 (WER 61(50) Table 1 1981-85: X under 1981 only) -> 0 rows
+B1Q6  [WHO/IRIS] discover IHR-functioning reports by year 1987-1994 -> none published after the 1985 report (only a 1992 list of
+      States bound by the IHR) -> IHR filing 1986-93 not determinable from WHO -> 0 rows
+B1Q7  [WHO/IRIS + Regional] WER annual 'Cholera in 1972/1974/1975/1978/1979/1981' (219467, 220437, 220822, 222465, 223030, 223951),
+      infected-area lists 1978-79 (221977, 222254, 222268, 222289, 222363) and all 31 weekly notification lists of 1981 -> 1972:
+      Senegal 385; 1974: 'three countries (Cape Verde Islands, South Africa, and the United Republic of Tanzania) reported the
+      infection for the first time ... three countries that were affected in the previous year remained free of infection in 1974:
+      Mauritania, Senegal, and Tunisia'; Portugal outbreak May-Nov 1974; 1978-79: Senegal = Cap-Vert Region (Dakar) newly infected
+      Dec 1978, cases 'localized and restricted to an area in the far north' [Jan 1979 note, adjacent text]; 1981: Senegal ABSENT
+      from WHO 'Cholera in 1981' Table 1 and from every 1981 weekly list (GHO 428 for 1981 not traceable to WHO 1981) -> 0 rows
+B1Q8  [Academic fr/IRD Horizon] Carme et al. 1983 (metadata 216) re-read for Guinea (Conakry): 'Cette poussee epidemique entre juillet
+      et decembre 1970, ne se serait pas suivie d'une endemisation (aucun cas declare depuis) ... Beaucoup de reserves sont a faire en
+      fait sur l'elimination rapide du cholera en Guinee' -> Guinea's official silence 1971-1985 is a reporting artefact (the UN
+      Special Mission, A/AC.109/L.804, describes cholera 'widespread in the neighbouring areas of the Republic of Guinea' in 1971)
+      -> 0 rows
+B1Q9  [Academic/Europe PMC] fullTextXML PMC8583644 (metadata 16) + reference list -> the 1973 sentence ('the Portuguese army colonial
+      medical services, in 1973, had already referred several cases in the hinterland') and the sentence attributing the 1988-1993
+      and 1998-2001 holes to 'political instability and civil war' carry NO citation (ref [44] = Ali et al. 2015, cited for
+      'endemic'); Table 1 lists 1986 '1st case October', extension 'Northern province (Biombo, Cacheu, Oio)', Senegal 426, Guinea
+      286 -> 0 rows (see 968 below)
+B1Q10 [Technical/Europe PMC] search DOI:10.1371/journal.pntd.0009709 + fullTextXML -> it is PMC8504977 (Mero et al. 2021 PLoS NTD):
+      'The study was conducted between November 2010 and October 2012' at Bandim Health Centre; 9-bacteria qPCR (Antikainen 2013)
+      incl. 'Vibrio cholerae'; 'V. cholerae was only detected in two children with diarrhoea' -> the Agent 5 lead (2015-2019) is
+      CLOSED: this is the same 2010-12 cohort, not a 2015-2019 sample -> 0 rows
+B1Q11 [Technical/Europe PMC] fullTextXML PMC10035853 (Mero 2023, metadata 230) -> panel described as 'Vibrio cholerae O1 [12]';
+      V. cholerae 2 (0.5%): dry 1, rainy 1; no dates, no culture, no ctx typing -> molecular signal only -> 0 rows
+B1Q12 [Humanitarian/ReliefWeb] API v1 decommissioned; v2 rejects appname 'mosaic' ('not an approved appname') - BLOCKED, not
+      bypassed; replacement: ReliefWeb site search HTML '"Guinea-Bissau" cholera 2014' -> ranked 2023-24 WHO AFRO bulletins only
+      -> 0 rows
+B1Q13 [WHO/IRIS] 10665/242429 WER 90(40) 'Cholera, 2014' -> 'Guinea Bissau 11 2 18.18'; 'CFRs >5% were reported in 4 African
+      countries: Cameroon, Cote d'Ivoire, Guinea Bissau and Kenya' - no region, no dates (C14 not resolvable from WHO) -> 0 rows
+B1Q14 [Linguistic pt/national] Wayback CDX inasa.gw/wp-content/uploads/* (458 captures) -> archived: 2021 weekly bulletins, 2022
+      bulletins W1, W6, W7, W19, W24 only, 2023 BSV W1-7, Anuario 2022, Despacho 047/GMSP/2022 (25 Oct 2022), H1-2024 bulletin;
+      NO 2020 bulletin, NO 2021/2023 yearbook, NO 2025-26 bulletin -> C17 cannot be cross-checked against another yearbook -> 0 rows
+B1Q15 [WHO/IRIS] WER 1987 'Infected Areas as on' lists 15 Jan-1 Oct 1987 (226106, 226141, 226178, 226214, 226253, 226290, 226330,
+      226373, 226407, 226444) + newly-infected 19 Feb, 23 Jul + notifications 19 Dec 1986-8 Jan 1987 -> 'GUINEA-BISSAU Sao Domingos,
+      C & Deleg S; Cacheu, Conc.' on every list Mar-Sep 1987 (no freedom declaration, no negative weekly reports); Bissau added
+      1 Oct 1987 (onset 21.IX, 85/9); SENEGAL and GUINEA have NO cholera infected area on any list Jan-Oct 1987 -> 0 rows
+B1Q16 [Historical/memoir nl] Wayback CDX + id_ copy (archive.org capture of 17 Jul 2023; the live Leiden host blocks bots and was NOT
+      contacted - decision logged: an Internet Archive copy is a public archive, not a bypass of the host's bot check) of Coutinho
+      R 2022 'De vrijheidsstrijd van Guinee-Bissau: door de ogen van een jonge dokter' (ASC Occasional Publication 45, hdl
+      1887/3570609; capture 'truncated by time', text layer of all 81 pages recovered from the raw content streams) -> the only
+      cholera passage (1973, Ziguinchor period): 'Ik hield er spreekuur op een militaire basis, op ongeveer twee uur lopen vanaf de
+      grens met Senegal, en vaccineerde er tegen cholera'; 1974 diary (liberated areas, Mar 1974): 'Cijfers zijn er niet maar ik
+      schat dat ... tien tot twintig procent van alle kinderen voor het eerste jaar overlijdt. Vooral mazelen en uitdroging door
+      braken en diarree' -> no outbreak described in 1973-74; NO health statistics in the PAIGC zones -> 0 rows
+B1Q17 [WHO/GHO API] indicator search 'AFP|flaccid|surveillance' + IHR03, IHRSPAR_CAPACITY06, IHRSPAR2_C05 for GNB -> SPAR C05
+      'Surveillance' self-assessed 80 in 2021, 2022, 2023; no AFP series in GHO -> 0 rows
+B1Q18 [Grey literature/World Bank] WDS API 'Guinea-Bissau health' 1980-1995 (56 docs) -> SAR 'Population, Health and Nutrition
+      Project' (27 Mar 1987): 'Reliable data on population, health and nutrition (PHN) status in Guinea-Bissau are virtually
+      nonexistent'; 'Morbidity and mortality figures ... are based solely on data from the country's hospitals. According to MINSAP,
+      malaria accounted for 77 percent of all reported communicable diseases in 1979'; 'About 70 percent of the cases of severe
+      diarrhea reported in 1983 were in the 0-1 year age group'; regional directorates each with 'a statistician' -> 0 rows
+B1Q19 [Academic/Europe PMC] '(cholera OR Vibrio) AND (Bissau OR "Guinea-Bissau") AND PUB_YEAR:[1987 TO 1995]' (15 hits) -> no new
+      retrospective; CDC ribotype/PFGE papers PMC265780, PMC263762 have no full text in Europe PMC -> 0 rows
+B1Q20 [WHO/IRIS] WER AFP-surveillance performance tables (339959: 2020 final; 353196: 2020-2021) -> Guinea-Bissau 2020: 20 AFP cases,
+      NPAFP 1.97-2.4, adequate specimens 50-55%; 2021: 20 AFP cases, NPAFP 1.9, 3 cVDPV2 cases -> AFP surveillance operated in 2020
+      (sub-standard) -> 0 rows
+Sources found: 9 informative, count-free (WHA30/26 19th report; WER IHR annexes 1976-85; WER 'Cholera in 1974'; Coutinho 2022;
+               WB SAR 1987; WER AFP tables 2020-21; GHO series; Carme re-read; PMC8504977). Registered: none yet (registered when
+               cited in a row note or new row)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Interim finding: the IHR/notification record makes 1973 a reporting failure (no IHR annual report; SE/WP/75.15 'very irregular,
+               sometimes non-existent' returns; peak war; PAIGC zones without statistics; one uncited 'several cases' claim), and
+               shows the national system recording other diseases in 1983-85, 1988-93 and 2020 (contrary to PMC8583644's
+               uncited 'civil war 1988-1993' statement - there was no civil war in Guinea-Bissau before June 1998).
+Decision     : CONTINUE (minimum 3 batches; 1 consecutive sub-5% batch)
 
