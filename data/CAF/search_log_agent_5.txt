@@ -28,3 +28,151 @@ Builder check (py/build_weekly_timeseries.py read): national rows only (Location
          28 (31 Aug-18 Sep 2026 zero). AI national rows in 1997, 1998, 2011, 2012, 2016, 2017-2024 are shadowed by JHU/WHO rows.
 Work plan: Step 1 re-mine registry (2026 tail; 2011; 2016; 1997; WER annual 2004/2011/2012 imported columns); Step 2 citation chains
       (Breurec 2021 EID, Germani 1998, Breurec 2016, CAFELTP, WHO AFRO 2026); Step 3 conflicts a-h; Step 4 arithmetic + 11 CFR>15% rows.
+
+=== BATCH 1 | PHASE 1 (re-mine registry: 2026 tail, WER annual imported columns, 2011/2016/1997 sources) | CAF ===
+Gap targeted : 2026-08-01..2026-10-03 (64d, recent) primary; conflict inputs for 2004 (d), 2011 (b), 2012 (c), 2016 (f), 1997 (a)
+Categories   : WHO/official (WER, WHO dashboard, WHO AFRO OEW, ECDC), regional (Africa CDC), humanitarian (ReliefWeb, IFRC, OCHA,
+               Cluster Sante), academic (EID 2021 PMC XML), linguistic (fr press re-read)
+Queries      : 20 (LC = local copy saved by Agents 1-4 under /tmp/caf_a2, caf_a3, caf_a4, caf_docs; L = live fetch)
+  Q1  [LC] WER 2013;88(31) 'Cholera, 2012' Table 1 + Africa narrative -> CAR 21 cases; imported and deaths columns BLANK; no CAR text
+      (Central Africa paragraph names only Lake Chad countries) -> timing of the 21 cases NOT determinable from WHO (conflict c)
+  Q2  [LC] WER 2012;87(31) 'Cholera, 2011' -> CAR 117/15 (CFR 12.82), imported blank; text 'Cases were also reported from the Central
+      African Republic (117, including 15 deaths)' (conflict b)
+  Q3  [LC] WER 2005;80(31) 'Cholera, 2004' Table 1 -> CAR 320/48, imported blank; Central-Africa text names Cameroon and Chad only;
+      no Congo (Brazzaville) line in the 2004 table (conflict d)
+  Q4  [LC] Africa CDC EIR file '28Sep26' (Date of Issue 2026-09-20, rendered pages) -> 'Cholera in Africa ... CAR (447; 36)' = lagging
+      IHR series; CAR not among events highlighted that week
+  Q5  [LC] ECDC CDTR wk40 2026 -> 'Since 26 August 2026, no updates have been reported by: ... Central African Republic'; the
+      'Central African Republic (1)' line in the same report is in the DENGUE section (Africa CDC 30 Aug) - not cholera
+  Q6  [L] WHO IRIS discover 'Weekly Epidemiological Record, 2026, vol. 101' (latest issues) -> FAILED (iris.who.int timeout)
+  Q7  [L] WHO dashboard ArcGIS FeatureServer cholera_adm0_week, adm0_name='CENTRAL AFRICAN REPUBLIC' -> 20 rows epiwk 16-35 with
+      date_wk; epiwk 30 (27 Jul-2 Aug) now 8/0 (baseline file has 10/1 - NOT edited); epiwk 31 (3-9 Aug) 1/0; epiwk 32-35 0/0;
+      cum 725/45; no CAR week after epiwk 35 (31 Aug-6 Sep)  ** ROWS 85-89 ** (registered metadata 108)
+  Q8  [L] WHO AFRO OEW listing page -> latest bulletin still week 36 (31 Aug-6 Sep 2026); no weeks 37-39
+  Q9  [L] Africa CDC EIR download pages Sep/Oct 2026 -> only 24 Sep and 28 Sep files; no October issue
+  Q10 [L] ReliefWeb disaster EP-2026-000107-CAF -> newest item = UNICEF CAR SitRep No.1 (mid-year) posted 2 Oct 2026; nothing after
+      the 18 Sep end-of-epidemic declaration
+  Q11 [L] Le Courrier du Vietnam (metadata 15) + Tchadinfos (metadata 14) re-read -> 728/46 (31 community + 15 facility deaths), 698
+      treated/682 cured, last confirmed case 17 Jul, districts Bimbo, Bangui 1, Bangui 2, Mbaiki 'maitrisee' - no district counts
+  Q12 [LC] IFRC MDRCF009 ops update (metadata 72) -> week-46 Zinga CTC cases: 'Those patients declared that they crossed the river into
+      CAR because cholera treatment in CAR is efficient and free of charge' (infected in Libenge, DRC); IFRC places Nzinga (Zinga) and
+      Sedale in MONGOUMBA sub-prefecture; first cases 'beginning week 37 of 2011'; 51 cases/11 deaths at the 30 Sep declaration
+  Q13 [LC] IFRC MDRCF009 final report (metadata 80) -> week-44 Mongoumba 'Some few cases'; 'many cases registered in Mongoumba and the
+      surrounding localities were coming from neighbouring DRC' (explains MSF/UNICEF/IRIN figures above the official 172)
+  Q14 [LC] CAFELTP 2011 report (metadata 25) -> nothing beyond rows 16-23, 33-44 ('172 people ... and 16 cholera deaths' as of 23 Oct)
+  Q15 [L-cache] EID 2021 PMC XML (metadata 2) -> authors Breurec S (FIRST), Franck T, Njamkepo E, Mbecko JR, Rauzier J, Sanke-Waigana H,
+      Kamwiziku G, Piarroux R, Quilici ML, Weill FX; Table 1 88/443, 19/113, 16/172, 20/265 with footnote 'Data from the International
+      Federation of Red Cross and Red Crescent Societies' (2011, 2016) and ref 4 = Germani 1998 (1997) -> EID counts are DERIVED,
+      not independent corroboration. Metadata 1, 2, 41 Descriptions corrected (py/revise_observation.py --meta-index)
+  Q16 [LC] Cluster Sante RCA bulletin Jun-Sep 2016 (metadata 83) -> 'CTC CNHUB 100 Cas pris en charge, 2 deces'; 'UTC DANGA 31 Cas pris
+      en charge, 0 deces' (facility counts; mix residence/DRC); EWARS IDP sentinel sites wk22-38: 'Cholera 1 0 14 0 15 0'; 'Le dernier
+      cas confirme au laboratoire remonte au 23 aout 2016' (IFRC: 23 Sep) -> notes only, no rows (facility/IDP-site units)
+  Q17 [LC] WHO AFRO 12 Sep 2016 (metadata 28) -> 1166/161 twenty-year total; 264/20 at 11 Sep; 18 DRC residents treated at Longo/Danga
+      (wk30, wk35) - already recorded; no row
+  Q18 [LC] IFRC MDRCF021 final report (metadata 45) -> '53 suspected cases out of the 265 ... identified by trained volunteers' is
+      nationwide, not a Bangui count; no row
+  Q19 [LC] OCHA RCA snapshots 15/22/29 Aug, 17 Oct 2016 (metadata 89) -> 15 Aug: '109 cas suspects et 15 deces ... sous-prefectures de
+      Ndjoukou et de Damara et 1 cas a Bangui' (two-prefecture aggregate, preliminary; no row); 22 Aug: highest attack rates 'dans les
+      communes de Damara et de Galabadja' (bears on the sitrep N13 'Galabadja 93' reading, conflict f)
+  Q20 [LC] WER 1998;73(27) 'Cholera in 1997' (metadata 23) -> CAR 443/75, CFR 16.9% (highest in Africa 1997); no locality
+Sources found: 1 new   Registered: index 108 (WHO dashboard FeatureServer live query, date_wk-aligned)
+Rows added   : 5    Indices: 85 (AFR::CAF 2026-08-03..08-09 sCh 1 / 0 deaths), 86-89 (AFR::CAF weekly zeros 10 Aug-6 Sep 2026,
+                    Documented_Absence, operational, 0.85)
+Revisions    : row 27 RETRACTED (superseded by weekly rows 85-88; tombstone); row 28 TL 2026-08-31 -> 2026-09-07 + re-check note;
+               metadata 1, 2, 41 Descriptions (first author Breurec; EID counts derived from IFRC/Germani)
+Successful queries: 1/20 (Q7)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Gap status   : 2026-08-03..2026-09-06 now WEEKLY national (WHO); 2026-09-07..09-18 Inferred_Absence (row 28); 2026-09-19..10-03 REMAINS EMPTY
+               (no source after 18 Sep asserts absence; dashboard ends epiwk 35; OEW ends wk36; ECDC/Africa CDC no CAR update since 26 Aug)
+Week alignment check: WHO AFRO OEW wk30 chart (ISO 'week of reporting') matches dashboard date_wk (ISO wk26 = 22-28 Jun ~190 vs dashboard
+               191; ISO wk28 85 vs 85) -> CAR baseline dates are correct; dashboard 'epiwk' label = ISO week - 1 in 2026.
+Decision     : CONTINUE (batch 1 of minimum 3)
+
+=== BATCH 2 | PHASE 1->2 (citation chains; 2026 district conflict; ministry/IFRC/UNICEF/WHO AFRO channels) | CAF ===
+Gap targeted : 2026 district split (conflict g), 2004 (conflict d), citation networks (Step 2); 2026-09-19..10-03 tail (side)
+Categories   : WHO/official (WHO AFRO OEW, AFRO CAR news, GHO, MSP national site), academic (OpenAlex, Europe PMC), humanitarian (IFRC GO,
+               UNICEF, OCHA, ReliefWeb), regional (GHO neighbours), linguistic (fr: MSP site, OCHA sitreps, AFRO releases), technical (lab series)
+Queries      : 20
+  Q1  [LC] GHO yearly cholera (ees-cholera-mapping copy, source of metadata 20) for COG/CAF/TCD/COD/CMR 1996-2013 -> Congo (Brazzaville) has NO
+      entries 2001-2004 and no line in WHO's 2004 table, so a CAR/Congo mis-attribution of the 2004 line cannot be tested; DRC 7,665/228 in 2004
+  Q2  [LC] IRIN Aug-Oct 2003 north-west diarrhoea items (metadata 88) -> Bocaranga ~400 bloody-diarrhoea cases/15 deaths; 'at least 40 people
+      have died' (Oct 2003); lab-identified Shigella -> different year and counts from WHO 2004 (320/48); misclassification hypothesis rejected
+  Q3  [LC] WHO AFRO OEW wk30 2026 (metadata 10) p.2 text + p.3 map re-mined for districts other than Bangui 1 -> legend classes 5 / 6-20 /
+      21-239 / 240-442 with one district each => Bimbo 442, Mbaiki 239, Bangui 2 20, Bangui 1 5 (= 706 of 708 as of 26 Jul)
+      ** ROWS 90-92 ** (conf 0.45; rows 12-13 down-weighted 0.8 -> 0.45, see conflict g)
+  Q4  [LC] WHO AFRO OEW wk31-36 events-table text (metadata 11, 12 + wk32-35 copies) -> '724 ... 45 deaths ... as of 3 August'; '16 new
+      suspected cases' in week beginning 27 Jul (dashboard: 8) - cumulative-difference artefact of late reporting; no district counts
+  Q5  [LC] UNICEF Flash Update 1 (metadata 36) -> 214/24 national to 1 Jul, sex split 117 M/97 F; no district counts
+  Q6  [LC] OCHA sitreps N76/N77 (metadata 52) -> N76: 436/36 (9 facility, 27 community deaths), Bimbo highest CFR; N77: 'sept nouveaux cas
+      suspects' 10-20 Jul vs cumulative 436 -> 650 (conflict g); no district counts
+  Q7  [L] WHO IRIS retry -> FAILED (timeout, 25 s)
+  Q8  [L] OpenAlex EID 2021 (W3117106374): 14 references, 14 citing works -> no CAR counts beyond Germani/IFRC (depth 1-2)
+  Q9  [L] Europe PMC citations of Breurec 2016 PLoS NTD (PMID 26731629; first call used a wrong PMID and was re-run) -> 61 citing works; CAR
+      items = Bangui Shigella 2002-2013, Salmonella 2004-2013, stunting/ESBL studies (depth 2)
+  Q10 [L] Europe PMC full texts of the Bangui Salmonella 2004-2013 (PMC6907862) and Shigella 2002-2013 (PMC6090317, HTTP 500) series -> no
+      Vibrio/cholera mention; no evidence for or against 2004 cholera
+  Q11 [L] OpenAlex works citing Germani 1998 (W2026393808) -> 15 (Rebaudet 2013 JID, Mengel 2014, drought reviews 2021, EID 2021)
+  Q12 [L] Rebaudet 2013 JID 208(S1):S46 OA PDF (OpenAlex best_oa_location) + WebFetch of the article page -> FAILED (Cloudflare challenge;
+      abstract only - not circumvented)
+  Q13 [L] WHO AFRO CAR country news (fr) pages 1-2 + 2 items -> 10 Sep 2025 RD release: 'Meme si la RCA n'a pas encore enregistre de cas'
+      (cholera, 2025) - registered metadata 110, corroboration note on row 58; 2 Oct 2026 Ebola item (no cholera)
+  Q14 [L] UNICEF CAR press-release/stories listings -> press list JS-rendered; stories: only 'boy-who-defeated-cholera' (already row 30)
+  Q15 [L] UNICEF CAR story 'greatest disease ... misinformation' (15 Jun 2026) -> polio, not cholera
+  Q16 [L] IFRC GO API appeals country__iso3=CAF -> newest MDRCF034 'Ebola Virus Disease Readiness' (17 Jun 2026); no 2026 cholera DREF
+  Q17 [L] IFRC GO appeal_document appeal=4448 (MDRCF034 DREF 26 Jun + update 14 Sep 2026) -> no cholera case data
+  Q18 [L] ReliefWeb site search (PC54)_(DA20260801-20261003) cholera -> 1 item (UNICEF CAR SitRep No.1 mid-year, 30 Jun data)
+  Q19 [L] Ministry sites search 'cholera' (sante.gouv.cf: 0 hits; sante-rca.org: 5) -> 2026 Ebola/preparedness articles mention the contained
+      cholera epidemic without numbers
+  Q20 [L] sante-rca.org 'Documents Officiels' (96 PDFs) -> MSP 'Bulletin epidemiologique mensuel N01' (8 Sep 2022): 'Cholera | Cas (8e mois) 0 |
+      Cumule janv-aout 0 | Deces 0' ** ROW 93 ** (registered metadata 109); also found 'PLAN DE REPONSE CHOLERA DS BIMBO' (Jul 2026, scanned;
+      read in batch 3)
+Sources found: 3 new   Registered: index 109 (MSP bulletin 2022), 110 (WHO AFRO 10 Sep 2025)
+Rows added   : 4    Indices: 90 (Ombella-M'Poko::Bimbo 2026-04-27..07-26 442), 91 (Lobaye::Mbaiki 239), 92 (Bangui::Bangui 2 20) [map-implied,
+                    conf 0.45, do-not-sum]; 93 (AFR::CAF 2022-01-01..08-31 ZERO, Documented_Absence, partial, 0.8)
+Revisions    : rows 12, 13 conf 0.8 -> 0.45 + ranking adjudication; row 58 corroboration (WHO AFRO 2025); row 93 regional-figure correction
+               (own note: Chad zero-reported 2022; Cameroon 14,431, DRC 18,961 per WER 2023)
+Successful queries: 2/20 (Q3, Q20)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 2 of minimum 3; ministry document vein open)
+
+=== BATCH 3 | PHASE 2 (ministry documents; 2012/2004 conflicts; 2026 district channels) | CAF ===
+Gap targeted : 2026 district geography (conflict g); 2012 timing (conflict c); 2004 provenance (conflict d); 2016 total (conflict f); 2026 tail
+Categories   : WHO/official (MSP national site + WordPress API, GHO OData, WHO DON API, WHO AFRO, IRIS), humanitarian (ReliefWeb, HDX, OCHA),
+               regional (Africa CDC), academic/technical (JHU raw collections), linguistic (fr: MSP documents, RNL, AFP)
+Queries      : 20
+  Q1  [L] MSP/COUSP 'PLAN-DE-REPONSE-CHOLERA-DS-BIMBO.pdf' (10 scanned pp, read as images) -> 'Le 22 Juin 2026 ... Centres de sante de NDIMBA et
+      MONDOLI qui ont enregistres 97 cas dont 12 deces'; Bokassi 1-2 '22 cas suspects dont quatre (4) deces'; 'Du 16 au 22 Juin 2026, une vingtaine
+      de village en aval du village BOKASSI 1 ont enregistres plus de 180 cas dont une trentaine de deces'  ** ROW 94 ** (registered metadata 111)
+  Q2  [L] sante-rca.org 'Documents Officiels' full list (96 PDFs) -> only two cholera-relevant files (Bimbo plan 2026, bulletin N01 2022)
+  Q3  [L] MSP 'Bulletin_quotidien_Ebola-19.07.2026.pdf' -> point-of-entry screening dashboard; no cholera
+  Q4  [L] MSP '67Communique-de-presse.pdf' -> Feb 2023 health-worker strike; no cholera
+  Q5  [L] sante-rca.org searches 'cholera' (no accent), 'Mbaiki', 'Bimbo' + 'Urgences sanitaires' page -> 2023-2025 news; no cholera numbers
+  Q6  [L] sante-rca.org WordPress media API (search chol/sitrep/situation/epidem/bulletin) -> only the Bimbo plan for cholera
+  Q7  [L] sante-rca.org WordPress posts API search 'cholera' -> 4 posts (Aug 2026 Ebola/preparedness mentions of the contained epidemic; 2023
+      REDISSE note listing cholera among surveilled diseases) - no numbers
+  Q8  [LC] HDX Regional Cholera Platform 2012 workbook (metadata 51) -> CAF 0 in all 52 weeks of 2012; blank cells exist but are rare (2012: 1 of
+      936 cells, BFA W5; 2013-2014: 0; 2015: 9, LBR) -> CAF zeros cannot be classed as reported or default-filled with confidence (conflict c)
+  Q9  [LC] BMJ GH 2025 supplement Table 2 (metadata 81) -> 'Central African Rep 2 [outbreaks] 458 [cases] 8.0 63 [deaths] 1.1 13.76' =
+      2004 (320/48) + 2011 (117/15) + 2012 (21/0): WHO AFRO's 2000-2023 database treats 2011-2012 as ONE outbreak (and omits 2016) (conflict c)
+  Q10 [L] ReliefWeb site search (PC54)_(DA20120101-20120630) 'cholera' -> 4 known items (UNICEF 6 Feb, IFRC 29 Feb and 26 Jun 2012, ICRC malaria)
+  Q11 [LC] JHU raw ObservationCollection305 (tag WHOannual) and 20463 (no tag) -> 2004 320/48 and 2012 21/0 in both; no independent provenance
+  Q12 [L] GHO OData CHOLERA_0000000001/2 SpatialDim='CAF' -> 7 records (1997, 1998, 2004, 2005, 2006, 2011, 2012); Comments null; 2012 deaths 0
+  Q13 [LC+L] Radio Ndeke Luka 2026 cholera items (metadata 97; Agent 4 copies 102047, 102199, 102445, 103124, 106005) -> audio pieces, only
+      '197 cas ... 24 deces' (27 Jun); 5 Jul 'aucun nouveau deces ... depuis l'annonce officielle' (WHO weekly 29 Jun-5 Jul: 11 deaths)
+  Q14 [L] ReliefWeb maps/infographics (PC54)_(DA20260601-20261003) cholera -> OCHA WCA 'Latest events' 14-20 Jul only (national)
+  Q15 [L] HDX CKAN package_search cholera groups:caf (+ WCA 2026) -> only 2012-2017 platform workbooks; no 2026 dataset
+  Q16 [L] WHO DON API (latest 40) -> no 2026 cholera DON (last cholera DON 29 Aug 2025, multi-country)
+  Q17 [L] Africa CDC site search 'cholera situation report' -> no CAR item
+  Q18 [L] AFP 28 Jun 2026 via Arab News (metadata 18) direct fetch -> FAILED (JS-rendered page)
+  Q19 [L] WebFetch of the same AFP article -> 2016 outbreak 'more than 500 people were infected and 23 died'; 2026 '24 deaths and 197 cases';
+      'fifth recorded outbreak' (conflict f)
+  Q20 [L] WHO IRIS retry ('cholera Republique centrafricaine 2016 rapport de situation') -> FAILED (timeout)
+Sources found: 1 new   Registered: index 111 (MSP/COUSP Bimbo district cholera response ToR, Jun-Jul 2026)
+Rows added   : 1    Indices: 94 (AFR::CAF::Ombella-M'Poko::Bimbo 2026-06-14..06-22, 97 sCh / 12 deaths, Ndimba + Mondoli health centres, conf 0.6)
+Revisions    : row 31 conf 0.8 -> 0.7 (Bokassi deaths 2 WHO vs 4 MoH district); rows 13, 90 evidence notes (Bimbo HD > 168 by late June)
+Successful queries: 1/20 (Q1)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Decision     : CONTINUE (3 batches = minimum met; yield 5% -> counter stays 0). Next: Step 3/4 revisions, then batch 4.

@@ -1,62 +1,62 @@
 === AGENT 7 INITIALIZATION ===
-Country: Mozambique (MOZ)
-Start Time: 2026-05-15 13:30:00
+Agent: 7 (cholera-quality-auditor) | Country: Mozambique (MOZ)
+Start Time: 2026-10-03 20:42:41
+Cycle: 2026-09-29 Opus 5.5 re-run (replaces the stale May 2026 Agent 7 log; stale copies of the log and of
+       ./data/MOZ/search_report.txt kept outside the repo at /tmp/moz_a7/stale_*_May2026.txt)
 Agent 7 Status: INITIALIZED
 
-=== AGENT 7 OBJECTIVES ===
-1. Quality audit of all data collected
-2. Final validation of cholera_data_ai.csv and metadata_ai.csv
-3. Create search_report.txt
+CONSTRAINTS / METHOD NOTES
+- WebSearch is unavailable for this whole process (session budget 200/200, exhausted during Agent 3 Batch 9).
+  Verification uses direct fetches only (curl / WebFetch): Bing RSS, Google News RSS, ReliefWeb RSS/API, Europe PMC,
+  PubMed E-utilities, WHO IRIS DSpace REST, archive.org / Wayback CDX, Arquivo.pt, plus the agents' local caches
+  (/tmp/moz_a1 .. /tmp/moz_a6) where the original download is still on disk.
+- Agent 7 has no stopping criteria and no query budget. Work is organised in numbered VALIDATION BATCHES (not 20-query
+  search batches). "Yield" for Agent 7 = new rows added per validation batch (expected 0; Agent 7 audits, it does not
+  collect).
+- Writes only via python py/revise_observation.py (--agent 7) and python py/add_observation.py. Baselines
+  ./data/MOZ/cholera_data_jhu.csv and ./data/MOZ/cholera_data_who.csv are READ-ONLY (anomalies reported, not edited).
+- NOT run (shared outputs owned by the runner; other countries in flight): py/analyze_effective_gaps.py (CLI),
+  py/build_weekly_timeseries.py, update_dashboard.sh, py/update_dashboard_data.py, py/repair_data_integrity.py --apply.
+  Gap figures come from the in-memory analyse() call (writes nothing); builder masking is computed from a private copy
+  of the builder's functions with all output paths redirected to /tmp/moz_a7.
+- Validator row numbers ("row N") are PHYSICAL CSV LINE numbers, not the Index column; every finding below is mapped to
+  its Index before action.
+- Working directory for audit scratch files: /tmp/moz_a7/
 
-=== QUALITY AUDIT RESULTS ===
-
-1. DATA INTEGRITY VALIDATION:
-   - Total rows: 37 data observations
-   - Date logic: ALL PASSED (TL <= TR for all rows)
-   - Deaths <= sCh: ALL PASSED
-   - Geographic codes: ALL start with AFR::MOZ (PASSED)
-   - source_database: ALL = 'AI' (PASSED)
-   - Source index integrity: ALL valid (indices 1-16 present in metadata)
-
-2. SOURCE AUTHENTICATION:
-   - Total metadata sources: 16
-   - Level 1 sources: 11 (WHO DON x4, CDC MMWR, SciELO/Rev Saude Publica x2, PubMed x3, WHO AFRO)
-   - Level 2 sources: 4 (Xinhua, AMAN Alliance, AllAfrica, Portugal Post, ICAP Columbia)
-   - Level 3 sources: 1 (WHO AFRO news article)
-   - URL verification: All sources accessed during collection with working URLs
-
-3. EPIDEMIOLOGICAL PLAUSIBILITY:
-   - CFR range: 0.0% to 20.7%
-   - Row 3 (1975-1977): CFR 20.7% - small sporadic cases, confidence 0.7 (FLAGGED/DOCUMENTED)
-   - Row 32 (Gaza 2022-23): CFR 9.5% - single district small numbers (FLAGGED/DOCUMENTED)
-   - Row 37 (1998 Beira): CFR 5.5% - epidemic onset, limited care (DOCUMENTED)
-   - All other CFRs: 0.0% - 5.9% (within normal range)
-   - Geographic patterns: Consistent with known cholera hotspots (Nampula, Sofala, Tete)
-   - Temporal patterns: Consistent with endemic seasonal pattern
-
-4. DUPLICATION CHECKS:
-   - Rows 5 and 6: Same 1983 Pemba data - Row 5 is national estimate, Row 6 is sub-national; acceptable
-   - Rows 12 and 36: Same wave different periods (Oct 2024-Jul 2025 vs Oct 2024-May 2025); noted in processing notes
-   - Rows 15 and 18: Different periods of same wave; Row 18 is more complete; noted in processing_notes
-   - Rows 28-34 vs national WHO baseline: Provincial data is SUPPLEMENTARY to WHO weekly national - no double counting if used correctly
-   - No exact duplicates found
-
-5. COVERAGE ASSESSMENT:
-   - Gap 1 (1970-1972): FILLED with zero-transmission documentation
-   - Gap 2 (1978): FILLED with surveillance gap documentation
-   - Gap 3 (1987-1988): FILLED - 1988 confirmed absence, 1987 inferred
-   - Gap 4 (1995): FILLED with inferred absence documentation
-   - Gap 5 (2025-2026): SUBSTANTIALLY FILLED with multiple outbreak waves documented
-   - Historical data added: 1973 (753 cases), 1975-77, 1983 (Pemba), 1989 (371), 1992 (31731)
-   - Recent data added: Multiple waves 2022-2026 with provincial breakdowns
-
-6. DUAL-REFERENCE INDEXING:
-   - All 37 rows have source_index column populated
-   - All source_index values match metadata Index column
-   - All source names match metadata Source column exactly
-
-=== AGENT 7 COMPLETION ===
-Time: 2026-05-15 14:00:00
-Quality Audit: PASSED
-Dataset Status: CERTIFIED FOR MOSAIC INTEGRATION
-Agent 7 Status: COMPLETED
+=== VALIDATION BATCH 1 | FORMAT AND INTEGRITY | MOZ ===
+Started 2026-10-03 20:41
+V1.1  python py/validate_quality.py MOZ --json /tmp/moz_a7/v_before.json -> EXIT 0. ERROR 0, WARN 125, INFO 955.
+      WARN by check: 52 CFR_high_flagged_for_review, 33 period_single_day, 30 same_period_conflict, 10 multiyear_aggregate.
+      (Matches the orchestrator's Agent-6 gate figure exactly.) 5,223 data rows, 793 metadata sources.
+V1.2  Validator "row N" = physical CSV line, not Index (5,220 of 5,223 lines differ from Index+1 because 41 Index
+      values are tombstoned). Mapped every WARN to its Index with csv line_num (/tmp/moz_a7/warnmap.py ->
+      /tmp/moz_a7/v_before_mapped.json). No processing_notes field contains an embedded newline.
+V1.3  pandas parse (dtype=str): ./data/MOZ/cholera_data_ai.csv 5,223 x 14 (exact CLAUDE.md column order);
+      ./data/MOZ/metadata_ai.csv 793 x 15 (exact order); ./data/MOZ/cholera_presence_ai.csv 187 x 10 (PRESENCE_COLUMNS);
+      ./data/MOZ/retracted_rows_ai.csv 41 x 16 (14 data columns + retracted_on + retracted_reason). All parse cleanly.
+V1.4  Index integrity: data Index unique (1..5264, 5,223 live + 41 tombstoned = 5,264, no collisions between live and
+      tombstoned Index values); metadata Index 1..793 contiguous, no duplicates, no holes.
+V1.5  Dual reference: 0 orphan source_index; 0 rows whose `source` text differs from metadata Source; 0 live rows cite
+      any of the 8 non-Active metadata entries (32, 165, 461, 504, 570, 686, 780, 788 - all have zero live citations).
+      Two Status values are free text rather than 'Superseded' (461 'Superseded - registered with an incorrect URL
+      slug...', 504 'Corroborating only - its 3 rows (3805-3807) were retracted...'); harmless (no live citations),
+      left as-is.
+V1.6  Dates: TL/TR/reporting_date all YYYY-MM-DD; 0 TL>TR; 0 reporting_date<TR; 0 blank reporting_date; 0 future TR or
+      reporting_date (today 2026-10-03).
+V1.7  Counts: 0 deaths>sCh; 0 cCh>sCh; 0 negative/non-integer counts; 0 rows with no case value (57 cCh-only rows,
+      79 deaths-only rows - legitimate, the builder treats blank sCh as "no count", not zero).
+V1.8  CFR: 19 legacy May-2026 rows (Index 12, 19-21, 24, 29-33, 36, 37, 40, 42, 44, 46-49) carry CFR rounded to one
+      decimal (e.g. Index 12 '1.4' vs deaths/sCh 1.45); all within +/-0.05 of the computed value, i.e. inside the
+      CLAUDE.md +/-0.1% tolerance. Not an error; normalised later only where a row is revised for another reason
+      (revise_observation recomputes CFR on every write).
+V1.9  Locations: 1,038 national, 2,330 provincial, 1,846 district, 9 sub-district. Every provincial segment is one of
+      the 11 adm1 names in ./reference/country_profiles.json exactly, plus 10 rows 'AFR::MOZ::Multi_Provincial'
+      (Index 1677, 1768, 2585, 3162, 4422, 4423, 4805-4808 - the CLAUDE.md-sanctioned form; checked in Batch 4).
+      152 distinct district locations; accent/case/punctuation-normalised comparison finds NO spelling variants and no
+      district name filed under two provinces (the 4 apparent groups are district vs its own locality, e.g.
+      Tete::Mutarara vs Tete::Mutarara::Traquino). No prohibited (non-geographic) segments.
+V1.10 source_database = 'AI' on all 5,223 rows; confidence_weight 0.15-0.95, none outside 0.1-1.0.
+V1.11 cholera_presence_ai.csv: 187 records, all evidence='presence_confirmed_count_unknown', 0 TL>TR, 0 bad dates,
+      0 orphan/mismatched source citations, all AFR::MOZ, adm1 names exact. retracted_rows_ai.csv: 41 tombstones
+      (21 on 2026-10-02, 20 on 2026-10-03), every one with a non-blank retracted_reason.
+Result: no integrity defect requiring a write. Rows added: 0.
