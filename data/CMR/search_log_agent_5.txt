@@ -13,3 +13,77 @@ Channel note: the WebSearch tool is exhausted for this session (200/200 used by 
 Working directory for downloads: /tmp/cmr_a5/
 Writes: only via python py/add_observation.py and python py/revise_observation.py (--agent 5).
 
+=== PRE-SEARCH CHECKS (Agent 5, 2026-10-04) ===
+Read: ./data/CMR/workflow_orchestrator_CMR.txt (incl. section 6 channels), ./templates/template_search_protocol.txt,
+      ./data/CMR/search_log_agent_1.txt .. _4.txt (all 'conflict'/'unverified'/'lead' notes), ./data/CMR/workflow_state.json,
+      ./data/CMR/cholera_data_ai.csv (1096 rows), ./data/CMR/metadata_ai.csv (310), ./data/CMR/cholera_presence_ai.csv (62),
+      ./data/CMR/retracted_rows_ai.csv (5); ./data/CMR/cholera_data_jhu.csv only via pandas usecols summaries.
+validate_quality CMR at start: ERROR 0, WARN 53 (45 CFR>15%, 6 same_period_conflict, 2 single-day), INFO 189.
+  Validator 'row N' = file line N (header = line 1) -> Index of iloc[N-2]. Conflict pairs mapped: 158/7 = Index 157 vs 6;
+  703/18 = 706 vs 17; 704/196 = 707 vs 196; 705/197 = 708 vs 197; 752/195 = 755 vs 195; 803/144 = 806 vs 143.
+Channel probe 05:14 PDT: IRIS 200, IFRC GO 200, PubMed 200, ReliefWeb RSS 200, MINSANTE DSpace 200, archive.org 200,
+  Europe PMC 200, Africa CDC 200, WHO AFRO 200. NOTE: pmc.ncbi.nlm.nih.gov served a reCAPTCHA page to a scripted request;
+  PMC full texts are therefore read only through the official Europe PMC REST API (fullTextXML), never by retrying around it.
+Effective gaps: 1977 (row 87 vs Douala row 1079 - decision below), 1970 (closed, row 61), 2026-09-21..2026-10-03 (recent).
+Plan: Batch 1 = legacy-row adjudication (Index 1-20) by re-fetching the real sources; then validator conflicts; then
+  re-mining of proven sources and the 21 Sep-3 Oct 2026 window; arithmetic checks throughout.
+
+=== BATCH 1 | PHASE 2 (cross-reference: legacy-row adjudication) | CMR ===
+Gap targeted : legacy unverified rows Index 1-20 (2004, 2008, 2010, 2011, 2014, 2018-2024 places/periods); conflicts 157/6, 706/17
+Queries      : 20 (EPMC = Europe PMC fullTextXML; RW = ReliefWeb RSS full-text search; IRIS = WHO IRIS DSpace; S = >=1 new row)
+  Q1  EPMC PMC12082990 Mboringong 2025 (metadata 25) re-mined -> Table 1 + district text: Garoua I 309, Pitoa 213, Bibemi 209
+      (2018-19 epidemic, North onset 18 May 2018-17 Dec 2019); Kribi 762 (2020; South 1 May-18 Oct 2020); Littoral 2020 = 967 (not
+      979) S (rows 1102-1105 replace legacy 11, 12, 13, 16)
+  Q2  EPMC PMC13037283 Ngomba 2026 (metadata 74) re-mined -> 2018 North 637/41, SW 1/0; 2019 North 536/22, SW 370/16; 2020 Littoral
+      951/53, Centre 63/0; no 979 or 613. All within ~1-8% of JHU ADM1 rows (SW 2019 371/16, Littoral 2020 962/53, Centre 2020
+      60/2, North 2019 581/22) -> corroboration notes only, no near-duplicate rows - 0
+  Q3  Le Jour 13 Nov 2024 (lejour.cm, located by Agent 2) -> 7 suspected/2 confirmed, Maroua 2e + 3e, 8-11 Nov 2024 (verification;
+      used as second source in Q4's row) - 0
+  Q4  IRIS discover '"weekly bulletin on outbreaks" 2024 cholera Cameroon Maroua' -> OEW wk47 2024: 'From 8 to 11 November 2024, a
+      total of seven suspected cholera cases with no death ... (Maroua-2 and Maroua-3) ... 02 (67%) returned positive' (registered
+      metadata 311; wk48/49 repeat it) S (row 1106 replaces legacy 19)
+  Q5  IFRC DREF MDRCM018 final report (metadata 192) re-fetched -> 'From April 2014 ... By 24 July 2014, 1,321 cases ... 61 deaths';
+      district table 24 Jul / 12 Aug 2014; ALSO 'In 2011, the epidemic affected eight of the 10 regions ... with 23,152 cases and
+      843 deaths reported' S (row 1107 replaces legacy 6 with period Apr-24 Jul 2014; row 1108 replaces legacy 5 with the 'cases'
+      wording; legacy 5's quote used the REJECT term 'affected')
+  Q6  PubMed efetch PMID 17284389 Guevart 2006 Sante (metadata 55) -> 'Five thousand and twenty cholera patients were notified during
+      an 8-months-period (January-August 2004), 69 (1.4%) ... died' S (row 1109 replaces legacy 2; Jan-Aug 2004, not calendar year)
+  Q7  EPMC PMC11670337 Bangwen 2024 (metadata 70) -> 'Between October 15, 2021 and July 21, 2022, 6,023 cases ... 93 deaths'
+      S (row 1110 replaces legacy 14 with corrected period)
+  Q8  IRIS bitstream WER 2009 84(31) (metadata 57) -> 'Cameroon did not report any cases, and no information was available from the
+      Central African Republic, Chad and Equatorial Guinea' S (zero row 1111 replaces legacy zero row 1)
+  Q9  IFRC DREF MDRCM032 (metadata 249) re-fetched -> '45 in Fotokol and 94 in Mora (Mayo Sava), 118 in Mokolo (Mayo Tsanaga) where
+      the Minawao refugee camp is highly affected with 86 cases and 3 deaths' S (row 1112 Mokolo 118 replaces legacy 9; legacy 8
+      'Mayo_Sava 139' = Fotokol 45 + Mora 94 retracted - components already rows 914/203)
+  Q10 RW '"5,560" cholera Cameroon' -> UNICEF 8 Sep 2010: national 'some 5,560 reported cases ... 385 deaths' since May 2010 (JHU
+      weekly to 8 Sep: 5,651/378) - registered metadata 312 S (row 1113 national May-8 Sep 2010 replaces legacy 3 'Far North 2010')
+  Q11 RW '"6,900" cholera Cameroon' -> IMC 13 Apr 2011: 'From May 2010 to November 2010 ... more than 6,900 cumulative cases ... 455
+      related deaths' - lower bound, national, inconsistent with the official series (8,528/559 by 25 Oct) -> legacy 7 retracted - 0
+  Q12 RW '"455 deaths" cholera Cameroon' -> 0 items - 0
+  Q13 RW '"1,757" cholera' -> South Sudan/Zambia only - 0
+  Q14 RW '"1757" cholera Cameroon' -> 0 items - 0
+  Q15 MSF site search 'cholera Yaounde 2011' -> nothing -> legacy 4 retracted (JHU Mfoundi Jan-22 Sep 2011 = 2,182/71) - 0
+  Q16 RW '"14,885" cholera' -> ECHO Daily Flash 14 Dec 2022: '14,885 notified cases and 298 deaths recorded (week 47), according to
+      ... MoH' - epidemic cumulative since Oct 2021, not calendar 2022 - registered metadata 313 S (row 1114 replaces legacy 20)
+  Q17 RW '"14 885" cholera Cameroun' -> EU press release 23 Jan 2023 'Fin novembre 2022 ... 14 885 cas ... 298 deces' (second source,
+      noted on row 1114) - 0
+  Q18 CCOUSP sitrep 1-7 May 2023 (metadata 204) re-fetched -> Bertoua 2 alerts/2 RDT+/0 deaths; the one confirmed case was imported
+      from Djoungolo ('Aucun cas local confirme a la culture') -> legacy 18 (3 sCh/2 cCh) retracted; official figure = row 751 - 0
+  Q19 MINSANTE DSpace 'Biyem-Assi cholera' -> 0 items - 0
+  Q20 IRIS discover '"Weekly Bulletin on Outbreak" 2021 week cholera Cameroon' (weeks 43-52 2021 read) -> OEW wk51 2021: 'A cumulative
+      number of 50 cases have been reported from Centre where the last case report was as of 11 November 2021' (Biyem-Assi cluster;
+      wk45: only Biyem-Assi affected, 1 death as of 2 Nov) - registered metadata 315 S (row 1115 replaces legacy 15)
+Sources found: ~20   Registered: index 311, 312, 313, 315 (314 = MY ERRONEOUS placeholder registration while preparing 315 - retired
+               via revise_observation.py: description corrected, Status=Superseded; its URL field still reads '.../PLACEHOLDER'
+               because the tool cannot edit URLs - flagged for Agent 7)
+Rows added   : 14    Indices: 1102-1115 (all verified replacements of retracted legacy rows; net row change = 0)
+Retracted    : legacy 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 (row 10 in batch 2 Q1); 143 (redundant duplicate of
+               806). Tombstones in ./data/CMR/retracted_rows_ai.csv. Legacy metadata 2-19 retired (Status=Superseded, reasons recorded).
+Conflict notes: 627 (Littoral 2020 PRIMARY), 706 (non-primary, 0.9->0.7), 196/707 (Littoral 2021: 196 primary, 707 0.9->0.7), 197/708
+               (Littoral 2022: 197 primary, 708 0.8->0.6), 195/755 (SW 2021: 195 primary 0.9->0.8, 755 0.8->0.65), 806 (Maroua 3 2024
+               primary), 114 (Douala Jan-Aug 2004 non-primary 0.85->0.7 vs 1109), 203 (Mora 94 corroborated by MDRCM032), 751 (Bertoua)
+Successful queries: 10/20 (Q1, Q4, Q5, Q6, Q7, Q8, Q9, Q10, Q16, Q20)
+Yield        : 50%   (all 10 are verified legacy replacements, which the brief counts as new rows)
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum)
+

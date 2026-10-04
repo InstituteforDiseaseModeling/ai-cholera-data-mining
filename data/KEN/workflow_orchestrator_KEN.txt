@@ -1,0 +1,296 @@
+================================================================================
+WORKFLOW ORCHESTRATOR CONFIGURATION / SHARED AGENT BRIEF - KENYA (KEN)
+Cycle: Opus 5.5 max-effort re-run (started 2026-09-29). KEN run started 2026-10-04 05:11
+File: ./data/KEN/workflow_orchestrator_KEN.txt   (written by the orchestrator, Agent 0)
+Every agent (1-7) reads this file before its first query. Agent-specific targeting
+is in the agent's own prompt; this file holds what is common to all of them.
+================================================================================
+
+--------------------------------------------------------------------------------
+A. STARTING STATE (measured 2026-10-04 05:11, before Agent 1)
+--------------------------------------------------------------------------------
+  ./data/KEN/cholera_data_ai.csv     830 rows  (AI Index values 1..846 with gaps;
+                                                indices are not contiguous)
+  ./data/KEN/metadata_ai.csv         132 sources
+  ./data/KEN/cholera_presence_ai.csv 125 presence rows (cholera confirmed, no count)
+  ./data/KEN/retracted_rows_ai.csv   tombstones of retracted rows - never re-add these
+  py/validate_quality.py KEN         ERROR 0, WARN 39, INFO 47  (/tmp/KEN_pre.json)
+  Effective coverage (JHU+WHO+AI)    94.4%  (644/682 months), months_ai_only 67
+  Baseline-only coverage (JHU+WHO)   84.3%  (575/682 months), 8 gap periods
+
+  Effective gaps still open (./reference/effective_surveillance_gaps_detailed.csv):
+    1990-01-01..1991-12-31   730 d  historical
+    1988-01-01..1988-12-31   366 d  historical
+    2026-09-01..2026-10-04    34 d  recent   (latest observation 2026-09-13 is an AI
+                                             zero row; latest POSITIVE obs 2026-07-12)
+
+  Kenya is already 94% covered. The three formal gaps are hard (see section F). The
+  LARGER remaining value for MOSAIC is TEMPORAL AND SPATIAL RESOLUTION: most national
+  years 1983-2016 and 2020-2021 are represented by a single ANNUAL row. A weekly or
+  monthly national series, or a county breakdown, for an outbreak year is worth far
+  more to a transmission model than another annual total. National rows by resolution:
+
+    1983-1986, 1988-2016 (except 1997-99, 2009 partial, 2014-15 partial): annual only
+    2017-2019: JHU weekly sub-national + annual national
+    2020-2021: 1-3 rows per year
+    2022-2024: JHU/WHO weekly
+    2025: WHO weekly to 2025-06-01, then AI monthly-ish
+    2026: 3 AI national rows only
+
+  Target BOTH the formal gaps AND resolution enhancement within outbreak years.
+
+--------------------------------------------------------------------------------
+B. HARD RULES (all agents)
+--------------------------------------------------------------------------------
+ 1. NO TIME LIMIT. The only stopping rule for Agents 1-6 is the yield rule: at least
+    3 batches of 20 queries, then stop when 3 CONSECUTIVE batches are below 5% yield
+    (i.e. 0 of 20 successful queries; 1/20 = 5% is NOT below 5%), or at 12 batches.
+    Ignore any deadline or time box anywhere. Elapsed time is never a stopping reason.
+ 2. Yield = queries that produced >=1 NEW committed row in cholera_data_ai.csv / 20.
+    Count queries, not rows. Never above 100%. Record batch_yields in PERCENT.
+    A "query" = one distinct search question executed against one back-end: a
+    WebSearch call, an API search request, or a fetch+extract of one specific
+    document chosen to answer a gap-bound question. A scripted sweep looping over N
+    documents of one series to answer ONE question counts as ONE query (log how many
+    documents it touched).
+ 3. Write ONLY through the tools:
+      python py/add_observation.py register-source|add|add-zero|add-presence KEN ...
+      python py/revise_observation.py KEN --index N ... --agent {YOUR_N} --reason "..."
+    ALWAYS pass --agent {your agent number} to revise_observation.py (it defaults to
+    "5" and mislabels everyone else's edits). Never hand-edit any CSV.
+ 4. Your log: ./data/KEN/search_log_agent_{N}.txt - create/overwrite it FRESH at your
+    start (Agent 1: append below the orchestrator's INITIALIZATION block). Append a
+    block per batch in the protocol shape. The previous cycle's logs are archived as
+    ./data/KEN/search_log_agent_{N}_legacy_2026-09-20.txt (Agent 7:
+    ..._legacy_2025-08-06.txt) - READ them to avoid repeating searches; do NOT
+    write to them.
+ 5. Before you finish: python py/validate_quality.py KEN must exit 0 (ERROR 0).
+    Then record state:
+      python -c "import sys; sys.path.insert(0,'py'); from workflow_state import write_agent_state; write_agent_state('KEN', agent_num=N, batches_completed=B, batch_yields=[...percent...], rows_added=R, sources_discovered=S, stopping_reason='...', gaps_filled=[...], gaps_validated_absent=[...], gaps_remaining=[...])"
+    rows_added must equal the actual change in your committed rows (verify by Index).
+ 6. Count-less evidence -> add-presence (cholera_presence_ai.csv), never a data row.
+ 7. Zero rows only via add-zero with Documented_Absence or Inferred_Absence and an
+    honest --surveillance value. Surveillance_Gap is NOT a zero (the writer rejects it).
+    An empty search result is evidence of nothing.
+
+--------------------------------------------------------------------------------
+C. SHARED-FILE AND SAFETY PROHIBITIONS (10 countries run in parallel right now)
+--------------------------------------------------------------------------------
+  - Do NOT run py/analyze_effective_gaps.py (it rewrites the shared
+    ./reference/effective_* and baselineonly_* files under other countries' agents).
+    To measure KEN coverage IN MEMORY, read-only:
+      python -c "import sys; sys.path.insert(0,'py'); from analyze_effective_gaps import analyse; from datetime import date; d,a,c,r=analyse('KEN','Kenya',['JHU','WHO','AI'],date.today(),7); print(c); print([(g['gap_start'],g['gap_end'],g['days']) for g in d]); print(r)"
+    (use ['JHU','WHO'] for the baseline-only comparison)
+  - Do NOT run update_dashboard.sh, py/update_dashboard_data.py, py/build_weekly_timeseries.py
+    for all countries, or any git command. The runner owns the dashboard and git.
+  - Do NOT write anything under ./reference/ (including validation_debt.json).
+  - Do NOT touch the baselines ./data/KEN/cholera_data_jhu.csv / cholera_data_who.csv
+    (read-only) and do NOT re-run py/convert_who_to_workflow.py.
+  - py/repair_data_integrity.py: ALWAYS pass KEN explicitly
+    (`--dry-run KEN`, `--apply KEN`). With no country argument it rewrites all 40.
+  - py/validate_quality.py: pass KEN (without it, it validates all 40 - harmless but slow).
+  - Do not create data files for any other country (neighbours may be SEARCHED only).
+
+  PRIVACY: never put the user's email address - or any email address - into any
+  request, URL, header or payload (no mailto= on OpenAlex/Crossref, no email= on NCBI
+  E-utilities, no Unpaywall). A Senegal agent did this on 2026-10-02; it must not recur.
+
+  ACCESS: do not solve or script around anti-bot challenges, CAPTCHAs, JavaScript
+  bot-walls, logins or paywalls. If a site blocks automated access, use an archived
+  copy (web.archive.org) or move on. Paywalled content is out of scope (CLAUDE.md).
+
+--------------------------------------------------------------------------------
+D. TOOLING STATUS (verified by the orchestrator 2026-10-04 05:15)
+--------------------------------------------------------------------------------
+  WebSearch: the whole `claude -p` session shares ONE cap of ~200 WebSearch calls
+  (CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION is unset). In the previous KEN cycle Agent
+  1 used all 200 and Agents 2-5 had none. This cycle the cap is RATIONED so every
+  agent gets general web search for the material only it can find (news, ministry
+  pages, grey literature). Soft allocations (unused quota rolls to the next agent):
+      Agent 1: 45   Agent 2: 35   Agent 3: 20   Agent 4: 20
+      Agent 5: 20   Agent 6: 35   Agent 7: 25      (= 200)
+  Count your WebSearch calls, log the running count, and report the total. If a
+  WebSearch returns "this session has used its web search budget", switch to the
+  structured back-ends below - they are NOT capped and were the most productive
+  surface in the previous cycle (Agents 4 and 5 added 225 and 380 rows with them).
+  Use WebSearch mode "standard" by default; "extended" only when standard is thin.
+
+  WebFetch: returned HTTP 403 on who.int and reliefweb.int last cycle. Use Bash/curl
+  with a browser User-Agent for those (curl -sL -A "Mozilla/5.0" ...).
+
+  WORKING (HTTP 200 today):
+    WHO IRIS DSpace 7   https://iris.who.int/server/api/discover/search/objects?query=...
+                        -> item uuid -> /server/api/core/items/{uuid}/bundles ->
+                        bitstreams -> /content  (Weekly Epidemiological Record, AFRO
+                        weekly bulletins W15-2017..W37-2025, annual cholera reports)
+    Europe PMC REST     https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=...&format=json
+                        full text: .../rest/{PMCID}/fullTextXML   (best academic surface today)
+    Crossref            https://api.crossref.org/works?query=...   (no mailto!)
+    ReliefWeb           https://reliefweb.int/updates/rss.xml?advanced-search=(PC131)
+                        (PC131 = primary country Kenya) + /updates HTML listings +
+                        attachment PDFs via curl
+    Internet Archive    https://web.archive.org/cdx/search/cdx?url=...  and
+                        https://archive.org/advancedsearch.php?q=...&output=json
+    WHO ArcGIS REST     https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services
+                        (see section E - new this cycle)
+    pdftotext -layout, pdftoppm (installed). tesseract is NOT installed: for scanned
+    PDF pages that pdftotext cannot read (e.g. WER 1983-1986), render the page with
+    `pdftoppm -r 150 -f P -l P -png file.pdf /tmp/pg` and READ THE PNG with the Read
+    tool (it is multimodal). This is how to read the 1983 "KENYA <glyph>-16.VII" entry
+    and the 1984 infected-area registers that failed extraction last cycle.
+
+  RATE-LIMITED / DOWN TODAY (do not burn queries on them):
+    OpenAlex       - free daily budget for this IP exhausted (shared with 9 other
+                     countries), resets 00:00 UTC. Do not add a key or email.
+    Semantic Scholar API, Google Books API - HTTP 429.
+    HathiTrust full-text search - 403.
+    health.go.ke, knbs.or.ke, dec.usaid.gov - no connection from here; try
+    web.archive.org snapshots of them instead.
+    Previously confirmed closed: ProMED (client-side rendered), Africa CDC (404),
+    nation.africa (403), DuckDuckGo/Mojeek HTML (bot wall), ReliefWeb v1/v2 JSON API
+    (appname not approved), GDELT for "kipindupindu" (empty).
+
+--------------------------------------------------------------------------------
+E. NEW LEVEL-1 SOURCES FOUND BY THE ORCHESTRATOR (not yet registered)
+--------------------------------------------------------------------------------
+ E1. WHO cholera_adm0_week (national weekly, WHO global cholera dashboard backend)
+     https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services/cholera_adm0_week/FeatureServer/0/query?where=iso_3_code%3D%27KEN%27&outFields=date_wk,epiwk,epiyr,cases,deaths,cum_case,cum_death&orderByFields=date_wk&returnGeometry=false&resultRecordCount=2000&f=json
+     Layer last edited 2026-09-28. KEN rows: 2023 (52 wk, 8,926 cases), 2024 (52 wk,
+     613), 2025 (53 wk, 700 cases/26 deaths), 2026 epiwk 1-24 (40 cases, last week
+     starting 2026-06-15). `date_wk` (epoch ms) is the TRUE week start - use it for TL
+     (TR = TL + 6 days). Do NOT derive dates from epiwk: the WHO converter's 2026
+     week-shift bug comes from exactly that.
+     ./data/KEN/cholera_data_who.csv (the WHO BASELINE) STOPS AT 2025-06-01, so
+     2025-06-02..2026-06-21 weekly WHO data is NOT in the baseline. Positive weeks from
+     this layer are legitimate AI-layer rows (source_database AI, Level 1). Note in
+     processing_notes: "WHO dashboard cholera_adm0_week; duplicates the WHO layer if
+     cholera_data_who.csv is later refreshed - WHO layer takes precedence".
+     Check for overlap with existing AI rows (e.g. Index 49 2025-06-30..07-27 = 7,
+     Index 51 2025-09-29..10-26 = 111, Index 52 2025-12-01..12-28 = 23 already equal
+     the sums of the corresponding WHO weeks) and mark the weekly rows as
+     "Temporal subset of Index N - do not sum with it" where a coarser row exists.
+     CAUTION - DASHBOARD ZEROS ARE NOT ABSENCE EVIDENCE: 2026 epiwk 1-18 show 0, yet 5
+     laboratory-confirmed Garissa Township cases had onset from 22 March 2026 (Index
+     70) and the Kenya EPR sitrep opens the 2026 event in week 21; WHO SitRep 31 flags
+     Kenya as NOT reporting in Sept 2025 while the dashboard shows 0 for epiwk 36-39.
+     Write a dashboard zero week as a zero row ONLY if an independent source affirms
+     that zero cases were reported for that week.
+ E2. WHO Adm1_Kenya_Cholera (county-level cumulative)
+     https://services.arcgis.com/5T5nSi527N4F7luB/arcgis/rest/services/Adm1_Kenya_Cholera/FeatureServer/0/query?where=1%3D1&outFields=ADM1_NAME,Cases,Deaths,CFR&returnGeometry=false&f=json
+     47 counties; 21 with counts, total 8,700 cases / 140 deaths; layer last edited
+     2023-04-27. Almost certainly the cumulative of the Oct-2022 outbreak to ~late
+     April 2023 - the period is NOT stated in the layer; establish it (e.g. against a
+     WHO AFRO bulletin / Kenya MoH sitrep of late April 2023 with ~8,700 cumulative
+     cases) before writing rows, and reconcile with the existing 2022-10..2023-11
+     county rows (Indices in the 77-113 / 157-168 / 191-219 range).
+ E3. Other services on the same ArcGIS server worth a look: Cholera_Afro_temporal,
+     Cholera_ADM1, Cholera_agregated, cholera_report_period, AWD_Outbreak,
+     Time_stamp_cholera, Global_annual_average_cholera_incidence.
+ E4. Upstream WHO extract (read-only, other repo):
+     /Users/johngiles/MOSAIC/ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv
+     (country,year,week,cases_by_week,deaths_by_week; KEN to 2026 wk 24, no dates).
+     Prefer E1, which carries true dates.
+
+--------------------------------------------------------------------------------
+F. WHAT THE PREVIOUS KEN CYCLE (2026-09-19/20, Agents 1-5) ESTABLISHED
+--------------------------------------------------------------------------------
+  Full detail: ./data/KEN/workflow_state_pre_opus55_2026-09-29.json and the legacy logs.
+  1988: Kenya absent from WER "Cholera in 1988" Africa table (12 reporters), from all
+        51 weekly notification tables of WER vol 63 and from the infected-area
+        register (extraction gate passed: Angola appears in 29 of 51 issues). Disease
+        PRESENCE established (Mwaura 2017: outbreaks reported every year 1974-1989).
+        => Non-reporting, not absence. NEVER write a 1988 zero without a positive,
+        explicit statement of absence.
+  1990-1991: Kenya absent from WER "Cholera in 1990" (+addendum) and "Cholera in 1991"
+        Africa tables while carried on the infected-areas register; Bundi 2019
+        genomics places transmission in Kenya from 1990. WER 1990 no.6 "KENYA 1-5.II
+        83 14" was REASSIGNED TO ZAMBIA by corrigendum a week later - do not use it.
+        Register-removal date 3 October 1991 was found by Agent 4 (it would mirror the
+        Index 241 precedent for 1972) - a candidate Documented_Absence for
+        1991-10-04..1991-12-31 that was WITHHELD; Agent 3/6 must evaluate it on the
+        merits (is removal from the register an affirmative statement that no cases
+        occurred, given Kenya was not filing annual counts?).
+        1991-93 Somali refugee-camp cholera in Kenya: nil across Europe PMC, CrossRef,
+        Semantic Scholar, OpenAlex, archive.org, Refworld, MSF/Epicentre; would need
+        UNHCR/MSF paper archives.
+  Untried / under-tried surfaces for 1988-1991 worth real effort: Kenya Statistical
+        Abstract and Economic Survey (KNBS / CBS) notifiable-disease tables for
+        1988-1992; Kenya MoH annual reports / Health Information Bulletin; East African
+        Medical Journal (EAMJ) and other African journals; University of Nairobi and
+        KEMRI theses; World Bank / USAID health sector documents (via archive.org);
+        FBIS / BBC Summary of World Broadcasts reports of "cholera" in Kenya;
+        Kenyan newspapers (Daily Nation, Standard, Kenya Times, Taifa Leo - Swahili
+        "kipindupindu") via archive.org; UNHCR/MSF 1991-92 refugee influx reports
+        (Liboi, Ifo, Hagadera, Dagahaley, Utange, Marafa, Mandera, Walda); CDC MMWR
+        international notes; WHO CDD Programme reports; WHO AFRO regional reports.
+  2026-01-01..2026-03-21: REFUSED as a zero (under-ascertainment, see E1 caution).
+  2011, 2014 as zero years: refused (2011 = 74 WHO cases + 2,552 Dadaab in JHU;
+        2014 resolved by Index 218, absence to 30 Nov only).
+  2019 county partition (AFRO W52 2019 12-of-47 list): self-refuting - do not use.
+  Boru / Kiama / PAMI-2025 sub-county zeros: NOT absence evidence (they zero Bomet
+        and Baringo where MMWR/IFRC record cases). Do not re-litigate.
+  WER 1984 scans: pdftotext artefacts - gate any register mining on a country-heading
+        count first (or use the pdftoppm + Read-tool route in D).
+  WER weekly notification tables of the 1970s-80s carry DATED Kenyan case
+        notifications (~50 issues/year); mined for some years (1971-72, 1975, 1978-82,
+        1987; 1992-2001) but not for 1973-74, 1976-77, 1983-86, 1989.
+  Known WHO AFRO vs WHO annual conflicts: 2020 (AFRO/Boru 711 vs WER annual 447),
+        2024 (AFRO 392 to 23 Jun vs WER annual 302); 1975/1976 notifications exceed the
+        published annuals.
+  Known legacy defects for Agent 7: (Index 43, the unlabelled 2003 zero, was already
+        replaced by Index 791 with Documented_Absence - resolved, no action);
+        22 national/sub-national overlap WARN periods on legacy rows (Index 1-76);
+        1 same_period_conflict WARN (Embakasi South 2017: 140 primary vs 93 marked
+        NON-PRIMARY at 0.40 - adjudicated, the check cannot see adjudication);
+        non-administrative eco-zone locations (AFR::KEN::Coastal_Region,
+        Highland_Region, Arid_Semi_Arid_Region, Lake_Region, Lower_Eastern_Region);
+        metadata 48/97 duplicate one paper, 14/23/93 are PMC10058159 registered three
+        times; stale validation_debt.json entry "KEN source_name_mismatch Index 16"
+        (shared file - report it, do not edit it).
+
+--------------------------------------------------------------------------------
+G. DATA CONVENTIONS FOR KENYA (match the existing file exactly)
+--------------------------------------------------------------------------------
+  Location = AFR::KEN[::<Province>[::<County>[::<Sub-county>[::<site>]]]]
+  The file uses the pre-2013 PROVINCE as level 2 and the county as level 3 (the
+  existing 830 rows follow this; keep it). Province spellings: Central, Coast,
+  Eastern, Nairobi, North-Eastern, Nyanza, Rift-Valley, Western. Spaces -> underscores;
+  no apostrophes.
+    Central      : Kiambu, Kirinyaga, Muranga, Nyandarua, Nyeri
+    Coast        : Kilifi, Kwale, Lamu, Mombasa, Taita_Taveta, Tana_River
+    Eastern      : Embu, Isiolo, Kitui, Machakos, Makueni, Marsabit, Meru, Tharaka_Nithi
+    Nairobi      : Nairobi county IS AFR::KEN::Nairobi; sub-counties below it
+                   (AFR::KEN::Nairobi::Embakasi_East, ::Kibra, ::Mathare, ...)
+    North-Eastern: Garissa, Mandera, Wajir
+    Nyanza       : Homa_Bay, Kisii, Kisumu, Migori, Nyamira, Siaya
+    Rift-Valley  : Baringo, Bomet, Elgeyo_Marakwet, Kajiado, Kericho, Laikipia, Nakuru,
+                   Nandi, Narok, Samburu, Trans_Nzoia, Turkana, Uasin_Gishu, West_Pokot
+    Western      : Bungoma, Busia, Kakamega, Vihiga
+  Pre-2013 district names stay under their province (e.g. Nyanza::Rachuonyo,
+  Nyanza::Suba, Rift-Valley::Koibatek - already in the file).
+  Refugee camps: AFR::KEN::North-Eastern::Garissa::Dadaab[::Dagahaley|::Hagadera|
+  ::Ifo|::Ifo_2|::Kambioos]; AFR::KEN::Rift-Valley::Turkana::Turkana_West::Kakuma
+  (or ::Kalobeyei). Never use non-administrative zones (eco-zones, "Lake_Region").
+  Double counting - every sub-national row for a period that has a national row
+  carries one of these exact phrases in --note:
+    "Provincial subset - do not sum with national row"
+    "National total - includes provinces not individually listed"
+  Temporal nesting - a weekly/monthly row inside an existing coarser row of the same
+  place: add "Temporal subset of Index N - do not sum with it" (the weekly builder
+  inflates totals when nested rows overlap; see the memory note on overlap inflation).
+  Cumulative figures: convert to period increments only when both cumulative endpoints
+  come from the same series; say so in the note. Never average conflicting figures.
+  Confidence bands follow the reliability level (writer enforces); multi-year counts
+  and >15% CFR are capped at 0.7.
+
+--------------------------------------------------------------------------------
+H. WHAT TO SEND BACK TO THE ORCHESTRATOR (your final message)
+--------------------------------------------------------------------------------
+  - batches completed; per-batch yields (%); exact stopping reason (which rule fired)
+  - rows added: count AND the Index list/range; zero rows vs case rows; presence rows
+  - sources registered (metadata Index list); WebSearch calls used
+  - each target gap: FILLED / VALIDATED_ABSENT / REMAINING (+ why)
+  - revisions/retractions you made (Index, reason)
+  - validate_quality.py KEN result (ERROR/WARN counts)
+  - anything the next agents must know (leads not followed, conflicts, dead ends)
+================================================================================
