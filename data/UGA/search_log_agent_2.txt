@@ -482,3 +482,54 @@ subagent from this session, so there is no concurrent writer.
 Decision: redeploy Agent 2 to (a) write an unscored "BATCH 7 (INTERRUPTED, partial)" block reconstructed from rows 403-406 /
 sources 249-252, then (b) run scored batches from batch 7 onward until the yield rule is met (3 consecutive sub-5% batches,
 or 12 scored batches in total).
+
+=== AGENT 2 REDEPLOY (resumed run, same cycle) - log resumed 2026-10-04 08:45 ===
+Inputs re-read before any new query: this log in full (batches 1-6 + ORCHESTRATOR NOTE), /tmp/UGA_context.md,
+./templates/template_search_protocol.txt, CLAUDE.md, workflow state (Agent 1 entry only), ./data/UGA/search_log_agent_1.txt
+query list, /tmp/UGA_prior_cycle/search_log_agent_2.txt, current CSVs (381 rows, 252 sources, 101 presence, 24 tombstones),
+the cache /tmp/uga_a2/ (file timestamps 06:52-07:23 = the interrupted batch) and the data-file backups
+(./data/UGA/.backup_cholera_data_ai_20261004-0716*/0717*, .backup_cholera_presence_ai_20261004-0656*..0718*).
+
+=== BATCH 7 (INTERRUPTED, partial, UNSCORED) | PHASE 3 | UGA ===
+Status       : process interruption ~08:08 PDT; last data write 07:18 PDT; no log block was written by the interrupted run.
+               QUERY COUNT UNKNOWN - the WebSearch calls themselves are not recoverable. This partial batch is NOT scored,
+               does NOT count toward the 12-batch ceiling, and its yield is not used in the stopping rule.
+Reconstructed actions (from cache artefacts in /tmp/uga_a2/, metadata Search_Technique/Discovery_Method fields 249-252,
+row processing_notes and backup timestamps; order by time):
+  P1 06:53 ReliefWeb (PC240) IFRC DREF/appeal listing 2013-2026 (rw_dref1326.txt) + retrieval of the IFRC Uganda
+         population-movement appeal documents MDRUG045 and the Uganda-DRC appeal (popmov/, 75 files) -> no committed row
+  P2 06:55 AHSPR FY2013/14 PDF (ahspr2014.pdf, complete) -> Q4 FY2013/14 'Moyo 78 cases/4 deaths, Namayingo 110/2'
+         nested in existing rows 8 (Moyo 88/3) and 18 (Namayingo 109/2) -> no row (not registered)
+  P3 06:56 WebSearch: extranet.who.int cpcd Uganda Health Sector Performance report (CPCD page 404) -> medbox mirror of
+         AHSPR FY2016/17 -> source 249; presence Buliisa Nov 2016 ('Last confirmed cholera outbreak was in November 2016
+         in Buliisa district')
+  P4 06:58-07:01 WebSearch(ext): MoH AHSPR 2009/10 cholera -> library.health.go.ug PDF (504) -> Wayback copy of the
+         Ministerial Policy Statement FY2010/11 (truncated at 1 MiB, text recovered) -> source 250; presence Kayunga,
+         Kamwenge, Mbale FY2009/10
+  P5 07:02-07:08 Wayback CDX enumeration of library.health.go.ug/sites/default/files/resources/ (1,759 captures, 603
+         distinct files) + download of 13 files (mohlib/; several truncated at 1 MiB) -> sources 251 (AHSPR FY2017/18;
+         presence Mpigi) and 252 (AHSPR FY2000/01; presence Arua, Bundibugyo)
+  P6 07:08 Wayback CDX enumeration of www.health.go.ug/sites/default/files (1,448 captures) -> list only
+  P7 07:15 TNH/IRIN nodes 221440, 222462, 223204 via r.jina.ai -> 511-byte block pages, nothing read
+  P8 07:16 re-read of cached IRIN 5 Aug 2005 (source 154) -> ROW 403 (national 2005-04-01..2005-08-05, 2,200 sCh / 56 d)
+  P9 07:17-07:18 re-mine of the cached OCHA HU 1999-2000 'Cholera Update' sections for documented regional/district
+         absence -> ROWS 404 (Eastern_Region zero 1999-08-30..1999-12-31, src 144), 405 (Eastern_Region zero
+         2000-01-01..2000-07-23, src 149), 406 (Mbarara zero 1999-11-01..2000-01-02, src 144) + presence Arua, Kasese
+         (20 Dec 1999-2 Jan 2000, src 144) and Arua, Kabarole, Kasese (3-16 Jan 2000, src 145)
+  P10 07:18-07:23 Wayback retrieval of 21 MoH weekly epidemiological bulletins 2019-2020 (mohwk/, truncated at 1 MiB) ->
+         not processed before the interruption
+Sources registered by the interrupted run: 249-252.  Rows: 403-406.  Presence: +12 (positions 90-101 of the file).
+VERIFICATION OF ROWS 403-406 (this redeploy, before any new query)
+  403 PASS. Quote verbatim in the cached IRIN text. >1000 rule: SECOND SOURCE FOUND - USAID/OFDA Uganda Complex Emergency
+      Situation Report #3 (FY 2005), 24 Aug 2005 (registered as source 253): 'The U.N. World Health Organization (WHO)
+      reports that cholera has claimed the lives of 56 people and infected 2,200 others in Uganda since April 2005' - also
+      confirms TL = April 2005. Independence partial (both relays rest on MoH surveillance) -> confidence kept at 0.7;
+      corroboration note appended with py/revise_observation.py (no count/date change).
+  404 PASS. OCHA HU Vol II Issue 1: 'the Eastern Region has reported zero cases for 18 weeks' at the 2 Jan 2000 MoH report
+      -> 30 Aug 1999 start is exact. No eastern-district count or presence record in any layer inside the window.
+  405 PASS. OCHA HU Vol II Issue 6 (and Issue 5): 'Eastern Region is still the only region that has reported zero cases
+      all year' at 23 Jul 2000. No conflicting row.
+  406 PASS (at the limit). 'Mbarara none for over two months' at 2 Jan 2000 -> before 2 Nov 1999; TL 1 Nov 1999 kept.
+  No row failed; verification notes appended to 403-406 (revise_observation.py --append-note, agent 2).
+Decision     : partial batch closed UNSCORED. Scored counting resumes with BATCH 7 below (batches 1-6 = 25,35,25,15,35,20%;
+               consecutive sub-5% = 0).

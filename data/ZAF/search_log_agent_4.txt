@@ -303,3 +303,27 @@ Conflicts/notes for Agent 5:
 Agent 4 run INTERRUPTED by user during batch 5 (orchestrator Agent tool call interrupted). Completed: batches 1-4 (yields 10,25,15,10%). Rows 1766-1930 live in ./data/ZAF/cholera_data_ai.csv (rows 1926-1930 belong to the unlogged, partial batch 5). Sources registered up to metadata Index 571. validate_quality.py ZAF exit 0 at interruption.
 Status: NOT COMPLETE (stopped for interruption, not the yield rule). On resume, redeploy Agent 4 to continue from batch 5 (log batch 5 from scratch, counting rows 1926-1930 if their queries are re-identified) until the yield rule is met.
 Orchestrator flag for Agent 4 resume / Agent 5: row 1928 (AFR::ZAF 1981-08-01..1982-02-25, sCh 18,000, source 571) exceeds the HST/DoH 1981-82 season total (11,141 confirmed, AI 52) - written in the unlogged partial batch 5; verify definition (suspected vs confirmed) and obtain the second source required for >1000 cases before it is relied on.
+
+=== ORCHESTRATOR RESUME NOTE | 2026-10-04 08:43:16 ===
+New orchestrator session resumed ZAF. workflow_state.json: Agents 1-3 stopped at the 12-batch maximum (valid yield-rule stop, not re-run).
+Agent 4 entry stopping_reason = 'INTERRUPTED by user during batch 5 - NOT COMPLETE' -> not a yield-rule stop -> REDEPLOYING Agent 4 to
+continue from batch 5 until the yield rule is met (3 consecutive batches <5% or 12 batches total). No time limit.
+State at resume: ./data/ZAF/cholera_data_ai.csv 1,906 rows (max Index 1930); ./data/ZAF/metadata_ai.csv 571 sources;
+validate_quality.py ZAF exit 0 (ERROR 0, WARN 232, INFO 274). Effective gaps: only 2026-09-01..2026-10-04 (34 d, recent); coverage 99.7%.
+Batch 5 accounting decision: rows 1926-1930 (source 571, The Leader Jan-Mar 1982 via DISA) were committed by the interrupted batch 5;
+the resumed batch 5 logs that retrieval as its Q1 (re-verified) and runs Q2-Q20 fresh. Row 1928 (18,000 suspected, ministerial round
+figure) needs a second independent source (>1000 rule) or a documented single-source downweight.
+
+=== AGENT 4 RESUMED SESSION | 2026-10-04 (new session) ===
+Re-read before the first new query: ./data/ZAF/search_log_agent_4.txt (batches 1-4, orchestrator notes), ./templates/template_search_protocol.txt,
+  ./CLAUDE.md, workflow state (Agents 1-4), rows 1918-1930 and sources 569-571.
+Pre-resume validator: python py/validate_quality.py ZAF -> exit 0, ERROR 0, WARN 232, INFO 274 (1,906 rows, 571 sources).
+Tooling: WebSearch is loaded in this session and will be tried first (mode 'standard'; 'extended' only for niche items); if it returns
+  budget/quota errors the batch falls back to direct retrievals (WebFetch/curl/python) as in batches 1-4. Each query line records its tool.
+  Local helpers reused from /tmp/zaf_a4 (Vision OCR, archive.org FTS, IRIS DSpace API) plus cached downloads from batches 1-4 and the
+  interrupted batch 5 (Leader Oct-Dec 1981 and Jan-Mar 1983 PDFs were already downloaded but never reviewed or logged).
+Counting convention unchanged: one query = one WebSearch call, one site-search/API call, or one direct retrieval of a document/listing not
+  surfaced by another query in the same batch; a sweep over cached documents counts as one query (as in B1 Q13); follow-up downloads of
+  documents surfaced by a query count under that query. Successful = >=1 NEW row committed to ./data/ZAF/cholera_data_ai.csv.
+Batch 5 accounting (orchestrator decision): Q1 = the Leader Jan-Mar 1982 retrieval that produced rows 1926-1930, re-verified now;
+  Q2-Q20 run fresh.
