@@ -1,0 +1,303 @@
+=== AGENT 7 (QUALITY AUDITOR) - TOGO (TGO) ===
+Start   : 2026-09-19
+Country : Togo (TGO), West Africa
+Run type: REDEPLOYMENT audit onto an already-"COMPLETED" country
+Budget  : no stopping criteria, unlimited validation operations
+Inbound state: 323 data rows, 231 metadata sources, 92 presence rows,
+               29 retraction tombstones; ERROR 0 / WARN 47 / INFO 135;
+               effective coverage 99.9%, one 19-day gap remaining.
+
+An OPERATION below = one validator run, one repair-tool run, one analysis pass
+over the CSVs, one external API call, or one write via sanctioned tooling.
+
+--------------------------------------------------------------------------
+PHASE 1 - VALIDATION BASELINE AND MECHANICAL REPAIR
+--------------------------------------------------------------------------
+OP 1  python py/validate_quality.py TGO --json /tmp/TGO_audit_pre.json
+      -> ERROR 0, WARN 47, INFO 135. 41 multiyear_aggregate,
+         4 same_period_conflict, 2 CFR_high_flagged_for_review.
+OP 2  Read ./data/TGO/known_source_traps.txt in full (539 lines, 4 agent
+      sections). Read all of ./data/TGO/workflow_state.json (298 lines).
+OP 3  python py/repair_data_integrity.py --dry-run TGO
+      -> "TOTAL: 0 change(s)". Nothing mechanical remained. No --apply run
+         was therefore needed and none was made.
+OP 4  Confirmed ./data/TGO/attribution_review.csv DOES NOT EXIST - the repair
+      tool withheld nothing for judgement, i.e. no unverifiable citations.
+OP 5  ESTABLISHED THE VALIDATOR'S ROW-LABEL SEMANTICS before acting on any
+      warning. py/validate_quality.py tags findings with csv.reader.line_num
+      (the true PHYSICAL line, deliberately, so embedded newlines do not shift
+      the report) - NOT the Index column and NOT a positional counter. Built
+      the line->Index map; without it every warning would have been worked on
+      the wrong row. Example: "row 301" is Index 329, not Index 301.
+
+--------------------------------------------------------------------------
+PHASE 2 - THE 41 multiyear_aggregate WARNINGS (judgement, not suppression)
+--------------------------------------------------------------------------
+OP 6  Enumerated all 41 and grouped them into 11 distinct source/period groups:
+        src 69  2006-2017  Idx 76-80    (UNICEF WCARO factsheet, 5 regions)
+        src 40  2011-2013  Idx 92-93    (Africhol)
+        src 31  1970-1973  Idx 198      (Bockemuhl & Schroter)
+        src 32  1996-2010  Idx 199      (Landoh JID 2013)
+        src 61  2004-2016  Idx 200      (UNICEF/WCA platform)
+        src146  2011-2015  Idx 211      (Nadri et al)
+        src150  2011-2014  Idx 213-229  (UNICEF/ACF, 17 districts)
+        src151  2006-2013  Idx 231-239  (UNICEF Togo EHA study)
+        src150  2000-2006  Idx 241      / 2007-2013 Idx 242
+        src192  2010-2014  Idx 299      (Moore et al)
+        src221  2002-2013  Idx 343      (Togo-Benin cross-border meeting)
+OP 7  CONFIDENCE CHECK: every one of the 41 is already at
+      confidence_weight 0.7, the ceiling CLAUDE.md sets for multi-year
+      aggregated entries. Zero rows above 0.7. Nothing to downweight.
+OP 8  SOURCE-QUOTE CHECK: extracted the "Source states: '...'" quote for all
+      11 groups. Every group's quote NAMES ITS PERIOD as a period total
+      ("Entre 2002 et 2013, le Togo a enregistre 5 182 cas et 131 deces";
+      "From 1996 through 2010, Togo had 12 676 reported cholera cases";
+      "Tableau I ... par region au Togo, 2006-2017"; etc.). None is a single
+      year mis-entered as a span.
+OP 9  MIS-ENTERED-SINGLE-YEAR TEST: compared every multiyear row's sCh against
+      the JHU national annual for EVERY year inside its span. Exactly one
+      coincidence surfaced - Idx 228 (Centrale::Tchamba, sCh=4) equals the JHU
+      2011 annual of 4.
+OP 10 EXCLUDED IT ARITHMETICALLY rather than by assertion: source 150's
+      district table has 18 rows (Idx 213-230, including the Kpele zero) and
+      they sum to EXACTLY 625, the source's own printed table total. No
+      individual value in a table that reconciles to its own total can be a
+      mis-entry. Agent 2's independent check of the same total is confirmed.
+      VERDICT: all 41 legitimate. LEFT STANDING, documented in search_report.txt.
+
+--------------------------------------------------------------------------
+PHASE 3 - THE 4 same_period_conflict WARNINGS
+--------------------------------------------------------------------------
+OP 11 Read py/validate_quality.py's conflict check at source (lines 583-602).
+      It fires whenever (location, TL, TR) repeats with a different
+      (sCh, deaths, cCh) tuple, UNCONDITIONALLY - no processing_notes phrasing
+      can suppress it. That is by design and correct.
+OP 12 Verified each conflict carries its determination and that the
+      non-primary side is marked so the weekly builder cannot double-count:
+        2001  Idx 342 (2696/132) "THIS ROW IS THE PRIMARY WHO-LINEAGE VALUE";
+              Idx 302 (2740) "do not sum with rows 173-179 or with row 342"  OK
+        2011  Idx 126 (33/1) PRIMARY, 0.9; Idx 329 (35/1) NON-ADDITIVE, 0.8   OK
+        2015  Idx 300 (35/1) PRIMARY, 0.9; Idx 331 (58/2) explicitly
+              NON-PRIMARY, cut 0.8 -> 0.6                                     OK
+        2011  Idx 349 (cCh=10) vs Idx 126 (sCh=33) - CHECK ARTEFACT between a
+              cCh-only laboratory lower bound and an sCh-only annual; row 349
+              states "row 126 is the PRIMARY count for 2011 and this row
+              supplies the laboratory denominator"                            OK
+      VERDICT: all 4 correctly adjudicated. LEFT STANDING.
+
+--------------------------------------------------------------------------
+PHASE 4 - THE 2 CFR_high WARNINGS
+--------------------------------------------------------------------------
+OP 13 Idx 42 (1999-09-01..1999-10-24, 9/54 = 16.7%) and Idx 47
+      (1996-07-20..1996-09-17, 6/34 = 17.6%). Both notes document: single WER
+      IHR notification lines, so deaths and cases share ONE denominator by
+      construction; small-denominator tail-of-epidemic periods; confidence
+      capped at 0.7. Independent corroboration already on the rows: the four
+      1996 notifications' deaths sum to 17, EXACTLY the WHO 1996 annual, and
+      Landoh et al record Togolese CFR at 12-17% in 1996-97.
+      VERDICT: context fully documented. LEFT STANDING.
+
+--------------------------------------------------------------------------
+PHASE 5 - VERIFYING THIS RUN'S FOUR SUBSTANTIVE CORRECTIONS
+--------------------------------------------------------------------------
+OP 14 Index 25 RETRACTION. Tombstone present in retracted_rows_ai.csv, dated
+      2026-09-19, reason states the refutation in full. Index 25 confirmed
+      ABSENT from the live file. Replacement row 344 present:
+      AFR::TGO 2026-01-01..2026-03-29, 12 sCh / 1 death, CFR 8.33, src 223,
+      w=0.80, with the Tableau XIX quote AND a column-alignment proof
+      (fixed character offsets in the pdftotext -layout rendering) AND an
+      explicit TRAP 5 stream identification. SOUND.
+OP 15 Index 108. Verified live at TL=2024-04-01 (narrowed from 2024-01-01),
+      canonical evidence token now Inferred_Absence, confidence 0.55. The
+      counter-argument (AFRO monthly increments summing to exactly 281) is
+      recorded on the row. SOUND.
+OP 16 CHECKER LIMITATION CONFIRMED AT SOURCE, as instructed: the conflict check
+      keys on (location, TL, TR) exactly, so a positive row NESTED INSIDE a
+      longer zero row can never fire it. Row 108 is the SECOND row of this
+      class found on this one country (after Index 25). Flagged for repair.
+OP 17 2001 adjudication. Row 342 present (2696/132, src 220, w=0.9) carrying
+      the full determination. Row 302 raised to 0.8 and cross-referenced.
+OP 18 2011 adjudication. Row 126 at 33/1, w=0.9, marked PRIMARY, with the
+      BETTOGO n6 and Moore et al corroborations written on it.
+
+--------------------------------------------------------------------------
+PHASE 6 - ABSENCE-RECORD INTEGRITY (the country's main modelling risk)
+--------------------------------------------------------------------------
+OP 19 Extracted the CANONICAL "Evidence type: X" token (the first match, which
+      is what py/revise_observation.py rewrites) for all 82 zero rows rather
+      than string-matching anywhere in the note - a naive match reports the
+      OLD label for every revised row, which would have produced three false
+      findings on rows 23, 25 and 108.
+        Documented_Absence 57 | Inferred_Absence 25 | Surveillance_Gap 0
+        missing label 0 | missing surveillance status 0
+OP 20 RE-RAN AGENT 6's NESTED SWEEP independently: every zero row x every
+      positive row, location containment x period overlap, ranked by
+      overlap / positive-row length. Bidirectional first (209 overlaps), then
+      restricted to the DANGEROUS direction only - zero area CONTAINS the
+      positive - which is the one that can assert "no cholera" over real cases:
+      55 overlaps. Worked the top of the ranking:
+        Idx 111 (Lacs 2017-01-01..2021-10-18) v Idx 351 (Lacs 2021 annual, 39)
+          -> NOT a contradiction. The zero window closes 18 Oct 2021, the day
+             before the investigated outbreak's 19 Oct onset; row 351 is
+             annual-dated because its source is an annual narrative. Explained
+             on the row already.
+        Idx 23 (2025-03-26..2025-06-29) v Idx 348 (209 to 22 Jun 2025)
+          -> KNOWN AND HANDLED: Agent 5 downgraded 23 to Inferred_Absence 0.4
+             precisely because of this. Canonical token confirmed Inferred.
+        Idx 107 / 197 (2023 part-year zeros) v Idx 85 / 304 (2023 annuals)
+          -> benign: the single 2023 case was in December (Adakpame), outside
+             both zero windows; the annuals are annual-dated.
+        Idx 55/56/57 (2014 regional zeros) v Idx 227-229 (2011-2014 district
+             aggregates) -> benign nesting, periods are 4-year totals.
+      RESULT: zero unexplained dangerous overlaps remain. No third instance of
+      the Index 25 / Index 108 class exists.
+OP 21 SPOT-CHECKED Agent 6's zero-reporting-LIST test against the standard it
+      set (explicit "0" or "non affected" class = Documented; non-appearance in
+      a list = Inferred). Audited every NATIONAL Documented_Absence row:
+        Idx 104 (2018-19), 106 (2022) - Togo IS in the WHO zero-reporting list
+        Idx 105 (2017) - carried by MoH instruments, not WHO (correct, 2017 is
+          one of the two FAILED annual returns Agent 6 identified)
+        Idx 340, 350 (2018, 2019) - affirmative ministry statements
+        Idx 10 (1973) - WHO's own affirmative "remained free of infection in
+          1973"; the TL of 1973-02-01 matches the row's FINAL re-adjudication
+          (cases into January 1973, then eleven months of zero), not the
+          superseded first narrowing - checked the note tail to confirm
+        Idx 109 (1974), 110 (1978) - IHR(1969) Article 7 "Areas Removed from
+          the Infected Area List". Removal is an affirmative act; the criteria
+          are printed in the WER itself. A DIFFERENT and valid instrument.
+        Idx 267 (Jul 2014) - bilateral Togo-Benin minute, affirmative
+        Idx 111 (Lacs) - "les derniers cas ... datent de 2016", affirmative
+      VERDICT: NO remaining Documented_Absence rests on non-listing evidence.
+
+--------------------------------------------------------------------------
+PHASE 7 - DOWNSTREAM BEHAVIOUR (what MOSAIC will actually ingest)
+--------------------------------------------------------------------------
+OP 22 Read py/build_weekly_timeseries.py. Two facts govern everything:
+      (i) the national series loads ONLY Location == "AFR::TGO" exactly, so
+          sub-national rows cannot double-count into it at all - the "do not
+          sum" phrasing is documentation for humans, not a mechanism the
+          builder reads; (ii) SOURCE_PRIORITY = {WHO:3, JHU:2, AI:1}.
+OP 23 Rebuilt the weekly series and compared every year's total against the
+      highest value ANY source claims. FOUND TWO YEARS WHERE THE AI LAYER
+      PUSHES THE SERIES ABOVE EVERY SOURCE:
+        2024: 432.9 against a documented 281 (+54%). AI contributes 122.9 in
+              six weeks (40,41,43,46,47,48). CAUSE: the builder computes its
+              "already covered by observed weekly data" guard PER SOURCE LAYER
+              (weekly_covered is reset inside the for-src loop), so when it
+              processes AI it cannot see the WHO baseline's weekly stream;
+              rows 202-206 spread in full and survive where WHO is silent.
+              PRE-EXISTING - measured 432.9 both before and after this run.
+        2025: 224.9 against a maximum defensible 209 (+7.6%) and WHO's 164
+              (+37%). THIS RUN CAUSED IT: the series read 166.1 before.
+              CAUSE: rows 345 (183 at week 13) and 348 (209 at week 25) are
+              NESTED READINGS OF ONE CUMULATIVE SERIES; the builder treats them
+              as independent totals and takes a per-week maximum instead of
+              differencing them.
+OP 24 Confirmed 1992, 2002, 2009, 2020 and 2021 also exceed every source but
+      are 100% BASELINE-LAYER (AI contributes zero weeks): JHU carries both
+      weekly and annual rows for those years and the annual is spread into the
+      weeks the weeklies miss. 2020 reads 136.1 against 67-68, a factor of 2.0.
+      Not this pipeline's defect, but reported because it affects all 40
+      countries and I am the last gate.
+OP 25 CONFIRMED THE FLAGSHIP CORRECTION IN THE PRODUCT: calendar 2026 moved
+      from 0.0 cases across 35 AI-asserted zero weeks to 12.0. The Index 25
+      retraction reached the model.
+OP 26 CONFIRMED THE ADJUDICATIONS DO NOT REACH THE MODEL: 2001 still renders
+      2,446 and 2011 still renders 4.0, because JHU outranks AI. Both are
+      values this run proved to be under-counts. Recorded for the modellers.
+
+OP 27-33  WRITES (py/revise_observation.py, 7 revisions, NO values changed):
+      Idx 348, 345 - the measured 2025 nested-cumulative effect (224.9 v 209),
+        with the cause, the before/after, and an explicit statement that
+        NEITHER row is retracted because both are faithful source statements
+        and row 345 is the pivot of the whole 209 adjudication.
+      Idx 202, 203, 204, 205, 206 - the measured 2024 cross-layer effect
+        (432.9 v 281), with the per-layer coverage-guard cause and the fact
+        that it is inherited, not introduced.
+      Rationale: the defect is in the builder, not the data. Deleting sound
+      rows to make a downstream tool behave would launder a tool bug into a
+      data loss. Documenting the magnitude on the rows makes it travel.
+
+--------------------------------------------------------------------------
+PHASE 8 - AGENT VERIFICATION
+--------------------------------------------------------------------------
+OP 34 Read workflow_state.json for all six agents. Batch counts 12, 7, 8, 8,
+      10, 3 - ALL clear the mandatory 3-batch floor; Agent 6 sits exactly on it.
+      No agent reported a yield above 100%; all six correctly express yield as
+      operations-that-committed-a-row out of 20, and all six say so explicitly.
+OP 35 VERIFIED EVERY CLAIMED INDEX EXISTS rather than taking the counts on
+      trust: A1 29 rows/14 sources, A2 2/2, A3 7/7, A4 2/2, A5 9/7, A6 0/3.
+      ZERO missing rows and ZERO missing sources across all six agents. No
+      agent claimed anything it did not add.
+OP 36 RECONCILED THE RUN ARITHMETIC: 270 + 49 committed - 2 retracted = 317,
+      against 323 actual. The 6-row difference is the concurrent launcher's
+      agents (live rows 282-302 and metadata 192-196 are unclaimed by this
+      lineage). Not an error - two launchers worked TGO simultaneously.
+OP 37 RE-VERIFIED CONCURRENCY INTEGRITY, as instructed, rather than taking it
+      as given: zero duplicate Index values in cholera_data_ai.csv; zero
+      duplicate metadata Index values; metadata Index contiguous 1..231; zero
+      exact-duplicate observation groups (location/period/counts/source); zero
+      orphan source_index; zero source-label drift across all 323 rows.
+      INTEGRITY HOLDS.
+OP 38 FOUND TWO MINOR LEDGER IMPERFECTIONS, reported not hidden:
+      (a) Index 274, 275 and 276 each carry TWO tombstones - allocated,
+          retracted, RE-ALLOCATED to different observations, retracted again.
+          Neither allocation is live so nothing is currently ambiguous, but
+          py/add_observation.py allocates the next Index from the live file
+          without consulting retracted_rows_ai.csv and WILL reuse a retracted
+          index. Worth fixing before it produces a live collision.
+      (b) Index 7, 8 and 54 are neither live nor tombstoned. Row 111's note
+          records that row 8 was retracted, so at least one tombstone was lost
+          before the ledger existed. Historical, pre-dates current tooling.
+
+--------------------------------------------------------------------------
+PHASE 9 - GAP-FILLING IMPACT AND THE OPEN GAP
+--------------------------------------------------------------------------
+OP 39 python py/analyze_effective_gaps.py               (all layers)
+OP 40 python py/analyze_effective_gaps.py --layers JHU WHO --prefix baselineonly
+      TGO: coverage 72.7% -> 99.9%; months with data 495 -> 680; gap periods
+      5 -> 1; gap-days 5,650 -> 19 (99.66% closed); months_ai 609;
+      months_ai_only 185; months with positive cases 450 -> 480;
+      latest observation 2025-03-23 -> 2026-08-26; days stale 545 -> 24.
+      Four historical gaps fully closed (1973; 1975-76; 1979-87; 1989-90) and
+      the recent 2025-04..2026-09 gap closed but for its final 19 days.
+OP 41 INDEPENDENT SPOT-CHECK OF THE 19-DAY GAP, rather than relying on Agents
+      3 and 5. Queried WHO's own dashboard back-end directly:
+        services.arcgis.com/.../cholera_adm0_week/FeatureServer/0/query
+        outStatistics=max(date_wk)  ->  1786924800000 ms  ->  2026-08-17
+      WHO's GLOBAL maximum week is 2026-08-17. The gap 2026-09-01..2026-09-19
+      lies beyond WHO's own horizon. CONFIRMED NOT CLOSEABLE. LEFT OPEN. Not
+      zero-filled, not extrapolated from row Index 50.
+
+--------------------------------------------------------------------------
+PHASE 10 - DELIVERABLES
+--------------------------------------------------------------------------
+OP 42 Wrote ./data/TGO/search_report.txt (executive summary + metrics appendix).
+OP 43 Wrote ./data/TGO/search_log_agent_7.txt (this file).
+OP 44 Appended agent_num=7 to ./data/TGO/workflow_state.json via
+      py/workflow_state.py write_agent_state.
+OP 45 python py/validate_quality.py TGO --json /tmp/TGO_post_94008.json
+      -> ERROR 0. Exit 0.
+
+--------------------------------------------------------------------------
+CLOSING POSITION
+--------------------------------------------------------------------------
+ERROR 0 before, ERROR 0 after. WARN 47 before, WARN 47 after - unchanged BY
+DESIGN. Every one of the 47 was examined individually and every one is a
+legitimate, documented, justified flag: 41 genuine source-reported period
+totals already held at the 0.7 ceiling, 4 adjudicated conflicts with their
+determinations recorded and the non-primary side marked, and 2 small-denominator
+CFRs on single WER notification lines. NOT ONE WAS SUPPRESSED AND NOT ONE ROW
+WAS DELETED TO IMPROVE THE COUNT. A hidden warning would have been the worse
+outcome.
+
+The most useful thing this audit produced is not a clean validator run - the
+validator was already clean when I inherited it - but three tool defects that
+the validator cannot see: a nested positive inside a zero (which the conflict
+check structurally cannot catch, and which has now hidden real cholera twice on
+this one country), a per-layer coverage guard that inflates 2024 by 54%, and a
+missing nested-cumulative rule that this run's own additions used to inflate
+2025 by 7.6%. All three generalise to the other 39 countries.
+
+Dashboard NOT updated - that is the orchestrator's job.
+=== END AGENT 7 LOG ===
