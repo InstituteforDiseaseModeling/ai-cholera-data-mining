@@ -1,201 +1,145 @@
-AGENT 7: QUALITY AUDIT - SEARCH LOG
-=====================================
-Country: Cameroon (CMR)
-Role: Final Quality Auditor and Dataset Finalizer
-Started: 2026-05-13
+=====================================================================
+AGENT 7 - QUALITY AUDITOR - CAMEROON (CMR)
+Cycle: Opus 5.5 max-effort re-run (runner start 2026-10-03 15:06:34)
+Log created: 2026-10-04 11:32:22
+Previous Agent 7 log (2026-05-13) preserved at ./data/CMR/search_log_agent_7_legacy_20260513.txt
+Previous search report preserved at ./data/CMR/search_report_legacy_20260513.txt
+Mode: UNATTENDED. WebSearch exhausted (200/200) - verification via curl/WebFetch of cited URLs only.
+Writes ONLY via py/add_observation.py, py/revise_observation.py (--agent 7), py/repair_data_integrity.py.
+This log is appended incrementally as each audit stage completes.
+=====================================================================
 
-OBJECTIVES:
-- Validate cholera_data_ai.csv and metadata_ai.csv for format integrity
-- Run 4-stage quality validation protocol
-- Reconstruct AI data from prior search log narratives (files were re-initialized empty)
-- Document gap-filling impact relative to JHU/WHO baseline
-- Produce search_report.txt executive summary
-- Verify dashboard compatibility
+=== STAGE 0 | CONTEXT REVIEW | 2026-10-04 ===
+Read: ./data/CMR/workflow_orchestrator_CMR.txt (incl. section 6 channels), ./templates/template_search_protocol.txt,
+      ./data/CMR/search_log_agent_1.txt .. _6.txt (complete), ./data/CMR/workflow_state.json (6 agent entries + 7 orchestrator notes).
+Validator at audit start: python py/validate_quality.py CMR --json /tmp/CMR_audit.json
+      -> exit 0 | 1114 data rows | 326 metadata | ERROR 0 | WARN 46 (45 CFR_high_flagged_for_review, 1 period_single_day) |
+         INFO 215 (162 national_subnational_overlap, 53 metadata_unused). Validator 'row N' = CSV line N (header = line 1).
+Agent performance as logged (batches; yields %; rows):
+  A1 12 [60,15,30,40,35,40,30,35,30,20,15,0] +607 live (4 self-retractions)   stop: 12-batch ceiling (legit)
+  A2 12 [25,10,15,10,30,25,25,10,5,5,10,0]  +282                              stop: 12-batch ceiling (legit)
+  A3  6 [10,15,5,0,0,0]                     +98 (all zero rows)               stop: 3 consecutive <5% (b4-6)
+  A4 12 [10,5,20,0,0,50,20,0,5,0,15,0]      +87                               stop: 12-batch ceiling
+  A5 12 [50,5,5,10,0,10,5,0,25,5,5,0]       +55 (-37 retracted)               stop: 12-batch ceiling
+  A6  4 [10,0,0,0]                          +2 (-2 retracted)                 stop: 3 consecutive <5% (b2-4)
+  All agents >= 3 batches; no yield > 100%; yields recorded in percent.
+Protocol observations (to verify / report):
+  - A1 batch 2 logged 2/20 then late-credited to 15%; A1 batch 1 logged 11/20 then late-credited 12/20=60%; late credits are
+    documented with row numbers (acceptable, but they inflate early-batch yields slightly).
+  - A2 batch 7 Q17 crawled santetropicale.com '/Actualites/' while robots.txt disallows '/actualites/' (case variant); A2 noticed
+    in batch 8 Q11 and stopped. Rows 893-896 derive from that crawl -> compliance note for the report.
+  - A2 batches 9-10 at exactly 5% counted as 'not below 5%' (correct per rule).
+  - A5 counted re-mining of registered documents as queries (declared in its channel note); A5 batch 1 yield 50% is entirely
+    verified legacy replacements (net row change 0).
+  - WebSearch cap exhausted in A2 batch 6 Q18; A3-A6 used institutional/scholarly APIs only.
+Known flags handed to Agent 7: metadata 314 URL '.../PLACEHOLDER' (Superseded, uncited); WHO baseline rows 189-190 stale;
+  JHU duplicate rows (~105,070); presence-row errata (Mayo-Kani 1989 'removed by WER No.16'; Garoua 1981-82 spans a removal);
+  JHU 1999 1584/35 vs WHO 326/35; JHU 2022-2024 sex/age rows; builder assumed_zero for 1977 and Sep-Dec 1976.
 
-CONTEXT / DATA RECOVERY DECISION:
------------------------------------
-At audit start, cholera_data_ai.csv and metadata_ai.csv contained only headers (0 data rows,
-0 metadata rows). Agent 1 search log shows a workflow re-initialization on 2026-05-13:
-   "Previous run saved data to legacy cholera_data.csv (JHU-format merged file).
-    New run creates proper cholera_data_ai.csv and metadata_ai.csv."
+=== STAGE A | FORMAT & INTEGRITY | completed 2026-10-04 ===
+Scripts: /tmp/cmr_a7/stageA.py, stageA2.py, stageA3.py (pandas, read-only) + python py/repair_data_integrity.py --dry-run CMR
+Results (1114 live rows / 326 metadata / 64 presence / 44 tombstones at start):
+  A1 column order: data 14 columns in CLAUDE.md order - PASS; metadata 15 columns - PASS
+  A2 dates: TL, TR, reporting_date all YYYY-MM-DD - PASS; TL>TR 0; TR>reporting_date 0; future dates 0
+  A3 data Index unique (21..1158, gaps = tombstoned rows) - PASS; metadata Index sequential 1..326 - PASS
+  A4 dual reference: orphan source_index 0; source-text mismatch 0; live rows citing a Superseded entry 0 (data and presence)
+     metadata Status: 307 Active / 19 Superseded (legacy 2-19 + placeholder 314)
+  A5 source_database = 'AI' on all 1114 data rows, 326 metadata rows, 64 presence rows - PASS
+  A6 arithmetic: rows with no sCh/cCh/deaths 0; deaths>sCh 0; cCh>sCh 0; negatives 0; non-integers 0; CFR recomputation
+     mismatches (>0.06 pt) 0; one row with blank sCh (820, Minawao 2014, cCh 61 culture-confirmed only - legitimate)
+  A7 duplicates: exact (Location,TL,TR,counts) 0; same Location+TL+TR with any counts 0
+  A8 location format: all match AFR::CMR(::...)*; levels: national 185, ADM1 329, ADM2 572, ADM3 28
+     ADM1 tokens consistent (Littoral, Far_North, Centre, South-West, North, West, South, East, North-West, Adamawa,
+     Multi_Provincial) - no 'Far North'/'Adamaoua'/'Extreme-Nord' variants in data or presence files
+     District spelling variant found: North::Gashiga (row 614) vs North::Gaschiga (row 488, JHU 'Gaschiga Health District')
+       -> REPAIR R1: row 614 location normalised to AFR::CMR::North::Gaschiga (revise_observation --agent 7; counts unchanged)
+     Other near-variants are distinct units, not misspellings: Far_North::Maroua (city, 1996-98/2024) vs Maroua_1/Maroua_3
+     (health districts) vs Maroua_Urbain (2009 district name); Littoral::Douala (city) vs Wouri (department, WER 1971-74);
+     South::Ocean (1971 department) vs Kribi (district); North::Garoua (1998 town) vs Garoua_I/II/III (districts).
+     Presence file uses department::arrondissement paths for WER-era towns (e.g. North::Benoue::Garoua) - not consumed by any
+     pipeline script; left as is (no presence revise tool).
+  A9 confidence ceilings (writer rule: band is a ceiling; L1 1.0, L2 0.9, L3 0.6, L4 0.3):
+     1 row above ceiling: Index 108 (national 2025, 96 suspected/2 cCh/0 deaths) cites metadata 39 (DataCameroon, Level 3)
+       at 0.75 > 0.6. Same figures are carried by metadata 199 (MINSANTE annual bulletin 2025 on the WHO AFRO page, Level 1).
+       -> to resolve in Stage C after verifying both URLs (re-attribute to 199 or re-weight to 0.6).
+     686 rows below their band floor (648 L1, 38 L2) = deliberate downgrades (permitted by the writer).
+     CFR>15% rows: 45 with sCh>=25 all at <=0.7; 74 rows above 0.7 all have sCh<25 (writer/validator CFR cap applies only
+       at sCh>=25 - small denominators) - consistent with the rule.
+     Multi-year (>730 d) rows: 1 (823, Wouri zero Dec 2006-Feb 2009, 0.5) - within the 0.7 cap.
+  A10 metadata URLs: no blank URL among Active entries; only domain-root citation = 269 (EM-DAT, read from a local
+     database extract, cited by one presence row only); 314 '.../PLACEHOLDER' is Superseded and uncited (documented, URL field
+     cannot be edited with the tools); 18 Active entries are corroboration-only (cited by no data/presence row) - acceptable.
+  repair_data_integrity.py --dry-run CMR: TOTAL 0 changes; no attribution_review.csv exists for CMR.
 
-Search logs for Agents 1-6 contain detailed enumeration of all data extractions made
-during the previous workflow run. The legacy cholera_data.csv (232,176 rows) was confirmed
-to contain ONLY JHU-source rows (no AI rows were preserved during the file split).
+=== STAGE B | EPIDEMIOLOGICAL REVIEW (part 1) | 2026-10-04 ===
+B1 CFR>15% WARN rows (45): all historical (1971-76: 17; 1983-84: 2; 1991-98: 24; 2009: 3 - incl. national WER rows), all at
+   confidence <=0.7, all with context in processing_notes (introduction-year/pre-ORS 1971, remote Lake Chad foci, 1991 Far
+   North late presentation with atlas authors' explanation, small department-month denominators). Denominator/period checks:
+   row 158 (WER 1 May-29 Aug 1991 3,560/729) deaths exceed Far North final (440) and WHO annual (491) - already flagged
+   non-primary at 0.5 by Agent 5; Mayo-Tsanaga Jun/Jul 1991 (848: 40/29, 849: 106/60) extreme but independently corroborated
+   by the MoH table (Cameroon Tribune 16 Aug 1991: 116/99) - kept at 0.7. No new denominator mismatch found.
+B2 single-day row 1067 (national 3 Oct 2003, 1 case/0 deaths): a dated WER notification (WER 78(41)); legitimate; inert in the
+   weekly builder because the JHU 2003 annual national row outranks AI. Kept.
+B3 attack rates (approximate census-projection populations, order-of-magnitude screen): largest = Limbe HD 2021-22 3,127
+   (~2-3% of ~120-150k); Littoral 2021-23 8,340 (~0.2%); South-West 2021-22 6,023 (~0.35%); Douala 1983 4,423 (~0.6%);
+   Douala 2004 5,020 (~0.3%); Far North 1991 3,033 (~0.15%); Deido 2022 1,740 (<1%). None above the 5% review threshold.
+   Arithmetic: 2011 regional finals 1137-1146 sum to 23,152 = national row 1108; 2012 Jan-Jun regions 1147-1156 sum to
+   107 = IFRC national Jan-Jun 2012.
+B4 national/sub-national overlap: validator groups 162, all 'documented' (every row carries an explicit primary-level phrase).
+   National-vs-national AI overlaps: 27 pairs (1983 OCEAC 1040 vs WER 1047-1050; 2004 519/514 5-day printed overlap; 2012
+   1134 vs UNICEF 630/632/633; 2024/2025 nested quarterly rows vs 108; 2026 205/204/328/1126-1129) - every pair documented
+   (primary/non-primary notes). In py/build_weekly_timeseries.py overlapping same-source rows are NOT summed (per-week max
+   by method rank, then sCh), and JHU/WHO outrank AI in all these weeks except 24 Aug-20 Sep 2026, where the four observed
+   WHO-feed weekly rows 1126-1129 (rank 'observed') beat the fourier-disaggregated 205/204 and the 8-day row 328 (assigned to
+   ISO week 37, loses to 1128 265 > 70). No double counting introduced by AI rows.
+B5 zero rows (163): all carry a canonical 'Evidence type:' token - builder-graded 111 documented / 52 inferred (simulated with
+   the builder's own regex: the first 'Evidence type: X' token; the 15 downgrades were applied with --set-evidence, so the
+   canonical token changed); 'Surveillance_Gap' appears only as prose ('candidate' wording) in 12 North-West notes, never as a
+   token. Surveillance status present on all 163 (110 operational, 53 partial). No zero row has deaths or cCh > 0.
+   Independent overlap scan (/tmp/cmr_a7/zero_overlap.py): 57 zero-vs-positive/presence pairs touching 20 zero rows, all
+   previously adjudicated by Agents 5-6 (annual/cumulative spans, explicit weekly zeros, 1-day edges, year-level presence,
+   WER infected-area listings that record receipt of information on earlier notified cases). Re-checked 167 (South-West
+   2 Sep 2022-26 Jul 2023: Tiko presence row is month-level 'July 2023' while the region's first case was 27 Jul; +2 line-list
+   entries between 2 Apr and 7 May 2023 noted by Agent 3) - kept 0.75; 1005/1008 national 1990/1986 zeros kept Inferred 0.4
+   (inert in the builder: JHU annual rows outrank); 1007 (26 Sep-31 Dec 2005, outbreak active at the WHO cut-off) kept at 0.4 as
+   weak/uncertain per Agent 6 - flagged in the report.
+B6 presence-row errata (no revise/delete verb exists for cholera_presence_ai.csv; presence rows are read by NO pipeline
+   script, so they cannot bias model inputs):
+   p44 AFR::CMR::Far_North::Mayo-Kani 1989-01-01..1989-04-21 (source 163): clause 'Kaele Departement removed by WER 1989 No. 16'
+       is wrong (Agent 4: still listed 21 Apr 1989, absent from June 1989 lists); dates are right (TR = last listing).
+   p3  AFR::CMR::North::Benoue::Garoua 1981-11-15..1982-11-05 (source 138): spans a removal from the infected list
+       (30 Apr-6 May 1982, relisted Oct 1982) - presence overstated for May-Sep 1982.
+   DECISION: not 'corrected' by adding rows - add-presence cannot retire the wrong row, so a second row would only create an
+   overlapping duplicate. Documented here and in search_report.txt for the tooling owner.
 
-DECISION: Agent 7 reconstructed cholera_data_ai.csv and metadata_ai.csv from the
-documented extractions in the agent search logs, applying additional filtering to:
-  (a) avoid duplicating data already present in JHU baseline (cholera_data_jhu.csv)
-  (b) prefer rows that add genuine sub-national / district-level granularity
-  (c) preserve cross-reference rows for major outbreaks (>1000 cases) per CLAUDE.md
-  (d) preserve the validated 2008 zero-transmission entry from Agent 3
-  (e) preserve the late-2024 Far North outbreak data which sits in the gap period
+=== STAGE D | KNOWN BASELINE / TOOLING ISSUES (read-only checks; documented, not edited) | 2026-10-04 ===
+D1 JHU duplicates (pandas, usecols): ./data/CMR/cholera_data_jhu.csv has 193,516 rows; 105,070 are exact duplicates of an
+   earlier row on (Location, TL, TR, sCh, deaths) - CONFIRMED. By level: district 104,983, ADM1 63, national 23, ADM4 1.
+   Years 2010-2020 (2018 alone 23,257). Source pairs: (13, 4) 76,136 = 'UNICEF Country Programme Report' UID 20734 vs UID 21434;
+   (13,3,4,5) 9,581. Non-zero duplicates 3,313 carrying 45,329 cases. Any consumer that sums JHU sub-national rows doubles
+   them; the national builder uses national rows only (23 national duplicates are identical weekly values -> no inflation).
+D2 JHU 1999: national annual row Index 97514 = 1,584 cases/35 deaths (source 48 'WHO Annual Cholera Report UID 307') - CONFIRMED.
+   WHO 'Cholera, 1999' = 326/35 (AI row 160, primary). 1,584/26 is the WER 1 Jan-31 Mar 1999 notification (metadata 121):
+   JHU appears to pair the Q1 notification's cases with the annual deaths. JHU outranks AI in the builder, so the model's
+   1999 national total is 1,584 (about 4.9x WHO's final figure).
+D3 JHU 2022-2024 'Primary: False' national annual rows - CONFIRMED as sex/age disaggregations carried as separate national
+   rows with identical TL/TR: 2022 13,178 / 1,096 / 8,101 / 6,330 (8,101+6,330 = 14,431 = primary row 97536); 2023 3,772 /
+   2,691 (sex, 6,463) and 519 / 5,885 (age, 6,404) vs primary 6,470/209; 2024 81 / 109 (sex) and 21 / 169 (age), both = 190
+   (= WER 2024 Table 4) vs primary 199/2. In the builder these are inert (same source, Fourier shapes identical, the larger
+   primary row wins every week; WHO weekly outranks 2023-2024 anyway) but a naive sum or row count would treat them as totals.
+   Also 2022 carries two primary national streams (14,431/279 WHO annual and 14,029/303 3 Jan 2022-1 Jan 2023).
+D4 WHO weekly baseline ./data/CMR/cholera_data_who.csv (190 rows, 2023-01-02..2026-08-23): 2023 6,477/209 (2 zero weeks);
+   2024 81/1 (40 zero weeks); 2025 3/0 (50 zero weeks; cases only 3-9 Nov (2) and 17-23 Nov (1)); 2026 1,529/41 (all 22 zero
+   weeks are Jan-May). Versus ministry/WHO-annual figures: 2024 WHO annual 199/2, MINSANTE 130; 2025 MINSANTE 96 suspected
+   (38 RDT+, 2 culture+); Efoulan (Yaounde) 22 suspected Mar 2026 (row 808). => 2024-2026 the WHO weekly feed is effectively
+   confirmed/event-based; its zero weeks are non-reporting of suspected cases, NOT absence. Because the builder ranks
+   WHO > JHU > AI, these zeros override the AI ministry rows (108, 1122-1124, 147, 21, 1117, 808) in the national series.
+   metadata_who.csv entry 4 states TR 2026-08-16 while the file runs to 2026-08-23 (cosmetic).
+D5 WHO baseline rows Index 189 (10-16 Aug 2026, 149/5) and 190 (17-23 Aug 2026, 78/2): Agent 5 found the WHO feed (ArcGIS
+   cholera_adm0_week, edited 28 Sep) revised to 178/5 and 243/7 -> re-verified in Stage C (see below).
+D6 Weekly builder (py/build_weekly_timeseries.py, read): national series uses only AFR::CMR rows; SOURCE_PRIORITY WHO 3 >
+   JHU 2 > AI 1; weeks with no national row are filled as assumed_zero. Consequences for CMR: 1977 (no JHU/WHO row; AI national
+   zero 87 retracted; only Douala row 1079) and Sep-Dec 1976 will render as zeros although classified NON-REPORTING; 1983
+   renders JHU 55 (WHO notifications) although the AI primary national suspected figure is 4,534 (OCEAC, row 1040, corroborated
+   by Douala 4,423); 2025 renders 3 (WHO weekly) instead of 96 suspected (row 108); Aug 10-23 2026 renders the stale WHO values.
 
-BASELINE GAP CONTEXT:
----------------------
-From ./reference/baseline_surveillance_gaps_*.csv:
-- Coverage baseline (JHU+WHO): 95.1% (635 of 668 months covered)
-- Major gaps:
-    * 1970 full year (12 months missing) - pre-disease introduction
-    * 1977 full year (12 months missing) - silent surveillance year
-    * 2024-12-01 to 2025-08-31 (9 months missing) - most recent period
-- Data years: 1971-1976, 1978-2024
-- Missing years: 1970, 1977, 2025
-
-STAGE 1: FORMAT/INDEX INTEGRITY VALIDATION
-==========================================
-
-cholera_data_ai.csv:
-- Columns: 14 (matches required schema exactly)
-- Column order: Index, Location, TL, TR, deaths, sCh, cCh, CFR, reporting_date,
-                source_index, source, confidence_weight, processing_notes, source_database
-- Rows: 20
-- Index: sequential 1-20, no gaps or duplicates: PASS
-- All Location values use AFR::CMR... format: PASS
-- All TL, TR, reporting_date values in YYYY-MM-DD format: PASS
-- All TL <= TR: PASS
-- All reporting_date >= TR: PASS
-- All numeric fields (deaths, sCh, cCh) parse as numbers or are empty: PASS
-- No NaN/nan/None strings present: PASS
-- No embedded \r, \n, backslashes in text fields: PASS
-- All source_database values = 'AI': PASS
-
-metadata_ai.csv:
-- Columns: 15 (matches required schema exactly)
-- Column order: Index, Source, URL, Description, Date_Range, Data_Type, Status,
-                Reliability_Level, Validation_Status, Search_Technique, Language_Original,
-                Citation_Depth, Cross_References, Discovery_Method, source_database
-- Rows: 19 (sequential indices 1-19)
-- No duplicate indices, no missing indices: PASS
-
-Dual-Reference Integrity:
-- All source_index values in data file exist in metadata Index column: PASS
-- All source name strings in data file match metadata Source column exactly: PASS
-  (One initial mismatch found and fixed: row 3 source name aligned to metadata index 6)
-- All data rows have both source_index AND source populated: PASS
-
-Pandas/csv readback test:
-- csv.DictReader successfully parses both files end-to-end: PASS
-- All 20 data rows readable; all 19 metadata rows readable: PASS
-
-STAGE 2: EPIDEMIOLOGICAL VALIDATION
-====================================
-
-CFR range check (expected 0.1-15% for most outbreaks):
-- Row 1: CFR=0.0% (zero-transmission entry, expected) - PASS
-- Row 2 Douala 2004: CFR=1.37% - within range
-- Row 3 Far North 2010: CFR=6.92% - elevated but plausible for humanitarian context
-- Row 4 Yaounde 2011: CFR=4.04% - within range
-- Row 5 National 2011 (Red Cross): CFR=3.64% - within range
-- Row 6 Far North 2014: CFR=4.62% - within range
-- Row 7 Multi-Provincial 2010: CFR=6.59% - elevated, humanitarian context documented
-- Row 10 North 2019: CFR=5.06% - elevated but documented in source
-- Row 14 South-West 2021-2022: CFR=1.54% - within range
-- Row 15 Biyem-Assi 2021: CFR=2.0% - within range
-- Row 17 Littoral 2020: CFR=5.01% - elevated
-- Row 20 National 2022 (ECHO): CFR=2.0% - within range
-All CFR values within 0.0-15% bounds: PASS
-No CFR values flagged as auto-reject (>15%): PASS
-
-Mathematical consistency:
-- deaths <= sCh for all rows where both present: PASS
-- cCh <= sCh for row 18 (3 sCh, 2 cCh) and row 19 (7 sCh, 2 cCh): PASS
-- CFR = deaths/sCh*100 verified for all populated rows (tolerance 0.5%): PASS
-
-Temporal logic:
-- All TL <= TR: PASS
-- All reporting_date >= TR: PASS
-- No future dates beyond 2026-05-13: PASS
-- Outbreak durations: range from 4 days (row 18 Bertoua) to 19 months (row 11 Garoua),
-  all within plausible bounds for cholera outbreaks
-
-Geographic validation:
-- All Location codes start with AFR::CMR: PASS
-- Provincial codes match Cameroon administrative regions (10 regions): PASS
-  (Far_North, North, Centre, Littoral, South-West, South, East all valid)
-- District-level codes documented where source provides detail
-- No prohibited categories (Vaccination, Demographics_*, Laboratory_*, etc.): PASS
-
-STAGE 3: CROSS-REFERENCE AND DUPLICATION DETECTION
-====================================================
-
-Cross-reference validation for major outbreaks (>1000 cases):
-- 2004 Douala 5020 cases: Confirmed by JHU 2004 national total (8005) which includes Douala
-- 2010 Far North 5560 cases: UNICEF, with IMC reporting 6900 multi-regional (consistent)
-- 2011 Yaounde 1757 cases: MSF independent source
-- 2011 National 23,152 affected: Red Cross IFRC (vs JHU 2011 weekly aggregation 167,542;
-  IFRC figure is appeal-period total, not contradiction)
-- 2014 Far North 1321 cases: IFRC DREF
-- 2018-2019 North 613 cases: Health delegation (Garoua/Pitoa/Bibemi breakdown adds detail)
-- 2021-2022 South-West 6023 cases: regional report
-- 2022 National 14,885 cases: ECHO (vs JHU 90,834 weekly aggregation - different period)
-
-Duplicate detection (Location + TL + TR combination):
-- No exact duplicates detected: PASS
-- Note: Row 3 (Far_North 2010) and Row 7 (Multi_Provincial 2010) overlap in time;
-  processing_notes for row 7 explicitly flags "do not sum with JHU national row" to
-  prevent double-counting in downstream MOSAIC likelihood calculations.
-
-Provincial vs national double-counting prevention:
-- All rows with both national-level and sub-national overlap include explicit notes in
-  processing_notes documenting aggregation intent per CLAUDE.md guidance.
-
-STAGE 4: GAP-FILLING IMPACT ASSESSMENT
-========================================
-
-Baseline coverage: 95.1% (635/668 months)
-JHU covers 1971-1976, 1978-2024-11 (excellent coverage)
-WHO file not present (no 2023-2025 dashboard data file for CMR)
-
-Gaps in baseline:
-  Gap 1: 1970-01-01 to 1970-12-31 (pre-disease-introduction; first cases 1971)
-         AI status: NOT FILLED - confirmed via Agent 3 as pre-introduction absence
-         (no documented cases before 1971; epidemiologically valid absence)
-  Gap 2: 1977-01-01 to 1977-12-31 (silent year, no documented evidence either way)
-         AI status: NOT FILLED - exhaustive searches found no data; surveillance
-         system limitations documented (pre-IDSR, paper-based)
-  Gap 3: 2024-12-01 to 2025-08-31 (recent surveillance gap)
-         AI status: PARTIALLY FILLED - Row 19 documents Far North Maroua 2 outbreak
-         October-November 2024 (7 sCh, 2 cCh confirmed) which sits at gap boundary;
-         WHO AFRO weekly bulletins remain primary source for ongoing surveillance.
-
-Additive value provided by AI data beyond JHU/WHO baseline:
-- District-level granularity for 7 health districts:
-    * Mayo Sava (Fotokol, Mora), Mayo Tsanaga, Maroua 2 (Far North)
-    * Garoua I, Pitoa, Bibemi (North)
-    * Biyem-Assi (Centre)
-    * Kribi (South)
-    * Bertoua (East)
-- Cross-reference confirmations from independent sources for 2004, 2010, 2011, 2014,
-  2021-2022, 2022 outbreaks (UNICEF, MSF, Red Cross/IFRC, IMC, ECHO)
-- Validated zero-transmission entry for 2008 (Wave II/III intermission)
-- Recent (Oct-Nov 2024) outbreak documentation sitting at the boundary of the 2024-2025
-  surveillance gap
-
-Coverage improvement estimate:
-- Months added by AI to gap periods: ~1-2 months (Oct-Nov 2024)
-- Coverage moves from 95.1% baseline to ~95.4% with AI contributions
-- Most AI value is GRANULARITY (provincial/district detail) and CROSS-VALIDATION
-  rather than gap-filling, because CMR baseline coverage was already very high.
-
-VALIDATION SUMMARY
-==================
-Stage 1 (Format/Index): PASS - 0 errors after fix
-Stage 2 (Epidemiological): PASS - all CFRs in range, math consistent
-Stage 3 (Cross-reference/Duplication): PASS - no duplicates, major outbreaks cross-validated
-Stage 4 (Gap-filling): COMPLETED - documented additive value and remaining gaps
-
-DELIVERABLES PRODUCED
-=====================
-- cholera_data_ai.csv: 20 data rows (14 cols)
-- metadata_ai.csv: 19 sources (15 cols)
-- search_log_agent_7.txt: this file
-- search_report.txt: executive summary with quantitative appendix
-
-DASHBOARD COMPATIBILITY
-=======================
-- File schemas match expected dashboard parser format
-- No NaN strings, no embedded newlines, no quote-escaping issues
-- update_dashboard.sh execution: triggered for completion update
-
-AGENT 7 STATUS: COMPLETED
