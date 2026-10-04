@@ -533,3 +533,121 @@ VERIFICATION OF ROWS 403-406 (this redeploy, before any new query)
   No row failed; verification notes appended to 403-406 (revise_observation.py --append-note, agent 2).
 Decision     : partial batch closed UNSCORED. Scored counting resumes with BATCH 7 below (batches 1-6 = 25,35,25,15,35,20%;
                consecutive sub-5% = 0).
+
+=== ORCHESTRATOR NOTE (2026-10-04 10:22:31) - AGENT 2 INTERRUPTED A SECOND TIME, REDEPLOYING ===
+Cause established from 'pmset -g log': the host laptop went into Clamshell Sleep on battery (sleep 08:31, wake 08:40;
+Clamshell Sleep 09:26:51 'Using Batt', maintenance sleeps 09:34-10:20, FullWake on AC 10:20:54). Network loss during sleep
+killed the foreground subagent both times (first at ~08:08 after batch 6; second at ~10:04 during scored batch 7).
+Machine sleep is NOT a stopping criterion. Host is on AC power again at redeploy.
+Second interrupted run: after closing the unscored partial block above (rows 403-406 verified PASS; source 253 registered as
+the second source for row 403), it began scored batch 7 (queries Q121..at least Q136) and committed rows 407-417 and
+sources 254-256 (MoH Weekly Epidemiological Bulletin wk 46 2016 via Wayback; KCCA Kampala Cholera SitRep #38 14 Feb 2019;
+Uganda Radio Network 7 Jul 2025 Amuru/Elegu) without writing a batch block.
+State at redeploy: 392 rows, 256 sources, validate_quality.py UGA exit 0.
+Decision: redeploy Agent 2; it writes the interrupted batch as "BATCH 7a (INTERRUPTED, partial, UNSCORED)", then runs scored
+batches from batch 7 until the yield rule is met, appending each query line to this log as it is executed.
+
+=== AGENT 2 SECOND REDEPLOY (resumed run, same cycle) - log resumed 2026-10-04 10:35 ===
+Inputs re-read before any new query: this log in full (batches 1-6, BATCH 7 partial block, both ORCHESTRATOR NOTEs),
+/tmp/UGA_context.md, ./templates/template_search_protocol.txt, CLAUDE.md, workflow state (Agent 1 entry only), current CSVs
+(392 rows, 256 sources, 101 presence, 25 tombstone lines incl. header), cache /tmp/uga_a2/b7/ (file timestamps 08:47-09:26 = the
+second interrupted run) and the data-file backups ./data/UGA/.backup_cholera_data_ai_20261004-0846*..0923* and
+.backup_metadata_ai_20261004-0846*..0923*.
+
+=== BATCH 7a (INTERRUPTED, partial, UNSCORED) | PHASE 3 | UGA ===
+Status       : second process interruption. Host entered Clamshell Sleep on battery at 09:26:51 (pmset log); last data write
+               09:23:14 (row 417); last cache write 09:26 (validator output b7/val_b7.txt, exit 0, 392 rows/256 sources); a
+               background curl loop (b7/urn_dl.sh) ran on in maintenance wakes until 09:49. No log block was written.
+               FULL QUERY LIST UNKNOWN: the WebSearch calls themselves are not recoverable. Q121..Q136 is the minimum span
+               (Q122, Q134, Q136 are named in metadata Discovery_Method fields of sources 254-256). This partial batch is NOT
+               scored, does NOT count toward the 12-batch ceiling, and its yield is not used in the stopping rule.
+Reconstructed actions (cache artefacts in /tmp/uga_a2/b7/, metadata 254-256, backup timestamps):
+  Q121 [inferred, 08:47-08:55] Wayback (from cached cdx_mohlib.json) retrieval of the 2022-2024 MoH weekly bulletins: Ug
+       Epidemiological Bulletin 2023 wk17 and 2024 wk01-wk48 (34 issues), KMA (Kampala Metropolitan) EpiBulletin 2024 wk08/43/48,
+       ESD Weekly Surveillance Brief wk18 2022 -> b7/epi2024/ (several truncated at 1 MiB), text extracted -> no committed row
+  Q122 [named, metadata 254; 08:56-09:10] full re-retrieval of the 30 archived 2016-2020 weekly bulletins + U-NIEWS May-Jun 2018
+       and Nov-Dec 2019 (b7/epi1920/), pdftotext + PyMuPDF extraction -> ROWS 407-409 (Week 46 2016: Buliisa 32/0; national
+       wk46 32/0 and wk45 15/0), source 254
+  Q123-Q133 [11 queries, not individually recoverable]. Artefacts show at least: (a) 09:06 Uganda Radio Network live site
+       (urn_story1.html = Cloudflare page; r.jina.ai refusal urn_story1_jina.txt); (b) 09:06-09:11 retrieval of 36 MoH annual
+       documents listed from the CDX (AHSPR FY2000/01, 2013/14, 2014/15, 2015/16, 2016/17 docx, 2017/18, 2018/19, 2022,
+       2023/24; Ministerial Policy Statements FY2007/08-2020/21; Statistical Abstracts 2002, 2008, 2011, 2012; mid-year review
+       FY2009/10; bi-annual report Oct 2012-Mar 2013; Health Policy Review Commission 1987; IDP-camp nutrition and health
+       assessment) -> b7/docs/ (6 HTTP 000 failures, 16 truncated at 1 MiB), text via pdftotext/PyMuPDF/raw streams -> no
+       committed row; (c) 09:13-09:16 Wayback CDX of www.ifrc.org/docs/appeals/98/ + 26 IFRC 1998 appeal PDFs (b7/ifrc98/) ->
+       no committed row; the remaining WebSearches are unknown
+  Q134 [named, metadata 255; 09:17] WebSearch 'makir.mak.ac.ug cholera outbreak district Uganda dissertation cases deaths' ->
+       WHO AFRO-hosted KCCA Kampala Cholera SitReps of 9 and 14 Feb 2019 -> ROWS 410-416 (affected-areas table of sitrep #38),
+       source 255; Agent 2 cross-reference note appended to row 30; CFR notes appended to rows 413, 415
+  Q135 [unknown]
+  Q136 [named, metadata 256; 09:20-09:23] Wayback CDX prefix query ugandaradionetwork.net/story/cholera* (b7/cdx_urn_pages.txt;
+       38 story URLs in b7/urn_list.txt) -> 8 stories retrieved (b7/urn/) -> ROW 417 (Amuru::Elegu 30 Jun-7 Jul 2025, 27 sCh /
+       14 cCh), source 256
+  after Q136 [09:24-09:26] background retrieval of the other 30 URN stories (b7/urn2/: 9 saved, rest HTTP 000) and the FluTrackers
+       thread 'Uganda: 2025 Cholera' (b7/flu2025.html) -> neither processed before the sleep
+Sources registered by the interrupted run: 254, 255, 256.  Rows: 407-417 (11).  Presence: +0.
+VERIFICATION OF ROWS 407-417 (this redeploy, before any new query)
+  407 PASS. Quote verbatim (b7/epi1920/Week46_2016.pdf.txt lines 51-52; header '14 th - 20 th November 2016'). Place corroborated
+      by AHSPR FY2016/17 (source 249: 'Last confirmed cholera outbreak was in November 2016 in Buliisa district'). CONFLICT found
+      and noted on the row: JHU row 673 (UID 5015) gives Buliisa 2016 annual = 0 - contradicted by the MoH bulletin and AHSPR.
+  408 PASS. Table 1 'Cholera 29(0) 15(0) 32(0)' under the column header 'Week 46 2015 | Week 45 2016 | Week 46 2016' (lines 15-22).
+  409 PASS. Same table, week-45 column. DOUBLE-COUNT CHECK 408/409: no national row in any layer covers 2016-11-07..2016-11-20
+      (JHU national weekly rows for 2016 are Feb 22-28, Apr 11-17, Aug 22-28, Sep 19-25 only; JHU's district weekly series UID
+      5097 ends at 2016-10-31..11-06; AI row 201 is wk52). Both lie inside the 2016 annual rows (AI 120 1,156/25, AI 127 516/11,
+      JHU 771/907) and say so; the canonical 'National total - includes provinces not individually listed' is present.
+  410-416 PASS. Table arithmetic exact: Lubaga 21+4=25/11/0; Makindye 4+2+1+1=8/2/2; Nakawa 1+2+1+1+2=7/1/0; Central 1+2=3/2/1;
+      Kawempe 2/0/0; Wakiso 5+1+1=7/5/0; Luwero 1/1/0 -> 53 suspects / 22 confirmed / 3 community deaths = sitrep totals. All seven
+      rows carry 'Provincial subset - do not sum with national row'. RECONCILIATION WITH ROW 30 (Kampala 2018-12-28..2019-02-11,
+      50/22/3, Tumwesigye et al.): the five division rows sum to 45 <= 50, confirmed 16 <= 22, deaths 3 <= 3; Wakiso/Luwero are
+      other districts, flagged 'do not sum with row 30' because row 30's 50 very probably includes their 8 residents (KCCA: 53
+      total; the paper 50 = line-list cleaning/case definition). Kept: rows 412-416 as the Kampala-proper split (45); row 30 as the
+      published whole-outbreak study count.
+      FIX APPLIED (py/revise_observation.py --delete, tombstones in ./data/UGA/retracted_rows_ai.csv): row 361 (Kampala::Rubaga 18,
+      2-25 Jan 2019, MoH press statement, my batch-4 row) and row 362 (Wakiso 2, 28-29 Jan 2019, MoH sitrep, my batch-4 row) are
+      interim cumulatives strictly NESTED inside the final rows 412 (Rubaga 25) and 411 (Wakiso 7, incl. Kireka B 5) at the same
+      location strings; keeping both would double-count Rubaga and Wakiso in any per-location aggregation (CLAUDE.md Stage 4:
+      updated reports supersede preliminary versions). Net -2 rows.
+  417 PASS on quote (verbatim in b7/urn/cholera-outbreak-confirmed-in-amuru-as-cases-rise-to-27.html), place (Elegu Town Council,
+      Amuru, cf. row 12) and window (outbreak 'reported on Thursday last week' = 3 Jul 2025; published Mon 7 Jul 2025). No national
+      zero row covers 30 Jun-7 Jul 2025 (zeros 49 Apr, 48 May, 52 from 28 Jul).
+      PARTS-VS-WHOLE FAILURE FOUND AND RESOLVED IN NOTES: the 2025 district rows (Lamwo 107, Kiryandongo 45+11, Adjumani 19, Moyo 17,
+      Amuru 27) sum to 226 sCh > WER final national 203 (row 302); row 417 is what tipped it over (199 -> 226). Diagnosis: two
+      reporting periods, not two case definitions - row 302's 203 equals the WHO AFRO cumulative at 23 Mar 2025 (203/3) and
+      evidently omits the June-July West Nile episode (63 cases in three district reports) and the Kiryandongo Q2 tail (11); in
+      confirmed cases the parts are within the whole (Adjumani 4 + Moyo 17 + Amuru 14 + AFRO's 79 confirmed to 6 Apr = 114 <= 203).
+      Kept: ALL district rows (each marked 'do not sum with national row') AND row 302 as the primary national 2025 total, now
+      annotated as a LOWER BOUND (note appended to row 302 with the arithmetic). WHO HQ's provisional 255 (retracted row 187) is
+      consistent with the district sum. For Agent 5.
+Decision     : partial batch 7a closed UNSCORED. Scored counting resumes with BATCH 7 below (batches 1-6 = 25,35,25,15,35,20%;
+               consecutive sub-5% = 0).
+
+=== BATCH 7 | PHASE 3 (cached-but-unprocessed corpora: URN news archive, FluTrackers 2025, MoH weekly bulletins 2016-2024, AHSPRs; 2021 district geography) | UGA ===
+Gap targeted : district attribution where national rows exist but no district rows do: 2021 (national 173 + Nov-Dec 2021 rows
+               267/268, NO district row), 2025 beyond Lamwo/Kiryandongo/Adjumani/Moyo/Amuru (Kitgum), 2024 (Kasese?), 2017,
+               2019-2020 weekly district detail; 2022 zero-row stress test (URN 2022 items)
+Numbering    : Q141-Q160 (Q137-Q140 left unassigned: the tail of unscored batch 7a is unknown)
+Queries (appended one by one as executed):
+  Q141 targeted scan of the 15 cached-but-unprocessed Uganda Radio Network stories (b7/urn, b7/urn2; Wayback id_ captures) ->
+       ROW 418 (Kitgum::Labongo_Layamo 5-12 Feb 2025, 7 sCh / 3 test-positive; source 257 - first Kitgum 2025 count; the Jan 2025
+       Kitgum case had travelled from Agoro, Lamwo, so it is left to Lamwo). Nested/no row: Kotido 2020 (11 suspected 13 Jul; >60
+       discharged and 11 deaths 18 Aug; 308/13 to ~1 Sep - inside rows 79+354; ROW 79 RE-DATED TL 6 Aug -> 9 Jul 2020, revision),
+       Moroto 2020 (370/3 at 15 Jun; 465 treated, 2 facility + 3 community deaths at 13 Jul - inside row 4 458/2: deaths conflict
+       noted for Agent 5), Mbale Jun 2018 (2 deaths, 39 admitted - inside row 99 46/3), Kasese 2012 (>=100 at Bwera, 1 death -
+       inside row 254/JHU 253), Busia 2021 vaccination stories (no cases), Amolatar Mar 2006 (not confirmed - not entered),
+       two Kotido stories paywalled. 1 committed row.
+  Q142 Wayback retrieval of the 16 URN stories that failed in batch 7a (3 needed bash retries with --compressed; 2 came back
+       gzip) -> ROWS 419 (Kitgum::Labongo_Akwang 20-29 Apr 2025, 6, Akado Dam cluster; sources 258/259) and 420 (Bundibugyo, Buhundu
+       PS displacement camp, 30 Jul-2 Aug 2012, 40 hospitalised, samples positive; source 260). REVISIONS: row 418 cCh 3 -> 1 (URN 21
+       Apr: 'seven suspected cases ... only one confirmed through PCR'); ROW 49 RETRACTED (national zero Apr 2025, inferred from
+       non-reporting, contradicted by rows 419 and 364); corroboration notes on rows 363 (Panyadoli 7 suspected/2 deaths 13-17 Feb
+       2025) and 69 (Agoro 99 confirmed/1 death by ~20 Jan 2025). FOUND, HELD for a second source (100-1000 cases, single Level 3):
+       Bibia HC III (Atiak SC, Amuru) 'has admitted more than 200 victims' since early July 2025, 4 facility + 4 community deaths
+       (+1 in Nimule; MP Akol: 11 deaths since 2 Jul) to 4 Aug 2025 - source 261; it contradicts national zero row 52 (from 28 Jul
+       2025). Nested/no row: Moroto 2020 (9 May 1 death/13 admitted; 8 Jun 300, 3 official deaths vs 5 local; 29 Jun 458 discharged,
+       last case 27 Jun = row 4), Kasese Oct 2017 (112/3, Nyakiyambu = row 37), Kasese Jan 2013 (1 suspect, unconfirmed), Elegu Jan
+       2024 (= row 12), Amuru 2016 ('over 40', 2 deaths, Atiak = inside JHU 661 Amuru 2016 64), Butaleja Dec 2024 (risk only).
+       2 committed rows.
+  Q143 scan of the cached FluTrackers thread 'Uganda: 2025 Cholera' page 1 (b7/flu2025.html, 5 posts) -> Lamwo interim cumulatives
+       (Independent 10 Jan: 30 confirmed/1 death; Xinhua 13 Jan: 60 hospitalised; MoH via Xinhua 17 Jan: 67 cases, 7 lab-confirmed;
+       Independent 21 Jan: Agoro 99 confirmed) all nested in row 69 / national rows 13, 188; Observer 7 Jul = URN Elegu (row 417).
+       0 rows.
