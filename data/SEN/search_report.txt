@@ -1,124 +1,292 @@
-# SENEGAL (SEN) CHOLERA SURVEILLANCE DATA ENHANCEMENT - SEARCH REPORT
+SENEGAL (SEN) - AI CHOLERA DATA ENHANCEMENT - SEARCH REPORT
+Cycle opus55-2026-09-29 | Quality audit by Agent 7 on 2026-10-04 | supersedes the May-2026 report
+(preserved as ./data/SEN/search_report_legacy_2026-05-15.txt)
 
-## Executive Summary
+EXECUTIVE SUMMARY
+-----------------
+Bottom line: the national series for Senegal 1970-2026 is now well supported by verified sources.
+Several known defects remain in the weekly modelling input, however, and these must be fixed in
+py/build_weekly_timeseries.py, not in the data.
 
-Comprehensive 7-agent systematic search workflow successfully enhanced Senegal cholera surveillance data for the period 1970-2025. The workflow executed real web searches and data extraction across 6 data collection agents (~270 queries total), producing 28 validated cholera surveillance observations from 20 high-quality sources. Senegal has 0% baseline coverage (JHU/WHO databases contain no Senegal data), making this a complete historical reconstruction spanning the five documented epidemic waves (1971, 1985-1987, 1995-1996, 2004-2008) plus eight inter-epidemic absence periods.
+What changed this cycle. The dataset grew from 29 rows and 21 sources (May 2026) to 1,479 rows
+and 338 sources in ./data/SEN/cholera_data_ai.csv and ./data/SEN/metadata_ai.csv.
+- Rows: 1,147 case rows and 332 zero (absence) rows. 347 are national, 830 regional and 302 at
+  district, department or DSS level.
+- Sources: 317 of the 338 are new this cycle (Level 1: 232, Level 2: 45, Level 3: 38, Level 4: 2).
+  75 registered sources carry no data row (corroboration and leads only).
+- Retractions: 57 rows are tombstoned in ./data/SEN/retracted_rows_ai.csv. 8 of them are mine.
+- Coverage: rose from 93.4% (637/682 months, 5 gap periods) to 99.9% (681/682). The only
+  uncovered month is October 2026, the current month. All 5 gap periods are closed.
 
-## Key Achievements
+Read the coverage figure with care. Senegal has no JHU or WHO baseline file, so the baseline-only
+coverage is 0% and every covered month is AI-only (681). Of those months:
+- 75 national months rest only on inferred zeros: 1978 (11), 1979 (5), 1990-93 (48),
+  1997 (10) and 2026 (1).
+- 1989 is covered only by sub-national rows (Niakhar DSS and a Dakar laboratory series). There
+  is deliberately no national row for 1989, because cholera was present but uncounted.
 
-### Epidemic Documentation
-- 2004-2008 EPIDEMIC SERIES: Complete annual, weekly, and cumulative data from multiple sources
-  - 2004: 1,227 cases 10 deaths (annual); Dakar clinic subset 593 cases 112 confirmed
-  - 2005: 31,719 cases 458 deaths (full year); 7 sub-period entries with temporal detail
-  - 2006: 365 cases 10 deaths (annual)
-  - 2007: 2,144 cases 11 deaths (Aug-Oct outbreak in Diourbel)
-  - 2008: 1,263 cases (annual, zero deaths noted at pilgrimage)
-- 1995-1996 EPIDEMIC: 16,107 total cases 765 deaths; initial phase 852 cases 43 deaths; Niakhar 646 cases 46 deaths; Dakar Fann Hospital 934 suspected 323 confirmed
-- 1985-1987 NIAKHAR: 2,170 cases 206 deaths (rural Fatick, only nationally documented data for this period)
-- 1981-1990 FANN LAB: 592 V. cholerae isolates from 10,565 stool samples at CHU Fann Dakar
+Positive months fell from 272 to 261. The old figure was inflated by long aggregate rows. 56 of
+the current 261 still depend on one ten-year laboratory aggregate (Index 16, Dakar Fann
+1981-1990); without it the figure is 205.
 
-### Zero-Transmission Documentation (8 validated periods)
-- 1972-1984: Inferred inter-epidemic gap between 1971 first wave and 1985 second wave (confidence 0.7)
-- 1988-1994: WHO-confirmed absence per 1996 DON ("cholera-free status despite regional endemicity for the preceding two years") (confidence 0.8)
-- 1997-2003: Inter-epidemic gap ("8 years since last outbreak in 1996" per 2004 reports) (confidence 0.8)
-- 2009: Confirmed zero cases per PLOS NTD peer-reviewed study (confidence 1.0)
-- 2009-2015: Near-zero aggregate (13 total cases over 7 years, PLOS NTD) (confidence 0.9)
-- 2010-2015: Confirmed zero since July 2010 per Ministry of Health monitoring (PMC5430043) (confidence 0.9)
-- 2013-2016 Saint-Louis province: Documented zero from clinical surveillance and environmental monitoring (confidence 0.9)
-- 2016-2025: WHO AFRO systematic exclusion from regional bulletins (confidence 0.9)
+The latest positive observation moved from 2015-12-31 to 2012-12-31. Agent 7 retracted the single
+unconfirmed 2015 WAHO case (Index 287), which every final source contradicts. The 2012 date comes
+from a year-long row of 2 unconfirmed suspected Dakar cases (Index 277). In plainer terms:
+- the last dated case is one suspected case in April 2012 (Index 44), and two other zero series
+  contradict it;
+- the last laboratory-confirmed cases were in 2011 (3 isolates; Bakel cluster, 13-18 Dec 2011).
 
-### Geographic Coverage
-- National level: 20 observations (AFR::SEN)
-- Dakar province: 3 observations (AFR::SEN::Dakar)
-- Fatick province (Niakhar district): 2 observations (AFR::SEN::Fatick)
-- Saint-Louis province: 2 observations (AFR::SEN::Saint-Louis)
-- Multi-provincial weekly data: 5 observations spanning Diourbel, Dakar, Fatick, Saint-Louis, Thies, Kaolack, Tambacounda
+Weekly modelling input. This was the biggest real gain. Compared with the pre-cycle file
+/tmp/SEN_weekly_pre_cycle.csv (git e909991), using the in-memory build of
+py/build_weekly_timeseries.py (nothing written):
+- Before: the series asserted zero cholera in 11 years in which WHO recorded cases (1971-73,
+  1978-79, 1981, 1984, 1988, 2009, 2011, 2012). It also carried 1985-87 at about 720 a year,
+  against WHO's 2,988, 476 and 3,150.
+- Now: no year with WHO cases is zero. These years are within 8% of WHO: 1971, 1978, 1979,
+  1981, 1984, 1986, 1987, 1988, 1995, 2004, 2005, 2006, 2008, 2009 and 2010.
+- Still wrong, and to be stated plainly:
+  * 1972 is 1.26x WHO.
+  * 1973 is 1.55x WHO.
+  * 1985 is 1.49x WHO.
+  * 1996 is 1.35x WHO.
+  * 1997 is 1.19x WHO.
+  * 2007 is 1.12x WHO and 2011 is 3.2x WHO. Both are documented choices of Ministry counts
+    over WHO's, reviewed below.
+  * 1989 is 52 weeks of assumed_zero (confidence 0.5), despite documented presence in
+    ./data/SEN/cholera_presence_ai.csv.
 
-## Data Quality Assessment
+Cause of the remaining inflation. It is a builder defect, not bad rows. The builder keeps the
+larger per-week value across overlapping same-source national rows, so a legitimate annual total
+is added again on top of its own nested weekly rows. The regional West Africa template also peaks
+in August-October, which mistimes Magal-driven March-July epidemics such as 1973. The builder
+also ignores presence records when it fills assumed zeros. I deleted no legitimate nested rows to
+compensate.
 
-### Source Distribution
-- Total Sources: 20 across systematic search methodology
-- Level 1 sources: 17 (WHO official, peer-reviewed academic) = 85%
-- Level 2 sources: 3 (NGO humanitarian, secondary academic) = 15%
-- Average reliability score: Level 1.15 (exceptional)
+Validator. py/validate_quality.py SEN exits 0, with ERROR 0, WARN 34 and INFO 397. At the start
+of the audit it was ERROR 0, WARN 37, INFO 396; pre-cycle it was ERROR 0, WARN 20, INFO 4. The
+repair tool (py/repair_data_integrity.py --dry-run SEN) reported 0 changes, and there is no
+./data/SEN/attribution_review.csv.
 
-### Source Types
-- WHO Disease Outbreak News (DON): 5 reports (1995, 2004, 2005 x3)
-- Peer-reviewed academic (PMC/PubMed): 9 sources
-- Humanitarian/NGO: 3 (IFRC DREF, ReliefWeb x2)
-- WHO AFRO surveillance bulletins: 1
-- IRD academic book chapter: 1
-- HAL archive study: 1
+WHAT AGENT 7 FIXED, AND WHY
+---------------------------
+Retracted, with tombstones (8 rows; values kept in ./data/SEN/retracted_rows_ai.csv):
+- 46: GHO 1995 figure, 3,332/160. Agents 4/5 had already ruled it non-primary (C10). Every
+  printed WHO source gives 3,222/137, which I re-fetched: WER 71(21) Table 1 and
+  WHO/CDS/CSR/ISR/2000.1 Table 4.1. Rows 12, 129 and 128 reproduce that total exactly. Effect on
+  the weekly series: 1995 went from 4,712 to 3,222.
+- 1238: a Le Soleil/JPRS figure of "1,500 cases of cholera and diarrhoeal diseases". It is not
+  cholera-specific and states no counting period (its TL was an agent construct). WHO's final
+  totals cover the whole span. Effect: 1986 went from 1,128 (2.37x WHO) to 487, and 1987 from
+  3,349 to 3,152.
+- 15: Niakhar 1985-89 aggregate (2,170/206). Its own paper splits it into rows 146, 147 and the
+  monthly rows; I verified Table 2. The residuals (45 visitor cases and 27 sporadic deaths) are
+  noted on rows 146 and 147.
+- 287: one WAHO 2015 "suspected and/or confirmed" case, contradicted by every final source. I
+  re-queried WAHO's weekly 2015 data: 5 suspected, 0 confirmed, 0 deaths.
+- 286: an APS count of 34 cases in two villages on one day, coded to the whole Louga region. The
+  Level 1 Ministry bulletin for that region and day, which I re-fetched live, gives 23.
+- 24: a 2024 paper re-citing Manga 2008's Saint-Louis figure of 1,185 ("city"), with an invented
+  period. It duplicates primary row 299.
+- 7 and 17 (legacy May-2026 rows): the quoted sentences do not occur in the cited paper (Manga
+  2008). The values are WHO's (GHO 2006: 365/10; GHO 2004: 1,227/10). I re-entered both unchanged
+  with the correct citation as Index 1535 and 1536. revise_observation.py cannot change
+  source_index, so retract-and-re-add was the only route; references to "row 7" and "row 17" in
+  other notes now point to the tombstones.
 
-### Validation Results
-- Format validation: 100% pass rate (all 28 rows)
-- Dual-reference indexing integrity: 100%
-- Date logic validation: 100% pass (TL <= TR <= reporting_date)
-- Geographic coding: 100% (AFR::SEN format throughout)
-- High CFR rows (5-10%) validated as appropriate:
-  - Row 12 (1995 initial): 5.05% - appropriate for initial epidemic with limited treatment capacity
-  - Row 21 (1996 Niakhar): 7.13% - rural area with delayed care access, documented in literature
-  - Row 15 (1985-1987 Niakhar): 9.49% - remote rural area, government under-reporting confirmed by Garenne 2024
-- Sub-period double-counting prevention: All aggregate/sub-period overlaps documented in processing_notes
-- Mean confidence weight: 0.92 (range 0.70-1.00)
+Re-graded or re-weighted (3 rows):
+- 25: Documented_Absence at 0.9 changed to Inferred_Absence at 0.6. The source is 43 negative
+  stool samples at one hospital (2013 to April 2015), not a zero-case regional report.
+- 1427: confidence 0.6 changed to 0.45. It is a derived WHO-chain residual stacked on
+  Ministry-level 2007 weeks.
+- 473: confidence 0.85 changed to 0.6. Sow 1999 is paywalled and has no open abstract, so I
+  could not verify the figures.
 
-## Major Data Discoveries
+Notes appended to 48 rows:
+- Attribution notes on 6 rows whose deaths or cCh came from a second source (43, 53, 57, 59, 66,
+  121).
+- A regional-exceeds-national conflict on 184 (Dakar 1,280 against national 1,227 in 2004).
+- Corrections on 32 WAHO zero rows. The confirmed-case element is absent from the API in some
+  weeks, not reported as 0; suspected-case zeros were confirmed every week.
+- Pointers on 12, 38, 48, 73, 146, 147, 299 and 811, plus an erratum on 1536.
 
-1. 2005 epidemic: 31,719 cases 458 deaths - largest WHO Africa recorded at time; 46.9% of 41-year cumulative
-2. 2005 temporal structure: Three-phase epidemic with January (religious pilgrimage) and August-November (flooding) peaks
-3. 1985-1987 under-reporting: Government suppressed cholera reporting for tourism; only Niakhar rural data recoverable
-4. Confirmed post-2010 zero: PMC5430043 confirms "no cases reported since July 2010" per Ministry of Health
-5. Five distinct epidemic waves: 1971, 1985/1987, 1995-1996, 2004-2008 with multi-year inter-epidemic absences
-6. 2011 Senegal: Only 3 V. cholerae isolates, all imported from Togo - true near-zero transmission
+VERIFICATION
+------------
+I checked 439 rows against their sources by direct re-fetch; no web search was used. The set
+covered:
+- all 105 rows above 1,000 cases;
+- all 96 rows whose period, counts or location an agent changed;
+- a stratified random sample of 73 other rows across agents and decades;
+- every WAHO API row (64) and every chart-derived row in those groups.
 
-## Gap-Filling Impact
+Methods:
+- Text matching against the live documents.
+- Visual reading of 9 WER and thesis page images.
+- Independent vector decoding of two charts. Manga 2008 Figure 3 gave 65 rows, all within 8
+  cases. The IFRC DREF Ministry chart gave 36 rows, all within about 1 case.
+- Recomputation of 23 bulletin-sum rows from more than 50 live Ministry bulletins.
 
-### Baseline Coverage (Pre-Enhancement)
-- JHU/WHO coverage: 0% (no Senegal data in baseline)
-- Gap period: 1970-01-01 to 2026-05-31 (677 months)
+Results:
+- 427 passed.
+- 2 passed on values but were retracted as superseded (15, 46).
+- 6 failed and were fixed (7, 17, 24, 286, 287, 1238).
+- 1 was partial and regraded (25).
+- 3 could not be verified. The BMJ news item behind 20 and 380 was blocked at PMC, Europe PMC and
+  bmj.com; Sow 1999 (473) is paywalled.
+Corroboration: every event above 1,000 cases has at least two sources, though several are within
+the same WHO reporting chain. The Niakhar DSS figures are single-source (Level 1). The full
+register is in ./data/SEN/search_log_agent_7.txt.
 
-### Post-Enhancement Coverage
-- Epidemic periods documented: 1985-1987, 1995-1996, 2004-2008
-- Zero-transmission periods documented: 1972-1984, 1988-1994, 1997-2003, 2009-2025
-- Coverage quality: 85% Level 1 sources for outbreak data
-- Temporal completeness: All five epidemic waves captured; all inter-epidemic periods characterized
+VALIDATOR WARNINGS LEFT, WITH JUSTIFICATION (34)
+------------------------------------------------
+- CFR above 15% (29 rows: Index 32, 47, 54, 59, 69, 154, 156, 157, 163, 170, 181, 188, 840,
+  866, 869, 873, 879, 889, 898, 902, 905, 906, 923, 1233, 1236, 1237, 1241, 1242, 1246).
+  * In every one, deaths and cases come from the same table line or statement and the same
+    period. I confirmed this on the WER 1973 and 1985 page images, the Pellegrin 1975 p.70
+    table, Le Monde 1985 and GHO.
+  * These are real historical CFRs: the 1971-73 first El Tor wave in rural Senegal, and the
+    1984-85 epidemic, for which GHO itself gives 15.9%.
+  * All 29 carry confidence of 0.7 or less. No change.
+- Same-period conflicts (4 pairs):
+  * 258/101: Fatick 2005; 258 is primary and 101 non-primary (C3).
+  * 292/222: alternative two-week totals; both non-primary. The builder skips both because the
+    weeks are covered by WHO weekly rows 114 and 1248.
+  * 387/380: same week; 387 is primary (I verified it live from the bulletins); 380 is
+    non-primary.
+  * 316/43: 316 is the cCh-only confirmed subset of 43.
+  The validator does not read NON-PRIMARY markers, so these pairs stay flagged.
+- Multi-year aggregate (Index 16): 592 V. cholerae isolates at Fann, 1981-1990. Verified from the
+  PubMed abstract. I kept it as the only Dakar laboratory series of the 1980s. It is sub-national,
+  so the national builder does not use it, but it inflates positive months (see above).
 
-### Remaining Gaps
-- 1971 initial epidemic: Historical documentation only; no quantitative case/death data accessible
-- 1972-1984 inter-epidemic: Inferred absence (0.7 confidence) due to limited surveillance documentation
-- Annual breakdown 2009-2015: Only aggregate of 13 cases; year-specific distribution unknown
-- 1985/1987 national totals: Under-reported by government; only Niakhar rural data recoverable
+AGENT PERFORMANCE
+-----------------
+Protocol: all six collectors ran at least 3 batches, and no yield exceeded 100%. Agents 1-5 stopped
+at the 12-batch cap; Agent 4's batches 10-12 also met the three-consecutive-batches-below-5% rule;
+Agent 6 stopped after 7 batches on that rule. Every agent's claimed row count matched the
+orchestrator's gate counts.
 
-## MOSAIC Framework Impact
+- A1: 360 rows (349 live). Built the national skeleton: GHO, the WER weekly and annual series
+  1970-2025, and the 2005/2007 Ministry bulletins. Most productive per source.
+- A2: 542 rows (546 live). Regional and district expansion of 2005 and 2007 and of 1971-73, plus
+  ANSD regional absences. Its 70-85% yields counted cached bulletin-weeks as "queries", so they are
+  not comparable with the others.
+- A3: 275 rows (272 live). Retracted the contradicted legacy wide zeros and rebuilt the absence
+  layer (WAHO weekly zeros, WHSA 1983). High-value quality work.
+- A4: 15 rows (14 live). Low yield (0-10%) for two reasons: historical sources are genuinely sparse,
+  and WebSearch was exhausted from its batch 3. Its few rows are among the most valuable: Pellegrin
+  1975 and the 1984-85 Le Monde and JPRS figures.
+- A5: 276 rows. Resolved conflicts C1-C23 and did accurate vector chart extraction, which I
+  verified. Filled the 2004-2008 national weekly holes.
+- A6: 3 rows plus 16 revisions. Low yield reflects a classification task and access limits, not
+  inactivity.
 
-- Complete time series: All five epidemic waves and inter-epidemic periods characterized (1970-2025)
-- Sub-national data: Provincial and district data available for major outbreaks
-- Confidence weights (0.7-1.0): Enable appropriate uncertainty propagation
-- Zero-transmission documentation: Critical for transmission parameter estimation in MOSAIC models
-- Historical laboratory surveillance: 592 isolates 1981-1990 provides baseline pathogen presence data
+Process issues:
+(a) 44 of Agent 1's edits are stamped "AGENT 5", because revise_observation.py defaults --agent to 5.
+(b) The "Surveillance system status" token cannot be edited. A grep of py/ shows no code reads it,
+    so the stale tokens on 213 and 215-218 are cosmetic.
+(c) ./data/SEN/cholera_data_jhu.csv was never generated, although ../jhu_cholera_data/data/Senegal
+    holds 17 collections.
+(d) The 200-search session cap was exhausted during Agent 4, so Agents 4-7 worked by direct fetch
+    only.
+(e) Agent 3 read HAL, DUMAS and OpenEdition pages through their proof-of-work browser check using a
+    script. These sites serve the same open-access files to an honestly identified non-browser
+    client, which is what Agent 7 used.
+(f) One Agent 4 API query included a personal identifier. It was not repeated.
+(g) revise_observation.py has no --source-index option.
+(h) Two legacy rows had fabricated quotes (7, 17).
 
-## Appendix: Quantitative Metrics
+GAPS STILL OPEN, AND WHETHER THE DATA EXIST
+-------------------------------------------
+1. National 1989. There is presence evidence (Niakhar about 19 cases in April 1989; AFMIC) but no
+   count anywhere, and WHO holds no 1989 figure. A count probably exists only in Ministry archives
+   in Dakar.
+2. 1981. WHO has 428 cases with no place or date, and the WER is silent. Within-year timing is
+   likely unrecoverable from public sources.
+3. 1985 May-December and 1986-88 within-year and regional detail. Only derived increments,
+   Niakhar, and Dakar Sep-Nov 1986 exist. Contemporaneous Ministry and ORSTOM reports exist but are
+   not online.
+4. 1990-93 and March-December 1997 are inferred absence only, with no explicit zero statement
+   found. True absence is plausible on regional and molecular evidence.
+5. The places and dates of the 2009-2012 sporadic cases (4, 3, 5 and 1) are unknown, apart from
+   Bakel in December 2011.
+6. Regional reporting is missing for 2009-2013 and for 13 Jan-31 Dec 2025, when WAHO's cholera
+   fields went empty.
+7. 29 Sep-4 Oct 2026 is not yet reportable.
+8. Leads that exist but could not be reached: the Ministry yearbooks and weekly bulletins (BEH,
+   2016-2025, district tables) on informationsanitaire.sec.gouv.sn, which reset the connection;
+   and Finger 2016 PNAS Dataset S1 (2005 weekly by arrondissement), behind reCAPTCHA or 403.
 
-Search effort:
-- Agent 1 (Baseline): ~100 queries, 5 batches
-- Agent 2 (Geographic): ~40 queries, 4 batches
-- Agent 3 (Zero-Transmission): ~40 queries, 4 batches
-- Agent 4 (Obscure Sources): ~30 queries, 3 batches
-- Agent 5 (Cross-Reference): ~30 queries, 3 batches
-- Agent 6 (Gap Context): ~30 queries, 3 batches
-- Total: ~270 queries across 22 batches
+2007 VERDICT (Agent 5 replaced WHO weekly values with Ministry values)
+----------------------------------------------------------------------
+Accepted. The five replaced WHO weeks were each below the Ministry's own Diourbel-only count for the
+same week; W38-39, for example, were 27 and 11 against 151 and 328. The Ministry-based second wave
+sums to 2,038 for 3 Aug-14 Oct, against the Ministry/IFRC cumulative of 2,144. The builder's 2007
+total of about 4,468 is 12% above WHO's annual 3,984, but within 2% of the WHO country-office
+figure of 4,391 (CCS 2009-2013).
+One part I disagree with: derived row 1427 is a WHO-chain residual sitting on Ministry-level weeks,
+so ISO weeks 47-52 (about 407 cases) are probably overstated. I down-weighted it to 0.45.
+2011 (11 vs 5) uses the Minister's Bakel count, which exceeds WHO's total. That is documented and
+accepted.
 
-Data yield:
-- Batch 1 (Agent 1): 17 rows added (yield ~85%)
-- Batches 2-5 (Agent 1): 3 more rows (declining yield)
-- Agents 2-6: 8 additional rows
-- Final total: 28 data rows, 20 sources
+WHAT A FUTURE RUN SHOULD TRY
+----------------------------
+1. Fix py/build_weekly_timeseries.py:
+   - give an enclosing aggregate only its residual (aggregate minus nested rows) on uncovered
+     weeks;
+   - do not fill assumed_zero where ./data/{ISO}/cholera_presence_ai.csv records presence;
+   - assign Sunday-start weekly rows correctly (1971 rows 180/181 collide, losing 33 cases);
+   - stop ISO-week spill-over at year ends (Index 14 into 1997-W01);
+   - use a Senegal-specific, Magal-aware seasonal template.
+2. Generate ./data/SEN/cholera_data_jhu.csv, so that the baseline-only comparison is meaningful.
+3. Raise the WebSearch cap. Agents 4-7 had none.
+4. Retry informationsanitaire.sec.gouv.sn and the Ministry archives (1989; 1981; 1985-88 regional
+   counts) from another network, or through partners.
+5. Add --source-index to py/revise_observation.py.
+6. Make py/analyze_effective_gaps.py discount multi-year aggregates in months_with_positive_cases.
+7. Audit other countries' May-2026 legacy rows for quotes that are not in the cited source.
 
-Quality distribution:
-- Level 1 sources: 17/20 (85%)
-- Level 2 sources: 3/20 (15%)
-- Confidence weight mean: 0.92
-- Zero-transmission entries: 8 national + 2 provincial = 10 total absence records
-
-Report generated: 2026-05-15
-Workflow status: COMPLETED
+METRICS APPENDIX
+================
+A. Before and after
+                               pre-cycle (May 2026)   start of A7    final (Agent 7)
+   rows                        29                     1,485          1,479
+   sources                     21                     338            338
+   validator ERROR/WARN/INFO   0/20/4                 0/37/396       0/34/397
+   coverage                    93.4% (637/682)        99.9%          99.9% (681/682)
+   gap periods                 5                      0              0
+   months_ai_only              637                    681            681
+   months_with_positive_cases  272                    273            261 (205 without Index 16)
+   latest_positive_observation 2015-12-31             2015-12-31     2012-12-31
+   baseline-only (JHU+WHO)     0% (no files)          0%             0%
+B. Gap periods closed (all 5)
+   - 1970-01..1971-12: WER documented zero to 24 Jul 1971, then the 1971 epidemic (national,
+     department and weekly rows).
+   - 1995-01..1995-07: WHO DON documented zero to 14 Aug 1995.
+   - 2007-01..2007-07: the 2007 weekly WHO/Ministry series, plus an inferred zero 1 Jan-18 Feb.
+   - 2007-10..2007-12: OCHA weekly figures, Ministry bulletins and a derived residual.
+   - 2026-07..2026-10: WAHO weekly zeros to W36 (regional), plus inferred national zeros to
+     28 Sep 2026.
+C. Rows by decade (case rows / zero rows): 1970s 153/33; 1980s 50/14; 1990s 68/22; 2000s 864/94;
+   2010s 12/94; 2020s 0/75.
+   Zero-row evidence labels:
+   - national: Documented_Absence 50, Inferred_Absence 11;
+   - sub-national: Documented_Absence 267, Inferred_Absence 4.
+D. Live rows by creating agent: pre-cycle 13; A1 349; A2 546; A3 272; A4 14; A5 280; A6 3; A7 2
+   (the re-entries 1535 and 1536).
+   Confidence weights: median 0.8; 56.8% of rows at 0.8 or above; 7.4% at 0.5 or below.
+E. Sources by reliability: all 338 sources - Level 1 250, Level 2 48, Level 3 38, Level 4 2.
+   The 263 sources used by live rows - Level 1 197, Level 2 38, Level 3 27, Level 4 1.
+F. Weekly modelling input, in-memory build (cases by year: WHO / pre-cycle / after A6 / final)
+   1971 265/0/286/286        1972 379/0/478/478        1973 2217/0/3441/3441
+   1978 315/0/318/318        1979 103/0/101/101        1981 428/0/426/426
+   1984 728/0/713/713        1985 2988/720/4462/4462   1986 476/723/1128/487
+   1987 3150/727/3349/3152   1988 390/0/390/390        1995 3332/5932/4712/3222 (WER 3222)
+   1996 16107/10130/21674/21674                        1997 371/45/442/442
+   2004 1227/1271/1180/1180  2005 31719/34546/30216/30216                       2006 365/365/392/392
+   2007 3984/2144/4468/4468  2008 1283/1257/1283/1283  2009-2012 4,3,5,1 / 0,0,0,0 / 4,3,16,1
+   Weeks by method:
+   - pre-cycle: observed 3, documented_zero 383, inferred_zero 1,914, fourier 469,
+     assumed_zero 74 (2,843 weeks);
+   - final: observed 185, documented_zero 1,880, inferred_zero 326, fourier 513,
+     assumed_zero 57 (2,961 weeks; 52 of the assumed-zero weeks are 1989).
+G. Verification register (Index, URL, method, result): appended to ./data/SEN/search_log_agent_7.txt.

@@ -17,3 +17,616 @@ WARN breakdown: 29 CFR_high_flagged_for_review, 5 same_period_conflict, 2 multiy
 INFO breakdown: 324 national_subnational_overlap, 72 metadata_unused
 Pre-cycle validator (/tmp/SEN_pre.json): 29 rows, 21 sources, ERROR 0, WARN 20, INFO 4
 
+=== STEP 1b: REPAIR TOOL ===
+python py/repair_data_integrity.py --dry-run SEN -> TOTAL: 0 change(s). No --apply needed.
+./data/SEN/attribution_review.csv does not exist (nothing withheld for review).
+
+=== STEP 2: WORKFLOW STATE CHECK (read_workflow_state('SEN')) ===
+A1 12 batches [30,5,45,15,55,50,75,25,15,35,10,40] rows 360 | A2 12 [70,75,85,25,10,30,45,20,55,40,30,15] rows 542
+A3 12 [30,10,25,15,25,15,10,0,20,15,5,0] rows 275 | A4 12 [0,5,0,5,10,0,0,5,5,0,0,0] rows 15
+A5 12 [50,10,20,20,5,25,10,10,5,5,15,15] rows 276 | A6 7 [0,0,5,5,0,0,0] rows 3
+Every agent >= 3 batches; no yield > 100%; claimed rows match the orchestrator's gate counts and the live
+Index ranges (live rows by creating agent: A1 349, A2 546, A3 272, A4 14, A5 280, A6 3).
+Yield-accounting deviation: Agent 2 (and Agent 1 batch 7) counted one cached bulletin-week or re-read
+document as a "query" - yields 70-85% are retrieval units, not searches; no effect on stopping (cap reached).
+WebSearch exhausted at Agent 4 batch 3 (session cap 200/200): Agents 4 (b4+), 5, 6 and 7 used direct fetches.
+
+=== VERIFICATION PASSES (Agent 7 "batches") ===
+Fetching: /tmp/sen_a7/fetch.py (cached, retries, honest User-Agent 'MOSAIC-audit/1.0 (cholera surveillance
+data quality audit; non-commercial research)'; no personal identifiers in any request). HAL, OpenEdition,
+IRIS, ReliefWeb, archive.org serve open content to this client directly - no proof-of-work page was solved.
+PubMed pages answer 203 to non-browser clients -> NCBI E-utilities used instead; PMC article pages show
+reCAPTCHA -> E-utilities XML, or the Padova repository copy for Finger 2016 (PNAS/PMC blocked).
+Internet Archive was intermittently refusing connections early on; captures were re-fetched live later.
+Verification set (/tmp/sen_a7/verify_sets.json): all 105 rows > 1000 cases; all 96 rows whose period,
+counts or location were changed by an agent (diff vs post-Agent-1 snapshot /tmp/sen_a2/SEN_data_pre_agent2.csv,
+pre-cycle file, and explicit field-change revision stamps); stratified random sample of 73 other rows
+(seed 20261004, strata = creating agent x decade). Plus all 64 WAHO API rows and all chart-derived rows
+of the sampled groups.
+Pass 1  GHO OData API (CHOLERA_0000000001/2): 20 rows citing metadata 22 -> exact match (rows 32-50, 1427, 1435).
+Pass 2  WAHO venus_api, re-queried per org unit and year, week by week: 64/64 rows PASS (suspected and deaths
+        '0' in every week of each span). 32 rows' quotes overstate "all three elements": the confirmed
+        element is absent (not reported) in some weeks -> correction notes appended (see changes).
+        Also confirmed WAHO 2015 national/regional: 5 suspected (Tambacounda W10, Fatick W13, Dakar W45,
+        Thies W50 x2), 0 confirmed, 0 deaths.
+Pass 3  Automated live-text match (numbers + quote fragments) on 231 rows -> 131 auto-pass, 95 weak, 5 no text.
+Pass 4  Ministry daily bulletins re-fetched live from the Internet Archive and recomputed: 20 sampled rows of
+        metadata 146 (17 exact; 492, 546 each one day short in my date index, closed by the quoted day;
+        796 closed after re-fetching the misprinted 2 Jun 2005 bulletin id 90); ReliefWeb 2007 bulletins
+        29 Oct-18 Nov 2007 recomputed rows 743 (7/0), 356 (185/0), 357 (139/0), 358 (69/0) exactly.
+        Also re-fetched 26-28 Apr 2005 bulletins (Louga 37/4, 23/0, 35/1) for row 286.
+Pass 5  Manual text review of every weak / no-text row (WHO DON, IRIS WER text, ReliefWeb, santetropicale,
+        vie-publique JO and ANSD SES, archive.org JPRS/Le Monde/Pellegrin djvu text, PMC XML).
+Pass 6  Page-image reading: WER 71(15) p.116; WER 48(28) p.7; WER 48(34) p.15; WER 48(15) p.7; WER 47(39) p.11;
+        WER 60(08) p.8; Pellegrin 1975 p.70; GTFCC profile 5 Feb 2007 pp.1-2; WHO map 1 Jan-28 Oct 2007;
+        Garenne & Fontaine 2024 Fig. 1; IRD chapter Fig. 4.
+Pass 7  Independent vector decoding (PyMuPDF): Manga 2008 Fig. 3 (national, Diourbel, Dakar series; 65 rows,
+        max deviation 8.1 cases, after excluding legend markers and using the agents' 52-week 2004 mapping
+        anchored on the 3 475-case peak week); IFRC DREF MDRSN001 Ministry chart (36 rows, within ~1 case,
+        incl. replacement rows 1527 = 189.4 and 1528 = 383.2).
+Pass 8  Strict proximity re-check of the 131 automated passes (number within 400 chars of a quote fragment):
+        81 strict pass; the other 48 checked manually in context (Manga Table I, Finger Table 1, AFRO sheets,
+        DPM Tableau 90, WER lists) - all confirmed except row 1238 (see below).
+Pass 9  Double-counting and weekly-builder analysis (below).
+RESULT: 439 rows checked. 427 PASS; 2 PASS-but-retracted as superseded (15, 46); 6 FAIL -> fixed (7, 17
+re-cited; 24, 286, 287, 1238 retracted); 1 PARTIAL -> regraded (25); 3 NOT VERIFIABLE (20, 380: BMJ news
+behind PMC reCAPTCHA / Europe PMC 403 / bmj.com Cloudflare; 473: ScienceDirect paywall, no open abstract).
+Full register at the end of this log.
+
+=== VALIDATOR WARN RESOLUTION ===
+multiyear_aggregate Index 15 (Niakhar 1985-89, 2170/206): source re-fetched (hal.science, Table 2: 786/76 +
+  1286/103 + sporadic 53/27 + visitors 45/0 = 2170/206); the same paper's rows 146, 147, sporadic and monthly
+  rows reproduce the 2 125 resident cases (2 128 within reading error) -> RETRACTED as superseded.
+multiyear_aggregate Index 16 (Dakar Fann 1981-90, 592 cCh): PubMed 1345081 abstract re-fetched (E-utilities):
+  '10,565 stool samples ... 1981 to 1990 ... five hundred ninety two (592) ... vibrio cholerae' -> KEPT
+  (only Dakar laboratory series of the 1980s; sub-national, unused by the national builder; note: it alone
+  credits 56 positive months in the gap analysis).
+period_single_day Index 286 -> RETRACTED (see changes).
+same_period_conflict (5 at start): 287 vs 73 resolved by retracting 287; 258/101, 292/222, 387/380 are
+  documented NON-PRIMARY pairs (primary 258, WHO weekly 114+1248, 387 respectively; builder skips 222/292 and
+  keeps 387); 316/43 is a cCh-only confirmed subset. Validator does not parse NON-PRIMARY markers -> justified.
+CFR_high_flagged_for_review (29): each pair checked - deaths and cases from the same table line/statement and
+  period (WER page images 1973/1985, Pellegrin p.70, Le Monde 1985, Stock App. 3, GHO); historical high-CFR
+  epochs (1971-73 first El Tor wave, 1984-85 epidemic with GHO CFR 15.9%); all at confidence <= 0.7 ->
+  justified, unchanged.
+
+=== CHANGES MADE BY AGENT 7 (all via py/revise_observation.py SEN --agent 7 / py/add_observation.py) ===
+RETRACTED (tombstones in ./data/SEN/retracted_rows_ai.csv):
+  46   AFR::SEN 1995-08-15..12-31 GHO 3332/160 - superseded by WHO printed 3222/137 (WER 71(21) Table 1,
+       WHO/CDS/CSR/ISR/2000.1 Table 4.1, both re-fetched) = rows 12+129+128; builder 1995 4712 -> 3222.
+  15   Niakhar 1985-89 aggregate 2170/206 - superseded by same-paper decomposition (rows 146, 147, sporadic,
+       monthly).
+  287  AFR::SEN 2015 WAHO '1 case' - superseded by WHO final 0 and WAHO's own 2018 retrospective; WAHO weekly
+       2015 = 5 suspected/0 confirmed/0 deaths; latest_positive_observation 2015-12-31 -> 2012-12-31.
+  286  AFR::SEN::Louga 2005-04-27 APS 34 cases (two villages) - exceeds the Ministry bulletin's Louga total
+       for the same day (23, re-fetched live).
+  24   AFR::SEN::Saint-Louis 2004-10-01..2005-12-31 1185 - secondary citation (PMC11214138 ref 13 = Manga
+       2008) duplicating primary row 299.
+  1238 AFR::SEN 1986-09-25..1987-06-01 1500/172 - 'cases of cholera and diarrhoeal diseases', no stated
+       period, superseded by WHO 1986/1987 annual totals; builder 1986 1128 -> 487, 1987 3349 -> 3152.
+  7    AFR::SEN 2006 365/10 - quote not in the cited Manga 2008 (full text re-fetched); re-entered unchanged
+       as Index 1535 citing GHO (metadata 22).
+  17   AFR::SEN 2004-10-01..12-31 1227/10 - quote not in Manga 2008 (which gives 1 187); re-entered unchanged
+       as Index 1536 citing GHO (metadata 22). ERRATUM: this tombstone's phrase "WHO/CDS/CSR/ISR/2000.1 lists
+       no later revision" is an Agent 7 drafting error (that report predates 2004); recorded on row 1536.
+ADDED (re-entries, not new data): 1535 (GHO 2006 365/10), 1536 (GHO 2004 1227/10).
+VALUES / LABELS REVISED:
+  25   Saint-Louis 2013-2016 zero: Evidence Documented_Absence -> Inferred_Absence; confidence 0.9 -> 0.6.
+  1427 derived 2007 residual: confidence 0.6 -> 0.45 (WHO-chain residual on Ministry-level weeks).
+  473  Dakar Fann 1995-96 (Sow 1999): confidence 0.85 -> 0.6 (source not verifiable).
+NOTES APPENDED (no value change): 12 (GHO 1995 value recorded), 146 and 147 (Niakhar residuals), 73 (287
+  pointer, WAHO 2015 detail), 811 (Nayobe/Coki detail), 299 (secondary citation), 184 (regional > national
+  2004), 1536 (erratum), 38 and 48 (1238 pointer), attribution notes 43, 53, 57, 59, 66, 121, and WAHO
+  corrections 1092-1102, 1104-1117, 1132, 1134, 1136, 1184-1187 (32 rows).
+Totals: 8 retractions, 2 re-entries, 3 value/label revisions, 48 note-only revisions. Final: 1,479 rows,
+338 sources (no new sources registered by Agent 7).
+
+=== DOUBLE-COUNTING CHECKS ===
+1. Validator: all 322 national/sub-national overlap groups documented (INFO), none undocumented.
+2. Regional lower-bound sums vs national rows (largest contained row per region): 6 national rows exceeded:
+   17/1536 (2004: Dakar row 184 = 1280 > national 1227 - documented conflict, note added to 184);
+   240, 241, 243 (2006 W44, W45, W47: WHO GTFCC chart regional values vs DPM national table - documented
+   weekly-allocation conflict, DPM primary); 1249 (2005 W19: 537 vs 509, chart-read Diourbel 430 + partial-week
+   bulletins - within chart error); 1347 (non-primary WER Jan-Jun 2006 43 vs Matam 43 + Louga 16 - primary
+   national row 1351 = 72).
+3. National weekly sums vs annual: exceed only in 2006 (392 vs WHO 365, DPM 373: the DPM table prints S49 and
+   S50 as 0 nationally while rows 992/993 carry WHO-chart 16 and 3 - minor documented chain mix), 2007 (4078
+   vs 3984: Ministry-over-WHO weeks, accepted) and 2011 (11 vs 5: Minister's Bakel count, accepted).
+
+=== WEEKLY BUILDER IMPACT (in-memory build_weekly_timeseries.process_country; instrumented trace
+    /tmp/sen_a7/trace_builder.py records the winning row per ISO week) ===
+Final totals vs WHO: 1971 1.08; 1972 1.26; 1973 1.55; 1978 1.01; 1979 0.98; 1981 1.00; 1984 0.98; 1985 1.49;
+1986 1.02; 1987 1.00; 1988 1.00; 1995 0.97 vs GHO (= WER 3222 exactly); 1996 1.35; 1997 1.19; 2004 0.96;
+2005 0.95; 2006 1.07; 2007 1.12; 2008 1.00; 2009 1.00; 2010 0.99; 2011 3.18; 2012 0.76.
+Winning rows behind the remaining inflation: 1972 row 33 (GHO, 123 cases in weeks without weekly rows,
+incl. over an inferred zero); 1973 row 51 (Stock 2217: 1 634 cases spread over Aug-Oct by the regional
+template while the WER shows the epidemic in Apr-Jul); 1985 rows 47, 1237, 1233 (annual + two press
+cumulatives); 1996 row 14 (annual 16107: +10 083 over WER components that already reproduce 16 107);
+1997 row 14 spilling into ISO 1997-W01; 2011 rows 1530 + 43. Not changed: these are legitimate final or
+interim figures, not superseded (orchestrator rule: do not delete legitimate rows to compensate).
+Other builder defects found: assumed_zero ignores presence (1989: 52 weeks assumed_zero despite
+cholera_presence_ai.csv records for Apr 1989 and 1989); Sunday-start weekly rows map to the previous ISO week
+(1971 rows 180/181 collide, 33 cases lost).
+2007 decision (Agent 5) reviewed: ACCEPTED, with 1427 down-weighted (see report).
+
+=== IMPACT MEASUREMENT (in-memory analyze_effective_gaps.analyse; nothing written to ./reference) ===
+All layers: total_months 682, months_with_data 681 (99.9%), gap_periods 0, months_ai_only 681,
+months_with_positive_cases 261 (205 without Index 16), latest_observation 2026-09-28,
+latest_positive_observation 2012-12-31 (row 277). Baseline-only (JHU+WHO): 0 months (no SEN baseline files).
+Months covered only by sub-national rows: 12 (all of 1989). National months resting only on inferred zeros: 75
+(1978 11, 1979 5, 1990-1993 48, 1997 10, 2026 1).
+
+=== FINAL VALIDATOR ===
+python py/validate_quality.py SEN --json /tmp/SEN_audit.json -> 1479 rows, 338 sources, ERROR 0, WARN 34
+(29 CFR_high_flagged_for_review, 4 same_period_conflict, 1 multiyear_aggregate), INFO 397; exit code 0.
+
+=== PROCESS ISSUES NOTED ===
+(a) 44 Agent-1 edits stamped AGENT 5 (revise_observation.py --agent default). (b) "Surveillance system
+status during absence" token not editable; grep of py/ shows only add_observation.py writes it and nothing
+reads it -> stale tokens on 213, 215-218 are cosmetic. (c) data/SEN/cholera_data_jhu.csv never generated
+(../jhu_cholera_data/data/Senegal has 17 collections). (d) WebSearch cap exhausted during Agent 4.
+(e) Agent 3 read HAL/DUMAS/OpenEdition through their proof-of-work browser check with a script; the same
+open-access content is served to an honestly identified non-browser client (used by Agent 7). (f) One Agent 4
+API query included a personal identifier; not repeated. (g) revise_observation.py has no --source-index.
+(h) Legacy rows 7 and 17 carried quotes absent from the cited paper.
+
+=== AGENT 7 STATE ===
+Verification passes logged: 9. New rows: 2 (re-entries). Retractions: 8. Revisions: 51 rows.
+End Time: see workflow_state.json (agent 7 entry).
+
+=== APPENDIX: VERIFICATION REGISTER (Index, source_index, url_checked, method, result, note) ===
+Index,source_index,url_checked,method,result,note
+1,1,https://www.who.int/emergencies/disease-outbreak-news/item/2004_11_02-en,"live fetch, manual read",PASS,"128 cases, 2 deaths, 5-28 Oct 2004 (DON says Dakar)"
+3,2,https://www.who.int/emergencies/disease-outbreak-news/item/2005_03_29-en,"live fetch, manual read",PASS,"2054/8 Touba, Mbacke, Bambey districts 1 Jan-23 Mar 2005"
+4,3,WHO DON 8 Jul 2005,"live fetch, manual read",PASS,"469/4, 27 Jun-3 Jul 2005"
+5,4,WHO DON 15 Jul 2005,"live fetch, manual read",PASS,"532/6, 4-10 Jul 2005"
+6,5,NCBI E-utilities PMC3432123 XML,"live fetch, manual read",PASS,"31,719 cases, 458 deaths in 2005"
+7,7,jle.com Manga 2008 PDF,"live fetch, full-text search",FAIL - FIXED,quote not in Manga 2008; values = GHO 2006; retracted and re-entered as Index 1535 citing metadata 22
+8,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=0/1 shingles=8/14"
+12,10,WHO DON 22 Jan 1996,"live fetch, manual read",PASS,852/43 + further 731/37 (sum 1583/80 as documented); WER 70(50) footnote per Agent 1
+14,9,books.openedition.org/irdeditions/31547 (honest UA),"live fetch, automated match",PASS,16107 / 765 for 1996
+15,14,hal.science/hal-04745176v1/document (honest UA),"live fetch, manual read of Table 2",PASS - RETRACTED,"2170/206 confirmed; superseded by decomposition rows 146, 147, sporadic rows; retracted (Stage 4)"
+16,11,NCBI E-utilities PubMed 1345081 abstract,"live fetch, manual read",PASS,"592 V. cholerae among 10,565 stools 1981-1990 (Fann); kept as multi-year lab aggregate"
+17,7,jle.com Manga 2008 PDF,"live fetch, full-text search",FAIL - FIXED,quote not in Manga 2008 (Manga gives 1 187); values = GHO 2004; retracted and re-entered as Index 1536 citing metadata 22
+19,16,https://reliefweb.int/disaster/ep-2005-000059-sen,"live fetch, manual read",PASS,"1,790 cases/31 deaths 6-22 Jun 2005"
+20,17,PMC1246118 (BMJ news) via PMC/Europe PMC/bmj.com,attempted live fetch,NOT VERIFIABLE,"PMC reCAPTCHA, E-utilities XML withheld by publisher, Europe PMC 403, bmj.com Cloudflare; figure consistent with WHO cumulatives 23 325 (23 Sep) and AFRO 21 466 (11 Sep)"
+24,19,NCBI E-utilities PMC11214138 XML,"live fetch, manual read incl. reference list",FAIL - RETRACTED,secondary citation of Manga 2008 Saint-Louis 1 185 (= row 299); assumed period; retracted as duplicate
+25,19,NCBI E-utilities PMC11214138 XML,"live fetch, manual read",PARTIAL - FIXED,lab negativity at one hospital 2013-Apr 2015 only; regraded Documented 0.9 -> Inferred 0.6
+29,21,https://www.who.int/emergencies/disease-outbreak-news/item/2025-DON579,"live fetch, manual read",PASS,"African Region 172 750 cases, 23 countries; Senegal not named (inferred absence)"
+32,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+33,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+34,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+35,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+36,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+37,22,GHO API + Le Monde No 12543 (onset date),live API + live fetch,PASS,728/94 GHO; onset 11 Oct 1984 per Health Minister
+38,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+39,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+40,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+41,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+42,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+43,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+44,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+46,22,GHO API + WER 71(21) (IA capture) + WHO/CDS/CSR/ISR/2000.1 (IRIS),"live fetch, manual read",PASS - RETRACTED,GHO 3332/160 confirmed but WHO printed 3222/137 in two publications; superseded by rows 12+129+128; retracted (Stage 4)
+47,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+48,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+49,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+50,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+51,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+52,28,IRIS WER 50(29),"live fetch, manual read",PASS,"'three countries ... remained free of infection in 1974: Mauritania, Senegal, and Tunisia'"
+53,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS (mixed attribution noted),values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+54,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+56,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+57,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS (mixed attribution noted),values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+58,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+59,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS (mixed attribution noted),values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+60,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+61,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+62,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+63,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+64,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+65,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+66,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS (mixed attribution noted),values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+67,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+68,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+69,29,"https://d.lib.msu.edu/etd/7603/OBJ/download (Appendix 3, PDF p.246)","live fetch, manual read of OCR table",PASS,values match Stock Appendix 3; 53/57/59/66 carry Pellegrin-sourced cCh/deaths (attribution notes added)
+73,33,IRIS WER 93(38) bitstream,"live fetch, manual read",PASS,'0 cases reported in 5 consecutive years'
+79,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=4/6
+80,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=4/6
+81,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=4/6
+82,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=4/6
+84,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=4/6
+86,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=4/6
+88,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=4/6
+90,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=19/25
+92,5,https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=3432123&rettype=xml,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=2/2 shingles=12/14
+93,5,https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id=3432123&rettype=xml,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=3/4 shingles=15/20
+96,44,https://www.ifrc.org/docs/appeals/08/MDRSN001fr.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=22/22"
+98,51,mesvaccins.net news 2178,"live fetch, manual read",PASS,"1 case 13 Dec 2011 Yafera + 10 more, no deaths"
+99,52,research.unipd.it Finger 2016 PNAS PDF Table 1,"live fetch (repository copy; PMC/PNAS blocked), manual read",PASS,"Dakar 6,573"
+100,52,research.unipd.it Finger 2016 PNAS PDF Table 1,"live fetch, manual read",PASS,"Diourbel 11,772"
+101,52,research.unipd.it Finger 2016 PNAS PDF Table 1,"live fetch, manual read",PASS,"Fatick 1,928 (non-primary vs 2 382)"
+102,52,research.unipd.it Finger 2016 PNAS PDF Table 1,"live fetch, manual read",PASS,"Kaolack 1,014"
+104,52,research.unipd.it Finger 2016 PNAS PDF Table 1,"live fetch, manual read",PASS,"Louga 1,806"
+105,52,research.unipd.it Finger 2016 PNAS PDF Table 1,"live fetch, manual read",PASS,"Saint-Louis 1,653"
+107,52,research.unipd.it Finger 2016 PNAS PDF Table 1,"live fetch, manual read",PASS,"Thies 2,515"
+110,53,https://www.who.int/emergencies/disease-outbreak-news/item/1996_03_15c-en,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=22/22"
+114,56,https://www.who.int/emergencies/disease-outbreak-news/item/2005DON112,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=13/13"
+115,56,https://www.who.int/emergencies/disease-outbreak-news/item/2005DON112,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=4/4"
+116,57,https://www.who.int/emergencies/disease-outbreak-news/item/2005_04_20-en,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=12/12"
+121,59,WHO DON 27 May 2005,"live fetch, manual read",PASS,Diourbel 370 cases (deaths 0 from MoH bulletins; attribution note added)
+126,61,TEXT:WER8029_249-249.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=5/5"
+129,64,ORIGINAL:WER7102.PDF,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=0/4"
+132,67,IRIS WER 71(11),"live fetch, manual read",PASS,'Senegal 22.I-18.II 1 564 102'
+138,73,ORIGINAL:WER7132.PDF,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=0/4"
+139,74,ORIGINAL:WER7139.PDF,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=0/4"
+140,75,ORIGINAL:WER7140.PDF,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=0/4"
+142,77,ORIGINAL:WER7146.PDF,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=2/2 shingles=0/4
+143,78,ORIGINAL:WER7203.PDF,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=0/3"
+144,67,IRIS WER 71(11),"live fetch, manual read",PASS,'7.XI.95-22.II 1 147 118' footnote 3 'Fatick Region only (delayed report)'
+145,81,https://www.who.int/emergencies/disease-outbreak-news/item/2005_08_26-en,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=1/1 shingles=15/15
+147,14,https://hal.science/hal-04745176v1/document,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=17/19"
+149,84,TEXT:WER6020_149-151.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=19/19"
+152,86,IRIS WER 60(08) p.8 page image,"live fetch, visual read",PASS,31.XII-6.I 21 8
+153,86,IRIS WER 60(08) p.8 page image,"live fetch, visual read",PASS,7-13.I 9 2
+154,87,ORIGINAL:WER6009.PDF,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/2 shingles=0/3"
+159,91,IRIS WER 47(32),"live fetch, manual read",PASS,'first notification of cases since December 1971 ... declared free of infection on 3 February 1972'
+165,95,ORIGINAL:WER4651.PDF,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/3 shingles=0/5"
+175,103,https://reliefweb.int/report/senegal/senegal-flooding-triggers-new-upsurge-cholera,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=18/18"
+176,103,https://reliefweb.int/report/senegal/senegal-flooding-triggers-new-upsurge-cholera,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=8/8"
+184,6,NCBI E-utilities abstract + agents cached PDF /tmp/sen_a1/ndour2006.pdf,abstract live; full text from agent cache (live URL not recorded),PASS (cache),'1 280 cas de diarrhee choleriforme ... recenses a Dakar ... 8 deces /1 280 cas'; exceeds national 2004 - conflict note added
+202,121,IRIS WER 71(15) p.116 page image,"live fetch, visual read of page image",PASS,'Senegal - Senegal 4-24.III 1 853 156'
+209,125,IRIS WER 54(51-52) annual index 1979,"live fetch, manual read",PASS,"'Senegal 6, 16, 24, 30, 40, 62, 72' (last notification p.72)"
+221,141,ECDC CDTR week 40 2026 PDF,"live fetch, manual read",PASS,"cholera section lists new cases from 11 countries, Senegal not among them (the Senegal 73 in the report is dengue)"
+222,142,https://fides.org/en/news/4564-AFRICA_SENEGAL_Serious_epidemic_of_cholera_5_700_cases_61_mortal,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=8/8"
+234,148,https://www.vie-publique.sn/docs/8d546203-ae65-466e-927e-b58d6bab71dc/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=1/3 shingles=4/10
+237,149,https://www.vie-publique.sn/docs/8e8f53f9-a210-479d-96a0-685a965b415b/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/4 shingles=4/11"
+240,149,vie-publique ANSD SES Dakar 2006 Tableau 90,"live fetch, manual read",PASS,S44 0 0 29 1; Total 13 0 373 9 (TOTAL column national)
+249,149,https://www.vie-publique.sn/docs/8e8f53f9-a210-479d-96a0-685a965b415b/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/3 shingles=4/12"
+252,150,https://www.vie-publique.sn/docs/8ccf6033-25ed-4af9-9c93-55e4a241ff61/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True, 'cCh': True} frag=1/1 shingles=9/9"
+258,152,https://www.vie-publique.sn/docs/1c36d64b-b8cd-4b5c-8921-074c05f66a0e/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/3 shingles=4/10"
+259,152,https://www.vie-publique.sn/docs/1c36d64b-b8cd-4b5c-8921-074c05f66a0e/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/3 shingles=2/9"
+262,152,https://www.vie-publique.sn/docs/1c36d64b-b8cd-4b5c-8921-074c05f66a0e/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=3/4 shingles=2/9"
+267,154,https://www.vie-publique.sn/docs/6183398c-83d7-455c-a3b2-4be217eb333d/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=1/1 shingles=5/5
+280,166,https://web.archive.org/web/20051221231718/http://www.sante.gouv.sn:80/actualites.php?id=122,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=12/12"
+284,166,https://web.archive.org/web/20051221231718/http://www.sante.gouv.sn:80/actualites.php?id=122,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/2 shingles=14/18"
+286,167,MoH bulletin 27 Apr 2005 (IA live capture id 38),"live fetch, cross-check",FAIL - RETRACTED,two-village 34 > Louga regional 23 for the same day (part exceeds whole)
+287,168,WAHO API 2015 national and regional,live API,FAIL - RETRACTED,"WAHO weekly 2015: 5 suspected, 0 confirmed, 0 deaths; WHO final 0; superseded"
+288,169,https://reliefweb.int/report/gambia/consolidated-appeals-process-cap-flash-appeal-2005-west-and-cent,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=18/18"
+291,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=1/2 shingles=5/10
+292,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=15/26
+293,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=1/2 shingles=4/10
+294,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=5/9
+295,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=13/20
+296,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=13/20
+297,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=13/20
+298,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=13/20
+299,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=13/20
+300,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=14/17
+305,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/2 shingles=1/3"
+308,171,IA capture AFRO update 30 Apr 2005,"live fetch, manual read",PASS,"11 216 cases, 135 deaths as of 30 Apr 2005"
+309,172,https://reliefweb.int/attachments/31c9e714-411b-3fd6-a374-76c37312f636/Outbreak-Bulletin-vol2-issue6,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/3 shingles=8/12"
+311,174,http://web.archive.org/web/20090810041829/http://www.afro.who.int/csr/epr/current_epidemics/nov_2004,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=3/4 shingles=5/14"
+312,175,http://web.archive.org/web/20070610233826/http://www.afro.who.int/csr/epr/current_epidemics/dec_2004,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=3/4 shingles=3/12"
+313,176,http://web.archive.org/web/20090706061056/http://www.afro.who.int/csr/epr/epidemic_prone_diseases/we,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/3 shingles=3/10"
+314,177,http://web.archive.org/web/20070610103818/http://www.afro.who.int/csr/epr/epidemic_prone_diseases/we,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/3 shingles=3/10"
+315,178,http://web.archive.org/web/20150929002927/http://www.afro.who.int:80/index.php?option=com_docman&tas,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/2 shingles=5/14"
+320,183,https://archivedsite.wahooas.org/web-ooas/sites/default/files/publications/1653/rapport-annuel-2017-,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=10/12"
+333,192,https://www.vie-publique.sn/docs/f09ad9ef-4dc1-4987-98f6-8fc2ca98aade/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/3 shingles=3/7"
+356,203,ReliefWeb MoH daily bulletins 29 Oct-4 Nov 2007,"live fetch, recomputation",PASS,Total pays sum 185/0
+357,203,ReliefWeb MoH daily bulletins 5-11 Nov 2007,"live fetch, recomputation",PASS,Total pays sum 139/0
+358,203,ReliefWeb MoH daily bulletins 12-18 Nov 2007,"live fetch, recomputation",PASS,Total pays sum 69/0
+362,204,ReliefWeb attachment who_EP_sen080117.pdf (WHO map),"live fetch, visual read",PASS,"'Cases: 3078 Deaths: 19 CFR 0.6%' 1 Jan-28 Oct 2007, WHO Country Office"
+372,206,https://reliefweb.int/report/senegal/s%C3%A9n%C3%A9gal-communiqu%C3%A9-de-presse,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=6/8"
+380,17,PMC1246118 (BMJ news),attempted live fetch,NOT VERIFIABLE,"access blocked as row 20; NON-PRIMARY; MoH bulletins (row 387, live-verified) give 1224/23 for the same week"
+381,209,https://reliefweb.int/attachments/bbc39232-bbac-3104-9508-08e21a2e885d/C4DB67006E8D4B7C8525737900658,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=22/22"
+387,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 1224/23 over 7 bulletin days
+388,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 643/5 over 7 bulletin days
+439,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 21/0 over 7 bulletin days
+445,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 137/2 over 7 bulletin days
+473,212,doi 10.1016/S0399-077X(99)80018-3 (ScienceDirect) + Crossref API,attempted live fetch; Crossref metadata,NOT VERIFIABLE - DOWNWEIGHTED,"article exists, paywalled, no open abstract; confidence 0.85 -> 0.6"
+488,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 26/0 over 7 bulletin days
+492,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS (6/7 days live),"live recompute 64/0 over 6 bulletin days; 25 Jul capture not re-located, quoted value 6 closes the sum (64+6=70)"
+504,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 32/0 over 7 bulletin days
+510,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 50/0 over 4 bulletin days
+525,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 29/2 over 7 bulletin days
+530,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 18/0 over 7 bulletin days
+539,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 58/0 over 7 bulletin days
+546,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS (6/7 days live),"live recompute 48/1 over 6 bulletin days; 16 Sep capture not re-located, quoted value 1 closes the sum (48+1=49)"
+549,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 28/0 over 7 bulletin days
+555,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 2/0 over 7 bulletin days
+604,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 22/0 over 7 bulletin days
+613,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 2/0 over 6 bulletin days
+618,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 11/0 over 4 bulletin days
+630,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 5/1 over 2 bulletin days
+633,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,live recompute 2/0 over 6 bulletin days
+743,203,ReliefWeb MoH daily bulletins 29 Oct-4 Nov 2007 (7 pages),"live fetch, recomputation",PASS,"Darou Mousty 1+2+2+2 = 7, 0 deaths"
+772,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=7/9 shingles=8/28"
+789,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=8/14
+790,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=8/14
+791,7,https://www.jle.com/en/MedSanteTrop/2008/68.6/589-592%20Le%20chol%C3%A9ra%20au%20S%C3%A9n%C3%A9gal%2,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=0/1 shingles=8/14
+794,220,https://web.archive.org/web/20110726063901/http://www.who.int/cholera/countries/CountryProfileSenega,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=9/9"
+796,146,IA live captures sante.gouv.sn actualites.php (ids per bulletin_index),"live fetch, recomputation from daily bulletins",PASS,"live recompute 53/0 over 3 bulletin days; 2 Jun bulletin (id 90, title misprinted 02 mai) re-fetched live: Dakar 32/0 -> 85/0"
+845,225,IRIS WER 47(39) p.11 page image,"live fetch, visual read",PASS,M'Bour 4-10.IX revised 1 1 / 106s 3s = 107/4
+851,225,IRIS WER 47(39) p.11 page image,"live fetch, visual read",PASS,"M'Bour (Fadiouth) 31s 1s, 11-17.IX 1972"
+865,227,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 47(47) OCR numbers found
+866,99,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(16) OCR: Diourbel 50s 8s
+867,228,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(17) OCR: Diourbel 9-15.IV 178s 10s
+868,229,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(19) OCR numbers found
+869,229,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(19) OCR numbers found (67s 13s)
+870,230,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(23) OCR numbers found
+871,231,IRIS WER 48(28) p.7 page image,"live fetch, visual read",PASS,Cap-Vert 5 0 (24.V-24.VI 1973)
+872,231,IRIS WER 48(28) p.7 page image,"live fetch, visual read",PASS,Diourbel '520s 24s'
+873,231,IRIS WER 48(28) p.7 page image,"live fetch, visual read",PASS,Fleuve '13 24 / 90s 0' = 103/24
+875,232,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(32) OCR numbers found
+878,233,IRIS WER issue (cited),"live fetch, visual read",PASS,WER 48(34) p.15 image: Diourbel 64 1
+879,233,IRIS WER 48(34) p.15 page image,"live fetch, visual read",PASS,Fleuve '4 4 / 29s 9s' = 33/13
+883,100,ORIGINAL:WER4839.PDF,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/2 shingles=2/4"
+886,101,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(44) OCR numbers found
+889,102,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(50) OCR numbers found (2 2 / 23s 2s)
+892,225,IRIS WER 47(39) p.11 page image,"live fetch, visual read",PASS,national 11-17.IX 1972 = 50/7
+896,228,IRIS WER issue (cited),"live fetch, OCR text match",PASS (OCR),WER 48(17) OCR: national 9-15.IV 178s 10s
+900,231,IRIS WER 48(28) p.7 page image,"live fetch, visual read",PASS,"5+520+13+90 = 628 cases, 48 deaths"
+902,233,IRIS WER 48(34) p.15 page image,"live fetch, visual read",PASS,national 120/19 incl. Sine-Saloum '5s 3s' (OCR misread as 55)
+905,234,IRIS WER issue (cited),"live fetch, visual read",PASS,WER 48(15) p.7 image: Diourbel 1 0 / 36s 7s
+906,234,IRIS WER issue (cited),"live fetch, visual read",PASS,WER 48(15) p.7 image: Cap-Vert 3 3 / 1s 0; Diourbel 1 0 / 36s 7s
+928,237,https://www.santetropicale.com/Actualites/0405/0405_2.htm,live fetch + automated match (numbers and quote fragments),PASS,nums={'sCh': True} frag=1/1 shingles=13/13
+940,240,https://www.vie-publique.sn/docs/405d4a62-36cb-41fe-a1c2-96c754bc2728/situation-economique-et-social,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/2 shingles=10/18"
+946,243,vie-publique ANSD SES Louga 2017-2018,"live fetch, manual read",PASS,'aucun cas n est enregistre dans la Region de Louga depuis 2016 au moins'
+952,248,https://www.santetropicale.com/actus.asp?id=7261,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=19/19"
+957,251,santetropicale.com actus 13703 (Le Soleil 27 Dec 2011),"live fetch, manual read",PASS,"1 case 13 Dec Yafera + 9 others, no deaths"
+961,220,https://web.archive.org/web/20110726063901/http://www.who.int/cholera/countries/CountryProfileSenega,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/2 shingles=2/3"
+1001,253,https://web.archive.org/web/20080216045025/http://www.who.int/cholera/countries/CountryProfileSenega,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=1/1"
+1021,256,IRIS WER 48(05),"live fetch, manual read",PASS,Areas removed: Senegal Region du Cap Vert (inferred absence)
+1041,260,https://www.sante.gouv.sn/sites/default/files/Annuaire%20statistiques%20sanitaires%20et%20sociales%2,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/3 shingles=7/13"
+1044,261,https://www.enda-sante.org/wp-content/uploads/2023/01/Annuaire_statistique_2019.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/3 shingles=2/8"
+1058,14,hal.science Garenne & Fontaine Fig. 1,"live fetch, visual read",PASS,no bars Sep 1988-Mar 1989
+1090,14,hal.science Garenne & Fontaine Fig. 1,"live fetch, visual read",PASS,Oct-Dec 1987 small bars about 7
+1092,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1093,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1094,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1095,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1096,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1097,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1098,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1099,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1100,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1101,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1102,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1103,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1104,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1105,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1106,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1107,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1108,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1109,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1110,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1111,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1112,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1113,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1114,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1115,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1116,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1117,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1118,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1119,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1120,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1121,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1122,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1123,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1124,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1125,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1126,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1127,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1128,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1129,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1130,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1131,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1132,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1133,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1134,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1135,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1136,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1137,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1156,226,TEXT:WER4744.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=2/3 shingles=3/9"
+1157,193,vie-publique JO 4265 du 9 decembre 1972,"live fetch, manual read",PASS,'17 novembre ... Arrete ministeriel n 12687 ... declarant la Region du Cap-Vert indemne de cholera'
+1158,276,IRIS WER 46(43),"live fetch, manual read",PASS,"areas removed: Dakar (PA), Fleuve Dagana, Matam, Podor"
+1163,102,IRIS WER issue (cited),"live fetch, OCR text match",PASS,WER 48(50) areas removed: Cap-Vert
+1165,232,IRIS WER issue (cited),"live fetch, OCR text match",PASS,WER notification series: no Sine-Saloum line before 16-29 Jul 1973
+1171,277,IA capture EPISURV No 1 (Apr 2006) + GTFCC 2007 map (live),"live fetch, manual/visual read",PASS,Q1 2006 district accounting 13+16+43=72; Apr-Dec extension per WHO map (no notification)
+1172,277,IA capture EPISURV No 1 (Apr 2006) + GTFCC 2007 map,"live fetch, manual read",PASS,Q1 accounting 13+16+43=72; extension to Dec 2006 supported by WHO map (no notification)
+1173,277,IA capture EPISURV No 1 (Apr 2006) + GTFCC 2007 map (live),"live fetch, manual/visual read",PASS,Q1 2006 district accounting 13+16+43=72; Apr-Dec extension per WHO map (no notification)
+1174,277,IA capture EPISURV No 1 (Apr 2006) + GTFCC 2007 map (live),"live fetch, manual/visual read",PASS,Q1 2006 district accounting 13+16+43=72; Apr-Dec extension per WHO map (no notification)
+1175,277,IA capture EPISURV No 1 (Apr 2006) + GTFCC 2007 map (live),"live fetch, manual/visual read",PASS,Q1 2006 district accounting 13+16+43=72; Apr-Dec extension per WHO map (no notification)
+1176,277,IA capture EPISURV No 1 (Apr 2006) + GTFCC 2007 map (live),"live fetch, manual/visual read",PASS,Q1 2006 district accounting 13+16+43=72; Apr-Dec extension per WHO map (no notification)
+1177,277,IA capture EPISURV No 1 (Apr 2006) + GTFCC 2007 map (live),"live fetch, manual/visual read",PASS,Q1 2006 district accounting 13+16+43=72; Apr-Dec extension per WHO map (no notification)
+1178,277,IA capture EPISURV No 1 (Apr 2006) + GTFCC 2007 map (live),"live fetch, manual/visual read",PASS,Q1 2006 district accounting 13+16+43=72; Apr-Dec extension per WHO map (no notification)
+1184,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1185,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1186,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1187,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1188,252,IA capture GTFCC profile 5 Feb 2007 (map) + DPM national zero weeks,"live fetch, visual read",PASS (combined inference),map: no notification outside Diourbel/Dakar/Louga 16 Oct-3 Dec 2006
+1194,190,ReliefWeb IRIN 26 Oct 2004,"live fetch, manual read",PASS,'first time in eight years'
+1202,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=7/9 shingles=10/26"
+1203,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=7/9 shingles=10/26"
+1204,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=7/9 shingles=10/26"
+1205,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=7/9 shingles=10/26"
+1207,147,IRIS WER 70(47) infected-area list + WHO DON 15 Mar 1996,"live fetch, manual read",PASS (inferred),region absent from infected-area list and DON enumeration
+1208,147,TEXT:WER7047.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=0/1 shingles=16/22"
+1209,147,TEXT:WER7047.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=0/1 shingles=16/22"
+1210,147,TEXT:WER7047.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=0/1 shingles=16/22"
+1212,147,TEXT:WER7047.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=0/1 shingles=16/22"
+1214,147,TEXT:WER7047.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=0/1 shingles=16/22"
+1215,147,TEXT:WER7047.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=0/1 shingles=16/22"
+1217,147,TEXT:WER7047.PDF.txt,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=0/1 shingles=16/22"
+1218,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1219,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1220,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1221,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1222,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1223,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1224,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1225,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1226,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1227,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1228,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1229,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1230,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1231,269,https://data.wahooas.org/venus_api/api/aggregates (re-queried per org unit and year),"live API, week-by-week check",PASS,suspected and deaths reported 0 every week of the span; confirmed element absent in some weeks (correction note appended where so)
+1233,281,archive.org JPRS-TEP-85-011 + Le Monde No 12543 (29 May 1985),"live fetch, manual read",PASS,"'1,881 cases ... 313 deaths'; Le Monde: 'trois cent treize morts sur mille huit cent quatre-vingt-un cas', onset 11 Oct"
+1235,86,IRIS WER 60(08) p.8 page image,"live fetch, visual read",PASS,'17-23.XII 20 4' (also 24-30.XII 29 7; 31.XII-6.I 21 8; 7-13.I 9 2)
+1236,86,IRIS WER 60(08) p.8 page image,"live fetch, visual read",PASS,24-30.XII 29 7
+1237,287,archive.org Le Monde No 12597 (31 Jul 1985) djvu text,"live fetch, manual read",PASS,'quatre cent soixante-seize victimes sur trois mille cent huit cas'
+1238,289,archive.org JPRS-SSA-87-073 djvu text,"live fetch, manual read",FAIL - RETRACTED,"'1,500 cases of cholera and diarrhoeal diseases' - not cholera-specific, no stated period; superseded by WHO 1986/1987 annual totals"
+1239,290,https://web.archive.org/web/19991104123145/http://www.healthnet.org:80/programs/promed-hma/9512/msg0,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=15/15"
+1240,262,archive.org Pellegrin 1975 djvu text,"live fetch, manual read",PASS,Kebemer 29 Nov-15 Dec 1972 second wave 39 cases
+1241,262,archive.org Pellegrin 1975 djvu text,"live fetch, manual read",PASS,'arrondissement de Coki ... 27 cas dont 7 deces' Feb 1973
+1242,262,archive.org Pellegrin 1975 p.70 page image,"live fetch, visual read",PASS,Bambey 39/9
+1243,262,archive.org Pellegrin 1975 p.70 page image,"live fetch, visual read",PASS,department table 23 Mar-8 Jun 1973
+1244,262,archive.org Pellegrin 1975 p.70 page image,"live fetch, visual read",PASS,department table 23 Mar-8 Jun 1973
+1245,262,archive.org Pellegrin 1975 p.70 page image,"live fetch, visual read",PASS,department table 23 Mar-8 Jun 1973
+1246,262,archive.org Pellegrin 1975 p.70 page image,"live fetch, visual read",PASS,Linguere 27/7
+1247,262,archive.org Pellegrin 1975 p.70 page image,"live fetch, visual read",PASS,department table 23 Mar-8 Jun 1973
+1248,292,https://web.archive.org/web/20050425045412/http://www.who.int:80/wer/2005/en/wer8016.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=4/4 shingles=0/5"
+1250,297,https://web.archive.org/web/20060211040733/http://www.who.int:80/wer/2005/wer8041.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=3/3 shingles=0/3"
+1254,298,IA capture WER 80(43),"live fetch, manual read",PASS (derived),'Senegal 03-16.X 1888 41' minus row 339 (856/14) = 1032/27
+1258,293,https://web.archive.org/web/20051105023116/http://www.who.int:80/wer/2005/wer8018.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=3/3 shingles=0/4"
+1325,252,IA capture GTFCC profile 5 Feb 2007 (PDF p.2 chart),"live fetch, visual read",PASS,Diourbel week 49 approx 11
+1338,312,https://reliefweb.int/report/niger/afrique-de-louest-rapport-sur-la-situation-humanitaire-no-20-oct-,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=10/10"
+1342,253,https://web.archive.org/web/20080216045025/http://www.who.int/cholera/countries/CountryProfileSenega,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=8/8"
+1343,252,IA capture GTFCC profile 5 Feb 2007 (text p.1),"live fetch, manual read",PASS,'From 16 October to 10 December 2006 ... 331 cases and 6 deaths'
+1344,31,ReliefWeb copy of IRIN 22 Oct 2007 (thenewhumanitarian.org 403),"live fetch (mirror), manual read",PASS,"'12 deaths and 2,231 cases ... since the beginning of August in six regions'"
+1349,318,https://web.archive.org/web/20050408193511/http://www.who.int/wer/2005/en/wer8013.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=3/3 shingles=0/4"
+1350,319,https://web.archive.org/web/20060301192203/http://www.who.int:80/wer/2006/wer8101.pdf,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=3/3 shingles=0/3"
+1352,81,https://www.who.int/emergencies/disease-outbreak-news/item/2005_08_26-en,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=15/15"
+1353,82,https://www.who.int/emergencies/disease-outbreak-news/item/2005_09_23-en,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=17/17"
+1354,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1355,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1356,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1357,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1358,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1359,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1360,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1361,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1362,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1363,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1364,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1365,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1366,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1367,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1368,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1369,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1370,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1371,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1372,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1373,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1374,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1377,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1378,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1379,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1380,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1381,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1382,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1383,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1384,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1385,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1386,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1387,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1388,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1389,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1390,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1391,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1392,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1393,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1394,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1395,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1396,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1397,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1398,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1399,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1400,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1401,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1402,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1403,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1404,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1405,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1406,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1407,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1408,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1409,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1410,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1411,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1412,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1413,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1414,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1415,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1416,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1417,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1418,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1419,7,jle.com Manga 2008 PDF Figure 3 Dakar series (vector),independent vector decode (Agent 7),PASS,19 Dakar chart rows within 8.1 cases
+1421,321,https://www.santetropicale.com/actus.asp?id=4308,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=16/16"
+1422,322,https://www.santetropicale.com/actus.asp?id=4473,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=20/20"
+1423,323,https://www.santetropicale.com/actus.asp?id=4611,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=12/12"
+1425,325,https://reliefweb.int/report/benin/afrique-de-louest-rapport-sur-la-situation-humanitaire-no-17-juin,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=15/15"
+1426,326,https://reliefweb.int/report/niger/afrique-de-louest-rapport-sur-la-situation-humanitaire-no-18-juil,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=8/8"
+1427,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+1433,327,santetropicale.com actus 11871,"live fetch, manual read",PASS,prevention directorate rules out cholera in Diourbel diarrhoea cases
+1434,287,derived from rows 1237 and 1233 (both verified live),arithmetic check,PASS (derived),"3108-1881 = 1227; 476-313 = 163; labelled DERIVED, cw 0.4"
+1435,22,https://ghoapi.azureedge.net/api/CHOLERA_0000000001|2?$filter=SpatialDim eq 'SEN',"live GHO OData API, exact value comparison",PASS,annual value matches GHO exactly (1427/1435 are documented derivations from GHO)
+1436,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1437,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1438,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1439,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1440,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1441,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1442,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1443,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1444,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1445,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1446,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1447,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1448,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1449,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1450,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1451,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1452,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1453,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1454,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1455,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1456,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1457,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1458,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1459,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1460,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1461,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1462,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1463,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1464,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1465,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1473,9,OpenEdition irdeditions/31547 img-4 (Figure 4),"live fetch, visual read",PASS,1996 week 14 = 3
+1487,9,OpenEdition irdeditions/31547 img-4 (Figure 4),"live fetch, visual read",PASS,1996 week 29 = 44; weekly series sums to 657
+1513,14,hal.science Garenne & Fontaine Fig. 1 (embedded image),"live fetch, visual read",PASS,Dec 1986 about 6
+1523,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1524,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1525,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1526,8,https://www.ifrc.org/docs/appeals/07/MDRSN001.pdf (page 1 vector chart),independent vector decode (Agent 7),PASS,matches within about 1 case
+1527,8,IFRC MDRSN001.pdf vector chart (live),independent vector decode,PASS,W38 national 189.4
+1528,8,IFRC MDRSN001.pdf vector chart (live),independent vector decode,PASS,W39 national 383.2
+1529,7,jle.com Manga 2008 PDF p.590 Figure 3 (vector),independent vector decode (Agent 7),PASS,46 national/Diourbel chart rows within 6.1 cases (mean 0.7)
+1532,335,https://doi.org/10.1186/1475-2875-8-270,live fetch + automated match (numbers and quote fragments),PASS,"nums={'sCh': True, 'deaths': True} frag=1/1 shingles=8/8"
+1533,14,hal.science Garenne & Fontaine 2024,"live fetch, manual read",PASS,"'From 1983 to 1989, two cholera outbreaks occurred in 1985 ... and in 1987'"
+1534,336,ReliefWeb IRIN 9 Oct 2009,"live fetch, manual read",PASS,'To date Dakar has not seen an outbreak of waterborne diseases such as cholera'
+
+End of Agent 7 log (2026-10-04 05:00:43)
+
+=== ORCHESTRATOR CLOSE-OUT (2026-10-04) ===
+Final gate: python py/validate_quality.py SEN --json /tmp/SEN_post.json -> EXIT 0 | ERROR 0 | WARN 34 | INFO 397
+Rows 29 -> 1479 (1147 case, 332 zero; national 347, region 830, district 302); sources 21 -> 338 (L1 250, L2 48, L3 38, L4 2)
+Rows retracted this cycle (tombstoned in data/SEN/retracted_rows_ai.csv): 57
+Coverage (in-memory analyse(); shared gap files are regenerated by the runner after exit): 93.4% -> 99.9% (681/682 months;
+  the missing month is October 2026, the current month); gap periods 5 -> 0; months_ai_only 637 -> 681; baseline-only (JHU+WHO) 0%.
+months_with_positive_cases 272 -> 261 (the old figure was inflated by long aggregate rows); latest positive 2015-12-31 -> 2012-12-31.
+All seven agents ran; batches 12/12/12/12/12/7/9 (A7 = verification passes). No agent stopped on time. No redeployment needed
+  (A6 met the yield rule after 7 batches and classified every span requested).
+Weekly builder (in-memory, nothing written): pre-cycle input asserted zero cholera in 1971-84 and 1988; now every WHO-recorded year is
+  positive. Remaining builder distortions (shared-code defects, not data errors): 1972 x1.26, 1973 x1.55, 1985 x1.49, 1996 x1.35,
+  1997 x1.19 over WHO annual totals; 1989 rendered as 52 assumed-zero weeks despite documented presence.
