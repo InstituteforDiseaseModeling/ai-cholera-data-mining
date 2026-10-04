@@ -1,73 +1,46 @@
-=== AGENT 2 INITIALIZATION ===
-Country: Chad (TCD)
-Start Time: 2025-07-24 22:06:30
-Agent 2 Status: INITIALIZED - Geographic expansion and provincial-level data mining
+=== AGENT 2 (geographic-expansion-specialist) | Chad (TCD) | cycle 2026-10 ===
+Start time: 2026-10-03 20:08:47
+Previous content of this file (July 2025 cycle) overwritten per orchestrator instruction.
 
-=== AGENT 2 MISSION: GEOGRAPHIC EXPANSION ===
-Objective: Expand geographic granularity and discover provincial/district/municipal level cholera data
-Focus Areas: Administrative subdivisions, regional health networks, local outbreak reports
-Target: Provincial (AFR::TCD::PROVINCE), District (AFR::TCD::PROVINCE::DISTRICT), Municipal levels
-Minimum: 2 batches (40 queries), Maximum: 5 batches (100 queries)
-Stopping Criteria: 2 consecutive batches <5% data observation yield
+=== AGENT 2 PRE-SEARCH SETUP ===
+Protocol read: ./templates/template_search_protocol.txt (step 0 gap regeneration SKIPPED per orchestrator SHARED-FILE RULES).
+Agent definition read: ./.claude/agents/geographic-expansion-specialist.md
+Workflow state read: ./data/TCD/workflow_state.json (Agent 1 complete: 12 batches, 170 rows, 53 sources).
+Agent 1 log read: ./data/TCD/search_log_agent_1.txt (queries not to be repeated; leads inherited).
+Starting files: ./data/TCD/cholera_data_ai.csv 190 rows (max Index 192), ./data/TCD/metadata_ai.csv 71 sources.
+validate_quality.py TCD at start: exit 0 (ERROR 0, WARN 23).
+Country profile: ./reference/country_profiles.json -> countries.TCD (23 ADM1 units, cities N'Djamena/Moundou/Sarh/Abeche/Bongor/Adre,
+  neighbours CMR/CAF/LBY/NER/NGA/SDN, languages fr/ar/en).
 
-=== CURRENT CHAD GEOGRAPHIC DATA COVERAGE ===
-From Agent 1 (15 observations, 12 sources):
-- National Level: 6 observations
-- Regional Level: 6 observations (Sila, Salamat, Mayo Kebbi Est/Ouest, Mongo, Hadjer Lamis)
-- District Level: 2 observations (Koukou district)  
-- Village Level: 1 observation (Marena village)
+Geographic coverage audit (national outbreak periods vs sub-national rows across JHU + AI, before this run):
+  1971 (8230)  : AI N'Djamena only (row 185)                                    -> thin
+  1974 (338)   : presence Lac only                                               -> thin
+  1991 (13915) : NO sub-national rows in any layer (Salamat zero only)           -> PRIORITY
+  1994 (1094)  : Lere + N'Djamena (rows 183-184)                                 -> ok
+  1996 (7830)  : NO sub-national rows                                            -> PRIORITY
+  1997 (8801)  : NO sub-national rows                                            -> PRIORITY
+  1998 (4095)  : NO sub-national rows                                            -> PRIORITY
+  1999 (217)   : NO sub-national rows                                            -> priority
+  2001 (5244)  : 4 locations to 3 Aug (rows 115-118)                             -> thin
+  2003 (55)    : Moundou (rows 3, 143)                                           -> ok-ish
+  2004 (5531-7577): N'Djamena one week (row 144); presence Bousso/Mongo/Ati       -> PRIORITY
+  2005 (90), 2009 (67): NO sub-national rows                                     -> priority
+  2006 (1668)  : Lac/Bol/Hadjer-Lamis (rows 119-121), JHU N'Djamena/Bol          -> partial
+  2010 (6395)  : 17 districts (ACF, rows 145-161)                                -> good
+  2011 (17267) : 39 district annual rows (IFRC)                                  -> good (annual only)
+  2014 (172)   : Lac 11 (row 182) + presence Lere                                -> thin (Mayo-Kebbi Ouest missing)
+  2017 (1266)  : JHU Sila/Salamat/Am Timan detailed; AI Salamat                  -> good
+  2019 (93)    : JHU Mayo-Kebbi Est/Ouest weekly districts                       -> good
+  2025 (2979)  : 4 provinces + 15 districts cumulative to 1 Nov + Nov updates    -> cumulative only (no weekly district series)
+  2026 (Jun-Sep): 3 provinces + 11 districts cumulative to 31 Aug, Sep fragments -> cumulative only; Chari-Baguirmi presence only
 
-Target Expansion: Additional provinces, districts, health districts, municipalities
-Geographic Priorities: N'Djamena, Logone Oriental, Moyen Chari, Kanem, Lac, Batha, Ouaddai
+Double-counting phrases used on every sub-national row I add:
+  "Provincial subset - do not sum with national row"  (and, where a finer-period row nests inside a cumulative sub-national row,
+  an explicit "do not sum with row N" statement). National rows overlapping my rows already carry
+  "National total - includes provinces not individually listed" (checked: rows 1,4,5,9,16-22,59-66,109,112,122-142,162-167,186-187,192);
+  any that do not will be revised with py/revise_observation.py --append-note --agent 2.
 
-=== AGENT 2 SEARCH STRATEGY ===
-Phase 1: Provincial health administration searches
-Phase 2: District health surveillance searches  
-Phase 3: Municipal and community health searches
-Phase 4: Geographic cross-referencing and validation
+Query-counting convention (same as Agent 1): one query = one WebSearch call, or one direct-probe WebFetch/curl of a URL NOT surfaced
+by a prior search. Follow-up fetches of URLs surfaced by a search belong to that search's query. A query is successful only if it led to
+>=1 row committed to ./data/TCD/cholera_data_ai.csv.
 
-Data Observation Yield Calculation: NEW cholera_data.csv rows with geographic specificity
-Required Documentation: Geographic codes, administrative hierarchy validation
-
-=== BATCH 1/20 EXECUTION - START TIME: 22:06:45 ===
-
-Query Results Summary:
-- 0 of 20 queries resulted in NEW cholera_data.csv additions
-- Key findings: Comprehensive provincial surveillance frameworks, regional health coordination structures, refugee crisis impacts
-- Geographic scope: 14 Chad provinces covered (Logone Oriental, Moyen Chari, Ouaddai, Batha, Kanem, Lac, Wadi Fira, Ennedi Est, Tibesti, Borkou, Tandjile, Mandoul, Chari-Baguirmi, Guera)
-- Surveillance context: Health district systems, provincial health delegations, cross-border coordination, WHO surveillance portals
-- Infrastructure coverage: Municipal health systems, health zones with 200m risk assessment, administrative coordination frameworks
-- Regional preparedness: Sudan refugee crisis response, border surveillance, Lake Chad basin coordination
-
-=== BATCH 1 COMPLETION - TIME: 22:15:00 ===
-Data Observation Yield: 0/20 = 0% (BELOW 5% threshold - first batch)
-CSV Updates: No new data added - metadata.csv (12 sources), cholera_data.csv (15 observations)
-Coverage Status: First batch below threshold, minimum 2 batches required before stopping
-
-=== BATCH 2/20 EXECUTION - START TIME: 22:15:30 ===
-
-Query Results Summary:
-- 0 of 20 queries resulted in NEW cholera_data.csv additions
-- Key findings: District-level health surveillance frameworks, cross-border coordination, municipal health systems
-- Geographic scope: 14 Chad districts covered (Logone Oriental, Moyen Chari, N'Djamena, Kanem, Lac, Batha, Ouaddai, Chari-Baguirmi, Mandoul, Tandjile, Guera, Mayo Kebbi, Sila, Salamat, Hadjer Lamis)
-- Surveillance context: Health district hierarchies, municipal health surveillance, local government coordination, sous-prefecture systems
-- Infrastructure coverage: District health delegations, commune surveillance, health zone administration, local response coordination
-- Preparedness insights: Cross-border cholera prevention, endemic surveillance sites, regional health delegation structures
-
-=== BATCH 2 COMPLETION - TIME: 22:25:00 ===
-Data Observation Yield: 0/20 = 0% (BELOW 5% threshold - second consecutive batch)
-CSV Updates: No new data added - metadata.csv (12 sources), cholera_data.csv (15 observations)
-Coverage Status: STOPPING CRITERIA MET - 2 consecutive batches below 5% threshold
-
-=== AGENT 2 COMPLETION STATUS ===
-COMPLETED: Agent 2 geographic expansion
-Total Batches: 2 (minimum requirement met)
-Total Queries: 40 (minimum requirement met)
-Data Observation Yields: 0%, 0% (stopping criteria satisfied)
-Final Data Count: 15 cholera observations, 12 sources (no new data added)
-Agent 2 Status: SUCCESSFULLY COMPLETED - proceeding to Agent 3
-
-=== AGENT 3 INITIALIZATION ===
-Country: Chad (TCD)
-Start Time: 2025-07-24 22:25:30
-Agent 3 Status: INITIALIZED - Zero-transmission validation and cholera-free period documentation
