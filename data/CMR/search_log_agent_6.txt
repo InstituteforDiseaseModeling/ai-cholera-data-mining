@@ -25,3 +25,151 @@ Agent 6 remit: for every period lacking real surveillance evidence, classify NON
   under-notification) vs TRUE_ABSENCE (functioning surveillance + explicit zero) vs PRESENCE_NO_COUNT vs DATA; audit zero
   rows that overlap positive or presence evidence; add rows only where context searches surface real counts.
 
+=== PRE-SEARCH CHECKS (Agent 6, 2026-10-04 10:24 PDT) ===
+Read: ./data/CMR/workflow_orchestrator_CMR.txt (incl. section 6 channels), ./templates/template_search_protocol.txt,
+      ./data/CMR/search_log_agent_1.txt .. _5.txt (Agent 3 per-gap table + non-reporting list; Agent 4 Garrigue/1977 finding;
+      Agent 5 adjudication table and leads for Agent 6), ./data/CMR/workflow_state.json (agents 1-5 entries; no agent-6 entry),
+      ./data/CMR/cholera_data_ai.csv (1114 rows; 165 zero rows: 127 Documented, 38 Inferred), ./data/CMR/metadata_ai.csv (325),
+      ./data/CMR/cholera_presence_ai.csv (64), ./data/CMR/retracted_rows_ai.csv (42), ./data/CMR/cholera_data_who.csv (190).
+      ./data/CMR/cholera_data_jhu.csv only via pandas usecols summaries (deduplicated on Location/TL/TR/sCh/deaths).
+      py/build_weekly_timeseries.py read: the national weekly builder uses ONLY 'AFR::CMR' rows, ranks WHO > JHU > AI, and
+      fills weeks with no national source as assumed_zero - so national AI zero rows inside JHU annual years are inert in the
+      builder, and retracting national 1977 leaves 1977 as assumed_zero (builder issue, noted for Agent 7).
+In-memory gap analysis (analyze_effective_gaps.analyse, read-only): coverage 99.9% (681/682 months), 0 gaps >=7 d,
+      months_ai_only 25, latest observation 2026-09-20 (14 days stale). 1977 is 'covered' only by Douala row 1079.
+validate_quality CMR at start: ERROR 0, WARN 46 (45 CFR>15%, 1 single-day).
+Work list (brief): A. classify every period lacking real surveillance evidence; B. audit zero rows that overlap positive or
+      presence evidence; C. add rows only where context searches surface counts.
+
+=== BATCH 1 | PHASE 1 (context discovery: WHO/official, academic, historical, archival) | CMR ===
+Gap targeted : zero-row audit set (1974-1978 WHO-nil months; 1986/1990 arithmetic zeros vs infected-area declarations;
+               2002/2005 zeros; Kribi, West/Mifi, South/SW 2004; North-West 2016-2025); 1977 national; 2021-2026 stream
+               divergences; 21 Sep-4 Oct 2026 (recent)
+Queries      : 20 (one request to one database search function or one re-mined registered document = one query;
+               documents located by a query are extractions credited to it; S = >=1 committed row)
+  Q1  Gallica IIIF (re-mine metadata 296, Garrigue et al 1986 BSPE Fig. 1, f314 at 400 dpi) -> month presence verified by
+      pixel analysis (dashed year lines located; 20.6 px/month; y-axis 11.6 px/case): TOP panel bars 1974 Jan, Mar-Aug, Oct,
+      Nov; 1975 Jan, Mar-May, Jul, Dec; 1976 Jan-Jun (none Jul-Dec); 1977 Apr-Jun, Oct-Dec; 1978 Jan-Jul, Dec. BOTTOM panel
+      (redraws Jul 1978-Apr 1985) shows Jul 1978 ~9, Aug ~2, Sep ~1, Dec ~4, Jan-May 1979 sum ~58 (printed 61) - the two
+      panels disagree for Jul-Sep 1978; bar heights do not reproduce printed annual totals (1976 bars ~68 vs printed 135),
+      so bars are used for month presence only (as Agent 4 decided) - 0 rows
+  Q2  archive.org WER microfiche micro_IA41948412_0401 (Oct 1986-Oct 1987; 34 issues text-grepped; WER 1986 No.42 p.328
+      rendered) -> footnote to the notification box: 'The total number of cases and deaths reported for each country occurred
+      in infected areas already published, or in newly infected areas, see below'; WHO criteria: 'An area is entered in the
+      list on receipt of information of ... the first case of plague, cholera or yellow fever that is neither an imported case
+      nor a transferred case', deleted only on a freedom declaration (IHR Art. 7); complete lists Nov 1986-Jun 1987 keep
+      Wouri, Bamboutos, Menoua, Meme; Jan-Apr 1987 66r/6r notified 19 Jun 1987 - 0 rows
+  Q3  WHO IRIS item 99038b4e (bundle/bitstream API; OEW week 38 2021) -> 'Cameroon Cholera Ungraded 1-Jan-21 5-Aug-21
+      29-Aug-21 13 1 7.70% ... positives for Rapid Tests (RDT) have been notified in the North-West region and suspected cases
+      ... in the North region. As of August 15, 2021, a total of 13 cases with 1 death'. Registered metadata 326 S (row 1157)
+      -> North-West 2021 zero row 757 RETRACTED (contradicted)
+  Q4  ONSP static file (re-mine metadata 252, INS Annuaire Statistique 2017) Tableau 6.16 verified on p.105: 2015 cholera
+      by region Centre 1, Far North 19, Littoral 4/1, North 203/9, West 1, others '-', national 228/10. JHU 2015 district
+      line-list sums equal these for every region EXCEPT North (98/5) -> the whole 2015 ministry-vs-WHO gap (228 vs 124) is
+      the North S (row 1158: North 2015 203/9, ministry stream, conf 0.6). Tableau 6.17 (2016) has no cholera row; both
+      tables show every region incl. North-West reporting other notifiable diseases (IDSR functioning nationally 2015-16)
+  Q5  MINSANTE DSpace (re-mine metadata 253, PAMI 2023) -> p.8 'les informations sanitaires nationales n'étant disponibles
+      avec une complétude satisfaisante qu'à partir de 2014'; Tableau 7 North-West 'sous notification ... répercussions sur
+      la surveillance, la détection rapide des cas et la riposte'; Yagoua 'surveillance épidémiologique n'est pas optimale';
+      Tableau 8 Far North (Bourha, Fotokol, Mokolo, Mora) insecurity 'a des répercussions sur la surveillance' - 0 rows
+  Q6  MINSANTE DSpace (re-mine metadata 216, SIMR annual report 2024) -> p.16 'Seules les régions du Nord-Ouest et du
+      Sud-Ouest ont présenté une complétude annuelle inférieure à 90% sur les trois années consécutives probablement lié au
+      contexte sécuritaire'; Fig. 2 maps: NW and SW 50-90% in 2022, 2023, 2024 (Far North 50-90% 2022-2023; no region <50%);
+      national weekly completeness below 90% from week 25 to 52 of 2024 (drop weeks 29-31); Tableau 3: NW 4,619 dehydrating
+      diarrhoea, 1,824 bloody diarrhoea in 2024 (NW IDSR reporting other diseases) - 0 rows
+  Q7  MINSANTE DSpace (re-mine metadata 210, Q3 2025 national bulletin) -> national weekly MAPE completeness >90% from week
+      28 2025, Q3 cumulative completeness 95.2%, timeliness 78.6%; Fig. 3 T3 2025 district completeness 176 green / 23 yellow
+      / 1 red (NW/SW mostly caught up by 21 Oct 2025); Fig. 4 timeliness <50% in several NW districts - 0 rows
+  Q8  WHO IRIS discover '"joint external evaluation" Cameroon' -> other countries only - 0
+  Q9  WHO IRIS discover dc.title:(Cameroon AND "joint external") -> 0 hits - 0
+  Q10 WHO IRIS discover '"Republic of Cameroon" mission report IHR' -> 20 JEEs of other countries - 0
+  Q11 WHO IRIS discover 'évaluation externe conjointe Cameroun' -> JEE Cameroon 25-29 Sep 2017 (faf1ddfb) read: 'Taux de
+      complétude des rapports à plus de 80% avec une promptitude atteignant les 90%. En revanche au niveau des districts, la
+      complétude et la promptitude des rapports ne dépassent pas 50%. En dépit d'insuffisances, la surveillance en temps
+      réel dans le pays est bien effective'; data validation 'quasi inexistant aux niveaux intermédiaire et périphérique';
+      D.3.2 in-country notification protocols score 1; NW anthrax investigation (Fundong, Jan-Feb 2017) - 0 rows
+  Q12 Europe PMC '(IDSR OR SIMR) AND Cameroon AND (completeness OR timeliness OR evaluation OR performance)' (193) ->
+      PMC13477155 (Tchio-Nighie 2026, 159 Douala facilities, Oct 2024-Mar 2025): 'The detection rates of suspected cholera
+      and measles cases were 11.05% and 35.19% in the control group'; PMC5075464 (Ngwa 2016 PAMJ surveillance evaluation):
+      IDSR adapted 2003, weekly zero-reporting practised; completeness 2010 95% (timeliness 0%), 2011 97%/83% (timeliness
+      33%/23%), 2012 >90% (timeliness 78%/60%) - 0 rows
+  Q13 Europe PMC 'Cameroon AND (Anglophone crisis OR North-West and South-West) AND (health OR surveillance OR facilities)'
+      (247) -> PMC10621865: 'Health Cluster reporting the closure of up to 21% of health facilities as of February 2022';
+      instability since Oct 2016, escalation since Nov 2017; PMC12197894 (Iyaniwura 2025): modelled routine malaria case
+      under-capture 2019-2021 East 14% ... North-West 70% (highest); PMC12901020: DHS 2018/MIS 2022 omitted insecure
+      Anglophone divisions - 0 rows
+  Q14 Europe PMC 'Cameroon AND (Boko Haram OR Far North) AND (health facilities OR surveillance OR health system) AND
+      (insecurity OR conflict OR displacement)' (238) -> PMC13439846 (COVID-19 ITS: reported under-5 malaria -36.9% in March
+      2020; deficit 69,708 notifications 2020-21; IRR Centre 0.47, East 0.54, Littoral 0.60, Far North 0.68, NW 0.81, North
+      1.03); PMC9161648 (South-West: only 3 of 18 districts investigated >=1 AFP case in 2019, 18/18 in 2020); PMC12670751
+      (CBS in four Far North departments from Jan 2022) - 0 rows
+  Q15 WHO IRIS discover '"Cholera in 1978"' -> WER 54(17): Cameroon 1978 = 3; 'Ten of these 18 countries did not report
+      cholera in 1977' (FR 'n'avaient notifié aucun cas'); only 5 of the 18 newly infected -> Cameroon is one of the previously
+      infected countries with no 1977 notification - 0 rows
+  Q16 WHO IRIS discover '"Cholera in 1977"' -> WER 53(17) table: 12 African notifiers (Angola 353, Benin 2, Djibouti 2,
+      Ghana 6,565, Kenya 21, Liberia 490, Malawi 314, Mozambique 18, Nigeria 201, Sierra Leone 23, Tanzania 267, Togo 132) -
+      none of Cameroon, Chad, CAR, Congo, Gabon, Eq. Guinea; WER 53(49) 'Functioning of the IHR (1969) ... 1977': 'During
+      1977 there were again certain difficulties arising from the delay and incomplete notification of cases. It is clear
+      that this is done in an attempt to avoid excessive measures being taken by other health administrations in the form of
+      restrictions of trade and travel'; smallpox eradication certified for Cameroon by end-1977 - 0 rows
+  Q17 WHO ArcGIS FeatureServer cholera_adm0_week (CMR, newest by date) -> layer last edited 2026-09-28 08:21 UTC; newest
+      week 14-20 Sep 2026 (133/4 = row 1129); nothing for 21 Sep-4 Oct - 0
+  Q18 Africa CDC site search 'epidemic intelligence weekly report' -> Sep 2026 page still 2 files (24 Sep; '28Sep26' = data
+      to 20 Sep); Oct 2026 page 404 - 0
+  Q19 WHO IRIS discover OEW 2026 sorted by accession -> newest = week 36 (31 Aug-6 Sep, accessioned 30 Sep) - 0
+  Q20 WHO IRIS item 9c46dfe7 (re-mine WHO 'Cholera, 2005', WER 81(31)) -> Cameroon 2,847/110 (table; narrative transposes
+      Chad and Cameroon); no Cameroon timeline; neighbours 2005: Eq. Guinea 6,391/33, Chad 90/14 - 0
+Sources found: ~25   Registered: index 326
+Rows added   : 2    Indices: 1157 (Multi_Provincial NW+North 1 Jan-15 Aug 2021, 13/1), 1158 (North 2015, 203/9)
+ZERO-ROW ACTIONS (evidence from this batch; details in the audit table at the end):
+  RETRACTED 757 (NW 2021; Q3), 491 (national 27 Aug-2 Dec 1978; Q1/Q2: revised '0r' zeros withdrew notified suspected
+            cases 2/0 and 2/1 - confirmed-only stream; Garrigue bottom panel Aug/Sep bars)
+  DOWNGRADED to Inferred_Absence: North-West 923, 812, 813, 814, 932, 944, 945, 948, 936, 769, 780, 788 (conf 0.3-0.4;
+            956 already Inferred 0.45 -> 0.4); South-West 958 (0.7 -> 0.5)
+  CONFIDENCE: 96 (0.8 -> 0.6, harmonised with sibling WHO-nil months), 1007 (0.5 -> 0.4)
+  KEPT with verification notes: 95, 97, 100, 101 (Garrigue months concordant), 1008, 1005, 1003 (declarations explained by
+            accompanying notifications per WHO criteria), 1006, 109/747, 758/748, 965/966
+Successful queries: 2/20 (Q3, Q4)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum)
+validate_quality CMR after batch 1: exit 0 (ERROR 0, WARN 46)
+
+=== BATCH 2 | PHASE 1-2 (health-system state, regional context, stream divergences, recent window) | CMR ===
+Gap targeted : Douala 1986-2003 silent years (Guevart 2006); 2007-2008 (functioning surveillance?); 2012/2024/2025 WHO-vs-ministry
+               streams; 2017 Far North vs Borno; 2019-2022 surveillance completeness; 21 Sep-4 Oct 2026; 1976 legend
+Queries      : 20
+  Q1 Gallica SRU (dc.title 'medecine tropicale' AND date 2006, to locate Guevart 2006 Med Trop 66:283-291) -> 'Vérification de sécurité' (altcha) page; not circumvented - 0
+  Q2 PubMed esearch Guevart[au] AND Douala AND cholera (10) + efetch abstracts -> Med Trop 2006 66(3):283-91 abstract has no year list (full text only on Gallica, now behind altcha); Med Trop 2010 letter (2004 weather) - 0
+  Q3 WHO IRIS bitstream re-mine WER 2009 84(31) 'Cholera, 2008' (metadata 57) -> 'Available information from Central Africa details 5529 cases including 251 deaths ... Nigeria reported a 3-fold increase in the number of cases compared with 2007. Cameroon did not report any cases, and no information was available from the Central African Republic, Chad and Equatorial Guinea'; table Nigeria 5,410/247, Congo 156, Gabon 2 - 0
+  Q4 WHO IRIS discover 'acute flaccid paralysis surveillance indicators Africa 2008 Cameroon' -> WER 83(47) 'Performance of AFP surveillance ... 2008 (data as of 4 November 2008)': Cameroon 188 AFP cases, non-polio AFP rate 2.47 (target >=2), 79% adequate stools, 0 WPV 2008/2007 (Chad 26, Nigeria 792 WPV) - health-system functioning evidence for 2008 - 0 rows
+  Q5 MINSANTE DSpace discover 'bulletin epidemiologique' sorted by accession -> newest: mental-health T1 2024, DRSP Centre 2024/T1 2025/T2 2025 (all registered: 208, 212, 213), mpox sitrep 2026; no Q4-2025 or 2026 national bulletin - 0
+  Q6 MINSANTE DSpace re-mine CCOUSP Bulletin 2021 (metadata 207) -> 'amélioration de la complétude des rapports des formations sanitaires dans le DHIS2 en 2021 comparée aux deux années précédentes avec une moyenne de 80% ... en dessous de la norme 90%'; event-based surveillance only East/Littoral/South/North (Adamaoua, Far North via EWARS from wk10), 'seulement 10% des districts de santé sont formés en SFE' - 0 rows
+  Q7 ONSP static file re-mine BEC 2022 (metadata 81) -> DHIS2 health-facility report completeness/timeliness 2022 86.25%/76.6% vs 2021 77.37%/62.1%; 83.7% of districts met the 90% completeness norm in 2022; AFP indicators by region 2022/2021: North-West NP-AFP 4.2/3.6, adequate stools 80.4/78.9%, composite 47.8; South-West NP-AFP 4.2/2.1 (2021 below norm 3), composite 46.2 (the two lowest; other regions 73.6-91.5); Far North NP-AFP 9.0/9.2 - 0 rows
+  Q8 Europe PMC fullTextXML re-mine PMC5113893 (Ngwa 2016 PLOS NTD, metadata 270) -> 'There were no data for 2007 at district level, and there was no cholera reported in 2008'; 'A brief intermission was observed in 2008 before Wave III that began in 2009' - 0 rows
+  Q9 Persée per-page text re-mine Rémy & Dejours 1988 (metadata 260; pages T1_0105-0138, open page endpoints) -> p.126 'L'atteinte est quasi permanente au Liberia, au Ghana ..., au Nigeria ... et au Cameroun (région de Douala) attestant une endémisation du choléra' and the 1983 OCEAC remark; p.134 Richir's 'ceinture de non-choléra' 8-12°N; nothing on 1977 or 1986-87 - 0 rows
+  Q10 WHO IRIS discover '"Cholera, 2012"' -> WER 88(31): Cameroon 363/5 (CFR 1.4%), Nigeria 597/18, CAR 21; 'the countries bordering the Lake Chad Basin, Cameroon, Chad and Nigeria accounted for a 98% decrease in reported cases compared to 2011'; no explanation of WHO 363 vs MINSANTE/DLMEP 125/4 - 0
+  Q11 IMC WordPress media search 'cameroon' (newest first) -> newest = CS2026 capability statement (30 Sep) and SitRep06 (22 Sep); no SitRep07 - 0
+  Q12 Journal du Cameroun WP REST 'choléra' after 2026-09-28 -> 2 posts: 29 Sep (BIR/Lake Chad; presence already recorded by Agent 5) and 1 Oct (WHO CCS 2025-2029: '2,8 millions de personnes vaccinées contre le choléra' - vaccination, excluded); no case counts for 21 Sep-4 Oct - 0
+  Q13 WHO IRIS discover 'cholera annual report 2024' -> unrelated country-office annual reports - 0
+  Q14 WHO IRIS discover dc.title:(cholera AND 2024) AND WER -> 'Cholera, 2024' WER 100(36) (9ca616b3) read: Cameroon 199 cases/2 deaths (CFR 1.0); Table 3 Cameroon RDT 92 tested/86 positive (93.5%), culture/PCR 55 tested/5 positive, 2.5% of cases culture/PCR-confirmed; Table 4 sex/age sums to 190; Table 2 zero-reporting countries 2024 include Chad, CAR, Rep. Congo, Eq. Guinea, Gabon; Nigeria 24,841/734 - 0 rows
+  Q15 WHO IRIS bitstream re-mine WER 2026 101(38) 'Cholera annual report 2025' (metadata 72) -> Table 1 Cameroon 2025 = 2 cases, 0 deaths (confirmed basis) vs MINSANTE annual 96 suspected (row 108); Table 3 Cameroon RDT 96 tested/38 positive, culture/PCR 5 tested/2 confirmed -> WHO annual and weekly streams for Cameroon 2025 are confirmed-only; neighbours 2025: Chad 2,979/167, Nigeria 24,354/548; zero-reporting: CAR, Eq. Guinea, Gabon; meningitis enhanced surveillance Cameroon 759 suspected 2025 (system functioning) - 0 rows
+  Q16 HDX package_search 'cameroon health facilities functionality' (373) -> facility location lists (HOT OSM, healthsites), DHS, WHO indicators; no HeRAMS/functionality dataset - 0
+  Q17 WHO IRIS discover 'Cameroon "health cluster" bulletin North-West South-West' -> APOC CDTI reports only; no Health Cluster bulletins in IRIS - 0
+  Q18 Europe PMC 'cholera AND Borno AND 2017' (76) -> PMC12482021 (Nigeria five-decade review): Nigeria 2008-2009 18,831 cases; 2017 '1,198' (conflicts with WHO 12,174 - WHO kept); 'Several nations (Cameroon, ...) have experienced cholera epidemics ... despite not having cholera integrated into their surveillance system' (as of 2002); no Cameroon-specific counts - 0
+  Q19 WHO IRIS discover 'Cameroon "Far North" humanitarian crisis "health facilities" closed' -> nothing Cameroon-specific (Ouamba 2023 Kribi only) - 0
+  Q20 WHO IRIS discover '"monthly or four-weekly" reported cases 1976' -> WHSQ 1977 30(2) (975647e8) re-read: Cameroon 1976 row II-IX 45/13/11/10/32/13/9/1, X-XIII '+' (OCR '-1-','-t-'); symbol key not printed in this item (Agents 1/3 read '+' = not received from page images) - 0
+Systematic overlap scan (no query): all 163 live zero rows checked against positive rows at the same or nested location and
+               against presence rows. 20 overlaps found; beyond the brief's list they are annual/cumulative positive rows spanning
+               the zero window (167 vs 170/524/891; 602/603 vs Centre cumulatives - verified against the WHO weekly epicurve, explicit
+               zeros in weeks 1-2 and 9-10 2023; 885-887 vs 2023 annual rows) and a 1-day edge (791 vs 802-804) - no further action.
+Revisions this batch: 1111 (2008 zero: functioning-surveillance evidence appended, kept 0.9); 922 (Far North 2017 -> Inferred 0.5);
+               927 (Far North 2020, 0.8 -> 0.7, + citation correction); 791 (SW Q3 2025 completeness note, kept 0.6); 958 (citation
+               correction).
+Sources found: ~20   Registered: none
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (3-batch minimum; need 3 consecutive sub-5% batches)
+
