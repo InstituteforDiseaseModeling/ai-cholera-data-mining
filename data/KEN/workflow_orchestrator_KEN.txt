@@ -139,6 +139,17 @@ D. TOOLING STATUS (verified by the orchestrator 2026-10-04 05:15)
     tool (it is multimodal). This is how to read the 1983 "KENYA <glyph>-16.VII" entry
     and the 1984 infected-area registers that failed extraction last cycle.
 
+  STALL SAFETY (added 08:20 after Agent 1 stalled for ~40 min and its run was cut off):
+    web.archive.org and some archive.org download hosts intermittently HANG for up to
+    15 minutes, and curl's own -m does NOT bound the stall (a curl -m 20 took 903 s).
+    ALWAYS wrap network calls in the shell timeout:   timeout 60 curl -sL -m 45 ...
+    (/Users/johngiles/homebrew/bin/timeout). Bulk downloads: bounded parallelism
+    (e.g. xargs -P 4) with a per-file `timeout`, skip files that fail, keep every
+    single Bash call well under its 10-minute limit, and never sit waiting on a
+    background task that shows no progress - abandon it, log it, move on, retry later.
+    Agent 1's working cache from the interrupted run is in /tmp/ken1/ (JPRS-TEP texts
+    in /tmp/ken1/ia/, IFRC/DON/AFRO JSON, etc.) - reuse it, do not re-download.
+
   RATE-LIMITED / DOWN TODAY (do not burn queries on them):
     OpenAlex       - free daily budget for this IP exhausted (shared with 9 other
                      countries), resets 00:00 UTC. Do not add a key or email.

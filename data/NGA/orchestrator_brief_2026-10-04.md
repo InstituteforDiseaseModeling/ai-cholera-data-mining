@@ -99,3 +99,5 @@ Archived logs are in `./data/NGA/prior_run_logs_20260922/` (the full prior repor
 7. **Cumulative vs increment:** state which in `--note`.
 8. **Search log:** `./data/NGA/search_log_agent_{N}.txt`. Agent 1's file was initialised by the orchestrator, so append to it. Agents 2-7 start a fresh file (overwrite the old one; it is archived). Write one block per batch in the protocol shape.
 9. **Finish with** `python py/validate_quality.py NGA` (exit 0), then `write_agent_state(...)` with `batch_yields` in PERCENT units.
+10. **Amending existing rows** (append an adjudication or double-counting phrase, re-weight, retract with tombstone, correct a metadata Description): use `python py/revise_observation.py NGA --index N --append-note "..." --reason "..."` (see `--help`). Never hand-edit.
+11. **Rows must carry information.** Repeated cumulative snapshots from the same series whose counts are identical to the previous snapshot add little; prefer the issues where values change, the latest/closing issue, and any issue that closes a period. Increments derived by subtracting two cumulative issues of the same series are valuable - label them "derived increment".
