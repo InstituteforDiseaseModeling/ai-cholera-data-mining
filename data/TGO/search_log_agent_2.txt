@@ -435,3 +435,116 @@ Yield        : 10%
 Consecutive sub-5% batches: 0
 Decision     : CONTINUE
 VALIDATION: python py/validate_quality.py TGO -> exit 0 (ERROR 0, WARN 47 = unchanged pre-existing set)
+
+=== BATCH 9 | PHASE 3 (deep validation: HDX platform files, ReliefWeb 1996-2008 archive, MoH figures, Internet Archive JPRS/FBIS) | TGO ===
+Gap targeted : 1991 [2396] and 1990s sub-national geography; 2013 weekly regional split; 2009-2015 site-level series; 2026 Q1 districts
+Categories   : 1 Official (MoH Plan Strategique figures, BNTIS), 2 Academic (Europe PMC Africhol 2016), 3 Humanitarian (HDX/UNICEF
+               platform, ReliefWeb archive), 5 Historical (Internet Archive JPRS/FBIS full text, allAfrica, Wayback), 6 Technical (raster
+               decoding), 4 Regional (Burkina Faso Ourgaye 2001 cross-border context)
+WebSearch used this batch: 0 (cumulative 20/40)
+Queries (20):
+  01 API  HDX CKAN package_search cholera, group tgo -> 7 datasets (Regional Cholera Platform 2012-2017 XLSX + WHO 2026 file); repeat of
+          Agent 1 batch 10 query 06
+  02 XLSX HDX platform files 2012-2017 -> national weekly only. The 2013 Togo row prints an EXPLICIT 0 for weeks 1-34, then W35-49 = 168.
+          => conflict notes on rows 389 and 6; H1-2013 district rows 533-550 lowered 0.8 -> 0.6 (database suspects never reported as
+          cholera). No new row.
+  03 CURL WHO ArcGIS 'Cholera data' item (HDX resource 3aa7bfec...) -> 2026 country totals; Togo absent. National only. Negative.
+  04 LOCAL BNTIS T1/2026 Tableaux XIX-XXI -> 12 cases / 1 death nationally, no district split; INH received 0 cholera specimens. Negative.
+  05 WEB  ReliefWeb (cholera OR cholera-fr) AND Togo, windows 1996-99 / 2000-03 / 2004-08 -> listings capped at 20 per page
+  06 WEB  ReliefWeb per-year listings 1997-2002 (18 pages) -> 123 distinct items
+  07 CRAWL the 123 items, Togo+cholera passages extracted -> 31 items; only the national 2001 figure (1,130/72 = row 454), WHO DON
+          17/26 Sep 2001 ('outbreaks which began in April 2001 in nearby countries: Ghana, Togo and Benin') and Burkina Faso's Ourgaye
+          district (Tenkodogo) 55/3 to 4 Sep and 314/6 to 16 Sep 2001 'near the border with Togo' (BFA, cross-border only). Negative
+          (overlaps Agent 1 batch 9 query 12).
+  08 API  Europe PMC fullTextXML Africhol 2016 (PMC4871502) -> Togo sites Lome-Golfe 216/58 and Lacs 90/14 (= rows 92-93); monthly series
+          exist only in raster Figs 1-2
+  09 IMG  Africhol Fig.1 panel C (Lake district) decode -> 1.82 px per case under 2-px outlines; monthly values ambiguous +-1; sum 93 vs
+          the published 90 -> REJECTED, no row (a decode that does not reproduce the published total is not committed)
+  10 CDX  Wayback afro.who.int/csr/* cholera 2004-2008 -> refused (000)
+  11 LOCAL allAfrica Togo-index background fetch (83 of 306 captures, 2001-2006) -> no cholera headline in any capture
+  12 IMG  *** Plan Strategique (metadata 165) p.12 'Fig.4 Courbe epidemique du cholera par SE et regions' (embedded raster 1042x582,
+          gridlines every 5 at 14.47 px/case, every segment top within 0.06 of an integer): Lome Commune 72, Maritime 42, Centrale 53,
+          Plateaux 1 = 168 = the document's total; each regional total equals the sum of its own Fig.5 district bars (rows 253-265)
+          => ROWS 598-629 (MoH weekly regional series W35-51 2013). Rows 551-597 cross-referenced to them (different instrument,
+          timing differs by up to one week; do not sum or mix).
+  13 PDF  Plan Strategique p.10 Fig.2 (vector) -> NATIONAL annual 1990-2014 with labels (1991 1058, 1998 3669/239, 2001 2740 ...), not
+          regional. No row (national values already rows 252/301/302).
+  14 API  Internet Archive full-text search (services/search fts): 'Togo cholera', '"Radio Lome" cholera', '"Lome Radio" cholera',
+          'Togo cholera Epidemiology JPRS' and 12 town/region variants -> 45 JPRS/FBIS candidate items
+  15 TXT  *** full texts of the 45 items -> JPRS-TEP-91-022 (25 Oct 1991) 'Togo Health Minister Gives Figures for Cholera' (Paris AFP,
+          21 Sep 1991): 'Twenty people died from cholera and 2,500 other cases of the disease were reported recently in the Tone district
+          in Togo's far north ... since an epidemic broke out in June' -> REGISTERED 269 (Level 3); PRESENCE entry AFR::TGO::Savanes::Tone
+          1991-06-01..09-21 at 0.3. COUNT NOT COMMITTED: 2,500 exceeds the whole national WHO-notified total for Jun-Sep 1991 (2,396/81,
+          rows 32+33), a single press source cannot carry a >1000-case row, and the WER infected-areas list of 24 Oct 1991 names eight
+          districts but not Tone. CONFLICT FOR AGENT 5.
+  16 CDX  Wayback africaneditors.org JRSUL 2017 'Centrale 2013' riposte paper (22704-36977) -> never captured. Closed.
+  17 API  Google Books volumes -> HTTP 429, shared daily quota still exhausted
+  18 API  IA FTS region phrases ('"Dapaong" cholera', '"Tone prefecture" cholera', '"Savanes Region" cholera', '"Region des Savanes"
+          cholera-fr') -> WER 1984 No.41 (not cholera), UNDP 1994 project compendium (a 1991 'Lutte contre l'epidemie du cholera' TOG
+          project, budget only), UNICEF 1996 'no cholera cases were reported in 1995' = ALBANIA (trap). Negative.
+  19 BULK IA 229 JPRS Epidemiology issues 1986-1995 (both jprs-report_jprs-tep-* and DTIC_ADA3* copies), Togo+cholera grep -> only
+          TEP-91-022 (query 15) and TEP-91-017 (Togo listed among neighbours 'recently' reporting cholera, Nigeria item, Jul 1991)
+  20 BULK IA 142 FBIS-AFR daily reports Jun-Dec 1991 -> no Togo cholera item (FBIS-AFR covered politics). Negative.
+Sources found: 2 new (JPRS-TEP-91-022; HDX 2013 platform file, not registered - no row)   Registered: index 269
+Rows added   : 32         Indices: 598-629
+Presence     : 1 (AFR::TGO::Savanes::Tone 1991, source 269)
+Revisions    : 389, 6 (HDX conflict + attribution correction), 533-550 (confidence 0.6), 551-597 (cross-reference note)
+Successful queries: 1/20  (query 12)
+Yield        : 5%   (exactly 5% is NOT below 5%)
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+VALIDATION: python py/validate_quality.py TGO -> exit 0 (ERROR 0, WARN 47 = unchanged pre-existing set, INFO 230)
+
+=== BATCH 10 | PHASE 3 (deep validation: Internet Archive full text, declassified cables, francophone journal archives) | TGO ===
+Gap targeted : 1998 [3217] and 1977 [132] sub-national; 2011 Lome; 2024 district timing; 1990s francophone clinical literature
+Categories   : 5 Historical (IA full text, US Embassy telegrams, Wayback), 2 Academic (Medecine d'Afrique Noire, PAMJ, CAMES, BSPE),
+               7 Linguistic (French-language searches and archives), 3 Humanitarian (cross-border report), 1 Official (MoH communiques
+               via press), 6 Technical (figure reading)
+WebSearch used this batch: 0 (cumulative 20/40)
+Queries (20):
+  01 API  IA FTS 'Togo cholera 1998', 'Togo cholera-fr 1998', 'Lome cholera-fr 1998 epidemie', '... 2001' (6 phrasings) -> one 2011 review
+          book only. Negative.
+  02 API  IA FTS cholera + Lome, Aneho, Kpalime, Atakpame, Sokode, Tsevie, Kara -> US State Dept telegrams 1977, WA-FELTP PAMJ 2011, ICESCR
+          2011 (qualitative)
+  03 TXT  US Embassy Lome telegrams 1977LOME01724 (28 Jun 1977) and 1977LOME02003 (26 Jul 1977): 'GOT HAS IMPOSED A QUARANTINE IN LAMA-KARA
+          AND BIFALO CIRCUMSCRIPTIONS ... RUMOR SETS DEATH RATE AT ABOUT FIVE PEOPLE PER DAY' / 'OUTBREAK ... HAS BEEN BROUGHT UNDER CONTROL'
+          -> REGISTERED 270; PRESENCE Kara::Kozah and Kara::Assoli 1977-06-28..07-22 (new 1977 geography; death figure is rumour, unused)
+  04 TXT  WA-FELTP, Pan Afr Med J 2011;10 Supp 1:10: 'Investigation of Cholera outbreaks in Lome, Togo (May 2011)' -> REGISTERED 271;
+          PRESENCE Grand Lome May 2011 (no count)
+  05 API  IA FTS telegram searches ('AMEMBASSY LOME cholera', 'cholera Togo quarantine', 'Lama-Kara cholera', 'Bafilo cholera') -> no
+          further Togo cholera telegram (1977-297197 is a consular welfare case). The WikiLeaks 2003-2010 cable set was NOT used (leaked
+          classified material).
+  06 WEB  NARA AAD Central Foreign Policy Files full-text search -> 403 (not circumvented)
+  07 API  IA FTS OCCGE / Africa Research Bulletin / 'West Africa' magazine / Marches tropicaux / 'cas deces region maritime' -> only a WER
+          1992 national table. Negative.
+  08 LOCAL grep of 10 cached documents (REDISSE CGES, two Ebola plans, PIS 2015, three IRD items, MDRTG002 DREF, WHO CCS) -> no count
+  09 WEB  Gallica SRU search -> 403 (not circumvented)
+  10 API  Togolese press 2024 via WP REST (11 posts: 24heureinfo, togotopnews, icilome, togoactualite x3, plumedafrique, togobreakingnews,
+          lalternative) -> Vo index case confirmed 30 Jul 2024 (= rows 102/333), Agoe-Nyive '11 cas confirmes ... et 4 deces' since 10 Oct
+          (= row 103; a same-day variant says 8 + 3 cases and 2 + 1 deaths), Golfe '04 deces dont 02 a domicile' by 1 Oct (deaths only).
+          All already in the file. No new row.
+  11 CDX  Wayback afro.who.int/csr/* retry over http and https -> 000 (Wayback down again)
+  12 API  IA FTS French district phrases ('"Lome-Commune" cholera', '"district sanitaire" cholera Lome', cholera + Aneho/Tsevie/Sokode/
+          Kpalime) -> nothing
+  13 LOCAL Togo-Benin cross-border report (metadata 70) re-scanned for district counts -> only the known 2013/2014 narrative
+  14 IMG  AFRO W44 2024 featured-article figures -> national daily onset curve + district map in classes (5-6, 7-47) -> no row
+  15 WEB  santetropicale.com Medecine d'Afrique Noire archives (2001 issues 4801-4812) -> issue pages 404
+  16 WEB  santetropicale.com MAN search form, keyword 'cholera' -> 6 hits incl. Djadou et al 2001 (id_article 1549)
+  17 WEB  *** Djadou KE et al, Med Afr Noire 2001;48(5):187-190 OPEN-ACCESS ABSTRACT: '115 malades ages de 3 mois a 10 ans hospitalises
+          pour cholera en periode d'epidemie du 1er juillet au 31 octobre 1998 [Hopital d'Enfants de Dapaong] ... le taux de letalite est de
+          14,78 %' (85.22% favourable -> 17 deaths exactly) -> REGISTERED 272; ROW 630 (AFR::TGO::Savanes::Tone 1998-07-01..10-31, 115 sCh,
+          17 deaths, 0.6, facility-based paediatric LOWER BOUND). Six earlier agents had logged this lead as unobtainable because the full
+          text needs a free account; the bilingual abstract is open and carries the numbers. FIRST SAVANES COUNT BEFORE 2020 AND FIRST
+          SUB-NATIONAL COUNT FOR 1998.
+  18 WEB  santetropicale pre-2001 open archive (biblio.asp, 1,851 free articles) filtered to Togolese authors -> no other cholera article
+          (a 1996-97 Dapaong meningitis series only)
+  19 WEB  CAMES journals (revues.cames.online) -> DNS failure
+  20 WEB  pathexo.fr (Bulletin de la Societe de Pathologie Exotique archive) -> OVH 'site en construction' placeholder; archive gone
+Sources found: 3 new   Registered: index 270 (1977 telegrams), 271 (WA-FELTP 2011), 272 (Djadou 2001)
+Rows added   : 1          Indices: 630
+Presence     : 3 (Kara::Kozah 1977, Kara::Assoli 1977, Grand Lome May 2011)
+Successful queries: 1/20  (query 17)
+Yield        : 5%   (exactly 5% is NOT below 5%)
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+VALIDATION: python py/validate_quality.py TGO -> exit 0 (ERROR 0, WARN 47 = unchanged pre-existing set, INFO 235)
