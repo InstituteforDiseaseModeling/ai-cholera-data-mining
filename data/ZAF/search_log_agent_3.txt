@@ -1,0 +1,49 @@
+=== AGENT 3 INITIALIZATION ===
+Agent: 3 - Zero-Transmission Validator
+Country: South Africa (ZAF)
+Start Time: 2026-10-03 23:06:19
+Agent 3 Status: INITIALIZED
+Tooling: WebSearch UNAVAILABLE (session budget exhausted during Agent 2 batch 4).
+         All queries are direct retrievals (WebFetch / curl / python) against
+         site-internal search endpoints, scholarly APIs and archives.
+         One direct retrieval = one query.
+Priorities: (1) reconcile contradicted zero rows a-k; (2) add new validated
+            absence rows (national spans, provincial absences, post-outbreak
+            zero periods, 2026-08-31..2026-10-03 recent gap).
+Stopping rule: >=3 batches; then stop at 3 consecutive batches <5% yield or
+               12 batches. No time limit.
+
+=== AGENT 3 PLAN (written before first query) ===
+Files read: ./templates/template_search_protocol.txt, ./CLAUDE.md, workflow state (Agents 1-2), ./data/ZAF/search_log_agent_1.txt and
+  ./data/ZAF/search_log_agent_2.txt (all batch blocks, final summaries, leads), ./data/ZAF/cholera_data_ai.csv (1,422 rows, max Index 1429),
+  ./data/ZAF/metadata_ai.csv (513 sources), ./data/ZAF/cholera_data_jhu.csv, ./data/ZAF/cholera_data_who.csv, py/revise_observation.py,
+  py/build_weekly_timeseries.py (evidence parsing, ranking), py/validate_quality.py (zero/overlap checks).
+Environment decisions: no py/analyze_effective_gaps.py, no profile regeneration, no update_dashboard.sh, no git. WebSearch not used (budget
+  exhausted). No general-purpose search engines scraped.
+Pre-run validator: python py/validate_quality.py ZAF -> exit 0, ERROR 0, WARN 242, INFO 217; national_subnational_overlap WARN groups 64.
+  zero_row_no_evidence_type: Index 8, 9, 10, 26.
+
+Query-counting convention (same as Agents 1-2, decided up front): one query = one API/site-search call OR one direct retrieval of a document
+  not surfaced by another query in the same batch. Follow-up downloads of documents surfaced by a query count under that query. A query is
+  successful only if >=1 NEW row (including a correctly bounded replacement zero row written with add-zero) was committed to
+  ./data/ZAF/cholera_data_ai.csv from it. Revisions and retractions are never counted. Re-reading a document cached in /tmp by an earlier
+  agent counts as one query (it is one examination of a source) and is labelled [cache] in the log.
+
+Why the adjudications matter (from py/build_weekly_timeseries.py): SOURCE_PRIORITY WHO 3 > JHU 2 > AI 1, and within AI the rank is
+  observed > documented_zero > fourier(positive aggregate) > inferred_zero. JHU/WHO national rows are absent for 1970-72, 1975-78, 1988-90,
+  1995-97, 2007, 2010, 2025-26 (WHO weekly rows cover 2023-08-28..2026-07-19), so AI rows set the national series only in those years and
+  after 2026-07-19. A Documented_Absence row OVERRIDES an overlapping AI positive aggregate in the builder; an Inferred_Absence row does not.
+  Labels are therefore assigned strictly: Documented only for a positive statement of zero by a functioning system.
+
+Rules for revising other agents' ZERO rows (decided up front):
+  R1 If the row's own cited source supports a corrected window -> narrow it with py/revise_observation.py and append the adjudication.
+  R2 If a sub-period needs a different source -> add a new bounded row with add-zero from that source.
+  R3 If the row's own source does not support the window, or the row is fully superseded by finer rows -> retract (tombstone) and re-add
+     any validated sub-period with add-zero.
+  R4 --set-evidence works only where a canonical 'Evidence type: X' token exists; legacy rows without one are retracted and re-added with
+     add-zero when their label must change (the tool's own instruction).
+  R5 Positive rows by other agents are never edited; count conflicts are logged for Agent 5.
+
+Work order: Batch 1 = evidence for conflicts a-k + recent-gap check (2026-08-31..2026-10-03); Batch 2+ = remaining conflict evidence,
+  provincial absences (DoH Statistical Notes '-' cells 1980-2000, NMCSS 2023 provincial months, 2008-09), national spans, recent gap re-check.
+
