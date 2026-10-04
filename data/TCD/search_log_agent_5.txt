@@ -1,91 +1,128 @@
-=== AGENT 5 INITIALIZATION ===
-Country: Chad (TCD)
-Start Time: 2025-07-24 22:55:30
-Agent 5 Status: INITIALIZED - Source permutation and adjacent data mining
+=== AGENT 5 (cross-reference-integrator) | Chad (TCD) | cycle 2026-10 ===
+Start Time: 2026-10-04 06:26:01 PDT
+Agent 5 Status: INITIALIZED
 
-=== AGENT 5 MISSION: SOURCE PERMUTATION AND ADJACENT DATA MINING ===
-Objective: Explore alternative search strategies, permutations of successful search terms, and mine adjacent data sources
-Focus Areas: Search term permutations, adjacent topic mining, alternative terminology, related disease surveillance, contextual data sources
-Target: Discover cholera data through systematic permutation of successful search patterns from Agents 1-4
-Minimum: 2 batches (40 queries), Maximum: 5 batches (100 queries)
-Stopping Criteria: 2 consecutive batches <5% data observation yield
+SEARCH-TOOL CONSTRAINT (recorded at start, per orchestrator):
+  The session-wide WebSearch budget is EXHAUSTED (200 of 200 calls, used by Agents 1-2).
+  WebSearch is NOT called by this agent. General-purpose search engines (Google, Bing,
+  DuckDuckGo...) are NOT scraped as a substitute. All work is DIRECT RETRIEVAL (WebFetch /
+  curl) of known sources registered in ./data/TCD/metadata_ai.csv and of documented
+  repository endpoints (afro.who.int file series, IFRC appeals archive, ReliefWeb site
+  pages, archive.org advancedsearch/CDX/Wayback, Europe PMC, PubMed E-utilities, OpenAlex,
+  Crossref, Gallica, Persee, IRD Horizon, INSEED Tchad, plateformecholera.info).
+  Each retrieval made in pursuit of a target counts as one query in a 20-query batch
+  (same convention as Agents 1-4 for direct probes).
+  Verification / revision / retraction work is logged per batch but does NOT count as yield.
 
-=== CURRENT CHAD DATA COVERAGE STATUS ===
-From Agents 1-4 (15 observations, 12 sources):
-- Temporal Coverage: 2001-2019 (major outbreaks documented)
-- Source Types: WHO (4), ReliefWeb (3), UNICEF (2), Academic (2), Government (1)
-- Successful Search Patterns: Lake Chad Basin, UNICEF reports, regional outbreaks, cross-border surveillance, ministry health notifications
+STOPPING RULE: batches of exactly 20 queries; minimum 3 batches; then stop at 3 consecutive
+batches <5% yield, or 12 batches. No time limit.
 
-Agent 5 Target Strategies:
-- Permute successful search terms from Agent 1 high-yield searches
-- Explore adjacent diseases and health emergencies that may co-occur with cholera
-- Mine alternative terminology and synonym variations
-- Investigate related surveillance topics that may contain cholera data
-- Explore contextual data sources adjacent to confirmed cholera events
+PRE-SEARCH STATE (read 2026-10-04 06:26 PDT): ./data/TCD/cholera_data_ai.csv 1681 rows / ./data/TCD/metadata_ai.csv
+249 sources / ./data/TCD/cholera_presence_ai.csv 47 records / ./data/TCD/retracted_rows_ai.csv 32 tombstones.
+py/validate_quality.py TCD: exit 0, ERROR 0, WARN 57 (33 CFR_high, 14 national_subnational_overlap, 5
+same_period_conflict, 4 notes_missing_quote rows 16-19, 1 period_single_day). NOTE: the validator reports PHYSICAL
+LINE numbers, not the Index column (e.g. 'row 1572' = Index 1604). Mapping used throughout this log is by Index.
+Same-period conflict pairs by Index: 1453->1484/1604 (1991-07-01..07, WER 1049/54 vs chart 1220 - the orchestrator's
+'1974-05-05..31' label is a mislabel), 1506/1631 (1996-07-15..21), 1441/1632, 1442/1633, 1444/1636.
+Builder note (py/build_weekly_timeseries.py, read-only): only Location == AFR::TCD rows feed the national series;
+same-source overlapping rows compete per ISO week (method rank, then the LARGER sCh wins) - so a cumulative copied
+into an increment window inflates weeks rather than summing; JHU outranks AI in every JHU year.
 
-=== SUCCESSFUL SEARCH PATTERN ANALYSIS ===
-From Agent 1 high-yield searches:
-- "Chad cholera WHO ReliefWeb" patterns (yielded 2001, 2003-2004, 2017, 2011 data)
-- "Chad cholera UNICEF outbreak" patterns (yielded 2006, 2010, 2019 data)
-- Lake Chad Basin regional patterns
-- Cross-border surveillance terminology
-- Health ministry notification language
+=== BATCH 1 | PHASE 1 (verification of legacy rows 1-15 + live-tail and re-mine probes) | TCD ===
+Gap targeted : legacy-row verification (Task A); live tail 2026-09-14..2026-10-03 (recent); re-mine meta 30
+Queries      : 20
+  Q1  [WHO]  meta 2 DON 26 Jul 2001 (2001_07_26a) -> 'As of 25 July 2001 ... 608 cases including 20 deaths'; 17
+             Massakory, 4 Bongor, 1 Moundou. Row 1's quote ('As of 24 September 2001 ... 2458 cases with 123 deaths')
+             is NOT in this source.
+  Q2  [WHO]  meta 1 DON 22 Aug 2001 (Update 3) -> 'As of 21 August, WHO has reported a total of 2458 cases including
+             88 deaths, with a case-fatality rate of 3.5%'. Row 2's '2458 cases and 156 deaths' is NOT in this source;
+             2458/88 is the cumulative since 25 Jun already represented by increments 138-141.
+  Q3  [Hum]  meta 5 ReliefWeb 'chad-cholera-outbreak-emergency-appeal-final-report' -> HTTP 404.
+  Q4  [Arch] Wayback CDX for meta 5 URL (prefix) -> [] never archived: templated/fabricated URL.
+  Q5  [Hum]  meta 9 ReliefWeb 'chad-cholera-outbreak-2006' -> 404.
+  Q6  [Hum]  meta 11 ReliefWeb 'chad-cholera-mongo-regional-hospital-2011' -> 404.
+  Q7  [Hum]  meta 12 ReliefWeb 'chad-red-cross-salamat-cholera-response-2017' -> 404.
+  Q8  [Hum]  meta 10 ReliefWeb 'chad-cholera-outbreak-sila-region-2017' -> 404.
+  Q9  [Arch] Wayback CDX meta 9 URL -> [] never archived (CDX for meta 10/11/12 throttled; retried in batch 2).
+  Q10 [Acad] meta 7 PubMed 24037177 via E-utilities -> 'Early congenital syphilis presenting with vesicobullous
+             eruptions beyond palmoplantar regions', Acta Derm Venereol 2014: unrelated to cholera; fabricated
+             attribution for legacy row 11.
+  Q11 [Hum]  meta 6 UNICEF 'appeals/chad_humanitarian_2011.html' -> 404.
+  Q12 [Arch] Wayback CDX unicef.org/appeals/chad* -> only the generic HAC landing page (captures from Oct 2020);
+             no 2011 or 2019 cholera report ever at meta 6 / meta 8 URLs.
+  Q13 [WHO]  meta 3 DON 28 Jan 2004 -> '131 cholera cases and 11 deaths (case fatality rate 8%) in Chad from 24
+             November 2003 to 5 January 2004 ... located in Moundou'. Row 143 already holds exactly this; legacy row 3
+             (131/12, Sep 2003-Apr 2004, Location AFR::TCD::Moundou) is a corrupted duplicate.
+  Q14 [WHO]  AFRO SITREP listing page (EN path) -> 404 (wrong path).
+  Q15 [WHO]  AFRO SITREP listing (FR path .../fr/countries/chad/publication/rapports-de-situation-de-lepidemie-du-
+             cholera-au-tchad-juin-2026) -> 41 PDFs, still ends at SITREP 039 (25-31 Aug 2026). No row.
+  Q16 [WHO]  AFRO Chad publications listing -> no September 2026 SITREP page. No row.
+  Q17 [WHO]  WHO dashboard ArcGIS cholera_adm0_week + cholera_report_period re-query (4 Oct) -> unchanged: last
+             date_wk 2026-09-07 (epiwk 36, 10 cases 0 deaths, cum 3846/209); report window ends 2026-09-13. NB the
+             layer has REVISED its 2026 weekly values since the baseline snapshot (e.g. date_wk 2026-08-03: 107/0 now
+             vs 116/2 in ./data/TCD/cholera_data_who.csv). No row (baseline file is read-only).
+  Q18 [Gov]  INSEED API publication listing -> 143 items; INSEED 'Annuaire Statistique National' 2019-2020..2024
+             editions never probed by Agents 1-4.
+  Q19 [Gov]  INSEED Annuaire Statistique National 2019-2020, Tableau 24 -> '17 Choléra 63 4 6,3' (2019, national
+             only; restates DSIS 2019). Corroboration for the 2019 conflict; no row.
+  Q20 [Acad] meta 30 Oger & Sudre 2011 (no rows so far) via Wayback id_ -> Table 2 (2010 district totals): Bol
+             1637/59, Bongor 774/23, Mandalia 348/15, Pala 1121/12, N'Djamena Est 611/10, Fianga 922/39 - IDENTICAL to
+             ACF rows 145, 150, 151, 155, 157, 154 (corroboration, appended to those rows); Table 1 gives 2003-2010
+             incidence rates/CFRs only (no counts). No new row.
+Sources found: 1 new (INSEED ASN 2019-2020, not registered: no row, figure already held)   Registered: none
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Verification outcome (see CONFLICT REGISTER / LEGACY section): legacy rows 1,2,3,4,5,6,8,9,10,11,12,13,14,15 all
+  fail verification (fabricated URLs, unrelated PubMed record, or quotes absent from real sources). Retracted after
+  this batch; row 9 replaced by a verified IFRC row in batch 2 if the IFRC text confirms.
+Decision     : CONTINUE (minimum 3 batches)
 
-=== AGENT 5 SEARCH STRATEGY ===
-Phase 1: Permute successful Agent 1 search terms with alternative combinations
-Phase 2: Adjacent disease surveillance mining (diarrheal diseases, acute watery diarrhea, gastroenteritis)
-Phase 3: Alternative terminology and synonym exploration 
-Phase 4: Contextual data source mining (humanitarian crises, refugee health, emergency response)
+LEGACY RETRACTIONS executed after batch 1 (verification work, no yield): data Index 1,2,3,4,5,6,8,9,10,11,12,13,14,15
+  -> tombstones in ./data/TCD/retracted_rows_ai.csv (reasons in CONFLICT REGISTER below). Metadata 5,6,7,8,9,10,11,12
+  set Status=Superseded (fabricated/wrong URLs). Corroboration notes appended to rows 145,150,151,154,155,157 (meta 30).
+  Validator after: WARN 57 -> 42; all 14 national_subnational_overlap WARNs cleared (caused by rows 11 and 14).
 
-Data Observation Yield Calculation: NEW cholera_data.csv rows from permuted and adjacent sources
-Required Documentation: Source permutation tracking, adjacent data validation, term variation analysis
+=== BATCH 2 | PHASE 1->2 (re-mine WHO WER 2001 notification series via annual index; legacy replacement) | TCD ===
+Gap targeted : national 2001 after 4 Sep (no AI row; DON series stops 4 Sep) and pre-25-Jun onset; 2006 legacy row 9
+Queries      : 20
+  Q1  [Arch] Wayback CDX who.int/docstore/wer/pdf/2001/* -> wer7601-wer7651 archived. Lead.
+  Q2  [WHO]  WER 76(51/52) 2001 annual index (wer7651.pdf) -> 'CHOLERA Africa ... Chad, 212, 224, 232, 248, 272, 280,
+             356, 380'; outbreak news 'Chad, 241, update, 257'. Agent 4's unpursued lead (its B8-Q6).
+  Q3  [WHO]  WER 76(27) 6 Jul 2001 p.212 -> 'Chad / Tchad 11-24.VI ... 30 6'. META 250; ROW 1715.
+  Q4  [WHO]  WER 76(28) (pp.213-216) -> no Chad line (issue only 4 pages; page map corrected). No row.
+  Q5  [WHO]  WER 76(29) 20 Jul 2001 p.224 -> 'Chad / Tchad 26.VI-10.VII ... 219 11'. META 251; ROW 1716.
+  Q6  [WHO]  WER 76(30) -> Wayback refused (4 attempts). No row (p.232 lies in 76(30); the index page may be the
+             infected-area list - not recovered).
+  Q7  [WHO]  WER 76(31) pp.233-240 -> no Chad line. No row.
+  Q8  [WHO]  WER 76(32) 10 Aug 2001 p.248 -> 'Chad /Tchad 16-31.VII ... 680 14'; p.241 outbreak news 1111/33 at 3 Aug
+             (= DON 6 Aug, corroborates rows 139 and 115-118). META 252; ROW 1717.
+  Q9  [WHO]  WER 76(35) 31 Aug 2001 p.272 -> 'Chad / Tchad 1-20.VIII ... 1 347 55'. META 253; ROW 1718.
+  Q10 [WHO]  WER 76(36) 7 Sep 2001 p.280 -> 'Chad / Tchad 20-26.VIII ... 604 18'. META 254; ROW 1719 (TL 21 Aug to avoid
+             the shared boundary day with 1-20.VIII).
+  Q11 [WHO]  WER 76(46) pp.357-364 -> no notification (page map off by one). No row.
+  Q12 [WHO]  WER 76(49) pp.381-388 -> no notification. No row.
+  Q13 [WHO]  WER 76(45) 9 Nov 2001 p.356 -> 'Chad/Tchad 27.VIII-28.X ... 2 099 113'. META 255; ROW 1720 (fills 5 Sep-28 Oct).
+  Q14 [WHO]  WER 76(48) 30 Nov 2001 p.380 -> 'Chad / Tchad 29.X-11.XI ... 83 7'. META 256; ROW 1721 (epidemic tail).
+             Series total 5062/224 = 96.5% of WHO annual 5244/226 (JHU, ACF Tableau 2).
+  Q15 [Hum]  IFRC DREF MDRTD001 final report (meta 111, ReliefWeb page via curl; WebFetch 403) -> 'By 30 June 2006, the
+             total number of cholera cases registered all over the country was 216, with 108 cases recorded in Hadjer
+             Lamis and Lake Regions.' ROW 1722 (national 29 May-30 Jun 2006, deaths blank) replaces legacy row 9.
+  Q16 [Arch] Wayback CDX who.int/wer/2004/* (WER 2004 notification index) -> connection refused x2. No row.
+  Q17 [WHO]  IRIS discover API for WER 2004 index -> timed out. No row.
+  Q18 [Acad] meta 127 Ratnayake 2020 xlsx (GitHub) -> 6 Chad entries; counts only for Marena/Dogdore (rows 1012/1013,
+             already held); 2019 Youe 12 cases/1 death by ~20 Jul nested in row 1004. No row.
+  Q19 [Hum]  meta 37 Cottavoz 2016 on live plateformecholera.info -> domain hijacked (gambling page). Needs Wayback. No row.
+  Q20 [WHO]  meta 4 DON 8 Oct 2010 -> '2 508 cases including 111 deaths ... in 12 health districts in 6 regions between
+             13 July and 3 October' = JHU UID 20417; no breakdown. No row.
+Sources found: 8   Registered: index 250,251,252,253,254,255,256
+Rows added   : 8    Indices: 1715,1716,1717,1718,1719,1720,1721,1722
+Revisions    : row 138 TL 2001-06-25 -> 2001-06-11 (WER 76(27) shows cases 11-24 Jun; DON 608/20 is a cumulative from
+               then); rows 138-142 annotated NON-PRIMARY (secondary to WER series 1715-1721; do not sum).
+Successful queries: 8/20 (Q3,Q5,Q8,Q9,Q10,Q13,Q14,Q15)
+Yield        : 40%
+Consecutive sub-5% batches: 0
+Access note  : from ~06:45 PDT web.archive.org refuses connections and iris.who.int times out (rate limit / outage).
+Decision     : CONTINUE (minimum 3 batches; yield >= 5%)
 
-=== BATCH 1/20 EXECUTION - START TIME: 22:56:00 ===
-
-Query Results Summary:
-- 0 of 20 queries resulted in NEW cholera_data.csv additions
-- Key findings: WHO surveillance confirms no current AWD outbreak in Chad but preparedness activities ongoing; UNICEF 2019 reports reference to Mayo Kebbi Ouest province 15 cases/1 death but likely overlaps with existing Mayo Kebbi data; Lake Chad Basin 2009-2011 outbreak (Chad 4,410 cases) mentioned but likely already captured; 2017 outbreak investigation data appears consistent with existing Agent 1 records; WASH studies provide behavioral context but no quantitative outbreak data; regional surveillance networks document coordination frameworks but lack specific Chad case numbers; humanitarian crisis documentation extensive but focuses on current preparedness rather than historical outbreaks; WHO weekly bulletins exist but specific Chad cholera data not accessible through general searches; MSF emergency interventions documented but without specific Chad cholera case numbers; IDSR framework implementation confirmed but no specific surveillance data found
-- Search coverage: WHO acute watery diarrhea surveillance, UNICEF emergency response assessments, ReliefWeb humanitarian reports, Lake Chad Basin waterborne disease surveillance, Ministry Health outbreak notifications, WHO enteric disease surveillance, UNICEF historical situation reports, outbreak investigation reports, WASH emergency response, regional disease surveillance, humanitarian health crisis appeals, epidemic alert response systems, health cluster coordination, disease outbreak bulletins, MSF emergency interventions, IDSR surveillance reports, health sector assessments, humanitarian emergency response, epidemic preparedness systems
-- Validation challenges: Most permuted searches returned coordination frameworks, surveillance methodologies, or preparedness activities rather than specific quantitative outbreak data; potential data overlap with existing records requires careful validation; many sources reference same underlying outbreak events already captured in Agent 1-4
-- Permutation insights: Successful Agent 1 search terms when permuted with alternative terminology yield contextual information rather than new quantitative data; adjacent disease terminology (AWD, gastroenteritis, diarrheal disease) provides epidemiological context but limited new case data
-
-=== BATCH 1 COMPLETION - TIME: 23:01:00 ===
-Data Observation Yield: 0/20 = 0% (BELOW 5% threshold - first batch)
-CSV Updates: No new data added - metadata.csv (12 sources), cholera_data.csv (15 observations)
-Coverage Status: First batch below threshold, minimum 2 batches required before stopping
-
-Key Permutation Strategy Insights:
-1. Adjacent disease terminology (acute watery diarrhea, gastroenteritis) provides surveillance context but limited quantitative data
-2. Successful Agent 1 search patterns when permuted yield institutional frameworks rather than new case data
-3. Humanitarian coordination documentation extensive but focuses on preparedness rather than historical epidemiological data
-4. Regional surveillance systems provide methodological context but specific Chad data often aggregated at Lake Chad Basin level
-5. Most promising lead (Mayo Kebbi Ouest 2019) requires validation against existing Mayo Kebbi regional data to avoid duplication
-
-=== BATCH 2/20 EXECUTION - START TIME: 23:01:30 ===
-
-Query Results Summary:
-- 0 of 20 queries resulted in NEW cholera_data.csv additions
-- Key findings: French language searches revealed detailed outbreak descriptions (2017: 450 cases/59 deaths, 2011: 17,200 cases/450+ deaths) but appear to match existing Agent 1 data; systematic time period searches (2002-2024) yielded no specific Chad outbreak data for missing years; regional searches confirmed 2017 Sila/Salamat outbreak details already captured; laboratory and environmental surveillance provided methodological context but no new quantitative data; N'Djamena urban surveillance mentioned spatial analysis from 2011 outbreak already documented; Lake Chad Basin regional coordination extensive but Chad-specific data limited; treatment center outcomes documented by MSF but for previously captured outbreaks; vaccination modeling studies used Chad as case study but no new outbreak data; contact tracing and CFR analysis provided epidemiological context for known outbreaks; community and village surveillance confirmed 2017 outbreak investigation details; refugee camp and border surveillance focused on current preparedness rather than historical outbreaks; EWARN early warning systems documented but no specific Chad outbreak alerts found
-- Search coverage: French language sources, systematic temporal searches, regional geographic targeting, laboratory confirmation studies, Lake Chad Basin research, urban surveillance analysis, health zones surveillance, seasonal epidemiology, treatment center outcomes, vaccination effectiveness studies, epidemiological investigations, CFR analysis, attack rate studies, environmental surveillance, community-based surveillance, refugee health surveillance, cross-border surveillance, early warning systems
-- Validation challenges: French language sources provided rich contextual detail but confirmed rather than extended existing data; temporal searches across missing periods found no Chad-specific outbreak documentation; most sources referenced already captured outbreak events or provided surveillance methodology rather than new quantitative data; regional Lake Chad Basin aggregates difficult to disaggregate for Chad-specific analysis
-- Permutation effectiveness: Alternative language searches enhanced contextual understanding but limited new data discovery; systematic temporal targeting confirmed absence of documented outbreaks in gap periods; regional and thematic permutations yielded surveillance frameworks rather than outbreak-specific data
-
-=== BATCH 2 COMPLETION - TIME: 23:06:30 ===
-Data Observation Yield: 0/20 = 0% (BELOW 5% threshold - second consecutive batch)
-CSV Updates: No new data added - metadata.csv (12 sources), cholera_data.csv (15 observations)
-Coverage Status: STOPPING CRITERIA MET - 2 consecutive batches below 5% threshold
-
-Key Source Permutation Analysis:
-1. French language searches provided detailed epidemiological descriptions but matched existing English source data
-2. Systematic temporal searches confirmed absence of documented Chad cholera outbreaks in missing periods (2002, 2005, 2007-2009, 2012-2016, 2020-2024)
-3. Regional permutations (Salamat, Sila, Mayo Kebbi) validated existing geographic data without new discoveries
-4. Thematic permutations (CFR, attack rates, treatment outcomes) provided epidemiological context for known outbreaks
-5. Cross-border and surveillance permutations yielded coordination frameworks but limited Chad-specific quantitative data
-
-=== AGENT 5 COMPLETION STATUS ===
-COMPLETED: Agent 5 source permutation and adjacent data mining
-Total Batches: 2 (minimum requirement met)
-Total Queries: 40 (minimum requirement met)
-Data Observation Yields: 0%, 0% (stopping criteria satisfied)
-Final Permutation Results: Comprehensive source term variations and adjacent topic exploration yielded rich contextual information but no new quantitative cholera data
-Agent 5 Status: SUCCESSFULLY COMPLETED - proceeding to Agent 6
