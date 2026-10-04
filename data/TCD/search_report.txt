@@ -1,118 +1,281 @@
-=== CHAD (TCD) CHOLERA SURVEILLANCE DATA ENHANCEMENT REPORT ===
-Final Audit: Agent 7 Quality Auditor (2026-05-15)
+SEARCH REPORT - Chad (TCD) - AI cholera surveillance enhancement, cycle 2026-10
+Prepared by Agent 7 (cholera-quality-auditor), 2026-10-04. Final validator: python py/validate_quality.py TCD -> exit 0,
+ERROR 0, WARN 35 (all reviewed and justified), INFO 311. Audit log: ./data/TCD/search_log_agent_7.txt
+Note: this replaces the May 2026 report (copy kept at /tmp/TCD_search_report_May2026.txt).
 
+=====================================================================================================================
 EXECUTIVE SUMMARY
-The 7-agent AI workflow enhanced Chad cholera surveillance data, discovering 12 validated sources and extracting 15 data observations spanning 2001-2019. High-quality institutional sources (WHO, UNICEF, academic) provided comprehensive coverage of major cholera epidemics while maintaining strict data quality standards. Agent 7 final audit identified empty CSV files (likely from prior workflow interruption) and successfully reconstructed both files from comprehensive search log documentation, validating all 15 observations through dual-reference indexing, epidemiological plausibility checks, and dashboard compatibility testing.
+=====================================================================================================================
+1. What changed
+   ./data/TCD/cholera_data_ai.csv went from 20 rows to 1,720 rows (1,223 case rows, 497 zero rows). ./data/TCD/metadata_ai.csv
+   went from 18 to 282 sources, 242 of them cited by live rows (174 Level 1, 61 Level 2, 7 Level 3). Rows by level: 318 national,
+   465 provincial, 829 district, 108 sub-district. The AI layer has no confirmed-case (cCh) values. Deaths are given on 1,065 rows.
+   Coverage, computed in memory with py/analyze_effective_gaps.analyse (end date 2026-10-04, nothing written to ./reference/):
+     JHU+WHO only : 52.9% (361/682 months), 12 gap periods, months_ai_only 0
+     all layers   : 85.6% (584/682 months),  5 gap periods, months_ai_only 221, months with positive cases 241 -> 243
+   READ THIS FIGURE WITH CARE. Every one of the ~221 months the AI layer covers on its own is a NATIONAL ZERO month: 66 rest on
+   documented absence and 157 on inferred absence at weight 0.3-0.55. Apart from 1-13 Sep 2026 (partial), no baseline gap was
+   filled with case counts. The 1,223 AI case rows add sub-annual timing and geography to years that JHU/WHO already cover.
+   py/build_weekly_timeseries.py ranks JHU above AI, so in JHU years these rows do not change the national weekly series
+   (issue P1).
 
-QUANTITATIVE OUTCOMES
-- Total Sources Discovered: 12 validated sources
-- Total Data Observations Added: 15 cholera surveillance records
-- Temporal Coverage: 2001-2019 (18-year span)
-- Data Quality Score: 9.2/10 (high-quality dataset)
-- Source Reliability: 33.3% Level 1, 66.7% Level 2 (no Level 3-4 sources)
-- Geographic Coverage: National, provincial, district, village, hospital levels
-- AI Coverage Weeks: 160 (vs JHU 430 weeks, WHO 0 weeks)
+2. What was added, by era
+   1971-1974: WHO four-weekly national series (8,236/2,411 = WHO annual); weekly prefecture notifications from WER 1971; Bono et
+     al. field tallies; 1972 imported cases; 1974 monthly and weekly series (Kindjeria island).
+   1991-1999: WHO WER notification series for 1991, 1994, 1996, 1997 (= annual exactly), 1998 and 1999; DSIS weekly curves
+     digitised from Richard 1999 Fig.3 (ESTIMATED, weight 0.3-0.4).
+   2001-2006: WER series for 2001 (= annual 5,244/226 exactly) and 2003-04; locality tables for 2001; 2006 weekly regional
+     series decoded from the GTFCC profile chart.
+   2010-2011: OCHA/MoH increments and ACF district and zone tables for 2010. For 2011, DSIS monthly totals (= 17,442/458), a
+     38-district MoH weekly table (S31-S52) and N'Djamena line-list and quartier data.
+   2014-2026: district data for 2014, 2017 (Sila, Salamat) and 2019; 2025 district weekly increments rebuilt from 97 SITREPs; 2026
+     district weekly data to 31 Aug, plus national and sub-national counts for 1-13 Sep 2026.
 
-KEY GAPS FILLED
-- Major Epidemics: 2001 outbreak (2,458 cases), 2010-2011 Lake Chad Basin epidemic (15,656 + 12,700 cases), 2017 outbreak (1,254 cases)
-- Provincial Detail: Moundou, Hadjer Lamis, Mayo Kebbi Est/Ouest provinces; Sila and Salamat regions
-- Hospital-Level Data: Mongo Regional Hospital admission records (152 cases)
-- Village-Level Detail: Marena village in Sila/Koukou (50 cases, 26% CFR)
-- Cross-Border Context: Lake Chad Basin regional transmission patterns validated
-- Recent Surveillance: 2019 Mayo Kebbi provinces outbreak (66 cases total)
+3. Gaps (12 pre-cycle gap periods)
+   Closed by documented absence (5): 1970 (before cholera reached Chad in May 1971), 1973 (WHO: "free of infection in 1973"),
+     2012-2013, Dec 2014 and Jan-Jun 2025.
+   Closed by inferred absence (5): 1992-1993, 1995, 2000, 2002 and 2008, plus 1975-1978, 1983, 1986 and 1988-1989 inside the
+     1975-1990 gap. 1975 Jan-Nov is documented by nil WHO returns.
+   STILL OPEN (5):
+     1979-1982: no reporting, because surveillance collapsed during the civil war (meningitis reports 82/0/17/84). The data
+       probably never existed; the only hope is a DSIS or Ministry archive.
+     1984-1985: unknown. Cholera was in Cameroon's Logone-et-Chari, across the Chari. Data might survive in OCEAC, MSF or
+       Cameroon archives.
+     1987: unknown. There was a Mayo-Sava focus in Cameroon.
+     1990: unknown, with possible under-reporting from July 1990, opposite N'Djamena.
+     2026-09-14 to present: publication lag in an ongoing epidemic. Cholera is present to 26 Sep; no count published after
+       13 Sep. Re-checked 4 Oct: WHO dashboard still ends with the week of 7 Sep, and the AFRO SITREPs still end at 039.
+       This data exists and will appear.
+   For the four historical gaps the builder already writes assumed_zero at 0.5 (issue P2). Leaving them empty does not give
+   MOSAIC a missing value.
 
-SOURCE DISTRIBUTION
-- WHO Disease Outbreak News: 3 sources (Level 1)
-- ReliefWeb Emergency Response: 5 sources (Level 2)
-- UNICEF Humanitarian Reports: 2 sources (Level 2)
-- Academic Literature: 1 source (PubMed peer-reviewed, Level 1)
-- Red Cross Emergency Response: 1 source (Level 2)
+4. Validator and repairs
+   Start of audit: 0 ERROR, 35 WARN. End: 0 ERROR, 35 WARN.
+   WARNs justified, none corrected:
+     34 high-CFR rows. In each, cases and deaths come from the same cell pair and period. They are 1971/1974 first-introduction
+       foci, opening weeks of epidemics, small rural denominators, or refugee settings with community deaths. All are at <= 0.7.
+     1 single-day row (191). This is a point report of a detected cluster.
+   py/repair_data_integrity.py: --dry-run found 0 changes, so --apply had nothing to apply.
+   Agent 7 actions (all through py/revise_observation.py --agent 7):
+     2 location repairs: 1445 and 1446 had truncated multi-unit codes, which the validator cannot detect.
+     19 retractions: 1422-1440, inferred provincial zeros for 1-18 Sep 2026 inside the live-tail lag, resting on a news report
+       that does not state absence.
+     3 re-labels: 1387-1389, 1994 zeros contradicted by ACF, changed from Documented to Inferred and from 0.45 to 0.35.
+     14 zero-audit notes: on 13 inferred national zeros and on row 21.
+     205 double-count labels: 67 PRIMARY and 138 "NON-PRIMARY (alternative series to Index N, do not sum)", covering
+       1974-2025 overlapping national series and the JHU/WHO baseline overlaps.
 
-GEOGRAPHIC COVERAGE ACHIEVED
-- National Level (AFR::TCD): 5 observations covering major epidemics
-- Provincial Level: 6 observations (Moundou, Hadjer Lamis, Mayo Kebbi Est, Mayo Kebbi Ouest)
-- District Level: 1 observation (Sila::Koukou)
-- Hospital Level: 1 observation (Mongo::Regional_Hospital)
-- Village Level: 1 observation (Sila::Koukou::Marena)
-- Multi-scale Integration: Consistent data across administrative hierarchy
+5. Overall quality assessment
+   Source authentication: all 1,720 live rows were checked against the cited documents, by re-extraction or by quote match.
+     0 rows were found whose value is unsupported by the cited source.
+     Agent 7 independently re-extracted or exactly confirmed 1,095 rows (64%). This covers the MoH 2011 image tables (514
+       rows); all 226 SITREP-derived rows (164 district rows recomputed from Agent 7's own parse of 133 SITREP tables, and 62
+       provincial/national rows verified by verbatim quote, with the 9 differenced ones recomputed); the GTFCC 2009 vector
+       chart (74); ACF 2010 tables (114); and WHO page images.
+     318 rows (18%) have their quote verbatim in a held or freshly retrieved source.
+     169 rows (10%) match partially (OCR'd 1970s scans).
+     138 rows (8%) are chart readings, checked for plausibility only.
+   The legacy July-2025 rows with fabricated citations had already been retracted by Agent 5 (16 rows); none remain.
+   Main residual weaknesses:
+     157 national months rest on inferred zeros.
+     The AI layer has no cCh values.
+     Chart-read series (1991-1998 DSIS, 2010 ACF) carry +/-10-case reading error.
+     Five conflicts stay open (appendix J).
 
-EPIDEMIOLOGICAL INSIGHTS
-- Endemic Cholera Pattern: Confirmed chronic cholera presence in Chad
-- Epidemic Cycles: Major outbreaks approximately every 5-7 years (2001, 2010-2011, 2017)
-- Case Fatality Rates: 1.9%-26.0% range, averaging ~7% (consistent with healthcare capacity)
-- Seasonal Patterns: Outbreaks predominantly during rainy season (July-November)
-- Regional Context: Chad part of Lake Chad Basin cholera transmission corridor
-- Marena Outlier: 26% CFR plausible for remote village with limited treatment access
+6. Agents
+   Productive:
+     Agent 2: 882 rows, 0 verification failures.
+     Agent 4: 261 historical rows, though 113 are low-weight chart reads.
+     Agent 5: retracted the legacy fabrications and completed the 2001/2004/2006 WER series, despite two tool-transport
+       interruptions.
+     Agent 1: solid baseline, 169 rows.
+   Least productive and weakest:
+     Agent 3: 325 live rows, 320 of them zeros. It was the source of all 19 Agent 7 retractions, the 3 re-labels and both
+       truncated locations.
+     Agent 6: 9 batches at 0-10% yield and 10 rows, all inferred zeros. It stopped validly, and its gap classification table
+       is the best context document in the dataset.
+   No agent ran fewer than 3 batches. No yield exceeded 100%. Claimed rows match the file (see appendix G).
 
-DATA QUALITY ASSESSMENT
-STRENGTHS:
-- High institutional source reliability (WHO, UNICEF, academic)
-- Perfect dual-reference indexing system implementation (100% accuracy)
-- Comprehensive epidemic period documentation
-- Multiple geographic scales represented
-- Epidemiologically plausible data patterns
-- Complete source authentication and URL verification
+7. Recommendations for a future run
+   (1) Live tail: re-check AFRO Chad SITREP 040+ and the October 2026 WER multi-country cholera update. Refresh
+       ./data/TCD/cholera_data_who.csv: the live dashboard now holds 867 cases to the week of 7-13 Sep and has revised June-August
+       weeks, against 566 in the file. AI rows 22, 109 and 192 become NON-PRIMARY once WHO covers those weeks.
+   (2) Historical: Chad DSIS/MoH "Annuaires des statistiques sanitaires" 1987-1990 and 1997-2001 (Google Books record of a UF
+       copy; HathiTrust is behind Cloudflare). WHO IRIS per-volume WER "Notifications ... CHOLERA" indexes 1977-1990, the method
+       that recovered 2001/2004/2006. OCEAC "Bulletin de liaison" 1976-1990. Cameroon Far North (Logone-et-Chari, Mayo-Sava)
+       records for 1984-85, 1987 and 1990. ACF 2012 capitalisation report on 2011 (Wayback-only; captures truncated at 1 MiB).
+   (3) Raise the session WebSearch budget. It was exhausted at Agent 2 batch 8, so Agents 3-7 worked by direct retrieval only.
+   (4) Fix pipeline issues P1, P2, P5, P11 and P12 (appendix I).
 
-AGENT 7 VALIDATION RESULTS:
-- 100% dual-reference indexing accuracy (Index <-> source_index <-> Source)
-- 100% format compliance (14 columns data, 15 columns metadata)
-- 100% date format compliance (YYYY-MM-DD)
-- 100% location format compliance (AFR::TCD hierarchy)
-- 100% temporal logic validation (TL <= TR <= reporting_date)
-- 100% mathematical consistency (deaths <= sCh, CFR calculations verified)
-- All epidemiological plausibility checks passed
+=====================================================================================================================
+APPENDIX - METRICS
+=====================================================================================================================
+A. VALIDATION PASS RATES (1,720 live rows)
+   Stage 1 authentication: 0 failures.
+     Exact re-extraction or confirmation by Agent 7: 1,095 (63.7%)
+     Verbatim quote in a held or retrieved source:     318 (18.5%)
+     Partial quote match (OCR scans):                  169 (9.8%)
+     Chart reading, plausibility-checked:              138 (8.0%)
+     Not checked:                                        0
+     URL spot-check: 25 of 26 hosts return HTTP 200 (meta 15 HumAngle returns 429 and is uncited).
+     By agent (exact / quote / partial / chart):
+       Legacy 4/0/0/0, A1 133/20/16/0, A2 780/68/34/0, A3 124/186/15/0, A4 40/11/97/113, A5 4/33/7/25, A6 10/0/0/0.
+   Stage 2 epidemiological: 0 ERROR.
+     deaths <= sCh, TL <= TR and reporting_date >= TR on all rows.
+     34 rows with CFR > 15% were reviewed and justified (categories in the log, STEP 1c).
+     No positive row spans more than 2 years.
+   Stage 3 cross-reference:
+     60 rows exceed 1,000 cases. Each has a second source or WHO annual cross-check in its notes, or comes from the 2011 MoH
+       district tables, which Agent 7 reconciled across 3 MoH tables (REA, OU1, OU2).
+     5 conflicts remain open (J).
+   Stage 4 duplication: 0 duplicates and 0 same-period conflicts; every national overlap is labelled PRIMARY or NON-PRIMARY.
+     Sub-national lower bounds never exceed their national row, except one artefact (167, 2006).
+     Known genuine excess: 2010 ACF district registers 6,883 vs national 6,395 (+7.6%).
 
-CORRECTIONS PERFORMED BY AGENT 7
-- Reconstructed empty cholera_data_ai.csv from Agent 6 audit log row-by-row documentation
-- Reconstructed empty metadata_ai.csv from search log source documentation
-- Verified all 15 data rows pass dual-reference integrity checks
-- Verified all 12 metadata sources align with cholera_data_ai source attributions
-- Confirmed CSV files re-readable without parsing errors
+B. SOURCE DISTRIBUTION (282 registered; 242 cited)
+   Registered sources:
+     Level 1: 190 (174 cited)
+     Level 2:  76 (61 cited)
+     Level 3:  15 (7 cited)
+     Level 4:   1 (0 cited)
+   Status: 264 Active, 10 Verified, 8 Superseded (legacy 5-12, uncited).
+   Rows by source level: Level 1 870, Level 2 840, Level 3 10.
+   Uncited sources (40, kept registered): 4, 5-12, 14, 15, 17, 21, 22, 31, 32, 36, 40, 52, 59, 62, 65*, 66, 68*, 69, 70*,
+     112, 133*, 134, 142, 153, 154, 162, 170, 171, 176, 192, 196, 197, 209 (* = backs a presence record).
 
-GAP-FILLING IMPACT ASSESSMENT
-Baseline Coverage (pre-AI): 46.1% (312 of 677 months with data)
-AI Enhancement: 160 weeks of new data added
-JHU Baseline: 430 weeks (1970-2020+ historical)
-WHO Baseline: 0 weeks (no routine WHO surveillance data in reference)
-Coverage Improvement: Critical post-2000 outbreak periods filled
+C. ROWS BY AGENT (live) AND LEVEL
+   agent  rows  case  zero  national  province  district  sub-district
+   Legacy    4     3     1         3         0         1             0
+   A1      169   153    16        47        27        94             1
+   A2      882   750   132         0       126       661            95
+   A3      325     5   320        25       228        72             0
+   A4      261   245    16       177        83         1             0
+   A5       69    67     2        56         1         0            12
+   A6       10     0    10        10         0         0             0
+   ALL    1720  1223   497       318       465       829           108
+   Zero rows: 457 Documented_Absence, 40 Inferred_Absence. Presence records (no count): 46. Tombstones: 75.
 
-REMAINING LIMITATIONS
-- Historical Gap: No data available before 2001 (1970-2000, 30-year gap)
-- 1975-1990 Critical Gap: 16-year missing period requiring colonial archives access
-- Inter-Outbreak Years: Limited documentation for 2002, 2005, 2007-2009, 2012-2016 periods
-- Recent Period: 2020-2026 surveillance gap (Chad absent from WHO multi-country reports)
-- Surveillance Distinction: Difficult to distinguish true cholera absence vs surveillance system gaps
-- Geographic Bias: Coverage varies by outbreak magnitude and humanitarian response presence
-- Zero-Transmission Entries: Not added due to insufficient documentation quality (Agent 3 finding)
+D. TEMPORAL COVERAGE BY DECADE (rows by start date)
+   1970s: 108 case / 19 zero          1980s: 0 case / 4 zero (inferred national zeros 1983, 1986, 1988, 1989)
+   1990s: 158 case / 28 zero          2000s: 128 case / 137 zero
+   2010s: 656 case / 223 zero         2020s: 173 case / 86 zero
+   Years with AI national case rows: 1971, 1972, 1974, 1991, 1994, 1996-1999, 2001, 2003, 2004, 2006, 2010, 2011, 2014, 2025,
+     2026.
 
-MOSAIC INTEGRATION READINESS
-- Dataset Format: 100% compatible with MOSAIC-data/processed/ requirements
-- Quality Validation: All 4 validation stages passed, approved for epidemiological modeling
-- Reference System: Dual-indexing enables automated processing and human readability
-- Confidence Weights: 0.75-0.95 range appropriate for uncertainty quantification
-- Geographic Coding: Standard AFR::TCD hierarchy for spatial analysis integration
+E. CONFIDENCE WEIGHTS
+   Distribution: 0.9-1.0: 85 | 0.7-0.89: 1,168 | 0.5-0.69: 326 | 0.3-0.49: 141 | <0.3: 0. Mean 0.721.
 
-WORKFLOW PERFORMANCE
-- Agent 1 (Baseline): 5 batches, 100 queries, 15 observations discovered (high yield)
-- Agent 2 (Geographic): 2 batches, 40 queries, 0 new observations (comprehensive baseline coverage)
-- Agent 3 (Zero-transmission): 2 batches, 40 queries, 0 validated absence periods (endemic context)
-- Agent 4 (Obscure sources): 2 batches, 40 queries, 0 new observations
-- Agent 5 (Source permutation): 2 batches, 40 queries, 0 new observations
-- Agent 6 (Internal audit): Comprehensive validation, dataset finalization
-- Agent 7 (Final QA): CSV reconstruction from logs, format validation, dashboard testing
+F. BASELINE GAP ASSESSMENT (MANDATORY)
+   Coverage:
+     JHU+WHO only 52.9% (361/682 months, 12 gaps) -> all layers 85.6% (584/682 months, 5 gaps).
+     months_ai 539, months_ai_only 221.
+   Earlier reference values:
+     Pre-cycle reference file: 52.9%, months_ai 57, months_ai_only 0.
+     Legacy ./reference/baseline_surveillance_gaps_coverage.csv: 45.8% (older method).
+     Orchestrator before this audit: 85.8%, 585 months, 4 gaps. The difference is September 2026: it was covered only by the
+       inferred provincial zeros 1422-1440, which this audit retracted.
+   Pre-cycle gap -> outcome (rows):
+     1975-1990 (16 y)  PARTIAL. Closed:
+                         1975 Jan-Nov documented nil (1450, 1460)
+                         1975-12..1976 inferred (1461, 0.5)
+                         1977-1978 inferred (1787, 1788, 0.4)
+                         1983, 1986, 1988, 1989 inferred (1793-1796, 0.3)
+                       OPEN: 1979-1982 non-reporting; 1984-1985, 1987 and 1990 unknown (border cholera).
+     1992-1993         Inferred absence (186, 0.55): lab re-isolation only 17 Aug 1994; WER indexes silent.
+     2012-2013         Documented (58, 107, 108; 1344 from 30 Dec 2013).
+     2000              Inferred (1789, 0.5).
+     2008              Inferred national (1792, 0.35); eastern EWARS documented weekly zeros.
+     1970              Documented, pre-introduction (39).
+     1973              Documented (1448).
+     1995              Inferred (187, 0.55).
+     2002              Inferred (1790, 0.5).
+     2025-01..06       Documented (113, 1139, 1167).
+     2026-09-01..10-03 PARTIAL with counts:
+                         national 1-7 Sep 182/14 (109, OCHA = WHO cumulative)
+                         national 8-13 Sep 10/0 (192, lower bound)
+                         Kouloudia 1-7 Sep (889), N'Djamena 4-10 Sep (190), Yakoua 13 Sep (191)
+                       OPEN from 14 Sep (publication lag).
+     2014-12           Documented (111; 1345 from 29 Dec).
+   Gaps filled with counts: none in full. Validated absent: 10 of 12 (5 documented, 5 inferred). Partially closed: 2.
+   Zero-row decision rule (applied to every zero row):
+     Z1 Documented: an explicit nil or zero, or an official exhaustive geographic statement (sub-national only).
+     Z2 Inferred, 0.3-0.55: requires all of the following:
+         - the official channel is silent;
+         - surveillance is shown functioning that year (other diseases notified, or active cholera surveillance);
+         - an independent national record shows no epidemic;
+         - no cholera is documented in border areas, or district data exist and show none.
+     Z3 No zero: surveillance collapse; border cholera with silence only; live tail with no published surveillance; or a zero
+         contradicted by a source naming the unit as affected (kept at most as Inferred <= 0.35).
 
-RECOMMENDATIONS FOR FUTURE ENHANCEMENT
-1. Historical Extension: Target pre-2001 colonial and early independence records (1970-2000)
-2. Critical Gap Priority: 1975-1990 period requires French colonial archive access
-3. Routine Surveillance: Engage Chad National Public Health Institute (established 2023)
-4. Inter-Outbreak Validation: Systematic validation of cholera-free periods vs surveillance gaps
-5. Regional Coordination: Cross-border data sharing with Nigeria, Niger, Cameroon for Lake Chad Basin analysis
-6. Real-time Monitoring: Establish systematic monitoring for ongoing 2024-2026 surveillance data
+G. CROSS-AGENT PERFORMANCE
+   Agent 1 (baseline):
+     Batches and yields: 12 batches (20,15,10,10,15,25,0,15,0,5,5,5%).
+     Rows and sources: claimed +170, live 169 (row 114 superseded by Agent 3); +53 sources.
+     Stopping: 12-batch cap.
+   Agent 2 (geographic):
+     Batches and yields: 12 batches (35,35,10,5,25,10,10,15,15,0,0,10%).
+     Rows and sources: +882 rows, all live; +63 sources.
+     Stopping: cap. WebSearch exhausted from its batch 8.
+   Agent 3 (zero validation):
+     Batches and yields: 12 batches (15,25,20,15,10,20,0,5,35,5,15,25%).
+     Rows and sources: claimed +344, live 325 (19 retracted by Agent 7); +33 sources.
+     Stopping: cap. Quality: 3 contested zeros re-labelled and 2 truncated locations.
+   Agent 4 (obscure sources):
+     Batches and yields: 12 batches (5,25,0,45,30,50,35,40,80,40,15,5%).
+     Rows and sources: claimed +266, live 261 (5 chart duplicates retracted by Agent 5); +82 sources.
+     Stopping: cap.
+   Agent 5 (cross-reference):
+     Batches and yields: 12 batches over 3 instances, 2 interruptions (0,40,20,35,15,0,5,0,15,0,10,20%).
+     Rows and sources: +69 rows, all live; +25 sources. Retracted 21 rows, 16 of them legacy.
+     Stopping: cap.
+   Agent 6 (gap context):
+     Batches and yields: 9 batches (0,0,10,5,0,10,0,0,0%).
+     Rows and sources: +10 rows, all live; +8 sources.
+     Stopping: 3 consecutive batches under 5%.
+   Flags: no agent ran fewer than 3 batches; no yield above 100%; no claimed-but-missing rows.
+   Agents 3-7 had no WebSearch: the 200-call session budget was used up by Agents 1-2.
 
-CONCLUSION
-The Chad cholera surveillance enhancement successfully filled critical epidemic period gaps with high-quality institutional sources. Agent 7 final audit resolved a critical empty-CSV issue by reconstructing both data and metadata files from comprehensive search log documentation. Despite limitations in historical depth and routine surveillance periods, the dataset provides robust epidemiological foundations for MOSAIC modeling with comprehensive coverage of major cholera transmission events and appropriate uncertainty quantification.
+H. AGENT 7 ACTIONS (Index lists; revisions tagged [AGENT 7 REVISION])
+   R1 location repair: 1445 'AFR::TCD::(Mayo-Kebbi Est|Mayo-Kebbi Ouest)', 1446 'AFR::TCD::(Moyen-Chari|Mandoul)'.
+   R2 retractions (tombstones in ./data/TCD/retracted_rows_ai.csv): 1422-1440.
+   R3 re-labelled to Inferred_Absence at 0.35: 1387, 1388, 1389.
+   R4 zero-audit notes: 1461, 1787, 1788, 1793-1796, 186, 187, 1789-1792, 21.
+   R5 double-count labels:
+     PRIMARY: 1451, 1453, 1456-1459, 1477-1486, 1507, 1491, 1492, 123, 124, 1506, 1441-1444, 1487, 1488, 1490, 1493, 1494,
+       1495, 1496-1503, 1738, 1737, 1784, 1740, 1741-1744, 1783, 1749, 167, 134-137, 125-133, 1745-1747.
+     NON-PRIMARY: 162, 1517-1520, 1508, 1447, 163, 1597-1614, 164, 1615-1627, 1628-1652, 165, 1653-1675, 166, 1676-1714, 1786,
+       59-66, 112, 16, 1723, 18, 1724.
+   No sources registered and no rows added. Net rows: -19.
 
-Final Status: DATASET APPROVED FOR MOSAIC INTEGRATION
-Quality Score: 9.2/10
-Audit Completion Date: 2026-05-15
-Audit Performed By: Agent 7 (Quality Auditor)
+I. PIPELINE AND BASELINE ISSUES (documented, not fixed; the baselines are read-only)
+   P1  py/build_weekly_timeseries.py priority is WHO > JHU > AI per week. In every JHU year the AI sub-annual and sub-national
+       timing is ignored and the JHU annual total is Fourier-spread instead.
+   P2  The builder fills every week with no row (earlier than the latest observation minus 52 weeks) as assumed_zero at 0.5. It
+       ignores ./data/TCD/cholera_presence_ai.csv and the non-reporting classification, so 1979-82, 1984-85, 1987 and 1990 reach
+       the model as zeros, at higher confidence than the evidence-based inferred zeros of 1983/86/88/89 (0.3).
+   P3  JHU 2004 '7577/370' is two overlapping JHU rows summed: 2046/98 for 14 Jun-22 Aug, plus the annual 5531/272.
+   P4  JHU 2007 '0/0' is a non-report coded as zero (WER 83(31): "No information is available from Chad").
+   P5  JHU carries several overlapping national rows for 2010 (5 rows, sum 18,690 vs 6,395) and 2011 (7 rows, sum 80,176 vs
+       17,267). The current weekly series shows 9,181 for 2010 and 19,824 for 2011: inflated.
+   P6  JHU 2017 weekly series sits one ISO week early: 84 cases on 7-13 Aug, before the 14 Aug onset. The HDX platform has them
+       in week 33.
+   P7  The WHO 2000 global compilation (WHO/CDS/CSR/ISR/2000.1) prints 22 cases for Chad in 1998. The WHO 1998 annual report
+       gives 4,095.
+   P8  ./data/TCD/cholera_data_who.csv ends 2026-08-23 with 566 cases. The live dashboard has revised June-August (e.g. week of
+       3 Aug 107/0 vs 116/2; 17 Aug 105/5 vs 82/7) and added 24 Aug-13 Sep (111/4, 158/22, 10/0): 867 cumulative.
+   P9  WHO 'infected area' listings for Chad 1999-2002, and the prefecture lists to 1993, are cumulative carry-overs, not
+       evidence of activity.
+   P10 py/revise_observation.py defaults to --agent 5. This mislabelled 7 Agent 4 revisions (186, 187, 1448, 1451,
+       1463-1465) as [AGENT 5 REVISION].
+   P11 The validator does not check bracket balance or ADM1 membership inside multi-unit Location codes. Rows 1445 and 1446 were
+       stored truncated without any finding.
+   P12 add-zero opens every zero row with "Source confirms zero cholera transmission", including inferred absences.
+   P13 Coverage counts sub-national-only months as covered. September 2026 counted only because of retracted provincial zeros.
+
+J. OPEN CONFLICTS (recorded, not averaged)
+   1998: WHO 4,095/144 vs DSIS 6,078/269.
+   Sep 2011: GTFCC 4,410/83 vs DSIS 3,161/59.
+   2019 deaths: 4 (WHO) vs 7-12 (UNICEF). JHU's 191 is a double count.
+   1996: start date of the WER line '...-21.VII' (1,000/106).
+   1994 zones: ACF lists 7 prefectures; Massenet and Tchombou list 2.
+   Locations and timing unknown for 2005 (90/14) and 2009 (67/6, notified as acute watery diarrhoea).
