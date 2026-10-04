@@ -1,120 +1,195 @@
 === AGENT 7 — QUALITY AUDIT — BWA — cycle 2026-10-02 ===
 Country: Botswana (BWA)
-Start Time: 2026-10-03 17:54:30 (local)
+Start Time: 2026-10-03 17:54:30 (local, PDT = UTC-7)
 Role: Agent 7 (cholera-quality-auditor). Audit, repair, report. No query budget.
-Constraint: session-wide WebSearch budget EXHAUSTED (200/200). No WebSearch calls and no
-scraping of general-purpose search engines. Verification by WebFetch/curl against specific
-source URLs in ./data/BWA/metadata_ai.csv and institutional endpoints (WHO IRIS, Europe PMC,
-PubMed, OpenAlex, Crossref, Internet Archive CDX, ReliefWeb, dailynews.gov.bw, afro.who.int,
-africacdc.org), paced >= 5-15 s.
-Shared-file rules: no CLI run of py/analyze_effective_gaps.py (in-memory analyse() only);
-repair_data_integrity.py only with explicit BWA; no dashboard/weekly-builder/git operations.
+Constraint: session-wide WebSearch budget EXHAUSTED (200/200). No WebSearch calls and no scraping of general-purpose search
+engines. Verification by curl against specific source URLs in ./data/BWA/metadata_ai.csv and institutional endpoints (WHO IRIS
+OpenSearch + REST bitstreams, Europe PMC REST, ReliefWeb, dailynews.gov.bw, mmegi.bw AMP, thevoicebw.com, sundaystandard.info
+WordPress API, africacdc.org, ecdc.europa.eu, sadc.int, scielo.org.za, archive.org, statsbots.org.bw), paced several seconds apart.
+Shared-file rules followed: no CLI run of py/analyze_effective_gaps.py (in-memory analyse() only); repair_data_integrity.py only
+with explicit BWA; no dashboard / weekly-builder / git operations; no other country's directory touched; JHU files read-only.
+Times below are reconstructed from file timestamps (working files in /tmp/bwa_a7/, tool backups in ./data/BWA/.backup_*).
+Working files (not data): /tmp/bwa_a7/
 
 --- STEP 1: VALIDATOR (cycle entry) ---
 17:54:30 python py/validate_quality.py BWA --json /tmp/BWA_audit.json
   -> exit 0; 81 data rows | 81 metadata sources | ERROR 0 WARN 0 INFO 50
+  INFO 50 = 21 national_subnational_overlap (all 'documented'; the row numbers in these messages are FILE LINE numbers, not Index)
+          + 29 metadata_unused (context/corroboration sources; acceptable). No WARN, no ERROR -> nothing to justify at entry.
 
 --- STEP 1b: REPAIR TOOL ---
-17:57 python py/repair_data_integrity.py --dry-run BWA -> "TOTAL: 0 change(s)"; --apply NOT run (nothing to apply).
-      ./data/BWA/attribution_review.csv does not exist (no withheld citations).
+~17:55 python py/repair_data_integrity.py --dry-run BWA -> "TOTAL: 0 change(s)"; --apply NOT run (nothing to apply).
+       ./data/BWA/attribution_review.csv does not exist (no withheld citations).
 
 --- STEP 2: WORKFLOW STATE + AGENT LOG REVIEW ---
-Read ./data/BWA/workflow_state.json (incl. 'cycle' block) and all six logs ./data/BWA/search_log_agent_1.txt .. _6.txt.
+Read ./data/BWA/workflow_state.json (incl. 'cycle' block) and all six logs ./data/BWA/search_log_agent_1.txt .. _6.txt in full.
 Row/source reconciliation (file vs claims):
   pre-cycle 7 rows (1,2,3,4,5,7,8) - 8 retracted by Agent 1 = 6
   + A1 52 (Index 9-62 minus self-retracted 58, 59; incl. replacement row 19) + A2 9 (63-71) + A3 2 (72-73) + A4 1 (74)
-  + A5 7 (75-81) + A6 5 (82-86) - A5 retraction 53 = 81 rows  == ./data/BWA/cholera_data_ai.csv (81 rows)  CONSISTENT
+  + A5 7 (75-81) + A6 5 (82-86) - A5 retraction 53 = 81 rows == ./data/BWA/cholera_data_ai.csv at entry  CONSISTENT
   sources: 8 + 49 (9-57) + 3 (58-60) + 6 (61-66) + 4 (67-70) + 5 (71-75) + 6 (76-81) = 81 == ./data/BWA/metadata_ai.csv  CONSISTENT
 Batch compliance (protocol: >=3 batches; stop at 3 consecutive <5% or 12 batches; yield = queries/20):
   A1 12 batches [25,10,0,15,5,0,0,15,0,10,0,10] - stopped at the 12-batch CAP while still yielding 10% (NOT saturated)
-  A2 5 [10,15,0,0,0]  A3 4 [10,0,0,0]  A4 4 [5,0,0,0]  A5 10 [15,0,5,5,0,0,5,0,0,0]  A6 8 [0,0,5,0,5,0,0,0] - all rule-valid stops
+  A2 5 [10,15,0,0,0]  A3 4 [10,0,0,0]  A4 4 [5,0,0,0]  A5 10 [15,0,5,5,0,0,5,0,0,0]  A6 8 [0,0,5,0,5,0,0,0] - rule-valid stops
   No agent < 3 batches; no yield > 100%; no claimed-but-missing rows.
   CAVEAT: WebSearch budget exhausted during A3 batch 3; A3 (batches 3-4), A4, A5, A6 ran direct-source queries only ->
   their 'saturation' is partly tool-constrained.
 
---- STEP 3: VALIDATOR FINDINGS REVIEW ---
-INFO 50 = 21 national_subnational_overlap (all 'documented'; row numbers in these messages are FILE LINE numbers, not Index)
-        + 29 metadata_unused (context/corroboration sources; acceptable). No WARN, no ERROR.
+--- STEP 3: HANDED-OFF DEFECTS - SOURCE VERIFICATION ---
+17:56:20 IRIS OpenSearch dc.title:"Cholera, 2024" -> 10665/382542 (published 2025-09-05).
+17:56:45 IRIS REST: WER10036-347-364.pdf = WER 100(36), 5 Sep 2025 'Cholera, 2024'. Table 2 'Countries reported 0 cases and deaths in
+         2024, fulfilling the public health surveillance service of "zero reporting"' - Africa (32): 'Algeria, Angola, Benin, Botswana,
+         Burkina Faso, ...' -> POSITIVE WHO ZERO REPORT FOR 2024.
+17:57:18 IRIS 10665/378717 = WER 99(36), 6 Sep 2024 'Cholera, 2023': Table 2 = zero reports for 2023 (Botswana listed).
+         => WER 99(36) = data year 2023; WER 100(36) = 2024; WER 101(38) = 2025. (A 2024 row must cite WER 100(36).)
+17:57:24 IRIS 10665/387694 = WER 101(38), 25 Sep 2026 'Cholera Annual Report, 2025': Table 5 'Countries, territories, and areas
+         reporting zero cholera cases, by WHO region, 2025' - African Region 22: 'Algeria, Benin, Botswana, Burkina Faso, ...'; text:
+         'A zero report is distinct from the absence of a submission: it indicates that no cases were detected by a surveillance
+         system that was in operation' -> POSITIVE WHO ZERO REPORT FOR 2025 (metadata 15, registered but unused).
+17:57:30 IRIS 10665/382275 = AFRO 'Monthly Regional Cholera Bulletin: June 2025' - 'Data reported: As of 29 June 2025'; '2025 has
+         affected 20 countries (Angola, Burundi, ...)'; 0 occurrences of 'Botswana' -> row 7's quote; covers Jan-Jun 2025 only.
+17:58:57 dailynews.gov.bw/news-detail/77610 (metadata 5, 3 Feb 2024 'Botswana committed to Cholera prevention') re-fetched: the quote
+         'Botswana has so far not recorded any cholera case' is NOT present (confirms Agent 6), nor any 14-country list. Article says
+         only 'He reiterated Botswana's determination to ensure the country remains safe from the outbreak.'
+17:59:07 Sunday Standard WordPress API (site search 'cholera', 10 Jan-20 Feb 2024) -> post 197643; 17:59:18 full text, 1 Feb 2024 'Botswana
+         on high alert over cholera outbreak' = verbatim MoH public notice: '... Botswana has so far not recorded any Cholera case.'
+         -> TRUE ORIGIN of row 5's quote (a point statement, cannot support a full-year zero).
+18:00:35 IRIS 10665/204516 IDS Quarterly Bulletin Q2 2015: cholera section lists Botswana among '18 countries that reported zero
+         cases'; meningitis section lists Botswana among 'Twelve countries ... that did not report data to WHO since 2013 on critical
+         outbreak prone diseases' (internally inconsistent for Q2 2015; consistent with no WHO reporting 2013 - Q1 2015).
+Builder check (read-only): py/build_weekly_timeseries.py uses ONLY national rows (AFR::BWA) for the national series; reads the
+         canonical 'Evidence type:' token + confidence (inferred zeros capped at INFERRED_ZERO_MAX = 0.6); never reads surveillance status.
 
---- STEP 4: HANDED-OFF DEFECTS - SOURCE VERIFICATION ---
-18:00 IRIS OpenSearch dc.title:"Cholera, 2024" -> 10665/382542 = WER 100(36), 5 Sep 2025, pp.347-364 (WER10036-347-364.pdf).
-      Table 2 'Countries reported 0 cases and deaths in 2024, fulfilling the public health surveillance service of "zero reporting"'
-      Africa (32): 'Algeria, Angola, Benin, Botswana, Burkina Faso, ...' -> POSITIVE WHO ZERO REPORT FOR 2024.
-18:02 IRIS dc.title:"Cholera, 2023" -> 10665/378717 = WER 99(36), 6 Sep 2024 (WER9936-481-495.pdf): Table 2 = zero reports for 2023
-      (Botswana listed). => WER 99(36) covers DATA YEAR 2023, WER 100(36) covers 2024, WER 101(38) covers 2025.
-      (Row 5's Agent 1 note 'WER 99/100 list Botswana among zero-reporting countries for 2023-2024' is correct; a 2024 row must cite WER 100(36).)
-18:03 IRIS 10665/387694 = WER 101(38), 25 Sep 2026 'Cholera Annual Report, 2025': Table 5 'Countries, territories, and areas reporting
-      zero cholera cases, by WHO region, 2025' - African Region 22: 'Algeria, Benin, Botswana, Burkina Faso, ...'; text: 'A zero report is
-      distinct from the absence of a submission: it indicates that no cases were detected by a surveillance system that was in operation'
-      -> POSITIVE WHO ZERO REPORT FOR 2025 (metadata 15, registered but unused).
-18:03 IRIS 10665/382275 = AFRO 'Monthly Regional Cholera Bulletin: June 2025' (issued 2025-06-29) - source of row 7's quote (Jan-Jun 2025 only).
-18:05 dailynews.gov.bw/news-detail/77610 (metadata 5, 3 Feb 2024 'Botswana committed to Cholera prevention') re-fetched: quote
-      'Botswana has so far not recorded any cholera case' NOT present (CONFIRMS Agent 6). Article says only: 'He reiterated Botswana's
-      determination to ensure the country remains safe from the outbreak.'
-18:07 Sunday Standard WordPress API (site search, posts 10 Jan-20 Feb 2024, 'cholera') -> post 197643, 1 Feb 2024 'Botswana on high alert
-      over cholera outbreak' = verbatim MoH public notice: 'The Ministry of Health has informed the public about Cholera outbreaks ...
-      Botswana has so far not recorded any Cholera case.' -> TRUE ORIGIN OF ROW 5's QUOTE (point statement, 1 Feb 2024).
-18:10 IRIS 10665/204516 IDS Quarterly Bulletin Q2 2015 re-read: cholera section lists Botswana among '18 countries that reported zero cases';
-      meningitis section lists Botswana among 'Twelve countries ... that did not report data to WHO since 2013 on critical outbreak prone
-      diseases' (internally inconsistent for Q2 2015; consistent with no WHO reporting 2013 - Q1 2015).
-Builder check (read-only): py/build_weekly_timeseries.py uses ONLY national rows (AFR::BWA) for the national series; it reads the canonical
-      'Evidence type:' token + confidence (inferred zeros capped at INFERRED_ZERO_MAX = 0.6); it never reads 'Surveillance system status'.
-
---- STEP 5: RECENT TAIL CHECK (task 4) - 2026-10-04 01:03-01:10 UTC (2026-10-03 ~18:03-18:10 PDT) ---
+--- STEP 4: RECENT TAIL CHECK (task 4) - 18:03:16-18:04:40 PDT (2026-10-04 01:03-01:05 UTC) ---
  T1 africacdc.org/download/africa-cdc-epidemic-intelligence-weekly-report-september-2026/ -> HTTP 200; files still only
-    'Africa-CDC-Epidemic-Intelligence_Weekly-Report_24-September-2026.pdf' (= issue 13 Sep) and 'Africa-CDC-Epidemic-Intelligence-Report-28Sep26.pdf'
-    (= issue 20 Sep, already behind row 20). October 2026 page -> HTTP 404.
- T2 africacdc.org wp-json wpdmpro (orderby modified): newest package = September 2026 EI report, modified 2026-10-02T13:57:32 (unchanged since Agents 5/6).
- T3 WHO IRIS OpenSearch 'Weekly bulletin on outbreaks' 2026 -> newest = Week 36 (31 Aug-6 Sep 2026), 10665/387727. Weeks 37-39 NOT published.
- T4 WHO IRIS OpenSearch 'Weekly Epidemiological Record, 2026' -> newest = 101(39), 2 Oct 2026 (10665/387751; data to 30 Aug). 101(40) NOT published.
- T5 ECDC cholera monthly page -> still 'Monthly update as of 26 August 2026' (Botswana not mentioned).
- T6 ECDC CDTR week 40 (26 Sep-2 Oct 2026) PDF, section 10 cholera monthly update: global 'as of 28 September 2026', but every African
-    country entry is 'as of 13 September 2026'; new-case countries Angola, Congo, DRC, Mozambique, Somalia, Zambia; Botswana absent.
- DECISION: no product covers Botswana after 2026-09-20 -> tail 2026-09-21..2026-10-03 LEFT OPEN (reporting lag, not a zero). No add-zero.
+    'Africa-CDC-Epidemic-Intelligence_Weekly-Report_24-September-2026.pdf' (= issue 13 Sep) and 'Africa-CDC-Epidemic-Intelligence-
+    Report-28Sep26.pdf' (= issue 20 Sep, already behind row 20). October 2026 page -> HTTP 404.
+ T2 18:03:38 africacdc.org wp-json wpdmpro (orderby modified): newest = September 2026 EI package, modified 2026-10-02T13:57:32.
+ T3 IRIS OpenSearch 'Weekly bulletin on outbreaks' 2026 -> newest = Week 36 (31 Aug-6 Sep 2026), 10665/387727 (weeks 37-39 absent).
+ T4 IRIS OpenSearch 'Weekly Epidemiological Record, 2026' -> newest = 101(39), 2 Oct 2026 (10665/387751; data to 30 Aug); no 101(40).
+ T5 18:04:04 ECDC cholera monthly page -> still 'Monthly update as of 26 August 2026' (Botswana not mentioned).
+ T6 18:04:40 ECDC CDTR week 40 (26 Sep-2 Oct 2026) PDF, section 10: global 'as of 28 September 2026', but every African country entry
+    is 'as of 13 September 2026' (Angola, Congo, DRC, Mozambique, Somalia, South Sudan, Zambia); Botswana absent.
+ DECISION: no product covers Botswana after 2026-09-20 -> tail 2026-09-21..2026-10-03 LEFT OPEN (reporting lag, not a zero).
 
---- STEP 6: FIXES APPLIED (all via py/add_observation.py / py/revise_observation.py --agent 7) ---
-(a) ROW 5 (AFR::BWA 2024 zero; cited metadata 5 Daily News 77610 with a quote not in it)
-    18:12 register-source -> metadata 82 'WHO Weekly Epidemiological Record 2025 100(36) Cholera 2024 annual report zero reporting'
-          (https://iris.who.int/handle/10665/382542, Level 1, 2024-01-01 to 2024-12-31)
-    18:13 revise --index 5 --delete (tombstone ./data/BWA/retracted_rows_ai.csv): quote not in source; quote's real origin = MoH notice
-          reprinted by Sunday Standard 1 Feb 2024 (point statement); '14 WHO AFRO affected countries' list also not in the article -
-          it matches the AFRO topic page's July 2024 bulletin ('in 2024 has affected 14 countries (Burundi, Cameroon, Comoros, ...)').
-    18:14 add-zero -> ROW 87: AFR::BWA 2024-01-01..2024-12-31, Documented_Absence, operational, conf 1.0, reporting 2025-09-05,
-          source 82 (WER 100(36) Table 2). Notes: same WHO zero report as JHU 2024 row (confirmation, not independent); corroboration
-          Sunday Standard 1 Feb 2024 / Daily News 3-4 Feb 2024 / Chobe DHMT 22 Jan 2024; 'National total - ... do not sum' (row 80 overlap).
-          Neighbour 2024 counts checked in WER 100(36) Table 1 (Zambia 23 380, Zimbabwe 20 632, South Africa 13).
-    18:16 revise --meta-index 5 --set-description (accurate content of the 3 Feb 2024 article; audit correction). Status left Active
-          (URL correct; weak corroboration only).
-    18:17 revise --index 80 --append-note (cross-reference row 5 -> row 87). 18:18 row 80 quote verified verbatim in Daily News
-          news-detail/78537 (20 Mar 2024: 'cholera remained a threat in the district although no case has reported').
-(b) ROW 7 (AFR::BWA 2025 full-year zero; quote from AFRO bulletin June 2025 = Jan-Jun only)
-    18:19 revise --index 7 --delete (tombstone). Verified: IRIS 10665/382275 'Data reported: As of 29 June 2025'; '2025 has affected 20
-          countries (Angola, Burundi, ...)'; 0 occurrences of 'Botswana'.
-    18:21 Daily News 88349 (metadata 17) re-fetched: 'He confirmed that there was not a single cholera case in Botswana', 'the last time the
-          country recorded a few cases of cholera was more than 15 years ago and were imported cases, which the health system was able to
-          detect and contain', 'kept it cholera-free for many years' - all VERBATIM (supports rows 17, 18, 82-85).
-    18:22 add-zero -> ROW 88: AFR::BWA 2025-01-01..2025-12-31, Documented_Absence, operational, conf 1.0, reporting 2026-09-25, source 15
-          (WER 101(38) Table 5; previously registered but unused). AFRO June 2025 bulletin + MoH Aug 2025 as corroboration in notes.
-    18:24 revise --meta-index 7 --set-description + --set-status Superseded (landing page verified 18:25: 'Current edition 31 July 2024';
-          no 2025 list, no Botswana) - correct IRIS location of the June 2025 bulletin recorded in the description.
+--- STEP 5: FIXES (all via py/add_observation.py / py/revise_observation.py --agent 7; times = tool backup stamps) ---
+(a) ROW 5 (AFR::BWA 2024 zero; cited metadata 5 with a quote not in it)
+    18:06:26 register-source -> metadata 82 'WHO Weekly Epidemiological Record 2025 100(36) Cholera 2024 annual report zero reporting'
+             (https://iris.who.int/handle/10665/382542, Level 1, 2024-01-01 to 2024-12-31).
+    18:06:31 revise --index 5 --delete (tombstone ./data/BWA/retracted_rows_ai.csv). Note: the '14 WHO AFRO affected countries' list in
+             old row 5 matches the AFRO topic page's July 2024 bulletin ('in 2024 has affected 14 countries (Burundi, Cameroon, ...)').
+    18:06:47 add-zero -> ROW 87: AFR::BWA 2024-01-01..2024-12-31, Documented_Absence, operational, conf 1.0, reporting 2025-09-05,
+             source 82 (WER 100(36) Table 2). Notes: same WHO zero report as the JHU 2024 row (confirmation, not independent);
+             corroboration Sunday Standard 1 Feb 2024 / Daily News 3-4 Feb 2024 / Chobe DHMT 22 Jan 2024; 'National total ...
+             do not sum' (row 80 overlap). Neighbour counts checked in WER 100(36) Table 1 (Zambia 23 380, Zimbabwe 20 632, SA 13).
+    18:06:59 revise --meta-index 5 --set-description (accurate content of the 3 Feb 2024 article + audit correction); status left
+             Active (URL correct; weak corroboration only).
+    18:07:05 revise --index 80 --append-note (cross-reference row 5 -> row 87; states row 80's quote re-verified). The verification
+             fetch completed at 18:07:14 (Daily News news-detail/78537, 20 Mar 2024): 'cholera remained a threat in the district
+             although no case has reported' - VERBATIM (so the note is true; written 9 s before the fetch finished).
+(b) ROW 7 (AFR::BWA 2025 full-year zero; quote from AFRO June 2025 bulletin = Jan-Jun only)
+    18:07:21 revise --index 7 --delete (tombstone).
+    18:07:37 Daily News 88349 (metadata 17) re-fetched: 'He confirmed that there was not a single cholera case in Botswana'; 'the last
+             time the country recorded a few cases of cholera was more than 15 years ago and were imported cases, which the health
+             system was able to detect and contain'; 'kept it cholera-free for many years' - all VERBATIM (supports rows 17, 18, 82-85).
+    18:07:49 add-zero -> ROW 88: AFR::BWA 2025-01-01..2025-12-31, Documented_Absence, operational, conf 1.0, reporting 2026-09-25,
+             source 15 (WER 101(38) Table 5). AFRO June 2025 bulletin + MoH Aug 2025 as corroboration in notes.
+    18:07:56 revise --meta-index 7 --set-description + --set-status Superseded (correct IRIS location of the June 2025 bulletin
+             recorded). Landing-page claim verified at 18:08:04: 'Current edition 31 July 2024'; no 2025 list; no Botswana.
 (c) ROW 82 (2011-01-01..2015-03-31 Inferred 0.7, 'operational')
-    18:27 revise --index 82 --append-note: DECISION - 'operational' RETAINED (describes the national IDSR, documented every year of the
-          window; the row's evidence is national). WHO AFRO IDS Q2 2015 re-read: Botswana did not report outbreak-prone data to WHO 2013 -
-          Q1 2015 -> no external verification for 2013-01..2015-03; status to be read as 'operational nationally / no international
-          reporting'. Confidence KEPT at 0.7 (lapse + CBS caveat already priced in by Agent 6; rows 83-86 comparable at 0.7; builder caps
-          inferred zeros at 0.6 -> no downstream change). Not split (no information gain).
+    18:08:16 revise --index 82 --append-note. DECISION: 'operational' RETAINED - it describes the national IDSR, documented in every
+             year of the window (MoH weekly reports 2011-2015; measles reported to WHO yearly), and the row's evidence is a national
+             statement. WHO-level: no outbreak-prone-disease reporting 2013 - Q1 2015 -> no external verification; read the status as
+             'operational nationally / no international reporting'. Confidence KEPT 0.7 (lapse + CBS caveat already priced in by
+             Agent 6; rows 83-86 comparable at 0.7; builder caps inferred zeros at 0.6 -> no downstream change). Not split.
 (d) ROW 79 (Tutume 2008-12-08..14, 4 sCh / 1 cCh)
-    18:29 Internet Archive refused (HTTP 000); article re-read from the cached capture 20090114052515 (/tmp/bwa_a5/bopa_20081217.html,
-          /tmp/bwa_a2/daypages/20081217.html): 'One confirmed and three suspected cases of cholera have been reported in the Tutume
-          Sub-district ... all the cases, which were recorded last week, were initially evaluated at Mathangwane clinic and later referred
-          to Nyangabgwe Referral Hospital'.
-    18:31 Raw JHU (read-only) ./jhu_cholera_data/data/Botswana/ObservationCollection882.csv: Serowe cCh 1 (no sCh), Tutume sCh 3 + cCh 1,
-          Francistown cCh 2 (no sCh), all 2008-12-10..16; ObservationCollection883.csv 2009-02-24..03-02 sCh 40 + cCh 15 = 55 -> Agent 5's
-          DISJOINT-coding finding CONFIRMED; ./data/BWA/cholera_data_jhu.csv dropped the two cCh-only rows (converter).
-    18:32 revise --index 79 --delete (tombstone). DECISION: GO - same source sentence, same cluster, same week as JHU baseline row 3; two
-          location codes and windows for one cluster = cross-layer double count; consistent with Agent 1's tombstone 58; the 3-vs-4 issue
-          is a converter fix (pipeline finding), not an AI duplicate row. National series unaffected.
+    ~18:08:30 Internet Archive refused the capture request (HTTP 000); article re-read from the cached capture 20090114052515
+             (/tmp/bwa_a5/bopa_20081217.html = /tmp/bwa_a2/daypages/20081217.html): 'One confirmed and three suspected cases of
+             cholera have been reported in the Tutume Sub-district ... all the cases, which were recorded last week, were initially
+             evaluated at Mathangwane clinic and later referred to Nyangabgwe Referral Hospital'.
+    18:09:15 revise --index 79 --delete (tombstone). DECISION: GO - same source sentence, same cluster, same week as JHU baseline row 3;
+             two location codes / windows for one cluster = cross-layer double count; consistent with Agent 1's tombstone 58; the
+             3-vs-4 difference is a converter fix (pipeline finding), not an AI duplicate row. National series unaffected.
+    just after 18:09:15, raw JHU (read-only) ./jhu_cholera_data/data/Botswana/ObservationCollection882.csv: Serowe cCh 1 (no sCh),
+             Tutume sCh 3 + cCh 1, Francistown cCh 2 (no sCh), all 2008-12-10..16; ObservationCollection883.csv 2009-02-24..03-02
+             sCh 40 + cCh 15 = 55 -> Agent 5's DISJOINT-coding finding CONFIRMED (supports the decision; converter dropped the
+             two cCh-only rows from ./data/BWA/cholera_data_jhu.csv).
 (e) ROWS 61, 62 (2002, 2004 Inferred 0.6)
-    18:34 revise --append-note on both: CONFIRMED defensible, no change (system operating -> not a gap; no year-specific zero -> not
-          documented; IHR(1969) notification silence is weak evidence; CDER '-' = no zero returns; 0.6 = builder cap, correct ordering).
-18:36 python py/validate_quality.py BWA -> exit 0; 80 rows | 82 sources | ERROR 0 WARN 0 INFO 52.
+    18:09:36 / 18:09:37 revise --append-note on both: CONFIRMED defensible, no change (system operating -> not a gap; no year-specific
+             zero -> not documented; IHR(1969) notification silence = weak evidence; CDER '-' = no zero returns; 0.6 = builder cap).
+~18:09:45 python py/validate_quality.py BWA -> exit 0; 80 rows | 82 sources | ERROR 0 WARN 0 INFO 52.
+
+--- STEP 6: SPOT CHECKS (task 3f) - every quote checked against the fetched source text ---
+ #  row  | time     | source fetched                                              | check / result
+ 1  15   | 18:10:24 | WER 72(31) 1997, IRIS 10665/230202                          | 'In the southern part of Africa, Botswana has never experienced any cholera outbreaks.' VERBATIM
+ 2  16   | 18:10:29 | WER 101(39), IRIS 10665/387751                              | '154 064 cholera cases ... across 19 countries'; BWA 0 hits; NAM 213, ZMB 1059, ZWE 36, ZAF 2; footnote 'Missing data ... do not imply the absence' -> Inferred correct. VERBATIM
+ 3  19   | 18:10:29 | same                                                        | same quote (2026-01-01..06-19, replacement of old row 8). OK
+ 4  20   | 18:10:57 | Africa CDC EI report 28Sep26.pdf ('Date of Issue: 2026-09-20'), p.11 rendered | '122,367 cases (1,230 confirmed; 121,137 suspected) and 1,894 deaths (CFR: 1.58%) ... from 20 AU MS'; list without Botswana. VERBATIM
+ 5  10,11,14,75 | 18:11:35-42 | OCHA ROSA Updates No.3 + No.5 PDFs              | No.3 'Botswana 5 0 0.00% 01 Nov 08 - 08 Jan 09'; No.5 '8 1 12.1 01 Nov 08 -30 Jan 09', Kanye case, 'confirmed cholera cases to eight and one death'. VERBATIM; row 75 = 8-5 cCh, 1-0 deaths OK
+ 6  76,55| ~18:11:50 | cached BOPA day pages 18 Dec + 28 Nov 2008                 | '8 suspected ... only three have been confirmed'; 28 Nov: 2 Serowe suspected (1 confirmed) + 1 Nyangabgwe suspected. VERBATIM; 5/2/0 OK
+ 7  77   | 18:12:09 | Mmegi AMP 17419 (2 Mar 2009)                                 | 'since February 24 this year, 55 suspected ... of the 55, 15 have been confirmed ... two deaths'. VERBATIM; 47/12/2 OK; cumulative reading sound
+ 8  68   | 18:12:38 | Mmegi AMP 17761 (4 Mar 2009)                                 | 'Though in Selebi-Phikwe we have not experienced any cholera case ...'. VERBATIM
+ 9  69,70| 18:12:55 | The Voice 30 Jan 2024                                        | 'false alarms in Francistown, Hukuntsi, Kgatleng last year ... found to be negative' + 'not a single case of Cholera has been reported in the country thus far'. VERBATIM; whole-year district zeros at 0.5 OK
+10  71   | 18:13:05 | Daily News 73663 (22 Jun 2023)                               | 'all the learners had tested negative for cholera'. VERBATIM
+11  78   | ~18:13:10 | cached BOPA day page 2 Feb 2009                             | 'no reported new cases of Cholera since the cholera cases that involved Zimbabweans in the past'. VERBATIM (same release's 'areas most affected' = Shashe Dam exposure areas)
+12  80   | 18:07:14 | Daily News 78537                                             | see STEP 5(a). VERBATIM
+13  72   | 18:13:33 | Europe PMC fullTextXML PMC10953700                           | 'Microbiological analysis ruled out cholera as cause of the outbreak'; weeks 36-42 2018. VERBATIM; dates OK
+14  74   | 18:13:53 | IA DTIC_ADA376933 djvu text (JPRS No.96)                     | 'There has never been any outbreak of cholera in Botswana ... no threat of a cholera outbreak in the country'. VERBATIM
+15  86   | 18:14:07 | SciELO SA, Said et al. 2011                                  | 'some countries which had previously been free of the disease, such as Botswana and Namibia, have also started reporting cases'. VERBATIM
+16  73   | 18:14:25 | SADC RVAA Synthesis 2019 PDF (layout text)                   | '... Botswana and Namibia recording no cases since 2018'. VERBATIM
+17  2    | 18:15:22 | ReliefWeb 'Botswana: Cholera on the increase' (18 Mar 2009)  | row's 'Source states' text is a PARAPHRASE. DEFECT (values 55/15/2 correct)
+18  13   | 18:15:28 | OCHA Update No.10 PDF                                        | 'No new cases of cholera have been reported in the country since 3 March 2009'. VERBATIM
+19  4    | 18:16:01 | Daily News 73600 (metadata 39) vs cited Xinhua (metadata 4)  | zero cited to the report of the SUSPECTED case; negative result only in notes; conf 0.9 > Level 3 ceiling 0.6. DEFECT
+20  81   | 18:00:35 | IDS Q2 2015 bulletin                                         | '18 countries that reported zero cases (Angola, Benin, Botswana, ...)'. VERBATIM
+21  17,18,82-85 | 18:07:37 | Daily News 88349                                    | shared MoH 2025 quote. VERBATIM
+22  21   | 18:17:23 | CSO Health Statistics Report 1997 p.46 (rendered)            | Table 3.10 note 'There were no reported cases for quarantiable diseases during the year. i.e. cholera, yellow fever, plague ...'; 23,775/25,740 = 92.4%. VERBATIM
+Total: 31 rows spot-checked -> 29 verbatim, 2 defective (rows 2, 4); plus the handed-off rows 5, 7 (mis-cited) and 79 (duplicate).
+Systematic checks (all 80 rows): confidence vs cited-source reliability CEILING - none above after the row-4 fix (below-floor rows are
+  documented downgrades); validator arithmetic clean; increment chains: government 55(3/1/0)+76(5/2/0)+77(47/12/2) = 55/15/2,
+  OCHA 10(5/0)+75(3/1)+12(7/1)+13(0) = 15/2.
+
+--- STEP 7: ADDITIONAL FIXES FROM SPOT CHECKS ---
+18:16:32 revise --index 4 --delete (tombstone): cited Xinhua 15 Jun 2023 (suspected case) instead of the negative result; conf 0.9 >
+         Level 3 ceiling.
+18:16:42 add-zero -> ROW 89: AFR::BWA 2023-06-15..2023-06-19, Documented_Absence, operational, conf 0.9, reporting 2023-06-19, source 39
+         (MoH press statement via BOPA/Daily News 19 Jun 2023: 'Fortunately, the confirmatory test results came out negative');
+         'National total ... do not sum' (rows 69-71); notes state that references to 'AI row 4' in rows 69-71 now refer to row 89.
+18:16:49 revise --index 2 --append-note: verbatim quote recorded (paraphrase flagged); values unchanged.
+~18:17   python py/validate_quality.py BWA -> exit 0; 80 rows | 82 sources | ERROR 0 WARN 0 INFO 52 (31 metadata_unused, 21 overlaps).
+
+--- STEP 8: IMPACT MEASUREMENT (task 5) - in-memory analyze_effective_gaps.analyse('BWA', 'Botswana', layers, 2026-10-03, 7) ---
+~18:18 JHU+WHO+AI : 99.9% (681/682 months), months_jhu 204, months_ai 633, months_ai_only 477, months_with_positive_cases 24,
+                    gap_periods 0, latest_observation 2026-09-20 (13 days stale), latest_positive 2009-12-31, observations 100.
+                    The single missing month = October 2026 (current, partial). Uncovered days: 2026-09-21..2026-10-03.
+       JHU+WHO    : 29.9% (204/682), gap_periods 5: 1970-01-01..2004-12-31 (12,784 d), 2007, 2010, 2022, 2025-01-01..2026-10-03 (641 d).
+       Cycle start (from workflow_state pre_state): 32.6% (222/682), months_ai 36, months_ai_only 18, 5 gap periods.
+       ZERO-ROW CAVEAT: all 477 AI-only months are zero months (Documented 408: row 15 alone 324, 1997-2001 60, 2022 12, 2025 12;
+       Inferred 69: 2002-2004 36 (24 at 0.6), 2007 12, 2010 12, Jan-Sep 2026 9). Positive months 24 with and without AI (artefact of
+       full-year 2008/2009 annual rows; the episode spans 5 calendar months, 19 Nov 2008 - 3 Mar 2009).
+~18:19 Existing weekly file ./data/BWA/cholera_weekly_BWA.csv (built 17:01, NOT rebuilt) read-only: 2,960 weeks; AI drives 2,070
+       (1,774 documented_zero, 296 inferred_zero), JHU 890 (786 inferred_zero, 102 Fourier, 2 observed); 2008 = 8 cases/1 death spread
+       over 52 weeks (6.82 cases before 19 Nov 2008); 2009 = 65 cases/4 deaths (JHU cumulatives 10 + 40 as observed weeks + spread
+       annual 15/2; 9.95 cases after 9 Mar 2009); every JHU zero year (WHO-reported 2005, 2006, 2019, 2020, 2023, 2024 and phantom
+       2011-2018, 2021) graded inferred_zero 0.6.
+
+--- STEP 9: REPORT ---
+~18:20-18:24 OVERWROTE ./data/BWA/search_report.txt (stale May-2026 report replaced): executive summary + metrics appendix A-F.
+
+--- STEP 10: FINAL VALIDATION ---
+18:22:41 python py/validate_quality.py BWA --json /tmp/BWA_post_audit.json -> exit 0; 80 data rows | 82 metadata sources |
+         ERROR 0 WARN 0 INFO 52 (31 metadata_unused, 21 national_subnational_overlap documented).
+
+=== AGENT 7 SUMMARY | BWA | cycle 2026-10-02 ===
+Validator: entry ERROR 0 / WARN 0 / INFO 50 -> final ERROR 0 / WARN 0 / INFO 52 (exit 0). Repair tool: 0 changes. attribution_review: none.
+Retracted (4, tombstones in ./data/BWA/retracted_rows_ai.csv): 5 (2024 zero, quote not in source), 7 (2025 zero, Jan-Jun source used for
+  full year), 4 (2023 zero, cited the suspected-case report; conf above source ceiling), 79 (Tutume, cross-layer duplicate of JHU row 3).
+Added (3 re-pointed replacements): 87 (2024, WER 100(36) Table 2, metadata 82, 1.0), 88 (2025, WER 101(38) Table 5, metadata 15, 1.0),
+  89 (15-19 Jun 2023, MoH negative result, metadata 39, 0.9).
+Revised (notes only): 2 (verbatim quote), 61, 62 (confirmed), 80 (cross-reference), 82 (surveillance-status decision).
+Metadata: 82 registered (WER 100(36)); 5 description corrected; 7 description corrected + Superseded.
+Final: 80 rows (40 case: 16 national/24 sub-national; 40 zero: 34 national/6 sub-national) | 82 sources | 1 presence row | 8 tombstones.
+Coverage: 29.9% baseline -> 32.6% cycle start -> 99.9% final (zero-dominated); 5 of 5 cycle-start gap periods closed (month level).
+Open: 2026-09-21..2026-10-03 (reporting lag - re-check after ~5 Oct 2026); H1 2016 WHO-level surveillance gap; weak 2002/2004 (0.6);
+  Jun-Oct & Nov-Dec 2009 (JHU annual only); 1970-81/1985/1987-96 rest on WHO retrospectives (offline HSRs).
+Agent flags: A1 capped at 12 batches while yielding 10% (not saturated); A3 (from batch 3), A4, A5, A6 without WebSearch (tool-constrained).
+End time: ~18:25 PDT
