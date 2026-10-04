@@ -17,3 +17,66 @@ increment-vs-cumulative, CFR>15% denominator checks, weekly>annual).
 Yield = queries producing >=1 NEW committed row / 20 x 100 (percent).
 Revisions/conflict resolutions logged separately ("Revisions" line).
 
+TOOLING NOTE: WebSearch is unavailable in this session (the session's 200-call WebSearch budget was
+exhausted before Agent 5 started; the first call returned "Web search was not performed"). All queries
+below are direct document fetches, site/API search endpoints (Wayback CDX, IRIS, ReliefWeb listings,
+Europe PMC, HAL, vie-publique.sn) or re-reads of the earlier agents' caches (/tmp/sen_a1, /tmp/sen_a2,
+/tmp/sen_a4). iris.who.int timed out at the start of the run (Wayback copies of who.int/wer PDFs used).
+Query unit: one distinct document (or one coherent group of same-series issues) fetched and mined, or one
+listing/search call. A query is SUCCESSFUL only if it produced >=1 NEW row committed to
+./data/SEN/cholera_data_ai.csv (replacement rows are not counted).
+
+=== BATCH 1 | PHASE 1 (re-mine registry: 2005 national weekly series) | SEN ===
+Gap targeted : national weekly holes in the 2004-2006 epidemic flagged by the orchestrator (2005 ISO weeks 14,
+               17, 19, 22, 32, 39, 40, 42, 45-47 had no national weekly row; 2004 W41-53 has none)
+Key finding  : JHU collection 76 (2005 weekly national) is "Compiled from Promed-mail and who wer reports"; its WHO
+               part is the WER back-page IHR table 'Cholera / Choléra - Cases / Deaths' (Senegal entries every 1-4 weeks,
+               Apr-Nov 2005). That table was never mined by Agents 1-4 (they read the WER 'Outbreak news' text only).
+               All Senegal entries verified on rendered page images (crops /tmp/sen_a5/wer/stack1.png, stack2.png).
+Queries      : 20
+  Q1  JHU taxonomy page, observation collection 76 (curl)            -> source "Compiled from Promed-mail and who wer reports",
+                                                                        first URL ProMED 20050404.0966 -> no row
+  Q2  Wayback availability + CDX for ProMED 2005/2008 posts (20050404.0966, 2208891, 20081007.3174) -> none archived -> no row
+  Q3  Wayback CDX listing who.int/wer/2004/* and /2005/* (PDFs)       -> 60 issue captures (79(40)-79(50), 80(01)-80(49)) -> no row
+  Q4  WER 2004 Oct-Dec issues 79(40)-79(50)                          -> 79(45) 'Senegal 4-31.X 128 2'; 79(47) revised '4-31.X 318 2'
+                                                                        -> C8 revisions only (rows 1, 310, 956); no new row
+  Q5  WER 80(01)-80(15) (Jan-mid Apr 2005)                           -> 80(13) '1.I-23.III 2054 8' (= row 3); 80(15) '28.III-3.IV
+                                                                        3475 54' (= row 114, supports Agent 2's national relocation) -> notes only
+  Q6  WER 80(16), 22 Apr 2005                                        -> 'Senegal 4-10.IV 2690 31' -> row 1248 [SUCCESS]
+  Q7  WER 80(17), 29 Apr 2005                                        -> '11-17.IV 1187 14' (= row 116) -> note only
+  Q8  WER 80(18), 6 May 2005                                         -> '18-24.IV 752 13' -> row 1258 REPLACES IRIN row 223 (adds deaths;
+                                                                        not counted as yield); JHU's 944/18 for this week rejected
+  Q9  WER 80(19), 13 May 2005 + WHO DON 13 May (row 118)             -> '25.IV-8.V 1184 17' minus 509/6 = week 17 675/11 -> row 1252
+                                                                        [SUCCESS] (derived increment, conf 0.75)
+  Q10 WER 80(21), 27 May 2005                                        -> '9-15.V 509 3' -> row 1249 [SUCCESS]
+  Q11 WER 80(20), 80(22)-80(27) (May-Jun 2005)                       -> 80(22) '16-22.V 766 8' (= row 120); 80(27) '06-26.VI 1638 28'
+                                                                        conflicts with weekly rows 224+225+290 = 2068/36 -> notes only
+  Q12 MoH daily bulletins (metadata 146, Agent 2 canonical parse) ISO week 22 -> 30 May-2 Jun national 352/10 (partial, lower bound;
+                                                                        3-4 Jun never archived) -> row 1256 [SUCCESS]
+  Q13 WER 80(28)-80(33) (Jul-mid Aug 2005)                           -> 80(29) 469/4 (= row 4), 80(30) 532/6 (= row 5), 80(33) 439/1
+                                                                        (= row 386), 80(32) '11-31.VII 51 1' rejected vs bulletins 1235/3 -> notes
+  Q14 WER 80(36), 8 Sep 2005 + bulletin weeks 33-34                  -> '08-28.VIII 1470 26' minus 426/3 and 610/15 = week 32 434/8
+                                                                        -> row 1253 [SUCCESS] (derived increment, conf 0.75)
+  Q15 WER 80(37)-80(39)                                              -> 80(39) '29.VIII-25.IX 4062 81' = bulletin weeks with the 1212
+                                                                        variant -> corroboration + C7 evidence; no new row
+  Q16 WER 80(41), 14 Oct 2005                                        -> '26.IX-02.X 1036 25' -> row 1250 [SUCCESS]
+  Q17 WER 80(43), 28 Oct 2005 + bulletin week 41                     -> '03-16.X 1888 41' minus 856/14 = week 40 1032/27 -> row 1254
+                                                                        [SUCCESS] (derived increment, conf 0.75)
+  Q18 WER 80(44), 4 Nov 2005                                         -> '17-23.X 824 13' (= ProMED 2208891 via JHU 20598) -> row 1251 [SUCCESS]
+  Q19 WER 80(45)-80(49) (Nov-Dec 2005)                               -> 80(49) '14-27.XI 154 6' -> row 1255 [SUCCESS]; 80(45) '24-30.X
+                                                                        621 5' vs bulletins 643/5 (row 388 conflict note); 80(47) '31.X-13.XI 668 11'
+  Q20 MoH daily bulletins ISO week 45                                -> 7-10 Nov national 136/5 (partial, lower bound) -> row 1257 [SUCCESS]
+Sources found: 15 WER issues with Senegal entries   Registered: index 292-306
+Rows added   : 10 new (1248-1257) + 1 replacement (1258 for retracted 223)
+Retracted    : 223 (superseded by 1258)
+Successful queries: 10/20 (Q6, Q9, Q10, Q12, Q14, Q16, Q17, Q18, Q19, Q20)
+Yield        : 50%
+Consecutive sub-5% batches: 0
+Revisions    : C7 resolved (387 primary 0.85, 380 non-primary); C8 resolved (row 1 TR -> 2004-10-28; 310 -> 0.6 non-primary; 956 -> 0.7);
+               corroboration notes 3, 4, 5, 114, 116, 118, 120, 175, 176, 327, 386; conflict notes 224, 225, 290 (WER 6-26 Jun), 321-323
+               (WER 11-31 Jul), 388 (WER 621; 0.9 -> 0.85), 389; pointer notes 586, 801-806 (row 223 -> 1258)
+Decision     : CONTINUE (batch 2: WER 2006-2007 back-page tables; 2007-2008 weekly gaps; conflict register)
+Gap status   : 2005 W14, W17, W19, W32, W39, W40, W42, W46-47 FILLED (WHO); W22, W45 PARTIAL (lower bounds); W1-W10 REMAINING
+               (no weekly source: WER only 1 Jan-23 Mar 2054/8; AFRO sheets 1-5/1-9 2005 omit Senegal); 2004 W41-53 REMAINING
+               (WER 2004 tables carry October only; AFRO 2004 weekly sheets end at week 9)
+

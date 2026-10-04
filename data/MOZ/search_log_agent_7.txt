@@ -60,3 +60,154 @@ V1.11 cholera_presence_ai.csv: 187 records, all evidence='presence_confirmed_cou
       0 orphan/mismatched source citations, all AFR::MOZ, adm1 names exact. retracted_rows_ai.csv: 41 tombstones
       (21 on 2026-10-02, 20 on 2026-10-03), every one with a non-blank retracted_reason.
 Result: no integrity defect requiring a write. Rows added: 0.
+
+=== VALIDATION BATCH 2 | ZERO-ROW EVIDENCE AUDIT (ALL 655 ZERO ROWS) | MOZ ===
+Inventory (before): 655 zero rows (every present count = 0): 599 Documented_Absence, 56 Inferred_Absence; 72 national,
+  583 sub-national; surveillance status operational 580 / partial 72 / missing 3 (legacy Index 1, 7, 8). No row uses
+  Surveillance_Gap as its canonical label (two notes, 4122 and 4287, mention it only in prose about neighbouring windows).
+Method: every zero row's quote and derivation was read, grouped by citing source (172 sources; review files
+  /tmp/moz_a7/zero_review.txt and zr1-zr5.txt). Rule applied (orchestrator instruction + CLAUDE.md zero protocol):
+  Documented_Absence is retained only when, for >=75% of the row's days, the cited source (or a corroborating source
+  quoted in the row) gives
+    D1 an explicit no-case statement ('nao registou nenhum caso', 'no new cases since DATE', 'N days without cases',
+       'free of cholera since DATE', 'no cases ... reported');
+    D2 an explicit zero/nil cell for that period and place (weekly/monthly/annual cell, INE '-' nil, a printed '0'
+       label, or a cumulative counted FROM the row's TL that equals 0);
+    D3 an enumeration of affected places qualified by a count, 'only', 'restricted to', 'except' or 'remaining
+       provinces are free'.
+  Otherwise the row is Inferred_Absence with confidence <=0.7, i.e. when it rests on
+    I1 equality of two cumulative snapshots (frozen cumulative / plateau; includes H1 total = annual total);
+    I2 arithmetic closure (a total equals the sum of dated/listed components or an earlier cumulative);
+    I3 omission from a list of affected places or from WHO weekly notification tables, IHR infected-area removals;
+    I4 a legend symbol in a compiled secondary table, or an empty chart slot;
+    I5 an end-of-outbreak/'free' marker without an explicit no-case statement for the window;
+    I6 negative/pending laboratory results for a suspected acute-diarrhoea outbreak.
+V2.1  Priority check Index 5250/5251 (national 2013-06-01..11-11): FETCHED the OCHA ROSA 'Southern Africa Weekly Report
+      11-17 June 2013' (reliefweb.int/report/madagascar/southern-africa-weekly-report-11-17-june-2013, HTTP 200):
+      'a total of 1,861 cases and 19 deaths have been recorded nationally as at 31 May 2013 (CFR=1%). The outbreak is
+      considered over all provinces except Niassa, although zero cases have been reported there during the past few
+      weeks.' -> the 'zero cases' sentence is about NIASSA up to mid-June (held as Index 4306) and does not state national
+      absence for Jun-Nov 2013. Both rows rest only on the frozen WHO AFRO cumulative 1,861/19 (31 May / 12 Aug /
+      11 Nov). RELABELLED Inferred_Absence, confidence 0.6 -> 0.5 (5250, 5251).
+V2.2  Priority check metadata 706 legend zeros (Index 4589-4603, incl. 4591 Gaza 1994-96 and 4594 Sofala 1995-97):
+      legend verified on the scanned page image /tmp/moz_a4/camb/p91_prov.png - 'Total anual casos de colera por
+      provincia em Mocambique (1994 - 2004)' with footnote '... Sem casos registados de colera'. The 1998 district
+      monthly table on p.93 (/tmp/moz_a4/camb/p93_tl.png, p93_tr.png) was also checked cell by cell for Matola,
+      Manhica, Moamba, Chokwe, Xai-Xai, Chibuto, Beira, Dondo, Marromeu: printed '0 0' cells match Index 4608-4672
+      (D2, Documented retained). The 15 annual '...' cells are legend-based and several cells of the same table are
+      contradicted elsewhere (Tete 2003 district counts, Zambezia 2000, Inhambane/Manica late 1997, Nampula 2000 in
+      the other direction) -> all 15 RELABELLED Inferred_Absence (confidence unchanged, 0.3-0.6).
+V2.3  Agent 3 arithmetic zeros and other derivations: relabelled Documented -> Inferred where the class is I1-I6.
+      Bulk relabel (169 rows, all via revise_observation.py --set-evidence Inferred_Absence --agent 7, each with an
+      appended rationale; log /tmp/moz_a7/rev_log_zero.txt):
+        I1 frozen cumulative / plateau (122): DNSP 'Actualizacao' district+provincial plateaus src 193 (77 rows:
+           2170-2415 district series and 4161-4167; 4192 kept - cumulative from TL = 0), src 194 (2527, 2531, 2535,
+           2544, 2549, 2560, 2568, 2575, 2579), DNSP Boletim Diario plateaus 4171-4179 (excl. 4180/4181/4183/4185/
+           4187/4188/4189 kept: wave cumulative from TL = 0), 4182, 4184, 4186, 4190, 4191, 4276; WHO AFRO 2023
+           4223, 4225, 4226, 4227 (explicit weekly enumerations cover <75%); OCHA 2015 4141, 4207; MISAU 2010
+           4198-4200, 4246, 4248, 4249; 2021 4134, 4135, 4234, 4235; 2024 4137, 4138; 2013 4305, 5250, 5251.
+        I2 closure (14): 4120, 4121, 4269, 4270 (WHO 2012 annual 647/7 excludes the Gile Jun-Jul 2012 cases, so the
+           closure is broken; 0.8 -> 0.6/0.55), 4143, 4144 (BES weeks 33-39/2007 only 7-11 of 11 provinces), 4194
+           (closure contradicted by YTD 5,559 > 5,431; 0.55 -> 0.5), 4265-4267, 4271, 4291, 4292, 4303.
+        I3 omission/IHR (12): WER-based national zeros 4114-4116, 4145-4148, 4218, 4201, 4203 (0.7 -> 0.6 where the
+           closure is inexact), and 3145/3146 (a list of provinces with DEATHS, not cases).
+        I4 legend/chart (18): 4589-4603 (above); 5247-5249 (empty 2005 slot in the MISAU province chart).
+        I6 laboratory (3): 3409 (Morrumbala 2012 AWD deaths, lab 'ate agora nao provam' cholera; 0.35 -> 0.3), 3820,
+           3821 (Tete/Niassa 2014 suspected cases, cholera not confirmed).
+      Confidence changes inside the bulk relabel: 125 rows (mostly 0.75/0.85 -> 0.7).
+V2.4  Kept Documented after review (examples of each class): D1 statements (121 WHO DON 'No cholera cases have
+      occurred in Mozambique since mid-1994'; 519 'unaffected since 1977'; 1633; 4107; 4113; 4117; 4122; 4989;
+      1012; 3304/3305; 3329; 3332; 3345; 3349; 3367; 3531; 4140; 4284; 4285; 2132-2135; 3883/3884; 4359; 7 [Aragon
+      'depois de um periodo de 4 anos', not contradicted for 1987]); D2 explicit cells (MISAU 2009-2011 weekly
+      bulletins src 144-148 '0 casos, 0 obitos' district/national weeks; DNSP wave cumulatives from wave start = 0:
+      582-586, 596-598, 1797-1799, 1827-1832, 2165, 2166, 4168-4170, 4180-4189 except plateaus; INE '-' nil 3919,
+      4215, 4216, 5082; JCISA weekly zeros 1759-1761; UNICEF ESARO weekly zeros 5263; BES monthly 2143-2146;
+      Cambula 1998 monthly district zeros; Fonseca Beira chart with printed '0' labels 4076-4078); D3 qualified
+      enumerations (562 'registados em 5 provincias, nomeadamente'; 669; 675 '6 of 11 provinces'; 543 'cases have
+      been reported from two provinces'; 457 'Three provinces ... were affected'; 92 'only 3 continue to register new
+      cases'; 312 'restricted to the central provinces'; 156 'all provinces except Inhambane'; 736 '8 out of 11
+      provinces ... except Niassa, Nampula and Inhambane'; 2 (Aragon) 1989 Tabela 1 '3' affected districts).
+V2.5  Zero-vs-positive overlap check (same place or nested location; /tmp/moz_a7/overlap.py): 14 positive rows lay
+      entirely inside a zero window, plus 2 short positive rows >=50% inside one. Resolutions:
+        RETRACTED 3937 (Nampula 2000 zero vs primary tabulated BES 322, Index 4572; Agent 5 had ruled it non-primary)
+        RETRACTED 3940 (Manica 2007 zero vs BES annual 11 cases, Index 4975, and BES weeks 51-52/2007, 5235, 5241)
+        TRIM 1025 Zambezia 2017-2021 -> 2017 only (2018 = INE routine 118, Index 4217); NEW 5265 Zambezia 2019-2021
+             Documented 0.6 (INE Q 2.3.9 explicit 0 0 0 for 2019-2021, src 674) - structural split
+        TRIM 3231 Niassa 1997-08-13..1998-04-05 -> ..1997-12-31 and relabel Inferred (AIM omission; Mecanhelas BES
+             Jan-Apr 1998, Index 4705-4708)
+        TRIM 4268 Nampula 2008 TL 1 Jan -> 6 Jan, relabel Inferred, 0.75 -> 0.6 (BES week 01/2008: 23 Nampula cases,
+             Index 5044, 11/11 provinces)
+        SPLIT 4294 Inhambane Jan-Sep 2008 -> 1 Jan-16 Feb (0.55) + NEW 5266 24 Feb-30 Sep (0.55) around BES week 08/2008
+             (1 case, 1 death, Index 5065)
+        SPLIT 3288 Nampula May-Aug 2015 -> 1 May-20 Jun + NEW 5267 28 Jun-31 Aug (0.35) around the Africhol week-25
+             suspected case (Index 5262)
+        JUSTIFIED (kept, rulings appended both sides): 582/1827 Niassa 2024-25 official zero (PRIMARY) vs 3361 Lichinga
+             press report 2 cases (NON-PRIMARY, 0.25); 583/1830 Cabo Delgado 2024-25 official zero (PRIMARY) vs 2599
+             Health Cluster 58 cases Mar 2025 (NON-PRIMARY, 0.4); boundary overlaps 3939/5044 (2 days) and 3228/4654
+             (Beira onset 20-26 Jan 1998).
+      After: 4 contained pairs remain, all the two justified POLICY-B conflicts above. Long cumulative positive rows
+      that overlap zero windows (1,700+ pairs) are not contradictions - their cases fall outside the zero windows by
+      construction (zero windows were cut at the last increment).
+V2.6  Agent 5/6 BES rule (11/11 provincial BES AND flat YTD): the only BES-based zero row was 5255 (national 3-31 Dec
+      2006). Weeks 49-50 meet the rule; weeks 51-52 had 10/11 BES. SPLIT: 5255 now 3-16 Dec 2006 (Documented 0.8);
+      NEW 5268 national 17-31 Dec 2006 Inferred_Absence 0.6, surveillance partial.
+V2.7  Legacy rows 1, 7, 8: canonical 'Surveillance system status during absence' sentence appended (unknown, partial,
+      partial). Exact accented quotes appended to the three split rows 5265-5267 (insert quotes were ASCII).
+After Batch 2: 657 zero rows - 429 Documented_Absence, 228 Inferred_Absence (171 relabelled Doc->Inf: 169 bulk + 3231
+  + 4268; 2 retracted; 4 split rows added: 5265, 5266, 5267 Documented, 5268 Inferred). National zero rows relabelled:
+  21 (4114-4116, 4120, 4121, 4134, 4135, 4137, 4138, 4143-4148, 4194, 4201, 4203, 4218, 5250, 5251) + new 5268.
+Validator after Batch 2: EXIT 0, ERROR 0, WARN 123 (same_period_conflict 30 -> 28: the two retracted zeros).
+Rows added: 4 (structural splits of existing evidence; NOT new discoveries). Retractions: 2.
+
+=== VALIDATION BATCH 3 | VALIDATOR WARNINGS REVIEW (52 CFR_high, 33 single-day, 30->28 conflicts, 10 multiyear) | MOZ ===
+V3.1  CFR_high_flagged_for_review (52 rows; Index 3, 166-169, 183, 204, 210, 213, 218, 221, 223, 224, 226-229, 231,
+      234, 257, 304, 307, 343, 346, 362, 363, 366, 389, 390, 392, 394, 395, 399, 450, 452, 457, 536, 2580, 3087,
+      3091, 3096, 3147, 3167, 3174, 3198, 3227, 3448, 3541, 3988, 4390, 4413, 4813). All 52 carry confidence <=0.7
+      (none reaches CFR_high_undocumented_at_high_confidence). 35 are WER/Aragon 1973-1990 rows whose notes already
+      explain the confirmed-case denominator (cases = bacteriologically confirmed, deaths = all cholera deaths;
+      Aragon et al. 1994) - LEGITIMATE. The other 17 were read individually:
+        343/346/362/363/366 WER 1973 Tete/Zambezia district notifications (26-35 cases) - same 1973 IHR convention;
+          explanatory CFR-review note appended (the notes lacked it).
+        3091, 3147, 3174, 3198, 3227 (1981-1993 JPRS/press facility counts, 30-62 cases, civil war) - note appended.
+        2580 Alto Molocue 40/8 Mar 2025 (DNSP; community deaths at onset, final wave CFR 8.6%) - documented already.
+        3087, 3096 (1981 confirmed-case rows), 3167 Marromeu 1991 (90/29), 3541 Guro 2008 (100/36, remote), 3988 CD
+          1998 week (MSF mission), 4390 CD Jan 1994 (250/115 at 0.25), 4413 Gondola Q1 1993 (280/61), 4813 Niassa 2000
+          (27/5), 3448 Gile 2012 (78/20 AWD, 0.15) - context documented, weights 0.15-0.6. LEGITIMATE.
+V3.2  period_single_day (33 rows: 108, 3045, 3522, 3527, 3731-3733, 3735-3738, 3744-3755, 3757-3760, 3811-3813, 3826,
+      3907, 3968): every one is a genuine single-day report - Idai 2019 OCHA flash-update daily NEW counts by district
+      (3731-3760), DNSP '24 horas' counts (3811-3813, 3907, 3968), dated first cases (3522 Limpopo 10 Feb 2026, 3527
+      KaTembe 13 Feb 2026, 3735 Buzi 4 Apr 2019, 3826 Milange 13 Jan 2023), a dated notification (108 Chokwe
+      24 Nov 1997) and dated deaths (3045 Ibo, 6 deaths on 12 Feb 2020). None is a mis-dated period. No change.
+V3.3  same_period_conflict (30 at start; 28 after the two Batch-2 retractions removed 3937/4572 and 3940/4975): all 28
+      pairs carry an explicit PRIMARY / NON-PRIMARY ruling (Agent 5) or are different quantities (3048 cCh 11 vs 3451
+      sCh 228, confirmed subset). Weight inconsistencies FIXED where a NON-PRIMARY row weighed as much as or more than
+      its PRIMARY: Index 710 (WER Dec 2003 area increment) 0.9 -> 0.5; 4978 (BES 2007 2,554/20) 0.8 -> 0.7; 1128
+      (Maputo City 2008 MISAU 1,038/6) 0.6 -> 0.5; 100 (Nampula City 2015 1,003) 0.7 -> 0.6.
+V3.4  multiyear_aggregate (10 rows: 3 [1975-77 29/6], 962 [2009-01-01..2011-05-10, Gujral 25,431/220], 1017-1024
+      [Langa 2017-2021 national and provincial outbreak totals]): each is a genuine period total reported as such by
+      its source (quotes checked) and carries confidence 0.7 (<=0.7 cap for >2-year spans). No change. Note the Langa
+      2017-2021 totals count confirmed/declared-outbreak cases only (stated in each note).
+Rows added: 0. Revisions this batch: 14 (4 re-weights, 10 explanatory notes).
+
+=== VALIDATION BATCH 4 | DOUBLE COUNTING (national vs sub-national; successive cumulative snapshots) | MOZ ===
+V4.1  Validator national_subnational_overlap: every overlap group is at INFO level ('documented'); no WARN.
+V4.2  Full-file scan (not a sample): 4,186 sub-national rows - 4,184 carry explicit 'Provincial/District subset - do not
+      sum' (or equivalent) wording; 918 national rows overlap some sub-national row - 915 carry 'National total - primary
+      count / includes provinces not individually listed / do not sum'. The 5 rows with only implicit wording (28, 115,
+      4324 national; 37, 4765 sub-national) received the standard statement (revise_observation --append-note).
+V4.3  Successive cumulative snapshots: 307 groups (same place, same TL, >=2 different TR; 1,628 positive rows). 1,627 say
+      'cumulative snapshot ... do not sum with other snapshots' (or equivalent); the exception was legacy national row
+      Index 12 (2024-25 wave to 20 Jul 2025) - note added pointing to the 29 sibling snapshots and to the end-of-wave
+      total Index 2130 (4,527/64 to 8 Sep 2025).
+V4.4  Stratified sample (70 rows; every agent incl. legacy rows and Agent 7 splits; every decade 1970s-2020s; national,
+      provincial and district; list in /tmp/moz_a7/dc_sample.txt): 67/70 carry a meaningful primary/do-not-sum statement;
+      the 3 without one are national rows with no overlapping sub-national rows (Index 1, 8) or were fixed (Index 12).
+      Representative wording verified: weekly national rows 'primary count for this week; provincial weekly rows from
+      the same bulletin are subsets'; BES weekly series 'mutually exclusive across weeks ... may be summed with each
+      other'; Cambula monthly national rows 'do not sum with the WER/DON/AIM national period or cumulative rows ... nor
+      with the JHU annual row'; Agent 6 derived residual 5256 'mutually exclusive with the Cambula monthly rows 4508-4512'.
+V4.5  Structural caveat for downstream users (not fixable by notes): the AI layer holds many overlapping cumulative
+      snapshots (e.g. 30 national snapshots of the 2024-25 wave). They are correctly labelled, but a consumer that reads
+      every row as an independent observation would over-weight these windows; take the final snapshot or difference
+      successive snapshots. Reported in ./data/MOZ/search_report.txt.
+Rows added: 0. Revisions: 6 (notes).
