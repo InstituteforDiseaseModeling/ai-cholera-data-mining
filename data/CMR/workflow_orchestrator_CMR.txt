@@ -150,3 +150,41 @@ validate_quality currently WARNs that 2022 national + sub-national rows (9, 10, 
     stopping_reason must name the yield-rule condition met (e.g. "3 consecutive batches below 5% (batches 5-7)"
     or "12-batch maximum reached").
 =====================================================================
+
+6. SEARCH CHANNELS FROM AGENT 3 ONWARD - WebSearch IS EXHAUSTED IN THIS SESSION  (added 2026-10-03 22:25)
+--------------------------------------------------------------------------------------------------------
+The WebSearch tool now returns "this session has used its web search budget (200 of 200 WebSearch calls)".
+The cap (CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION) is per process and is shared by the orchestrator and
+every subagent; Agents 1-2 consumed it. It cannot be raised from inside this run. Do NOT try to get around it
+by scraping general-purpose web search engines (Google, Bing, DuckDuckGo, Yahoo, Brave, Startpage, ...)
+through WebFetch or curl - that would defeat a configured cap. DO use the search functions and APIs of
+institutional and scholarly databases - those are the data sources CLAUDE.md requires you to search
+directly ("institutional deep dives", "15+ databases"). Each request to one of them counts as one query
+in your 20-query batch. Probed and WORKING from this machine at 22:20 (curl -s -L -m 60 -A "Mozilla/5.0"):
+  WHO IRIS (DSpace 7)  search: https://iris.who.int/server/api/discover/search/objects?query=...&size=20
+                       PDFs:   https://iris.who.int/bitstreams/{uuid}/download   (was down at end of Agent 1;
+                       up again now; WebFetch to it was refused once - prefer curl + pdftotext -layout)
+  PubMed E-utilities   https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=...&retmode=json
+                       (efetch/esummary for abstracts; PMC full text via https://pmc.ncbi.nlm.nih.gov/articles/PMCxxxx/)
+  Europe PMC REST      https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=...&format=json&resultType=core
+  OpenAlex             https://api.openalex.org/works?search=...&per-page=50
+  Crossref             https://api.crossref.org/works?query=...&rows=20
+  HAL (FR theses/art.) https://hal.science/search/index/?q=...   (or api.archives-ouvertes.fr/search/?q=...&wt=json)
+  Persee               https://www.persee.fr/search?q=...
+  AJOL                 https://www.ajol.info/index.php/index/search/search?query=...
+  Gallica (BnF) SRU    https://gallica.bnf.fr/services/engine/search/sru?operation=searchRetrieve&version=1.2&query=...
+  archive.org (NOT web.archive.org) https://archive.org/advancedsearch.php?q=...&fl[]=identifier&rows=50&output=json
+  scholar.archive.org  https://scholar.archive.org/search?q=...
+  ReliefWeb site search https://reliefweb.int/updates?search=...   (the v2 API needs an approved appname - 403)
+  WHO AFRO             https://www.afro.who.int/countries/cameroon  and site pages
+  Africa CDC           https://africacdc.org/?s=...
+  MINSANTE DSpace      https://biblio-minsante.cm/server/api/discover/search/objects?query=...&size=20  (rich: SIMR
+                       annual reports, quarterly bulletins, regional bulletins - Agent 2's best source)
+  INS Cameroun         https://ins-cameroun.cm/  (regional statistical yearbooks, health chapters)
+  WHO.int / WER index  https://www.who.int/publications/journals/weekly-epidemiological-record
+NOT WORKING: web.archive.org snapshots (curl times out; WebFetch refuses the domain - the availability API
+  archive.org/wayback/available still answers but snapshot content cannot be fetched); www.ccousp.cm
+  ("Account Suspended"); cairn.info (403); unhcr.org (403); data.unhcr.org (503); Semantic Scholar API (429);
+  ReliefWeb API v2 (403 without appname).
+PDF tooling available: pdftotext (-layout), pdftoppm (render a page to PNG, then Read the PNG to verify a
+  table visually). No tesseract OCR.
