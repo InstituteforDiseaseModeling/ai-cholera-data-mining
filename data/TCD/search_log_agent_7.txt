@@ -12,3 +12,87 @@ Result: exit 0 | 1739 data rows | 282 metadata sources | ERROR 0 | WARN 35 | INF
   WARN  1 x period_single_day (row 173, 2026-09-13)
   (row review below)
 
+NOTE: validator 'row N' = physical CSV line (header = line 1), not the Index column. Mapping line->Index used below (e.g. line 103 = Index 121, line 173 = Index 191).
+
+=== STEP 1b: repair_data_integrity.py ===
+Command: python py/repair_data_integrity.py --dry-run TCD -> TOTAL: 0 change(s) (exit 0).
+Independent check: no POSITIVE row spans >2 years (only zero row 188 Salamat 1991-1998 does); every row with implied CFR>15% and sCh>=25
+  already has confidence_weight <= 0.7; no row lacks a case value (sCh empty: 0); no ./data/TCD/attribution_review.csv exists.
+Decision: --apply not needed (nothing to apply); recorded here so the omission is deliberate.
+
+=== STEP 2: SOURCE AUTHENTICATION (Stage 1) ===
+Method A (mechanical, all 1739 rows): corpus of 3,490 scratch documents held by Agents 1-6 (/tmp/tcd5, /tmp/tcd6, /tmp/tcd_a1-a4;
+  agent work products - plans, ledgers, validator dumps, derived JSON - EXCLUDED so a row cannot 'verify' against its own transcription
+  file) -> text extracted (pdftotext / PyMuPDF) -> each row's 'Source states' quote split into fragments and searched verbatim
+  (accent/whitespace-insensitive). Result: 746 rows all fragments found, 606 rows >=50% found, 14 rows without a quote (zero rows
+  phrased 'Source confirms ...'), 373 low/none (chart reads, image tables, scanned WER pages, documents not held locally).
+  Mechanical matching proves the quoted text exists in a held document; it does not prove the row's numbers - Method B does that.
+Method B (independent re-extraction by Agent 7, per source family):
+
+B1. 2011 MoH district tables in IFRC MDRTD008 documents (Agent 1/2) - PASS
+  meta 95 (REA 23 Nov 2011, p.3 image table S31-S42, 38 districts): Agent 7 re-transcribed the 960x431 image independently
+    (/tmp/tcd7/rea_transcription.py). All 12 weekly column sums = printed TOTAL row. 260/260 rows match exactly (253 single-week rows,
+    7 merged zero spans). Source-side defect noted: the REA 'T Cas' column sums to 16,936 vs printed 16,904; Moussoro T Cas 125 is
+    contradicted by OU1 (29 at wk38 = S31-S38 sum) and OU2 (annual 31 = S31-S52 sum) -> REA cumulative not used by any row.
+  meta 26 (OU2 Mar 2012, text table S42-S52 + annual T Cas, 39 districts): parsed from the PDF text layer; column sums = TOTAL row
+    (250,143,94,82,39,13,8,8,0,0,0; 17,285). 186/186 directly checkable rows match (weekly S42-S52, annual totals rows 68-104, national
+    weekly rows 59-66, derived Jan-Jul remainders = annual - sum(S31..S52)); the other 16 meta-26 rows are the 4-31 Jul splits (below).
+  meta 104 (OCHA week-26 map, 8 Jul 2011): text layer + image read; 18/18 values match (Kelo 43/4 vs Bere 53/2 placement confirmed
+    on the image). 'Nombre de personnes affectees' is the map legend for case counts; every value <= the MoH Jan-Jul remainder ->
+    accepted as suspected cases (CLAUDE.md 'affected' caution considered; consistent with MoH tables).
+    Derived 4-31 Jul 2011 rows (remainder - week-26 value): 17/17 arithmetic correct (rows 900-932 even indices + 930).
+  meta 96 (OU1 12 Oct 2011, image table cases+deaths to wk38, 34 districts): re-transcribed; 34/34 rows match (cases and deaths).
+    Source-side: district cases sum 15,442 vs printed 15,426 (deaths 418 = 418).
+  => 514 rows verified exactly; 0 failures.
+
+B2. ACF 2010 capitalisation report (meta 54; Agents 1/2/3; 114 rows) - PASS
+  Text layer /tmp/tcd5/acf2010.txt. Tableau 3 (17 district totals 2010) and Tableau 2 (national epidemic windows 1974, 1991, 1994,
+  1997, 1998, 2006) re-read by Agent 7: all 23 Agent-1 rows 145-167 match (cases, deaths, first/last epidemic week; Agent 1 quotes
+  are paraphrases of the table cells, values exact). ZR/arrondissement rows (Tableaux 5, 7, 8, 10): 91 quotes verbatim in the text;
+  114/114 rows carry their sCh/deaths in the quote; ISO-week -> date conversion re-computed for the 104 rows quoting week numbers:
+  104/104 correct. Caveat for Tier 1: ACF Tableau 2 cites 'Weekly Epidemiological Report, OMS & SSEI' - it is a compilation of the
+  WHO stream, not independent of the JHU WHO-annual totals (except 1998 = DSIS 6,078/269).
+B3. WHO GTFCC Cholera Country Profile Chad 2009 - vector chart 'Chad Cholera weekly incidences 27 Mar-31 Dec 2006' (meta 131;
+  74 Agent-2 rows 1017-1090) - PASS
+  Agent 7 re-decoded the PDF drawing paths independently (PyMuPDF; gridlines 0-180 every 12.73 pt; 4 colour series identified from
+  the legend swatches: blue N'Djamena, magenta Hadjer-Lamis, orange Kanem, green Lac; category alignment fixed by the 27 Mar-31 Dec
+  span). Totals N'Djamena 419 (wk31-49), Hadjer-Lamis 866 (wk22-48), Kanem 9 (wk35-36), Lac 381 (wk26-46) = Agent 2's. 74/74 weekly
+  rows match exactly. (12 further meta-131 rows are 2006 provincial zeros - see STEP 3.)
+
+B4. WHO AFRO / MSPP SITREP series 2025 (001-097) and 2026 (001-039) (31 metadata entries; Agents 1/2/3/5; 226 rows) - PASS
+  Agent 7 parsed every held SITREP district table independently (PyMuPDF find_tables; 133 SITREPs; cumulative cases, cumulative
+  deaths, 'date de derniere notification') and recomputed each row:
+    differenced district increments (later SITREP cumulative - earlier SITREP cumulative named in the notes): 91/91 exact
+    direct district cumulatives: 52/52 exact; district zero windows: 17/17 have last notification before TL, 2 (Farchana rows 249,
+    251) verified from the flat cumulative series 3/1 (S022-S038) and 4/2 (S039-S050)
+    complements: row 44 Chokoyane = 1229/51 (S087) - legacy row 20 541/25 = 688/26; row 177 Bokoro = 8/1 (S096) - 5/1 (S087) = 3/0
+    provincial/national rows (62): all quotes present in held SITREPs; increments re-computed from the quoted cumulatives
+    (rows 18, 22, 25, 27, 168, 170, 173, 175, 1723) all exact; Sila zero row 172 confirmed (Abdi 160/23 last 01/10, Goz Beida 23/3
+    last 16/09, Tissi 11/1 last 04/10 in both S087 and S091).
+  => 226/226 consistent with the SITREPs; 0 failures.
+
+B5. Digitised chart series (ESTIMATED) - PASS with caveats
+  meta 249 Richard et al 1999 Fig.3 (Agent 4, 113 rows, conf 0.3-0.4): figure viewed at 400 dpi (/tmp/tcd_a4/gallica/richard_f69.jpg);
+    spot checks agree within reading error (1991 wk25 ~1100 / wk26 ~1930 / wk27 ~1220 / wk29 ~1150; 1997 wk21 ~980 / wk22 ~1170 /
+    wk23 ~1420 / wk25 ~890; 1996 wk30 ~670 / wk33 ~650; 1998 wk37 ~577 / wk38 ~630 / wk41 ~600). Year sums vs annual totals:
+    1991 10,774 (77% of 13,915; hidden weeks not entered), 1994 1,089 (1,094), 1996 4,558 (7,830 - curve starts wk26), 1997 8,437
+    (8,801/9,045), 1998 6,229 (DSIS 6,078). Labelling defect: rows say 'do not sum' but carry no NON-PRIMARY tag -> fixed in STEP 4.
+  meta 267 ACF 2010 Fig.5 (Agent 5, 25 rows, conf 0.45-0.5): bar heights re-read on /tmp/tcd5/fig5_crop.png (S36 ~492, S39 ~575,
+    S40 ~648, S41 ~646, S42 ~603, S44 ~362) - consistent; all 25 rows already tagged NON-PRIMARY (alternative to 134-137).
+  meta 131 GTFCC 2009 vector chart: exact re-decode (B3).
+B6. WHO WER / World Health Statistics 1971-1975 page images (Agent 4) - spot checks PASS
+  WER 46(27) p.5 (meta 234): page rendered at 300 dpi (/tmp/tcd7/wer4627_chad.png): Chari-Baguirmi 5-10 VI 3,657/1,247, 11-17 VI
+    1,241/342, 18-24 VI 764/274; Lac 19/6, 3/3, 481/186; Mayo-Kebbi 18-24 VI 135/11 -> rows 1549-1555 exact.
+  WHS 1972 Table 1.1 (meta 177/178): Chad row viewed (/tmp/tcd_a4/75344_chad.png): periods V-XIII 19/8, 5,232/1,723, 2,592/617,
+    153/43, 128/11, 63/3, 23/-, 14/3, 12/3 = 8,236/2,411 -> rows 1463-1465, 1470-1475 exact; nil periods rows 1462, 1466, 1469 '-'.
+B7. Finger et al 2018 CATI dataset (meta 115; Agent 2; 16 rows): weekly sums recomputed from Zenodo epicurve.csv (232 days,
+  4,352 cases): 16/16 exact.
+
+B8. Historical academic sources read as page images - PASS
+  Massenet et al 1995 BSPE 88:203-205 (meta 60; /tmp/tcd6/massenet_p0-1.png): p.203 'la maladie ne toucha que 300 personnes,
+    causant 30 deces' (row 185), '13 915 cas et 1 344 deces' (1991); p.204 'Au total, on recensa 1 098 cas dont 43 deces
+    (respectivement 108 et 8 pour Lere)' (rows 183, 184 = 1,098-108 / 43-8), 'fut a nouveau isole le 17 aout 1994' (row 186 basis).
+  Bono et al 1971 BSPE 64:387-398 (meta 94; Gallica pages f400-f402): p.390 Kim '80 cas 8 deces' 19 Jun (row 424), southern extension
+    'environ 250 cas et 50 deces' (row 425); p.391 Fort-Lamy '<300 cas et 30 deces', foyer Nord 4,836/1,586 by 15 Jun; p.392 N'Gouri
+    '155 en une semaine pour quelque 400 cas' (row 423), foyer Nord '6.040 cas dont 2.172 deces' at 24 Jun (row 422). 4/4 exact.
+
