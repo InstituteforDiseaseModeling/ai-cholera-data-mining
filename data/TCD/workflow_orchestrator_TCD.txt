@@ -1,0 +1,45 @@
+=== WORKFLOW ORCHESTRATOR LOG - Chad (TCD) ===
+Cycle start: 2026-10-03 17:05:50
+Runner: PID 19720 (run_all_countries.sh --unattended --parallel 10)
+
+PRE-RUN STATE
+  ./data/TCD/cholera_data_ai.csv : 20 rows (Index 1-21, Index 7 absent)
+  ./data/TCD/metadata_ai.csv     : 18 sources
+  validate_quality.py TCD        : 0 ERROR, 7 WARN, 5 INFO (/tmp/TCD_pre.json)
+  ./reference/effective_surveillance_gaps_coverage.csv (TCD):
+      total_months 682, months_with_data 361, percent_coverage 52.9,
+      months_jhu 347, months_who 14, months_ai 57, months_ai_only 0, gap_periods 12
+  ./reference/effective_surveillance_recency.csv (TCD): latest_observation 2026-08-23 (41 d stale)
+  workflow_state.json: absent -> fresh cycle, all 7 agents to run
+
+GAPS (./reference/effective_surveillance_gaps_detailed.csv, TCD)
+  1975-01-01..1990-12-31 5844d historical
+  1992-01-01..1993-12-31  731d historical
+  2012-01-01..2013-12-31  731d modern
+  2000-01-01..2000-12-31  366d modern
+  2008-01-01..2008-12-31  366d modern
+  1970-01-01..1970-12-31  365d historical
+  1973-01-01..1973-12-31  365d historical
+  1995-01-01..1995-12-31  365d historical
+  2002-01-01..2002-12-31  365d modern
+  2025-01-01..2025-06-30  181d recent
+  2026-09-01..2026-10-03   33d recent
+  2014-12-01..2014-12-31   31d modern
+
+ORCHESTRATOR DECISIONS
+  D1. Gap files NOT regenerated (shared across parallel countries; runner refreshes them).
+  D2. Dashboard NOT updated (runner owns it).
+  D3. Legacy AI rows 1-15 (written July 2025 cycle) show internal inconsistencies:
+      - row 1/2 (2001): quotes give 2458 cases/123 or 156 deaths, but metadata 1 description
+        says 2458/88 as of 21 Aug and metadata 2 says 608/20 as of 25 Jul; JHU WHO-annual 2001 = 5244/226.
+      - row 3 (Moundou 2003-04): quote says 12 deaths Sep 2003-Apr 2004; metadata 3 says 11 deaths Nov 2003-Jan 2004.
+      - rows 4/5/11 (2010 15656/303, 2011 12700/267): differ from JHU WHO-annual series; URLs look templated.
+      - row 14 Location 'AFR::TCD::Mongo::Regional_Hospital' is not an admin unit (Mongo = Guera capital).
+      - row 15 'Sila::Koukou::Marena' cites 'Red Cross Chad Salamat 2017' (province mismatch), CFR 26%.
+      Decision: do not delete pre-emptively. Agents 1-4 are told not to build on them; Agent 5 is tasked
+      with verifying every legacy row against its URL and revising/retracting via py/revise_observation.py
+      (tombstones to retracted_rows_ai.csv); Agent 7 audits the outcome.
+  D4. All agents run in the foreground, sequentially, with no time limit; the only stopping rule is the
+      CLAUDE.md yield rule (>=3 batches; stop at 3 consecutive <5% batches or 12 batches).
+
+AGENT DEPLOYMENTS
