@@ -8,3 +8,256 @@ Spot-checks restricted to WebFetch/curl on registered URLs and repository APIs (
 Parallel-run overrides in force: no analyze_effective_gaps.py runs (coverage computed in memory); repair_data_integrity.py always with CAF;
 no dashboard/weekly-builder scripts; no git operations; baselines read-only.
 
+=== AUDIT STEP 1: VALIDATOR + REPAIR TOOL (2026-10-03 23:20-23:40) ===
+Command: python py/validate_quality.py CAF --json /tmp/CAF_audit.json  -> EXIT 0
+  Result: 91 data rows (./data/CAF/cholera_data_ai.csv), 147 sources (./data/CAF/metadata_ai.csv); ERROR 0, WARN 9, INFO 119
+  (12 national_subnational_overlap, all 'documented'; 107 metadata_unused). Re-run with --no-baseline --show-info: identical
+  (CAF has no entry in ./reference/validation_debt.json, so nothing is being suppressed by the debt baseline).
+  WARN rows (validator reports PHYSICAL LINE numbers, not Index; mapped): L10=Idx15, L17=Idx22, L19=Idx24, L20=Idx25,
+  L40=Idx49, L60=Idx70, L62=Idx72, L64=Idx74, L84=Idx95 - all CFR_high_flagged_for_review (implied CFR 16.8-47.9%).
+  Review: every one has confidence_weight <= 0.7 (0.3-0.7) and a CFR/denominator note by Agent 4/5 (same-line cases and deaths
+  in the source, or a documented denominator mismatch for Idx25 and Idx24). Justified as genuine high early-epidemic CFRs in a
+  cholera-naive population (1997, 2011 index village, 2016 index village) - no change. Rows below 25 cases (e.g. Idx45 5/9,
+  Idx75 3/13, Idx84 1/5) are exempt from the check by design (CFR_SMALL_DENOM=25).
+  Overlap check (my own script, all 55 sub-national rows vs AI national rows AND the JHU/WHO national baseline rows):
+  every overlapping sub-national row carries the exact phrase 'Provincial subset - do not sum with national row'; every
+  overlapping AI national row (Idx 5, 6, 16-20, 49, 60, 85, 96, 101) carries 'National total - includes provinces not
+  individually listed'; every sub-national row overlapping the WHO weekly window (Idx 12, 13, 30, 31, 32, 90, 91, 92, 94)
+  states that it must not be summed with the WHO weekly series. PROBLEMS: none.
+  Minor edge overlaps noted (documented, no model effect - builder uses national rows only): sub-national 2011 rows
+  (Idx 21-23, 33-44; notification period 20 Sep-26 Oct) extend 3 days into national zero row Idx60 (from 24 Oct); Mondoli
+  Idx30 (TR = publication date 3 Aug 2026) shares 1 day with national Idx85; Bangui Idx51 (to 3 Feb 2012) spans Idx60 and Idx96.
+Command: python py/repair_data_integrity.py --dry-run CAF -> "TOTAL: 0 change(s)". No ./data/CAF/attribution_review.csv
+  written. Nothing to apply; --apply NOT run.
+
+=== AUDIT STEP 2: AGENT CLAIMS vs FILES ===
+Index ranges vs present rows vs tombstones (./data/CAF/retracted_rows_ai.csv, 11 tombstones: 1,2,3,9,11,26,27,29,48,55,76):
+  Pre-cycle rows Idx 1-10 (no 7): 4,5,6,8,10 survive; 1,2 (A5), 3,9 (A3) retracted.
+  A1 11-29: 19 written, 11 self-retracted -> rows_added 18 (claim OK); 26, 27, 29 later retracted by A5; 15 survive.
+  A2 30-51: 22 (claim 22 OK); 48 retracted by A5; 21 survive.   A3 52-59: 8 (claim 8 OK); 55 retracted by A6; 7 survive.
+  A4 60-84: 25 (claim 25 OK); 76 retracted by A5; 24 survive.   A5 85-100: 16 (claim 16 OK; 95 is a replacement).
+  A6 101-103: 3 (claim 3 OK).   Total surviving = 5+15+21+7+24+16+3 = 91 = file. Git checkpoint history (22 commits of
+  ./data/CAF/cholera_data_ai.csv on 2026-10-03) shows indices appearing in agent order - consistent with every claim.
+  Index 7 (no tombstone): git shows it was a duplicate of Idx6 (UNICEF 2016 265/20, same period, metadata 4) removed by the
+  repair tool's duplicate_merge in commit cf1c3ad (2026-09-18 pipeline upgrade); Idx6 notes keep UNICEF as cross-validation.
+  Not a data loss; the merge path of py/repair_data_integrity.py writes no tombstone (tooling gap, reported).
+Batches/yields (./data/CAF/workflow_state.json vs search_log_agent_1..6.txt): A1 6 [5,5,20,0,0,0]; A2 6 [5,10,15,0,0,0];
+  A3 7 [5,10,0,5,0,0,0]; A4 10 [10,10,5,0,0,15,5,0,0,0]; A5 7 [5,10,5,20,0,0,0]; A6 6 [0,0,10,0,0,0]. All >= 3 batches,
+  all yields <= 100 (percent units), all stopped on 3 consecutive 0% batches. Mechanical count of Q-labels: every batch
+  lists 20 queries (A6 B5/B6 use range labels 'Q6-Q10', 'Q2-Q5' for multi-string groups). Logged successful-query counts
+  equal yield/5 in every batch. A1 B1 logged 10% but recorded 5% after its own Index 11 was retracted - disclosed.
+  A2 (14 of 22 rows) and A3/A5 (replacement rows) disclose rows not counted in yield. No inflated claims found.
+  Caveat: A1 gaps_filled and A3/A4 gaps_validated_absent still list rows later retracted (27, 26, 29, 55, 76) - stale,
+  not false at the time of writing.
+
+=== AUDIT STEP 3 - SPOT-CHECK BATCH A (historical national rows; WebFetch-equivalent curl + IRIS DSpace REST API) ===
+Method: each cited source re-fetched to /tmp/caf_audit (outside the repo); PDFs via pdftotext; quotes matched in text.
+  A1 Idx14+15 WHO DON 30 Jul 1997 (meta 19) who.int/emergencies/disease-outbreak-news/item/1997_07_30-en -> VERIFIED verbatim
+     ('44 cases with 8 deaths ... from 8 to 17 July. Cholera has not been reported previously in this country'). Dates, numbers,
+     Inferred_Absence label for 1970-1996 appropriate (non-notification, not a zero report).
+  A2 Idx4 EID 2021 (meta 1/2) wwwnc.cdc.gov/eid/article/27/1/20-0375 -> VERIFIED 'CAR largely has been spared by the cholera
+     epidemic; only 4 outbreaks had been reported by 2020 (Table 1; Figure 1)'. PMC copy (meta 2) served a bot-check page.
+     Citation detail: first author is Sebastien Breurec (citation_author meta tags); 'Quilici et al.' in meta 41 and in row
+     notes is an author mis-attribution (Quilici is a co-author) - labels, not data; see Step 4.
+  A3 CAFELTP 2011 report (meta 25) cdcfoundation.org PDF -> VERIFIED: 1999 '35 cases and 7 deaths along the Oubangui River with a
+     mortality rate of 20% (2)' (Idx24); 1997 Ngaoundaye '77 cases and 35 deaths ... 45.5%' (Idx25); Figure 1 labels 16/49/94/12/1
+     for weeks 38-42 (Idx16-20); Region 1 159/172, Lobaye 126, CFR 6.3%/24.2% (Idx21-22); villages Mongo 67, Sedale 27,
+     Ngbango 19, Sekia mote 17, Zinga 10, Bimbo 7 (Idx33-38); Bangui arrondissements 7/2/1 (Idx39-44); period 20 Sep-26 Oct.
+  A4 UNICEF CAR story (meta 49) ReliefWeb, originally published 3 Feb 2012 -> VERIFIED 'had not seen a cholera case in as many as
+     a dozen years' (Idx57) and 'only one death occurred among 15 cases in Bangui' (Idx51).
+  A5 WER 1997;72(45) (meta 47; IRIS bitstream WER7245.PDF) -> VERIFIED 'Notifications received from 31 October to 6 November 1997
+     ... Central African Republic - 18.VII-10.X ... 399 67' (Idx49); Chad 21.IV-13.X 8 693/436 as in the note.
+  A6 WER 1998;73(32) (meta 48) -> VERIFIED 'Central African Republic - 1-24.VI ... 22 3' (Idx50; superscript 1 = 'See note above').
+  A7 WER 2018;93(38) (meta 55) -> VERIFIED 2017 zero-reporting footnote lists 'Central African Republic' (Idx53).
+  A8 WER 2019;94(48) (meta 56) -> VERIFIED 2018 zero-reporting footnote lists 'Central African Republic' (Idx54).
+  A9 WER 2026;101(38) (meta 32) -> VERIFIED Table 5 'African Region 22 Algeria, Benin, Botswana, Burkina Faso, Cabo Verde,
+     Central African Republic, ...' and 'A zero report is distinct from the absence of a submission' (Idx58).
+  A10 WHO PHSA CAR (meta 5) who.int/publications/m/item/... (4 Dec 2025) -> VERIFIED 'Although the last cholera outbreak in CAR
+     occurred in 2016-2017, the risk of re-introduction remains high, all six neighbouring countries are currently experiencing
+     cholera epidemics' (Idx8).
+  Batch A: 10 fetch groups, 10/10 verified, 0 discrepancies in numbers or dates.
+
+=== AUDIT STEP 3 - SPOT-CHECK BATCH B (2011-2016 national rows and the largest case rows) ===
+  B1 Idx5 ReliefWeb EP-2011-000153-CAF (meta 3) -> VERIFIED: 'declared an epidemic on 30 Sept 2011, with 51 cases and 11 deaths
+     registered ... total number of cases stood at 172 and the number of deaths was 16' (row quote expands 'Sept' to
+     'September'; numbers identical). The page attributes this text to IFRC 25 Jun 2012.
+  B2 Idx6 ReliefWeb EP-2016-000082-CAF (meta 8) -> 265/20 VERIFIED ('reducing the number of registered cases to 265 cholera
+     cases including 139 children under 15 years old, with some 20 deaths (lethality rate: 7.5%)', IFRC 7 Dec 2016 entry).
+     CITATION DEFECT (minor): the row's first quoted sentence 'From 27 July to 5 August 2016 at least 36 cases of acute
+     watery diarrhea with severe dehydration were reported' is NOT on the meta 8 page (which says 'At least 66 cases ...
+     16 people have died' for 12 Aug); it is from the IFRC DREF final report MDRCF021 (meta 45), verified there. Numbers
+     cited to meta 8 are correct, so source_index stays 8; provenance note appended (see Step 4 log).
+  B3 IFRC DREF MDRCF021 final report (meta 45) -> VERIFIED for Idx45 ('A further nine (9) cases ... including five deaths,
+     ... 5 and 10 August 2016 at Zawara, Danga and Massamba villages in the Damara district and one case at the Bruxelles
+     neighborhood in Bangui'), Idx46, Idx47 ('at least four (4) positive cases in the second and third districts').
+  B4 Idx96 WHO AFRO 'Situation as of 29 Feb 2012' (meta 112, Wayback PDF) -> VERIFIED 'CAR 8 0 0.0%'.
+  B5 Idx97 Outbreak Bulletin Vol.2 Iss.3 (meta 113) -> VERIFIED 'CAR 9 0 0.0%' (Jan-Mar 2012); increment 9-8 = 1 correct.
+  B6 Idx98 Iss.4 (meta 114) -> VERIFIED 'CAR 12 0 0' (Jan-Apr); increment 3 correct.
+  B7 Idx99 Iss.6 (meta 115) -> VERIFIED VISUALLY (page 2 rendered at 110 dpi): Fig.3 bar label 'CAR 13' (1 Jan-1 Sep 2012);
+     increment 1 correct; deaths not shown (blank is right).
+  B8 Idx100 Iss.10 (meta 116) -> VERIFIED VISUALLY (page 3 rendered): Table 2 'CAR 21 0 0.0' (Jan-Dec 2012); increment 8
+     correct. Series 8+1+3+1+8 = 21/0 = WHO annual 2012. No gaps or overlaps between rows 96-100.
+  B9 Idx56 WHO CAR biennial report 2014-2015 (meta 58) -> VERIFIED 'Pour eviter l'eclosion d'une epidemie de cholera ...
+     (Bangui, Obo, Mbaiki et Bouar) avec le pre positionnement des kits cholera' and the Garoua-Boulai refugee-camp context.
+  B10 Idx101 Cluster Sante annual bulletin 2014 (meta 134; ReliefWeb attachment car_health_situation_report_2014_2015.pdf)
+     -> VERIFIED: cholera preparedness only (kits at Bocaranga, Ngaoundaye, Ndim, Cantonnier, Obo); 'taux de completudes
+     ... entre 90 et 100% a partir de la semaine 26 jusqu'a semaine 51'.
+  B11 Idx102 Cluster Sante annual bulletin 2015 (meta 135) -> VERIFIED: measles/rubella flare-ups, two monkeypox epidemics,
+     EWARS promptness 92%, cholera only as 'Plan de lutte contre les diarrhees aigues aqueuses y compris le cholera'.
+  B12 Idx103 Cluster Sante annual bulletin 2016 (meta 38) -> VERIFIED Tableau 2: Jan-Jun 2016 only meningitis (Mar, Kabo/
+     Batangafo 163/12) and a VHF alert (Jun, Kabo 10/3, lab-negative); cholera 'Juillet-Sept 2016 ... 265 20 7,5'. (Table
+     also lists a monkeypox epidemic Dec 2015/Oct 2016 not mentioned in the note - immaterial to cholera.)
+  Batch B: 12 fetch groups, 12/12 numbers verified; 1 minor quote-provenance defect (Idx6).
+
+=== AUDIT STEP 3 - SPOT-CHECK BATCH C (2022-2026 rows, WHO baseline currency) ===
+  C1 Idx93 MSPP Bulletin epidemiologique mensuel N01 (meta 109, sante-rca.org PDF) -> VERIFIED: 'Date de publication : 08 septembre
+     2022'; 'Autres maladies ... Cumule janv-aout ... Cholera 0 0 0 0'; '7 DS sur 35 (54%) ont atteint 80% ...' (source's own
+     arithmetic). Documented_Absence label correct (ministry IDSR table with an explicit cholera zero).
+  C2 Idx85-89 WHO dashboard FeatureServer cholera_adm0_week (meta 108), live query 2026-10-03 23:5x -> VERIFIED: epiwk 31
+     (date_wk 2026-08-03) 1/0, epiwk 32-35 0/0, cum 725/45; no CAR week after epiwk 35 (2026-08-31). Week alignment: epiwk 16
+     = 2026-04-20 in both the live service and ./data/CAF/cholera_data_who.csv - the 2026 WHO week-shift defect does NOT
+     affect CAR.
+  C3 WHO baseline currency: ./data/CAF/cholera_data_who.csv (15 rows, 2026-04-20..2026-08-02) matches the live service in
+     14/15 weeks; week 2026-07-27..08-02 is 10 cases/1 death in the baseline vs 8/0 live (WHO revision). Upstream
+     ../ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv (scraped 2026-10-01) already holds CAR epiwk
+     30 = 8/0 and epiwk 31-35 (1, 0, 0, 0, 0). Baseline is stale by 5 weeks and overstates by 2 cases/1 death (726/46 vs
+     724/45 to 2 Aug). Read-only; reported for the runner.
+  C4 Idx28 Le Courrier du Vietnam/Xinhua 19/09/2026 (meta 15) -> VERIFIED: Touadera announced 'vendredi 18 septembre' the end of
+     the epidemic; '728 cas suspects ... 46 deces ... Le dernier cas confirme ayant ete enregistre le 17 juillet'.
+  C5 WHO AFRO OEW week 30 2026 (meta 10; IRIS bitstream via /server/api/core/bitstreams/{uuid}/content) -> VERIFIED for Idx12/13
+     ('As of 9 July 2026, 436 suspected cases ... Most cases were reported in Mbaiki (265) and Bimbo (168)'), Idx31 ('identified
+     22 suspected cases, including two deaths'), Idx32/90-92 ('As of 26 July 2026, a total of 708 ... 45 deaths'; four
+     districts). MAP CHECK (page 4 rendered at 130 and 400 dpi; red-blob radii measured in pixels): legend 5 = r9.7,
+     6-20 = r18.6, 21-239 = r27.0, 240-442 = r35.6; map Bangui 1 = r9.8, Bangui 2 = r18.6, Mbaiki = r27.0, Bimbo = r35.5.
+     Agents' class assignment (Bimbo top class, Mbaiki 21-239, Bangui 2 6-20, Bangui 1 = 5) is CORRECT. Exact values
+     442/239/20 remain an inference from class upper bounds (one feature per class); conf 0.45 appropriate.
+  C6 Idx94 Bimbo district response ToR N285/MSP/DIRCAB/COUSP26 (meta 111; scanned PDF, no text layer; page 2 rendered and read)
+     -> VERIFIED: 'Le 22 Juin 2026, nous avons ete alerte par les Centres de sante de NDIMBA et MONDOLI qui ont enregistres
+     97 cas dont 12 deces'; also '22 cas suspects dont quatre (4) deces' (Idx31 death conflict) and 'plus de 180 cas dont
+     une trentaine de deces' (16-22 Jun).
+  C7 Idx30 UNICEF CAR story (meta 43) -> VERIFIED 'Mondoli has registered 130 cases, including 10 deaths'; onset 'On 11 June'.
+  C8 Idx10 ECDC worldwide overview (meta 9): live URL now shows the update 'as of 26 August 2026' (CAR 447 cases/36 deaths to
+     9 Aug - the lagging IHR series the agents documented). The '26 May 2026' version is not archived; Wayback CDX has
+     captures of 23 May (update as of 30 Mar 2026) and 14 Jul (update as of 22 Jun 2026) - NEITHER mentions CAR. Consistent
+     with the row's claim and with Agent 3's downgrade to Inferred_Absence (ECDC was silent on CAR even on 22 Jun, when WHO
+     later back-dated 195 cases). Row 10's 'Source states' text is a description of absence, not a verbatim quote - noted.
+  C9 Idx10 corroboration Corbeau News 16 Mar 2026 (meta 139) -> VERIFIED 'la RCA, miraculeusement epargnee pour l'instant'.
+  Batch C: 9 fetch groups, all verified; 1 baseline staleness defect (WHO file), 0 AI-row defects.
+
+=== AUDIT STEP 3 - READ-ONLY IN-MEMORY WEEKLY BUILD (py/build_weekly_timeseries.py imported; build_all_templates + process_country('CAF'); nothing written) ===
+  Template: country_k1. Series 1969-12-29..2026-09-14 (2960 ISO weeks). Per-year totals: 1997 438.1/74.2, 1998 26.9/3.8
+  (year-boundary spill of the 1997 annual into ISO 1998-W01; two-year total preserved), 1999 35/7 (AI Idx24), 2004 320/48,
+  2011 117/15, 2012 20.8/0, 2013 0.2, 2016 364/7, 2018 1, 2026 727/46.
+  National AI rows that actually supply weeks (AI wins): Idx14 (1,410 wks inferred_zero 0.6), Idx24 (52 wks fourier, conf
+  0.17), Idx57 (210 wks inferred_zero 0.5), Idx4 (209 wks inferred_zero 0.6), Idx56 (3 wks 0.45), Idx8 (1 wk 0.6), Idx58
+  (52 wks documented_zero 0.9), Idx10 (16 wks inferred 0.6), Idx85-89 (5 wks observed 0.85), Idx28 (2 wks inferred 0.45).
+  Outranked in EVERY week by JHU: Idx49, 50, 5, 16-20, 60, 96-100, 101, 102, 103, 6, 53, 54, 93 (Idx8 104 of 105 weeks).
+  FINDINGS (builder, not fixed here - runner/human):
+   (1) 2013 after Agent 6's retraction of Idx55: 51 weeks source 'none', method assumed_zero, confidence 0.5 (+1 week JHU 2012
+       fourier spill). The retracted AI inferred zero had confidence 0.4, so the retraction RAISED the weight on 'no cholera'
+       for 2013 from 0.4 to 0.5. The runner's last CSV (./data/CAF/cholera_weekly_CAF.csv, 22:06) predates the retraction and
+       still shows AI inferred_zero for 2013. The gap-fill ignores surveillance-gap status: CONFIRMS Agent 6.
+   (2) 2016 = 364 cases / 7 deaths vs 265/20 (MoH/WHO/IFRC) or 266/21: try_insert keeps the HIGHER sCh when two rows from the
+       same source/method hit one week; JHU UID 3180 (correct alignment) and UID 5104 (identical curve one week early) are both
+       'JHU observed', so each week takes max(A[w], A[w-1]) -> +99 cases (+37%); deaths come mostly from 5104 (none) -> -13.
+       CORRECTION to the hand-off framing: the UID 3180 age/sex strata (8 rows, sum 266, Primary=False) are non-weekly and
+       are SKIPPED by the builder's 50% weekly-coverage rule; they would inflate any naive sum of national rows, but they are
+       not what inflates the weekly series. The one-week offset is.
+   (3) Source outranks evidence: JHU annual totals (1997 443/75, 2011 117/15, 2012 21/0) are Fourier-spread over all 52 weeks
+       (conf 0.475-0.5) although AI holds dated weekly/monthly rows for the same cases (1997 Idx15/49; 2011 Idx16-20 = 16, 49,
+       94, 12, 1 in weeks 38-42; 2012 Idx96-100). The 2011 epidemic curve (19 Sep-23 Oct) is therefore absent from the model.
+   (4) 2014-2015 JHU UID 5104 platform zeros render as 'observed' at 0.9 and outrank AI Idx101/102 (0.4/0.5), although Agents
+       5/6 showed the platform's zeros are default fills (HDX shows CAR = 0 in all weeks of 2012 and 2013).
+   (5) 2020-01-06..2020-11-08: 44 JHU UID 5104 weeks are Phantom=True upstream (verified in ../jhu_cholera_data/data/Central
+       African Republic/ObservationCollection5104.csv: 44 true, 8 false in 2020). The flag survives only as text in
+       processing_notes ('Phantom: True') at confidence 0.63; the builder ignores it and renders them as observed zeros
+       (0.63). (Hand-off said the flag is lost; it is kept as text but not parsed.)
+   (6) 2005-2006 JHU WHO-annual zeros render as inferred_zero 0.6 (not documented) - acceptable given Agent 6's finding that
+       they are roster defaults.
+
+=== AUDIT STEP 3 - SPOT-CHECK BATCH D (evidence underpinning rows 14, 57, 60 and the 1997 adjudication) ===
+  D1 Germani et al. 1998 Table 1 (meta 77, Springer page-one preview PDF) -> VERIFIED all 8 lines: Mongoumba 48/23, Kouango
+     (Gbamoko) 44/8, Kouango 141/14, Mobaye 134/40, Damara 76/3, Bang 13/3, villages around Ngoundaye 91/16, Ngoundaye 9/0
+     (south 443/88, north 113/19 = Idx70-75); 'The Central African Republic (CAR) was cholera-free until June 1997' and
+     'Until 1997, there had been no cases of cholera in CAR since ... its entry into Africa in 1970' (Idx14 corroboration).
+  D2 WER 1991;66(42) (meta 59) -> VERIFIED 'Since 1970, only 8 of the 52 countries in Africa have never reported autochthonous
+     cases of cholera to WHO (Botswana, the Central African Republic, ...)' (Idx14).
+  D3 WHO GHO API CHOLERA_0000000001 CAF (meta 20) -> VERIFIED: entries only for 1997 443, 1998 22, 2004 320, 2005 0, 2006 0,
+     2011 117, 2012 21 - none for 1970-1996 (Idx14) and none for 2016 onward.
+  D4 IFRC DREF MDRCF009 ops update 29 Feb 2012 (meta 72) -> VERIFIED 'no new cholera case or death has been registered in CAR
+     since week 42 of 2011' and the week-46 Zinga imported cases (Idx60 Documented_Absence wk43-52; Agent 5's caveat that
+     WHO AFRO later listed 8 CAR cases in Jan-Feb 2012 stands, Idx96 verified in batch B).
+  D5 UNICEF press release 12 Aug 2016 (meta 4) -> 'At least 16 people have died in the first cholera outbreak in the Central
+     African Republic (CAR) since 2011 ... 66 cases' - supports the 'first since 2011' statements used by Idx56/103, but
+     DISPROVES Idx6's legacy claim that meta 4 'reported identical figures' (265/20).
+  ACTION (Agent 7, via py/revise_observation.py CAF --index 6 --agent 7 --append-note, reason logged): appended a correction to
+     Idx6 recording (1) the true provenance of its first quoted sentence (meta 45, IFRC DREF MDRCF021, verified) and (2) that
+     the meta 4 cross-validation claim is false, with the verified independent support for 265/20 (meta 38 Tableau 2; meta
+     45). Values, confidence (0.9) and source_index (8) unchanged - the cited source does carry 265/20. Backup written by the
+     tool (./data/CAF/.backup_cholera_data_ai_20261003-234033603972.csv). Validator after the edit: ERROR 0, WARN 9 (unchanged).
+  Withdrawn: the EID 2021 author mis-attribution - meta 1, 2 and 41 Descriptions already name Breurec S as first author;
+     only the meta 41 Source label and some row notes still say 'Quilici et al.' (label text; renaming the Source would
+     break the dual-reference link to presence records, so left as is).
+  Presence-file note (no tool can revise presence records; not hand-edited): AFR::CAF::Bangui::Bangui 3 (2026-06-26..07-15,
+     meta 50, conf 0.5) rests on OCHA/Xinhua 'spread ... to all districts of the capital'; contradicted by WHO AFRO OEW wk30
+     ('Four health districts (Bimbo, Mbaiki, Bangui 1 and Bangui 2) have reported cases') and by the 18 Sep 2026 end-of-
+     epidemic statement (meta 15: 'maitrisee dans les districts sanitaires de Bimbo, Bangui 1, Bangui 2 et Mbaiki'). Flag for
+     human review; no model effect (presence records do not enter the weekly series).
+  Batch D: 5 fetch groups, all verified; 1 correction applied.
+
+=== AUDIT STEP 3 - SPOT-CHECK BATCH E (archival leads named in the brief; remaining row sources) ===
+  E1 WER 2005;80(31) 'Cholera, 2004' (IRIS item 12e7ad0f-..., found via the DSpace discover API) -> REACHED: Table 1 'Central
+     African Republic - Republique centrafricaine ... 320 48', imported column blank; CAR appears nowhere else in the issue.
+     So the brief's lead is reachable (Agent 5 had in fact quoted it) and adds no place or date: the 2004 provenance question
+     cannot be closed from WHO publications.
+  E2 IFRC GO API appeal M91EA039 (meta 132) -> event 2167 'Epidemics', countries [Central African Republic], start 1991-09-02,
+     CHF 1,009,000 requested, 0 funded, empty summary, no appeal documents. Needs IFRC archives (Geneva) - not online.
+  E3 IFRC MDRCF009 WHO-CPSE table (meta 72) -> VERIFIED Idx61-69 cell by cell (Lobaye 0/33/82/12/0; Ombella-M'Poko
+     16/12/5/0/0; Bangui wk39 = 1+1+1+2 = 5, wk40 = 5+1 = 6, wk42 = 1) and weeks 43-52 all 0 (Idx60).
+  E4 EWARS N00 (meta 54) -> VERIFIED '8 Cholera 0 0 0 0 0 0 ... 9 Diarrhee aigue aqueuse 3 019 18 1 717 0 4 736 18' (Idx52).
+  E5 Cluster Sante 60-day special bulletin (meta 60) -> VERIFIED EWARS table 'Cholera 0 0 0 0' (Idx59).
+  E6 WHO/MoH sitrep N2 9 Aug 2016 (meta 82) -> VERIFIED 'Du 07 juillet au 05 aout 2016, environ 36 cas ... dont 8 deces ...
+     Mourou-fleuve, sous-prefecture de Ndjoukou' (Idx95).
+  E7 ARC J Public Health 2019 (meta 87) -> VERIFIED 'A total of 69 patients (65.09%) came from the 2nd, 5th and 7th borough of
+     Bangui' and the Begoua/Bimbo periphery 11.32% (Idx77, 78).
+  E8 RJDH 9 Sep 2016 Wayback (meta 101) -> VERIFIED '249 cas ... La commune de Bimbo a enregistre 11 cas suspects et Damara 85
+     cas' (Idx81, 82) and the ambiguous 'Galabadja 93' sentence.
+  Coverage of the audit: 87 of 91 rows checked against the cited source (96%); not re-fetched: Idx79, 80, 83, 84 (2016
+  sub-national press/platform relays, conf 0.4-0.5, no effect on the national series). Numeric discrepancies found: 0.
+  Citation defects found: 1 (Idx6, corrected by note). Mis-attributed presence inference: 1 (Bangui 3, flagged).
+  Audit batches run: 5 (A-E), 0 rows added, 0 sources registered.
+
+=== AUDIT STEP 3 - ADDENDUM (2013 classification basis) ===
+  WHO/Cluster Sante note d'information N 013/13, 27 Sep 2013 (meta 124; ReliefWeb attachment
+  Bulletin_du_Cluster_Sante_RCA_N_013_du_27Sep2013.pdf; page 1 rendered, chart crop at 400 dpi) -> VERIFIED VISUALLY:
+  chart 'Nombre de districts rapportant au SIMR - sem. 1 2012 a sem. 36 2013, RCA' shows ~23-31 districts/week through
+  most of 2012, ~14 in 2013 weeks 1-3, 6-10 in weeks 4-17 and 1-5 in weeks 18-36. Agent 6's SURVEILLANCE GAP
+  classification of 2013 (retraction of Idx55) is supported; the note contains no cholera mention. (Reporting was
+  already falling in late 2012: 15-22 districts in weeks 46-52.)
+  WER 1998;73(27) (meta 23) -> VERIFIED 'In 1997 the CFR ranged from 1.5% in Mauritania to 16.9% in the Central African
+  Republic' (used to justify the 1997 CFR WARNs).
+
+=== AUDIT STEP 5 - REPORT ===
+  ./data/CAF/search_report.txt overwritten (May 2026 version replaced): bottom line, sources by reliability,
+  observations by type/level, coverage before/after (in-memory analyse(); ./reference untouched), gap-gain attribution
+  (94% inferred absence), open gaps a-h with data-existence assessment, validator status, agent productivity, WebSearch
+  limitation, recommendations; Appendix A metrics, Appendix B baseline/builder defects, Appendix C recommendations.
+
+=== AUDIT STEP 6 - FINAL GATE AND STATE (2026-10-03 23:51:33) ===
+  python py/validate_quality.py CAF --json /tmp/CAF_post.json -> EXIT 0; ERROR 0, WARN 9 (CFR_high_flagged_for_review,
+  justified), INFO 119; 91 rows, 147 sources.
+  write_agent_state('CAF', agent_num=7, batches_completed=5, batch_yields=[0,0,0,0,0], rows_added=0, sources_discovered=0,
+  stopping_reason='audit complete') -> written; orchestrator keys preserved in ./data/CAF/workflow_state.json.
+
+=== AGENT 7 SUMMARY ===
+  Audit batches: 5 (A historical national rows; B 2011-2016 + largest case rows; C 2022-2026 + WHO baseline currency;
+  D evidence for rows 14/57/60 + 1997 adjudication; E archival leads + remaining sources) plus a read-only in-memory weekly
+  build and in-memory coverage (analyze_effective_gaps.analyse; ./reference untouched).
+  Rows changed: Index 6 (note appended - quote provenance and false cross-validation claim; values unchanged).
+  Rows added: 0. Rows deleted: 0. Sources registered: 0. Repair tool: dry run CAF only, 0 changes, --apply not run.
+  Agent claims: all verified (batches >= 3, yields <= 100, 20 queries/batch, row counts match Index ranges, tombstones and
+  git checkpoints). Index 7 gap explained (2026-09-18 duplicate merge, no tombstone).
+  Coverage: effective 50.1% -> 98.2% (670/682 months; months_ai_only 448; 1 gap 2013-01-01..2013-11-30); baseline-only 32.0%.
+  94% of the months gained over the baseline are inferred-absence zero rows (Index 14 alone 324 months).
+  Report: ./data/CAF/search_report.txt (overwritten).
+  Agent 7 Status: COMPLETE
