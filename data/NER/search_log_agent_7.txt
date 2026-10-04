@@ -21,3 +21,219 @@ no builder / generator / dashboard / git commands; writes only via py/add_observ
 py/revise_observation.py --agent 7. Scratch: /tmp/NER_a7/.
 
 Local clock at log creation: 2026-10-04 03:30:10 PDT
+
+=== STEP 1 | VALIDATOR (authoritative) - BEFORE ANY AGENT 7 CHANGE ===
+Command: python py/validate_quality.py NER --json /tmp/NER_audit.json  -> exit 0
+Result : 904 data rows, 293 metadata sources; ERROR 0, WARN 48, INFO 414.
+WARN classes (row numbers in the validator are PHYSICAL CSV LINES, not Index values; mapped to Index by csv line_num):
+  44 CFR_high_flagged_for_review - Index 55-58, 60, 62, 64, 70-81, 84, 86 (1971 national WER weeks), 99-102 (1971 regional
+     compilations), 211, 213 (1972 Magaria), 214, 218, 220, 221 (1974), 227, 228 (1973 Dogondoutchi), 173 (1994 Oct-Nov), 189, 190
+     (1991 Oct-Nov), 192, 198 (2000), 376, 668 (Dosso 2016), 511 (Niamey_1 2021), 564 (Zinder 2011), 900, 904 (Bouza wk42 2005).
+     All are source-printed numbers (re-verified on the primary for 73, 192, 211, 213, 214, 511, 564), all at conf <= 0.7; era-consistent
+     (WHO annual CFR 1971 25.3%, 1974 26%, 2000 16.9%; MoH Tableau XLI prints Zinder 2011 at 21.43%). JUSTIFIED, not changed.
+   4 period_single_day - Index 257 (Guidan Roumdji first case 16 Mar 2011, OCHA district table), 274 (Magaria 4 deaths on 2 Sep 2011,
+     deaths-only), 282 (Tera 3 cases reported 15 Sep 2005), 463 (Tera telegram 27 Jul 1973, 28/2). All source-dated single-day
+     notifications. JUSTIFIED, not changed.
+Repair tool: python py/repair_data_integrity.py --dry-run NER -> "TOTAL: 0 change(s)". Nothing to apply; no attribution_review.csv.
+
+=== STEP 2 | DID THE AGENTS DO THE WORK? ===
+Batches (all >= 3): A1 12 (max), A2 12 (max), A3 12 (max), A4 10, A5 11, A6 8 (A4-A6 stopped on 3 consecutive sub-5% batches).
+Yields: all in percent, none > 100 (max 90, A1 batch 4).
+Rows claimed vs present (Index ranges; live = not tombstoned):
+  A1 35-234: 200 committed, 192 live (106, 108, 143, 144, 151-154 later retracted by A5) - claim 200 OK
+  A2 235-389: 155 committed, 148 live (374 self-retracted; 252-254 by A5; 323, 324, 343 by A3) - claim 155 OK
+  A3 390-454: 65 committed, 58 live - INCONSISTENCY: workflow_state.json agent 3 rows_added = 58 (net of its own 7 retractions),
+     against shared rule 5 ("do not net off retractions"); the gate recorded 65 committed. Not a data error.
+  A4 455-471: 17 / 17 - OK.  A5 472-945: 474 / 474 - OK.  A6 946-959: 14 / 14 - OK.  Legacy: 1-34 -> only Index 34 live.
+  Arithmetic 34 + 200 + 155 - 1 + 65 - 21 + 17 + 474 - 33 + 14 = 904 = live rows; 904 + 55 tombstones = 959 = max Index; every
+  missing Index has a tombstone in ./data/NER/retracted_rows_ai.csv.
+Observations for the report (no rule broken): A3 batches 7, 9, 11, 12 and A4 batches 2, 4 and A6 batch 5 were each exactly 5%
+  (one productive query), which keeps the 3-consecutive rule from firing; A5's highest-yield batches (1, 7) were offline
+  re-mining of documents other agents had already registered or cached, not new discovery; A5 batch 9 added 39 rows credited
+  to no query (honest accounting).
+
+=== VALIDATION BATCH 1 | Stage-1 re-verification on WHO IRIS primaries (IRIS reachable again from this host, 2026-10-04) ===
+Channel: IRIS DSpace 7 REST (item/handle -> bitstream -> pdftotext; pages rendered where OCR failed). Queries: 20
+  1  WER 46(22) 1971 (10665/218346) -> 9-15 May 1971 Mayahi 402/176 ... Zinder ville 61/44 = 1,339/504 = row 73. PASS
+  2  WER 47(13) 1972 (10665/218811) -> Magaria Arr. 5-11.III 40/10, 12-18.III 11/2 = rows 211-213. PASS
+  3  WER 49(12) 1974 (10665/219777) -> bracketed Maradi+Zinder 176/38 '10-16.III' + Niamey 1/0 = row 214 (177/38; cumulative reading
+     is Agent 1's documented interpretation). PASS
+  4  WER 56(21) 1981 (10665/223504) -> 'NIGER 29 III-4 IV ... 7i 0' (rendered crop) = row 199; basis of zero rows 414/415. PASS
+  5  WER 60(20) 'Cholera in 1984' (10665/225369) -> 'free of cholera in 1983 ... first report of an outbreak was received from Niger
+     on 23 May' verbatim = rows 35, 421. PASS
+  6  WER 66(19) 'Cholera in 1990' (10665/228010) -> 'Seven countries that had experienced cholera in 1989 apparently remained free in
+     1990' verbatim (Niger not named) = row 397 (Inferred, correct). PASS
+  7  WER 66(33) 1991 (10665/228109) -> 'Niger 1.V-21.VII ... 2 076r 251'; newly infected Niamey, Tahoua, Tillabery = row 183 + presence. PASS
+  8  WER 74(31) 1999 (10665/230875) -> 'although no cases were reported in 1998' and Boboye 169/10 verbatim = rows 392, 177. PASS
+  9  WER 75(40) 2000 (10665/231298) -> 'Niger 26.VIII-2.IX ... 77 29' = row 192. PASS
+ 10  WER 77(32) 2002 (10665/231941) -> Gaya 104/8, 9 Jun-22 Jul verbatim = row 906. PASS
+ 11  WHO country office 'Profil de la Republique du Niger' (10665/342205) -> 'indemne de cholera depuis 1974 en depit de la
+     reintroduction de cas bacteriologiques a la suite du pelerinage de 1975' = rows 233, 234, presence 1975-12..1976-01. PASS
+ 12  WER 64(37) 1989 (10665/227303) -> 'NIGER 1-20.VIII ... 57 8' (rendered crop) = row 456. PASS
+ 13  WER 69(46) 1994 (10665/229242) -> 'Niger 29 VII-23 X ... 258 27' (OCR '*58'; rendered crop) = basis of derived row 460. PASS
+ 14  WER 71(44) 1996 (10665/229945) -> 'Niger 1.VIII-4.IX ... 201 16' = row 461. PASS
+ 15  WER 76(39) 2001 (10665/231644) -> 'Niger 23.VIII-18.IX ... 113 15' = row 949. PASS
+ 16  WER 78(40) 2003 (10665/232279) -> 'Niger 25.VIII-28.IX ... 35 1' = row 950. PASS
+ 17  WER 79(22) 2004 (10665/232492) -> 'Niger 8.III-16.V ... 170 5' = row 953. PASS
+ 18  WER 77(34) 2002 (10665/231953) -> 'Niger 9.VI-5.VIII ... 98 2' = row 954. PASS
+ 19  Europe PMC core PMID 30715523 -> Alkassoum 2019 abstract verbatim ('except in 2009, when no outbreak was reported') = row 393;
+     citation is TRSTMH 113(5):273-280 - metadata 80 Source label still says 113(6):324-331 (documented in its Description; no
+     tool verb renames a Source without breaking the dual reference) - DEFECT logged, not editable.
+ 20  WebFetch cdc.gov MMWR 00001634 (curl blocked) -> 'Cholera appeared again in Mozambique, Niger, and Zambia, which had not reported
+     cases in 1988' verbatim = row 34 (Inferred 0.55, correct). PASS
+Rows added: 0 (audit). Yield: 0%.
+
+=== VALIDATION BATCH 2 | Stage-1 re-verification on non-IRIS primaries ===
+Queries: 20
+  1  ReliefWeb page + PDF, Niger Health Cluster bulletin N4 2026 (30 Aug 2026; page 5 rendered) -> annual 2021 5591/166 ... 2025 10/0,
+     2026 70/1; 70 suspected / 35 culture-confirmed / 1 death; S26 2, S27 3, S28 13, S29 18 (+1 death), S30 34; Diffa district 41 cases
+     in 11 CSI 23 Jun-21 Jul = rows 47-54, 394, 395. PASS (the '76 cas' on p.6 is hepatitis E in Tera, not cholera)
+  2  ReliefWeb PDF UNICEF Niger HSR No.2 Jan-Sep 2025 -> '10 cases of cholera with no reported deaths' = rows 54, 395. PASS
+  3  ReliefWeb PDF IFRC MDRNE025 final report -> Table 1 Zinder 600, Maradi 3,038, Tahoua 1,309, Tillabery 309, Niamey 112, Dosso 150,
+     Diffa 73 = 5,591; 1,904/70 by 24 Aug = rows 235-242. PASS
+  4  ReliefWeb PDF OCHA 'Apercu de l'epidemie de cholera en 2021, au 12 octobre 2021' -> 5,343 at 12 Oct = rows 670-676 (total). PASS
+  5  ReliefWeb PDF UNICEF Niger Flash Update No.2 (22 Sep 2024) -> 430 suspected (297/124/8/1), 45 confirmed (35/5/4/1), 12 deaths
+     = rows 377-380. PASS
+  6  ReliefWeb page OCHA West Africa sitrep No.7 Aug 2004 -> 'entre le 3 mai et le 15 aout, 1426 cas ... tue 27 personnes' = row 646. PASS
+  7  stat-niger.org HEAD checks of the MoH yearbooks 2010, 2011, 2021, 2024 (metadata 231, 232, 249, 248) -> 200 application/pdf. PASS
+  8  Wayback id_ WHO Niger EHA 13-27 Dec 2010 (metadata 177) -> regional 2010 text verbatim; Figure 2 rendered: stacked 'Cas NDCD' +
+     'Deces' bars - bar tops = total cases; spot checks S27 102/3, S28 91/1, S35 102/5, S36 196/13, S37 101/9, S38 107/7, S39 129/4,
+     S40 87/4 = rows 747, 748, 755-760; series total 1,154/66 = WHO annual. PASS. Week-46 'Tabaski' note concerns malnutrition
+     attendance and a 2-day minimum-service staff leave -> zero row 768 kept (Documented 0.5, surveillance partial).
+  9  HDX CKAN package_show 2012 regional cholera platform -> resource URL. Navigation.
+ 10  HDX xlsx wca_Cases2012 -> Niger row W1-W52 (sum 5,285): all 50 AI rows (689-736, 555, 557) equal the sheet week by week. PASS
+ 11  hsd-fmsb.org PDF Abdoulaye Zeidou et al. 2024 -> 'Nous avons colligé 5428 cas', Agadez only region without cases; Figure 2
+     labels rendered: every weekly row 444-453, 647-662 and zero row 390 matches; S26 = 0 has no row (deliberate). PASS
+ 12  who.int DON 2 Jun 2004 -> Ayorou 137/5, 3-17 May 2004 verbatim = row 737. PASS
+ 13  who.int DON 17 Sep 2001 -> Filingue 13/3 27 Aug-2 Sep 2001; 'outbreaks which began in April 2001 in nearby countries' = rows 194, 425. PASS
+ 14  hsd-fmsb.org PDF Amadou Oumarou et al. 2020 Tableau I -> 2003 152/4, 2006 257/19, 2007 24/2, 2008 176/6; zeros 2000-02, 2004-05,
+     2009, 2015-16; total 1,930/79 = rows 441-443, 583-586. PASS
+ 15  anp.ne 9 Sep 2022 -> 20 suspected / 0 deaths 29 Aug-5 Sep 2022: Dungass 2, Madarounfa 16, Maradi Ville 2 = rows 297-299, 743. PASS
+ 16  Wayback id_ SNIS bulletin week 24 2007 (metadata 192) -> 'De la 1ere a la 24eme semaine aucun cas de cholera n'a ete notifie' = row 332. PASS
+ 17  Wayback id_ SNIS MMR No.6 2009 (metadata 195) -> 'aucun cas de cholera n'a ete notifie au niveau national', completeness 100% = row 337. PASS
+ 18  Wayback id_ WHO GTFCC Niger profile 2010 (metadata 229) -> 948/70 in 2008; 'first cases ... Tanout on March 3' = rows 338 (cut), 339 (TL). PASS
+ 19  Wayback id_ WHO AFRO OEW week 46 2021 (metadata 283) -> 'Niger Cholera Grade 1 ... 9-Nov-21 5 522 194 159' = row 946. PASS
+ 20  archive.org djvu FBIS-MEA-84-130 (metadata 258) -> AFP 4 Jul 1984: gastro-enteritis 'in some cases complicated by cholera',
+     'affected some 1,700 people', 143 deaths, Niger valley upstream of Niamey = row 455 (conf 0.5 with case-definition caveat
+     warranted). PASS
+Rows added: 0. Yield: 0%.
+
+=== VALIDATION BATCH 3 | cached-document page checks + recent-gap channels ===
+Queries: 20
+  1  archive.org djvu Bako 1974 thesis (metadata 153) -> 'Le cholera est apparu en Decembre 1970 au Nord-Ouest du pays' = row 417. PASS
+  2  stat-niger.org HEAD checks MoH yearbooks 2018, 2022 (metadata 251, 247) -> 200 application/pdf. PASS
+  3  cached WHSR 26(4) 1973 p.284 (Agent 4 IRIS copy, rendered) -> Niger 1972 monthly: Jan '-', Feb '-', Mar 43/14, Apr-Nov '-', Dec '+'
+     (not received); 1971 total 9,268/2,345 only -> supports 418 and 419 (except Dec 1972); gives nothing for row 427 (late 1971).
+  4  cached WER 48(43) p.414 Table 1 1973 four-weekly (Agent 1 copy, rendered) -> table uses blanks for nil throughout: Niger periods
+     1-7 blank, 8-10 127/22/19 -> row 440 Documented OK; period 11 footnoted 'Incomplete' -> row 426's 'period 11 blank' basis invalid.
+  5  cached WHSR 28(9) 1975 p.340 (rendered) -> Niger 1974 Jan 117, Feb-Apr '-', ... Sep-Dec '-'; 1975 Jan-May '-' -> supports row 233
+     (Sep 1974-May 1975 explicit nils); Jan 1974 117 (= Mirria 20 + 97 suspected of 15-19 Feb?) confirms the conflict on 426.
+  6  cached MoH Annuaire 2010 Tableau 61 (RDT) + Tableaux 34-42 (routine) + 113a (MDO) -> L24 adjudication (below).
+  7  cached Moustapha et al. 2023 Tableau I (rendered) -> 2011 regions include DIFFA (Diffa) -> Diffa 2011 presence record supported
+     against MoH Tableau XLI (Diffa 0); presence file left unchanged.
+  8  cached MoH yearbooks 2011 (Tableau XLI + denominator), 2012 (CXVIII), 2013, 2014 (157), 2018 (93), 2021 (139), 2022 (131), 2024 (161)
+     -> regional/district values and zeros of rows 404, 406-408, 411, 428-438, 472-494, 498-539, 542-550, 559-566, 664-667, 738, 739
+     all match; 2022 printed national 92/1 includes 21 sampled-negative suspects (row 739 says so and uses 71/1 = DSRE). PASS
+  9  ReliefWeb C174 'cholera' 25 Sep-4 Oct 2026 -> 0 items.
+ 10  ReliefWeb C174 'cluster sante' 31 Aug-4 Oct 2026 -> only bulletin N4; N5 not published.
+ 11  ReliefWeb 'Weekly Bulletin on Outbreaks' 20 Sep-4 Oct 2026 -> 0 reposts.
+ 12  IRIS discover search OEW 2026 -> newest is week 36 (accessioned 30 Sep 2026; Niger events frozen at 26 Jul per Agents 1/6).
+ 13  WHO dashboard ArcGIS cholera_adm0_week NIGER -> 20 features, last date_wk 2025-01-13 (= baseline WHO file).
+ 14  WHO global cholera summary CSV (ArcGIS item 3aa7bfec..., modified 2026-09-28) -> no Niger line.
+ 15  africacdc.org October 2026 epidemic-intelligence report -> 404 (not published).
+ 16  ECDC cholera monthly overview -> 'as of 26 August 2026'; Niger not listed (Nigeria 41,296; Chad 47).
+ 17  who.int multi-country cholera external situation report #39 -> 404.
+ 18  IFRC GO events Niger since 1 Jun 2026 -> 0.
+ 19  WebSearch #1-#3 (Agent 7; standard): FR/EN 2026 Diffa queries and a 2025 district query -> only 2014/2021 articles conflated with
+     2026; imcc.icdo.org event 856317 (WebFetch) = Bauchi State, NIGERIA (398 cases to 31 Jul 2026), not Niger. No Niger data.
+ 20  ReliefWeb C174 'UNICEF' 15 Aug-4 Oct 2026 + ANP site search -> no Niger cholera item (ANP search ignores the query).
+Rows added: 0. Yield: 0%. Recent gap (27 Jul 2026 onward) and 2025 dating remain unresolved from public sources.
+WebSearch calls used by Agent 7: 3 (soft allotment 20).
+
+=== STEP 3 | 4-STAGE QC (stratified sample of 290 rows; file: /tmp/NER_a7/qc_sample.csv, scratch only) ===
+Strata: A 1970s WER (21) | B 1980s-1990s IHR (26) | C 2000s SNIS/WER/WHO (47) | D A5 chart/xlsx-digitised (45) | E 2021 curve (39) |
+  F 2024 regional (14) | G 2025-26 Health Cluster (10) | H every zero row >= 90 days (46; 38 not already in A-G) | I other MoH/DRSP/
+  Bompangue/ANP (46) | J targeted rows flagged by file-wide checks (4 more).
+Stage 1 (source authenticity / claim vs source): 137 rows verified individually against a re-fetched or cached primary, 37 verified at
+  series level (series total/structure confirmed), 116 metadata-level only (specific URL, exact dual reference, label consistent; not
+  re-fetched). File-wide: 260 rows verified individually, 201 more at series level. NO VALUE MISMATCH found anywhere.
+  Defects 6: label overstated on zero rows 426, 427, 414, 415 (relabelled, below); citation slip 'JHU UID 13' for UID 83 in rows 769-809
+  (correction note on 769); metadata 80 Source label wrong issue/pages (row 393; not editable).  As found 284/290 = 97.9%.
+Stage 2 (epidemiological plausibility, all 904 rows checked programmatically): deaths <= sCh, cCh <= sCh, TL <= TR <= reporting_date,
+  no future dates, CFR recomputes within 0.1 everywhere, every CFR > 15% with sCh >= 25 at conf <= 0.7. 0 failures (290/290 = 100%).
+  94 rows have CFR > 15% (44 with sCh >= 25 = the validator WARNs; 50 small-number rows). Row 455 case definition flagged (kept at 0.5).
+Stage 3 (cross-reference): all 503 sub-national rows carry an exact do-not-sum phrase; 367 of 368 national sub-annual rows in JHU-annual
+  years carry the exact 'Sub-annual national increment ...' phrase with the right year and total (miss: 426, fixed). Max-sum of mutually
+  non-overlapping national rows per year <= the annual in every year except 2001 (194 vs 81: documented JHU undercount), 1974 (287 vs
+  286), 2008 and 2021 (only when parallel series are mixed: 1,036 vs 972; 5,604 vs 5,591). 26 sub-national rows exceed a containing
+  national count: 20 are artefacts (additive 2002 batches; JHU 'national' rows that cannot be national - 2013 UID 85 '3 cases' May-Oct,
+  2024 UID 331 '138', 2012 UID 84 '156 by 5 Aug'), 6 are real week-level inter-stream differences (590, 595, 617, 619, 873, 874).
+  Defects in sample 25 (series roles 2008/2021, additive windows 906, inter-stream 6, boundary 904, ledgers L6/L15, phrase 426) - all
+  fixed by notes. As found 265/290 = 91.4%; after fixes 290/290.
+Stage 4 (duplication): 0 AI-AI exact duplicates; AI rows equal to a JHU/WHO row: 148, 149, 150, 738, 739 (annual counts, kept only for
+  the cCh/deaths the baseline lacks, rule 7, each says do not sum); near-duplicate 715 (= JHU UID 84 week, 107) with 714/716 differing by
+  week alignment -> documented, kept for series completeness; 328 lacked a do-not-sum statement vs JHU 2017 rows -> note.
+  As found 286/290 = 98.6%; after fixes 290/290.
+
+=== STEP 4 | ROUTED ITEMS - ADJUDICATIONS ===
+Overlapping additive notification windows:
+  954-956 vs 906 (2002): DISTINCT ADDITIVE batches - 98 < 104 and 2 < 8 deaths rule out a cumulative revision; 104+98+31+3 = 236 and
+    8+2+2+0 = 12 = WHO annual; 104+98 / 8+2 = WHO CD-profile Gaya 202/10. 954-956 already said so; summing guide added to 906.
+  950 vs 196/197 (2003): additive (950's own note says it may be summed; 35+34+84 = 153/4 vs DRSP Maradi 152/4). No change.
+  951-953 vs 646 (2004): 951/952 additive; 953 and 646 NOT additive (both count the Ayorou cases of 3-16 May, 953's 5 deaths = Ayorou's 5);
+    both rows already say do not sum. No change.
+2021 reporting-date increments 946-948 (+822, 825) vs case-based weekly 647-662: no temporal overlap, so no double count; sitrep rows
+  109-111/242 already NON-PRIMARY. Added SERIES ROLE notes to 946, 947, 948, 822, 825, 662: primary chain = 390, 444-453, 647-662 +
+  946-948, 822, 825, 826 = 5,550 (41 short of 5,591 = line-list deficit at 25 Oct, not missing weeks).
+L6 Maradi 2006 - RESOLVED: JHU UID 81 district rows contain two double entries (Mirriah::Zinder 321/14 = Mirriah 321/14; Maradi::Maradi
+  65/3); removing them gives exactly 1,217 cases (= UID 81 national weekly) and 81 deaths (= WHO annual) and Maradi = 223/11 + 23/7 +
+  11/1 = 257/19 = DRSP row 584. Row 584 conf 0.5 -> 0.75 with note.
+L15 Niamey 2011 - RESOLVED (probable): IFRC/JHU 'Niamey I & II 183/6' (week 38) is cumulative since June: 183/6 + JHU Niamey 3 25/2 =
+  208/8 <= MoH 238/8 with deaths exact. Notes on 561, 263. JHU row overstates week-38 incidence (baseline anomaly).
+L24 Dosso 2010 - ADJUDICATED: MoH 2010 RDT table (Dosso district 184/137, Tahoua 149/149; Zinder 46 tested vs 290 cases) contradicts the
+  same yearbook's MDO (Dosso 0, Tahoua 2) and routine (Dosso 0, Tahoua 11) tables and WHO EHA -> tabulation artefact; no Dosso 2010 row
+  either way (retracted zero 402 not restored). Note on 295.
+L18 (2001) and L30 (2021 wk43-46): already closed by Agent 6; checked (949 and 946 re-verified on the primaries).
+Zero-row labels (rule 9): every Documented zero re-read. Explicit statement or explicit nil cell -> Documented kept (35, 233, 234, 284,
+  285, 286, 332-334, 337, 338, 342, 358, 372, 373, 390, 392-395, 398-400, 409, 417, 418, 419 (Dec caveat), 423, 424, 440, 826, regional
+  MoH/SNIS/DRSP zeros, chart/xlsx zero weeks 450-453, 735, 736, 745, 767, 768, 807-809, 853, 854). Derived only from the absence of further
+  notifications or from exhausting an annual with dated batches -> RELABELLED Inferred: 427 (0.55->0.5), 414 and 415 (0.65->0.55), 426
+  (0.55->0.45; also basis partly invalid). Consistent with Agent 6's 957/958. Documented 77 -> 73, Inferred 11 -> 15.
+
+=== REVISIONS BY AGENT 7 (36 rows, all py/revise_observation.py --agent 7; no retraction, no new row, no new source) ===
+  Relabel/re-weight: 427, 414, 415, 426 (Inferred), 584 (0.5 -> 0.75).
+  Notes: 419 (Dec 1972), 426 (+ missing phrase), 561, 263 (L15), 295 (L24), 946, 947, 948, 822, 825, 662 (2021 role), 906 (2002 additive),
+  339, 345, 346, 340, 341, 827, 852 (2008 roles: GTFCC weekly = primary timing; IDSR increments = primary deaths), 904 (boundary), 769
+  (UID correction), 328 (2017 vs JHU), 150 (stale reference), 714, 715, 716 (JHU UID 84 near-duplicate), 590, 595, 617, 619, 873, 874
+  (regional > national week, inter-stream).
+Presence file ./data/NER/cholera_presence_ai.csv: all 40 records reviewed; none unsupported (Diffa 2011 is contested by MoH Tableau XLI but
+  supported by OCHA/Red Cross and the DSRE-authored Moustapha 2023 table) -> file left untouched.
+
+=== STEP 5 | IMPACT (private probe python /tmp/NER_orch/ner_coverage.py NER; writes nothing shared) ===
+All layers: 90.5% (617/682 months), months_ai_only 160, 4 gaps (1975-12-01..1976-01-31; 1985-1987; 1992-1993; 2026-08-01..2026-10-04).
+Start of cycle: 74.9% (511/682), months_ai_only 54, 6 gaps.  Baseline only (JHU+WHO): 67.0% (457/682), 8 gaps.
+Of the 160 AI-only months: 92 rest on Inferred_Absence rows (413: 56, 416: 12, 34: 12, 397: 12), 59 on Documented zeros (233: 11,
+  234: 3, 35: 12, 392: 12, 337/393: 12, 395: 3, 394: 6), 9 on case rows (row 54: 8 months for 10 undated cases; 2026 Jul: 1).
+Of this cycle's +106 months: 80 (75%) rest on three Inferred rows (413, 416, 397) at conf 0.5-0.55; 26 on Documented zeros (233, 234, 35).
+Relabels by Agent 7 change no coverage (all inside JHU-annual years).
+
+=== VERIFIED BUILDER CAVEAT (read ./data/NER/cholera_weekly_NER.csv, runner rebuild 2026-10-03 23:59; not run, not changed) ===
+assumed_zero: 1985 51 wks, 1986 52, 1987 52, 1992 52, 1993 52, Dec 1975 4, Jan 1976 4 - sCh 0 in non-reporting years.
+Source priority WHO > JHU > AI: JHU 1970 annual (16) Fourier-spread over Jan-Nov 1970 although AI 417 documents Dec-1970 onset; JHU 2008
+  annual tail puts 4-20 cases/week into Dec 2008-Jan 2009 (AI SNIS zeros 342, 372, 373, 337); 2001 = 79 (true 194/16); 2017 = 1 (MoH 4).
+Same-source overlap inflation: 2010 1,506 vs 1,154; 2011 2,962 vs 2,324; 2012 6,277 vs 5,284; 2013 708 vs 585; 2018 5,244 vs 3,900 (JHU
+  holds 236 overlapping weekly-resolution national rows in 2018 summing to 25,001). Deaths lost: 2006 0 of 81, 2014 2 of 80, 2015-16 0.
+ISO-week year-boundary spills: 1997 +76, 1985 78, 1992 68, 2009 20, 1998 5 (Fourier tails of the adjacent annuals).
+
+=== STEP 6-7 | DELIVERABLES ===
+./data/NER/search_report.txt OVERWRITTEN (May-2026 report replaced). Final validator and workflow state recorded below.
+Final validator: python py/validate_quality.py NER --json /tmp/NER_audit_final.json -> exit 0; 904 rows, 293 sources; ERROR 0, WARN 48
+  (44 CFR_high, 4 period_single_day - same classes as before, all justified above), INFO 414.
+workflow_state.json: write_agent_state('NER', agent_num=7, batches_completed=3, batch_yields=[0, 0, 0], rows_added=0,
+  sources_discovered=0, stopping_reason='audit complete', gaps_filled/validated_absent/remaining as audited) - other keys preserved.
+Files written by Agent 7: ./data/NER/cholera_data_ai.csv (36 revised rows, via py/revise_observation.py --agent 7 only),
+  ./data/NER/search_report.txt (overwritten), ./data/NER/search_log_agent_7.txt (this file, overwritten at start),
+  ./data/NER/workflow_state.json (agent 7 entry). Not touched: metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv,
+  JHU/WHO baseline files, ./reference/*, builder outputs, dashboard.
+=== AGENT 7 COMPLETE ===
+Local clock at completion: 2026-10-04 04:23:17 PDT
