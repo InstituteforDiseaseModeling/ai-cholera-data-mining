@@ -1,81 +1,141 @@
-=== AGENT 6 INITIALIZATION ===
-Country: Botswana (BWA)
-Agent: 6 - Final Quality Audit
-Start Time: 2025-07-23 02:11:00
+=== AGENT 6 — GAP CONTEXT INVESTIGATION — BWA — cycle 2026-10-02 ===
+Agent: 6 (gap-context-investigator), Opus 5.5 re-run, deployed by workflow orchestrator after Agents 1-5
+Start time: 2026-10-03 16:36:05 PDT
+Previous Agent 6 log (2025-08-06, prior cycle, 'Final Quality Audit' content) overwritten; prior-cycle copy at /tmp/bwa_a6/prior_cycle_search_log_agent_6.txt
+Pre-state: ./data/BWA/cholera_data_ai.csv 76 rows (Index 1-81; 6 absent since a prior cycle; 8, 53, 58, 59 retracted -> ./data/BWA/retracted_rows_ai.csv);
+  ./data/BWA/metadata_ai.csv 75 sources (Index 1-75); ./data/BWA/cholera_presence_ai.csv 1 row; ./data/BWA/cholera_data_jhu.csv 20 rows (READ-ONLY)
+Validator at start: python py/validate_quality.py BWA -> ERROR 0, WARN 0, INFO 44, exit 0
 
-=== FINAL QUALITY AUDIT MANDATE ===
-Focus: Quality audit, dataset finalization, and creation of brief search_report.txt
-Search Strategy: Internal processing, source validation, URL verification, comprehensive quality assessment
-Target: Complete dataset validation and finalization with comprehensive reporting
-Stopping Criteria: Complete until all quality objectives achieved (no query limit)
+SEARCH-TOOL CONSTRAINT: the session-wide WebSearch budget is EXHAUSTED (200/200, confirmed by the orchestrator). WebSearch is NOT used, and no
+  general-purpose web search engine (Google, Bing, DuckDuckGo, Yahoo, Brave, Startpage, ...) is queried by any route. Every query in this log is
+  one search request against a specific institutional / bibliographic / archival endpoint (WHO IRIS OpenSearch/REST, Europe PMC REST, PubMed
+  E-utilities, OpenAlex, Crossref, Internet Archive advancedsearch / Wayback CDX (paced >= 5-15 s, back off on refusal/429), ReliefWeb site search,
+  afro.who.int, africacdc.org, dailynews.gov.bw, mmegi.bw, statsbots.org.bw, parliament.gov.bw, sadc.int, moh.gov.bw) or one targeted fetch of a
+  candidate document, via curl or WebFetch. Each counts as one query in a 20-query batch.
 
-=== FINAL DATA BASELINE ASSESSMENT ===
-Current data: 4 observations, 5 sources
-Agent 1 contribution: 2 zero-transmission validations (2018, 2023)
-Agents 2-5 results: 0% yield across all batches, comprehensive coverage confirmed
-Total queries executed: 200 (Agent 1) + 40 (Agent 2) + 40 (Agent 3) + 40 (Agent 4) + 40 (Agent 5) = 360 queries
+QUESTION (agent definition): for every period >= 6 months (plus the short H1-2016 and recent-tail periods) - was there no cholera, or was nobody
+  reporting? Labels: Documented_Absence = a functioning system looked and found nothing (explicit statement / zero report);
+  Inferred_Absence = no positive evidence, but context makes absence likely AND the system was working;
+  Surveillance_Gap = no reporting either way -> NEVER a zero row (logged here; presence file only if cholera present without a count).
+  Silence / empty search results are never evidence.
 
-=== QUALITY AUDIT PRIORITIES ===
-1. Comprehensive source URL verification and validation
-2. Data integrity assessment and dual-reference system validation
-3. Cross-validation of existing data points with discovered evidence
-4. Metadata completeness and accuracy verification
-5. Cholera_data.csv format compliance and validation
-6. Overall dataset quality assessment and scoring
-7. Gap analysis and coverage evaluation
-8. Brief search_report.txt creation with key outcomes
-9. Final recommendations and limitations documentation
-10. Compliance with MOSAIC integration requirements
+Effective gaps (./reference/effective_surveillance_gaps_detailed.csv as given in the briefing; read, never regenerated):
+  1970-01-01..2004-12-31 (12784d), 2007, 2010, 2022, 2026-07-01..2026-10-02 (recent). All now carry AI rows except 2026-09-21 onward.
+  The file on disk (refreshed 2026-10-03 14:58 by the runner) lists no BWA gap; coverage 99.9% (681/682 months) - driven by a handful of long
+  rows (row 15 alone = 324 months), so per-period evidence quality, not coverage, is what this agent assesses.
 
-=== QUALITY AUDIT EXECUTION ===
-[02:11:15] Starting comprehensive quality audit process
-[02:11:30] URL Verification Results:
-  - Source 1 (WHO DON): ✓ VERIFIED - Contains Zimbabwe 2008 cholera outbreak with Botswana cross-border spread
-  - Source 2 (NCBI PMC): ✓ VERIFIED - Contains BWA 23 cases/3 deaths 2000-2023 data
-  - Source 3 (ReliefWeb): ✓ VERIFIED - Contains BWA 55 suspected/15 confirmed cases March 2009
-  - Source 4 (WHO AFRO): ✓ VERIFIED - Contains BWA 2018 diarrhea outbreak with cholera exclusion
-  - Source 5 (Original): ✗ FAILED - 403 error on original URL
-  - Source 5 (Updated): ✓ VERIFIED - Replacement URL verified with same content
+PLAN (orchestrator priority order):
+  P1 JHU phantom zeros 2011-2018 and 2021: WHO AFRO IDS/IDSR quarterly/semester bulletins and similar AFRO/IST-ESA products for every quarter;
+     explicit zero report -> add-zero Documented_Absence (operational); non-reporting (e.g. H1 2016) -> Surveillance_Gap (log only).
+  P2 2002 and 2004 (rows 61, 62, Inferred 0.6): decide keep / downgrade / retract given AFRO CDER 'no report' cells and non-submission of monthly
+     reports to AFRO in early 2004; evidence of national system functioning in those years (other notifiable diseases reported).
+  P3 Health-system functioning by period (1970-1996, 2002-2004, 2007, 2010-2017, 2021-2022): other notifiable diseases reported (measles, AFP/polio,
+     meningitis, plague, rabies, anthrax) in WER, AFRO bulletins, Statistics Botswana HSRs, IDSR reports, JEE 2017.
+  P4 Regional context per period (NAM, ZAF, ZWE, ZMB epidemics).
+  P5 Recent tail 2026-09-21..2026-10-03: Africa CDC week ending 27 Sep 2026, AFRO bulletins weeks 37-39, WER 101(40), ECDC September update.
+  P6 Retrospective literature documenting periods contemporaneous reporting missed.
+Method: ./templates/template_search_protocol.txt - batches of exactly 20 queries; yield = queries producing >=1 NEW committed row / 20 (percent);
+  revisions logged but not counted; min 3 batches; stop at 3 consecutive batches <5% or 12 batches. No time limit.
 
-[02:12:00] Data Integrity Assessment:
-  - Dual-reference indexing: ✓ VERIFIED - All source_index values match metadata Index column
-  - Geographic coding: ✓ VERIFIED - All entries follow AFR::BWA format
-  - Date formatting: ✓ VERIFIED - All dates in YYYY-MM-DD format
-  - Mathematical consistency: ✓ VERIFIED - CFR calculations accurate
-  - Required columns: ✓ VERIFIED - All 13 cholera_data.csv columns present
-  - Metadata completeness: ✓ VERIFIED - All 14 metadata.csv columns present
+=== BATCH 1 | PHASE 1 (WHO AFRO zero-report products for the JHU phantom years; AFRO 'no report' calibration for 2002/2004; recent tail) | BWA ===
+Gap targeted : 2011-2018 & 2021 (JHU phantom zeros, Q2 2015 only documented); 2002 & 2004 (rows 61, 62, Inferred 0.6); tail 2026-09-21..2026-10-03
+Queries      : 20 (no WebSearch; every item one request to the named endpoint)
+ Q1  WHO IRIS OpenSearch dc.title:"Integrated Disease Surveillance" (28 items) -> only TWO IDS Quarterly Bulletin issues in IRIS (Q2 2015 = 10665/204516,
+     S1 2016 = 10665/251728); no other quarter -> 0 rows
+ Q2  WHO IRIS REST metadata of 10665/204516 -> bitstream IDS_2_2015.pdf, issued 2015-12-31, no series link -> 0 rows
+ Q3  ReliefWeb site search '"Integrated Disease Surveillance" bulletin' -> South Sudan national IDSR bulletins only -> 0 rows
+ Q4  Wayback CDX afro.who.int/sites/default/files/ prefix, IDS/quarterly/IDSR filter (500 URLs) -> regional file 'ids_bulletin_2nd-quarter-2015.pdf' (= Q2 2015)
+     plus '1st-quarterly-bulletin.pdf' and 'quarterly-epidemiological-bulletin_2014.pdf' -> 0 rows
+ Q5  afro.who.int 1st-quarterly-bulletin.pdf -> WHO ERITREA country bulletin Q1 2015 (not regional) -> 0 rows
+ Q6  afro.who.int quarterly-epidemiological-bulletin_2014.pdf -> WHO ERITREA Q3 2014 -> 0 rows
+ Q7  Wayback CDX afro.who.int/sites/default/files/ (?i)bulletin|quarter|semest|trimest PDFs (568) -> no other regional IDS quarterly/semester issue
+     2014-2018; found AFRO 'eSURV Regional Monthly Bulletin' 2026 series and country-office newsletters -> 0 rows
+ Q8  eSURV Regional Monthly Bulletin August 2026 (13 pp) -> active-case-search indicators for AFP/VPDs only, no cholera, no Botswana line -> 0 rows
+ Q9  'WHO 2ND QUARTER NEWSLETTER 2026' (afro.who.int 2026-08) -> WHO SIERRA LEONE, not Botswana -> 0 rows
+ Q10 RE-FETCH + render (300 dpi) of the Q2 2015 IDS bulletin (row 81 source; byte-identical to Agent 5's copy) -> CONFLICT FOUND: p.4 meningitis section
+     'Twelve countries (Algeria, Angola, Botswana, Equatorial Guinea, Ethiopia, Mauritius, Mozambique, Rwanda, Seychelles, South Africa, Swaziland and Zambia)
+     that did not report data to WHO since 2013 on critical outbreak prone diseases are however sharing information either on maternal death and/or
+     virological surveillance of influenza'; ADJUDICATED with the bulletin's own maps: Fig.1 (cholera) and Fig.2 (meningitis) colour Botswana 'Countries
+     that reported to WHO' (green, no case marker) vs Namibia/South Africa/Zambia/Mozambique/Lesotho 'Data not available' -> zero listing corroborated;
+     REVISION row 81 (Documented kept; conf 0.9 -> 0.85) -> 0 new rows
+ Q11 Wayback (paced) AFRO CDER No. 004 Oct 2000 (Table 4, Jan-Sep 2000) -> Botswana cholera '-' (legend '"-" No report'), measles 161, AFP indicators
+     reported - in a year whose national CSO HSR documents ZERO cholera (row 24) -> registered index 76 -> 0 rows
+ Q12 Wayback (paced) AFRO IDS bulletin No. 0005 Jul 2001 (Table 3, Jan-Jul 2001) -> Botswana cholera '-' ('No report'), meningitis 13/0, AFP reported;
+     CSO documents zero for 2001 (row 25) => CALIBRATION: the '-' cholera cells of CDER 2003-2004 (metadata 70) are Botswana's standing practice of not
+     sending cholera zero returns to AFRO, not a 2003-2004 surveillance breakdown -> REVISIONS rows 61, 62, 33 -> 0 new rows
+ Q13 Africa CDC wpdmpro listing + October 2026 page -> newest package = September 2026 (modified 2026-10-02 13:57 UTC, unchanged since Agent 5);
+     October page HTTP 404 -> no issue for the week ending 27 Sep 2026 -> tail NOT extendable -> 0 rows
+ Q14 WHO IRIS AFRO 'Weekly Bulletin on Outbreak and other Emergencies' 2026 (first try with a date-range filter returned 0 = syntax; retry by title)
+     -> newest = week 36 (31 Aug-6 Sep 2026) -> 0 rows
+ Q15 WHO IRIS 'Weekly Epidemiological Record, 2026' (same syntax retry) -> newest = 101(39), 2 Oct 2026 (data to 30 Aug) -> 0 rows
+ Q16 ECDC 'Cholera worldwide overview' monthly page -> still 'Monthly update as of 26 August 2026' -> 0 rows
+ Q17 WHO GHO OData CHOLERA_0000000001 for BWA, NAM, ZAF, ZMB, ZWE (91 records; series ends 2016) -> regional picture 1973-2016 for the classification
+     table (e.g. ZAF 1974 37, 1980-87 859-11 968/yr; ZMB 1990-93 3 717-13 154; ZWE 1992-93; ZAF 2000-01 19 667/106 159; 2011 ZMB 330, ZWE 1 220;
+     2013-14 NAM 3/485; 2015-16 ZWE 60/10); BWA values only 2005 0, 2006 0, 2008 8, 2009 15 -> 0 rows
+ Q18 MoH Botswana 'WEEK 52 IDSR report 2011' (moh.gov.bw/Publications/Reports, 6 pp) -> national 'Weekly Report on Notifiable Diseases' (MH 2007 form),
+     28 health districts, district timeliness 71.4%, facility timeliness 76.6%; diarrhoea surveillance with action thresholds (13 667 cases, 126 deaths,
+     weeks 32-52 of 2011 - rotavirus kits distributed), malaria, measles, rabies; NO cholera line -> system-functioning evidence for 2011 -> 0 rows
+ Q19 Europe PMC Botswana diarrhoea/rotavirus studies 2011-2018 (20 hits) -> candidate lab studies PMC3874800 (2011 season), PMC4313226 (enteric
+     molecular panel), PMC5975618 (norovirus 2013-15) -> 0 rows
+ Q20 Europe PMC fullTextXML PMC3874800 -> HTTP 500 (Europe PMC full-text service error, same as Agent 5) -> 0 rows
+Sources found: 9 (IDS Q2 2015 maps, CDER 2000, IDS bulletin 2001, Africa CDC/IRIS/ECDC tail checks, GHO regional series, MoH IDSR 2011)
+Registered   : index 76 (CDER Oct 2000 + IDS bulletin Jul 2001; context source, no row)
+Rows added   : 0
+Revisions    : row 81 (confidence 0.9 -> 0.85 + adjudication note), rows 61, 62 (keep-decision with CDER calibration, health-system and regional evidence),
+               row 33 (CDER calibration note)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Validator    : ERROR 0, WARN 0, INFO 45 (exit 0)
+Decision     : CONTINUE (3-batch minimum not reached)
 
-[02:12:15] Cross-validation Assessment:
-  - 2009 outbreak data: ✓ CONFIRMED - Multiple sources validate 55 suspected/15 confirmed cases
-  - 2018 zero-transmission: ✓ CONFIRMED - WHO laboratory confirmation of negative cholera tests
-  - 2023 zero-transmission: ✓ CONFIRMED - National Health Laboratory negative confirmation
-  - Regional context: ✓ CONFIRMED - BWA absent from recent outbreak lists, consistent with low burden
-
-[02:12:30] Overall Quality Score: 94/100
-  - Source reliability: 100% (4 Level 1 sources, 1 Level 2 source)
-  - Data completeness: 95% (minor gaps in cCh column for some entries)
-  - Format compliance: 100% (full MOSAIC integration compatibility)
-  - URL accessibility: 100% (all sources verified working)
-  - Cross-validation: 90% (comprehensive evidence base with some documentation gaps)
-
-[02:12:45] Gap Analysis and Coverage Evaluation:
-  - Historical coverage: 2000-2023 period well-documented through PMC study
-  - Outbreak documentation: March 2009 outbreak comprehensively covered
-  - Zero-transmission validation: Two key periods (2018, 2023) validated with laboratory confirmation
-  - Regional context: BWA's low cholera burden status confirmed through multiple validation approaches
-  - Surveillance gaps: Limited sub-yearly data availability confirmed (consistent with Lancet study exclusion)
-
-[02:13:00] MOSAIC Integration Compliance:
-  - ✓ JHU-compatible CSV format maintained
-  - ✓ Dual-reference indexing system implemented
-  - ✓ Geographic coding follows AFR::ISO standard
-  - ✓ Confidence weighting system applied
-  - ✓ Processing notes with exact source quotes documented
-  - ✓ All validation protocols followed
-
-AGENT 6 STATUS: COMPLETED
-- Quality audit score: 94/100 (Excellent quality)
-- All URLs verified and accessible (with 1 replacement)
-- Complete data integrity confirmed
-- Full MOSAIC integration compatibility achieved
-- Search_report.txt creation ready
+=== BATCH 2 | PHASE 2 (health-system functioning by period; reporting relationship with WHO; regional context; H1-2016 and 2021 classification) | BWA ===
+Gap targeted : 2011-2017 & 2021 (JHU phantom zeros); H1 2016 (AFRO non-sharing); 2002/2004/2007/2010 system functioning; tail
+Queries      : 20
+ Q1  NCBI efetch PMC3874800 (Welch et al., rotavirus surveillance, 2011 season) -> rotavirus-only testing, no Vibrio -> 0 rows
+ Q2  NCBI efetch PMC4313226 (Goldfarb et al. 2014, 15-target enteric PCR, children with severe gastroenteritis) -> abstract only (not OA) -> 0 rows
+ Q3  WHO IRIS titles 'Cholera, 2011/2012/2013/2014/2016/2017/2021' -> 7 WER handles -> 0 rows
+ Q4  WER 92(36) 'Cholera, 2016' PDF -> Africa table: Malawi 1 792, Mozambique 883, Zimbabwe 10, ZAMBIA ABSENT (its Feb-Apr 2016 Lusaka outbreak was not
+     reported to WHO's annual collection) - Botswana absent from case and zero lists -> regional context; 0 rows
+ Q5  WER 97(37) 'Cholera, 2021' PDF -> Table 2 zero-reporters 2021 (Africa) include NAMIBIA, ZAMBIA, ZIMBABWE (and Lesotho); 'Zambia and Zimbabwe did
+     not report any cholera cases in 2021, as in 2020'; Mozambique 5 072, Malawi 2; Botswana in neither table nor in the GTFCC at-risk non-reporter
+     footnote -> REGIONAL QUIET 2021 (all reporting neighbours at zero) -> 0 rows
+ Q6  WER 93(38) 'Cholera, 2017' PDF -> Zambia 1 794 (57 deaths); Zimbabwe, Namibia, South Africa, Botswana not listed -> 0 rows
+ Q7  WHO IRIS 'Surveillance systems to track progress ... polio' (2 global WER reports; no per-country AFP table for Botswana) -> 0 rows
+ Q8  WHO provisional monthly measles/rubella data page -> data only via the immunizationdata.who.int app (not machine-readable here) -> 0 rows
+ Q9  WHO GHO OData WHS3_62 'reported measles cases', Botswana -> a value for EVERY year 1974-2025 incl. explicit zeros (e.g. 2002 7, 2004 1, 2007 1,
+     2010 853, 2011 8, 2012 7, 2013 1, 2014 1, 2015 0, 2016 1, 2017 0, 2018 0, 2019 0, 2020 5, 2021 0, 2022 1) -> KEY HEALTH-SYSTEM EVIDENCE: Botswana
+     reported a notifiable disease (measles, incl. zero years) to WHO in every gap year while sending no cholera returns -> 0 rows
+ Q10 RE-FETCH WHO AFRO IDS Bulletin 1st semester 2016 (IRIS 10665/251728, IDS_2016-01-end.pdf) + render p.5 Fig. 2 'Completeness of notifiable
+     diseases and events data on weekly basis by country' -> Botswana 'No report' (red) in EVERY epi week 1-22 of 2016, as were Malawi, Mozambique,
+     Namibia, South Africa, Swaziland, Zambia; text: 'Eastern and Southern countries are relatively non-compliant in sharing data on a weekly basis
+     with WHO' -> H1 2016 = international SURVEILLANCE GAP (no zero row) -> 0 rows
+ Q11 WHO IRIS JEE Botswana Dec 2017 (10665/272750, metadata 27) full text -> 'Botswana has a well-established indicator-based surveillance system based
+     on the WHO regional IDSR strategy. IDSR was adopted in Botswana in 2003'; 'IDSR data are thoroughly reported in a timely manner' (D.2.3 score 3);
+     BUT 'D.3.1 System for efficient reporting to FAO, OIE and WHO' score 2 and 'The last event reported to WHO was for poliomyelitis in 2004' ->
+     national system functioning, formal reporting to WHO weak (explains the WHO-table silence 2010-2018) -> 0 rows
+ Q12 WHO AFRO 'outbreaks and other emergencies updates' listing -> newest weekly bulletin on the site = week 36 (31 Aug-6 Sep 2026) -> tail not
+     extendable -> 0 rows
+ Q13 ReliefWeb (C41) 'diarrhoea OR diarrhea OR cholera' Jun 2011-Jun 2012 (for the 2011 Botswana diarrhoea outbreak, 13 667 cases/126 deaths weeks
+     32-52) -> Zimbabwe humanitarian items only -> 0 rows
+ Q14 Europe PMC full-text search Botswana + 'cholera-free'/'no cholera cases'/'never reported cholera' 2009-2026 (32 hits) -> no Botswana-specific
+     statement surfaced in titles; candidates checked in Q15-Q16 -> 0 rows
+ Q15 NCBI efetch PMC10357557 (WASH and cholera in SSA, 2023) -> 'from 2010 to 2016 ... across sub-Saharan Africa excluding Botswana, Djibouti, and
+     Eritrea' (exclusion reason not stated) -> 0 rows
+ Q16 NCBI efetch PMC8609751 (drought and epidemic cholera, 2021) -> Botswana grey ('covariate data was missing') -> 0 rows
+ Q17 Europe PMC lookup Lessler et al. 2018 (cholera mapping 2010-2016) -> PMC5946088 -> 0 rows
+ Q18 NCBI efetch PMC5946088 -> excludes only Djibouti and Eritrea (WASH covariates); no Botswana statement -> the PMC10357557 exclusion is a WASH-data
+     artefact, not a cholera-data statement -> 0 rows
+ Q19 MoH Botswana 'Week 52 IDSR, 2013' report -> same MH2007 weekly notifiable format as 2011: 28 districts, facility timeliness 87.7%, district
+     timeliness 64.3%, diarrhoea/bloody diarrhoea/malaria/measles/rabies; no cholera line -> system functioning 2013 -> 0 rows
+ Q20 WHO IRIS full-text '"zero cases" AND cholera AND Botswana' (74 items) -> AFRO weekly bulletins 2020-2026 and WER issues (co-occurrence only);
+     no 2011-2017 zero-report product -> 0 rows
+Sources found: 8 (WER 2016/2017/2021 regional tables, GHO measles series, IDS S1 2016 Fig. 2, JEE 2017 reporting findings, MoH IDSR 2013, tail listing)
+Registered   : none this batch (registered after batch 3 with the classification revisions)
+Rows added   : 0
+Revisions    : none this batch
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Validator    : no file changes this batch
+Decision     : CONTINUE (3-batch minimum not reached)
