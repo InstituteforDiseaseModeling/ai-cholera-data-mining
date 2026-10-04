@@ -1,135 +1,327 @@
-=== GUINEA-BISSAU (GNB) CHOLERA SURVEILLANCE DATA ENHANCEMENT ===
-Final Search Report - Agent 6 Quality Audit
+=====================================================================================================================
+MOSAIC AI CHOLERA DATA ENHANCEMENT - SEARCH REPORT - GUINEA-BISSAU (GNB)
+=====================================================================================================================
+Author      : Agent 7 (cholera-quality-auditor), final audit 2026-10-03 (cycle 2026-10-01 Opus 5.5 re-run; GNB started
+              2026-10-02 21:05). Supersedes the 2025-08-06 report (preserved in git).
+Data files  : ./data/GNB/cholera_data_ai.csv (986 live rows) | ./data/GNB/metadata_ai.csv (310 sources)
+              ./data/GNB/cholera_presence_ai.csv (33 entries) | ./data/GNB/retracted_rows_ai.csv (103 tombstones)
+Audit trail : ./data/GNB/search_log_agent_7.txt (every check, fetch, fix and decision); agent logs _1.._6.txt;
+              ./data/GNB/workflow_orchestrator_GNB.txt; ./data/GNB/workflow_state.json
+Caveat      : pilot data, AI-extracted, not yet validated by human experts. Verify independently before use.
 
-=== EXECUTIVE SUMMARY ===
-The systematic AI-enhanced data collection workflow for Guinea-Bissau has successfully enhanced cholera surveillance data through comprehensive source discovery, validation, and integration. The 6-agent methodology achieved substantial data augmentation while maintaining rigorous quality standards.
+---------------------------------------------------------------------------------------------------------------------
+EXECUTIVE SUMMARY
+---------------------------------------------------------------------------------------------------------------------
+THE DISAPPOINTING NUMBERS FIRST
+ 1. No new epidemic was found. Country-months with positive cases = 216 with the JHU baseline alone and 216 with
+    JHU+AI. Every Guinea-Bissau epidemic year (1986-87, 1994-98, 2002-09, 2012-14) was already in the WHO annual
+    series. The AI case rows add TIMING (weekly/monthly points) and GEOGRAPHY (all 9 ADM1, 283 sector/district rows),
+    not new outbreaks.
+ 2. The coverage gain is almost all absence evidence, much of it weak. Coverage rose from 48.5% (JHU only) to 98.1%,
+    but all 337 AI-only months rest on national ZERO rows: 157 of them (47%) on rows weighted <= 0.35, 69 on 0.36-0.50,
+    107 on 0.51-0.70 and only 4 on rows above 0.70. Read the 1970-1993 coverage as "no recognised epidemic", not as
+    "zero cases reported" (CAUTION list below).
+ 3. One gap stays open: 1973 (365 days). It is a SURVEILLANCE GAP, not an absence, and the weekly builder renders all
+    52 weeks of 1973 as assumed zeros.
+ 4. Most of the AI layer's timing never reaches the MOSAIC weekly series (read-only builder check): 0 of 64 exact HDX
+    weekly rows (2012-14) are used; JHU Fourier spreads place 51,506 cases inside AI-documented zero windows; 2006
+    renders 21,531 cases against WHO's 37; ~11,000 of 1994's cases are placed before the October 1994 onset.
+ 5. Source verification (stratified sample, n = 82): 55 PASS, 25 PASS-MINOR (mostly documentation),
+    2 FAIL (2.4%), 0 unverifiable.
+    No wrong case or death count was found in the sample; the failures were a borrowed date convention and a citation
+    that did not support its claim.
+ 6. The session-wide WebSearch budget ran out at Agent 3 batch 6. Agents 3 (B6-12), 4, 5 and 6 searched only through
+    fetchable institutional endpoints, and four of six agents stopped on the 12-batch cap while still yielding.
 
-=== DATA COLLECTION OUTCOMES ===
+WHAT WAS DELIVERED
+ - 986 live rows: 834 case rows (222 national, 612 sub-national) and 152 zero rows (54 national, 98 sub-national);
+   admin depth: national 276, ADM1 427, sector/district/sanitary area 283; all 9 ADM1 units represented.
+ - Coverage (months with >50% of days observed, 1970-01..2026-10, 682 months):
+     start of cycle (shared file 2026-10-02 20:57)            55.4% (378/682)  months_ai_only  46   4 gaps
+     after orchestrator retracted 3 WHO-contradicted zeros    51.9% (354/682)  months_ai_only  22   5 gaps
+     baseline only (JHU+WHO; no WHO dashboard file for GNB)    48.5% (331/682)  -                    7 gaps
+     FINAL (in-memory recompute, Agent 7)                     98.1% (669/682)  months_ai_only 337   1 gap
+   Gap periods closed vs baseline-only: 6 of 7 (1988-93, 1999-2001, 2010-11, 2016-12, 2019-09..12, 2025-01..2026-10)
+   plus 1970-1985 except 1973. Latest observation 2026-09-28; latest positive data 2014 (WHO annual 11/2; last
+   cases June 2014, Calak, Tombali).
+ - Sources: 310 registered (Level 1 158, Level 2 86, Level 3 62, Level 4 4); 197 cited by live rows (L1 93, L2 55,
+   L3 48, L4 1); 15 Superseded (L1 14, L2 1). Concentration risk: one source - the Epicentre/UNICEF time-series analysis
+   2009 (metadata 20) - carries 498 of 986 rows (50.5%), 313 of them digitized from its figures. Agent 7 re-digitized all
+   313 independently from the PDF vector data: 313/313 reproduce within +-1 day / 5% (246 exactly).
+ - Retractions this cycle: 103 tombstones (contradicted by WHO annual 6; contradicted by other dated evidence 3;
+   broken, unrelated or non-supporting citations 14; superseded by a better/finer/final source 77, of which 63
+   digitized bars replaced by exact HDX values; surveillance-gap zeros 3).
 
-QUANTITATIVE RESULTS:
-- Total Data Observations: 13 entries in cholera_data.csv
-- Total Sources Identified: 12 working sources in metadata.csv
-- Search Queries Executed: 380 queries across 5 agents (19 batches)
-- Coverage Enhancement: 1986-2013 surveillance + zero-transmission periods 2014-2020, 2022-2024
-- Geographic Detail: National-level plus provincial data (Tombali, Quinara, San_Domingos)
+GAP STILL OPEN - 1973-01-01..1973-12-31. Assessment: data most probably do not exist in accessible form. 1973 is the
+only year 1971-75 without an IHR Article 13 report (peak of the war; Cabral killed Jan 1973; PAIGC-held areas kept no
+figures).
+The only presence claim (PMC8583644: the colonial army medical services 'in 1973, had already referred several cases in
+the hinterland') is uncited and absent from 156 WER issues 1972-74, the press archives scanned and veterans' memoirs.
+A count, if it exists, would be in Portuguese military-medical archives (Arquivo Historico Militar, Lisbon) or the
+Guine Portuguesa health-service returns - not online. Correctly left without a zero row.
 
-TEMPORAL COVERAGE ACHIEVED:
-- Historical Surveillance: 1986-2013 (27-year comprehensive period)
-- Zero-Transmission Validation: 2014-2020 (7-year confirmed absence)
-- Recent Absence Documentation: 2022-2024 (3-year WHO surveillance validation)
-- Major Epidemic Periods: 1994, 1996-1997, 2005-2006, 2008, 2012-2013 documented
+CAUTION - 1970-1993 COVERAGE RESTS ON LONG, LOW-WEIGHT ABSENCE ROWS (coverage % overstates certainty there)
+   969  1970-01-01..1970-09-03  Documented 0.50  colonial health communique 'nao se registou qualquer caso'
+   972  1970-09-04..1971-11-12  Documented 0.50  colonial SEIT statement 'Nao ha colera na Guine Portuguesa'
+   973  1971-11-13..1971-12-31  Inferred   0.35  UN Special Mission (PAIGC areas)
+   1072 1972-01-01..1972-12-31  Inferred   0.30  IHR annual report filed; no cholera notified
+   953  1974-01-01..1982-12-31  Inferred   0.35  WER: 1986 = 'first report of cholera during the seventh pandemic'
+   967  1983-01-01..1985-12-31  Inferred   0.30  MoH Dec 1986 'first time the country had been hit'
+   968  1986-01-01..1986-09-30  Inferred   0.35  same; first case October 1986
+   1082 1986-12-13..1987-09-20  Inferred   0.25  no GNB line in 35 WER notification blocks
+   956  1987-11-20..1987-12-31  Inferred   0.45  OFDA: epidemic 'had run its course' by 19 Nov
+   73   1988-01-01..1994-09-30  Inferred   0.65  retrospective 'no epidemic 1987-late 1994'; platform 'missing 1990-93'
+   These ten rows carry 254 of the 337 AI-only months (953 alone: 108). No WHO or MoH cholera ZERO REPORT is known for
+   Guinea-Bissau for 1972-1993; the rows assert absence of a recognised epidemic, not absence of cases.
 
-DATA QUALITY ASSESSMENT:
-- Source Reliability: 83% Level 1 sources (WHO, academic), 17% Level 2 sources (NGO/humanitarian)
-- Confidence Weights: Average 0.9 (high confidence across dataset)
-- Validation Status: 100% sources validated through quality control process
-- Cross-Reference Validation: Zero-transmission periods confirmed via multiple independent sources
+FOR MODELLERS (Agent 6 gap classification, confirmed by Agent 7)
+ - Surveillance gaps (nobody reporting; no zero row; missing data, not zero): 1973-01-01..1973-12-31;
+   2013-02-11..2013-03-03 (ISO W7-9: notifications interrupted while cases continued; covered only by cumulatives).
+ - Deliberately left without a zero (onset windows): 1986-10-01..1986-11-09; 2012-07-16..2012-08-19.
+ - Zero rows from DISRUPTED systems: 1998-06-07..1999-11-15 (AI 960, 92, 958); 2012-04-12..2012-07-15 (AI 1087, 1088).
+ - Zero rows where cholera-specific reporting lapsed while other diseases were reported: 1999-11..2001-12 (66),
+   2010-2011 (91), 2020-02-24..2020-12-31 (957, 961), 2025-05-05..2026-06-19 (946, 23).
+ - Weakest absence rows (Inferred, weight <= 0.35): 973, 1072, 953, 967, 968, 1082, 1079, 957, 961.
 
-=== KEY SOURCES DISCOVERED ===
+VALIDATOR (python py/validate_quality.py GNB) - before Agent 7: exit 0, ERROR 0, WARN 22, INFO 344.
+ After Agent 7: exit 0, ERROR 0, WARN 22 (21 CFR_high_flagged_for_review, 1 period_single_day),
+ INFO 344 (231 national_subnational_overlap, 113 metadata_unused). No ERROR at any point.
+ WARN, justified (not suppressed): 21 x CFR_high_flagged_for_review - each re-read against its printed source row
+ (Epicentre Tables 1/3/5 and MINSAP Tableau 1 cells by Agent 7; 160 against the OCHA text; 68/69/136 against WHO WER
+ 62(4) p.20 / 69(43) p.324 on page images, V3 verifier): deaths and cases share row, period and denominator; remote/rural
+ first-epidemic sectors; all at confidence <= 0.7. 1 x period_single_day (AI 908: one fatal case on 10 Mar 2013,
+ Catungo island, WHO newsletter - verified).
+ INFO: 231 national/sub-national overlaps, all documented; 113 metadata entries not cited by a data row
+ (15 Superseded; the rest context/corroboration sources quoted in notes or cited by presence entries).
+ Mechanical repair (py/repair_data_integrity.py --dry-run GNB): 0 changes; no attribution_review.csv. Not applied.
 
-CRITICAL SURVEILLANCE SOURCES:
-1. WHO Disease Outbreak News 2008 - Major epidemic documentation (7,166 cases, 133 deaths)
-2. PMC Historical Study - Comprehensive 1986-2013 surveillance summary (95,946 cases, 2,117 deaths)
-3. Research Study 2005 Epidemic - Large outbreak analysis (25,111 cases, 397 deaths)
-4. WHO/UNICEF Reports 2012-2013 - Recent epidemic documentation (4,101 cases)
-5. Provincial Breakdown Reports - Geographic detail for Tombali, Quinara, San_Domingos
+AGENTS (all six complied with the batch rules: >= 3 batches, yields <= 100% counting queries, every claimed row present
+ or tombstoned). Productivity: A1 most productive (+333 rows, 178 sources, coverage +19.8 pp, closed 4 gaps); A2 the
+ geography (+581 sub-national rows, all reproducible); A3 (+19/-7, +14.4 pp, 1974-82 and inter-epidemic zeros); A4
+ (+15/-1, +8.8 pp, 1970-71 and 1983-86 zeros, 1987 regional counts); A5 integration only (+94/-79, coverage +0;
+ re-sourced or retracted the 10 legacy rows with unrelated or unverifiable citations; HDX exact series); A6 (+18/-1,
+ +3.2 pp, the gap classification).
+ Flags: A1, A2, A3, A5 stopped on the 12-batch cap with rule (a) never met; A3 B6-12, A4, A5, A6 fetch-only.
 
-ZERO-TRANSMISSION VALIDATION SOURCES:
-6. PMC Water Quality Study 2020 - Confirmed no cases since 2013 (2014-2020 validation)
-7. WHO African Region Outbreak Reports - Guinea-Bissau absence from 2022-2024 outbreak lists
+WHAT AGENT 7 FIXED (every change via py/revise_observation.py / py/add_observation.py; details Appendix I)
+ - 2 sampled rows failed and were corrected: AI 551 (Biombo 1994-95 1169/43 - period narrowed to the cited
+   surveillance window 1994-10-20..1995-01-13; counts were right) and AI 975 (2007-11-18..12-31 zero - its citation,
+   Machado 2015, did not support the absence claim; re-pointed to MINSAP Plan Fig. 3, which does: new Index 1090).
+ - Evidence label over-claimed: AI 222 (2016-18) Documented -> Inferred, 0.75 -> 0.6 ('cholera outbreaks have not
+   occurred since 2014' excludes outbreaks, not cases); 2016-18 stay Documented through the WCARO tables (346-348).
+ - Down-weighted where a sub-national part exceeded the national figure: AI 197 (2007 bar 73; 0.8 -> 0.4), AI 134
+   (MoH weekly 128; 0.5 -> 0.4), AI 145 (WER 1997 increment 718; 0.8 -> 0.6).
+ - reporting_date not supported by the document: AI 252-254 (-> 2005-11-11), 103-111 (-> 2014-09-02),
+   1072 (-> 1974-03-19).
+ - 15 stale opening sentences / contradictory surveillance tokens annotated ([AUDIT] CURRENT READING); 4 undisclosed
+   exact duplicates of JHU rows disclosed (239-241, 944); intra-source conflict (220), stronger quote (221), edition
+   coverage (23), NA caveat (959), non-monotone cumulative (152) and a builder warning (198) recorded.
+ - Presence file: the unsupported 1986 '1147 suspected cases' entry removed (backup kept, line logged verbatim);
+   metadata 14 set Superseded; closing notes on AI 68 and 579-586. 2012 count-unknown presence lines kept.
+ - Metadata 193 (stale), 236 (cover date) and 304 (document title) descriptions corrected. Net: rows 986 -> 986,
+   sources 310 (none added), presence 34 -> 33.
 
-=== GAPS FILLED AND REMAINING ===
+WHAT A FUTURE RUN SHOULD TRY (this run could not)
+ - A WebSearch budget large enough for Agents 4-6 (exhausted at A3 B6 here): Portuguese/Guinean press 1973, 1998,
+   2020 and 2025-26; Senegalese (Ziguinchor/Casamance) press for cross-border events.
+ - Portuguese military/colonial archives for 1973 (Arquivo Historico Militar; Arquivo Historico Ultramarino; Coutinho
+   memoirs); the IP-restricted Einarsdottir thesis (do not bypass - request access).
+ - Molbak et al. 1994 full text (serogroup of the 1987-88 Bandim V. cholerae isolates) for the 1988-94 inference.
+ - INASA weekly bulletins for 2020 and 2025-26 (not archived online) - would upgrade 957/961/946/23 or reveal cases.
+ - WHO AFRO weekly bulletins after 2026 W37 once WHO IRIS is reachable; WER 'Cholera, 2025' zero-reporting table.
+ - Quinara 2013 count, region of the 5 cases of 2009, 1987 counts for Cacheu/Bafata/Bolama/Tombali/Gabu, 1995 regional
+   tail, and the dating of WHO's 1998 total 126/2 (C6) - not reported in any source read.
+ - Fix the builder first (see Appendix F): until then the AI layer's dated evidence mostly cannot reach the model.
 
-CRITICAL GAPS SUCCESSFULLY FILLED:
-- Post-2013 Surveillance Validation: Documented 2014-2020 cholera-free period with academic confirmation
-- Recent Absence Confirmation: Validated 2022-2024 absence through WHO regional surveillance
-- Provincial-Level Detail: Added geographic granularity for major outbreaks
-- Historical Consistency: Verified 1986-2013 comprehensive surveillance coverage
+=====================================================================================================================
+APPENDIX - METRICS
+=====================================================================================================================
+A. OBSERVATIONS (./data/GNB/cholera_data_ai.csv, 986 live rows; Index ranges per agent)
+   agent  Index range  claimed  live now  case nat  case sub  zero nat  zero sub   note
+   pre    2-23              -        1         0         0         1         0   22 rows at cycle start; 21 retracted
+   A1     24-360          333      260       138        99        21         2   73 later retracted by A3/A5/A6
+   A2     361-943         581      579         0       483         0        96   916 (A3), 889 (A4) retracted later
+   A3     944-962          19       19         0         0        19         0
+   A4     963-977          15       14         1         8         5         0   975 re-pointed by Agent 7 -> 1090
+   A5     978-1071         94       94        78        15         1         0
+   A6     1072-1089        18       18         5         7         6         0
+   A7     1090              1        1         0         0         1         0   re-pointed replacement of 975
+   TOTAL                            986       222       612        54        98   case 834 / zero 152
+   Admin depth: national 276 | ADM1 427 | sector/district/sanitary area 283. ADM1 rows: Bissau 163, Biombo 104,
+   Bolama 102 (incl. Bijagos health region), Tombali 82, Cacheu 72 (incl. Sao Domingos HR), Oio 68, Quinara 54,
+   Bafata 35, Gabu 30.
+   Rows by decade of TL: 1970s 5 | 1980s 29 | 1990s 177 | 2000s 608 | 2010s 156 | 2020s 11.
+   Zero rows by canonical label: Documented_Absence 63 (26 national) | Inferred_Absence 89 (28 national).
+   Confidence bands: >=0.9 11 | 0.7-0.89 455 | 0.5-0.69 456 | 0.3-0.49 61 | <0.3 3.
+   Presence file ./data/GNB/cholera_presence_ai.csv: 33 entries (count unknown; 1986 '1147' entry removed by Agent 7).
 
-REMAINING SURVEILLANCE GAPS:
-- 2021 Period: Single year gap between validated absence periods (potential surveillance reporting lag)
-- 1970s-1985: Pre-surveillance period before cholera introduction to Guinea-Bissau (1986)
-- District-Level Detail: Limited sub-provincial data for most outbreak periods
+B. AI CONTRIBUTION PER EPIDEMIC (live case rows whose TL falls in the epidemic window)
+   epidemic   national  of which weekly  monthly | sub-national  weekly  monthly | ADM1 units
+   1986-87        5           0             3   |       9          1        7    |     5
+   1994-95        7           1             4   |      11          0        0    |     9
+   1996-98       16           2             7   |     116          0       58    |     9
+   2002-03        2           0             0   |       1          0        0    |     1
+   2004           2           0             2   |      15         11        1    |     1
+   2005-06       46           4            20   |     235        173        6    |     9
+   2007           0           0             0   |      11          4        4    |     1 (Tombali only)
+   2008-09       47          10             1   |     183         68        3    |     9
+   2012-13       81          64             0   |      30          7        0    |     7
+   2014           8           6             0   |       1          0        0    |     1 (Tombali only)
+   AI-layer primaries per epidemic (Agent 5 primacy map): 1986 AI 68 (200/50); 1987 AI 320 (6000/68); 1994-95 AI 978
+   (15878/306); 2002-03 AI 193 (1132); 2004 AI 194 (227); 2005-06 AI 1053 (25111/399); 2008-09 AI 213 (14228/225);
+   2012 AI 220 (3280/22, Aug-Dec); 2013 AI 202 (969/28); 2012-13 dated series = HDX weekly AI 979-1041. Calendar-year
+   totals stay with the WHO annual series in the JHU baseline (UID 319).
 
-SURVEILLANCE CONTEXT:
-Guinea-Bissau surveillance coverage assessment indicates high-quality data for the available periods, with systematic reporting disruptions only during civil war periods (1998-2001). Post-2013 absence periods are well-validated through independent academic and WHO sources.
+C. SOURCES (./data/GNB/metadata_ai.csv, 310 entries, Index 1-310 without holes)
+   level     registered  live-cited  Superseded  note
+   Level 1        158          93          14    WHO WER/IRIS, WHO AFRO/HAC, MINSAP, peer-reviewed papers, INASA
+   Level 2         86          55           1    UNICEF/WCARO, OCHA, IFRC, Epicentre, UN SG reports, HDX platform
+   Level 3         62          48           0    IRIN, Reuters, AFP, PANA/JPRS, Lusa, Diario de Lisboa, ANG
+   Level 4          4           1           0    blogs
+   total          310         197          15    Superseded: 1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 170, 244
+   Active but not cited by a data row: 98 (9 cited only by presence entries; the rest corroboration/context sources
+   quoted in notes - GHO notifiable-disease series, UN SG reports, WER infected-area lists, neighbours' reports).
+   Most-cited: metadata 20 Epicentre/UNICEF TSA 2009 (498 rows), 23 MINSAP Plan Strategique 2009-2013 (63),
+   209 + 250 + 218 HDX Regional Cholera Platform (70), 191 Azman 2012 (16), 206 WHO GNB newsletter 2013 (13).
 
-=== METHODOLOGICAL ACHIEVEMENTS ===
+D. RETRACTIONS (./data/GNB/retracted_rows_ai.csv, 103 tombstones, all with reasons)
+   class                                              n   Index
+   contradicted by the WHO annual series               6   3, 12, 16 (orchestrator); 6, 7, 8 (A1)
+   contradicted by other dated evidence                3   470, 588 (A2); 889 (A4)
+   broken / unrelated / non-supporting citation       14   10, 11 (A1, psychology paper); 20 (A3, COVID paper);
+                                                           2, 4, 5 (A5, PubMed search URLs); 9 (psychology paper);
+                                                           13, 14, 15 (melamine DON / no source); 17, 19 (HTTP 404);
+                                                           18 (haemodialysis paper); 975 (A7, see E)
+   superseded by better / finer / final source        77   84, 98, 99, 331 (A1); 21, 22, 330, 237 (A3); 255-317 (63
+                                                           digitized bars -> exact HDX), 102, 130, 83, 87, 210, 116 (A5)
+   surveillance-gap zeros (no one was looking)         3   318, 916 (A3); 203 (A6)
+   by retracting agent: orchestrator 3, A1 9, A2 2, A3 7, A4 1, A5 79, A6 1, A7 1.
 
-SOURCE PERMUTATION SUCCESS:
-- Citation Network Mapping: Comprehensive academic collaboration networks documented
-- Institutional Partnership Analysis: GTFCC, Bill & Melinda Gates Foundation, Princeton-Johns Hopkins networks
-- Alternative Database Mining: PMC, PubMed, ScienceDirect, PLOS systematic coverage
-- Interdisciplinary Approaches: Spatial analysis, epidemiological investigation, anthropological studies integrated
+E. INDEPENDENT SOURCE VERIFICATION (Agent 7)
+   Sample design: stratified, seed 7 (/tmp/gnb7/sample.json): all national zero rows >= ~1 year (22, incl. 969);
+   19 high-leverage >1000-case primaries + 6 random >1000-case rows; validator-WARN rows 25, 136, 908; 1980s adds
+   68, 1082; random draws per agent/level/type stratum (30). Coverage: A1 37, A2 13, A3 8, A4 8, A5 8, A6 7, pre 1;
+   national 54 / sub-national 28; case 49 / zero 33; every decade 1970s-2020s.
+   Method: cited URL or its Wayback copy or the same document on its institutional endpoint (IRIS, Europe PMC, PubMed,
+   ReliefWeb page/attachment, HDX CKAN, UN ODS, archive.org); no WebSearch, no general search engine. V1-V2 read by
+   Agent 7; V3-V6b by five read-only verifier sub-agents; every FAIL re-checked by Agent 7 before fixing.
+   batch  source(s) - read by                                n  PASS  P-MINOR  FAIL  UNVERIF  failure / fix
+   V1     metadata 20 Epicentre TSA 2009 - Agent 7          13    12       1     0       0
+   V2     metadata 23 MINSAP Plan + 120 WHO CCS - Agent 7   10    10       0     0       0
+   V3     WHO WER / IRIS 1986-2024, WHA27/23 - verifier     12     7       5     0       0
+   V4     1970-71 press, 1987 JPRS, OFDA, Gunnlaugsson      10     5       4     1       0     551 period -> narrowed
+   V5     2005/2008 ReliefWeb items, WHO updates, UN        14     9       5     0       0
+   V6a    2007-2026 zero rows (UNICEF, WCARO, ECDC)         12     7       4     1       0     975 citation -> 1090
+   V6b    2012-14 HDX, Lessler, UN, WHO newsletter          11     5       6     0       0
+   TOTAL                                                    82    55      25     2       0     failure rate 2.4%
+   (AI 320 was UNVERIFIABLE for its verifier - Wayback refused connections - and PASSED on Agent 7's retry.)
+   By stratum: national zero rows >= ~1 y 22 -> 16 PASS / 6 P-MINOR / 0 FAIL; >1000-case rows 25 -> 15 / 9 / 1;
+   zero rows 33 -> 21 / 11 / 1; case rows 49 -> 34 / 14 / 1; national 54 -> 35 / 18 / 1; sub-national 28 -> 20 / 7 / 1.
+   By agent (PASS/P-MINOR/FAIL): A1 37 -> 25/12/0; A2 13 -> 10/2/1; A3 8 -> 6/2/0; A4 8 -> 6/1/1; A5 8 -> 6/2/0;
+   A6 7 -> 2/5/0; pre-cycle 1 -> 0/1/0.
+   PASS-MINOR themes: period edges taken from other documents (136, 150, 978, 1063, 1075, 1089 - documented
+   inferences); stale openings or the add-zero boilerplate 'Source confirms zero cholera transmission' on Inferred
+   rows (73, 953, 1072, 1082 - annotated); reporting dates earlier than the document (253, 104, 110, 1072 - fixed);
+   label too strong (222 - fixed); unrecorded intra-source conflict (220 - noted); wrong metadata title/date/
+   description (1089/304, 967/236, 944/193 - fixed); disclosed interpretation choices (82, 92, 128, 157, 840, 939,
+   961, 1087, 23 - no change).
+   No wrong case or death count was found in the sample.
+   Full-population checks (beyond the sample):
+     313/313 rows digitized from the Epicentre figures (Figs 9, 10, 11, 17, 18, 19, 25) re-derived independently from
+     the PDF vector paths: 246 exact, 66 within max(2 cases, 5%), 1 (AI 835) exact under Agent 2's documented anchoring.
+     64/64 HDX weekly rows equal the HDX workbook value for their ISO week; TL/TR = that week's Monday/Sunday.
 
-SEARCH STRATEGY VALIDATION:
-- Agent 1 (Baseline): 100 queries, 9 data observations (9% yield)
-- Agent 2 (Geographic): 40 queries, 2 data observations (5% yield) 
-- Agent 3 (Zero-transmission): 40 queries, 2 data observations (5% yield)
-- Agent 4 (Obscure sources): 40 queries, 0 data observations (0% yield)
-- Agent 5 (Source permutation): 40 queries, 0 data observations (0% yield)
+F. BASELINE AND BUILDER ISSUES FOR MAINTAINERS (READ-ONLY: nothing in JHU or the builder was modified)
+   Builder = py/build_weekly_timeseries.py run IN MEMORY for GNB (country template, 9 outbreak-years, K = 3; nothing
+   written). Series: 2,962 ISO weeks; AI supplies 1,487 (1,308 inferred_zero, 163 documented_zero, 16 fourier), JHU
+   1,423, assumed_zero 52, WHO 0.
+   F1 1973 (the one open gap, a surveillance gap) is rendered as 52 assumed_zero weeks (sCh 0, conf 0.5). assumed_zero
+      ignores ./data/GNB/cholera_presence_ai.csv, so a classified surveillance gap becomes a zero-case year.
+   F2 Source priority ignores temporal resolution. 0 of 64 exact HDX weekly rows (2012-14) reach the series: JHU
+      annual/period rows spread by the Fourier template outrank them (series 3,152 vs HDX 3,895 over the same weeks;
+      2012 W34 150 vs 20; 2013 W10 20 vs 1). 2013 ISO W7-9 (notification interruption) gets smooth invented values
+      34.7/30.7/25.6.
+   F3 Zero windows are overridden. JHU Fourier spreads put 51,506 cases into weeks covered by AI national zero rows:
+      73 (Jan-Sep 1994, 11,037 cases before the October onset), 950 (2006-07, 21,260), 952 (1995-96, 8,499), 1082
+      (1987 before 21 Sep, 3,982), 947 (Jan-May 2005, 3,622), 948 (2002, 801), 1073/1087/1088 (Jan-Jul 2012, 866), 960
+      (Jun-Dec 1998, 103). Series vs WHO annual: 1994 21,380/15,296; 1995 5,480/119; 1996 15,359/8,397; 2003 569/290;
+      2004 389/155; 2005 28,862/25,111; 2006 21,531/37; 2008 17,517/14,323; 2013 1,443/969; 2014 22/11.
+   F4 Same-source overlap inflation (known, still unfixed): the same-source tie-break keeps the larger weekly value
+      across overlapping aggregates - JHU 3239 (WHO 1994 annual) vs UID 11915 (Index 89) and UID 13919 (Index 7713)
+      epidemic rows; JHU 7441 (UID 20433, 2005-01-01..2006-12-31 carrying the 2005 total 25,111/399) spread over 2006.
+   F5 Within the AI layer a Fourier spread (rank 2) beats an inferred zero (rank 1): AI 198 (calendar-year bar 2008 =
+      14,229) renders ~1,893 cases in 2008 W2-W17, before the 5 May onset and against AI 951. AI 198 is correctly dated
+      by the year-only convention and was kept (warning note appended).
+   F6 JHU UID 5111 codes UNICEF 'NA' as 0: 52 weekly rows of 2020 are 0/0 (44 flagged 'Phantom: True', conf 0.63) plus
+      zero aggregates 2019-12-30..2020-11-08 and ..2021-01-03, so the builder renders 2020 as JHU 'observed' zeros at
+      confidence 0.63-0.9, although cholera reporting lapsed from W9 2020 (WHO: GNB
+      'did not report cholera data to WHO for 2020'); the AI layer's evidence for 2020 is Inferred 0.3.
+   F7 JHU UID 319 '2017 = 0' could not be traced to WER 'Cholera, 2017' (Agent 3); rendered as 52 inferred_zero weeks.
+      The 2017 zero is independently supported by UNICEF WCARO W52 2017 (AI 347, Guinea Bissau 0 every week).
+   F8 JHU same-source nested cumulatives (e.g. 1994 UIDs 13919/11915 vs WHO annual 3239; 2005-06 UID 20433 vs 3247;
+      2012 UID 21365 3,359 vs WHO 3,068) are labelled 'Primary: True/False' in notes only; the builder does not read it.
+   F9 Tooling: py/add_observation.py add-zero opens every zero row with 'Source confirms zero cholera transmission
+      A..B', also for Inferred_Absence rows whose source shows only non-notification, and py/revise_observation.py
+      never refreshes that sentence when TL/TR change (15 rows needed an [AUDIT] CURRENT READING note). Suggest
+      label-dependent wording ('Source documents zero ...' / 'Absence inferred from ...') regenerated on revision.
+   Suggested fixes: rank documented/inferred zeros above Fourier spreads of longer aggregates; prefer the finest
+   temporal resolution across sources before source priority; never spread a multi-year aggregate into years with
+   their own annual row; let presence entries block assumed_zero; treat UID 5111 'NA' rows as missing.
 
-STOPPING CRITERIA VALIDATION:
-Agents 4-5 achieved systematic saturation with consecutive batches <5% yield, confirming comprehensive source coverage.
+G. CONFLICTS STILL OPEN (decided rows keep the superseded value verbatim in notes or tombstones)
+   C6  1998: WHO annual 126/2 is undated; MoH Tableau 1 gives 16 (January 1998). Up to ~110 cases cannot be dated;
+       1998-01-18..06-06 carries only an Inferred 0.35 zero (AI 1079); 1998 calendar total stays with WHO (JHU).
+   2012: UNICEF COAR 2012 gives both 3,280/22 (epidemic Aug-Dec) and 3,171/22 (WASH section) - 3,280 kept (matches
+       PMC8583644 and the Lessler regional set); WHO annual 3,068/22 primary for the calendar year.
+   1987 deaths: OFDA summary box 68 vs narrative 168 (68 = WHO annual entered).
+   1986 deaths: WHO 50 vs INASA 57 vs early MoH 48 (50 entered).
+   Not reported by any source read: Quinara 2013 alone (only Tombali+Quinara combined 347/23, 461/30); region of the
+   5 cases of 2009; 1987 counts for Cacheu, Bafata, Bolama/Bijagos, Tombali, Gabu; the 1995 regional tail.
+   Closed this cycle: C14 (2014 WHO 11/2 vs UNICEF 18/3 = counting stages of one Calak cluster, Agent 6); C17 (2022
+   INASA yearbook 'Colera 3' = duplicated dysentery column, Agent 6); 1986 '1147' presence entry (Agent 7).
 
-=== QUALITY ASSURANCE SUMMARY ===
+H. AGENT COMPLIANCE AND PRODUCTIVITY (./data/GNB/workflow_state.json reconciled with logs and files)
+   agent  batches  yields % (per batch)                 stop rule        rows claimed/live  sources  coverage after
+   A1     12       30 30 30 40 55 25 55 25 25 25 20 5   b (12 cap)       333 / 260           178     71.7% (+19.8 pp)
+   A2     12       30 10 10 5 5 0 35 15 10 10 10 0      b (12 cap)       581 / 579            12     71.7% (+0.0)
+   A3     12       15 5 10 0 0 10 5 5 5 10 0 0          b (12 cap)       19 / 19              21     86.1% (+14.4)
+   A4     10       10 20 5 10 0 0 5 0 0 0               a (B8-B10 0%)    15 / 14              19     94.9% (+8.8)
+   A5     12       30 10 15 5 5 0 5 0 0 5 5 0           b (12 cap)       94 / 94              11     94.9% (+0.0)
+   A6     12       0 0 5 20 5 20 10 5 5 0 0 0           b (+ a at B12)   18 / 18              50     98.1% (+3.2)
+   All >= 3 batches; all yields multiples of 5 and <= 55% (queries counted, not rows); logged yields equal
+   workflow_state.json; every Index in every claimed range is live or tombstoned (0 silent deletions).
+   Not rule breaks but costly: WebSearch exhausted at A3 B6 Q7 - from then on a 'query' was one fetch against an
+   institutional endpoint (IRIS, Europe PMC, ReliefWeb, HDX, Wayback CDX, arquivo.pt, UN ODS, GHO). That limits
+   discovery to documents those indexes hold; the losses are most likely Portuguese/Guinean news and grey literature
+   for the residual windows (1973, 1998, 2020, 2025-26). A1, A2, A3 and A5 hit the 12-batch cap while still yielding.
 
-DATA VALIDATION RESULTS:
-- CFR Range Validation: All values within 0.1-15% epidemiologically plausible range
-- Temporal Logic Validation: All date sequences validated (TL ≤ TR ≤ reporting_date)
-- Mathematical Consistency: Deaths ≤ sCh validated across all observations
-- Geographic Coding: All AFR::GNB location codes standardized and validated
-- Source Attribution: Dual-reference indexing system (source_index ↔ Index) confirmed
-
-DUAL-REFERENCE INDEXING VERIFICATION:
-- All cholera_data.csv entries have matching metadata.csv Index numbers
-- Source names exactly match between data and metadata files
-- Sequential integer indexing maintained (1-12) without gaps or duplicates
-
-URL VALIDATION STATUS:
-- 100% of metadata sources have working URLs verified during collection period
-- WHO sources confirmed accessible through official domains
-- Academic sources validated through PMC, PubMed, ScienceDirect platforms
-- ReliefWeb sources confirmed through humanitarian response databases
-
-=== RECOMMENDATIONS FOR FUTURE ENHANCEMENT ===
-
-PRIORITY AREAS FOR CONTINUED DEVELOPMENT:
-1. 2021 Data Validation: Investigate potential surveillance data for single-year gap
-2. District-Level Geographic Enhancement: Systematic sub-provincial data collection
-3. Cross-Border Transmission Analysis: Enhanced Senegal/Guinea border surveillance integration
-4. Real-Time Surveillance Integration: Connect to ongoing WHO AFRO surveillance systems
-
-METHODOLOGICAL IMPROVEMENTS:
-1. Automated URL Monitoring: Implement systematic link validation for ongoing source access
-2. Regional Cross-Validation: Enhanced cross-border epidemic pattern validation
-3. Surveillance System Assessment: Detailed evaluation of Guinea-Bissau IDSR implementation
-4. Community-Level Data Sources: Systematic exploration of local health facility records
-
-=== FINAL ASSESSMENT ===
-
-OVERALL SUCCESS METRICS:
-- Comprehensive Enhanced Dataset: 13 high-quality observations spanning 40+ years
-- Rigorous Quality Standards: 100% validation success rate, high confidence weights
-- Systematic Source Coverage: 380 queries across multiple search strategies and databases
-- Zero-Transmission Documentation: Critical absence periods validated and documented
-- Geographic Enhancement: National and provincial-level data integration
-
-MOSAIC INTEGRATION READINESS:
-Guinea-Bissau cholera surveillance dataset is ready for MOSAIC epidemiological modeling with enhanced time series completeness, appropriate uncertainty quantification, and validated absence periods for accurate transmission parameter estimation.
-
-DATA LIMITATIONS ACKNOWLEDGED:
-- 2021 single-year gap requiring ongoing surveillance verification
-- Limited district-level geographic granularity for some outbreak periods
-- Surveillance system capacity constraints during political instability periods
-
-CONCLUSION:
-The systematic AI-enhanced data collection for Guinea-Bissau represents a successful model for comprehensive cholera surveillance enhancement, achieving substantial data augmentation while maintaining rigorous quality standards essential for epidemiological modeling applications.
-
-=== WORKFLOW COMPLETION CONFIRMATION ===
-Agent 6 Quality Audit: COMPLETED
-Total Search Workflow: SUCCESSFULLY COMPLETED
-Dataset Status: VALIDATED AND READY FOR MOSAIC INTEGRATION
-
-Final Report Generated: 2025-07-24 16:50:00
-Quality Audit Completed By: Agent 6 Final Validation Process
+I. ALL AGENT 7 CHANGES (every write via py/revise_observation.py / py/add_observation.py, except the one authorised
+   scripted edit of the presence file; backups are the tools' timestamped .backup_* files)
+   Values changed
+     551  Biombo 1994-95 1169/43: TL/TR 1994-10-01..1995-03-31 -> 1994-10-20..1995-01-13 (cited surveillance window)
+     975  retracted (tombstone) and re-added as 1090 citing metadata 23 (same period, label, weight)
+     222  canonical evidence Documented_Absence -> Inferred_Absence; confidence 0.75 -> 0.6
+     197  confidence 0.8 -> 0.4 (CCS 2007 bar 73 = early extract; final 153-159)
+     134  confidence 0.5 -> 0.4 (MoH weekly 128 < Bissau-only digitized 146)
+     145  confidence 0.8 -> 0.6 (WER reporting-period increment; timing conflict with the dated series)
+     252, 253, 254  reporting_date 2005-11-03 -> 2005-11-11 (document cites 7 and 11 Nov 2005)
+     103-111        reporting_date 2014-08-22 -> 2014-09-02 (W33 2014 PDF 'As of 29 August 2014', created 2 Sep)
+     1072           reporting_date 1974-05-01 -> 1974-03-19 (WHA A27/23 is dated 19 March 1974)
+   Notes appended (no value change)
+     [AUDIT] CURRENT READING (stale opening sentence or canonical token): 66, 73, 92, 946, 947, 953, 957, 968, 1073,
+       67, 91, 350, 958, 1072, 1082
+     conflict / provenance / caveat notes: 198 (builder warning), 239, 240, 241, 944 (cross-layer duplicates of JHU),
+       220 (3,171 vs 3,280), 221 (stronger zero-case quote), 23 (22 Jun 2026 ECDC edition), 959 (NA caveat),
+       152 (non-monotone vs WHO 211), 68 and 579-586 (1986 '1147' conflict closed),
+       1082 (WER line quoted as printed) and 68 (footnote reading corrected)
+   Metadata
+     14   Status Active -> Superseded (sole citation was the removed presence entry)
+     236  Description: JPRS-TEP-87-002 cover date 2 February 1987
+     193  Description: stale 'No row cites this source' corrected (AI 944 cites it)
+     304  Description: actual title 'Report of the Secretary-General on the restoration of constitutional order in
+          Guinea-Bissau'
+   Presence file
+     ./data/GNB/cholera_presence_ai.csv: 1986 '1147 suspected cases' entry removed (backup
+     ./data/GNB/cholera_presence_ai.csv.bak_agent7; removed line verbatim in search_log_agent_7.txt; 33 other
+     records byte-identical). 2012 regional count-unknown lines KEPT (Level-1 extent statements; no consumer).
+   Net: rows +1 added / -1 retracted (986 -> 986); sources +0 (310); presence 34 -> 33.
