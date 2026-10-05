@@ -1,0 +1,116 @@
+=== AGENT 7 (QUALITY AUDITOR) AUDIT LOG ===
+Country: South Africa (ZAF)
+Start Time: 2026-10-04 19:44:11
+Agent 7 Status: INITIALIZED
+Mode: audit / repair / report. No query budget limit.
+Orchestrator overrides in force: no analyze_effective_gaps.py (use /tmp/zaf_private_gaps.py), no dashboard scripts, no git commit, no write_weekly_csv(), tool-only CSV edits.
+
+=== STEP 1: VALIDATOR (initial) | 2026-10-04 19:44 ===
+Command: python py/validate_quality.py ZAF --json /tmp/ZAF_audit.json
+Result : EXIT 0 | 2525 data rows | 604 metadata sources | ERROR 0  WARN 189  INFO 533
+WARN   : period_single_day 101, multiyear_aggregate 58, same_period_conflict 24, CFR_high_flagged_for_review 6
+INFO   : national_subnational_overlap 455 (all documented), metadata_unused 78
+Note   : the validator's 'row N' is the PHYSICAL CSV line number, not the Index column; mapped to Index below.
+Note   : multiyear_aggregate is emitted only when confidence <= 0.7 (else-branch of the multiyear check); there are
+         0 multiyear_confidence_high findings, so every multi-year count row already satisfies the CLAUDE.md <=0.7 cap.
+
+=== STEP 1b: REPAIR TOOL DRY RUN | 2026-10-04 19:47 ===
+Command: python py/repair_data_integrity.py --dry-run ZAF --log /tmp/ZAF_repair_dryrun.json
+Result : TOTAL 0 change(s). No source_label_normalisation, no presence_row_quarantine, no multiyear_downweight,
+         no high_cfr_downweight, no duplicate_merge, no attribution_flagged_for_review.
+         ./data/ZAF/attribution_review.csv does not exist (nothing withheld for review).
+Decision: nothing to --apply (the tool only rewrites a file when a mutating change exists; with 0 changes an
+          --apply run would be a no-op, so it is not run).
+
+=== STEP 2: WORKFLOW STATE READ | 2026-10-04 19:45 ===
+Agents 1-6 entries present. Batches 12/12/12/12/12/11. No yield >100%. All >=3 batches. Verification of
+claimed row counts against the data file follows (Step 2b).
+
+=== STEP 3a: PRIVATE COVERAGE (read-only helper /tmp/zaf_private_gaps.py, horizon 2026-10-04) ===
+JHU+WHO only           : 489/682 = 71.7% | 9 gap periods | months_with_positive_cases 353 | latest obs 2026-07-19
+Cycle start (cf1c3ad)  : 669/682 = 98.1% | 3 gap periods | months_ai_only 180 | positive months 358 | AI obs 60 rows
+Now (before audit)     : 681/682 = 99.9% | 0 gap periods (Oct 2026 = 4 days, below 7-day min) | months_ai_only 190
+                         positive months 462 | latest obs 2026-09-30 | latest positive 2026-07-31
+
+=== STEP 2b: AGENT CLAIMS vs FILE (Index ranges, live rows, tombstones in ./data/ZAF/retracted_rows_ai.csv) ===
+Pre-cycle (cf1c3ad) Index 1-61 (60 rows; Index 18 already absent at cf1c3ad): 35 live, 25 retracted this cycle.
+A1 Index 62-798  : 728 live + 9 tombstoned (2 own at gate time; later 189/190/192/524 by A5, 206/342/95 by A3, 468/703 own) -> claim 735 OK
+A2 Index 799-1429: 625 live + 6 tombstoned (835/836/1281/1284 own; 1036/1319 by A5)                                   -> claim 627 OK
+A3 Index 1430-1765: 336 live, all zero rows, 0 tombstoned; 17 retractions of other agents' rows                        -> claim 336 OK
+A4 Index 1766-1961: 196 live (190 case, 6 zero)                                                                       -> claim 196 OK
+A5 Index 1962-2566: 598 live (597 new + AI 1985 re-entry of 1319) + 7 own tombstones                                  -> claim 597 OK
+A6 Index 2567-2573: 7 live                                                                                           -> claim 7 OK
+No agent ran <3 batches; no yield >100%; no claimed row missing from the file. Index both live and tombstoned: none.
+Caveat (A5): batches 2-4 (50/65/95%) counted each cached NDoH daily-update file (source 438) as a query; orchestrator
+re-counted B5 under the one-sweep-per-series rule (90% -> 30%). B2-B4 overstate search diversity; stop decision unaffected.
+Caveat (A2-A6): WebSearch quota is session-wide (200); A1 ~152, A2 ~47 -> A3-A5 ran on direct retrievals only.
+
+=== ITEM 1: SINGLE-DAY ROWS (period_single_day WARN, 101 rows) - every row read ===
+Classification of all 101 (TL == TR):
+  - Daily new-case counts ('new cases reported yesterday', '24-hour', 'daily head count', 'by date of first consultation'): 
+    Limpopo 2008-09 Sowetan/SAnews/NOC series (388-404, 443, 449, 518-520, 571-587, 597, 779-797, 1286, 1335-1337),
+    Mpumalanga 2009 daily presentations (528, 771-773, 887-889, 891), KZN 2001 24-hour counts (910, 1310, 1877, 1887,
+    1898, 1908), KZN 1981 (1801, 1806), EC 2003 24-hour LSA peaks (1244, 1245), Musina Hospital 15-22 Nov 2008 by date
+    of first consultation (2088-2095), Gert Sibande 5 Mar 2001 admissions (840), Gauteng 4 Jan 2001 (437).
+  - Single dated case events (one or two named patients / clusters): 27, 42, 45, 563, 592, 593, 607, 608, 609, 611, 720,
+    865, 885, 1287, 1328, 1353, 1398, 1776, 1777, 2441.
+  - WHO IHR notification-table entries with one printed date: 237 (1980-10-07, 6/1), 259 (1981-09-11, 1/0),
+    276 (Coega 1982-03-11, 19/1), 615 (1979-04-03, 2 imported).
+  Result: NO row is a cumulative total entered on a single date. No --tl revision needed.
+  Weekly-series exposure: only 237, 259 and 615 are national (AFR::ZAF); all three fall in JHU-covered years (1979, 1980,
+  1981 annual WHO rows), which outrank AI in py/build_weekly_timeseries.py, so none reaches cholera_weekly_ZAF.csv.
+  Residual doubt: 237 (6 cases/1 death at 7.X.1980) may be the cumulative since the late-September onset rather than one
+  day's count (WER prints one date); magnitude 6 cases and masked by JHU 1980 -> justified, not revised.
+
+=== ITEM 2: IN-MEMORY WEEKLY BUILD (py/build_weekly_timeseries.process_country, read-only; nothing written) ===
+Method: templates from build_all_templates() (read-only, cached in /tmp/zaf_a7/templates.pkl); process_country('ZAF');
+plus a read-only replica (/tmp/zaf_a7/trace.py) that records every candidate per ISO week, to name the winning row.
+Series: 2,962 weeks 1970-W01..2026-W40 | sum sCh 251,244 | sources JHU 1,972 wk, AI 839 wk (265 positive), WHO 151 wk |
+methods fourier 1,712, documented_zero 574, inferred_zero 523, observed 153 | template 'country_k1'.
+
+B0 TEMPLATE ARTEFACT. The ZAF seasonal template is fitted on only 8 weekly positive national baseline rows, dominated by
+   the WHO 2023-08-28 cumulative lump (1,390) and JHU 2004-03-28 (425). K=1 -> peak ISO week 22 (late May), trough week 48
+   (late Nov), max/min 4.0. South African epidemics peak in summer (1980-87 Dec-Mar; KZN 2000-01 peak 30 Jan 2001;
+   2008-09 Dec-Feb). Every Fourier-spread JHU annual row (1,712 weeks) inherits an inverted seasonal shape.
+   e.g. 1980: JHU 859/16 -> 697 cases placed Jan-Aug 1980, but no case was acquired in SA before Sep 1980 (Holloway 1985).
+B1 2005 FALSE POSITIVE. JHU Index 26 (WHO annual 3,503/28) spread over all 52 weeks (May peak 533). AI 974 Documented zero
+   (NDoH monthly tables 0/0, NICD lab 0, WER IHR 0) loses because SOURCE_PRIORITY JHU > AI. +3,503 cases / +28 deaths.
+B2 2008. Builder 6,829/44 vs WHO 3,907/22. JHU 28 (annual) fills Jan-Jul 2008 = 2,845; JHU 60 (2008-08-01..12-26,
+   1,279/12) fills Aug-Oct = 962; outbreak began 15 Nov 2008 -> 3,807 phantom cases Jan-Oct 2008 (true: ~34 lab-confirmed
+   sporadic cases). Nov-Dec 2008 = 3,022 from JHU 56 (2008-11-15..2009-01-24, 5,696/36) vs NOC 1,320/13 by 27 Dec.
+B3 2009. Builder 12,896/72 vs WHO 10,520/57 (+2,376): JHU 56 wins 1-24 Jan (2,752) on top of JHU 29 (annual). The annual
+   spread also puts 5,513 cases in Jun-Dec 2009, after the season ended (NICD season Nov 2008-May 2009 = 12,741/69).
+B4 2023. Builder 3,044/104 vs ~1,390-1,478/47. JHU 146 (to 9 Jul, 1,274) wins 23 weeks, JHU 145 (to 31 Aug) 7 weeks, JHU 65
+   4 weeks (Jan 2023 = 77 phantom cases against AI 1652 Documented zero; onset 1 Feb 2023), then WHO Index 1 puts the
+   cumulative 1,390/47 in week 2023-08-28..09-03. Excess +1,650 (x2.2). The AI onset-week national series (AI 2215-2250,
+   1,299 cases/55 deaths in 2023, peak 342 in week of 22 May) is never used. WHO zero weeks 48-51 suppress AI onset counts
+   3, 7, 13, 8 (Dec 2023 Limpopo cases); WHO shows 1 (week 49).
+B5 2000-2002 (JHU nested rows). 2000: builder 28,349/81 vs WHO 19,667/68 (+8,682); JHU 21 annual spread puts 14,517 in
+   Jan-Jul 2000, before the mid-Aug 2000 KZN onset; JHU 57 (2000-08-01..2002-12-31, 120,000/265) fills Aug-Dec.
+   2001: 105,114 ~ WHO 106,159 (OK). 2002: builder 56,221/139 vs WHO 10,004/32 (+46,217) and NDoH 16,394/107 (+39,827):
+   JHU 72 (Jan-May 2002, 28,000/77) + JHU 57 share 27,175 in Jun-Dec 2002.
+B6 2004. Builder 4,605/53 vs WHO 2,767/35 (+1,838): JHU 25 annual fills Jan and May-Dec on top of JHU 132-135
+   (9 Feb-9 May 2004, 2,556).
+B7 AI-TOP YEARS, same-source aggregate beats precise row (try_insert keeps the higher same-source value per week):
+   1988: 67.3 rendered (AI 657, 1986-1990 aggregate 337) vs AI 1956 DoH 1988 = 5. 1989-90: 134.6 rendered vs ~9-18
+   implied by the aggregate minus 1986-88. 1995: 23.8 rendered (AI 661, 1991-1995 aggregate 119) vs AI 1967 HST 1995 = 2.
+   1996: 16.5 (AI 667, 1996-2000Q1 aggregate 70; true count unknown, residual <= ~30) - acceptable.
+   CONFIRMED: AI 657 and AI 667 are NOT rendered as zeros (fourier positive in 1988-90 and 1996).
+   1997: AI 2569/2570 documented zeros (49 wk) + AI 567 (Oct 1997, 1 case) -> 0.8 (0.2 lost to the zero row's ISO week).
+   2007: AI 1441 documented zero, 52 wk (correct). 2010: AI 24 observed 1 case (June) + zeros (correct).
+   2018: AI 62-65 zeros + JHU 2/58 (Sep 29-Nov 16) = 4.0 vs 5 confirmed (NICD Table 1). The 7 Feb KZN case and the
+   19 Nov Limpopo case are lost: zero rows ending/starting mid-week claim the whole ISO week (AI 62/63 -> wk Feb 5-11;
+   AI 65 -> wk Nov 19-25), and there is no national row for either case (AI 27/1287/28 are provincial/district).
+   2025-26: see B9.
+B8 JHU ANNUAL ZEROS OVERRIDE AI NATIONAL CASE ROWS (false negatives): 2011 AI 505 (1 confirmed, May), 2014 AI 472
+   (2 confirmed, Jul-Sep), 2020 AI 530 (1 confirmed). JHU inferred zeros also downgrade AI Documented_Absence weeks to
+   inferred_zero (conf <=0.6) in 2006, 2011-12, 2014-17, 2019-21 (value unchanged). Small JHU annual counts are smeared
+   across the year: 1973 (1 case, AI: 23-27 Nov), 1974 (37, AI: Klerksdorp Mar-May; AI zeros Jan-Mar and late May-Jun
+   overridden), 1979 (2, AI: 3 Apr), 2013 (1, AI: 9-10 Mar), 2022 (1).
+B9 WHO ZERO WEEKS OVERRIDE AI CASE ROWS: 2025 all 52 WHO weeks = 0, yet WHO's own 2025 annual table = 4 (AI 66) and
+   NMCSS notifications Mar 2 (AI 139), Apr 2 (AI 140), Jun 5 (AI 143), Jul 24 (AI 146, conf 0.3), Dec 4 (AI 2211);
+   MOSAIC sees 0 cases in 2025. 2024: WHO weekly is confirmed-only (11 cases, 0 deaths) vs NICD 2024 162 suspected /
+   13 confirmed / 5 deaths (AI 2190) and dashboard onset weeks 144/2 (AI 2251-2267) - definitional, flag to modellers.
+   2026: WHO weeks 27-28 (Jul 6-19) = 1+1 match AI onsets 8 and 15 Jul (no WHO week shift visible for ZAF).
+   After WHO's last week (2026-07-19), AI 2482/2209 documented zeros run to 2026-09-30.
+None of B0-B9 is an AI-layer error; all are escalated (baseline files are read-only; builder edits are out of scope).
