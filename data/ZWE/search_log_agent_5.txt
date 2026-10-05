@@ -1,0 +1,110 @@
+=== AGENT 5 INITIALIZATION (CROSS-REFERENCE INTEGRATOR) ===
+Country: Zimbabwe (ZWE)
+Cycle: opus55_rerun_2026-09-29
+Start Time: 2026-10-05 (local clock at creation: see below)
+Agent 5 Status: INITIALIZED
+Log file: ./data/ZWE/search_log_agent_5.txt
+Legacy (ideas only): ./data/ZWE/search_log_agent_5_legacy_2025-08-01.txt
+
+ENVIRONMENT CONSTRAINTS
+- WebSearch per-session budget exhausted (200/200 used by Agents 1-3). No scraping of
+  general-purpose search engines. Work = direct re-fetch of registered URLs
+  (./data/ZWE/metadata_ai.csv), repository APIs (ReliefWeb, WHO IRIS DSpace, PubMed
+  E-utilities, Europe PMC REST refs/citations, Crossref, OpenAlex, Internet Archive
+  full-text + Wayback CDX, Google Books API).
+- A "query" = each distinct re-fetch/re-mining retrieval of a registered source, each
+  citation-chain lookup, each repository/API search. Batch = exactly 20 queries.
+- Yield = queries producing >=1 NEW committed row in ./data/ZWE/cholera_data_ai.csv / 20.
+  Conflict resolutions / re-weightings / notes / retractions do not count toward yield
+  (logged separately in the CONFLICT REGISTER).
+
+STARTING STATE (from ./data/ZWE/workflow_state.json, gate after Agent 4)
+- ./data/ZWE/cholera_data_ai.csv: 3,160 live rows; ./data/ZWE/metadata_ai.csv: 427 sources
+- ./data/ZWE/cholera_presence_ai.csv: 80 rows; validator 0 ERROR / 322 WARN
+- Remaining gaps (orchestrator in-memory after Agent 4): 1977-01..03, 1977-10..12,
+  1979-12..1980-01, 1983-01..02, 1983-07..12, 1987 (historical); 2026-08-01..2026-10-05 (recent)
+
+PLAN
+Step 1 (batches 1-6+): re-mine registered multi-period sources: WHO/OCHA 2008-2011
+  bulletins (2010 wks 6-10,14-25,27-37; 2011 wks 16-21 via WHO/OCHA/Wayback originals),
+  WHO AFRO weekly bulletins 2018-19 and 2023-25, MoHCC sitreps quoted in Herald/Chronicle/
+  NewsDay 2023-25, IFRC MDRZW024/MDRZW029 ops updates (adore.ifrc.org / go.ifrc.org),
+  UNICEF Zimbabwe sitreps 2023-26, MoH Secretary for Health reports (srcs 410/411),
+  Mossop 1997 (413), Southern African Economist (421); 2026 Aug-Oct: WHO multi-country
+  updates #39+, AFRO bulletins, IFRC GO, Africa CDC weekly.
+Step 2: citation networks (Europe PMC refs/citations, OpenAlex) for PMC3102413,
+  PMC5739374, PMC9887696, PMC11043271, PMC4470448, PMC11606690, RSTMH 1996,
+  CAJM 1975/76, GTFCC Munyanyi 2020 - depth up to 3.
+Step 3: adjudicate the conflict list given by the orchestrator (rows 27 vs 71; 4; 21;
+  75/76; 7; 10/11/19/22/25; 2010 Zvimba withdrawal; 2000-01 EM-DAT; 1980s; 2018-19;
+  2009; 2016; 2007; 2025 Rushinga; 2005; 1994) via py/revise_observation.py.
+Step 4: arithmetic checks (provincial vs national sums, cumulative monotonicity,
+  increment-vs-cumulative, CFR denominators, nested national rows).
+Stopping: >=3 batches; then stop at 3 consecutive batches <5% yield or 12 batches.
+Log created: 2026-10-05 11:11:49 PDT
+
+=== BATCH 1 IN PROGRESS (Phase 1: re-mining registered series) - interim note 2026-10-05 ~11:25 ===
+  q1 ReliefWeb site search "cholera bulletin" (3 pages) -> WHO AFRO weekly regional cholera bulletins Mar 2023-Jul 2024
+     and monthly bulletins Jul/Dec 2024 on ReliefWeb (IRIS itself times out from this host)                    no row
+  q2 ReliefWeb site search "monthly regional cholera bulletin" -> only Dec 2024 and Jul 2024 editions on ReliefWeb  no row
+  q3 AFRO Monthly Regional Cholera Bulletin Dec 2024 (ReliefWeb PDF; IRIS 10665/380302) -> Zimbabwe 'New cases in
+     December increased by 23.5% from 102 in November to 126. Deaths for both months were one each'; map categorical.
+     National monthly totals are inside the WHO weekly baseline (Nov 4-Dec 1 = 106; corroborates) -> no AI row  no row
+  q4 Wayback snapshot of WHO HAC Zimbabwe 'sitreps' page (9 Jul 2010) and 'epi_archive' page (22 Nov 2010) ->
+     list of MoHCW/WHO weekly epidemiological bulletins Nos. 1-81 with PDF URLs, INCLUDING the 2010 numbers that
+     Agent 2 could not find on ReliefWeb (Nos. 46-50, 54-59, 61-65, 68, 76-78, 80). Nos. 60, 67, 69-75 absent.
+     -> next queries: one retrieval per missing bulletin (week 6-10, 14-25, 28, 36-37, 40 of 2010)
+
+=== BATCH 1 | PHASE 1 (re-mining registered series + first conflict checks) | ZWE ===  (completed 2026-10-05 ~11:50)
+Gap targeted : 2010 weeks 6-10/14-25/27-37 and 2011 weeks 16-21 district weekly tables (bulletins Agent 2 could not
+               find on ReliefWeb); 2024-25 outbreak sub-national detail; national-annual conflict set (C1, C-NAT)
+Queries      : 20
+  q1  ReliefWeb site search "cholera bulletin" (3 pages) -> AFRO weekly/monthly regional bulletins 2023-24 listed      no row
+  q2  ReliefWeb site search "monthly regional cholera bulletin" -> only Jul 2024 and Dec 2024 on ReliefWeb             no row
+  q3  AFRO Monthly Regional Cholera Bulletin Dec 2024 (RW PDF) -> ZWE Nov 102 / Dec 126 cases, 1 death each month;
+      national monthly totals lie inside the WHO weekly baseline (Nov 4-Dec 1 = 106) -> corroboration only           no row
+  q4  Wayback WHO HAC Zimbabwe sitreps page (2010-07-09) + epi_archive page (2010-11-22) -> PDF list of weekly
+      bulletins Nos. 1-81 incl. 2010 Nos. 46-50, 54-59, 61-65, 68, 76-78, 80 (not on ReliefWeb)                       no row
+  q5  Wayback CDX who.int/hac/crises/zwe/sitreps/ (+ /entity/) -> only Nos. 56, 81, 85, 87, 89, 109, 142 and a few
+      2012 issues were ever archived as PDFs; Nos. 46-50, 54-55, 57-65, 68, 76-80 are NOT recoverable from Wayback   no row
+  q6  Bulletin No. 56 (week 16, 19-25 Apr 2010; Wayback PDF) -> 'Week 16 ... 2 suspected cases were reported from
+      Chegutu District'; Table 1 cumulative by district to week 16 (513/13; Shamva '2 discarded', total 0)     ROW 3266 SUCCESS
+  q7  Bulletin No. 87 (week 47, 22-28 Nov 2010) -> Makonde 7 new cases (4 susp + 7 conf reported this week); these
+      were NOT retained in the final 2010 district totals (Makonde 3; Zvimba later denotified) -> no row; conflict
+      note for national row 470 queued                                                                               no row
+  q8  Bulletin No. 109 (week 17 2011, 25 Apr-1 May 2011; Wayback PDF) -> 'Three cases were reported in week 17 from
+      Chipinge'; Annex 1 table 2010 final district totals (937/22) and 2011 to week 17 (755/25)             ROW 3267 SUCCESS
+  q9  Bulletin No. 142 (week 50 2011, 12-18 Dec 2011) -> 'No report of outbreaks of malaria, cholera and measles
+      during week 50 countrywide' -> corroborates national zero row 59 (2011-06-27..2012-05-01)                       no row
+  q10 Wayback CDX afro.who.int (+zw.afro.who.int) Zimbabwe bulletins -> 'Health Harare' WCO bulletins Vol 4-18
+      (Jun-Dec 2010) and 2023-24 OEW/cholera-update publication pages (already mined as srcs 33, 95-98, 179)          no row
+  q11 Health Harare Vol 7 (Jul 2010) -> nutrition survey launch; no cholera content (series not pursued)              no row
+  q12 Xinhua 14 Jan 2025 (src 8) re-fetched -> '28 cholera cases and two deaths ... 282 suspected cholera cases' (MoHCC
+      update, 13 Jan 2025); NO 12 Mar 2025 '248/7' figure in the article -> row 27 corrected (C1)              REVISION only
+  q13 ReliefWeb (PC257) Feb-Oct 2010 'bulletin' listing -> only Nos. 45, 51, 52, 53, 66, 78, 79, 81 on ReliefWeb      no row
+  q14 ReliefWeb/The Zimbabwean 26 Apr 2010 'Measles and cholera cases a headache in Buhera' -> 'more than 60 cases of
+      cholera recorded' (= Buhera cumulative 67 already in row 227)                                                   no row
+  q15 ClinMedJournals review (src 11) - live site serves a Sucuri JS challenge (respected, not bypassed); Wayback copy
+      2023-05-31 read in full -> the article has NO 1998-2007 annual table: 0 occurrences of 1998-2006. Legacy national
+      annual rows 6, 8, 9, 11, 12, 13, 14, 15 (1998-2007) cite src 11 for values that are not in it (MIS-CITATION)  no row
+  q16 MoHCC Cholera Elimination Plan 2018-2028 (src 31) Table 4 re-read -> 1998/99-2007 lines BLANK ('Blank spaces mean
+      no data'); '4081 ... 6' printed on the 1991/1992?? line; not the origin of rows 6-15 either                    no row
+  q17 WHO GHO OData API (src 37), all ZWE years -> 1992 2048/105, 1993 5385/332, 1998 995/44, 1999 5637/385, 2000
+      1675/223, 2001 650/14, 2002 3125/192, 2003 1009/35, 2004 119/9, 2005 516/26, 2006 789/61, 2007 65/4, 2010 951/21,
+      2011 1220/2, 2012 23/1, 2015 60/0, 2016 10/1 (1973 '1' and 1974 '37' are ZAF copy errors, as Agent 1 noted)    no row
+  q18 Europe PMC fullTextXML PMC5739374 (src 3) -> '1992-1993 Cholera outbreak (7433 cases, 5.8% case fatality rate)',
+      '1999 January Cholera outbreak (5637 cases, 6.8% ...)', '2002 January Cholera outbreak (3125 cases, 6.1% ...)'
+      (WHO figures; no deaths, no 1993-only split). PMC3102413 fullTextXML -> HTTP 500                                 no row
+  q19 Wayback CDX who.int/docstore/wer/pdf/ -> WER PDFs 1997-2005 archived (IRIS-independent route to WER annual
+      cholera reports)                                                                                                no row
+  q20 WER 2001;76(31):233-240 'Cholera, 2000' (Wayback docstore PDF) -> Table 1 'Zimbabwe ... 1 675 ... 96'; text 'The
+      reported cumulative cholera cases for Malawi, Zambia and Zimbabwe decreased by 85% compared to 1999'           no row (C-NAT)
+Sources found: 14    Registered: index 428 (bulletin No. 56), 429 (bulletin No. 109)
+Rows added   : 2    Indices: 3266 (Chegutu wk16 2010, 2 sCh), 3267 (Chipinge wk17 2011, 3 sCh)
+Revisions    : row 27 (C1: TR 2025-03-12->2025-01-13, 248/7 -> 282 sCh/28 cCh/2 deaths, conf 0.4->0.5, mis-citation
+               corrected; clears the validator same_period_conflict WARN); row 71 (cross-reference note)
+Successful queries: 2/20 (q6, q8)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 2: WER annual cholera reports 1998-2007 via Wayback docstore -> C-NAT overhaul of
+               the national annual rows 3, 4, 6-15; WER narratives may also date/place sub-annual events)
