@@ -54,7 +54,7 @@ Interpretation: no presence-only rows in the data file, no exact duplicates, no 
 no multi-year count aggregate or high-CFR row above confidence 0.7 (all 93 high-CFR rows already <=0.7).
 ./data/ZWE/attribution_review.csv was NOT created (nothing withheld for judgement).
 
-=== STEP 3: WORKFLOW STATE + PER-AGENT VERIFICATION (2026-10-05 15:05) ===
+=== STEP 3: WORKFLOW STATE + PER-AGENT VERIFICATION (2026-10-05 ~14:59) ===
 Source: read_workflow_state('ZWE') + ./data/ZWE/search_log_agent_1..6.txt + Index accounting of
         ./data/ZWE/cholera_data_ai.csv (3194 live) and ./data/ZWE/retracted_rows_ai.csv (129 tombstones).
 Index accounting: every Index 1..3323 is either live or tombstoned (0 silently deleted rows).
@@ -86,7 +86,7 @@ Flags: no agent ran < 3 batches; no yield > 100%; no agent claimed rows it did n
   (A1 10%, A2 10%, A3 15%, A5 5%, A4 5%). WebSearch budget exhaustion hit Agent 3 at batch 9 and all later agents
   (API/listing/archive queries only), which depresses later yields independently of data availability.
 
-=== STEP 4: INTEGRITY BEYOND THE VALIDATOR (2026-10-05 15:20) ===
+=== STEP 4: INTEGRITY BEYOND THE VALIDATOR (2026-10-05 ~15:02) ===
 metadata_ai.csv: 457 rows, Index 1..457 contiguous, no duplicate Index, no duplicate Source name, no duplicate URL,
   all Status=Active, source_database=AI. Reliability: L1 189, L2 93, L3 173, L4 2. Validation_Status: Pending 442,
   Validated 15.
@@ -148,3 +148,130 @@ Template country_k3; 2,942 national weeks 1969-12-29..2026-07-20. Methods: fouri
      1982 = 2 registered cholera deaths, row 3244, skipped because sCh is blank), 1987 (51), 2025 wk 16-18 and 23-24
      (WHO blank rows; outbreak active until 18 Jun 2025). Also 1977-10..12 (12), 1973-10-08..11-04 (4), 2018 wk 10 (1).
 
+=== STEP 5: SPECIFIC AUDIT ITEMS - FINDINGS (2026-10-05 ~15:11) ===
+(1b) Row 3322 (Chiredzi/Chikombedzi 4-10 Feb 2001, deaths 10 floor, src 456 PANA) vs row 3232 (Masvingo 2001 T2 total
+     53 S/17 C/2 D, conf 0.8). Source re-verified by curl of allafrica.com/stories/200102100047.html (lead paragraph:
+     'more than 10 patients already dead'). Conflict is real (part > whole) and cannot be resolved without the
+     MoHCW line list; T2 under-capture is documented elsewhere (1993: 330 of 5,385; Jan 2001 Beitbridge missed).
+     3322 kept (floor, conf 0.35). 3232 does not cross-reference the conflict and still points to retracted
+     national row 9 -> FIX F4.
+(1d) EM-DAT 2000-0822-ZWE (Chegutu, Nov 2000, 'Bacterial disease', Event Name blank, 769 affected, 11 deaths) read
+     from MOSAIC-data/raw/EMDAT/public_emdat_custom_request_2026-07-09_*.xlsx (read-only): NOT in
+     cholera_data_ai.csv or cholera_presence_ai.csv (only a lead in row 3225's notes). CONFIRMED correctly excluded.
+(2) Agent 5 unresolved: C8 Chegutu 2000 (excluded, disease unnamed - correct); C12 2016 district split (national
+    MoHCC 4 vs GHO/WER 10; district attribution unresolvable from public sources); C16 2025 WER 524 vs WHO HQ 569
+    (WHO dashboard weekly sum = 522/21 for 2025; UNICEF 778/23 to 30 Jun 2025 on an outbreak basis - WHO-internal
+    discrepancy, documented on row 71); C20 2006 WER annual 789/61 < WER IHR weekly notifications 905/73 (row 3276
+    at 0.7, flagged - correct handling); 2007 WER/GHO 65 < OCHA 68 by 6 Mar (row 3277 vs 2699 - documented);
+    C17 Kwekwe 195 rejected. JHU row 373 (2017-10-09..15, 6/3 = 2017 YTD copied into one week): CONFIRMED in the
+    in-memory series - week 2017-41 = 6 cases/3 deaths (JHU observed) overriding AI documented zero 507; 2017 series
+    total 13.4 vs 6 accepted. JHU read-only -> pipeline defect, reported.
+    Deaths-only rows (10): 663, 1515, 1539, 1576, 1577, 1578, 3244, 3261, 3265, 3322 - all document why sCh is blank;
+    permitted by add_observation.py/validator ('at least one of sCh/cCh/deaths'). Only national one is 3244 (1982,
+    2 registered deaths) - skipped by the builder, so 1982 renders as assumed_zero (caveat P4).
+(3) T2-table zeros: 3237 (0.5, derived, trimmed), 3238/3239/3241/3242 (0.65 with under-capture caveat) appropriate.
+    3197/3198 (Mat South / Bulawayo 1999, SAME T2 source family) sit at 0.8 although the identical caveat applies and
+    T2 demonstrably missed the whole Jan 2001 Beitbridge outbreak in Matabeleland South -> FIX F3 (harmonise to 0.65).
+(4) period_single_day (220): 2 rows 2016, 218 rows 2023-2025; all MoHCC daily situational-report new-case counts
+    (Herald/Chronicle/CITE/Sunday Mail/ZBC relays, IFRC updates), conf 0.45-0.5; 14-row random sample checked against
+    quotes - all correct day-level new counts, no zero rows among them. JUSTIFIED (WARN retained by design).
+    CFR_high (93): all at conf <= 0.7 (0.7 x70, 0.65 x6, 0.6 x14, 0.5, 0.45, 0.3); 74 are 2008-09 rows. 36 are DERIVED
+    notification-period increments (difference of two cumulative 'total deaths incl. community deaths' tables), so
+    deaths can come from earlier weeks than the cases (batch back-reporting of community deaths) - every one of
+    these notes already states it ('batch reporting of community deaths ... 61% of all deaths occurred in the
+    community'). 4 are cumulative-from-onset values (same-period CFR). 53 are direct single-period values (WHO
+    weekly district tables 2009, WER IHR notifications 1973-2006, CDC MMWR 1993, NHP 1999 outbreak table, news).
+    All 93 carry a context statement (3 found by manual read: 1824, 2374, 2616). JUSTIFIED (WARN retained by design).
+(5) Presence file (91 rows): 0 orphans, 0 label mismatches, 0 exact duplicates; 18 surviving WER infected-area rows
+    (src 375/376) are all eastern/south-eastern cholera districts (plague-list Matabeleland/Midlands rows gone);
+    25 overlap a same-place positive count row (fine); 3 overlap a same-place zero row (1977 national, Manicaland
+    and Masvingo Nov-Dec 2024) - all coarse month-level placeholders reconciled in the zero rows' notes.
+    Cross-level: 1972 Mudzi / Mt Darwin presence rows (src 23/31, conf 0.9) lie inside national Documented zero row 80;
+    Agent 3 adjudicated them as a retrospective misdating of the Nov 1973 introduction (documented in row 80), but
+    the presence rows themselves carry no back-reference (no presence-revise verb exists) - reported.
+    1976 Chivi/Masvingo/Zaka IHR-listing presence inside national Inferred zero 3042 - consistent (infected-area
+    listing is an upper bound, not new cases; stated in both files).
+(6) Double counting: 232 national/sub-national overlap groups all carry an explicit 'do not sum' statement (validator
+    INFO 'documented'); 2,985 same-location overlapping pairs (1,715 rows) - every pair has a nesting statement in at
+    least one row; 0 positive rows inside a same-place zero window; 0 cumulative increases inside a zero window;
+    1 cross-layer contradiction (JHU 373 inside AI 507). Builder inflation quantified in the STEP 5 builder block.
+(7) Integrity: see STEP 4. Additional: 686 live rows cite tombstoned rows by Index in their notes without noting
+    the retraction (mostly 'do not sum with national row 7/14/2/4/3/11/15/9/13' = the legacy national annual rows
+    replaced one-for-one by Agent 5's C-NAT rows). Meaning preserved, no tool parses these indices, each tombstone
+    names its replacement -> mapping table published in search_report.txt instead of 686 note rewrites.
+
+=== FIXES (applied via py/add_observation.py and py/revise_observation.py --agent 7) ===
+F1 rows 2791/2792 (conf 0.8 > Level-3 ceiling 0.6 of cited src 350): register the verified Level-1 Post-Cabinet
+   Press Briefing of 24 Oct 2023 (curl 2026-10-05, PDF p.6 sec. 4.0), retract 2791/2792, re-add identical counts
+   citing it (conf 0.8, reporting_date 2023-10-24).
+F2 row 2896 (conf 0.7 > Level-3 ceiling of src 371): lower to 0.6; OCHA corroboration kept in notes.
+F3 rows 3197/3198: 0.8 -> 0.65 (harmonise with the other T2 zeros).
+F4 row 3232: append conflict cross-reference to 3322 + corrected national-row pointer (3296); 0.8 -> 0.7.
+Fix log (2026-10-05 15:11:51-15:13:11, from the backup-file timestamps):
+  F1 register-source -> metadata Index 458 'Zimbabwe Cabinet Post-Cabinet Press Briefing Meeting 2023-28 24 October 2023
+     (Veritas)' (Level 1). Retracted 2791, 2792 (tombstones). Added 3324 (Manicaland 2023-02-12..10-21, 2524 sCh) and
+     3325 (Harare, same period, 1654 sCh), src 458, conf 0.8, reporting_date 2023-10-24. No live note referenced
+     2791/2792. src 350 now cited only by tombstones (kept Active: it is a correct relay).
+  F2 2896 conf 0.7 -> 0.6 (+ note).  F3 3197, 3198 conf 0.8 -> 0.65 (+ notes).  F4 3232 conf 0.8 -> 0.7 (+ conflict
+     cross-reference to 3322 and pointer correction row 9 -> 3296).
+  Extra: 3323 note appended documenting that the builder discards it (JHU row 51 priority). Values unchanged.
+Validator after fixes: EXIT 0 | 3194 rows | 458 sources | ERROR 0 | WARN 313 (220 period_single_day, 93 CFR_high,
+  both justified above) | INFO 325 (232 overlap 'documented', 93 metadata_unused).
+Cited-source ceiling re-check: 0 violations. Index accounting: 1..3325 all live or tombstoned.
+
+=== STEP 5b: SOURCE AUTHENTICATION SAMPLE (Stage 1; curl/pdftotext/visual PDF read; 2026-10-05 ~15:14-15:20) ===
+Stratified random sample of 22 live rows across all owners (seed 2026), plus the 3 fix rows. Method: fetch the cited URL
+(ReliefWeb HTML + PDF attachments, WHO PDFs, archive.org djvu text, GHO API, allAfrica lead), then search for the
+row's numbers / quote; chart-only values read visually from the rendered PDF page.
+  VERIFIED (19): 21 (IntechOpen 2015 42 cases), 38 (IFRC DREF MDRZW029: Manicaland 24 cases by 25 Jun 2026),
+    346 (WHO Cholera Update #2 chart: Harare wk50 231 + Harare Western 127 = 358), 351 (WHO Bulletin #5 chart: Harare
+    wk03 410), 421 (OCHA No.6 'Mudzi district (255 cases and 33 deaths' and OCHA No.02 '162 cases ... 20 deaths ...
+    as at 25 February' -> derived 93/13), 981 (WHO bulletin No.10 Appendix: Mutoko 47 10), 1475 (bulletin No.27:
+    Midlands week 24 = 3), 2374 (bulletin No.3: 'In Harare City, 538 cases and 103 deaths (CFR=19%)'), 2578 (19 Dec
+    2008 daily update: Beitbridge 3602 104), 2861 (OCHA Sitrep 7: 'Thus far, no cholera case has been reported'),
+    2863 (UNICEF HSR No.9: '34,550 cases and 719 cholera deaths'), 2904 (WHO DON 7 Apr 1998: 335/12 by province),
+    3179 (USAID sitrep #2 FY2004 SCF quote), 3185 (DTIC JPRS: Chisumbanje confirmed case), 3222 (JPRS 75916 OCR:
+    'Official Reassures: Zimbabwe Nation Is Cholera-Free' / '1977 when we had a small outbreak'), 3273 (GHO API 2003
+    = 1009), 3298 (OCHA Sep 2009 '30 suspected cases ... only five were confirmed'), 3321 (Herald via allAfrica 11 Dec
+    2013), 3322 (PANA via allAfrica 10 Feb 2001 'more than 10 patients already dead').
+  NOT RE-VERIFIABLE FROM THIS ENVIRONMENT (3): 560 (Manica Post 403; Wayback API 429), 2290 (UNICEF live Power BI
+    dashboard - values change over time, the cited snapshot cannot be reproduced), 2985 (WHO IRIS item API blocked).
+  CONTRADICTED: 0.  Fix-row source (src 458, Veritas 24 Oct 2023 PDF p.6) verified verbatim.
+Stage-3 corroboration (>1000-case rows): 153 rows; 111 carry explicit corroboration/reconciliation statements; the
+  other 42 are Level-1/2 official tabulations (WHO/MoHCW weekly bulletins and daily updates 2008-09, WER/GHO annual
+  values, OCHA daily updates) whose national totals are corroborated across layers (EM-DAT 2008-0511 98,349/4,276;
+  2011-0289 1,140/45; 2018-0488 10,730/69; JHU) but whose weekly provincial values come from a single official
+  series. Strict per-row two-source corroboration is NOT met for those weekly provincial rows - reported.
+
+=== STEP 6b: LIKE-FOR-LIKE START COVERAGE (2026-10-05 15:15:29) ===
+Start-of-cycle AI file recovered read-only from git c66b2daf (70 rows; last commit touching it before the
+2026-10-04 08:56 start), combined in a /tmp staging copy with the current JHU (unchanged) and WHO (2026-09-22) files;
+analyse() horizon 2026-10-05: 522/682 = 76.5%, months_ai_only 309, positive months 326, 3 gaps (4,749 + 30 + 66 =
+4,845 d), latest observation 2026-09-18 (row 55 since re-dated by Agent 6 to 2026-09-15..16, same ISO week).
+Coverage via multi-year rows only: 177 of 658 covered months (AI zeros 46, 80, 547, 82, 5; JHU 714/854 for May-Jul 2008).
+
+=== STEP 7: REPORT ===
+Wrote ./data/ZWE/search_report.txt (executive summary + appendices A-H: sources, observations, agent performance,
+coverage/gaps, validator, Agent 7 changes, pipeline caveats, recommendations). Stale May-2026 report remains archived as
+./data/ZWE/search_report_legacy_2026-05-14.txt.
+
+=== STEP 8: FINAL VALIDATION ===
+python py/validate_quality.py ZWE --json /tmp/ZWE_audit_final.json -> see exit code below (expected 0, ERROR 0,
+WARN 313 = 220 period_single_day + 93 CFR_high, both justified in the report, INFO 325).
+{'ZWE': {'rows': 3194, 'sources': 458}} {'WARN': 313, 'INFO': 325} {('WARN', 'CFR_high_flagged_for_review'): 93, ('WARN', 'period_single_day'): 220, ('INFO', 'national_subnational_overlap'): 232, ('INFO', 'metadata_unused'): 93}
+
+=== STATE + CLOSE ===
+write_agent_state('ZWE', agent_num=7, batches_completed=0, batch_yields=[], rows_added=0 (net: -2 retracted, +2
+re-added), sources_discovered=1 (src 458), gaps_remaining = 6 open gaps + weak-coverage windows + pipeline defects).
+'orchestrator' key verified preserved; agents 1-7 present.
+Files touched by Agent 7: ./data/ZWE/cholera_data_ai.csv (2791/2792 retracted; 3324/3325 added; 2896, 3197, 3198,
+3232 re-weighted; 3323 note), ./data/ZWE/metadata_ai.csv (+ Index 458), ./data/ZWE/retracted_rows_ai.csv (+2
+tombstones), ./data/ZWE/search_report.txt, ./data/ZWE/search_log_agent_7.txt, ./data/ZWE/workflow_state.json.
+Not run (per shared-file rules): py/analyze_effective_gaps.py, update_dashboard*, build_weekly_timeseries main(),
+git commit. Temp files only under /tmp (ZWE_audit*.json, zwe_series.pkl, zwe_verify/, zwe_start_v3/).
+End Time: 2026-10-05 15:26:46
+Timestamp correction at close: step stamps written during the run were estimates, not clock
+readings (several were later than the real end time). They were corrected from artefacts: validator generated_at
+14:56:26 / 15:13:15 / 15:26:21, in-memory series 15:01:03, fix backups 15:11:51-15:13:11, git staging 15:15:29,
+verification files 15:17-15:20. This is the same reliability caveat raised for the Agent 5/6 logs.
+Agent 7 Status: COMPLETE
