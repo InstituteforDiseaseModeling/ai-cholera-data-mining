@@ -1,0 +1,77 @@
+=== AGENT 7 (cholera-quality-auditor) INITIALIZATION ===
+Country: Togo (TGO)
+Cycle: 2026-10-01 Opus 5.5 re-run
+Start Time: 2026-10-04 19:11:51
+Agent 7 Status: INITIALIZED
+Mode: unattended inside workflow orchestrator; log is append-as-you-go so a
+resume after host sleep can continue from the last recorded step.
+WebSearch allowance: 40 (standard mode). Fetch-based checks preferred.
+Prior-cycle Agent 7 logs archived as ./data/TGO/search_log_agent_7_legacy_*.txt
+
+=== STEP 0: READING ORCHESTRATOR RECORD, STATE, TRAPS, AGENT LOGS ===
+[19:15] Read: ./data/TGO/workflow_orchestrator_TGO.txt (260 lines; FOR AGENT 7 items from A2, A3, A5, A6)
+[19:15] Read: ./data/TGO/workflow_state.json (agents 1-6 entries + orchestrator block)
+[19:16] Read: ./data/TGO/known_source_traps.txt (1332 lines; TRAPS 1-21, T-A5-1..10, T-A6-1..14, route facts)
+[19:17] Read: ./data/TGO/search_log_agent_5.txt ADJUDICATION REGISTER (items 1-21, A5-1..A5-10)
+[19:17] Read: ./data/TGO/search_log_agent_6.txt CLASSIFICATION REGISTER (T1-T6) + final tail re-check
+[19:18] Read: ./data/TGO/search_report_legacy_pre_opus55_2026-09-19.txt (structure + prior "before" figures)
+
+=== STEP 1: VALIDATE AND REPAIR ===
+[19:13] python py/validate_quality.py TGO --json /tmp/TGO_audit_a7_pre.json -> EXIT 0
+        922 rows, 328 sources | ERROR 0, WARN 60, INFO 426 (identical with --no-baseline: no TGO debt entries suppress anything)
+        WARN by check: multiyear_aggregate 46, CFR_high_flagged_for_review 7, same_period_conflict 7
+        INFO: national_subnational_overlap 309 (all 'documented'), metadata_unused 117
+        NOTE: the validator's "row N" is the PHYSICAL CSV LINE, not the Index. Mapped with /tmp/tgo_a7/load.py:
+          CFR_high (Index): 42, 47, 734, 760, 798, 872, 913
+          same_period_conflict pairs (Index): 329 v 126 (2011), 331 v 300 (2015), 342 v 302 (2001), 349 v 126 (2011 cCh),
+             719 v 176 (2001-W27), 940 v 395 (2009 cCh v sCh), 941 v 125 (2010 cCh v sCh)
+          multiyear_aggregate (Index): 76-80, 92, 93, 198, 199, 200, 211, 213-229, 231-239, 241, 242, 299, 343, 942-946
+[19:14] python py/repair_data_integrity.py --dry-run TGO --log /tmp/tgo_a7/repair_dryrun.json -> TOTAL 0 change(s).
+        Nothing mechanical to apply; --apply NOT run (would be a no-op). ./data/TGO/attribution_review.csv does not exist.
+
+--- ITEM 1a: PRESENCE LINE 119 REMOVAL (the one authorised scripted edit) --- [19:14]
+Script: /tmp/tgo_a7/remove_presence_line119.py - imports py/add_observation.py locked()/load()/save(), so it held the SAME
+  lock file (./data/TGO/.cholera_presence_ai.csv.lock), wrote an explicit timestamped backup BEFORE touching anything
+  (./data/TGO/.backup_cholera_presence_ai_20261004-191422131469.csv; copy at /tmp/tgo_a7/presence_before_line119_removal_*.csv),
+  asserted the record was unique on (AFR::TGO, 1975-01-01, 1975-12-31, source_index 262) AND sat at physical line 119,
+  removed it, re-wrote through save() (which takes its own backup + header guard), and asserted every other physical
+  line is byte-identical (lines_after == lines_before minus line 119).
+Result: presence records 155 -> 154. sha256 before 1323b168...d426, after 3b328c4e...c0b3.
+Reason: Weill et al. 2017's own RAxML tree (Figshare doi 10.6084/m9.figshare.5314822.v3) labels the genome
+  THSTI_GP106bis_Germany_1975_1; Weill has no 1970s Togolese genome at all (A3 B-series; A5 item 20). Row 12 (1975
+  Inferred zero, 0.6) is unaffected.
+TOMBSTONE - REMOVED LINE 119 OF ./data/TGO/cholera_presence_ai.csv, VERBATIM:
+AFR::TGO,1975-01-01,1975-12-31,presence_confirmed_count_unknown,262,"Simo Tchuinte PL, Ngome RM, Njamkepo E, et al. 'Recent and convergent reversion to serotype Ogawa in the AFR12 sublineage of Vibrio cholerae'. Microbial Genomics 2025;11:001492 (doi 10.1099/mgen.0.001492, PMC13293293) - Supplementary Table S5 (genome accessions with country and year)",0.5,"Source states: 'Table S5. Accession numbers of the 1742 V. cholerae O1 studied here: Order 155 | Name THSTI_GP106bis | Country Togo | Year 1975 | Short read accession ERR1880815 | Reference Weill et al. Science 2017. [Agent 1: a sequenced V. cholerae O1 isolate attributed to Togo with isolation year 1975; the table gives the year only, no month. The ENA/BioSamples record SAMEA103910237 carries no collection date or country, so the 1975/Togo attribution rests on the Weill et al. 2017 metadata as reproduced here; the primary Science supplement is behind a 403 bot check and was not opened. CONFLICTS with AI row 12 (AFR::TGO 1975 Inferred_Absence, built from Togo's absence from the WER 1975 notification table). Presence only - no case count.]' - cholera confirmed present; no case count available.",AI,
+END TOMBSTONE
+Follow-ups (19:16): metadata 262 -> Status 'Superseded' + Description written (was blank) explaining the mis-attribution
+  (revise_observation.py --meta-index 262 --set-description ... --set-status Superseded; no live row or presence line cites it).
+  Row 12 note appended (presence line removed; row unchanged at Inferred 0.6).
+  Tombstone also written to ./data/TGO/known_source_traps.txt ("ADDED 2026-10-04 BY AGENT 7" section opened).
+  AGENT STAMP CHOICE: revise_observation.py formats '[AGENT {--agent} REVISION ...]', so --agent "AGENT 7" prints
+  "AGENT AGENT 7" (visible on Agent 6's rows). I pass --agent 7 so the stamp reads "[AGENT 7 REVISION ...]".
+
+--- ITEM 1b: SURVEILLANCE STATUS TOKENS (rows 105, 862) --- [19:19]
+No pipeline code parses the 'Surveillance system status' token (grep py/*.py: only add_observation.py writes it, validator
+  only requires notes to be non-empty), and revise_observation.py cannot rewrite it. Appended corrections (append-only):
+  Row 105 (2017 national Documented zero): 'partial' described the failed WHO annual return, not the system; domestic weekly
+    returns printed 0 in all 53 weeks (HDX rcpwca) and MoH DSIUSR prints 2017 = 0/0 -> CORRECTED VALUE operational.
+    Consistency verified: 2016 regional zero rows 165-169 all carry 'operational'.
+  Row 862 (2008-01-01..08-24 national Inferred zero): system detected the Aug 2008 epidemic in its first week -> operational.
+  No value, label or weight changed on either row.
+
+--- ITEM 1c: LANDOH 2010-CUMULATIVE INFLATION (rows 199, 942-946) --- [19:31]
+In-memory harness built: /tmp/tgo_a7/weekly.py (imports py/build_weekly_timeseries.py, build_all_templates + process_country
+  only; never main()/write_weekly_csv/plot). It reproduces the orchestrator's cycle-start weekly counts EXACTLY from the git
+  state before the first TGO commit of this cycle (56012896^ -> /tmp/tgo_a7/pre/TGO: 323 rows, 231 sources, 92 presence,
+  29 tombstones): fourier 1821 | inferred_zero 717 | observed 365 | documented_zero 49 | assumed_zero 4 (2956 weeks).
+Effect test: process_country with vs without row 199, and with vs without rows 942-946 -> 0 weeks differ in either case.
+  (942-946 are sub-national and never enter the national builder; JHU annuals outrank row 199 in every week of 1996-2010.)
+DECISION: KEEP ALL SIX (no retraction, no tombstone). Test = faithful period statement: each row transcribes verbatim a period
+  total that Landoh et al 2013 prints for exactly that period; nothing is agent-derived. The inflation is the source database's
+  2010 entry (= 2008-2010 cumulative). Retraction would also orphan the closure of the Savanes documented zero (row 947), which
+  rests on the same enumeration. Explicit DO-NOT-USE-ABSOLUTE notes appended to all six, with USE guidance:
+    199 national 1996-2010 12676/554: USE ~12 058/554 (minus the 618 phantom). Weight stays 0.5 (inflation exactly 4.9%).
+    942 Grand Lome 2884/22: carries most of the phantom (2008-09 was a Lome epidemic; up to ~21%). Weight 0.5 -> 0.3.
+    943 Maritime 650/12: part of the phantom (Lacs 2008-09). Weight 0.5 -> 0.4.
+    944 Plateaux, 945 Centrale, 946 Kara: phantom share probably small (2009-2010 rows zero/near-zero: 641, 642, 669, 678,
+        682, 683 verified). Weight stays 0.5.

@@ -101,3 +101,35 @@ Archived logs are in `./data/NGA/prior_run_logs_20260922/` (the full prior repor
 9. **Finish with** `python py/validate_quality.py NGA` (exit 0), then `write_agent_state(...)` with `batch_yields` in PERCENT units.
 10. **Amending existing rows** (append an adjudication or double-counting phrase, re-weight, retract with tombstone, correct a metadata Description): use `python py/revise_observation.py NGA --index N --append-note "..." --reason "..."` (see `--help`). Never hand-edit.
 11. **Rows must carry information.** Repeated cumulative snapshots from the same series whose counts are identical to the previous snapshot add little; prefer the issues where values change, the latest/closing issue, and any issue that closes a period. Increments derived by subtracting two cumulative issues of the same series are valuable - label them "derived increment".
+
+## 6. Session constraint discovered mid-run (orchestrator, 2026-10-04 ~19:25 PDT)
+
+**WebSearch is exhausted for this NGA session.** The 200-call session budget
+(`CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION`) was consumed by the end of Agent 3.
+The orchestrator confirmed it with a test call ("200 of 200 WebSearch calls").
+It cannot be raised from inside a running session. Agents 4-7 therefore work through
+**WebFetch and curl direct routes only**. Each direct query counts as one query
+in the batch, and is logged with its URL.
+
+Route status tested by the orchestrator at about 19:25 PDT:
+
+| Route | Status | Use |
+|---|---|---|
+| ncdc.gov.ng | 200 (UP; it was 522 in Sept) | sitreps, WER issues, advisories |
+| ReliefWeb RSS `https://reliefweb.int/updates/rss.xml?search=...` | 200 | 20 items per call; narrow with date words or half-year windows; landing pages carry tables |
+| ReliefWeb API v2 | 403 (needs an approved appname) | do not use |
+| ReliefWeb API v1 | 410 retired | do not use |
+| Europe PMC REST search and `/fullTextXML` | 200 | citation chains, full-text tables |
+| Crossref API `api.crossref.org/works?query=` | 200 | reference lists, citing works |
+| WHO GHO OData `ghoapi.azureedge.net/api/{INDICATOR}?$filter=SpatialDim eq 'NGA'` | 200 | other notifiable diseases (health-system functioning) |
+| Wayback CDX `web.archive.org/cdx/search/cdx?url=...` | 200 | dead links, old NCDC/FMOH pages |
+| AJOL search | 200 | Nigerian journals |
+| Google Books old feed `google.com/books/feeds/volumes?q=` | 200 | FOS Annual Abstracts, yearbooks (v1 API is rate-limited, 429) |
+| WHO IRIS | timeout | retry later; Wayback copies of IRIS PDFs as fallback |
+| AllAfrica | unreachable | try Wayback copies |
+| DuckDuckGo / Bing HTML scraping | unreliable (0 results / query ignored) | do not rely on it |
+
+The WHO 2026 week-shift in `cholera_data_who.csv` was repaired on 2026-09-22 by
+`py/fix_who_week_shift.py`. The baseline now carries WHO's own week-start dates,
+so correctly dated AI weekly rows align with it. Do not duplicate WHO baseline
+weeks 2026 W1-W19 into the AI layer.
