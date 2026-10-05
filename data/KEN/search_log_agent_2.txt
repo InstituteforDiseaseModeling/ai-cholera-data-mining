@@ -1,0 +1,83 @@
+================================================================================
+AGENT 2 - GEOGRAPHIC EXPANSION SPECIALIST - KENYA (KEN) - OPUS 5.5 RE-RUN CYCLE
+================================================================================
+Start        : 2026-10-04 (local), after Agent 1 closed at 16:50
+Working dir  : /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Log file     : /Users/johngiles/MOSAIC/ai-cholera-data-mining/data/KEN/search_log_agent_2.txt
+               (created fresh; the previous cycle's Agent 2 log is
+               ./data/KEN/search_log_agent_2_legacy_2026-09-20.txt and is not touched)
+
+--------------------------------------------------------------------------------
+STATE AT START (all read-only checks)
+--------------------------------------------------------------------------------
+./data/KEN/cholera_data_ai.csv      1552 rows (AI Index 1..1569 with gaps)
+./data/KEN/metadata_ai.csv          418 sources (Index 1..418)
+./data/KEN/cholera_presence_ai.csv  163 presence rows
+./data/KEN/retracted_rows_ai.csv    10 tombstones - never re-add
+./data/KEN/cholera_data_jhu.csv     921 rows (read-only baseline)
+./data/KEN/cholera_data_who.csv     126 rows (read-only baseline)
+py/validate_quality.py KEN          exit 0: ERROR 0 / WARN 24 / INFO 375
+In-memory analyse() (brief sec. C)  94.6% (645/682 months); gaps 1988 (366d),
+                                    1990-1991 (730d); latest obs 2026-09-27
+NOT run: py/analyze_effective_gaps.py (shared-file prohibition, brief sec. C)
+Read: ./data/KEN/workflow_orchestrator_KEN.txt (binding brief, sections A-H),
+      ./templates/template_search_protocol.txt,
+      ./data/KEN/search_log_agent_2_legacy_2026-09-20.txt (12 batches, 131 rows),
+      ./data/KEN/search_log_agent_1.txt (this cycle: 12 batches, 722 rows),
+      ./data/KEN/workflow_state.json (Agent 1 gate PASS).
+
+Sub-national holdings checked across ALL THREE layers before searching:
+  - JHU already holds a Nyanza PROVINCE annual series 1994-2008 (JHU UID 11063:
+    1997 8,350; 1998 9,363; 1999 2,683; 2000 1,483; 2001 221; zeros 1994-96 and
+    2002-06; 2007 259; 2008 1,609). So 1997-99 Nyanza is covered at province level;
+    what is missing is (a) the other provinces (1998: ~13,000 of 22,432 cases were
+    OUTSIDE Nyanza; 1999: ~8,350 of 11,039) and (b) district detail within Nyanza.
+  - JHU 2022-10..2023-03 county cumulatives (JHU source 64), 2022-10..2024-07
+    county rows (JHU source 33), Mandera 2016 daily, Dadaab 2011-2017 weekly.
+  - AI layer: 252 distinct sub-national codes; existing codes are reused exactly.
+  - Cached by Agent 1 and re-usable without re-download: /tmp/ken1/ (ReliefWeb
+    1997-2007 item bodies in /tmp/ken1/rw9707/d/, health.go.ke CDX list
+    /tmp/ken1/cdx_health.txt, IRIS AFRO bulletin lists, JPRS texts).
+
+--------------------------------------------------------------------------------
+PLAN (priority order from the agent prompt; all queries gap-bound and place-bound)
+--------------------------------------------------------------------------------
+P1  1997-99 El Nino epidemic outside Nyanza and below province level:
+    WER vol.72-74 full issues (outbreak-news narratives, not the notification
+    tables already mined); WHO DON archive 1997-99 via Wayback CDX; Mutonga et
+    al. 2013 JID (province x year table 1997-2010) via PMC or an archived copy;
+    Shapiro et al. 1999 AJTMH (Asembo Bay/Siaya); Europe PMC full text for
+    Lake Victoria basin / Kwale / Busia / Nairobi 1997-99; WebSearch for
+    BBC/IPS/Daily Nation (nationaudio.com archive) 1997-99 district items;
+    IFRC 1998-99 Kenya appeals; re-mining Agent 1's cached 1997-99 ReliefWeb
+    bodies for district figures it skipped (Siaya 8 cases, IRIN 19 Nov 1997).
+P1b Other annual-only outbreak years with 0-2 units: 1989, 1992, 1994-96,
+    2000-2002, 2004-2005 (WER outbreak news, WER notification tables with area
+    names, ReliefWeb/IRIN 2000-05, academic papers e.g. Mugoya 2008 AJTMH 2005).
+    1974-79: WER narrative items (Agent 4 owns pre-2000 archives; I take only the
+    sub-national detail inside them).
+P2  Cities and county capitals in those periods: Nairobi informal settlements,
+    Mombasa, Kisumu, Nakuru, Eldoret, Garissa.
+P3  Border counties with a concurrent neighbour outbreak: Busia/Migori/Homa Bay/
+    Siaya (UGA/TZA), Mandera/Wajir/Garissa (SOM/ETH), Marsabit-Moyale (ETH),
+    Turkana/West Pokot (SSD/UGA), Kwale/Taita-Taveta (TZA); refugee camps
+    (Dadaab sub-camps, Kakuma/Kalobeyei) via UNHCR/MSF/IFRC documents.
+P4  Districts/sub-counties in the largest counties: 2023 (MoH sitreps on
+    Wayback, IFRC MDRKE054 updates, UNICEF sitreps not yet used), 2024 (Tana
+    River, Lamu, Garissa), 2025 (Kisumu, Migori, Narok, Nairobi, Kajiado,
+    Turkana), 2026 (Garissa/Dadaab, Nairobi). PDF-only series flagged by Agent 1:
+    KFSSG county reports 2017-19, IFRC MDRKE043/045 flood appeals.
+Tooling: WebSearch soft allocation 49 (35 + 14 rolled over); running count
+  logged per batch. Everything else via uncapped back-ends with
+  `timeout 60 curl -sL -m 45` (brief D): WHO IRIS DSpace 7, Europe PMC REST,
+  Crossref (no mailto), ReliefWeb RSS (>= 8 s apart, split windows), Internet
+  Archive CDX, WHO ArcGIS. No OpenAlex / Semantic Scholar / Google Books. No
+  email in any request. No bot-wall/CAPTCHA/login/paywall circumvention.
+Writing: only py/add_observation.py and py/revise_observation.py --agent 2.
+  Every sub-national row for a period with a national row carries
+  "Provincial subset - do not sum with national row"; nested rows carry
+  "Temporal subset of Index N - do not sum with it"; parts checked against the
+  whole before commit; >1000-case rows corroborated or justified.
+Stopping rule: >= 3 batches; then stop only at 3 consecutive batches with 0/20
+  successful queries, or at 12 batches. No time limit.
+================================================================================
