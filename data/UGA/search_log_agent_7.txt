@@ -78,3 +78,166 @@ Row 369 verified directly by Agent 7: /tmp/uga_a5/wer/wer2004_33.pdf (Acrobat Di
  cites metadata 239 (astrium.com 2004 compilation, Reliability Level 3) at confidence 0.8, above the Level-3 band (0.3-0.6) - the
  ONLY over-band row in the file (checked all 935 rows against their source's level). Fix decided in step 5.
 
+=== STEP 7: IMPACT MEASUREMENT (read-only; /tmp/UGA_cov.py and an in-memory re-run on the pre-run file) ===
+ Pre-run AI file reproduced from git 719abd3 into /tmp/uga_a7/pre/UGA/ (184 rows) - figures match the orchestrator's baseline exactly.
+ ALL LAYERS  pre-run 85.2% (581/682), 6 gaps, months_ai 516, months_ai_only 109, positive months 481
+             now     84.2% (574/682), 5 gaps, months_ai 521, months_ai_only 102, positive months 483
+ BASELINE ONLY (JHU+WHO): 69.1% (471/682), 9 gaps (1970; 1972-74; 1976-77; 1981; 1983-86; 1988-90; 1993; 2021; 2025-04..2026-10)
+ AI ONLY: 75.2% (513/682). Months the AI layer adds over the baseline: 110 pre-run -> 103 now.
+ Month-level diff pre-run -> now: LOST May-Dec 1983 (8 months; AI-only months that rested on the retracted national zero row 58,
+   inferred from Uganda's absence from a WHO table and contradicted by the Busia Apr 1983 count and Lake Albert deaths Jan 1984);
+   GAINED Sep 2026 (rows 262 + 1012). Net -7 months. Gap list: '1984-01..1986-12' widened to '1983-05..1986-12'; '2026-09..10' closed.
+ Gaps still open: 1981 (12 mo); 1983-01..03 (3); 1983-05..1986-12 (44); 1988-1990 (36); 1993 (12) = 107 months + Oct 2026 (5 days).
+
+=== STEP 8: WEEKLY SERIES SANITY CHECK (in memory only: process_country('UGA'); nothing written) ===
+ Script /tmp/uga_a7/weekly.py; yearly sums /tmp/uga_a7/weekly_years.json. Builder facts verified by code read:
+  - only Location == 'AFR::UGA' rows feed the series (all 653 sub-national AI rows are ignored);
+  - blank sCh rows are skipped (deaths-only rows never zero-fill); INFERRED_ZERO_MAX = 0.6 caps every non-documented zero;
+  - same-source ties keep the HIGHER sCh regardless of confidence; method rank observed > documented_zero > fourier > inferred_zero;
+  - source priority WHO > JHU > AI; assumed_zero (0.5) fills every unsourced week >52 wks before the latest observation.
+ Material discrepancies (weekly ISO-year sum vs primary national annual):
+  1981, 1983, 1984, 1985, 1988, 1989, 1990, 1993 = 0 (52 assumed_zero weeks each; 1986 51) although 1981/1983/1984/1986/1993 have
+     documented presence - the builder manufactures ~468 false-zero weeks in exactly the gaps the AI layer deliberately left empty.
+  2021: 1,024 vs 173 (+492%). Mechanism: AI row 7 (Mar 2020-Dec 2021 aggregate 1,534 = rows 5+6 exactly) is Fourier-spread at ~16/wk
+     and outranks AI inferred-zero row 774 (fourier > inferred_zero) and row 6 (higher sCh). Simulation without row 7: 2021 = 327.
+     JHU row 912 (B3) also puts 2021's 173 into ISO week 2020-W53 as 'observed'.
+  2025: 392 vs WHO final 203 (+93%): WHO observed weeks Jan-Mar (156) PLUS AI rows 13/50 spread over the weeks WHO lacks (they
+     contain the same cases), PLUS AI annual 302 spread Jun-Dec over zero row 52 (fourier > inferred_zero). (The true 2025 burden is
+     above 203 - Elegu/Amuru Jul-Aug 2025, 292 cases, never reached WHO - but the weekly placement is arbitrary.)
+  2024: 287 vs 135 (+112%) - JHU year-to-date cumulative snapshots (rows 84, 86-92) treated as period counts + WHO observed weeks.
+  2023: 198 vs 80-102 (+94-150%) - JHU annual 80 spread over weeks around WHO's 4 observed weeks + JHU Jul-Aug rows.
+  2017: 816 vs 252-265 (+208%) - JHU annual spread + JHU 'national weekly' 3-16 Jul 2017 = 56 + 225 = 281 (> the whole-year total;
+     NEW baseline defect, not in Agent 5's B1-B10).
+  2016: 2,286 cases but only 2 deaths (official 11-64); 2018: 2,706 vs WHO 4,440 (JHU weekly used); 2019: 458 vs 358 (+28%);
+  2020: 1,717 vs 1,521 (+13%, incl. the misplaced 2021 total); 2000: 3,324 vs WHO 2,807 (JHU alternative series wins on higher sCh);
+  2001: 328 / 0 deaths vs 247/4; 2013: 948 vs 748 (+27%); 2015: 1,608 vs 1,270-1,461; 1987: 152.5 vs 140; 2026-W01 gets 7.5 cases
+     spilled from the 2025 annual row across the ISO-week boundary.
+ These are builder/baseline findings for the user (builder not edited, baselines read-only). AI-side action: see step 5 (row 7).
+
+=== STEP 4 RESULTS: SPOT AUDIT OF 46 ROWS (verification sub-agents A-D + Agent 7; evidence files /tmp/uga_a7/verify_{A,B,C,D}.txt,
+    source copies /tmp/uga_a7/v{A,B,C,D}/). IRIS was UP during the audit (sub-agent A retrieved every WHO item from IRIS directly);
+    Wayback served the MoH documents; ReliefWeb/PMC/archive.org live. ===
+ PASS (20): 201 210 218 366 371 401 447 470 596 598 675 834 877 906 948 957 959 984 1010 1012
+ PASS-WITH-NOTE (22): 262 281 284 290 302 340 358 368 403 414 418 610 770 771 776 805 818 833 878 913 918 934
+ FAIL (3):
+  357 Madi 11-24 Apr 1971, 4 cases - the WER 46(22) p.222 entry 'UGANDA 18-24 IV Northern Region Madi, District 4 0' is printed under
+      SMALLPOX - VARIOLE / Africa (after Ethiopia and Sudan); the cholera section ends above it with Pakistan. Agent 7 viewed the page
+      image itself (/tmp/uga_a7/vA/hi218337-4_col2.png) - CONFIRMED. The note's claim that Madi stayed on the CHOLERA infected-area
+      list is also false (WER 46(25) removes it from the SMALLPOX list). OCR of a scanned multi-disease IHR table lost the section
+      headings. No cholera value exists to substitute -> RETRACT. Knock-ons: row 200 (zero, restricted to end 10 Apr 1971 because of
+      357), row 358 ('second-earliest ... after Madi'), row 126 (proposal to move TL to 11 Apr 1971 - do NOT).
+  772 national zero 4 Sep 2023-15 Jan 2024 - values right, but the cited UNICEF Sep-Oct 2023 sitrep (issued 28 Nov 2023) supports at
+      most Sep-Oct 2023; the window to mid-January rests on WHO AFRO's Weekly Regional Cholera Bulletin of 15 Jan 2024 (IRIS
+      10665/375853; 'Uganda (last case reported 1 September 2023)'; 'There have been no new cases reported since week 35'), which is
+      not registered. Agent 7 read /tmp/uga_a3/wrcb2024/0115.pdf (genuine, 20 pp.) -> RE-CITE to that bulletin, TR 2024-01-14.
+  433 Amuru 28 Jul-12 Aug 2025, 64/1 - counts right (292 - 228; rows 417+423+421 = 27+36+165 = 228), but the Monitor article is dated
+      Thursday 14 Aug 2025 (Agent 7 checked datePublished 2025-08-14T07:15:53Z in /tmp/uga_a7/vD/mon_elegu_live.html) -> TR and
+      reporting_date 2025-08-14.
+ CITATION DEFECT found by Agent 7 (1): 369 national 20 May-4 Jul 2004, 864/35 - values PASS against WER 2004 No. 33 (13 Aug 2004, p.308,
+      Wayback 20040820231959 of who.int/wer/2004/en/wer7933.pdf; IRIS 10665/232560), but the row cites the Level-3 astrium.com
+      compilation (metadata 239) at 0.8 > that level's 0.6 ceiling -> RE-CITE to the WER (Level 1).
+ Substantive error rate: 1/46 rows carried wrong data (357, wrong disease); 3 more needed a citation/date correction (772, 433, 369).
+ Targeted follow-up on the 357 failure mode (multi-disease IHR tables): checked by page image that rows 953, 954 (1995) and 994 (2004)
+      sit under CHOLERA; scanned all cached WER 1995-2007 issues for Plague/Yellow-fever sections - Uganda's 2002 PLAGUE notification
+      ('4-8.III 2 2', WER 2002 No. 29) was correctly NOT entered; row 1000's '27.IX-17.X.2004 153 1' is the cholera column. The
+      1978-80/1994 pre-existing windows close arithmetically on WHO's annual cholera totals. 357 looks isolated.
+ Notable notes (no value change unless listed in step 5): 302 cCh=203 is what WHO printed (Culture/PCR confirmed 203 of 203 tested) but
+      WHO cautions test counts may include repeats; metadata 20 is MISLABELLED - the paper at doi 10.1371/journal.pntd.0006118 is Bwire
+      G, Ali M, Sack DA et al., 'Identifying cholera hotspots in Uganda ... 2011 to 2016', PLoS NTD 11(12), 28 Dec 2017 (PMC5746206),
+      not 'Pande et al. 2018' (Europe PMC record checked by Agent 7); the 1999 MoH table's 'Last Updated on 2/5/02' is 5 Feb 2002
+      (it appears in the 17 Apr 2002 capture; companion PDF created 4 Feb 2002) so 54 rows carry reporting_date 2002-05-02 in error;
+      878: the bulletin gives 2 lab-confirmed of 10 and an annex cumulative of 19 (not 16); 262: twelve, not nine, countries had
+      cholera events in OEW36-2026; 833: the 'last outbreak 2015' statement is the reporter's, not the Municipal Health Officer's;
+      934/933 notes cite eastern district rows by a wrong number series (85/88/90/... should be Index 105/108/110/111/113/114/115).
+
+=== STEP 5: FIXES APPLIED (2026-10-05 ~00:12-00:25; only py/add_observation.py and py/revise_observation.py --agent 7) ===
+ Sources registered: 422 WER 2004 No. 33 (IRIS 10665/232560); 423 WHO AFRO Weekly Regional Cholera Bulletin 15 Jan 2024 (IRIS
+   10665/375853); 424 Bwire et al. 2017 PLoS NTD 11(12):e0006118 'Identifying cholera hotspots in Uganda' (PMC5746206).
+ Sources retired (Status Superseded, with explanatory Description): 20 (hotspots paper mislabelled 'Pande et al. 2018'),
+   228 (WER 46(22) 1971 - its 'Madi' entry is smallpox). Descriptions corrected: 154 (row 403 IS entered), 194 (report starts
+   p.223; test-count caveat), 239 (2004 national item now cited from the primary), 276 (article dated 14 Aug 2025), 290 ('2/5/02'
+   = 5 Feb 2002).
+ RETRACTED (tombstones in ./data/UGA/retracted_rows_ai.csv):
+   357  Madi Apr 1971 4 cases - smallpox notification read as cholera (spot-audit FAIL).
+   7    national Mar 2020-Dec 2021 1,534/14 - redundant aggregate (= rows 5 + 6 exactly); in the weekly builder it produced 1,024
+        cases for 2021 (true 173); 2021 weekly sum after retraction 327 (residual inflation is row 6's annual spread, a builder
+        ranking defect). Its 14 deaths are recorded on row 6.
+ RE-CITED (retract + re-add, values unchanged, tombstone says 'NOT a rejected value'):
+   369 -> 1013  national 20 May-4 Jul 2004 864/35, now cites WER 2004 No. 33 (422) at 0.85 (was Level-3 compilation at 0.8).
+   772 -> 1014  national zero, now cites the WHO AFRO bulletin of 15 Jan 2024 (423); TR 2024-01-15 -> 2024-01-14; 0.65 Documented.
+   933 -> 1015, 934 -> 1016  Eastern Region zeros 2011, 2013, now cite the correctly attributed hotspots paper (424);
+        reporting_date 2018-01-16 -> 2017-12-28; wrong row-number references in the note corrected (105/108/110/111/113/114/115).
+ VALUE / DATE REVISIONS:
+   333  Arua 1 Jun-11 Jul 2005: sCh '' -> 204 (the quoted sentence states 204 cases; deaths-only treatment was inconsistent).
+   878  national wk6 2014: cCh '' -> 2 (two CPHL-confirmed); note corrected (annex 2 cumulative 19, not 16).
+   433  Amuru: TR and reporting_date 2025-08-12 -> 2025-08-14 (article date).
+   358  Karamoja 1971: reporting_date 1971-06-18 -> 1971-06-11 (issue date); now the earliest district attribution.
+   776  national zero May-Nov 2024: reporting_date 2024-12-15 -> 2024-12-28 (bulletin creation/IRIS accession).
+   56, 66, 67  1977/1972/1973 national Inferred_Absence: confidence 0.75/0.80/0.80 -> 0.70 (item f; see below).
+   54 rows citing source 290 (A3 zeros 778-823 subset, A5 national monthly 918-929): reporting_date 2002-05-02 -> 2002-02-05.
+ NOTES APPENDED: canonical 'Provincial subset - do not sum with national row' on the 63 sub-national rows (37 pre-existing,
+   26 Agent 3 zeros 833-858) that overlap a national row but lacked it - all already had an equivalent do-not-sum statement;
+   item (b) alternative national instruments on rows 122 138 139 140 141 142 143 157 158 159 192 194; row 20 (item c);
+   rows 200, 5, 6, 262, 290, 302, 414, 418, 833 (audit corrections).
+ Validator after fixes: exit 0, ERROR 0, WARN 45 (same four classes), INFO 324; repair tool dry-run 0 changes; dual-reference
+   0 problems; 0 rows cite a Superseded source; 0 rows above their source's reliability ceiling.
+ Rows 935 -> 933 (net -2); sources 421 -> 424; presence unchanged 128.
+
+=== STEP 6: DECISIONS ON THE ITEMS HANDED TO AGENT 7 ===
+ (a) WHO infected-area-list presence records - AGREE with the principle (WER 61(34) p.263: a listing persists until the
+     government declares the area free, so listing = missing freedom declaration, not cases). Recommended weights: Kasese 1993
+     0.8 -> 0.5; the eight 1981-01-01..1983-03-24 listing records (Mbale, Tororo, Kapchorwa, Kumi, Gulu, Kitgum, Kotido, national)
+     0.8 -> 0.5; Kasese 1994-1996 0.8 -> 0.6 (national notifications those years make Kasese plausible); Kasese Oct-Dec 1992 and the
+     1979-81 listings left (the first listing marks a notification). NOT APPLIED: neither sanctioned tool can revise a row of
+     ./data/UGA/cholera_presence_ai.csv (revise_observation.py edits cholera_data_ai.csv only; add-presence would only duplicate)
+     and hand edits are forbidden. Presence weights do not reach the weekly series (the builder ignores presence). Tooling gap
+     reported.
+ (b) Alternative national totals (MoH HMIS Statistical Abstract 2002 Table 14: 1994 536, 1995 1,784, 1997 1,172, 1998 15,817,
+     1999 2,614, 2000 2,637, 2001 632; Lukwago 2013 Table 2 IDSR deaths/cases 2001 23/340, 2002 124/2,228, 2003 123/4,254, 2004
+     89/3,710, 2005 108/4,252, 2006 92/4,785, 2007 35/1,662) - verified by Agent 7 in the cached sources and RECORDED IN THE
+     PROCESSING_NOTES of the primary national annual rows (122 138-143 157-159 192 194); 1994 (536) has no AI annual row and is
+     recorded here and in the report only. Not entered as rows (same-period conflicts with the WHO series).
+ (c) Row 20 vs JHU UID 5097 - KEPT as a cross-layer confirmation (146/6 vs 147/6), consistent with CLAUDE.md ('Agent
+     confirmation of a baseline-source entry also uses AI') and with >=15 other exact AI confirmations of JHU district rows
+     (rows 83-97 = JHU UID 20259) and of the WHO annual series; do-not-sum-across-layers note appended. Reported as a systemic
+     cross-layer duplication any district-level consumer must de-duplicate.
+ (d) Rows 994/995 4-day overlap (22-25 Mar 2004) - KEPT as printed. Agent 7 viewed the WER 2004 No. 14 page image: '9.II-25.III
+     622 7' is unambiguous; the garbled one is No. 19's '222.III'. In the builder the overlap costs at most one ISO week's
+     smaller share (max, not sum) and JHU outranks these AI rows in 2004 anyway.
+ (e) Deaths-only rows - treatment now CONSISTENT: 18 rows, all sub-national, all with blank sCh/cCh/CFR and a stated reason
+     (source gives no usable case count: 'not yet known', 'affected', or deaths only). The one exception (333, Arua 2005, whose
+     source states 204 cases) was fixed. The builder skips blank-sCh rows and reads only national rows, so deaths-only rows never
+     become zeros; they count as positive months in the coverage analysis.
+ (f) 1970s Inferred_Absence weights - builder checked: INFERRED_ZERO_MAX = 0.6 caps every non-documented zero, so the CSV weights
+     never reached the weekly series above 0.6 (Agent 3's concern is moot for the series). Rows 56/66/67 lowered to the CLAUDE.md
+     inferred-absence weight 0.7 anyway, because the prior auditor's upgrade rationale ('the IHR channel was live') is undercut by
+     this cycle's 1986 evidence (plague notified, cholera not). Row 200 (pre-introduction 1971) left at 0.75; row 46 (1970
+     Documented, 0.9) left; 55 and 68 already 0.7.
+ (g) Baseline defects B1-B10 (Agent 5) - documented for the user in the report (JHU/WHO read-only, not edited), plus new ones
+     from step 8: B11 JHU 'national weekly' 3-16 Jul 2017 = 56 + 225 = 281 cases (> the whole-year national 252-265);
+     B12 JHU 2024 year-to-date cumulative snapshots (rows 84, 86-92) stored as period counts; B13 JHU/WHO 1971-2025 annual and
+     sub-annual rows coexist so the builder's max-per-week rule inflates 2000, 2001, 2013-2017, 2019, 2023-2024.
+
+=== STEP 9: REPORT ===
+Wrote ./data/UGA/search_report.txt (overwrites the 2026-09-19 report; prior copy in git and /tmp/UGA_prior_cycle/).
+ Main text sections 1-6 (~2 pages, 134 lines); appendix A1-A12 (validator map, rows/sources, per-agent rows and
+ yields, coverage, spot audit, weekly-series sums, integrity, item decisions, full edit list, builder/baseline defects,
+ paper archives).
+
+=== STEP 10: FINISH ===
+Final validator: python py/validate_quality.py UGA -> exit 0 | 933 rows | 424 sources | ERROR 0 | WARN 45 | INFO 324
+ (237 overlap groups all documented, 87 unused metadata). Repair tool dry-run: 0 changes.
+Final coverage (read-only): 84.2% (574/682), 5 gaps, months_ai_only 102 - unchanged by the audit.
+Weekly series (in memory): 2021 ISO-year sum 1,024 -> 327 after retracting row 7; other years unchanged.
+Agent 7 queries: no WebSearch used; direct retrievals (IRIS, Wayback CDX/captures, Europe PMC, live news pages) and page-image
+ checks only; 4 read-only verification sub-agents did the bulk of the 46-row source verification.
+End Time: 2026-10-05 00:28:13
+Agent 7 Status: COMPLETE
+
+=== ORCHESTRATOR COMPLETION (2026-10-05 00:29:58) ===
+validate_quality.py UGA --json /tmp/UGA_post.json: exit 0 (ERROR 0, WARN 45: 21 CFR_high, 18 multiyear_aggregate, 5 same_period_conflict, 1 period_single_day - all justified by Agent 7).
+All seven canonical logs data/UGA/search_log_agent_{1..7}.txt and data/UGA/search_report.txt rewritten this run (newer than logs/run_20261001-194905/.mark_UGA).
+workflow_state.json: agents 1-7 present [(1,97,12),(2,434,12),(3,84,12),(4,0,6),(5,144,12),(6,1,7),(7,4,0)].
+Rows 184 -> 933; sources 115 -> 424 (L1 260, L2 80, L3 84); presence 35 -> 128.
+Coverage (read-only analyse(), same method as py/analyze_effective_gaps.py): 85.2% (581/682, 6 gaps) -> 84.2% (574/682, 5 gaps); baseline-only 69.1%.
+Shared ./reference/ gap files deliberately NOT regenerated by this session; the runner regenerates them after exit.
