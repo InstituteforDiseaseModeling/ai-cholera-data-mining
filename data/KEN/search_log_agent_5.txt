@@ -1,0 +1,53 @@
+================================================================================
+AGENT 5 - CROSS-REFERENCE INTEGRATOR - KENYA (KEN) - OPUS 5.5 RE-RUN CYCLE
+Start: 2026-10-05 (local)   Working dir: /Users/johngiles/MOSAIC/ai-cholera-data-mining
+Log:   ./data/KEN/search_log_agent_5.txt (created FRESH; previous cycle archived as
+       ./data/KEN/search_log_agent_5_legacy_2026-09-20.txt - read, not repeated)
+Cache: /tmp/ken5/ (re-using /tmp/ken1-4 caches of Agents 1-4 where documents are already held)
+================================================================================
+STATE INHERITED (read-only checks before the first query)
+  ./data/KEN/cholera_data_ai.csv     2126 rows   ./data/KEN/metadata_ai.csv 519 sources
+  ./data/KEN/cholera_presence_ai.csv 186 rows    ./data/KEN/retracted_rows_ai.csv (never re-add)
+  python py/validate_quality.py KEN -> exit 0, ERROR 0, WARN 25, INFO 430
+    (10 period_single_day, 8 CFR_high_flagged_for_review, 6 multiyear_aggregate, 1 same_period_conflict)
+    NOTE: the validator's "row N" is the FILE LINE (header = line 1), not the Index. The 8 CFR rows are
+    Index 73, 347, 407, 411, 979, 1027, 1605, 1635.
+  In-memory coverage (analyse(), brief sec. C): 92.8% (633/682 months), months_ai_only 56;
+    gaps 1988-01-01..12-31 (366d), 1990-01-01..1991-12-31 (730d), 1993-01-01..12-31 (365d) - all
+    non-reporting-with-presence (NO zeros will be written). Latest obs 2026-09-27, latest positive 2026-09-20.
+  Read before the first query: ./data/KEN/workflow_orchestrator_KEN.txt (binding brief),
+    ./templates/template_search_protocol.txt, legacy Agent 5 log, this cycle's logs of Agents 1-4
+    (all 'conflict' / 'withheld' / 'for Agent 5' notes), workflow_state.json (gates + issues_for_agent_5).
+  NOT run: py/analyze_effective_gaps.py (brief sec. C). No git, no dashboard, no weekly builder,
+    nothing under ./reference/, baselines untouched.
+
+PLAN
+  A. RE-MINE THE REGISTRY (yield work, counted in batches of 20 queries)
+     - Resolution targets (national series still coarse): 1972-73, 1983-84, 1986, 1993-95, 2002-03,
+       2005, 2008, 2011, 2013-14, 2021.
+     - Series to re-mine: Kenya EPR weekly bulletins 2026 (W40+ for the recent tail); WHO AFRO weekly
+       bulletins 2021 and 2017-18/2022-23 residues; WHO AFRO EHA bulletins 2008-10; UNICEF Kenya sitreps;
+       OCHA ROEA bulletins; KFSSG/NDMA county bulletins; IFRC GO appeal documents; MoH/DDSR bulletins
+       (Wayback); KNBS abstracts; Cowman 2015; Boru/Kiama/Mutonga; WER 1972-73 notification tables.
+     - Step 2: Europe PMC reference lists + citing papers of the academic sources, depth 3.
+     - Every candidate row checked against ALL layers (AI+JHU+WHO) for exact and near duplicates before
+       writing; nested rows carry 'Temporal subset of Index N - do not sum with it'; sub-national rows
+       carry the double-counting phrase.
+  B. RECONCILE CONFLICTS (mandatory, logged per conflict; not counted for yield): the 15 conflict
+     families listed by the orchestrator (1984-86 three-way series conflict; Kisumu 1984/1986 withheld;
+     Mandera 2008; MoH 1997-98; Nyanza 2008; Busia 2009; AFRO 2009 vs Hansard; Mombasa 2010; Kwale 2007;
+     Dadaab Oct 2012; MDRKE071 zero years; KFSSG 2016; AFRO vs WER 2020/22/23/24; Lamu/Tana Delta 2024;
+     Africa CDC vs EPR 2026; Nairobi Dec 1997; strain-count methodology; JHU 86/87 measles; Kwale 2025).
+     Both figures verbatim via revise_observation.py --append-note --agent 5; hierarchy applied; disputed
+     row down-weighted; non-primary row marked "NON-PRIMARY - do not sum"; never averaged; retraction only
+     where the evidence shows a row is wrong (tombstone).
+  C. CHECK THE ARITHMETIC (mandatory): sub-national sums vs national (all layers); cumulative
+     monotonicity and increment-vs-cumulative; the 8 CFR_high rows against their sources; same-source
+     national temporal nesting (weekly builder overlap inflation) - annotate, never delete valid rows.
+  STOPPING RULE: >=3 batches; then stop only at 3 consecutive batches with 0/20 successful queries, or at
+    12 batches. No time limit. Checkpoint (log block + write_agent_state 'IN PROGRESS after batch N')
+    after every batch; PROGRESS line every ~5 queries.
+  NETWORK: every call wrapped in `timeout 60 curl -sL -m 45`; no email in any request; no bot-wall /
+    CAPTCHA / login / paywall circumvention; no OpenAlex / Semantic Scholar / Google Books API.
+  WebSearch soft allocation: 20 calls (running count logged per batch).
+================================================================================
