@@ -200,3 +200,74 @@ Successful queries: 10/20 (Q01, Q02, Q03, Q05, Q08, Q10, Q13, Q14, Q15, Q16)
 Yield        : 50%
 Consecutive sub-5% batches: 0
 Decision     : CONTINUE (50% >= 5%; minimum 3 batches)
+
+=== SECTION C - ARITHMETIC CHECKS (run between batches 2 and 3; all edits via py/revise_observation.py --agent 5) ===
+C1 SUB-NATIONAL vs NATIONAL (lower-bound tree check, all layers; /tmp/ken5/provsum2.py):
+  - AI 1173 (national Jul 2009 increment 141) < AI 1711 Isiolo 13-26 Jul 2009 (150): 1173 NON-PRIMARY, conf 0.65->0.55.
+  - AI 208 MSF Mandera '1,470 patients treated' (from 26 May 2016) = treatment count, not cases (MoH line list JHU
+    669-709 ~460 in window; whole outbreak 1,629 = AI 11): NON-PRIMARY, conf ->0.4; with it removed AI 941 (1,384,
+    24 May-25 Jul 2016) is no longer exceeded.
+  - AFRO W39 2019 county split 132 vs stated national 127 (AI 1330, 1344-1348): source-internal, both kept, noted.
+  - AI 861 WHO dashboard week 6 < AI 1577 Dagahaley 10 (1-7 Jun 2026): EPR/NPHI primary for the week.
+  - AI 55 national 2012 339/24 < North-Eastern 2012 parts (>=401): 339 = LOWER BOUND (camp/host streams omitted).
+  - AI 469 MMWR 11,033: its own county table sums exactly; the 1.4% excess comes from other-source rows - no change.
+  - AI 1234 Lamu '339/4 in 2024' cumulates the Oct 2023-Feb 2024 wave: NON-PRIMARY, conf 0.55->0.45.
+  - JHU-only exceedances left for Agent 7 (baseline is read-only): JHU 575/584 (national 1,216 labelled
+    Nairobi+Garissa), JHU 594/595 (Loharikar 2013 district figures East Pokot 224 / Turkana South 1,493 coded as
+    'Rift Valley' province rows).
+C2 CUMULATIVE MONOTONICITY (rows sharing Location+TL, >14 d, sorted by TR; /tmp/ken5/c2scan.py): 185 non-monotone
+  pairs, 35 involving AI. AI-side actions:
+  - AI 960 Jan-Jun 2005 990/25 (Mugoya 2008) > WHO annual 2005 816/21 and 828/23: WHO final notification PRIMARY;
+    960 NON-PRIMARY, conf 0.7->0.6.
+  - AI 2 '2009' 11,425/264 (Loharikar 2013, re-verified on Europe PMC) = YTD to ~19 Dec (JHU 596); WHO final
+    11,769/274 PRIMARY; AI 2 NON-PRIMARY, conf 1.0->0.8.
+  - AI 165 YTD 29 Jul 2018 5,734 > WHO annual 5,719 (<1%): annual PRIMARY, 165 a NON-PRIMARY checkpoint.
+  - AI 1363 (Turkana 225 by Feb 2020) > AI 956 (222 by 21 May): note on 956 (reporting variation; MoH 232 to 23 May).
+  - AI 1167 vs 1076 (Kajiado 2010) and AI 1234 vs 185 (Lamu 2024): already adjudicated (1076 conf 0.4; 1234 above).
+  - AI 190/492 vs JHU 196 (2020) and AI 187/211 vs JHU 208-212 (2024): covered by conflict 7.
+  - JHU-only defects for Agent 7: JHU 509 (4,377 to 25 Nov 2017 > AFRO 4,079 to 7 Dec); JHU 154 (YTD 1,551 stored as
+    the 2017 annual); JHU 95/96/97 (misdated 19 Sep 2018); JHU 723 (Garissa 1,616 'to 4 Jun 2018', non-monotone);
+    JHU 612-621 (UID 10057 = Mutonga et al. 2013 JID TABLE 2 SEX/AGE DEMOGRAPHICS - male 5,676, female 5,449, <5
+    1,900, 0-2 1,177, 3-4 723, 5-14 2,367, 15-24 1,694, 25-34 1,617, 35-44 1,010, >=45 1,323 - coded as AFR::KEN
+    2009-01-01..2010-12-31 case rows: NOT geographic, they inflate any 2009-10 national aggregation; verified
+    against the archived OUP full text, /tmp/ken2/wq/d/mut_oup_2018.html).
+C3 COPIED CUMULATIVES (/tmp/ken5/c3scan.py): candidates with the same value and the same TR but a later TL are
+  1687/1692/1695 (Mombasa/Isiolo/Kwale May-Jul 2023), 1068 (Bomet 2015) and 853 (Dec 2025). All legitimate:
+  1687/1692/1695 have Agent 3 zero rows through 30 Apr 2023 (1875-1877); 1068 is the same outbreak with onset
+  12 Mar 2015 (already a 'Temporal subset of Index 21'); and 853 puts all of December 2025 in one week. There
+  are no strictly increasing same-source short-period runs. Weekly spikes above 4x their neighbours (AI 255
+  1980, 398/375 1971, 2161 and 2279 Garissa 2018) are genuine weekly notifications or derived increments.
+  RESULT: no AI increment row holds a copied cumulative.
+  Cross-layer near-duplicate check of the new rows 2156-2286 (/tmp/ken5/dupcheck.py; TL/TR within 3 d, sCh
+  within 5%): 2205~JHU 149, 2219~JHU 295, 2226~JHU 306 (exact cases), 2227~JHU 308. Each pair is an independent
+  series (AFRO cumulative differences vs UNICEF/AFRO weekly), so the pairs are corroboration and not copies.
+  Notes added; JHU outranks AI in the builder, so there is no inflation.
+C4 CFR_high_flagged rows (8):
+  - 73 Jomvu 32/5: VERIFIED (Eastleigh Voice; the source states CFR 15.6%).
+  - 979 Mombasa 1986 50/10: VERIFIED. DENOMINATOR MISMATCH (deaths are outbreak-wide, cases are Port Reitz
+    only); conf 0.45->0.4.
+  - 1027 Trans Nzoia 1985 38/8: VERIFIED. Cases are a lower bound, so the CFR is an upper bound.
+  - 1605 South Nyanza Jun 1983 37/6: checked against the OCR (same denominator, admitted cases).
+  - 1635 Siaya 2008 30/5: VERIFIED on the DEPHA chart rendered at 200 dpi (1637/1639/1640 on the same chart are
+    also verified).
+  - 347, 407, 411 (WER 1982/1971/1974): IRIS unreachable (HTTP 000 on 5 attempts), so not re-verifiable today.
+    Each is a single-line notification with a small n. FOR AGENT 7: re-check these.
+NESTING (same-source national temporal overlap; /tmp/ken5/nest.py): 15 source groups, all annotated ('Temporal
+  subset of Index N - do not sum with it' or 'Same-source partial overlap').
+  - Groups: src 1 (1 > 1836); src 117 (449~450); src 122 (794~795); src 129 (807 > 806); src 131 (814 > 813,
+    816 > 815, partials); src 232 (1050 > 1051); src 235 (1057 > 1187); src 24 (45 > 1738); src 25 (48 > 49);
+    src 27 (50 > 52); src 310 (1829 > 1362); src 321 (1379 > 1380); src 57 (129 > 1343); src 73 (190 > 494);
+    src 96 (469 > 965).
+  - Potential builder inflation if summed: src 235 +979 (1187 inside 1057); src 96 +812; src 131 +43/+418 (813,
+    815 inside 814/816).
+  - Builder per-week selection does not sum overlapping rows; the inflation is a risk only for naive sums.
+  - Weekly-builder distortions from the baseline (for Agent 7): JHU multi-year aggregates (611, 577/586,
+    353/354/887) inflate 2000-2007 4-17x, 2014 (6,293 vs 35) and 2024 (6,401 vs 302); parallel JHU weekly
+    sources (src 40 vs 52) inflate 2017; 2018 is under-counted at 0.62x.
+  CORRECTION to the NESTING line above: the 'potential builder inflation' figures I measured earlier with the
+    in-memory AI-only builder (per-week selection, Fourier fill) are src 235 +593, src 96 +221 and src 131 +44.
+    The figures given above (+979 / +812 / +43/+418) are naive SUMS of the nested rows (an upper bound if someone
+    sums the rows). Both are recorded; neither is a builder total for the merged layers, because JHU outranks AI
+    in those weeks.
+PROGRESS: section C complete (C1-C4 + nesting logged above). Starting BATCH 3 (Phase 3: citation-network depth + registry table re-mine; WebSearch running total 1/20).
+PROGRESS: batch 3 Q01 Loharikar 2013 abstract (source 2) -> ROWS 2287 (East Pokot Nov-Dec 2009, 224), 2288 (Turkana South 2009, 1,493) + metadata 2 description corrected; Q02 Mercy 2024 nil (3-yr aggregates; facility subset); Q03 Kiama 2025 PAMI nil (score bins only); Q04 Orimbo 2020 nil; Q05 Curran 2018 nil (16,840 Dec 2014-Sep 2016 aggregate, not written); Q06 Europe PMC abstracts of 11 unregistered papers nil; Q07 Crossref JIEPH nil; Q08 Crossref PAMJ nil; Q09 AFRO 2020-22 Kenya lines nil (covered); Q10 AFRO 2019 W19-W39 narratives nil (national only); Q11 WER 1983 cached re-scan nil (infected-area lists); Q12 JPRS 1985-87 briefs nil (all extracted); Q13 MoH 21 Jul 2015 + IFRC 11 Sep 2015 + MMWR 15 Jan 2016 county series -> ROWS 2289-2303 (15 derived county increments; parts close the national 5,984 exactly).
