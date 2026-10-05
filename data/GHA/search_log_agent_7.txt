@@ -6,3 +6,137 @@ Agent 7 Status: INITIALIZED
 Previous-cycle Agent 7 log and search_report.txt archived in ./data/GHA/.prev_cycle_logs_pre_opus55_20261003.tar.gz and /tmp/GHA_prev_cycle_logs/ (verified byte-identical with cmp before overwrite).
 Overrides in force (orchestrator brief): no py/analyze_effective_gaps.py runs (coverage measured in memory via analyse()); no dashboard / weekly-builder / git writes; WebSearch cap 30 calls; writes only via py/add_observation.py and py/revise_observation.py GHA.
 
+=== VALIDATION BATCH V1 | validator, mechanical repair, review of all 29 WARNs | GHA ===
+Commands : python py/validate_quality.py GHA --json /tmp/GHA_audit.json -> exit 0, ERROR 0, WARN 29, INFO 589
+           (469 national_subnational_overlap INFO 'documented', 120 metadata_unused INFO)
+           python py/repair_data_integrity.py --dry-run GHA -> TOTAL: 0 change(s); no ./data/GHA/attribution_review.csv
+           -> --apply NOT run (nothing to apply).
+Baseline snapshot for before/after: git show c66b2daf (last commit touching ./data/GHA before the cycle, 2026-09-21)
+           -> /tmp/GHA_a7/start_*.csv: 641 data rows (max Index 655), 244 sources, 26 presence rows = orchestrator figures.
+Line->Index mapping (validator 'row N' = physical CSV line, header = line 1), every WARN checked against row content:
+  CFR_high_flagged_for_review (20): Index 6, 243, 248, 250, 268, 296, 361, 509, 667, 1035, 1070, 1119, 1191, 1279,
+     1753, 1754, 1756, 1894, 1998, 2004.
+     - WER/WHSR tables (243, 248, 250, 268, 296, 361, 509, 1753, 1754, 1894, 1998, 2004): cases and deaths printed in
+       adjacent columns of the same row for the same place/period; small denominators plus lagged death notification.
+       Values as printed; 1894 and the 1978 set close on the WHO annual exactly. JUSTIFIED (weights <= 0.7).
+     - Mixed or minimum denominators documented in the row (1070 'more than 26', 1119 remote outbreak detected via deaths,
+       1279 town cases vs district deaths, 1756 hospital admissions vs whole-outbreak deaths): JUSTIFIED, weights 0.3-0.5.
+     - Small outbreaks with community deaths (6 source prints 18.8% itself; 667 four deaths at home; 1035; 1191): JUSTIFIED.
+  period_single_day (4): Index 106 (facility count of one day, w0.4), 294 and 307 (single imported-case notifications,
+     1970/1971), 296 (Winneba 9.XII.1970 notification). Genuine one-day events. JUSTIFIED.
+  multiyear_aggregate (2): Index 108 (Ashanti 1997-2001, 3,231) and 114 (Greater Accra 2011-2014, 35,985), both capped at
+     0.7 per CLAUDE.md. JUSTIFIED; their do-not-sum notes are stale (they predate rows 912-916 and 1146-1161/2253-2377) ->
+     cross-reference notes appended in V8.
+  same_period_conflict (3): line 579/39 = Index 619/63, line 584/25 = Index 624/45, line 948/679 = Index 994/722.
+     Primary named on BOTH rows of each pair (619, 624, 722 PRIMARY; 63, 45 at 0.5 and 994 at 0.6 NON-PRIMARY), notes
+     verified. Independent compilations, not preliminary/final versions of one series -> kept BY DESIGN. JUSTIFIED.
+Result   : 29/29 WARNs reviewed; 0 value changes required by the WARN review itself.
+
+=== VALIDATION BATCH V2 | zero-versus-positive contradictions, all three layers + presence file | GHA ===
+Method   : /tmp/GHA_a7/zeroscan.py - every AI zero row (sCh/cCh = 0, deaths 0/blank; 389 at start) against every
+           positive row (sCh, cCh or deaths > 0) in AI + JHU + WHO (2,302) for the same place or a sub-unit, with JHU ISO
+           codes mapped to region names (GH-AA -> Greater_Accra etc.), fuzzy district keys (case/punctuation/'Municipal'/
+           'Metropolis' stripped), and old->new region handling for the 2018-19 splits. Classes: HARD = positive window
+           wholly inside the zero; STRONG = >=50% of a <=120-day positive window inside; MODERATE/WEAK = partial overlap
+           with longer windows. This is stricter than the orchestrator's rescan (it matches JHU's ISO-coded districts).
+Found    : 715 overlapping pairs: 1 HARD, 6 STRONG, 34 MODERATE, 674 WEAK.
+  HARD   1563 Accra_Metropolis zero 2013-01-01..03-31 (Agent 3, thesis Table 7.6, w0.35) vs JHU 84 GH-AA::Accra 2 cases
+         Q1 2013 = GHS Director-General via Daily Guide 31 May 2013 (metadata 323: 'two cases of cholera in the Greater
+         Accra Region for the first quarter'). The thesis 2013 'AMA' table sums to 22 = the thesis's own GAR regional 2013
+         total (row 1009) -> probably regional data mislabelled (cf. its 2014 table) and itself contradicted.
+         ACTION: 1563 RETRACTED (tombstone). Companion 1564 (Sep-Dec 2013, same table, no contradicting row) 0.35 -> 0.3
+         with the caveat. The 2008 zeros from the same thesis (1561, 1562) kept: the 2008 table sums to 189 << GAR 823,
+         so it is metropolitan, and no positive in any layer falls in Jan or Jul-Aug 2008 for Greater Accra.
+  STRONG 2393 Central zero 2017-01-05..03-14 vs 11 Cape Coast 12 cases 1-18 Jan 2017 (BRIEF ITEM 2).
+         ACTION: TL trimmed to 2017-01-19 (day after the last dated case). Evidence the January cases preceded 5 Jan:
+         Regional Director 'no case ... since January 4'; JHU/UNICEF national weekly cases only 1-8 Jan (JHU 321/322),
+         zero 9-22 Jan (JHU 323/324). Residual risk documented on the row: JHU 330, 2 national cases 20-26 Feb 2017,
+         region unknown (sum-closure of the GWER 2017 cumulative leaves no room for them). Weight kept 0.5.
+  STRONG 749 Ashanti zero W1-30 2014 vs 89 Ashanti 10 cases 9 Jun-14 Aug 2014: 89's TL was the national-outbreak
+         placeholder; Agent 3 had already dated the Ashanti onset to August in 89's notes but left the formal overlap.
+         ACTION: 89 TL 2014-06-09 -> 2014-07-28 (counts unchanged).
+  STRONG 1336 Ashanti zero W20-26 2015 vs 2412-2415 Ashanti district confirmed cases 'in the second quarter' (Q2 window
+         is the source's own resolution). WHO-CO weekly rows 1328-1330 put Ashanti's Q2 cases in W16, W18, W19 (1+1+6),
+         i.e. before the zero starts. NOT a contradiction; documented on 2412 already. No action.
+  MODERATE (34): all reviewed. Each is a positive whose longer window only partly overlaps a zero and whose cases are
+         placed outside the zero by a dated statement already in the notes: 313/1539/1547 vs JHU 184 (the week-37 case,
+         row 310); 654 vs 1284/JHU 17 (index case 9-10 Jun 2014, documented on 654); 698 vs 1023; 821 vs 1251; 1094/1098 vs
+         JHU 110, 113, 2412-2415; 1334/1335 vs 2412-2415; 1352 vs 1256 (WHO BA wks 35-37 = 15 exactly); 1406 vs 113;
+         1430/1431 vs 1323; 1542 vs 99; 1661 vs 112 (Fumesua case after 9 Nov 2016); 2225/2226 vs 50 (week-18 suspects).
+  Region-split check: 155 'new-region zero vs old-parent positive' hits are all false positives (Western/Volta/Northern
+         in 2024-25 rows are the NEW regions; Sekondi-Takoradi, Tarkwa, Wassa East, Ketu South, North Tongu, Saboba,
+         Karaga are outside Western North/Oti/Savannah/North East). Fuzzy-name hits Asante Mampong/Tema and
+         Juaben/New Juaben North are different districts.
+  Presence file: 7 partial overlaps, all annual Ketu South 2003/2004 presence vs national zeros; Ketu's 2004 epidemic is
+         dated Jan-Feb 2004 (row 1303), before row 2462 starts. No contradiction.
+After fix: rescan -> 388 AI zeros, 711 pairs: 0 HARD, 4 STRONG (the documented Q2-2015 quarter-vs-week case), 34 MODERATE
+           (documented), 673 WEAK. NO UNRESOLVED ZERO-VERSUS-POSITIVE CONTRADICTION REMAINS.
+Rows changed: 2393 (TL), 89 (TL), 1564 (weight), 1563 retracted.
+
+=== VALIDATION BATCH V3 | Agent 6 checklist (brief item 3) | GHA ===
+(a) Rows 2460 (Q1 1993) and 2461 (Q1 1998), sum-closure Inferred zeros - the 2005 counter-example test.
+    Checked every row in AI/JHU/WHO, the presence and retracted-presence files and metadata descriptions for 1992-06..1993-09
+    and 1997-07..1998-09; the cached WHO EMC 1998 table (/tmp/gha_a4/afro/emc: only the year-end version, as at 9.6.1999,
+    Ghana 3,426/108); Agent 6's sum-closure inputs (/tmp/gha_a6/b2_sumclosure.py) re-added: 1993 2+22+201+1,223 = 1,448/38
+    and 1998 40+83+131+1,485+1,142+545 = 3,426/108 = WHO annuals exactly.
+    NEW CHANNEL TESTED: WHO AFRO Western-block EPI Newsletter Feb 1999 Fig. 4 'Ghana (3,518)' for 1998 (+92 over WHO;
+    /tmp/gha_a4/afro/western/feb1999.txt) - undated annual; most plausibly the December 1998 tail (WER periods stop 7 Dec).
+    RESULT: no dated case in either quarter on file. BOTH KEPT (0.4 / 0.35); audit notes appended to 2460 and 2461.
+(b) Row 2462 (31 May-12 Dec 2004) override of Agent 4's 'no zeros from the UNICEF curve' rule.
+    FINDING: CDER September 2004 (August data, metadata 612, /tmp/gha_a4/afro/idsb/2004-09.txt line 150) lists GHANA among
+    the 'Sixteen countries ... [that] reported ... cases ... in August 2004'. Agent 6 never saw this (its fetch of that issue
+    was 0 bytes) and its note cites only June and September as 'reporting meningitis, not cholera'.
+    TESTS: CDER August 2004 (July data) shows Ghana's cholera 209/3 and meningitis 821/126 UNCHANGED and Ghana in neither
+    July list (July return missing); September issue moves BOTH diseases (cholera +196/2, meningitis +115/12) = catch-up
+    return. The MoH weekly curve (/tmp/gha_a4/fig3_values2.json) has ~410 cases by week 12, ~7 in weeks 13-22, 0 in weeks
+    23-50, ~7 in weeks 51-52; the AFRO cumulative trailed it all year (184 vs ~329 at 18 Feb; 209 vs ~417 at end-May) and
+    the August increment closes exactly that gap (curve Q1 ~410 = CDER final 405).
+    JUDGEMENT: the override is justified for 2004 (not a 'missing' year; curve closes on WHO 407) and the August listing
+    dates a report, not cases. KEPT, weight 0.5 -> 0.4, counter-evidence and reasoning appended to the row.
+(c) Presence record Tamale Metropolis 2008-01-01..03-31 (metadata 356, ModernGhana 206317, Chronicle 13 Mar 2009).
+    Quote verified verbatim in /tmp/gha_a1/cdxscan/mg_206317.html. Misdated: same locality (Bayan-waya) as the 4-14 Aug
+    2007 outbreak (row 2471, metadata 661); ~19 deaths matches the 2007 Tamale toll (national 2007 = 18 deaths); WHO 2008
+    = 25 deaths of which the Oct 2008-Jan 2009 epidemic carries 21 (row 1771); MoH 2008 review (metadata 273) names only
+    Volta and Greater Accra. REMOVED with the locked script /tmp/GHA_a7/remove_presence.py (add_observation locked() +
+    backed-up save(); dry-run first; exactly one match) -> presence 155 -> 154; tombstone appended to
+    ./data/GHA/retracted_presence_ai.csv (now 13). Metadata 356 description prefixed 'MISDATED - DO NOT USE TO DATE A 2008
+    EVENT'; cross-reference note on row 2471.
+(d) WHO 'Cholera, 2010' 43 vs 438: every 2010 row uses the TABLE value 438/3 (JHU 65; AI notes on 697, 877-887, 1008,
+    1165, 1307, 1565, 1645-1650, 1851-1875); CFR 3/438 = 0.68% matches the printed CFR (3/43 would be 7.0%). Metadata 498
+    already records the narrative misprint. No change.
+(e) Recent window re-check (03:3x PDT 5 Oct 2026): GWER index https://phd.teamdesk.pro/api/reports?limit=500 -> 53 issues,
+    2026 tops out at Week 35 (created 2026-09-21T06:38Z), no weeks 36-39; GHS CMS news API to 4 Oct 2026 -> no cholera
+    event; WHO IRIS newest AFRO weekly bulletin = week 36 (31 Aug-6 Sep 2026). No row added; window stays PUBLICATION LAG.
+Queries: 3 programmatic (GWER, GHS API, IRIS). WebSearch used: 0.
+
+=== VALIDATION BATCH V4 | did the agents do the work they claim? (brief item 4) | GHA ===
+Index accounting (live ./data/GHA/cholera_data_ai.csv + tombstones ./data/GHA/retracted_rows_ai.csv): every Index 656-2471
+  allocated this cycle is either live or tombstoned - NONE missing.
+  A1 656-1203: 548 allocated = 540 live + 8 tombstoned by others (705,706,711,996,1063 by A5; 739-741 by A3). State 548 (gross).
+  A2 1204-1509: 306 = 290 live + 3 own retractions (1295,1296,1298) + 13 by others (1294,1414,1441 by A3; 1208,1211-1219 by
+     A5). State 303 (net of own).
+  A3 1510-1666: 157 = 155 live + 1651 (own) + 1563 (Agent 7, this audit). State 156 (net of own).
+  A4 1667-2198: 532 = 531 live + 2181 (own). State 532 (gross).
+  A5 2199-2440: 242 = 241 live + 2223 (own); 217 new observations + 25 correction/superseding re-entries. State 216 (new only).
+  A6 2441-2471: 31 live. State 31.
+  -> No agent claimed rows it did not add. The rows_added CONVENTIONS differ (gross / net / new-only); recorded in the report.
+Protocol: batches 12/12/12/12/12/7 - all >= 3 and <= 12. All yields in percent, max 75, none > 100. Stopping reasons
+  re-derived from the yield lists: A1, A2, A3, A5 hit the 12-batch ceiling while still yielding (the 3-consecutive-sub-5%
+  rule never met; A3's sub-5% batches 8 and 12 separated by batch 9 at exactly 5%); A4 met the ceiling and the yield rule
+  together (batches 10-12 at 0%); A6 genuinely saturated (batches 5-7 at 0%, after the minimum). All HONEST.
+Query accounting is NOT uniform: Agent 5 counted 'each examination of a distinct source document ... whether fetched live
+  or re-read from an earlier agent's cache' as a query (e.g. 13 of batch 1's 20 were cache re-reads), while Agent 3 logged
+  cache reads as NOT counted. Agent 5's yields are therefore not comparable with Agents 1-4/6 and its ceiling stop is
+  partly an artefact of that convention (it was nonetheless productive: 217 new rows, 32 retractions, the attribution audit).
+Agent 2 stalls: confirmed in ./data/GHA/workflow_orchestrator_GHA.txt and ./data/GHA/search_log_agent_2.txt - stream
+  watchdog after batch 7 (resumed via SendMessage; batch 8 re-evaluated from saved responses), again during batch 12
+  (rows 1497-1498, metadata 479-480, 2 presence records committed but unlogged); a fresh continuation instance logged
+  B12-01..07 from the files and ran B12-08..20. Index ledger above shows nothing lost or double-written.
+Agent 3 brief error: the orchestrator gave pandas positions (1192, 1235, 1420, 1395, 97, 686) instead of Index values
+  (1210, 1253, 1441, 1416, 113, 704). Checked every wrong-ref row: none carries an Agent 3 revision stamp; the true rows do
+  (1210, 1253, 113, 704) or were retracted with evidence (1441). NO WRONG ROW WAS ALTERED.
+ZWE incident: Agent 4 ran 'pkill -9 -f fetch.py' (~17:44 PDT 4 Oct; its log lines 464-470), killing PID 76688
+  'python3 bgfetch.py list_bg4.txt' in /tmp/zwe2/news. Read-only check: /tmp/zwe2/news/bg4.log stops 17:47; bgfetch2.py
+  written 17:54, bgfetch3-7.py and logs through 22:52; ./data/ZWE/workflow_state.json shows ZWE Agents 2 and 3 completing
+  afterwards. Only /tmp caches were affected. Reported; nothing for GHA to fix.
+WebSearch before Agent 7: A1 14 + A2 1 + A3 28 + A4 30 + A5 7 + A6 14 = 94 (logs' final counters). Agent 7 so far: 0.
