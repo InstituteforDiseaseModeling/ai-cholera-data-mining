@@ -173,3 +173,82 @@ rows in the builder (B7).
 
 === ITEM 8: repair_data_integrity.py --dry-run ZAF ===
 0 proposed changes of any kind; no ./data/ZAF/attribution_review.csv written. Nothing to apply, nothing withheld for review.
+
+=== ADDITIONAL CHECK: CONFIDENCE ABOVE THE CITED SOURCE'S RELIABILITY CEILING (not covered by the validator) ===
+CLAUDE.md bands (L1 0.9-1.0, L2 0.7-0.9, L3 0.3-0.6, L4 0.1-0.3) are enforced as a CEILING by add_observation.py at insert,
+but revise_observation.py and legacy hand-edits bypass it and validate_quality.py does not check it. 6 rows were above ceiling:
+AI 7 (L3, 0.9), AI 16 (L2, 1.0), AI 20 (L2, 0.95), AI 21 (L2, 0.95), AI 23 (L2, 0.95), AI 1425 (L3, 0.7 after an A5 raise).
+Checking their sources exposed three misattributed legacy (pre-cycle) rows:
+  AI 16 national 2000-08-01..2001-08-31 116,517/265 (src 17, MSP OP10): OP10 full text re-fetched (Queen's mirror) has no
+        '116,517' and no such sentence; it states 'By April 2002 when the epidemic tapered off, cases had risen to 117,147 and
+        had resulted in 265 deaths'. RETRACTED; re-entered as AI 2574 (2000-08-01..2002-04-30, 117,147/265, src 17, conf 0.8).
+  AI 20 national 2008-11-15..2009-04-30 12,705/65 (src 15, PMC6014007): figure absent from the paper (Europe PMC full text);
+        wording matches a UFS news item; same figures correctly held by AI 369 (NICD Communique Apr 2009, L1). RETRACTED,
+        no re-entry (mis-cited duplicate).
+  AI 21 Mpumalanga 2008-12-01..2009-03-31 6,278/383/30 (src 15): figures belong to Sigudu, Tint & Archer 2015 (src 505, L1);
+        abstract verified via OpenAlex. RETRACTED; re-entered unchanged in value as AI 2575 citing src 505 (conf 0.9).
+  Ceiling fixes (py/revise_observation.py --confidence): AI 7 0.9 -> 0.6 (TimesLive quote re-verified live), AI 23 0.95 -> 0.9
+        (759 re-verified in PMC6014007), AI 1425 0.7 -> 0.6 (NW DoH src 595 corroborates; weight follows the cited source).
+  After: 0 rows above ceiling.
+Related note fixes: AI 2512 and AI 416 relied on AI 16's unsupported 116,517 - correction notes appended.
+Verbatim quotes appended where the legacy 'Source states' text was a paraphrase: AI 13, 15, 19 (WHO DON pages re-fetched),
+AI 45 (newsnote 10 Apr 2025 re-fetched; 'confirmed on Monday' = 7 Apr 2025).
+Validator after: EXIT 0 | 2524 rows | ERROR 0 WARN 189 INFO 532.
+
+=== ITEM 10: SPOT-CHECK (30 random rows, seed 20261004) + targeted legacy sweep ===
+Random sample (Index): 253 334 420 554 628 641 670 751 770 812 817 890 914 939 1053 1058 1108 1133 1163 1279 1514 1554 1651
+                       1653 1670 1765 1792 1991 2191 2494
+Desk check (quote present, numbers = quote, dates, level phrase): 30/30 PASS. Documented inferences, judged acceptable:
+  554 (Oct-Nov 2003 window inferred from the communique month), 914 (Ekurhuleni death attributed via AI 758), 1279 (attributed
+  by testing hospital), 1651/1653/1670/1765 (derived zeros from complete enumerations), 1670 (TR extension justified by note).
+Re-fetched against the source, figures CONFIRMED (22 rows): 420 SAHR ch18 Table 3 'South Africa 17 902 120 0.67' (Wayback
+  20250209); 628/641/670 Said 2006 Table 4.2 (UP repository PDF: NP 1981 2458, GA 1983 156, KZN 1996-2000 37); 770 gov.za
+  Mpumalanga 12 Feb 2009 'Umjindi 48' (Wayback 20260708); 812/817 NMCSS Mar 2023 'Cholera 0 0 5 0 0 0 0 0 0 5'; 890 ReliefWeb
+  MP 18 Feb 2009 '5 950, still with 30 confirmed deaths'; 939 HST ind. 179 '2001 ... 97 059 ... 98 059'; 1053 NDoH 16.01.2002
+  'Jozini 0 193 0 6'; 1058 NDoH 27.12.2001 'Gauteng 0 65 0 4 04.06.01'; 1108 NMCSS 2023 annual 'Cholera * 28 223 812 6 52 96 1
+  49 0'; 1133 NDoH 26.03.2002 'Gauteng 0 13 0 1 13.03.2002'; 1163 NDoH 16.02.2004 'Mpumalanga 28 269 0 8' + '72 ... 197';
+  1514 NMCSS Sep 2023 'Cholera 0 0 1 0 0 0 0 0 0 1'; 1554 NMCSS Mar 2025 'Cholera § 1 0 1 0 0 0 0 0 0'; 1651 DoH Epi Comments
+  Apr-Jun 2009 'Ehlanzeni (4 799 ...) and Nkangala (3 ...)'; 1653 NICD bulletin May 2009 'Vibrio cholerae O1 2008 0 0 0 0 0 1 0
+  0 0 1'; 1670 NDoH 03.03.2004 'Total 42 1128' and 29.03.2004 'Mpumalanga 14 1696' + Thaba Chweu note; 1792 JPRS 79952 'Two
+  hundred and seventy five more cases ... total to 1,435'; 1991 NDoH 5 Jul 2023 'Mpumalanga 1 1 2'; 2191 GERMS-SA 2024 '13
+  laboratory-confirmed ... Limpopo (n=11), Gauteng, and Mpumalanga each reported one case'.
+Not re-fetchable today (8): 253, 1765 (WHO IRIS timeouts, as in A5/A6 runs), 914, 2494 (IRIS), 751 (Europe PMC 500, PMC
+  reCAPTCHA), 334, 554, 1279 (Wayback served 0 bytes). Internal check only.
+Random-sample result: 30/30 internal PASS; 22/22 re-fetched rows confirmed; 0 contradicted.
+Targeted sweep of the 14 legacy rows no agent revised this cycle (+AI 23): confirmed 1 (WHO AFRO AAR '1,380 cases (199
+  laboratory-confirmed) and 47 deaths'), 7 (TimesLive), 13, 15, 19 (WHO DON pages; quotes were paraphrases - verbatim appended),
+  23 (PMC6014007 '759'), 37/38/39 (SAHR Table 3: LP 465/2, KZN 15 062/70, EC 2 335/45), 42 (SAnews: Karachi, admitted 18 Jul,
+  positive 24 Jul 2023), 45 (newsnote 10 Apr 2025); CONTRADICTED 16, 20, 21 (fixed above); 41 not re-fetchable (ASM 403,
+  Europe PMC 500; abstract confirms the 2008 Mpumalanga ESBL outbreak but not the 34/5 figures). 17 was verified by A5.
+  Legacy result: 11 confirmed, 3 contradicted (21% of the checkable legacy rows), 1 unverifiable.
+  Minor: AI 38/39 use TR 2002-07-31 (HST 2001/02 season label) while SAHR Table 3 is titled Aug 2001-Oct 2002 (AI 37/420 use
+  2002-10-31); identical counts in both sources, not material - noted, not changed.
+Also verified: AI 567 (DoH 21 Nov 1997 release, source 301) verbatim.
+
+=== METADATA NOT REFERENCED BY ANY ROW (metadata_unused INFO 78) ===
+By registering agent: pre-cycle 9, A1 57, A2 6, A4 2, A5 2, A6 2. 49 of the 78 are cited in processing_notes as corroboration /
+dating evidence or back a cholera_presence_ai.csv record (e.g. 298 Madwala, 324 1997 press index, 601 eThekwini presence).
+29 are cited nowhere (orphan registrations): pre-cycle 3, 4, 12, 16, 18, 21, 32; A1 36, 49, 94, 103, 243, 255, 268, 269, 328,
+329, 332, 335, 336, 350, 353, 354, 369, 371, 374, 375, 383; A2 460. They are mostly absence/negative statements, alerts and
+disproved-case notices (243 'No Vibrio cholerae O1 isolates ... in 2007'; 255 'No cases ... in 2015'; 268/269 SA absent from
+WHO's 1989/1990 notification tables; 332/460 the Jan 2011 East London baby later disproved) whose content informed zero rows or
+gap classification without being cited by Index. 'Sources discovered' overstates sources that back a row or note by ~5%
+(29/604). Not deleted (metadata is append-only; nothing cites them, so no integrity risk).
+
+=== ADDITIONAL CHECK: ZERO ROWS CONTRADICTED BY DATED POSITIVE ROWS (containment; not covered by the validator) ===
+Strict containment (positive row of the same or a child location lying wholly inside a zero row's window): 13 pairs, all
+sub-national, none national. All 10 zero rows involved were written by Agent 3 from preliminary monthly NMCSS tables / NICD or
+WHO statements (2023-2025); every contradicting positive row is an onset-dated NICD Cholera Surveillance Dashboard row added by
+Agent 5 later (B7-B10, source 593) - Agent 5 did not cross-check its onset rows against existing provincial zeros, and no note
+acknowledged the conflict.
+  Fix (py/revise_observation.py, notes + weight): AI 1206, 1476, 1495, 1496, 1508, 1568, 1621, 1730 confidence 0.8/0.85 -> 0.5;
+  AI 915 (0.4) and AI 1479 (0.5) note only. Each note names the dashboard row(s) as PRIMARY for the onset week(s) (final over
+  preliminary) and states the zero holds only on its own notification/report basis. Values not changed; nothing retracted
+  (each zero remains valid on its own basis and for the other weeks of the month).
+  Pairs: 915/2292,2293,2540 | 1206/2374 | 1476/2268 | 1479/2381,2382 | 1495/2330 | 1496/2370 | 1508/2283 | 1568/2507 (a
+  CONFIRMED Johannesburg case, onset 23 Jun 2025) | 1621/2501 | 1730/2358.
+Partial overlaps (>50% of a <=31-day positive row inside a zero window): 10. Day-level check: AI 1433 (national zero to
+  2026-02-14) vs AI 2509 (EC onset 2026-02-15) - no conflict at day level (A5 trimmed TR). AI 2005 (national, final NMCSS Nov 2023
+  = 0 notifications), 1529, 1501, 1503, 1518 vs onset weeks straddling the month end - basis difference (notification month vs
+  onset week), not a contradiction; no change. AI 915 vs 2294/2541 (10 Gauteng onsets 1-7 May 2023) - addendum note appended.
+Weekly-series exposure: none (all sub-national, or national weeks already owned by WHO rows).

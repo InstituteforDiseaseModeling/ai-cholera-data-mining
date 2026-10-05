@@ -1,0 +1,187 @@
+SOUTH AFRICA (ZAF) - AI CHOLERA SURVEILLANCE ENHANCEMENT - SEARCH REPORT (Agent 7, Quality Auditor)
+Date 2026-10-04 | cycle 2026-10-03..04 (Agents 1-6) | cycle-start AI snapshot = git cf1c3ad (2026-09-18)
+Files: ./data/ZAF/cholera_data_ai.csv, ./data/ZAF/metadata_ai.csv, ./data/ZAF/retracted_rows_ai.csv,
+./data/ZAF/cholera_presence_ai.csv, ./data/ZAF/search_log_agent_1..7.txt, ./data/ZAF/workflow_state.json
+(Previous report kept as ./data/ZAF/search_report_legacy_2026-05-15.txt.)
+
+1. BOTTOM LINE
+- AI layer: 60 rows / 32 sources at cycle start -> 2,524 rows / 604 sources (2,052 case rows, 472 zero rows; 486 national,
+  2,038 sub-national). 50 rows retracted with tombstones, 28 of them pre-cycle legacy rows.
+- Coverage (a month counts when >50% of its days are observed, any level, zero rows included): JHU+WHO only 71.7%
+  (489/682 months, 9 gap periods) -> final 99.9% (681/682, 0 gap periods >=7 days; only 1-4 Oct 2026 is uncovered).
+- The recorded cycle-start figure of 98.1% (669/682, 3 gaps, 180 AI-only months) is NOT a valid "before". It rested on 11
+  long legacy zero rows that dated cases later contradicted, and Agent 3 retracted them: AI 12 (2019-21), 25/26 (2010),
+  32 (2007), 35 (1988-90), 36 (1995-97), 46 (2004-07), 47 (2011-14), 48 (2025-26), 50 (1975-78), 61 (2026). Counting only
+  the 32 legacy rows that survived verification, the cycle started at 77.1% (526/682, 9 gap periods, 37 AI-only months).
+  The real gain this cycle is 77.1% -> 99.9% (+155 months) and 9 -> 0 gap periods. Do not quote 98.1% -> 99.9%.
+- months_ai_only = 190, but read it with care. 113 of these months rest only on zero rows, and 72 more rest on rows longer
+  than a quarter (mostly the DoH multi-year aggregates). Only 9 AI-only months are carried by rows of 93 days or less.
+- Granularity is the weak point. Only 149 of 682 national months (22%) have national data at quarterly or finer resolution
+  (94 at monthly or finer). 416 months rest on annual rows and 116 on multi-year rows.
+- Validator: python py/validate_quality.py ZAF -> exit 0, ERROR 0, WARN 189, INFO 532 (audit start: 0 / 189 / 533).
+- What MOSAIC will actually see. I ran py/build_weekly_timeseries.py process_country('ZAF') in memory, writing nothing.
+  The national weekly series is 67% JHU weeks (1,972 of 2,962). The AI layer owns 839 weeks, almost all in quiet years,
+  and carries only 261 of the series' 251,261 cases (0.1%). Baseline and builder defects add about 67,000 cases (27% of the
+  series) across seven years (section 5). The AI layer cannot correct this; it is escalated.
+
+2. SOURCES
+604 metadata entries, 572 of them new this cycle. Reliability: Level 1 416 (WHO/WER, NICD/NHLS, NDoH/provincial DoH,
+peer-reviewed), Level 2 71, Level 3 116 (press, JPRS/FBIS, theses), Level 4 1. 526 entries back at least one row. Another
+49 are cited as corroboration or dating evidence in notes or in a presence record. 29 (4.8%) are cited nowhere: 7 pre-cycle,
+21 from Agent 1 and 1 from Agent 2, mostly absence statements and alerts. "Sources discovered" overstates productive
+sources by that margin. Rows by cited tier: L1 1,869, L2 388, L3 267.
+
+3. OBSERVATIONS ADDED
+2,052 case rows and 472 zero rows. Zero labels: 468 Documented_Absence, 4 Inferred_Absence. That ratio looks high, but most
+zeros are cells of official notification tables (NMCSS, NDoH, HST) or NICD line lists. By level: national 486, province
+1,275, district 486, local municipality 270, sub-municipal 7. By decade of TL: 1970s 29, 1980s 290, 1990s 90, 2000s 1,322,
+2010s 70, 2020s 723.
+13 deaths-only rows are kept (orchestrator decision). The builder skips blank sCh, so they cannot create false zeros. 145
+rows carry cCh with blank sCh (laboratory-confirmed series) and the builder ignores them too. The presence file holds 14
+records.
+
+4. GAPS STILL OPEN, AND WHETHER THE DATA EXISTS
+- 1-4 Oct 2026, national: reporting lag. The NICD dashboard shows no onset after 15 Jul 2026, and the August 2026 NMCSS report
+  is not yet out. The data will exist; re-check from November 2026.
+- 1989-1990, national: covered only by the DoH 1986-1990 aggregate (337 cases, AI 657). DoH 1988 = 5 (AI 1956) implies
+  about 9-18 cases in 1989-90. This is not absence: SA did not report to WHO, and there is a Durban presence record. Annual
+  figures probably exist only in print (DoH Epidemiological Comments, SAMJ); none was found online.
+- 1996, national: covered only by the 1996-2000Q1 aggregate (70 cases, AI 667). The DoH/HST series has no 1996 cell; the
+  unallocated residual is about 30 cases, mostly KZN. Unrecoverable without print archives.
+- 27 Jan-19 Feb 2009, national cumulative: a publication hole (7,580 -> 10,979 cases). Provincial series continue through
+  it. No national bulletin is in any public archive; it was probably never published.
+- TBVC homelands 1976/77-1994: Transkei, Bophuthatswana, Venda and Ciskei were excluded from RSA notifications (about 4.6
+  million people in 1980). National totals for 1977-1994 are LOWER BOUNDS. No homeland series was found after 1983.
+- 1997 is near-absence: the DoH annual total is 1, the October import. Its zero rows are now Inferred (section 6).
+
+5. ESCALATIONS FOR THE USER (baseline files and builder; agents cannot change either)
+B0 Template artefact. The ZAF Fourier template (country_k1) is fitted on 8 weekly baseline rows, dominated by the WHO
+   2023-08-28 cumulative lump and one JHU 2004 week. It peaks in ISO week 22 (late May) and troughs in week 48, at 4:1;
+   SA cholera peaks in summer. All 1,762 Fourier-spread weeks inherit this shape. Example: 1980 places 697 of 859 cases in
+   Jan-Aug, before the September 1980 onset.
+B1 2005: JHU 26 (WHO 3,503 cases / 28 deaths) is spread over the whole year. AI 974 (NDoH monthly 0/0, NICD 0, WER 0) is a
+   Documented zero but loses because the builder ranks JHU above AI. Agent 6 classifies the WHO figure as a data error
+   (high confidence). Result: +3,503 false-positive cases.
+B2 2008: builder 6,829 cases / 44 deaths vs WHO 3,907/22. It places 3,807 cases in Jan-Oct (JHU 28 annual + JHU 60 Aug-Dec),
+   although the outbreak began on 15 Nov 2008 (Jan-Oct had ~34 laboratory-confirmed sporadic cases). Nov-Dec gets 3,022
+   cases vs NOC 1,320/13 at 27 Dec.
+B3 2009: builder 12,896/72 vs WHO 10,520/57 (JHU 56 nested inside JHU 29). 5,513 cases land in Jun-Dec, after the season
+   ended.
+B4 2023: builder 3,044/104 vs ~1,390-1,478/47. Nested JHU cumulative snapshots (JHU 145/146/65) fill Jan-Aug, then WHO
+   Index 1 adds the cumulative 1,390/47 in the week 2023-08-28..09-03. Jan 2023 gets 77 cases before the 1 Feb onset.
+   The AI onset-week series (AI 2215-2250: 1,299 cases, 55 deaths, peak 342 in the week of 22 May) is never used, and WHO
+   zero weeks suppress 31 AI onsets in Dec 2023.
+B5 2000 and 2002: 2000 = 28,349 vs WHO 19,667, with 14,517 cases placed in Jan-Jul before the mid-August onset. 2002 =
+   56,221 vs WHO 10,004 or NDoH 16,394 (JHU 72 Jan-May 28,000 + JHU 57's 2000-02 aggregate, 27,175 in Jun-Dec).
+B6 2004: 4,605 vs WHO 2,767; the JHU annual row and four JHU sub-period rows are both used.
+B7 Years where AI is the top layer: a same-source aggregate beats the precise row. 1988 renders 67 vs 5 (AI 1956); 1989-90
+   135 vs ~9-18; 1995 24 vs 2 (AI 1967); 1997 now 16.9 vs 1, because AI 667 outranks inferred zeros. AI 657 and AI 667 are
+   NOT rendered as zeros (requirement met). 2007 and 2010 render correctly (zeros plus the June 2010 import), and after
+   WHO's last week (2026-07-19) the series carries AI documented zeros to 2026-09-30.
+B8 JHU annual zeros override AI national case rows: 2011 (AI 505, 1 confirmed), 2014 (AI 472, 2), 2020 (AI 530, 1). They
+   also downgrade AI documented zeros to inferred_zero in 2006, 2011-12, 2014-17 and 2019-21.
+B9 WHO zero weeks override AI cases. All 52 WHO weeks of 2025 are 0, yet WHO's own 2025 annual is 4 (AI 66) and NMCSS
+   notified 2/2/5/24 cases in Mar/Apr/Jun/Jul, plus 4 suspected in Dec. MOSAIC sees 0 for 2025. In 2024 the WHO weeks are
+   confirmed-only (11 cases, 0 deaths) vs NICD 162 notified / 13 confirmed / 5 deaths.
+B10 Zero rows ending or starting mid-week claim the whole ISO week, so the 7 Feb and 19 Nov 2018 cases vanish (neither has
+   a national row either). WHO 2026 weeks match AI onsets (8 and 15 Jul); no week shift is visible for ZAF.
+Net: +67,191 cases in 2000, 2002, 2004, 2005, 2008, 2009 and 2023 against WHO's own annual totals. Suggested fixes: prefer
+the shorter/more specific row among same-source overlaps; let graded AI evidence override JHU/WHO annuals; refit the
+template on onset-week data or a regional pool; flag JHU 26 (2005) and WHO Index 1 (2023 week 35) in the baseline.
+
+6. VALIDATOR STATUS AND WHAT AGENT 7 CHANGED (all via py/revise_observation.py or py/add_observation.py)
+WARNs left in place, with reasons:
+- period_single_day 101: every row read. All are daily counts, single dated cases or WER single-date entries; none is a
+  cumulative total dumped on one day.
+- multiyear_aggregate 58: all are genuine period totals and all are at confidence <=0.7.
+- same_period_conflict 24: all adjudicated. The one pair missing a primary designation (AI 1960/1811) got one.
+- CFR_high 6: all documented, all at 0.7.
+repair_data_integrity.py --dry-run proposed 0 changes; no attribution_review.csv was created.
+Repairs:
+- AI 2569 (Jan-Sep 1997) and AI 2570 (Nov-Dec 1997): Documented_Absence -> Inferred_Absence. AI 2569's surveillance status
+  corrected to partial. Basis: the zero is an undated annual total minus an externally dated import, with a province
+  conflict - the same case as the AI 209 precedent. Side effect: 1997 rises to 16.9 cases in the weekly series (B7).
+- AI 16 (legacy) retracted: 116,517 is not in its source. Re-entered as AI 2574 (2000-08-01..2002-04-30, 117,147 cases /
+  265 deaths, verbatim from MSP OP10, confidence 0.8).
+- AI 20 (legacy) retracted: a mis-cited duplicate of AI 369.
+- AI 21 (legacy) retracted and re-entered as AI 2575, citing source 505 (Sigudu et al. 2015: 6,278 cases / 383 confirmed /
+  30 deaths, confidence 0.9).
+- Rows above their cited source's reliability ceiling (the validator does not check this): AI 7 0.9->0.6, AI 23
+  0.95->0.9, AI 1425 0.7->0.6. Now 0 rows exceed their ceiling.
+- 10 provincial zero rows (2023-25) contained onset weeks with cases in the later, cleaned dashboard data. Each now has a
+  note naming the dashboard row as primary. AI 1206, 1476, 1495, 1496, 1508, 1568, 1621 and 1730 were lowered to 0.5; AI 915 and 1479
+  got notes only.
+- Notes only: verbatim quotes added to AI 13, 15, 19 and 45; AI 2512 and 416 corrected where they relied on AI 16.
+Left as they are, with reasons: 13 deaths-only rows; AI 1928/1929 (single-source ministerial figures, labelled as such,
+0.3; the national row is masked by JHU in the weekly series); the 58 multi-year aggregates; AI 38/39 TR (season label vs table title,
+identical counts).
+Spot-check: 30 random rows (seed 20261004) all passed the internal check. 22 were re-fetched from source: 22/22 confirmed,
+0 contradicted; 8 sources were unreachable (WHO IRIS, Europe PMC, empty Wayback captures). A targeted sweep of the 14
+legacy rows no agent had revised found 3 contradicted (AI 16, 20, 21 - fixed), 9 confirmed by re-fetch (AI 17 was
+already verified by A5) and 1 unverifiable (AI 41).
+
+7. WHICH AGENTS WERE PRODUCTIVE
+Every agent ran >=3 batches (12/12/12/12/12/11). No yield exceeds 100%, and every claimed row is in the file.
+- A1: the broadest - 735 rows and 353 sources, yields 15-50%. 21 of its sources are orphans.
+- A2: 627 sub-national rows, most of the geographic detail.
+- A3: 336 zero rows. It retracted 17 contradicted rows, 14 of them legacy rows including the 11 long zero rows behind the
+  inflated 98.1%.
+- A4: 196 rows resolving 1973-1999, with yield falling to 0%. It was interrupted twice in batch 5 and resumed there.
+- A5: 597 rows, 24 retractions, and the 2023-26 NMCSS/dashboard series. Its batch 2-4 yields (50/65/95%) overstate search
+  diversity, because cached files were counted as queries. It did not check its new onset rows against existing zeros (10
+  conflicts, fixed above).
+- A6: only 7 rows, but decisive classification work: the 2005 data error, the 2008 annual artefact, 1989-90/1996
+  non-reporting and the TBVC exclusion.
+- Pre-cycle legacy layer: 28 of 60 rows retracted (47%): 25 by A3/A5 and 3 by A7.
+
+8. WHAT A FUTURE RUN SHOULD DO
+1. Fix the builder (B0-B10) before the next MOSAIC fit. The AI layer's best ZAF series - NDoH daily updates 2000-04, NOC
+   sitreps 2008-09, NICD onset weeks 2023-24 - never reaches the weekly file.
+2. Add two validator checks: confidence above the cited source's ceiling, and zero rows overlapping dated cases. Let
+   revise_observation.py re-point source_index and enforce the ceiling.
+3. Retrieve print-only sources: DoH Epidemiological Comments 1986-97, SAMJ 1986-99 (AJOL), SAIRR Race Relations Surveys
+   1989-92, Transkei/Bophuthatswana health reports, and WHO IRIS (down during this run) for WER 1989-90.
+4. Re-check Oct 2026 onward once the Aug-Sep 2026 NMCSS reports are out. Add national rows for sporadic cases recorded only
+   sub-nationally (2018 Feb/Nov, Dec 2019).
+5. Raise the session WebSearch cap: 200 searches were shared across agents, and A3-A5 ran with none left.
+6. Ask WHO/JHU about the 2005 figure of 3,503 (no corrigendum found; it has entered peer-reviewed analyses).
+
+================================================================================================================
+METRICS APPENDIX
+A. Coverage (read-only helper /tmp/zaf_private_gaps.py wrapping py/analyze_effective_gaps.analyse; horizon 2026-10-04)
+   State                                     months covered   %      gaps  months_ai_only  months_positive
+   JHU+WHO only                              489/682         71.7    9     -                353
+   Cycle start as recorded (cf1c3ad, 60 rows) 669/682        98.1    3     180              358
+   Cycle start, surviving legacy rows (32)   526/682         77.1    9     37               358
+   Final (2,524 rows)                        681/682         99.9    0     190              462
+   Baseline gaps and how they closed: 1970-72 legacy AI 49 (Documented zero); 1975-78 AI 203/204 (WER nil tables);
+   1988-90 AI 657 aggregate + AI 1956 (1988 = 5); 1995-97 AI 661/667 aggregates + AI 1967 + AI 567 + AI 2569/2570;
+   2007 AI 1441; 2010 AI 1442/1443 + AI 24; 2018 AI 62-65 (NICD line list); 2026-08/09 AI 198, 2209, 2482. Most gap months
+   were closed by zero rows or multi-year aggregates, not new case counts.
+   Latest observation 2026-09-30; latest positive observation 2026-07-31.
+B. National month coverage by row length (union of national rows, all layers / AI only)
+   <=31 days 94 / 78 | <=93 days 149 / 138 | <=366 days 565 / 489 | any 681 / 679 (of 682)
+C. AI-only months (190): zero-only 113 (109 via rows >93 d), positive 77 (72 via rows >93 d). By year: 1970-72 36,
+   1975-78 48, 1988-90 36, 1995-97 36, 2007 12, 2010 12, 2018 8, 2026 2.
+D. Rows by level (case / zero): national 428/58, province 906/369, district 446/40, local municipality 265/5,
+   sub-municipal 7/0. Decade (case / zero): 1970s 8/21, 1980s 267/23, 1990s 49/41, 2000s 1,196/126, 2010s 18/52,
+   2020s 514/209.
+E. Sources: L1 416 (350 used), L2 71 (64), L3 116 (112), L4 1 (0). Rows by cited tier: L1 1,869, L2 388, L3 267.
+   Confidence bands: <=0.3 7 | 0.3-0.5 235 | 0.5-0.6 232 | 0.6-0.7 231 | 0.7-0.8 333 | 0.8-0.9 1,400 | 0.9-1.0 86;
+   mean 0.777.
+F. Agents (batches; yields %; live rows now; tombstoned; sources)
+   A1 12; 40,45,50,35,35,25,30,20,15,35,45,35; 728 (693 case/35 zero); 9; 353
+   A2 12; 25,25,35,35,35,50,40,50,25,40,35,5;  625 (557/68); 6; 128
+   A3 12; 25,70,75,15,25,25,5,5,25,20,30,0;    336 (0/336); 0; 9   (+17 retractions of others' rows)
+   A4 12; 10,25,15,10,25,10,10,5,0,5,0,0;      196 (190/6); 0; 63
+   A5 12; 45,50,65,95,30,25,20,10,45,25,0,0;   598 (575/23); 7; 15 (+24 retractions; B2-B4 overstated)
+   A6 11; 0,5,5,0,0,5,0,5,0,0,0;               7 (5/2); 0; 4
+   A7 audit; -;                                2 re-entries (AI 2574, 2575); 3 retractions (AI 16, 20, 21); 0
+   Pre-cycle legacy                            32 live of 60 (28 retracted: 25 by A3/A5, 3 by A7)
+G. Validator (python py/validate_quality.py ZAF): exit 0 | 2,524 rows | 604 sources | ERROR 0 | WARN 189
+   (period_single_day 101, multiyear_aggregate 58, same_period_conflict 24, CFR_high_flagged_for_review 6) | INFO 532
+   (national_subnational_overlap 454 documented, metadata_unused 78).
+H. Weekly series (in memory; nothing written): 2,962 weeks; JHU 1,972 / AI 839 / WHO 151; fourier 1,762, documented_zero
+   524, inferred_zero 523, observed 153; total 251,261 cases; AI-owned weeks carry 261 cases.
+   Builder vs WHO annual: 2000 28,349 vs 19,667 | 2002 56,221 vs 10,004 | 2004 4,605 vs 2,767 | 2005 3,503 vs 0 |
+   2008 6,829 vs 3,907 | 2009 12,896 vs 10,520 | 2023 3,044 vs 1,390 -> excess +67,191.
