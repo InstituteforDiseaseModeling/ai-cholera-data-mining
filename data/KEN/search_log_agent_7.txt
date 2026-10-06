@@ -1,0 +1,227 @@
+================================================================================
+=== AGENT 7 (cholera-quality-auditor) - KENYA (KEN) - Opus 5.5 cycle, session 2 ===
+================================================================================
+Log file : ./data/KEN/search_log_agent_7.txt (created fresh; previous Agent 7 log archived as
+           ./data/KEN/search_log_agent_7_legacy_2025-08-06.txt - not written to)
+Start    : 2026-10-06 11:37 local
+Brief    : orchestrator prompt (session 2) + ./data/KEN/workflow_orchestrator_KEN.txt (section R overrides A and D;
+           sections B, C, G, H apply) + ./data/KEN/workflow_state.json (6 agent entries, 7 orchestrator gates).
+Overrides applied (from the brief):
+  - py/analyze_effective_gaps.py is NOT run in any form (shared ./reference/ files); coverage is measured in memory with
+    analyze_effective_gaps.analyse() (read-only).
+  - py/repair_data_integrity.py is always given KEN explicitly (--dry-run KEN first).
+  - No writes under ./reference/, no edits to ./data/KEN/cholera_data_jhu.csv or cholera_data_who.csv, no dashboard
+    scripts, no git. Data writes only through py/add_observation.py and py/revise_observation.py KEN ... --agent 7.
+  - WebSearch soft allocation 150 (standard mode by default). Network calls wrapped in `timeout`.
+  - Downloads in /tmp/ken7_dl/ (untrusted), scripts in /tmp/ken7_scripts/, python3 -I for anything reading downloads.
+Host     : load average 6.8 at 11:37 (much lower than the ~255-325 reported earlier).
+Inputs read before the first check:
+  ./data/KEN/workflow_orchestrator_KEN.txt (365 lines), ./data/KEN/workflow_state.json (agents 1-6 + gates 1..6),
+  FINAL/CLOSING SUMMARY blocks of ./data/KEN/search_log_agent_1.txt .. _6.txt,
+  ./.claude/agents/cholera-quality-auditor.md (steps 1-4).
+WebSearch running count: 0
+
+=== AUDIT PASS 1 | STEP 1: VALIDATOR, REPAIR DRY-RUN, ATTRIBUTION REVIEW | 2026-10-06 11:40 ===
+Command : python py/validate_quality.py KEN --json /tmp/KEN_audit_start.json  -> exit 0
+Result  : 2,615 data rows, 575 metadata sources. ERROR 0, WARN 28, INFO 511 (matches the Agent 6 gate exactly).
+          WARN by check: 11 period_single_day, 8 CFR_high_flagged_for_review, 6 multiyear_aggregate, 3 same_period_conflict.
+          INFO by check: 421 national_subnational_overlap (documented periods), 90 metadata_unused.
+          Validator 'row' = physical CSV line (header = line 1); mapped to Index with /tmp/ken7_scripts/warnmap.py:
+            multiyear_aggregate : AI 1 (1997-2010 national 68,522/2,641), AI 44 (2015-2019 national 25,992/479),
+                                  AI 87/88/89 (Boru 2015-2020 culture-positive cCh Garissa 591, Wajir 345, Tana River 11),
+                                  AI 790 (Mageto 2025 Dadaab+Fafi cluster 2015-2018, 3,267)
+            CFR_high            : AI 73 (Jomvu 2025 5/32), 347 (national 26 Sep-2 Oct 1982 5/29), 407 (Tana River 6 Mar 1971
+                                  14/25), 411 (national 13 Dec 1974 6/31), 979 (Mombasa 26 May-8 Jun 1986 10/50),
+                                  1027 (Trans Nzoia Jan 1985 8/38), 1605 (South Nyanza Jun 1983 6/37), 1635 (Siaya
+                                  Nov 2007-Apr 2008 5/30)
+            period_single_day   : AI 77, 243, 352, 407, 411, 1010, 1247, 1270, 1431, 1569, 2396
+            same_period_conflict: AI 538 vs 86 (Embakasi South 2017), AI 2238 vs 56 (national 2013),
+                                  AI 2312 vs 1373 (Dadaab 18 Nov-16 Dec 2015)
+          STALE DEBT: 'KEN source_name_mismatch Index 16' in ./reference/validation_debt.json - the finding no longer
+          occurs (Index 16 retracted 2026-09-20, re-filed as AI 467 against source 19). REPORT ONLY - not edited
+          (no writes under ./reference/).
+Command : python py/repair_data_integrity.py --dry-run KEN  -> exit 0, "TOTAL: 0 change(s)". Nothing to apply; --apply
+          NOT run (no mechanical defect present).
+File    : ./data/KEN/attribution_review.csv (5 entries, last written 2026-09-20 by the previous cycle's Agent 5):
+            AI 16 Migori  - RESOLVED (retracted; re-filed as AI 467 against source 19; verified present in the file)
+            AI 15 Homa Bay- RESOLVED (retracted; re-filed as AI 468 against source 19; verified present)
+            AI 3 national - RESOLVED (retracted; re-filed as AI 805 = Ngere 2024 10,536; verified present)
+            AI 81 Nairobi - NO DEFECT (metadata 46 Date_Range too narrow; row unchanged; verified present)
+            AI 19 W Pokot - file text says 'NOT RESOLVED', but the row was subsequently RETRACTED on 2026-09-20 with a
+                            full evidential reason (tombstone in ./data/KEN/retracted_rows_ai.csv: cited MMWR 65(3)
+                            cannot support it; Boru S1 line list records West Pokot 0 in 2016 and 2 in 2017). The
+                            'NOT RESOLVED' text is stale. Minor: the review note and the tombstone both say the Trans
+                            Nzoia sibling was re-filed as 'Index 489'; it is actually AI 488 (Trans_Nzoia 2014-12-26..
+                            2016-01-15, 23/3, source 96); AI 489 is Narok 22/0 from the same MMWR table.
+          No open attribution item remains. The CSV is not edited (hand-edit prohibition); recorded here and in the report.
+
+=== AUDIT PASS 2 | SECTION A + B1: WARN REVIEW AND THE AI 1373 DECISION | 2026-10-06 11:45-11:55 ===
+Each WARN row's processing_notes were read in full (/tmp/ken7_scripts/show.py). Decisions:
+ same_period_conflict (3):
+   AI 2238 vs AI 56 (national 2013, 41/0 vs 5/0): FINAL ADJUDICATION lines present on both rows (Agent 5, 6 Oct):
+     2238 PRIMARY (MoH NMCEP Table 2), 56 NON-PRIMARY 0.4 (Cowman 2015). WHO WER 2013 omits Kenya, so no WHO arbiter.
+     Weekly builder check: both rows are national annual AI rows; within the AI layer the builder keeps the higher
+     per-week value, i.e. 2238 wins in every 2013 week - the primary is what reaches the series. JUSTIFIED (kept).
+     Caveat noted: AI 56's FIRST sentence still reads 'PRIMARY for 2013 aggregation' (original Agent text); the
+     appended FINAL ADJUDICATION supersedes it. Append-only notes cannot remove the stale phrase.
+   AI 86 vs AI 538 (Embakasi South 2017, 140 vs 93): FINAL ADJUDICATION lines on both; 86 PRIMARY (Mageto 2025
+     cluster table), 538 NON-PRIMARY 0.40 (Boru S1 'clean data' after documented exclusion of 292 unresolved Nairobi
+     records). Sub-national, not in the national builder. JUSTIFIED (kept).
+   AI 2312 vs AI 1373 (Dadaab 18 Nov-16 Dec 2015, 541/7 vs 307/7): FIXED - see B1 below.
+ B1 - AI 1373 DECISION: RETRACT + RE-ADD (not 'leave non-primary').
+   Verified the MSF Project Update of 17 Dec 2015 myself: https://www.msf.org/kenya-cholera-outbreak-spreads-dadaab-refugee-camp
+   (HTTP 200; the ReliefWeb copy cited as metadata 539 returned a 202 bot challenge and was NOT circumvented). Quotes:
+     'So far around 541 people have reportedly been affected, the majority of whom are living in Dagahaley Camp.'
+     'Seven people in Dadaab have died since the cholera outbreak began. In the last three weeks, MSF has admitted
+      307 patients to its treatment centre.'  'It was officially declared in Dadaab on 23 November 2015.'
+   Rationale: the 307 and the 7 are different measures (one facility over ~3 weeks vs camp-wide since onset). The
+   row as written (Dadaab, 18 Nov-16 Dec, 307 cases, 7 deaths) is a pairing no source states, so it is genuinely
+   unsupportable as a record - its CFR (2.28%) is meaningless and its period is wrong for its case count. Leaving it
+   at 0.3 would keep a false CFR and a same-place/same-period duplicate in the file. revise_observation.py cannot
+   blank deaths, so the correct record had to be a new row. A re-added row citing Capital FM (316) would have had to
+   reuse the camp-wide period (Capital FM gives no window) and would have reproduced the conflict, so the re-added
+   row cites the MSF release itself (539), which carries the 'last three weeks' window.
+   Actions (all via the tools, --agent 7):
+     python py/revise_observation.py KEN --index 1373 --delete --agent 7 --reason '...'   -> tombstone written
+     python py/add_observation.py add KEN --source-index 539 --location AFR::KEN::North-Eastern::Garissa::Dadaab
+        --tl 2015-11-26 --tr 2015-12-16 --sch 307 --reporting-date 2015-12-17 --confidence 0.5 ...  -> ROW AI 2654
+        (deaths empty; NON-PRIMARY facility subset; 'Temporal subset of Index 2312 - do not sum with it'; also inside
+        AI 2311/AI 4 and overlapping AI 2345/2346; 'Provincial subset - do not sum with national row').
+     Cross-reference notes appended to AI 2312, 2311, 2302, 2315, 2346 (their notes cited AI 1373): read as AI 2654.
+   Validator after: exit 0, ERROR 0, WARN 27 (same_period_conflict 3 -> 2), INFO 512 (+1 = metadata 316 Capital FM
+   now unused; it is a relay of 539, not a wrong attribution, so its Status was NOT set to Superseded).
+ multiyear_aggregate (6) - all JUSTIFIED (kept; each source reports a genuine period total; confidence already at the
+   0.7 cap): AI 1 (Mutonga 2013 JID: '68,522 ... and 2,641 deaths were reported' 1997-2010; Agent 5 verified the
+   source's annual table sums exactly to it), AI 44 (PMC10058159: 'Total of 25,992 cholera cases and 479 deaths from
+   2015-2019'), AI 87/88/89 (Boru 2023 culture-positive specimens 2015-2020, cCh only, explicitly NOT county totals),
+   AI 790 (Mageto 2025 SaTScan cluster 1, Dadaab+Fafi 2015-2018, 3,267 observed). Weekly-builder note: AI 1 and AI 44
+   are national; JHU national annual rows cover 1997-2010 and 2015-2019, and JHU outranks AI per week, so neither
+   aggregate reaches cholera_weekly_KEN.csv in those years. Nesting markers vs other AI national rows: see section D.
+ CFR_high_flagged_for_review (8) - all JUSTIFIED (kept): every row carries an Agent 5 'C4 CFR CHECK' against its source
+   (archived WER page images for 347/407/411; JPRS OCR for 979/1027; Ehara 1985 Table 7 for 1605; DEPHA chart for 1635;
+   Eastleigh Voice for 73). Same-denominator small-n rows: 73 (Jomvu 5/32, source states the CFR itself), 347 (WER
+   1982 week 29/5), 407 (Galole 1971 first introduction 25/14; narrative says 24/14 - tabulated value kept), 411 (WER
+   13.XII.1974 opening notification 31/6), 1605 (admitted culture-positive cases 37/6), 1635 (DEPHA bar chart 30/5).
+   Lower-bound denominators (CFR is an upper bound, documented, confidence 0.4): 979 (Port Reitz hospital 50 cases vs
+   Mombasa-wide 10 deaths), 1027 (Trans Nzoia 8 deaths + 'at least 30' treated). These two differ from AI 1373: the
+   cases and deaths refer to the same place and window and no better row exists, so the row is a valid lower bound.
+ period_single_day (11) - all JUSTIFIED (kept): each source dates a single day - WER single-date IHR notifications
+   (243 '30.I' 1980, 352 '16.III' 1978, 407 '6.III' 1971, 411 '13.XII' 1974), dated admissions/treatment days
+   (1010 Port Victoria 'on Tuesday' 18 Aug 1981, 1270 Port Victoria 'on Tuesday' 11 Jul 2023, 1431 Isiolo Saturday 2 Nov
+   2019, 2396 Kisumu '14 patients admitted to hospital on 6 June' 2008), single confirmed cases on a stated date (77
+   Roysambu 21 Oct 2025, 1247 Kitengela 20 Jun 2019, 1569 Ifo2 'on 28th April 2013'). Widening any of them would invent
+   a TL the source does not give. Only 411 and 243/352 are national; JHU annual rows outrank them in the builder.
+   Minor note: AI 1569's text cites 'the national 2013 row (Index 56)' - the primary national 2013 row is now AI 2238.
+
+=== AUDIT PASS 3 | SECTION B: HANDED-OVER DEFECTS | 2026-10-06 11:55-12:05 ===
+B1 AI 1373 - done in pass 2 (retracted; correctly paired facility row AI 2654 added from source 539).
+B2 Presence-row caveats (Agent 6) - DOCUMENTED, presence rows NOT edited (no tool edits ./data/KEN/cholera_presence_ai.csv;
+   hand-editing is prohibited). Independent checks by Agent 7:
+   - Source 32 (Mwaura, 1988 national presence, conf 0.8): Europe PMC full text PMC5637767 fetched (HTTP 200,
+     /tmp/ken7_dl/mwaura.xml): 'From 1974 to 1989, outbreaks were reported every year with an average case fatality rate
+     of 3.6%.1' and ref 1 = 'World Health Organization Weekly Epidemiol Rec. 2004;79:236-244.' -> citation chain
+     CONFIRMED; Agent 6 read those WER pages (no Kenyan cholera history). Also: the paper is Afr J Lab Med 3(1):41,
+     published 17 Oct 2014 (the '2017' in the label is the PMC deposit year).
+   - Source 44 (Bundi 2019, 1990/1991/1993 national presence, conf 0.7): re-tabulated Agent 6's ENA extract
+     (/tmp/ken6_dl/ena_vc_kenya.tsv, 1,081 Kenyan V. cholerae samples): collection years 1981 (194), 1983 (24), 2005 (143),
+     2007-2023; NONE 1984-2004 -> CONFIRMED that the wave dating is phylogeographic inference, not dated isolates.
+   - Source 494 (WER 1993 register 'Kenya (area not specified)', conf 0.8): accepted Agent 6's reading of the 1992 lists
+     (absent 9 Jan/13 Feb/19 Mar 1992, listed from 30 Apr 1992, never cleared to 1997) - not re-fetched.
+   Tool-based mitigation: the caveats were attached to the SOURCES so they travel with every citation:
+     python py/revise_observation.py KEN --meta-index 32|44|494 --set-description '<original text> + AGENT 7 AUDIT
+     CAVEAT ...' --agent 7 (metadata 44's old text claimed the paper 'establishes that cholera circulated in Kenya
+     continuously through the 1990s' - corrected as an overstatement).
+   Effect on gap classification: 1988 presence now rests only on Kuria 1987-89 (source 517, conf 0.4, local account);
+   1990 presence stands on the IHR register (source 101, 0.9) + UN note 24 Jul 1990 (source 188); 1991 = register
+   listing only (legal status to 3 Oct 1991); 1993 = ES 1994 (237, 0.4) + WFP camps 1993-94 (513, 0.5). None of this
+   changes the data series (presence rows never enter case/zero series); it lowers confidence that 1988 and 1993 were
+   transmission years, which is exactly why no zero and no count can be written for them.
+B3 JHU baseline defects (READ-ONLY, verified against ./data/KEN/cholera_data_jhu.csv, NOT edited):
+   - JHU 883-887 (AFR::KEN, TL 2022-10-05, TR 2023-09-10..2024-01-15, source 45 UID 21411): sCh 202-206 vs deaths
+     12,102-12,432 (CFR 5,967-6,035%) -> cases and deaths SWAPPED. CONFIRMED.
+   - JHU 876 (AFR::KEN 2022-05-10..2023-09-10, UID 21411): 202 cases / 121 deaths, CFR 59.9% -> MALFORMED. CONFIRMED.
+   - JHU 710 (Mandera 2016-03-01..04-12, 894): misdated - IFRC MDRKE038's '894 cases reported by 12 April 2016' does not
+     fit the MoH line list in JHU 622-709 (7 cases by 12 Apr, ~1,017 by 31 May); figure fits late May. CONFIRMED from
+     the line-list arithmetic recorded on AI 11.
+   - JHU 154 (AFR::KEN 2017-01-01..12-31, 1,551, UID 20600): the same UID's JHU 118 gives 1,551/25 for 1 Jan-30 Jul 2017
+     -> a partial-year figure stored as an annual. CONFIRMED. (WHO annual 2017 = JHU 193, 4,288/82.)
+   - JHU 86 / 87 (Wajir 2018-05-07..07-04 39/7c; Mandera 2017-12-15..2018-07-04 102/4c/1d, UID 20923): Agent 3/5 said
+     MEASLES. CONFIRMED in the cached WHO AFRO 2018 W28 bulletin (/tmp/ken3/afro18/w28.txt): 'Kenya Measles Ungraded
+     19-Feb-18 ... 156 16 1 0.6%' with the text 'Wajir County has reported 39 cases with 7 confirmed cases; Mandera has
+     reported 102 cases with 4 confirmed cases and one death. Date of onset of the index case in Wajir County was on
+     15 December 2017' (= JHU 87's TL).
+   Weekly-series impact (read of ./data/KEN/cholera_weekly_KEN.csv, built 5 Oct 15:35): the swapped/malformed national
+   rows 876/883-887 do NOT surface in 2022-23 weeks (JHU weekly observed rows and the WHO weekly layer win those weeks),
+   but JHU 198 (WHO annual 2022 = 3,525/64) is Fourier-spread over 2022 weeks 1-18 and 21-39 at ~20-166 cases/week,
+   overriding the AI Documented_Absence 2022-01-01..04-30 (AI 1320) - the known 'JHU outranks AI evidence' builder defect.
+B4 Stale debt entry 'KEN source_name_mismatch Index 16' in ./reference/validation_debt.json: confirmed stale (AI 16
+   retracted 2026-09-20; validator lists it under STALE DEBT ENTRIES). REPORT ONLY - not edited.
+B5 NMCEP 2022-2030 Table 2 (metadata 506): used only for 2013 (AI 2238); Agent 5 recorded conflicts with WHO annuals for
+   2008-2010, 2015-2017 and 2020 - noted for the report.
+
+=== AUDIT PASS 4 | SECTION E: RECENT TAIL RE-CHECK | 2026-10-06 11:48-12:10 ===
+  E-Q1 curl https://www.afro.who.int/countries/kenya/publication/kenya-weekly-situation-report-2026 (HTTP 200, 11:48)
+       -> newest PDF = 'Week 39 Situation Report' (files/2026-09/); article:modified_time 'Wed, 30/09/2026 - 14:39'
+       (identical link set to Agent 6's copy of 11:29). Week 40 (28 Sep-4 Oct) NOT published. ............. nil
+  E-Q2 HEAD probes of six plausible Week 40 PDF paths (files/2026-10/ and 2026-09/, four filename variants) -> all 404 . nil
+  E-Q3 WHO ArcGIS cholera_adm0_week, iso_3_code='KEN', epiyr>=2025 (HTTP 200; 77 features) -> last feature date_wk
+       2026-06-15 (epiyr 2026 epiwk 24, 3 cases); layer editingInfo lastEditDate 2026-09-28 08:21 UTC; nothing new.
+       2026 epiwk 19-24 (4,10,12,6,5,3 = 40) are already held as AI 858-863 (source 133). ......................... nil
+  E-Q4 WebSearch (standard) 'Kenya cholera outbreak October 2026' -> only 2025 items (Narok Oct 2025, MoH alert 2025) . nil
+  E-Q5 WebSearch (standard) Swahili 'kipindupindu Kenya Septemba Oktoba 2026 wagonjwa' -> rainfall forecasts only .... nil
+  ReliefWeb not tried again (202 bot challenge on the MSF page at 11:42; not circumvented).
+  RESULT: recent tail 2026-09-28..2026-10-06 stays OPEN (reporting lag). National series ends 2026-09-27 (AI 887,
+  EPR W39 Documented_Absence); latest positive 2026-09-14..20 (AI 885, 1 confirmed case). Silence is not evidence: no
+  zero row written. WebSearch running count: 2.
+
+=== AUDIT PASS 5 | SECTION D: OVERLAP INFLATION (MARKER SCAN + WEEKLY-BUILDER MEASUREMENT) | 2026-10-06 12:10-12:45 ===
+Scan (scripts /tmp/ken7_scripts/overlap*.py, plan2.py; read-only): every pair of POSITIVE AI rows at the identical Location
+with overlapping periods. 2,986 pairs. A pair counts as documented when either row cites the other's Index, or either row
+carries an explicit nesting phrase (Temporal subset/superset, NON-PRIMARY, week-/multi-week-/month-level detail, weekly
+subset, derived increment, contains/encloses, inside/subset of AI|Index|the ..., superseded, same figure/duplicate, nested,
+snapshot, sub-period, 'do not sum with it/them/Index N'). The bare spatial phrases ('Provincial subset - do not sum with
+national row', 'National total - includes provinces ...') do NOT count, because they say nothing about same-place nesting.
+  Before: 1,256 specific + 1,673 generic-explicit + 57 UNDOCUMENTED pairs (33 of them under four multi-year laboratory /
+          cluster aggregates AI 87, 88, 89, 790; 24 ordinary pairs). A looser test (any 'do not sum') left 13 pairs.
+          Reading the notes of both lists also exposed the multi-year national aggregates AI 1 and AI 44, whose only
+          'do not sum' was the spatial phrase, and four unresolved same-place conflicts with no primary named.
+  Fixes - 37 append-note revisions, all via python py/revise_observation.py KEN --index N --agent 7 --append-note ...:
+    superset/aggregate notes : AI 1 (1997-2010), 44 (2015-2019), 87/88/89 (Boru 2015-2020 culture-positive cCh),
+                               790 (Mageto Dadaab+Fafi 2015-2018)
+    'Temporal subset of Index N - do not sum with it' : AI 179 (of 91; + overlap with 1310), 1310, 1311, 1312, 1313, 1316
+                               (of 91), 1230-1233 (of 705), 135 (of 66), 134 (of 64), 1361 (of 536), 835, 839 (of 1708),
+                               1426 (of 519), 1213 (of 780), 1360 (of 588), 1407 (of 83), 1404 (of 80), 51 (also of 1379)
+    primary / non-primary designations (conflicts that had none):
+                               AI 1166 PRIMARY / 967 NON-PRIMARY (Mombasa Oct-Nov 2006, WHO EHA 110 vs CAFOD 28);
+                               AI 1406 PRIMARY / 84 NON-PRIMARY (Kakuma 2017: UNHCR line list 55 by 9 Jun > Kisera 42 for
+                               May 2017-May 2018); AI 83 NON-PRIMARY vs UNHCR Kalobeyei 72 by 27 Jul (AI 1409);
+                               AI 14 NON-PRIMARY vs AI 136 / 927 (national Feb-Apr 2025, out-of-sequence photo-story figure);
+                               AI 518 NON-PRIMARY (Boru Dadaab 2017 = 9 vs Golicha chronology 624)
+    overlap / boundary notes : AI 82 (Kisera vs Boru Turkana West 2017/2018), 1427 (1-day boundary with 84), 184 (3-day
+                               boundary with 1666; different waves)
+  After: 0 UNDOCUMENTED pairs (1,361 specific + 1,625 generic-explicit).
+  Two data corrections made while working the scan:
+    AI 1834 (Dadaab zero 2016-09-01..2017-03-31): Location '...::Dadaab::Dadaab_Refugee_Camp' -> '...::Dadaab' (the AI
+      file's code for the camp complex; the extra JHU-style level split the complex into two series). New overlaps at the
+      complex level (Boru AI 517/518, undated calendar totals) checked and documented as consistent.
+    AI 1382 (WER 2026 no.39, 40 cases YTD to 30 Aug 2026): TL 2026-01-01 -> 2026-05-11. The WHO weekly layer (same global
+      dataset) is flat at cum 13,545 from the last week of 2025 to the week of 4 May 2026 and puts all 40 cases in epi-weeks
+      19-24 (AI 858-863), so both cumulative endpoints come from one series (brief rule G). Not an absence claim for
+      Jan-May (Garissa Township cluster AI 70 never reached the WHO stream).
+Weekly-builder measurement (read-only re-implementation of build_weekly_timeseries.process_country with row tracking,
+/tmp/ken7_scripts/weekly_mem.py and weekly_trace.py; nothing written; template country_k2, 8 template years):
+  AI-caused inflation found and fixed: 2026 national total 88 -> 64 after the AI 1382 re-dating (AI 1382 had spread ~24
+  phantom cases over Jan-May 2026). Residual 2026 excess (64 vs 41 reported) = 22.9 cases that the builder puts in ISO week
+  2026-W01 from the 2025 annual row AI 927 (TR 31 Dec 2025 falls in W01) - a builder year-boundary defect, not a data error
+  (AI 55 does the same to 2013-W01: 10.4 cases, so 2013 shows 50 vs 41).
+  Other AI-driven excess left as is: 2025 = 817 vs 725 annual (AI 1379's Sep-Dec event total fills Sep 2025 weeks that have
+  no weekly row; AI 815/810/927 shares fill other weeks) - fixing it would need the builder to treat finer rows as constraints.
+  BASELINE-driven distortions (JHU outranks AI per week; NOT fixable by agents; for the maintainer):
+    2000-2007: every year = 4,872 cases (2004: 5,028) - JHU 611, the 1997-2010 aggregate 68,522/2,641 (= AI 1), out-ranks
+               JHU's annual rows (including the explicit 2003 zero JHU 603, an 'inferred_zero' that loses to any Fourier
+               share) and the AI Documented_Absence for 2003 (AI 791). True annuals: 2002 291, 2003 0, 2006 402-870 ...
+    2014: 6,293 vs WHO 35 - JHU 577/586 (2014-01-01..2017-07-21, 17,597) spread over 2014.
+    2016: 10,037 vs WHO 5,866; 2017: 6,230 vs 4,288; 2019: 7,050 vs 5,208; 2022: 7,328 vs 3,525 (JHU 198 also overrides the
+          AI Documented_Absence Jan-Apr 2022, AI 1320); 2023: 12,474 vs ~8,926; 2024: 6,401 vs WHO 302 / AFRO 392-613 (JHU 353
+          and 354, the 2022-10-01..2024-05-31 cumulative 12,610, spread over 2024).
+  Swapped/malformed JHU 876, 883-887 do not surface (they lose every week on sCh).
