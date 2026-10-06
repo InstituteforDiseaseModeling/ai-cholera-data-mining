@@ -17,6 +17,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 RUNNER_PID="$1"; LOGDIR="$2"; RUNNER_EVERY="${3:-5}"
+(( RUNNER_EVERY >= 1 )) || RUNNER_EVERY=1   # 0 would divide by zero below
 DONE_FILE="$LOGDIR/.completed"
 LOG="$LOGDIR/_rebuild_watch.log"
 

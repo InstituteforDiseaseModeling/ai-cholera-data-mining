@@ -12,8 +12,10 @@ Method:
       * sCh == 0 over any interval  → zero-fill every covered ISO week
       * sCh  > 0, already weekly    → direct assignment
       * sCh  > 0, non-weekly        → Fourier template slice + renormalise
-  - Source priority (high→low): WHO > JHU > AI
-  - JHU weekly observed rows take precedence over JHU non-weekly disaggregated rows
+  - Evidence before provenance: observed weeks (any source) > aggregates by
+    span, finest first, distributing only their residual > inferred zeros.
+    Source priority WHO > JHU > AI only breaks ties (see process_country)
+  - Sub-weekly rows (daily feeds, 24-hour bulletins) are summed per ISO week
 
 Outputs per country:
   data/{ISO}/cholera_weekly_{ISO}.csv
@@ -22,6 +24,7 @@ Outputs per country:
 
 import csv
 import json
+import math
 import re
 import warnings
 import numpy as np
@@ -325,6 +328,11 @@ def load_national_rows(iso, src, data_dir):
             deaths_raw = row.get("deaths", "").strip()
             try:    deaths = float(deaths_raw) if deaths_raw else None
             except: deaths = None
+            # Deaths above cases is impossible (6 JHU COD weekly rows in 2015-16,
+            # e.g. 148 cases / 495 deaths - likely cumulative deaths). Treat the
+            # deaths as missing rather than propagate them; the source is untouched.
+            if deaths is not None and has_count and deaths > sch:
+                deaths = None
             try:    conf = float(row.get("confidence_weight", "") or 0.9)
             except: conf = 0.9
             # Evidence type for zero-rows, parsed from processing_notes. Only a
@@ -352,145 +360,349 @@ def load_national_rows(iso, src, data_dir):
             elif "surveillance_gap"   in note: evidence = "gap"
             else:                              evidence = "none"
             rows.append({"tl": tl, "tr": tr, "sch": sch, "has_count": has_count,
-                         "evidence": evidence, "deaths": deaths, "conf": conf})
+                         "evidence": evidence, "deaths": deaths, "conf": conf,
+                         "primary": "primary: false" not in note})
     return rows
 
 
-def process_country(iso, template_info):
+def _midpoint_week(r):
+    """ISO (year, week) containing the midpoint of a row's [TL, TR] span."""
+    return (r["tl"] + (r["tr"] - r["tl"]) / 2).isocalendar()[:2]
+
+
+def _sum_subweekly(rows):
+    """
+    Collapse sub-weekly rows (span < 6 days) of ONE source into per-ISO-week
+    totals. Daily feeds (JHU daily rows, MoH "last 24 hours" bulletins, WHO
+    WER 5-day windows) report successive non-overlapping counts, so the week's
+    value is their SUM - the old builder kept only the largest single day.
+
+    Exact (TL, TR) duplicates are collapsed to one row (max sCh). Rows whose
+    half-open span [TL, max(TR, TL+1)) overlaps an already-kept row are dropped
+    so nested restatements are not double-counted; the half-open form lets the
+    "TL = day, TR = next day" 24-hour convention chain without overlapping.
+    Each row is credited to the ISO week holding its midpoint.
+
+    Returns {week_key: {"sch", "deaths", "conf"}} and the number dropped.
+    """
+    by_span = {}
+    for r in rows:
+        k = (r["tl"], r["tr"])
+        if k not in by_span or r["sch"] > by_span[k]["sch"]:
+            by_span[k] = r
+    kept, dropped, last_end = [], 0, None
+    for r in sorted(by_span.values(), key=lambda r: (r["tl"], -(r["tr"] - r["tl"]).days)):
+        end = max(r["tr"], r["tl"] + timedelta(days=1))
+        if last_end is not None and r["tl"] < last_end:
+            dropped += 1
+            continue
+        kept.append(r)
+        last_end = end
+    dropped += len(rows) - len(by_span)
+    weeks = {}
+    for r in kept:
+        w = weeks.setdefault(_midpoint_week(r), {"sch": 0.0, "deaths": None, "confs": []})
+        w["sch"] += r["sch"]
+        if r["deaths"] is not None:
+            w["deaths"] = (w["deaths"] or 0.0) + r["deaths"]
+        w["confs"].append(r["conf"])
+    return ({k: {"sch": v["sch"], "deaths": v["deaths"],
+                 "conf": sum(v["confs"]) / len(v["confs"])} for k, v in weeks.items()},
+            dropped)
+
+
+def _decumulate(rows):
+    """
+    Convert cumulative reporting chains into increments, within ONE source.
+
+    Situation reports and bulletins mostly give totals "since 1 January" or
+    "since the outbreak began": NGA 2010 has Jan 1 -> Aug 19 = 4,665,
+    -> Aug 25 = 6,437, ... -> Oct 22 = 40,000, -> Dec 31 = 44,456. Each later
+    row restates the earlier ones. A row B is replaced by the increment over
+    the latest row A that starts within 3 days of B, ends before B, and has
+    0 < A.sCh <= B.sCh: span (A.TR, B.TR], count B.sCh - A.sCh. Non-monotone
+    pairs (conflicting reports) are left as they are. A zero increment carries
+    no usable information and is dropped rather than turned into a zero.
+
+    Rows with identical (TL, TR) are conflicting restatements of one period;
+    only the largest is kept, so the increment is taken against the same row
+    that is placed (otherwise Jan-Mar 100 and 120 + Jan-Jun 250 gave 230).
+    """
+    best = {}
+    for r in rows:
+        k = (r["tl"], r["tr"])
+        if k not in best or (r["sch"], r["conf"]) > (best[k]["sch"], best[k]["conf"]):
+            best[k] = r
+    rows = list(best.values())
+    out = []
+    for b in rows:
+        b["chain_tl"] = b["tl"]   # cumulative series are identified by their start date
+        prev = [a for a in rows
+                if a is not b and abs((a["tl"] - b["tl"]).days) <= 3
+                and a["tr"] < b["tr"] and 0 < a["sch"] <= b["sch"]]
+        if not prev:
+            out.append(b)
+            continue
+        a = max(prev, key=lambda a: (a["tr"], a["sch"]))
+        inc = b["sch"] - a["sch"]
+        if inc <= 0:
+            continue
+        nb = dict(b)
+        nb["tl"] = a["tr"] + timedelta(days=1)
+        nb["sch"] = inc
+        if b["deaths"] is not None and a["deaths"] is not None:
+            nb["deaths"] = max(b["deaths"] - a["deaths"], 0.0)
+        else:
+            nb["deaths"] = None
+        nb["span"] = (nb["tr"] - nb["tl"]).days
+        # Rank by how specific the original statement was, not the derived
+        # increment: CMR 1983's AI annual (4,534) became a May-Dec increment and
+        # outranked JHU's official annual (55).
+        nb["order_span"] = b.get("order_span", b["span"])
+        nb["increment"] = True
+        nb["chain_tl"] = b["tl"]
+        out.append(nb)
+    return out
+
+
+def process_country(iso, template_info, diag=None):
     """
     Build the national weekly time series dict for one country.
     Returns dict: {(iso_year, iso_week): entry_dict}
     where entry_dict has: sch, deaths, source, confidence, method, monday, sunday
+
+    Evidence beats provenance. Every week is filled by the most direct evidence
+    available from ANY source, and source priority (WHO > JHU > AI) only breaks
+    ties between equally direct evidence:
+
+      1. observed      weekly rows (6-7 day span), or the SUM of a source's
+                       sub-weekly rows in that week; a source's own weekly row
+                       beats its daily sum; across sources, WHO > JHU > AI.
+      2. aggregates    multi-week rows, shortest span first (a month before a
+                       year before a decade). Positive rows distribute only the
+                       RESIDUAL - their total minus what finer evidence already
+                       placed inside their span - over still-empty weeks, so
+                       nested or cumulative rows cannot inflate the series.
+                       A positive row whose span is >= COVERAGE_THRESHOLD
+                       observed is skipped. Documented zeros fill empty weeks.
+      3. inferred_zero weakest; fills only weeks nothing else reached.
+
+    The previous version ranked by source first, so a JHU annual total spread by
+    the Fourier template overrode AI weekly observations of the same weeks, and
+    overlapping aggregates each spread their FULL total (the larger per week
+    kept): AGO 2006 summed to 118,764 against WHO's 67,257.
+
+    Method labels are unchanged ("observed", "documented_zero", "fourier_*",
+    "inferred_zero", "assumed_zero"); MOSAIC-pkg's process_AI_cholera_data()
+    filters on them.
     """
     template, tmpl_method = template_info
     d = DATA_DIR / iso
     merged = {}   # {(year, week): entry}
+    if diag is None:
+        diag = {}
+    diag.update(subweekly_dropped=0, residual_skipped=0, coverage_skipped=0)
 
-    def try_insert(key, entry):
-        existing = merged.get(key)
-        if existing is None:
-            merged[key] = entry
-            return
-        if SOURCE_PRIORITY[entry["source"]] > SOURCE_PRIORITY[existing["source"]]:
-            merged[key] = entry
-        # Same source: prefer by method quality, then higher sCh.
-        # Rank: observed > documented_zero > fourier(positive) > inferred_zero.
-        elif SOURCE_PRIORITY[entry["source"]] == SOURCE_PRIORITY[existing["source"]]:
-            def _mrank(m):
-                if m == "observed":         return 4
-                if m == "documented_zero":  return 3
-                if m.startswith("fourier"): return 2
-                if m == "inferred_zero":    return 1
-                return 0
-            re_, rx_ = _mrank(entry["method"]), _mrank(existing["method"])
-            if re_ > rx_ or (re_ == rx_ and entry["sch"] > existing["sch"]):
-                merged[key] = entry
-
-    # Process sources lowest→highest priority so higher-priority writes last
-    for src_name, src_label in [("ai", "AI"), ("jhu", "JHU"), ("who", "WHO")]:
-        rows = load_national_rows(iso, src_name, d)
-
-        # Separate weekly and non-weekly
-        weekly     = [r for r in rows if (r["tr"] - r["tl"]).days <= 7]
-        non_weekly = [r for r in rows if (r["tr"] - r["tl"]).days  > 7]
-
-        # 1. Assign weekly rows directly
-        weekly_covered = set()
-        for r in weekly:
+    rows = []
+    for src_name, src_label in [("who", "WHO"), ("jhu", "JHU"), ("ai", "AI")]:
+        for r in load_national_rows(iso, src_name, d):
             if not r["has_count"]:
-                continue   # blank sCh = no count reported; not an observation
+                continue   # blank sCh = no count reported = no information
+            r["source"] = src_label
+            r["span"] = (r["tr"] - r["tl"]).days
+            rows.append(r)
+
+    # JHU marks duplicate reports it did not select as "Primary: False". Where a
+    # primary JHU row covers the same period, the non-primary one is a restated
+    # duplicate: AGO's non-primary 2007-05-10..12-31 row carries the full 2007
+    # annual total (18,422) and, being finer than the annual row, doubled 2007.
+    # Only a primary row of comparable span (within 2x) covering at least half
+    # of the non-primary row makes it a duplicate; a primary ANNUAL row does not
+    # make non-primary WEEKLY rows duplicates - they are the only weekly detail.
+    jhu_primary = [r for r in rows if r["source"] == "JHU" and r["primary"]]
+
+    def _end(x):   # half-open end, so TR = TL + 1 daily rows chain without overlap
+        return max(x["tr"], x["tl"] + timedelta(days=1))
+
+    def _dup_of_primary(r):
+        span = max(r["span"], 1)
+        for p in jhu_primary:
+            ov = (min(_end(p), _end(r)) - max(p["tl"], r["tl"])).days
+            if ov >= 0.5 * (_end(r) - r["tl"]).days and max(p["span"], 1) <= 2 * span \
+                    and span <= 2 * max(p["span"], 1):
+                return True
+        return False
+    n_before = len(rows)
+    rows = [r for r in rows if not (r["source"] == "JHU" and not r["primary"]
+                                    and _dup_of_primary(r))]
+    diag["jhu_nonprimary_dropped"] = n_before - len(rows)
+
+    def entry(key, sch, deaths, source, conf, method, origin=None, chain=None):
+        # _origin = the [TL, TR] span of the row that filled this week; Tier 2
+        # uses it to tell weeks filled by rows nested inside an aggregate's own
+        # span (parts of its total) from weeks taken by rows reaching outside it.
+        mon, sun = isoweek_bounds(*key)
+        return {"sch": sch, "deaths": deaths, "source": source,
+                "confidence": conf, "method": method, "monday": mon, "sunday": sun,
+                "_origin": origin or (mon, sun), "_chain": chain}
+
+    # ── Tier 1: observed weeks ──────────────────────────────────────────────
+    candidates = defaultdict(dict)   # key -> {source: entry}
+    for label in ("WHO", "JHU", "AI"):
+        src_rows = [r for r in rows if r["source"] == label]
+        for r in (r for r in src_rows if 6 <= r["span"] <= 7):
             key = r["tl"].isocalendar()[:2]
-            weekly_covered.add(key)
-            mon, sun = isoweek_bounds(*key)
-            try_insert(key, {
-                "sch":    r["sch"],
-                "deaths": r["deaths"],
-                "source": src_label,
-                "confidence": r["conf"],
-                "method": "observed",
-                "monday": mon,
-                "sunday": sun,
-            })
+            prev = candidates[key].get(label)
+            if prev is None or prev.get("_daily") or r["sch"] > prev["sch"]:
+                candidates[key][label] = entry(key, r["sch"], r["deaths"], label,
+                                               r["conf"], "observed")
+        sums, dropped = _sum_subweekly([r for r in src_rows if r["span"] < 6])
+        diag["subweekly_dropped"] += dropped
+        for key, v in sums.items():
+            if label in candidates[key]:
+                continue   # the source's own weekly row beats its daily sum
+            e = entry(key, v["sch"], v["deaths"], label, v["conf"], "observed")
+            e["_daily"] = True
+            candidates[key][label] = e
+    for key, by_src in candidates.items():
+        best = max(by_src.values(), key=lambda e: SOURCE_PRIORITY[e["source"]])
+        best.pop("_daily", None)
+        merged[key] = best
+    observed_keys = set(merged)
 
-        # 2. Disaggregate non-weekly rows
-        for r in non_weekly:
-            if not r["has_count"]:
-                continue   # blank sCh = no count = no information; do NOT emit a zero
-            weeks = weeks_in_range(r["tl"], r["tr"])
+    # ── Tier 2: aggregates, finest span first ───────────────────────────────
+    def agg_order(r):
+        # Spans within a factor of ~1.5 count as equally specific; only clearly
+        # finer evidence (a month vs a year) wins on span alone. Otherwise an
+        # AI Nov-2021..Oct-2022 season (353 d) outranked JHU's official 2021
+        # annual row (364 d) and put 1,406 cases into a year JHU reports as 2.
+        span = r.get("order_span", r["span"])
+        bucket = int(math.log(max(span, 1)) / math.log(1.5))
+        kind = 0 if r["sch"] == 0 else 1   # documented zero before positive on ties
+        return (bucket, -SOURCE_PRIORITY[r["source"]], kind, -r["conf"], span)
 
-            if r["sch"] == 0:
-                # Only a source-confirmed absence is a documented_zero; an explicit 0
-                # without such evidence (inferred/surveillance-gap/untagged, incl. JHU
-                # annual zeros) is a weaker inferred_zero.
-                if r["evidence"] == "documented":
-                    zero_method, zero_conf = "documented_zero", r["conf"]
-                else:
-                    zero_method, zero_conf = "inferred_zero", min(r["conf"], INFERRED_ZERO_MAX)
-                for key in weeks:
-                    if src_label == "JHU" and key in weekly_covered:
-                        continue   # don't let annual zeros overwrite weekly observed
-                    mon, sun = isoweek_bounds(*key)
-                    try_insert(key, {
-                        "sch":    0.0,
-                        "deaths": 0.0,
-                        "source": src_label,
-                        "confidence": zero_conf,
-                        "method": zero_method,
-                        "monday": mon,
-                        "sunday": sun,
-                    })
-            else:
-                # Coverage threshold: if ≥50% of this row's span is already
-                # covered by observed weekly data, skip the aggregate entirely.
-                # JHU weekly and annual rows come from different reporting
-                # streams and cannot be reconciled by subtraction; when weekly
-                # coverage is sufficient the aggregate adds noise not signal.
-                if weeks:
-                    covered_frac = sum(1 for k in weeks if k in weekly_covered) / len(weeks)
-                    if covered_frac >= COVERAGE_THRESHOLD:
-                        continue
+    aggregates = [r for r in rows if r["span"] > 7 and r["sch"] == 0
+                  and r["evidence"] == "documented"]
+    for label in ("WHO", "JHU", "AI"):
+        aggregates += _decumulate([r for r in rows if r["source"] == label
+                                   and r["span"] > 7 and r["sch"] > 0])
+    for r in sorted(aggregates, key=agg_order):
+        weeks = weeks_in_range(r["tl"], r["tr"])
+        if not weeks:
+            continue
+        if r["sch"] == 0:
+            # Same Monday-inside-span rule as positive rows: a 2016 zero must
+            # not claim 2015-W53 (Monday 28 Dec 2015).
+            for key in [k for k in weeks if isoweek_bounds(*k)[0] >= r["tl"]] or weeks:
+                if key not in merged:
+                    merged[key] = entry(key, 0.0, 0.0, r["source"], r["conf"],
+                                        "documented_zero", (r["tl"], r["tr"]))
+            continue
 
-                # Fourier disaggregation — only fill weeks not already observed,
-                # and only weeks whose Monday falls within the row's date span
-                # (prevents year-boundary spillover of Jan 1 rows into Dec of
-                # the preceding ISO year).
-                eligible = [k for k in weeks
-                            if not (src_label == "JHU" and k in weekly_covered)
-                            and isoweek_bounds(*k)[0] >= r["tl"]]
-                if not eligible:
+        covered = sum(1 for k in weeks if k in observed_keys) / len(weeks)
+        if covered >= COVERAGE_THRESHOLD:
+            diag["coverage_skipped"] += 1
+            continue
+        # Only weeks whose Monday is inside the span (no Jan-1 spillover into
+        # the previous ISO year's last week).
+        # A short increment starting mid-week may hold no Monday; then use the
+        # week containing it.
+        in_span = [k for k in weeks if isoweek_bounds(*k)[0] >= r["tl"]] or weeks
+        eligible = [k for k in in_span if k not in merged]
+        if not eligible:
+            # A short increment of a cumulative chain (sitreps every 2-3 days)
+            # often lands in a week an earlier increment of the same chain
+            # already filled; add to it rather than drop the cases.
+            if r.get("increment"):
+                # Only weeks filled by the SAME cumulative series (same source,
+                # start within 3 days); adding to weeks another row of that
+                # source filled double-counted (AGO 2006 rose to 76,975).
+                def same_chain(c):
+                    return (c is not None and c[0] == r["source"]
+                            and abs((c[1] - r["chain_tl"]).days) <= 3)
+                chain = [k for k in in_span if merged[k]["method"].startswith("fourier")
+                         and same_chain(merged[k].get("_chain"))]
+                if chain:
+                    for k in chain:
+                        merged[k]["sch"] += r["sch"] / len(chain)
+                        if r["deaths"] is not None:
+                            merged[k]["deaths"] = (merged[k]["deaths"] or 0.0) + r["deaths"] / len(chain)
+                    diag["increments_merged"] = diag.get("increments_merged", 0) + 1
                     continue
+            diag["residual_skipped"] += 1
+            continue
+        def tmpl(keys):
+            return template[[min(w, 52) - 1 for _, w in keys]]   # clamp week 53 → 52
+        # 3-day tolerance: an observed ISO week straddling Dec 31 belongs to
+        # the calendar-year total it mostly falls in.
+        tol = timedelta(days=3)
+        nested = [k for k in weeks if k in merged
+                  and merged[k]["_origin"][0] >= r["tl"] - tol
+                  and merged[k]["_origin"][1] <= r["tr"] + tol]
+        taken = {k for k in in_span if k in merged and k not in nested}
+        # Weeks taken by rows reaching outside this span keep their values, and
+        # this row keeps only its seasonal share of the weeks NOT taken. Weeks
+        # filled by rows nested inside the span are parts of this total, so they
+        # are subtracted (the residual). Without the share, MWI's Nov-2011..
+        # Oct-2012 season (1,806) - whose 2012 weeks were taken by JHU's 2012
+        # annual row - dumped 1,560 cases into the last two weeks of 2011.
+        w_all = tmpl(in_span)
+        w_free = tmpl([k for k in in_span if k not in taken]) if len(taken) < len(in_span) else np.zeros(0)
+        # Fall back to week counts when the template gives the free weeks no
+        # weight (the fitted template is clipped at 0); otherwise the whole
+        # count would vanish.
+        if w_all.sum() > 0 and w_free.sum() > 0:
+            share = w_free.sum() / w_all.sum()
+        else:
+            share = (len(in_span) - len(taken)) / len(in_span)
+        amount = r["sch"] * share - sum(merged[k]["sch"] for k in nested)
+        # Tolerance: float residue (~1e-15) must not turn intended
+        # inferred_zero weeks into fourier_* weeks MOSAIC reads as data.
+        if amount <= 1e-6 * max(r["sch"], 1.0):
+            # Finer evidence already accounts for this total, so the row asserts
+            # the rest of its span is empty. Claim those weeks as inferred_zero
+            # so a lower-confidence row for the same span cannot override it
+            # (MOSAIC-pkg treats inferred_zero weeks as missing, not as zeros).
+            diag["residual_skipped"] += 1
+            for key in eligible:
+                merged[key] = entry(key, 0.0, 0.0, r["source"],
+                                    min(r["conf"], INFERRED_ZERO_MAX), "inferred_zero",
+                                    (r["tl"], r["tr"]))
+            continue
+        d_res = None
+        if r["deaths"] is not None:
+            d_res = max(r["deaths"] * share - sum(merged[k]["deaths"] or 0.0 for k in nested), 0.0)
+        residual = amount
+        w_elig = tmpl(eligible)
 
-                wk_nums  = [min(w, 52) for _, w in eligible]  # clamp week 53 → 52
-                weights  = template[[w - 1 for w in wk_nums]]
-                wt_sum   = weights.sum()
-                if wt_sum <= 0:
-                    weights = np.ones(len(eligible)) / len(eligible)
-                else:
-                    weights = weights / wt_sum
+        wt_sum = w_elig.sum()
+        weights = (np.ones(len(eligible)) / len(eligible)) if wt_sum <= 0 else w_elig / wt_sum
 
-                # Confidence scales with disaggregation window length:
-                # longer windows = more uncertainty in weekly distribution
-                n_elig = len(eligible)
-                if n_elig <= 4:
-                    conf_factor = 0.9    # monthly or shorter
-                elif n_elig <= 13:
-                    conf_factor = 0.8    # quarterly
-                elif n_elig <= 26:
-                    conf_factor = 0.7    # half-year
-                else:
-                    conf_factor = 0.5    # annual or multi-year
+        # Confidence scales with the number of weeks being disaggregated.
+        n_elig = len(eligible)
+        conf_factor = 0.9 if n_elig <= 4 else 0.8 if n_elig <= 13 else 0.7 if n_elig <= 26 else 0.5
+        for key, wt in zip(eligible, weights):
+            # Deaths and cases residuals are computed separately, so cap the
+            # week's deaths at its cases (133 weeks had deaths > sCh).
+            merged[key] = entry(key, residual * float(wt),
+                                min(d_res * float(wt), residual * float(wt))
+                                if d_res is not None else None,
+                                r["source"], r["conf"] * conf_factor,
+                                f"fourier_{tmpl_method}", (r["tl"], r["tr"]),
+                                (r["source"], r["chain_tl"]) if "chain_tl" in r else None)
 
-                for key, wt in zip(eligible, weights):
-                    mon, sun = isoweek_bounds(*key)
-                    try_insert(key, {
-                        "sch":    r["sch"] * float(wt),
-                        "deaths": r["deaths"] * float(wt) if r["deaths"] is not None else None,
-                        "source": src_label,
-                        "confidence": r["conf"] * conf_factor,
-                        "method": f"fourier_{tmpl_method}",
-                        "monday": mon,
-                        "sunday": sun,
-                    })
+    # ── Tier 3: inferred zeros ──────────────────────────────────────────────
+    # An explicit 0 without a source-confirmed absence (inferred, surveillance
+    # gap or untagged, incl. JHU annual zeros) only fills what nothing else did.
+    inferred = [r for r in rows if r["span"] > 7 and r["sch"] == 0
+                and r["evidence"] != "documented"]
+    for r in sorted(inferred, key=agg_order):
+        wks = weeks_in_range(r["tl"], r["tr"])
+        for key in [k for k in wks if isoweek_bounds(*k)[0] >= r["tl"]] or wks:
+            if key not in merged:
+                merged[key] = entry(key, 0.0, 0.0, r["source"],
+                                    min(r["conf"], INFERRED_ZERO_MAX), "inferred_zero",
+                                    (r["tl"], r["tr"]))
 
     # ── Clip to [SERIES_START, SERIES_END] (drop pre-1970 and future weeks) ──
     series_start_monday = week_monday(SERIES_START)
@@ -523,6 +735,7 @@ def process_country(iso, template_info):
                     "method":     "assumed_zero",
                     "monday":     mon,
                     "sunday":     sun,
+                    "_origin":    (mon, sun),
                 }
             current += timedelta(weeks=1)
 
@@ -742,7 +955,8 @@ def main():
         if template_info is None:
             continue
 
-        series = process_country(iso, template_info)
+        diag = {}
+        series = process_country(iso, template_info, diag)
         if not series:
             print(f"  {iso}: no data")
             continue
@@ -762,7 +976,10 @@ def main():
         plots.append(fig_path)
 
         print(f"  {iso}: {n_weeks} weeks total, {n_nonzero} non-zero  "
-              f"[template: {tmpl_meth}]")
+              f"[template: {tmpl_meth}]  (sub-weekly dropped {diag['subweekly_dropped']}, "
+              f"aggregates skipped: residual {diag['residual_skipped']}, "
+              f"coverage {diag['coverage_skipped']}; JHU non-primary dropped "
+              f"{diag['jhu_nonprimary_dropped']})")
 
     print(f"\nDone.  {len(csvs)} CSVs and {len(plots)} plots written.")
     print(f"  CSVs:  data/{{ISO}}/cholera_weekly_{{ISO}}.csv")

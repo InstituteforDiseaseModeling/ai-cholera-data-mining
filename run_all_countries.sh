@@ -110,11 +110,18 @@ PY
 [[ -n "$ONLY" ]] && ORDER=$(echo "$ONLY" | tr ',' ' ' | tr '[:lower:]' '[:upper:]')
 # --first ISO,... (or FIRST env) moves those countries to the head of the queue,
 # keeping staleness order for the rest - e.g. finish interrupted countries first.
+# Only codes already in ORDER are honoured (so --only still restricts the run and
+# unknown or non-MOSAIC codes are ignored), each at most once - a duplicate
+# would queue a country twice and, with --parallel > 1, run it concurrently.
 if [[ -n "$FIRST" ]]; then
-  first_list=$(echo "$FIRST" | tr ',' ' ' | tr '[:lower:]' '[:upper:]')
+  first_list=""
+  for i in $(echo "$FIRST" | tr ',' ' ' | tr '[:lower:]' '[:upper:]'); do
+    [[ " $ORDER " == *" $i "* ]] || { echo "  note: --first ignores $i (not in this run's countries)" >&2; continue; }
+    [[ " $first_list " == *" $i "* ]] || first_list="$first_list $i"
+  done
   rest=""
   for i in $ORDER; do [[ " $first_list " == *" $i "* ]] || rest="$rest $i"; done
-  ORDER="$first_list$rest"
+  ORDER="${first_list# }$rest"
 fi
 
 # ----------------------------------------------------------------- manifest --
