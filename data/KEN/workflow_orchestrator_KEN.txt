@@ -7,6 +7,56 @@ is in the agent's own prompt; this file holds what is common to all of them.
 ================================================================================
 
 --------------------------------------------------------------------------------
+R. RESUME - SESSION 2 (orchestrator restarted by the runner 2026-10-05 20:02 local)
+   THIS SECTION OVERRIDES SECTIONS A AND D WHERE THEY DISAGREE.
+--------------------------------------------------------------------------------
+  Why: the previous orchestrator session died at ~17:03 on 5 Oct with "API Error:
+  Can't reach the API server (ENOTFOUND)" (logs/run_20261001-194905/KEN.log) while
+  Agent 5 was in batch 12 (Q01-Q19 logged; Q20 and the batch close-out missing).
+  Agent status this cycle (from ./data/KEN/workflow_state.json):
+    Agent 1  12 batches  12-batch ceiling              COMPLETE (not re-run)
+    Agent 2  12 batches  12-batch ceiling              COMPLETE (not re-run)
+    Agent 3  12 batches  12-batch ceiling (+ adjudication follow-up)  COMPLETE
+    Agent 4   8 batches  3 consecutive sub-5% (6-8)    COMPLETE (not re-run)
+    Agent 5  11 batches + batch 12 Q01-Q19             NOT COMPLETE -> redeployed
+    Agent 6  not started                               to run after Agent 5
+    Agent 7  not started                               to run after Agent 6
+  Data at resume (verified by Index, 2026-10-05 20:10):
+    ./data/KEN/cholera_data_ai.csv     2,613 rows, max Index 2651
+    ./data/KEN/metadata_ai.csv         573 sources, max Index 573
+    ./data/KEN/cholera_presence_ai.csv 198 presence rows
+    ./data/KEN/retracted_rows_ai.csv   31 tombstones (9 by Agent 5: 1713-1721)
+    Agent 5 rows 2156-2651 all present (496); batch 12 so far = rows 2581-2651 (71)
+    from Q02, Q04, Q05, Q06, Q16 -> batch 12 already >= 5/20 = 25% yield.
+    py/validate_quality.py KEN: exit 0, ERROR 0, WARN 28, INFO 510 (/tmp/KEN_pre.json)
+  Effective gaps (./reference/effective_surveillance_gaps_detailed.csv, refreshed
+  15:29): 1988-01-01..12-31 (366 d), 1990-01-01..1991-12-31 (730 d),
+  1993-01-01..12-31 (365 d) - all 'historical', all non-reporting-with-presence.
+  Coverage 92.8% (633/682 months), months_ai_only 56; latest observation 2026-09-27,
+  latest positive 2026-09-20 (./reference/effective_surveillance_recency.csv).
+  The recent tail 2026-09-28..today is open until Kenya EPR W40 is published.
+
+  WEBSEARCH IN THIS SESSION (replaces the section D allocation): this is a NEW
+  `claude -p` session, so the ~200-call WebSearch cap has reset. The previous
+  session's per-agent usage does not count against it. Soft allocations for session 2
+  (unused quota rolls forward; the allocation is a quota guard, NOT a stopping rule -
+  when it is used up, keep going with WebFetch/curl/API back-ends until the yield rule
+  fires):
+      Agent 5 (finish batch 12): 10    Agent 6: 110    Agent 7: 50    reserve: 30
+  Log your running WebSearch count. Use mode "standard" by default; "extended" only
+  when a standard result is thin, off-target or possibly outdated, or for niche facts.
+
+  HOST CONDITIONS (measured 22:46): the laptop is ON BATTERY and the load average is
+  ~325 (corporate Microsoft Defender / XProtect scans). Every command is slow; a
+  `timeout 20 curl` took 305 s. Do not touch those processes. Consequences:
+    - keep each Bash call small; prefer one targeted fetch over a large sweep;
+    - wrap every network call in `timeout` as section D says, and expect overruns;
+    - CHECKPOINT AFTER EVERY BATCH (rule B.5b) - the host may sleep on battery and
+      abort the request at any moment; a resumed run must lose at most one batch.
+  Nothing about the host load is a reason to stop early or shorten a batch: there is
+  still NO time limit, and the yield rule is the only stopping rule.
+
+--------------------------------------------------------------------------------
 A. STARTING STATE (measured 2026-10-04 05:11, before Agent 1)
 --------------------------------------------------------------------------------
   ./data/KEN/cholera_data_ai.csv     830 rows  (AI Index values 1..846 with gaps;
