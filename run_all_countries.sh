@@ -37,7 +37,7 @@ TIMEOUT_SECS=${TIMEOUT_SECS:-172800}       # 48h: hang detector only, not a budg
 MAX_ATTEMPTS=${MAX_ATTEMPTS:-3}            # retries before moving on
 PERMISSION_MODE="acceptEdits"
 MAX_TURNS=${MAX_TURNS:-600}
-DASH_EVERY=${DASH_EVERY:-1}                # full dashboard rebuild cadence (every country)
+DASH_EVERY=${DASH_EVERY:-1}                # retained for CLI compat; every refresh is now a full rebuild
 PARALLEL=${PARALLEL:-1}                    # countries running concurrently
 DRY=0; LIMIT=0; FROM=""; ONLY=""; FIRST="${FIRST:-}"; RETRY_FAILED=0; PUBLISH=0
 
@@ -149,34 +149,20 @@ srccount () { csvcount "data/$1/metadata_ai.csv"; }
 # Everything below touches state shared by every country - the dashboard build,
 # the gap reference files, the git index - so it runs under a lock. Per-country
 # data lives in data/{ISO}/ and needs no lock; this does.
-refresh_dashboard () {   # $1 = "light" | "full"
-  if [[ "$1" == "full" ]]; then
-    # Heavy: weekly series for all 40, heatmaps, barplot. Built without
-    # update_dashboard.sh --publish: that path runs its own git add/commit/push
-    # outside py/publish.py's lock, and with several countries in flight it
-    # races the per-country data commits and the heartbeat checkpoints.
-    python3 py/with_lock.py dashboard -- bash update_dashboard.sh \
+refresh_dashboard () {   # $1 = "light" | "full" (both now rebuild everything), $2 = label
+  # Always the full build: update_dashboard.sh rebuilds EVERY figure (weekly
+  # series, heatmaps, barplot, timelines) and cache-busts their URLs. The old
+  # "light" path ran only update_dashboard_data.py and published dashboard/
+  # without figures/dashboard/, so the live page showed fresh data beside stale
+  # figures. Built without update_dashboard.sh --publish: that path runs its own
+  # git add/commit/push outside py/publish.py's lock, and with several countries
+  # in flight it races the per-country data commits and the heartbeat checkpoints.
+  python3 py/with_lock.py dashboard -- bash update_dashboard.sh \
+    >> "$LOGDIR/_dashboard.log" 2>&1
+  if [[ $PUBLISH -eq 1 ]]; then
+    python3 py/publish.py dashboard/ figures/dashboard/ data/ reference/ \
+      -m "Auto-update dashboard data - $(date '+%Y-%m-%d %H:%M:%S') (after ${2:-run end})" \
       >> "$LOGDIR/_dashboard.log" 2>&1
-    if [[ $PUBLISH -eq 1 ]]; then
-      python3 py/publish.py dashboard/ figures/dashboard/ data/ reference/ \
-        -m "Auto-update dashboard data - $(date '+%Y-%m-%d %H:%M:%S') (after ${2:-run end})" \
-        >> "$LOGDIR/_dashboard.log" 2>&1
-    fi
-  else
-    # Light: just the progress view (checklist + embedded data). Published too,
-    # so the live dashboard reflects every completed country rather than only
-    # every DASH_EVERY-th one - the run is unattended and this is the only way
-    # to watch it from elsewhere.
-    python3 py/with_lock.py dashboard -- python3 py/update_dashboard_data.py \
-      >> "$LOGDIR/_dashboard.log" 2>&1
-    if [[ $PUBLISH -eq 1 ]]; then
-      # Serialised through py/publish.py so it cannot race the heartbeat,
-      # whose push would otherwise leave this one rejected as non-fast-forward
-      # with the error going only to this log.
-      python3 py/publish.py dashboard/ reference/run_manifest.csv \
-        -m "Run progress: ${2:-country} complete - $(date '+%Y-%m-%d %H:%M:%S')" \
-        >> "$LOGDIR/_dashboard.log" 2>&1
-    fi
   fi
 }
 
@@ -202,7 +188,7 @@ echo "  countries queued : ${#QUEUE[@]}  ->  ${QUEUE[*]:-none}"
 echo "  per-country cap  : $((TIMEOUT_SECS/60)) min, $MAX_TURNS turns"
 echo "  concurrency      : $PARALLEL country(ies) at a time"
 echo "  permission mode  : $PERMISSION_MODE"
-echo "  dashboard        : refreshed after every country; full rebuild every $DASH_EVERY"
+echo "  dashboard        : full rebuild (all figures) after every country"
 echo "                     publish to GitHub Pages: $([[ $PUBLISH -eq 1 ]] && echo yes || echo no)"
 echo "  logs             : $LOGDIR/"
 echo "  manifest         : $MANIFEST   (touch STOP to halt gracefully)"

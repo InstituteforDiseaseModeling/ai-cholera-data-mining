@@ -124,6 +124,15 @@ def check(path):
     ok("country table populated",
        t.count('<td class="cs-iso"') == 40, f'{t.count(chr(60) + "td class=" + chr(34) + "cs-iso" + chr(34))} rows')
 
+    # ---- figure URLs cache-busted to the current figure set ----------
+    # Pages caches PNGs for 4 h at fixed URLs; without a current ?v= stamp the
+    # live page pairs new data with old figures (py/stamp_figure_versions.py).
+    sys.path.insert(0, str(ROOT / "py"))
+    from stamp_figure_versions import FIG_REF, figure_version, stale_refs
+    stale = stale_refs(t, figure_version())
+    ok("figure URLs stamped with current figure version",
+       bool(FIG_REF.search(t)) and not stale, f"{len(stale)} stale, e.g. {stale[:1]}")
+
     return fails
 
 

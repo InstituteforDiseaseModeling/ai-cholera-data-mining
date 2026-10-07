@@ -10,6 +10,8 @@
 # - Timeline week counts data (embedded in dashboard)
 # - All data source embedding (AI-mined, WHO, and JHU data)
 # - Dashboard HTML with all embedded data
+# - Figure URLs cache-busted with a content-hash ?v= stamp (all figures are
+#   rebuilt on every run; this is the only dashboard refresh path)
 #
 # Usage: bash update_dashboard.sh
 # or: chmod +x update_dashboard.sh && ./update_dashboard.sh
@@ -72,38 +74,11 @@ ensure_directory "figures/dashboard/timelines"
 ensure_directory "figures/dashboard/timeseries"
 ensure_directory "py"
 
-# Run the unified dashboard data update script with error handling
-echo "📊 Updating completion status and timeline data..."
-if ! python py/update_dashboard_data.py; then
-    echo "❌ ERROR: Dashboard data update failed"
-    exit 1
-fi
-echo "✅ Dashboard data update completed"
-
-# Country run-status table. Must run AFTER update_dashboard_data.py, which
-# rewrites the embedded CSV/JSON blobs in dashboard.html; this then re-injects
-# the table between the COUNTRY-STATUS markers.
-echo ""
-echo "📋 Rebuilding country status table..."
-if ! python py/generate_country_status_page.py; then
-    echo "❌ ERROR: Country status table generation failed"
-    exit 1
-fi
-echo "✅ Country status table updated"
-
-# Structural gate. The dashboard has been published broken twice: once
-# truncated from 10 MB to 164 KB by a runaway regex, once with an unterminated
-# CSS rule that swallowed the rest of the stylesheet. Both times every string in
-# the page was correct and only the structure was wrong, so nothing noticed.
-echo ""
-echo "🔎 Validating dashboard structure..."
-if ! python py/validate_dashboard.py; then
-    echo "❌ ERROR: dashboard failed structural validation - NOT publishing"
-    exit 1
-fi
+# Figures first. EVERY figure is rebuilt on EVERY run - this script is the only
+# dashboard refresh path (the runner and heartbeat call it too), so a data update
+# can never publish new embedded data next to stale figures.
 
 # Generate coverage barplot with error handling
-echo ""
 echo "📊 Generating coverage barplot..."
 if ! python py/generate_coverage_barplot.py; then
     echo "❌ ERROR: Coverage barplot generation failed"
@@ -128,6 +103,49 @@ if ! python py/build_weekly_timeseries.py; then
     exit 1
 fi
 echo "✅ Weekly time series built"
+
+# Completion checklist, dual timeline plots (generate_dual_timeline_plots.py)
+# and the embedded data blobs in dashboard.html.
+echo ""
+echo "📊 Updating completion status, timeline plots and embedded data..."
+if ! python py/update_dashboard_data.py; then
+    echo "❌ ERROR: Dashboard data update failed"
+    exit 1
+fi
+echo "✅ Dashboard data update completed"
+
+# Country run-status table. Must run AFTER update_dashboard_data.py, which
+# rewrites the embedded CSV/JSON blobs in dashboard.html; this then re-injects
+# the table between the COUNTRY-STATUS markers.
+echo ""
+echo "📋 Rebuilding country status table..."
+if ! python py/generate_country_status_page.py; then
+    echo "❌ ERROR: Country status table generation failed"
+    exit 1
+fi
+echo "✅ Country status table updated"
+
+# Cache-bust figure URLs. Pages serves the PNGs with max-age=14400 at fixed
+# paths (the HTML gets 600), so without this browsers show the new dashboard
+# with figures up to 4 h old. Must run after every figure step above.
+echo ""
+echo "🔖 Stamping figure URLs with current figure version..."
+if ! python py/stamp_figure_versions.py; then
+    echo "❌ ERROR: Figure version stamping failed"
+    exit 1
+fi
+
+# Structural gate. The dashboard has been published broken twice: once
+# truncated from 10 MB to 164 KB by a runaway regex, once with an unterminated
+# CSS rule that swallowed the rest of the stylesheet. Both times every string in
+# the page was correct and only the structure was wrong, so nothing noticed.
+# Also fails if any figure URL lacks the current version stamp.
+echo ""
+echo "🔎 Validating dashboard structure..."
+if ! python py/validate_dashboard.py; then
+    echo "❌ ERROR: dashboard failed structural validation - NOT publishing"
+    exit 1
+fi
 
 # Embed all data sources (AI-mined, WHO, JHU) with error handling
 # TEMPORARILY DISABLED: embed_all_data.py is corrupting the dashboard structure

@@ -1522,6 +1522,7 @@ python py/update_dashboard_data.py
 - ✅ **3-Source Timeline Plots**: Coverage visualization with synchronized date ranges
 - ✅ **Week Counts Data**: Actual data extracted from sources and embedded in dashboard
 - ✅ **Dashboard HTML**: All embedded CSV data refreshed automatically
+- ✅ **All figures rebuilt every run** (barplot, heatmaps, weekly timeseries, dual timelines) and their URLs cache-busted with a content-hash `?v=` stamp (`py/stamp_figure_versions.py`); `py/validate_dashboard.py` fails if any stamp is stale. The runner and heartbeat call this same script — there is no lighter refresh path.
 
 ### **AGENT INITIALIZATION PROTOCOL**
 
