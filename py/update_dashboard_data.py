@@ -732,6 +732,40 @@ def crop_timeline_plot(image_path, crop_cm=1.0):
 # MAIN UNIFIED UPDATE FUNCTION
 # ============================================================================
 
+def js_object_span(html: str, decl: str):
+    """(start, end) of `<decl> = { ... };` in html, or None. Braces inside
+    template literals (the embedded CSV text, with backslash escapes) are
+    skipped. Counting every brace is how the observations embed failed silently
+    from Aug 2025: processing_notes contain "{", the closing brace was never
+    found, and a stale snapshot stayed in the page."""
+    import re
+    m = re.search(re.escape(decl) + r"\s*=\s*\{", html)
+    if not m:
+        return None
+    depth, in_tpl, i = 1, False, m.end()
+    while i < len(html):
+        c = html[i]
+        if in_tpl:
+            if c == "\\":
+                i += 2
+                continue
+            if c == "`":
+                in_tpl = False
+        elif c == "`":
+            in_tpl = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                if html[end:end + 1] == ";":
+                    end += 1
+                return m.start(), end
+        i += 1
+    return None
+
+
 def update_dashboard_html(base_path: Path, updated_data: List[Dict]):
     """Update the dashboard HTML with embedded CSV data"""
     dashboard_file = base_path / "dashboard" / "dashboard.html"
@@ -757,186 +791,72 @@ def update_dashboard_html(base_path: Path, updated_data: List[Dict]):
     
     checklist_csv_data = '\n'.join(checklist_csv_lines)
     
-    # Load metadata and cholera data for all available countries
+    # Metadata is embedded: the sources table and the observations' source links
+    # use it. The observations are NOT embedded: all 40 cholera_data_ai.csv files
+    # are ~94 MB, past GitHub's 100 MB file limit as an embed, so the
+    # observations table fetches data/{ISO}/cholera_data_ai.csv on demand (the
+    # Pages deploy publishes the whole repo with the page). embeddedCholeraData
+    # stays as an empty stub.
     metadata_dict = {}
-    cholera_data_dict = {}
     data_dir = base_path / "data"
-    
-    # Find all countries with metadata_ai.csv and cholera_data_ai.csv files
-    for country_dir in data_dir.iterdir():
-        if country_dir.is_dir():
-            iso_code = country_dir.name
-            
-            # Load metadata_ai.csv
-            metadata_file = country_dir / "metadata_ai.csv"
-            if metadata_file.exists():
-                try:
-                    with open(metadata_file, 'r', encoding='utf-8') as f:
-                        metadata_content = f.read()
-                    # Escape backticks and backslashes in the metadata content
-                    metadata_content = metadata_content.replace('\\', '\\\\').replace('`', '\\`')
-                    metadata_dict[iso_code] = metadata_content
-                    print(f"  📚 Loaded metadata for {iso_code}: {len(metadata_content.splitlines())-1} sources")
-                except Exception as e:
-                    print(f"  Warning: Could not load metadata for {country_dir.name}: {e}")
-            
-            # Load cholera_data_ai.csv
-            cholera_file = country_dir / "cholera_data_ai.csv"
-            if cholera_file.exists():
-                try:
-                    with open(cholera_file, 'r', encoding='utf-8') as f:
-                        cholera_content = f.read()
-                    # Escape backticks and backslashes in the cholera data content
-                    cholera_content = cholera_content.replace('\\', '\\\\').replace('`', '\\`')
-                    cholera_data_dict[iso_code] = cholera_content
-                    print(f"  📊 Loaded cholera data for {iso_code}: {len(cholera_content.splitlines())-1} observations")
-                except Exception as e:
-                    print(f"  Warning: Could not load cholera data for {country_dir.name}: {e}")
-    
-    # Build the embedded metadata JavaScript object
-    metadata_js_lines = ["        const embeddedMetadata = {"]
-    for i, (iso, content) in enumerate(metadata_dict.items()):
-        # Add comma for all but the last item
-        comma = "," if i < len(metadata_dict) - 1 else ""
+    for country_dir in sorted(data_dir.iterdir()):
+        metadata_file = country_dir / "metadata_ai.csv"
+        if not (country_dir.is_dir() and metadata_file.exists()):
+            continue
+        try:
+            metadata_content = metadata_file.read_text(encoding="utf-8")
+        except Exception as e:
+            print(f"  Warning: Could not load metadata for {country_dir.name}: {e}")
+            continue
+        # Escape for a JS template literal: backslashes, backticks, ${ interpolation
+        metadata_dict[country_dir.name] = (metadata_content.replace('\\', '\\\\').replace('`', '\\`')
+                                           .replace('${', '\\${'))
+        print(f"  📚 Loaded metadata for {country_dir.name}: {len(metadata_content.splitlines())-1} sources")
+
+    items = list(metadata_dict.items())
+    metadata_js_lines = ["const embeddedMetadata = {"]
+    for i, (iso, content) in enumerate(items):
+        comma = "," if i < len(items) - 1 else ""
         metadata_js_lines.append(f"            '{iso}': `{content}`{comma}")
     metadata_js_lines.append("        };")
     metadata_js_content = '\n'.join(metadata_js_lines)
-    
-    # Build the embedded cholera data JavaScript object
-    cholera_js_lines = ["        const embeddedCholeraData = {"]
-    for i, (iso, content) in enumerate(cholera_data_dict.items()):
-        # Add comma for all but the last item
-        comma = "," if i < len(cholera_data_dict) - 1 else ""
-        cholera_js_lines.append(f"            '{iso}': `{content}`{comma}")
-    cholera_js_lines.append("        };")
-    cholera_js_content = '\n'.join(cholera_js_lines)
-    
+    cholera_stub = "const embeddedCholeraData = {};"
+
     try:
-        # Read current HTML
-        with open(dashboard_file, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-        
-        # Find and replace the embedded CSV data
+        html_content = dashboard_file.read_text(encoding="utf-8")
         import re
-        
-        # Update completion checklist data - using the correct variable name
+
+        # Completion checklist (a function replacement: the CSV may hold backslashes)
         checklist_pattern = r'const completionChecklistCSV = `[^`]*`;'
-        checklist_replacement = f'const completionChecklistCSV = `{checklist_csv_data}`;'
-        html_content = re.sub(checklist_pattern, checklist_replacement, html_content, flags=re.DOTALL)
-        
-        # Also try the old pattern in case it exists
+        html_content = re.sub(checklist_pattern, lambda m: f'const completionChecklistCSV = `{checklist_csv_data}`;',
+                              html_content, flags=re.DOTALL)
         old_pattern = r'const csvData = `[^`]*`;'
         if re.search(old_pattern, html_content):
-            html_content = re.sub(old_pattern, f'const csvData = `{checklist_csv_data}`;', html_content, flags=re.DOTALL)
-        
-        # Update embedded metadata - use a more robust pattern
-        # First, find the start of the embeddedMetadata object
-        metadata_start_pattern = r'const embeddedMetadata = \{'
-        metadata_start_match = re.search(metadata_start_pattern, html_content)
-        
-        if metadata_start_match:
-            # Find the matching closing brace
-            start_pos = metadata_start_match.start()
-            brace_count = 0
-            in_backticks = False
-            i = metadata_start_match.end()
-            
-            while i < len(html_content):
-                if html_content[i] == '`':
-                    in_backticks = not in_backticks
-                elif not in_backticks:
-                    if html_content[i] == '{':
-                        brace_count += 1
-                    elif html_content[i] == '}':
-                        if brace_count == 0:
-                            # Found the closing brace
-                            end_pos = i + 1
-                            # Also find the closing semicolon
-                            if i + 1 < len(html_content) and html_content[i + 1] == ';':
-                                end_pos = i + 2
-                            break
-                        else:
-                            brace_count -= 1
-                i += 1
-            
-            # Replace the entire embeddedMetadata object
-            if 'end_pos' in locals():
-                # Find any comment before the const declaration
-                comment_pattern = r'(        // [^\n]*\n)?        const embeddedMetadata = \{'
-                comment_match = re.search(comment_pattern, html_content[:start_pos + 50])
-                if comment_match:
-                    start_pos = comment_match.start()
-                
-                metadata_replacement = f'        // Embedded metadata from CSV files\n{metadata_js_content}'
-                html_content = html_content[:start_pos] + metadata_replacement + html_content[end_pos:]
-            else:
-                print("  Warning: Could not find embeddedMetadata closing brace, skipping metadata update")
+            html_content = re.sub(old_pattern, lambda m: f'const csvData = `{checklist_csv_data}`;',
+                                  html_content, flags=re.DOTALL)
+
+        # A missing block is fatal (SystemExit is not caught below): a warning
+        # here let a stale table ship for 14 months.
+        span = js_object_span(html_content, "const embeddedMetadata")
+        if not span:
+            raise SystemExit("update_dashboard_html: 'const embeddedMetadata = {...};' not found in dashboard.html")
+        html_content = html_content[:span[0]] + metadata_js_content + html_content[span[1]:]
+
+        span = js_object_span(html_content, "const embeddedCholeraData")
+        if span:
+            html_content = html_content[:span[0]] + cholera_stub + html_content[span[1]:]
         else:
-            print("  Warning: Could not find embeddedMetadata pattern, skipping metadata update")
-        
-        # Update embedded cholera data - similar pattern to metadata
-        # First, find the start of the embeddedCholeraData object (or where it should be)
-        cholera_data_pattern = r'const embeddedCholeraData = \{'
-        cholera_data_match = re.search(cholera_data_pattern, html_content)
-        
-        if cholera_data_match:
-            # Find the matching closing brace (similar to metadata logic)
-            start_pos = cholera_data_match.start()
-            depth = 0
-            i = start_pos
-            end_pos = None
-            
-            while i < len(html_content):
-                if html_content[i] == '{':
-                    depth += 1
-                elif html_content[i] == '}':
-                    depth -= 1
-                    if depth == 0:
-                        end_pos = i + 1
-                        if i + 1 < len(html_content) and html_content[i + 1] == ';':
-                            end_pos = i + 2
-                        break
-                i += 1
-            
-            # Replace the entire embeddedCholeraData object
-            if end_pos:
-                # Find any comment before the const declaration
-                comment_pattern = r'(        // [^\n]*\n)?        const embeddedCholeraData = \{'
-                comment_match = re.search(comment_pattern, html_content[:start_pos + 50])
-                if comment_match:
-                    start_pos = comment_match.start()
-                
-                cholera_replacement = f'        // Embedded cholera data from CSV files\n{cholera_js_content}'
-                html_content = html_content[:start_pos] + cholera_replacement + html_content[end_pos:]
-            else:
-                print("  Warning: Could not find embeddedCholeraData closing brace, adding new cholera data object")
-                # Add the embeddedCholeraData after embeddedMetadata
-                metadata_end = re.search(r'const embeddedMetadata = \{[^}]*\};', html_content)
-                if metadata_end:
-                    insert_pos = metadata_end.end()
-                    cholera_insertion = f'\n\n        // Embedded cholera data from CSV files\n{cholera_js_content}'
-                    html_content = html_content[:insert_pos] + cholera_insertion + html_content[insert_pos:]
-        else:
-            # embeddedCholeraData doesn't exist, add it after embeddedMetadata
-            print("  Adding new embeddedCholeraData object...")
-            metadata_end = re.search(r'const embeddedMetadata = \{[^}]*\};', html_content)
-            if metadata_end:
-                insert_pos = metadata_end.end()
-                cholera_insertion = f'\n\n        // Embedded cholera data from CSV files\n{cholera_js_content}'
-                html_content = html_content[:insert_pos] + cholera_insertion + html_content[insert_pos:]
-            else:
-                print("  Warning: Could not find proper location to insert embeddedCholeraData")
-        
-        # Write updated HTML
-        with open(dashboard_file, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        
+            mspan = js_object_span(html_content, "const embeddedMetadata")
+            html_content = html_content[:mspan[1]] + "\n        " + cholera_stub + html_content[mspan[1]:]
+        html_content = html_content.replace(
+            "// Embedded cholera data from CSV files",
+            "// Observations load on demand from data/{ISO}/cholera_data_ai.csv (not embedded: ~94 MB)")
+
+        dashboard_file.write_text(html_content, encoding="utf-8")
         print(f"📊 Dashboard HTML updated: {dashboard_file}")
-        if metadata_dict:
-            print(f"  ✅ Embedded metadata for {len(metadata_dict)} countries: {', '.join(metadata_dict.keys())}")
-        if cholera_data_dict:
-            print(f"  ✅ Embedded cholera data for {len(cholera_data_dict)} countries: {', '.join(cholera_data_dict.keys())}")
-        
+        print(f"  ✅ Embedded metadata for {len(metadata_dict)} countries; observations load on demand "
+              f"from data/{{ISO}}/cholera_data_ai.csv")
+
     except Exception as e:
         print(f"Warning: Could not update dashboard HTML: {e}")
 

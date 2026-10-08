@@ -30,8 +30,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT = ROOT / "dashboard" / "dashboard.html"
 
-# The page is ~10 MB because the source data is embedded in it. A result far
-# outside this band means an edit removed something enormous.
+# The page is large because the source metadata is embedded in it (the
+# observations are not: they load from data/{ISO}/cholera_data_ai.csv). A result
+# far outside this band means an edit removed or added something enormous.
 MIN_BYTES = 5_000_000
 MAX_BYTES = 40_000_000
 
@@ -39,6 +40,13 @@ REQUIRED = [
     "const completionChecklistCSV",
     "const embeddedMetadata",
     "const embeddedCholeraData",
+    # The observations table loads data/{ISO}/cholera_data_ai.csv on demand. The
+    # embedded copy must stay an empty stub: from Aug 2025 to Oct 2026 a silently
+    # failing re-embed left a 14-month-old snapshot in the table.
+    "const embeddedCholeraData = {};",
+    "function parseCSVText",
+    "function renderCholeraRows",
+    "/cholera_data_ai.csv`",
     "<!-- COUNTRY-STATUS:START -->",
     "<!-- COUNTRY-STATUS:END -->",
 ]
