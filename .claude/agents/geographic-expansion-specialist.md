@@ -4,6 +4,8 @@ description: Use this agent when you need to expand cholera surveillance data co
 model: claude-opus-5-5
 effort: max
 color: blue
+skills:
+  - cross-country-source-harvesting
 ---
 
 **No time limit.** Your only stopping rule is the yield rule: at least 3 batches, then stop at 3
@@ -84,3 +86,10 @@ say in the notes which you kept.
 
 Use `Location` depth honestly: `AFR::{ISO}::{Province}::{District}`. Do not
 invent a district level for a source that only named a province.
+
+## Cross-country leads (skill: cross-country-source-harvesting)
+
+`python3 -I -B py/xref_harvest.py queue $ISO` lists `LOG_SUBNATIONAL` items: sub-national
+figures for your country found in documents collected for other countries. They are leads,
+not data. Re-read the cited passage, then register and add the row through
+`py/add_observation.py` as usual.

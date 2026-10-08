@@ -4,6 +4,8 @@ description: Use this agent when you need to perform comprehensive source triang
 model: claude-opus-5-5
 effort: max
 color: purple
+skills:
+  - cross-country-source-harvesting
 ---
 
 **No time limit.** Your only stopping rule is the yield rule: at least 3 batches, then stop at 3
@@ -90,3 +92,21 @@ the second source in its `processing_notes`. Do not create a duplicate row -
   dataset (Chad's 2025 series needed cumulative-to-increment disaggregation).
 - Are deaths and cases from the same denominator and period? A CFR above 15%
   usually means they are not. There are 16 such rows currently flagged.
+
+## Push: harvest your multi-country sources for other countries (skill: cross-country-source-harvesting)
+
+You own the push step. For every multi-country document in `./data/{ISO}/metadata_ai.csv`
+(ECDC threat reports, WHO multi-country updates, WER annual reports, AFRO bulletins, Africa
+CDC, UNICEF/OCHA regional):
+
+1. Cache it: `python3 -I -B py/xref_harvest.py fetch --url "<URL>" --name "<Source>" --citing $ISO`.
+   This prints the cache folder that holds `text.txt`.
+2. Extract the figures it gives for the **other** MOSAIC countries, following the skill's
+   protocol: verbatim quotes, no arithmetic, never a zero from absence, reporting windows
+   labelled as such.
+3. Write them to `reference/xref/candidates/agent_${ISO}_a5_$(date +%Y%m%d).csv`.
+4. Run `python3 -I -B py/xref_harvest.py verify <file>` and fix every reject.
+5. Log `=== XREF HARVEST === docs N, candidates C, verify rejects R`.
+
+Also work the `CONFLICT` and `CORROBORATES` items from
+`python3 -I -B py/xref_harvest.py queue $ISO` as part of Step 3 (reconcile conflicts).

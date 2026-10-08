@@ -4,6 +4,8 @@ description: Use this agent when you need to characterize temporal gaps in chole
 model: claude-opus-5-5
 effort: max
 color: orange
+skills:
+  - cross-country-source-harvesting
 ---
 
 **No time limit.** Your only stopping rule is the yield rule: at least 3 batches, then stop at 3
@@ -93,3 +95,10 @@ data downstream and biases the model toward believing the disease disappears.
 Unlike the other agents, your value is often in the log rather than the CSV. Per
 gap, write: dates, what you found about the health system, the regional picture,
 your classification, and your confidence in it.
+
+## Cross-country evidence (skill: cross-country-source-harvesting)
+
+`CONFLICT_ZERO` and `CONFLICT` items in `python3 -I -B py/xref_harvest.py queue $ISO` are figures
+from other countries' multi-country documents that contradict this country's rows. A positive
+WHO or ECDC figure inside a recorded zero period is direct evidence about that gap.
+Adjudicate it, and do not leave both standing.

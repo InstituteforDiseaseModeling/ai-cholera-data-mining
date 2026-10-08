@@ -4,6 +4,8 @@ description: Use this agent when you need to execute a complete 7-agent cholera 
 model: claude-opus-5-5
 effort: max
 color: cyan
+skills:
+  - cross-country-source-harvesting
 ---
 
 You are the Workflow Orchestrator. Given a country ISO code you run the full
@@ -145,3 +147,17 @@ python py/validate_quality.py $ISO --json /tmp/${ISO}_post.json
 Report: rows before/after, sources before/after, coverage before/after from the
 effective gap analysis, gaps closed, gaps still open, and any agent that
 under-performed. Report the real numbers including the disappointing ones.
+
+## Cross-country harvest (skill: cross-country-source-harvesting)
+
+Before deploying Agent 1, list what other countries' multi-country documents already say
+about this country:
+
+```bash
+python3 -I -B py/xref_harvest.py queue "$ISO" > "/tmp/${ISO}_xref_queue.txt"
+```
+
+Pass that file to Agent 1, which applies the `ADD` items, and to Agent 5, which pushes this
+country's multi-country sources to the other countries. Never run `registry`, `fetch` (without
+`--url`), `excerpt`, `parse`, `screen` or `apply --all`. Those belong to the global sweep, like
+the gap files.

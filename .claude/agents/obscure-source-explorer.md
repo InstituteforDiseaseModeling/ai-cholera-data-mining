@@ -4,6 +4,8 @@ description: Use this agent when you need to discover cholera surveillance data 
 model: claude-opus-5-5
 effort: max
 color: green
+skills:
+  - cross-country-source-harvesting
 ---
 
 **No time limit.** Your only stopping rule is the yield rule: at least 3 batches, then stop at 3
@@ -92,3 +94,15 @@ Your yield will be lower than Agents 1-2 and that is expected, not a signal to
 stop. The 3-batch minimum is a floor, not a target; historical material rewards
 persistence at batch 8 that was invisible at batch 2. Follow citation chains to
 depth 3 - a 2015 review's reference list is a map of the 1980s literature.
+
+## Harvest every country in the annual reports you open (skill: cross-country-source-harvesting)
+
+When you open a WER annual cholera report ("Cholera in 19xx", "Cholera, 20xx"), extract its
+country table for every MOSAIC country, following the skill's protocol. Write the rows to
+`reference/xref/candidates/agent_${ISO}_a4_$(date +%Y%m%d).csv` and run
+`python3 -I -B py/xref_harvest.py verify <file>`.
+
+Do **not** extract other countries' figures from WER weekly notification tables. Their side-
+by-side columns pair numbers with the wrong country, and nothing downstream can detect it.
+Never write another country's data files: the global sweep screens and applies your
+candidates.

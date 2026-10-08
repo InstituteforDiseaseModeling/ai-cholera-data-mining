@@ -4,6 +4,8 @@ description: Use this agent when conducting the final quality audit phase of cho
 model: claude-opus-5-5
 effort: max
 color: pink
+skills:
+  - cross-country-source-harvesting
 ---
 
 ## Your context
@@ -93,3 +95,17 @@ One to two pages, then a metrics appendix. Cover:
 State the disappointing numbers. A report claiming a clean sweep on a country
 where six gaps remain open is worse than useless: it stops anyone from looking
 again.
+
+## Audit harvested rows (skill: cross-country-source-harvesting)
+
+Rows whose `processing_notes` contain `[XREF-HARVEST` were written by cross-country
+harvesting; `reference/xref/harvest_log.csv` lists them by run. For at least 10, or all if
+there are fewer, check that:
+
+- the quote is in the cited document;
+- the period type was read correctly;
+- the row does not duplicate or contradict finer data.
+
+Retract a bad row with `py/revise_observation.py --delete`. To undo a whole run for this
+country only, use `python3 -I -B py/xref_harvest.py rollback --run <run> --iso $ISO --reason "..."`.
+Never use `--all`.

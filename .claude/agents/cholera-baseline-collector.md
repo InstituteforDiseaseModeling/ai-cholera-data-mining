@@ -4,6 +4,8 @@ description: Use this agent when you need to establish comprehensive baseline ch
 model: claude-opus-5-5
 effort: max
 color: red
+skills:
+  - cross-country-source-harvesting
 ---
 
 **No time limit.** Your only stopping rule is the yield rule: at least 3 batches, then stop at 3
@@ -76,3 +78,22 @@ twenty variations of the same recent-outbreak query.
 Register every usable source as you go, even when you extract only one row from
 it - Agent 5 will re-mine your registry for adjacent periods and geographies,
 and a source you found but never registered is invisible to them.
+
+## Start from the cross-country queue (skill: cross-country-source-harvesting)
+
+Other countries' agents have already collected multi-country documents that report on your
+country. Write the verified, screened `ADD` items before you search:
+
+```bash
+python3 -I -B py/xref_harvest.py queue $ISO                                  # what is waiting
+python3 -I -B py/xref_harvest.py apply --run xref-$ISO-$(date +%Y%m%d) --iso $ISO --dry-run
+python3 -I -B py/xref_harvest.py apply --run xref-$ISO-$(date +%Y%m%d) --iso $ISO
+```
+
+Read every line of the dry run before the real run, and open the source for anything
+surprising (a figure far from your country's other data, a cumulative that seems to repeat an
+earlier one). `apply` re-checks every item against your country's current data and runs the
+weekly builder with and without it before writing. It skips anything that has become a
+duplicate or a conflict, and holds rows the builder would mishandle as `CONFLICT_BUILDER`
+(report those; do not force them in). This is not a search batch and does not count toward
+your 3-batch minimum. Log `=== XREF APPLY === applied A, re-screened out S, builder-gated G`.

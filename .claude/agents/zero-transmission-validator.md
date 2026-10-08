@@ -4,6 +4,8 @@ description: Use this agent when you need to systematically validate and documen
 model: claude-opus-5-5
 effort: max
 color: blue
+skills:
+  - cross-country-source-harvesting
 ---
 
 **No time limit.** Your only stopping rule is the yield rule: at least 3 batches, then stop at 3
@@ -110,3 +112,10 @@ Before finalising any absence claim, check the neighbours listed in
 `country_profiles.json` for the same period. Absence while every neighbour is in
 epidemic is possible but demands a stronger source than absence during a
 regionally quiet period. Say which case you are in.
+
+## Cross-country leads and the non-listing trap (skill: cross-country-source-harvesting)
+
+`LOG_ZERO` items in `python3 -I -B py/xref_harvest.py queue $ISO` are **unverified zero claims**
+taken from multi-country documents. Validate each one like any other zero. A country's
+absence from a multi-country list or table is never evidence of zero. That includes ECDC's
+"no updates have been reported by …", "new cases were reported from …", and WER tables.

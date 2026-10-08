@@ -42,6 +42,9 @@ and reversed dates.
 | `python py/repair_data_integrity.py --dry-run\|--apply` | Mechanically repair known defect classes; withholds anything needing judgement to `attribution_review.csv` |
 | `python py/analyze_effective_gaps.py` | Gap analysis across JHU+WHO+AI — what actually still needs filling |
 | `python py/build_country_profiles.py` | Rebuild `reference/country_profiles.json` |
+| `python3 -I -B py/xref_harvest.py queue {ISO}` | Figures for {ISO} found in multi-country documents other countries collected (cross-country harvest queue; read-only) |
+| `python3 -I -B py/xref_harvest.py apply --run R --iso {ISO} [--dry-run]` | Write {ISO}'s screened `ADD` items (Agent 1; read the `--dry-run` first); re-checks each against current data and holds rows the weekly builder would mishandle (`CONFLICT_BUILDER`). Per-country agents may also run `fetch --url`, `verify`, and `rollback --iso` |
+| `python3 -I -B py/xref_harvest.py registry\|fetch\|aliases\|excerpt\|parse\|screen\|apply --all` | Cross-country harvest global sweep (between country runs; the tool locks itself - no `with_lock`). See skill `cross-country-source-harvesting` |
 
 **Reference data**:
 - `./reference/country_profiles.json` — per-country provinces (596 ADM1 units),
@@ -53,6 +56,10 @@ and reversed dates.
 - `./reference/baseline_surveillance_gaps_*.csv` — JHU/WHO only. These list gaps
   the AI layer has already filled; targeting them wastes query budget.
 - `./templates/template_search_protocol.txt` — the canonical search methodology.
+- `./reference/xref/` — cross-country harvest: `source_registry.csv` (multi-country
+  documents and which countries cite them), `candidates_screened.csv` (every harvested
+  figure with its decision), `harvest_log.csv` (rows written, for audit/rollback).
+  Method and guardrails: `.claude/skills/cross-country-source-harvesting/SKILL.md`.
 
 **Auxiliary data files** (created by the repair tool, maintained by agents):
 - `./data/{ISO}/cholera_presence_ai.csv` — cholera confirmed present but no
