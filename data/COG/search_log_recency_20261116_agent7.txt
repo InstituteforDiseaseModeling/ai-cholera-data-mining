@@ -6,3 +6,106 @@ Scope: rows of ./data/COG/cholera_data_ai.csv whose processing_notes contain "[R
 Stage 1 log: ./data/COG/search_log_recency_20261116_agent1.txt (present)
 Status: INITIALIZED
 
+=== STEP 0: SCOPE ===
+Stage 1 log read in full: 4 batches / 80 queries, yields 5%, 0%, 0%, 0%; stop = 3 consecutive sub-5% batches after the
+3-batch minimum (B1 at exactly 5% is not "<5%", so it was correctly not counted). Claims: 1 row (Index 632), 3 sources (189-191),
+0 zero rows, 0 presence rows.
+Tagged rows in ./data/COG/cholera_data_ai.csv (processing_notes contains "[RECENCY-20261116]"): 1 (Index 632). No sampling.
+Diff against pre-pass backups (./data/COG/.backup_cholera_data_ai_20261116-140342538339.csv, .backup_metadata_ai_20261116-140331559000.csv):
+  data: 611 -> 612 rows, added [632], changed 0, removed 0. metadata: 188 -> 191, added [189, 190, 191], changed 0.
+  cholera_presence_ai.csv / retracted_rows_ai.csv: no [RECENCY-20261116] entries. Stage 1 claims match the files.
+XREF-HARVEST: no tagged row carries [XREF-HARVEST; stage 1 used no xref item (queue had none inside the window). No xref audit in this
+  recency scope (user instruction: audit only the [RECENCY-20261116] rows).
+Tooling: direct curl not permitted -> pages via web-fetch agents; PDFs copied to isolated dirs /tmp/cog_rec7/pdf_*/ and rendered with
+  pdftoppm into /tmp/cog_rec7/render_*/; scripts kept in /tmp/cog_rec7/scripts/ (builder_dryrun.py, gap_before_after.py, contact.py).
+
+=== STEP 1: SOURCE VERIFICATION - Index 632 (source_index 189) ===
+Row: AFR::COG | TL 2026-09-07 | TR 2026-10-18 | sCh 55 | cCh blank | deaths 0 | CFR 0.00 | reporting 2026-10-25 | conf 0.9
+Fetch: cited URL (wpdmdl=24034 ... filename=Africa-CDC-Epidemic-Intelligence_Weekly-Report_25-Oct-2026_vf.pdf) -> HTTP 200 application/pdf,
+  5,730,043 bytes, 16 pp, image-only (DHIS2 export, CreationDate 2026-11-07), sha256 607b6d484de331626f8f64eb11c989ce0c5b96895b09b36d6c762d7e7ed15ca3.
+  The landing page (https://africacdc.org/download/africa-cdc-epidemic-intelligence-weekly-report-october-2026/) lists 2 files:
+  '25 October 2026' (this file) and '11 October 2026' (filename ...Weekly-Report-19-0ctober-2026.pdf). The refresh token in the stored URL
+  differs from today's but still served the file; the landing page is the durable fallback.
+Read from rendered pages:
+  p.1  'Date of Issue: 2026-10-25'                                                                  -> reporting_date OK
+  p.2  'Cholera | Congo Republic | Moderate | N/A | 1,021 (55) | 0 (0) | 22 (0) | 65 (0)'           -> matches note
+  p.9  'Congo Republic: From epidemiological week 37-42, the MoH reported 55 new suspected cases and no new deaths of cholera.
+        This year, a total of 1,043 cases (22 confirmed; 1,021 suspected) and 65 deaths (CFR: 6.2%) of cholera were reported
+        from six Departments in Congo.'                                                              -> verbatim match
+       'Since the last update (18 October 2026), a total of 389 new cases and three new deaths of cholera were reported from
+        three AU MS: Congo, Somalia, and Zambia.'  (Congo 55 + Somalia 39 + Zambia 295 = 389; deaths 0+0+3 = 3)  -> consistent
+  p.15 'Epidemiological week 43 covers the period from 19- 25 October 2026.'  ISO 2026-W43 = 19-25 Oct, so EW37-42 = ISO W37-W42 =
+        2026-09-07..2026-10-18                                                                       -> TL/TR correct
+Period type: period increment over EW37-42 (not cumulative, not YTD). YTD chain 988 (13 Sep issue, EW36; metadata 88) + 55 = 1,043; deaths 65 -> 65.
+Intermediate-issue check: 11 Oct 2026 issue (HTTP 200, 6,232,032 bytes, 19 pp, sha256 2d49b19b...cdb61) p.2 highlights cholera for Burundi,
+  Mozambique, Zambia only; p.12 'Congo (988; 65)' and 'Since the last update (04 October 2026), a total of 444 new cases and 11 new deaths
+  of cholera were reported from five AU MS: Angola, Burundi, Mozambique, Somalia, and Zambia.' -> Congo YTD unchanged until the 25 Oct issue;
+  the 55 is a single batch, not split or double-reported across issues. September page lists only the 13 Sep and 20 Sep issues.
+Cross-check sources (also re-verified):
+  - Index 191 WER 101(44) HTML: 'Data as of 27 September 2026'; Table 1 row 'Congo 988 65 6.6 16 16 0 0.0 -66 -' -> as described.
+  - Index 190 ECDC epipulse_event/2100 (27 Oct 2026): 'Since 28 September 2026, no updates have been reported by: Central African Republic,
+    Chad, Congo, Ethiopia, Kenya, Malawi, Namibia, South Africa, Sudan, United Republic of Tanzania, Zimbabwe' -> as described; Congo
+    absent from new-cases/new-deaths lists.
+  - WHO Congo 'Bulletin de situation des urgences de sante publique' No.001 (afro.who.int/sites/default/files/2026-10/Bulettin EPR N001vf.pdf,
+    HTTP 200, 2 pp, sha256 e8ed7972...38c6) p.1: 'Choléra : 1 786 cas cumulés et 132 décès au 9 septembre 2026 ; létalité 7,3 %. En 2026 :
+    955 cas et 65 décès (létalité 6,8%)' -> the note's quote is accurate. Pre-window conflict with Africa CDC 988 at 6 Sep stands
+    (out of scope). Note the bulletin's own table: 2025 826/67 + 2026 955/65 = 1,781, not 1,786; its epi curve stops at 20 Aug 2026.
+Result: quote, numbers, period type and dates CONFIRMED.
+
+=== STEP 2: DUPLICATION ===
+WHO baseline ./data/COG/cholera_data_who.csv: last COG week 2026-09-07..09-13 (sCh 0); no WHO row inside the window -> row 632 is not a
+  restatement of a WHO dashboard week. WER No.44 (988/65) is the WHO dashboard carried forward -> correctly NOT added (Index 191, no row).
+AI layer: only AI rows touching 2026-09-07..: Index 629 (zero, 09-07..09-13, WHO dashboard) and 632. Not a duplicate. Overlap of 632's first
+  week with the WHO/AI zero week is disclosed in the note. Builder handling verified (Step 3). No sub-national row anywhere in
+  2026-09-07..2026-11-16 -> no national/ADM1 double-count; note says 'National total - do not sum with any sub-national row'.
+
+=== STEP 3: PLAUSIBILITY / BUILDER ===
+deaths 0 <= sCh 55; cCh blank (confirmed unchanged at 22, so the 55 are all suspected); CFR 0.00 = 0/55.
+Epidemic curve: WHO W30-W36 = 26, 17, 14, 14, 2, 17, 16; W37 = 0; then ~9-11/week over EW37/38-42 -> continuous low-level tail; no deaths
+  in WHO weeks since W35 (1). Neighbours (Africa CDC 25 Oct 2026 YTD): DRC 58,319 cases / 1,718 deaths, Cameroon 2,712 / 79, CAR 447 / 36,
+  Angola 6,980 / 132 -> continued ROC transmission is regionally plausible.
+In-memory builder (py/build_weekly_timeseries.py process_country, nothing written), committed files:
+  W36 16 (WHO observed) | W37 0 (WHO observed) | W38 12.77 | W39 12.03 | W40 11.12 | W41 10.10 | W42 8.98 (AI, fourier_country_k2, conf 0.72)
+  2026 total 1,043.00 cases / 65.00 deaths = Africa CDC YTD exactly; latest week in series 2026-W42.
+Counterfactual with row 632 TL moved to 2026-09-14: IDENTICAL output. -> no reason to depart from the source-stated EW37-42 period; KEEP TL.
+Re-run after the audit note was appended: identical output.
+
+=== STEP 4: ZERO ROWS ===
+None tagged. Stage 1 correctly declined to turn ECDC 'no updates since 28 Sep' or WER 'last 28 days' into zeros.
+
+=== STEP 5: CONFIDENCE WEIGHT ===
+Africa CDC continental EI report of MoH figures = Level 1; 0.9 is within 0.9-1.0 and equals the other Africa CDC rows (188, 458). Single source,
+  55 cases (<100: Tier 3, single source acceptable). KEEP 0.9.
+
+=== ACTION ===
+python3 py/revise_observation.py COG --index 632 --agent "Recency Agent 7" --append-note "[RECENCY-20261116 AUDIT] Verified ... KEPT UNCHANGED ..."
+  --reason "[RECENCY-20261116 AUDIT] Agent 7 verification of row 632 against the re-fetched source; no value changed"  -> exit 0, 2,281 chars appended.
+Rows: checked 1 | kept 1 | corrected 0 | retracted 0.
+
+=== EMPTY-WINDOW VERIFICATION (2026-10-19..2026-11-16) ===
+WebSearch (5): '"Congo Republic" cholera Africa CDC epidemic intelligence report November 2026'; 'choléra Congo Brazzaville novembre 2026
+  nouveaux cas'; 'Bulletin de situation des urgences de santé publique République du Congo "Numéro 002" 2026'; 'WHO AFRO weekly bulletin
+  on outbreaks and other emergencies week 44 2026 cholera Congo'; 'Republic of Congo cholera cases October November 2026' [extended]
+  -> no Republic of Congo figure after 13 Sep other than row 632's source; DRC-only items (Equateur 142 cases/17 deaths, 1 Nov).
+Fetches: Africa CDC November 2026 page -> 404. WHO AFRO Congo publications -> newest 6 Oct 2026 (bulletin No.001); no No.002, no SITREP N50+.
+  WHO AFRO OEW listing -> latest Week 41 (5-11 Oct 2026; articles Cholera Zambia / BVD Kenya / Ethiopia); weeks 42+ not posted; week 41 PDF
+  only on iris.who.int -> ECONNREFUSED 54.174.254.19:443 (one attempt, not retried).
+Conclusion: data for the remainder of the window has not been published yet; transmission was ongoing at the last report and no
+  end-of-outbreak declaration exists -> leave EMPTY (no zero row, no presence row). Agree with stage 1.
+
+=== IMPACT (in-memory py/analyze_effective_gaps.analyse(); reference CSVs NOT rewritten - shared all-country files, parallel pass) ===
+                         months covered   %      ai_only  trailing gap                 latest obs   latest positive
+  baseline JHU+WHO        319/683        46.7      0     2026-09-01..11-16 (77 d)      2026-09-13   2026-09-06
+  before pass (all)       674/683        98.7    354     2026-09-01..11-16 (77 d)      2026-09-13   2026-09-06
+  after pass (all)        676/683        99.0    355     2026-11-01..11-16 (16 d)      2026-10-18   2026-10-18
+  Newly covered months: 2026-09 (WHO 1-13 Sep + AI) and 2026-10 (AI only). Window days covered: 35/64 (54.7%), all AI.
+
+=== VALIDATOR ===
+python3 py/validate_quality.py COG -> exit 0 | ERROR 0 | WARN 10 (CFR_high_flagged_for_review on pre-existing rows; none on 632) | INFO 218
+  (187 national_subnational_overlap documented, 31 metadata_unused incl. 190/191 by design). Re-run after the revision: identical.
+
+Files touched: ./data/COG/cholera_data_ai.csv (Index 632 processing_notes append via py/revise_observation.py), this log,
+  ./data/COG/search_report.txt (appended section). Not touched: baselines, metadata_ai.csv, workflow_state*.json, search_log_agent_7.txt,
+  reference/, dashboard, other countries.
+End Time: 2026-11-16 14:24:33
+Agent 7 Status: COMPLETE
