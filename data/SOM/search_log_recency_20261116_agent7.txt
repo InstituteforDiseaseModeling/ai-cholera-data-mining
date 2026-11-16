@@ -6,3 +6,140 @@ Scope: rows of ./data/SOM/cholera_data_ai.csv tagged [RECENCY-20261116] only
 Stage 1 log: ./data/SOM/search_log_recency_20261116_agent1.txt (present)
 Agent 7 Status: INITIALIZED
 
+=== STEP 0: STAGE 1 LOG READ ===
+./data/SOM/search_log_recency_20261116_agent1.txt present (Agent 1 COMPLETE 14:14:04).
+Stage 1 claims: 4 batches / 80 queries, yields 15% (3/20), 0%, 0%, 0% -> stop on 3 consecutive <5% after the
+3-batch minimum. Sources registered 564, 565, 566. Rows 2457-2461, all tagged [RECENCY-20261116]. No zero rows,
+no presence rows. Flags left for stage 2: (a) builder puts 213 in ISO wks 37-39 vs chain 134 (rows 45/46);
+(b) wk 41 coverage-skipped; (c) 25 Oct PDF table 'Suspected 2,985 (31)' inconsistent with paragraph.
+
+=== STEP 1: AGENT-WORK CHECK (stage 1) ===
+- Batches: 4 (>= 3 minimum); stop rule correctly applied (B2-B4 = 0%). No yield > 100% (max 15% = 3/20).
+- Rows claimed = rows present: 2457, 2458, 2459, 2460, 2461 (5 tagged rows in ./data/SOM/cholera_data_ai.csv,
+  2,364 rows total). Sources claimed = present: metadata Index 564, 565, 566 in ./data/SOM/metadata_ai.csv.
+- Amendment (row 2461 committed in B2 but credited to B1 q7, where the count was found) is legitimate.
+- XREF-HARVEST rows in SOM: 0 (none in window) -> harvested-row audit not applicable.
+
+=== STEP 2: INDEPENDENT SOURCE VERIFICATION ===
+Fetched with curl into fresh empty dirs under /tmp/som_a7_work (outside repo), 2026-11-16 ~14:20:
+  564 PDF  HTTP 200, 6,232,032 B, sha256 2d49b19b9148858796b042ca1c14427a86fac99db8000e3fa85186df2a5cdb61,
+           19 pp, created 2026-10-20 (DHIS2 render, image-only: pdftotext returns nothing)
+  565 PDF  HTTP 200, 5,730,043 B, sha256 607b6d484de331626f8f64eb11c989ce0c5b96895b09b36d6c762d7e7ed15ca3,
+           16 pp, created 2026-11-07 (image-only)
+  566 HTML HTTP 200 (africa.com/apo page, APO release dated 11 November 2026, 'Distributed by APO Group on behalf of UNOCHA')
+  ECDC epipulse_event/2100 HTML HTTP 200 (cross-reference only)
+  Africa CDC Sep-2026 file '...Report-28Sep26.pdf' (= issue dated 2026-09-20), HTTP 200, 19 pp
+OCR: my own compiled macOS Vision tool (/tmp/som_a7_work/scripts/ocr, accurate mode, no language correction),
+pages rendered at 200 dpi (stage 1 used 150/300 dpi with its own script) + visual check of the cropped page images.
+Readings identical to stage 1's quotes in every number and word.
+
+ROW 2457 AFR::SOM 2026-09-28..10-04 sCh 22 d 0 [564] - PASS / KEPT
+  Quote found p.13: 'Somalia: Between epidemiological weeks 40, the MoH reported 22 new suspected cases and no new
+  deaths of cholera across all six states in Somalia.' Header p.1 'Date of Issue: 2026-10-11'. Continental p.12:
+  'Since the last update (04 October 2026), a total of 444 new cases ... Angola, Burundi, Mozambique, Somalia, and
+  Zambia' = 41+109+1+22+271 = 444.
+  Period type: weekly increment. Dates: ISO wk 40 - Africa CDC uses ISO weeks (4 Feb 2026 issue footnote quoted in
+  AI Index 44: 'Epidemiological week 4 covers a period from 19 - 25 January 2026'; wks 1-3 = WHO 29 Dec-18 Jan rows).
+  'weeks 40' is malformed; single-week reading supported because October reporting was weekly (25 Oct issue's
+  'since the last update (18 October 2026)' implies a Somalia increment of 36 in the 18 Oct issue). In the same
+  11 Oct issue Burundi/Mozambique/Zambia give wk 41 and Angola/Somalia wk 40: Somalia reports 1 week behind.
+ROW 2458 AFR::SOM 2026-01-01..10-04 sCh 2,934 cCh 55 d 1 [564] - PASS / KEPT
+  Quote p.13 (last line 'from all six states in Somalia.' missed by OCR, confirmed on page image); continental
+  'Somalia (2,934; 1)'. ECDC 27 Oct: 'Since 13 September 2026 and as of 11 October 2026, 156 new cases have been
+  reported. Since 1 January 2026 and as of 11 October 2026, 2 934 cases, including one death' (derivative).
+  Period type: year-to-date; TR = end of the last week in the paragraph (wk 40). CFR 1/2934 = 0.03%. cCh <= sCh.
+ROW 2459 AFR::SOM 2026-10-12..10-18 sCh 39 d 0 [565] - PASS / KEPT
+  Quote p.9 verbatim; header 'Date of Issue: 2026-10-25'; continental 'Since the last update (18 October 2026), a
+  total of 389 new cases and three new deaths ... Congo, Somalia, and Zambia' = 55+39+295. Weekly increment, ISO wk 42
+  (Zambia gives wk 43 in the same issue; Somalia again one week behind).
+ROW 2460 AFR::SOM 2026-01-01..10-18 sCh 3,009 cCh 55 d 1 [565] - PASS / KEPT
+  Quote p.9 verbatim; continental 'Somalia (3,009; 1)'. Year-to-date to wk 42. CFR 0.03%.
+  Summary table p.2 (page image checked): Somalia cholera 'Suspected 2,985 (31) / Probable 0 (0) / Confirmed 55 (0) /
+  Deaths 1 (0)'. Same table: Somalia diphtheria 4,011 (63) / deaths 114 (1) vs paragraph 3,948 / 113; Somalia measles
+  13,064 (246) susp / 826 (11) conf vs paragraph 12,818 / 815. Every Somalia entry = paragraph + its '(New)'; Congo
+  cholera (1,021 (55); 22; 65) and Zambia cholera (1,202 (271); 218 (24); 28 (3)) match their paragraphs exactly.
+  => the Somalia table entries are one DHIS2 update later than the text (PDF built 7 Nov), probably wk 43 = 31 new
+  suspected, 0 conf, 0 deaths; no period printed -> NOT used (stage 1 decision upheld). Lead for next pass.
+ROW 2461 AFR::SOM::Mudug::Galkacyo 2026-10-12..11-11 sCh 5 cCh 5 d 1 [566] - PASS / KEPT
+  Quote verbatim: 'Health authorities have confirmed five cholera cases, including one death, in eastern Gaalkacyo,
+  the capital of Mudug region.' Also: 'suspected cholera and acute watery diarrhoea cases are rising rapidly'; Mudug
+  '>5,800 acute watery diarrhoea cases ... including more than 1,900 in the last two months' (syndromic, rightly
+  not recorded). No dates in the release. TL anchor checked (WebSearch): Dawan Africa 19 Oct 2026 'Rains affect more
+  than 20,000 households in Galmudug' - Galmudug humanitarian minister: >20,000 households over the past week, mainly
+  Abudwaq, Galkayo and Guriel; health services disrupted. National chain (55 conf / 1 death to wk 42) and the 565
+  table cut (Confirmed 55 (0), Deaths 1 (0)) exclude these cases -> probably confirmed after ~25 Oct. Location code
+  used by 12 earlier rows (AFR::SOM::Mudug::Galkacyo); Mudug is a valid ADM1 in ./reference/country_profiles.json.
+  CFR 20% on n=5 (not an outbreak CFR). Weight 0.7 = bottom of Level 2 band: appropriate for lower bound +
+  estimated start. Builder reads AFR::SOM only -> no double count with 2457-2460.
+Extra checks:
+  - 20 Sep 2026 issue (file 28Sep26.pdf): continental 'Somalia (2,778; 1)'; 'Since the last update (13 September,
+    2026) ... five AU MS: Angola, Burundi, Mozambique, Rwanda and Zambia' - Somalia not updated. Confirms stage 1.
+  - africacdc.org download pages re-checked: Sep-2026 = 2 files (13 Sep issue = metadata 55; 20 Sep issue);
+    Oct-2026 = 2 files (the two cited); Nov-2026 = HTTP 404. Issues 27 Sep, 4 Oct, 18 Oct, 1 Nov, 8 Nov not public.
+  - WebSearch (3 verification queries): Dawan 19 Oct article (found); 'Gaalkacyo cholera confirmed cases death
+    November 2026' (only the OCHA release); 'Africa CDC ... 1 November 2026 ... week 43' (nothing).
+
+=== STEP 3: DUPLICATION / PLAUSIBILITY / ZERO ROWS / WEIGHTS ===
+- WHO baseline ./data/SOM/cholera_data_who.csv: last row 2026-01-12..18 (73); no row overlaps the window -> no WHO
+  duplicate. AI rows overlapping the window = exactly the 5 tagged rows; no AI duplicate. National vs ADM2 roles
+  stated in notes; validator INFO national_subnational_overlap = 'documented'.
+- deaths <= sCh and cCh <= sCh on all 5. CFRs 0.00/0.03/0.00/0.03/20.00 (n=5).
+- Curve: WHO late-2025 64-108/wk, Jan 2026 73-78/wk; AI chain 2026 declines to ~21/wk (wks 33-34), ~40/wk (35-36);
+  window: ~45/wk (37-39 chain residual), 22, 36 (implied), 39. Continuous, no jump.
+- Neighbours (Africa CDC 11 Oct issue): Kenya (39; 0) and Ethiopia (15; 0) YTD, unchanged - no regional surge that
+  Somalia's low counts would contradict.
+- Zero rows: none. Weights: 0.85 (Africa CDC, Level 2) consistent with prior chain rows 49-58; 0.7 (OCHA, Level 2).
+- Series caveat (out of window, not acted on): WHO EMRO sitrep Jul 2026 ~15,800 'cholera/AWD' wks 1-30 vs this
+  MoH/Africa CDC cholera series 2,511 - different (syndromic) series; Africa CDC 2025 total (9,003) = WHO's 2025.
+
+=== STEP 4: WEEKLY BUILDER EFFECT (py/build_weekly_timeseries.py process_country run in memory on temp copies
+    under /tmp/som_a7_work/sim_*; nothing written to the repo) ===
+  A live (with rows)  : W37 75.5, W38 70.7, W39 66.8, W40 22.0 obs, W41 MISSING, W42 39.0 obs; window 274.0;
+                        2026 W1-42 = 2,973
+  B pre-pass          : series ends W36; 2026 = 2,699 (chain 2,778; the 79 Feb cases lost via rows 45/46)
+  C + derived 134/36  : W37-39 = 134 (47.5/44.5/42.0), W41 36 obs; window 231 = 3,009 - 2,778; 2026 W1-42 2,930
+  Mechanism: 2458 decumulates against AI Index 25 (233, TL 2025-12-29, within 3 days of 1 Jan) because the 13 Sep
+  chain point (retracted Index 42) is gone; its residual (2,701 - 2,488 placed) = 213 lands in the only empty weeks
+  (37-39). 2460's increment (75, 5-18 Oct) is coverage-skipped (wk 42 observed = 0.50 >= COVERAGE_THRESHOLD).
+  DECISION: no derived rows added. The pass rule (py/recency_prompt.py collect stage: 'The weekly builder decumulates
+  chains against existing rows. Do not hand-difference.') and the audit remit (retract or correct tagged rows) do
+  not cover adding hand-differenced rows; rows 45/46 are pre-window and out of scope. An ECDC 'since 13 September'
+  row (156) would fix wks 37-39 without hand arithmetic, but it is a reporting-window figure - the harvest skill
+  records that Somalia's ECDC 'since 12 July' row had to be retracted for exactly that reason. Not added.
+  Weights NOT lowered: the rows are faithful to the source; the distortion is a builder/old-row interaction.
+  Recorded on 2458 and 2460 via --append-note; recommended fixes in ./data/SOM/search_report.txt.
+
+=== STEP 5: COVERAGE (py/analyze_effective_gaps.analyse() called in memory; the global script was NOT run because
+    it rewrites the shared ./reference/effective_* files for all 40 countries during a parallel run) ===
+  pre-pass : trailing gap 2026-09-01..2026-11-16 (77 d); coverage 94.0% (642/683 months); months_ai_only 233;
+             latest observation 2026-09-06
+  live     : trailing gap 2026-11-01..2026-11-16 (16 d); coverage 94.3% (644/683); months_ai_only 235;
+             latest observation 2026-11-11 (ADM2 row 2461) / latest NATIONAL 2026-10-18
+  Caveat: Sep 2026 counts as covered only through YTD row 2458; Oct through 2460 (to 18 Oct) and 2461.
+
+=== STEP 6: ACTIONS (all via py/revise_observation.py --agent 7, reason prefixed [RECENCY-20261116 AUDIT]) ===
+  2457 append-note (verification)                          values unchanged
+  2458 append-note (verification + wks 37-39 builder effect) values unchanged
+  2459 append-note (verification)                          values unchanged
+  2460 append-note (verification + wk 41 builder effect, table cut) values unchanged
+  2461 append-note (verification + TL anchor, ADM2 role)     values unchanged
+  Retracted: none. Values corrected: none. Sources added by audit: none. Metadata 564-566 Validation_Status stays
+  'Pending' (revise_observation.py has no flag for it; not hand-edited) - verified here.
+  Backups written by the tool: ./data/SOM/.backup_cholera_data_ai_20261116-143031*.csv (5).
+
+=== STEP 7: VALIDATOR ===
+  python3 py/validate_quality.py SOM -> EXIT 0; ERROR 0, WARN 30 (27 CFR_high + 3 period_single_day, all on
+  pre-existing rows), INFO 396; on the new rows only INFO national_subnational_overlap (2026-01-01..10-18 and
+  2026-10-12..10-18) = documented. Unchanged from before the audit.
+
+=== OPEN ITEMS FOR THE USER / NEXT PASS ===
+  1. Decide the wks 37-39 / wk 41 fix: (a) full-run revision of Index 45/46 (wk-6 backlog additive to wks 5-7), which
+     makes 2458 decumulate to 134; or (b) builder change; or (c) derived rows 2026-09-07..09-27 = 134 (0 deaths) and
+     2026-10-05..10-11 = 36 (0 deaths) at weight 0.5 (Agent 5 precedent 2227/50) - simulated result C above.
+  2. Next recency pass: Africa CDC 1 Nov issue should print Somalia wk 43 (check against the table's 31); the 8/15 Nov
+     issues wks 44-45; ECDC monthly update due late Nov ('since 11 October'); any Galkacyo/Mudug suspected counts.
+Files written: this log; ./data/SOM/cholera_data_ai.csv (notes only, rows 2457-2461); ./data/SOM/search_report.txt
+(appended section). Not touched: baselines, metadata_ai.csv, workflow_state.json, search_log_agent_7.txt, dashboard,
+other countries.
+End Time: 2026-11-16 14:32:17
+Agent 7 Status: COMPLETE
