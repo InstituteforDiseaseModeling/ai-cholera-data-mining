@@ -7,3 +7,177 @@ Stage 1 log: ./data/CAF/search_log_recency_20261116_agent1.txt (EXISTS - stage 1
 Stage 1 state: ./data/CAF/workflow_state_recency_20261116.json (rows_added 0, sources_registered 0, tagged_rows_for_stage2 [])
 Retractions/corrections via py/revise_observation.py only; reasons prefixed "[RECENCY-20261116 AUDIT]".
 
+=== A. TAGGED-ROW INVENTORY ===
+Searched for "RECENCY-20261116" (and for any RECENCY-* tag):
+  ./data/CAF/cholera_data_ai.csv       0 lines   (91 rows; Index 4..103; retired indices 1,2,3,7,9,11,26,27,29,48,55,76)
+  ./data/CAF/metadata_ai.csv           0 lines   (147 sources, max Index 147)
+  ./data/CAF/cholera_presence_ai.csv   0 lines
+  ./data/CAF/retracted_rows_ai.csv     0 lines
+git diff HEAD on these 4 files plus cholera_data_who.csv and cholera_data_jhu.csv is empty. The last commit
+touching the AI, metadata and presence files is f94f8285 (2026-10-03 23:53, "CAF done"). File mtimes
+(Oct 3) predate the pass. The git diff of the stage-1 log is append-only (+81 lines, 0 removed).
+=> Stage 1's claim of 0 rows, 0 sources and 0 presence rows is TRUE. No rows to fetch-verify, deduplicate,
+   plausibility-check or reweight. No py/revise_observation.py call is needed (nothing tagged to revise).
+
+=== B. STAGE-1 PROTOCOL COMPLIANCE ===
+Stage 1 ran 3 batches x 20 = 60 queries, with yields 0% / 0% / 0%. It stopped after the 3-batch minimum
+because 3 consecutive batches were below 5%, which is COMPLIANT.
+No yield exceeds 100%. Rows claimed (0) = rows added (0). No over-claiming.
+Stage 1 respected scope:
+  - no xref apply;
+  - no writes to workflow_state.json or search_report.txt (it used workflow_state_recency_20261116.json).
+Stage-1 log inaccuracies. They are documentation-only and have no effect on the data:
+  (1) "91 rows, max Index 92": max Index is actually 103 (91 live rows).
+  (2) Rejection reason (c) for WER 101(44): "725 < 726, the sum of the WHO baseline weeks it encloses" is
+      WRONG. The 20 weekly rows in ./data/CAF/cholera_data_who.csv (2026-04-20..2026-09-06) sum to EXACTLY
+      725 cases / 45 deaths. So there is no whole-below-parts conflict: the WER figure equals the dashboard
+      cumulative. That strengthens reason (a), that it is a pure restatement with a shifted as-of date.
+      The decision stands.
+  (3) "AFRO OEW wk37-41 PDFs unreadable": wk41 is readable through its ReliefWeb attachment (see E4).
+
+=== C. RE-VERIFICATION OF STAGE-1 REJECTED CANDIDATES (sources re-fetched by web-fetch agent) ===
+C1 WER 101(44), 6 Nov 2026
+   URL: https://www.who.int/publications/journals/weekly-epidemiological-record/wer101-44
+   (the item URLs who-wer10144 and WER10144 return 404; iris is not used).
+   Confirmed "Data as of 27 September 2026".
+   Table 1 headers: "Cases (1 January to 27 September 2026) | Deaths | CFR % | Cases per 100 000 |
+   Cases (last 28 days) | Deaths (last 28 days) | CFR % (last 28 days) | Monthly cases % change |
+   Monthly deaths % change".
+   CAR row verbatim: "Central African Republic | 725 | 45 | 6.2 | 14 | - | - | - | - | -".
+   The table prints zeros as 0 (e.g. Kenya last-28-day deaths "0"; Congo last-28-day deaths "0") and
+   missing data as "-" (e.g. Namibia). So CAR's last-28-day cells = NO DATA, not zero.
+   The full page was read, including Annexes 1-2. CAR is not mentioned anywhere except the Table 1 row.
+   REJECTION CONFIRMED (restatement; no information about 7-27 Sep; not a zero report).
+C2 ECDC EpiPulse cholera monthly, as of 27 Oct 2026
+   URL: https://www.ecdc.europa.eu/en/epipulse_event/2100
+   Confirmed "Since 28 September 2026, no updates have been reported by: Central African Republic,
+   Chad, Congo, ..." (the list continues: Ethiopia, Kenya, Malawi, Namibia, South Africa, Sudan, Tanzania,
+   Zimbabwe).
+   CAR is not among the new-case countries (Angola, Burundi, Cameroon, DRC, Mozambique, Nigeria, Rwanda,
+   Somalia, South Sudan, Zambia; plus Yemen). The page gives no CAR figure and has no November update yet.
+   This is a non-reporting statement, not a zero. REJECTION CONFIRMED.
+C3 UNICEF CAR story "Clean water to stop cholera from coming back", 17 Oct 2026
+   EN: https://www.unicef.org/car/en/stories/clean-water-stop-cholera-coming-back
+   FR: https://www.unicef.org/car/recits/de-leau-potable-pour-emp%C3%AAcher-le-retour-du-chol%C3%A9ra
+   Verbatim quotes:
+   - "The cholera outbreak in the Central African Republic is over, but preventing its resurgence
+     remains critical."
+   - "on 18 September 2026, President Faustin-Archange Touadera officially declared the epidemic had
+     ended"
+   - "During those three months, there were 720 suspected cases and 46 deaths."
+     (FR: "720 cas suspects et 46 deces ont ete recenses")
+   There is NO "no new cases" or "aucun nouveau cas" sentence in either language, and no post-18 Sep case
+   or alert.
+   The village tallies (Wayambo 65/3, Bokassi 1 66/14, Ndimba 55/0) are undated epidemic-period figures and
+   fall outside the window.
+   A zero row built on this story would be inferred from a restated outbreak status, so it was correctly
+   not written. REJECTION CONFIRMED.
+
+=== D. DUPLICATION / PLAUSIBILITY / ZERO-ROW / WEIGHT CHECKS ===
+There are no tagged rows, so these checks have nothing to apply to.
+Boundary context (pre-window, not re-audited):
+  - WHO weekly CAF 2026-W32..W35 (2026-08-10..2026-09-06) = 0/0.
+  - AI Index 28 (2026-09-07..2026-09-18) is a zero row: Inferred_Absence, weight 0.45, tied to the 18 Sep
+    end-of-epidemic declaration.
+  - The previous agents' instruction "Do not extend this row without a source dated after 18 Sep 2026 that
+    positively reports no cases" remains unmet, so Index 28 is correctly NOT extended.
+
+=== E. INDEPENDENT CHECKS BEYOND STAGE 1 ===
+E1 WebSearch x4 (standard):
+   - "Centrafrique cholera novembre 2026"
+   - "Central African Republic cholera new cases October 2026"
+   - "Weekly Epidemiological Record November 2026 multi-country outbreak of cholera ... data as of"
+   - "RCA cholera nouveaux cas Bimbo Mbaiki octobre 2026 apres fin de l'epidemie"
+   Result: no CAR case, alert or resurgence report dated after 18 Sep 2026. All results were
+   Jun-Sep 2026 coverage or the UNICEF 17 Oct story.
+E2 ReliefWeb API via python3 -I -B py/reliefweb.py:
+   The tool was committed about 14:54 on 2026-11-16, after stage 1's searches, which explains stage 1's
+   HTTP 403.
+   - CAF full-text "cholera" and "cholera" (FR) from 2026-09-19: 1 hit each, the same item:
+     UNICEF CAR HSR No. 1 (Mid-Year), 30 June 2026 (posted 2 Oct). It falls before the window.
+   - CAF has 156 ReliefWeb items dated 19 Sep..16 Nov.
+E3 OCHA CAR situation reports No. 86 (22 Sep) through No. 93 (10 Nov)
+   (ReliefWeb ids 4231462, 4232184, 4233355, 4234206, 4235180, 4236166, 4237122, 4237981):
+   - Downloaded the French PDFs into fresh temp dirs and extracted them with pdftotext (7-10k chars each).
+   - 0 mentions of cholera, diarrhoea or Vibrio in any of the 8.
+   - The health sections cover Ebola readiness only. No. 93: "Aucun cas confirme de maladie a virus Ebola
+     (MVE) n'a ete enregistre en RCA".
+   Calibration against mid-outbreak sitreps:
+   - No. 74 (30 Jun), No. 75 (7 Jul, at the epidemic peak) and No. 78 (28 Jul) also have 0 cholera
+     mentions.
+   - Only No. 76 (14 Jul) reports cholera: "Entre le 7 et le 9 juillet, 17 nouveaux cas suspects de cholera
+     ... Depuis la declaration de l'epidemie le 26 juin, 436 cas suspects et 36 deces".
+   => OCHA silence is UNINFORMATIVE about CAR cholera, so it is NOT used as absence evidence.
+E4 WHO AFRO Weekly Bulletin on Outbreaks and Other Emergencies, wk41 (5-11 Oct 2026)
+   Retrieved via ReliefWeb id 4235066, attachment OEW41-11102026.pdf. It is the only OEW issue mirrored on
+   ReliefWeb since 1 Sep.
+   All-events table CAR cholera row: "Cholera | Protracted3 | 26-Jun-26 | 26-Jun-26 | 3-Aug-26 | 724 | 16 |
+   45 | 6.22", i.e. 724 total, 16 confirmed, 45 deaths, end of reporting period 3 Aug 2026.
+   Comment: "As of 3 August, 724 suspected cases, including 16 laboratory-confirmed cases and 45 deaths
+   (CFR: 6.2%) ...".
+   => On 11 Oct AFRO still carried the event as OPEN, with data frozen at 3 Aug: a stale entry. It is not
+      closed despite the 18 Sep national declaration, gives no in-window figure, and is more evidence of
+      non-reporting. Not written (pre-window; scope).
+E5 WER 101(45), 13 Nov 2026 (who.int HTML, wer101-45):
+   - No cholera monthly update.
+   - The signals table ("2-8 November 2026") lists "Cholera" under Africa with no country named.
+   - CAR is mentioned only in the schistosomiasis/STH table.
+   WER 101(46) is not yet listed on the WER index.
+E6 Neighbours, from the read-only local WHO extraction
+   ../ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv:
+     CAR            last W35 (W32-35 = 0)
+     DRC            last W41 = 2513 cases (W36-41: 1686-2974 per week; still very active)
+     Cameroon       last W42 = 0 (from 473 at W34)
+     South Sudan    W42 = 10
+     Sudan          W40 = 20
+     Chad           last W36 = 10
+     Congo          last W36 = 0
+   => A quiet CAR tail after the declaration is plausible. Importation pressure from DRC across the
+      Oubangui stays high.
+
+=== F. WINDOW STATE AFTER AUDIT ===
+2026-09-19..2026-11-16 (59 days): EMPTY in the AI, WHO and JHU layers; none of the window is covered.
+Weekly series ./data/CAF/cholera_weekly_CAF.csv (rebuilt 2026-11-16 14:48):
+  - It ends at ISO wk38 (2026-09-14..09-20), inferred_zero from Index 28, which covers 5 of the 7 days.
+  - So 19-20 Sep render as 0 through week assignment, not through any in-window evidence.
+  - ISO wk39-46 are absent, i.e. NA, not zero. This is the correct state given the evidence.
+Classification: POST-DECLARATION NON-REPORTING with no resurgence signal, not a confirmed zero.
+  - No source states absence (Documented_Absence) for any part of the window.
+  - Writing a zero would mean inferring absence from silence, which is prohibited.
+
+=== G. VALIDATION ===
+python3 py/validate_quality.py CAF --json /tmp/CAF_recency_audit.json -> exit 0
+  ERROR 0, WARN 9, INFO 119.
+  The 9 WARNs are all pre-existing CFR_high_flagged_for_review on historical rows 10/17/19/20/40/60/62/64/84,
+  outside this pass's scope.
+The final re-run after the audit gives identical results: exit 0, ERROR 0, WARN 9, INFO 119.
+  91 data rows, 147 metadata sources.
+
+=== H. ACTIONS TAKEN ===
+Retractions: none. Corrections: none. Sources registered: none (the auditor does not collect).
+Files touched: this log, plus an appended section in ./data/CAF/search_report.txt.
+Files not touched: baselines, the dashboard, workflow_state.json, search_log_agent_7.txt, other countries.
+
+=== I. LEADS ===
+For the next recency pass (planned late Jan 2027):
+  - WHO dashboard backfill of CAR W36+.
+  - WER cholera monthly updates with data to about 25 Oct and about 22 Nov (WER 101(46+)).
+  - ECDC late-November monthly update.
+  - AFRO OEW all-events CAR row via the ReliefWeb mirror (watch for the closure date or new figures).
+  - OCHA CAR sitreps No. 94+ via py/reliefweb.py. Scan the PDFs, because ReliefWeb bodies are summaries.
+  - WHO CAR "Horizon Sante" Jul-Sep 2026.
+Pre-window leads, out of scope for this pass and NOT checked against the dataset:
+  - OCHA sitrep No. 76 (14 Jul): 17 new suspected cases 7-9 Jul; 436/36 cumulative since 26 Jun.
+  - AFRO OEW41: "From 27 July to 3 August 2026 ... 16 new suspected cholera cases and no new deaths".
+    The WHO dashboard has W30 = 8 and W31 = 1; a full run should reconcile the two.
+End Time: 2026-11-16 15:04:16
+
+=== J. DELIVERABLES ===
+Appended a 35-line section headed "=== RECENCY PASS 20261116: window 2026-09-19 to 2026-11-16 ===" to
+./data/CAF/search_report.txt, which went from 310 to 346 lines.
+The original 310 lines are byte-identical; the file was appended to, not replaced. A first draft ran to
+41 lines, so the file was restored from its pre-append copy and a 35-line version appended instead.
+Final validator run after writing the report: python3 py/validate_quality.py CAF -> exit 0
+  (ERROR 0   WARN 9   INFO 119)
+AUDIT STATUS: COMPLETE. 0 tagged rows; stage-1 no-yield verdict upheld; the window stays EMPTY by design.
+Final Time: 2026-11-16 15:04:56
