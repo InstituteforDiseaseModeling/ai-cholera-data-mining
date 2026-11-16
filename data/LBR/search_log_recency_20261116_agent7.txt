@@ -6,3 +6,114 @@ Scope: rows of ./data/LBR/cholera_data_ai.csv whose processing_notes contain "[R
 Stage 1 log: ./data/LBR/search_log_recency_20261116_agent1.txt (present)
 Status: INITIALIZED
 
+=== STEP 0: STAGE 1 OUTPUT READ ===
+./data/LBR/search_log_recency_20261116_agent1.txt: 4 batches (80 queries), yields [5,0,0,0]%, stopped on 3 consecutive
+sub-5% batches after the 3-batch minimum. Rows added: Index 1521-1543 (23), all tagged [RECENCY-20261116].
+Sources registered: metadata 325-332 (NPHIL IDSR bulletins 2026 epi-weeks 37-44, Level 1) + 333 (Africa CDC 25 Oct 2026,
+Level 2, reference only). Audit covers ALL 23 rows (no sampling).
+
+=== STEP 1: SOURCE RE-FETCH (independent of stage 1's scratch copies) ===
+Fetched all 8 cited metadata URLs (325-332) with curl into isolated dirs under /tmp/lbr_a7_20261116/src_<idx>/ ->
+HTTP 200 application/pdf for all 8 (12 pp each). Narrative text via pdftotext; page-11 appendix ("Summary of Immediately
+Reportable Diseases ... by County") is image-only -> rendered with pdftoppm and read visually for all 8 weeks.
+NPHIL WordPress media API re-queried: upload dates 17534 2026-10-06, 17545 2026-10-06, 17584 2026-10-09, 17596 2026-10-13,
+17616/17624/17632 2026-11-02, 17641 2026-11-09 -> match every row's reporting_date.
+Header dates: wk37 Sep 7-13, wk38 Sep 14-20, wk39 Sep 21-27, wk40 Sep 28-Oct 4, wk41 "October 6-11" (misprint; ISO wk41 =
+Mon 5 - Sun 11 Oct; row 1527 TL 2026-10-05 is correct), wk42 Oct 12-18, wk43 Oct 19-25, wk44 Oct 26-Nov 1. All = ISO weeks.
+Period type: weekly rows = weekly count ("N suspected cases were reported" + appendix Total Weekly); row 1543 = cumulative
+since epi-week 1 ("Cumulatively, 168 ... since Epi week 1"; appendix Cumulative Reported / Cumulative Lab-confirmed). Read correctly.
+
+Per-row verification (narrative quote | appendix A/D | result):
+  1521 wk37 nat sCh6 d0  | "Six (6) suspected cases ... Nimba (4), Bong (1), Bomi (1)" | A Bomi1 Bong1 Nimba4 =6, cum 149, LC 0, D 0 | PASS
+  1522 wk38 nat sCh5 d0  | "Five (5) ... Bomi (2), Maryland (1), Nimba (1) and Lofa (1)" | A =5, cum 154, LC 0, D 0 | PASS
+  1523 wk40 nat sCh2 d0  | "Two (2) ... Nimba and Gbarpolu" | A Gbarpolu1 Nimba1 =2, cum 156, LC 2, D 0 | PASS
+  1524 wk43 nat sCh2 d0  | "Two suspected cases ... Lofa and Grand Kru" | A GrandKru1 Lofa1 =2, cum 161, LC 2, D 0 | PASS
+  1525 wk44 nat sCh7 d0  | "Seven ... Nimba (5), Rivercess (1), and Grand Kru (1)" | A =7, cum 168, LC 2, D 0 | PASS
+  1526 wk39 ZERO         | "Zero suspected cases were reported"; cum 154 = wk38 | A 0 x15 counties, D 0 | PASS
+  1527 wk41 ZERO         | "Zero suspected cases were reported"; cum 156 = wk40 | A 0 x15, D 0 | PASS
+  1528 wk42 ZERO (0.85)  | "Zero suspected cases were reported"; cum 156->158 (+2 late) | A 0 x15, D 0 | PASS (caveat noted)
+  1529-1531 wk37 Nimba4/Bong1/Bomi1 | appendix columns match | PASS
+  1532-1535 wk38 Bomi2/Maryland1/Nimba1/Lofa1 | match | PASS
+  1536-1537 wk40 Nimba1/Gbarpolu1 | match | PASS
+  1538-1539 wk43 Lofa1/Grand Kru1 | match | PASS
+  1540-1542 wk44 Nimba5/River Cess1/Grand Kru1 | match | PASS
+  1543 cum 2025-12-29..2026-11-01 sCh168 cCh2 d0 | "Cumulatively, 168 ... 50 tested: 48 not a case, and 2 Lab-confirmed" |
+       appendix cum 168, LC 2, D cum 0 | QUOTE PASS; cCh INTERPRETATION CONTESTED (see step 3)
+Zero rows (surveillance operating): wk39 completeness/timeliness 99%/99%, 974/979 facilities; wk41 99%/99%, 974/979;
+wk42 99%/98%, 973/979; 98/98 districts all weeks. Absence explicitly stated by source -> Documented_Absence justified.
+
+=== STEP 2: DUPLICATION ===
+./data/LBR/cholera_data_who.csv does NOT EXIST (no WHO dashboard layer for Liberia) -> no WHO-week restatement possible.
+./data/LBR/cholera_data_jhu.csv (filtered, not loaded wholesale): latest TR 2024-12-31 -> no overlap.
+No exact (Location,TL,TR) duplicate of any recency row elsewhere in cholera_data_ai.csv; no non-recency AI row overlaps
+2026-09-07..2026-11-16. cholera_presence_ai.csv and retracted_rows_ai.csv: nothing in the window.
+National vs ADM1: every county row says "Provincial subset - do not sum" and names its national row; county sums = national
+for all 5 positive weeks (6,5,2,2,7). Row 1543 overlaps the national weekly rows by design (cumulative); weekly builder
+re-run IN MEMORY (process_country, flat template, nothing written): 2026-W37..W44 = 6,5,0,2,0,0,2,7 observed, deaths 0;
+row 1543 coverage-skipped (residual 8 not spread) -> no inflation; 2026 series total 160 vs NPHIL cumulative 168.
+(Note: every ./data/*/cholera_weekly_*.csv was rewritten at 14:14 by another process - a global rebuild, not this agent.)
+build_weekly_timeseries.py never reads cCh, so cCh on row 1543 does not enter the weekly series.
+
+=== STEP 3: PLAUSIBILITY ===
+deaths <= sCh: all 23 rows (deaths 0 everywhere; appendix D row 0 every week, cumulative D 0). cCh <= sCh: row 1543 2 <= 168.
+CFR 0.00 on all rows (correct for 0 deaths). Curve continuity: there is no WHO baseline for LBR, so the reference is the
+prior AI NPHIL series wk20-36 (2-8 suspected/week, row 121 wk36 = 4); window weeks 6,5,0,2,0,0,2,7 continue it at the same
+background level - no discontinuity. Cumulative arithmetic: 142 (wk36) -> 168 (wk44) = +26 vs weekly sum 22 (late reports:
++1 wk37, +2 wk42, +1 wk43) - stated on rows 1521/1528/1524. Neighbours: Africa CDC 25 Oct 2026 p.9 (re-fetched,
+read as image) lists 20 AU MS with cholera in 2026 - Guinea, Sierra Leone, Cote d'Ivoire and Liberia absent; ECDC
+epipulse_event/2100 (27 Oct 2026, re-fetched) names 10 African countries + Yemen with new cases, none of them neighbours. Background-level IDSR
+suspected AWD with no regional transmission is consistent.
+CONTESTED ITEM - row 1543 cCh=2 ("2 Lab-confirmed", first printed in the wk40 issue):
+  (a) the same wk40 issue switched the ADJACENT Shigellosis section from "83 tested: 78 not a case, and 5 indeterminate"
+      (wk38-39) to "83 tested: 78 not a case, and 5 Lab-confirmed" (appendix Shigellosis Cumulative Lab-confirmed 0 -> 5),
+      while cholera went "47 tested: 45 not a case, and 2 indeterminate" -> "... 2 Lab-confirmed" (appendix 0 -> 2). Tested
+      counts unchanged in both; only these two sections use the capitalised "Lab-confirmed"; measles/Lassa/influenza/mpox
+      sections kept "indeterminate". This is a batch reclassification of old indeterminate results, not new testing.
+  (b) wk40-44 highlights list ongoing outbreaks of Lassa fever, Mpox, Measles only; no cholera outbreak section, alert or
+      response ("Active case search ... for Mpox, Measles, and Lassa fever outbreaks").
+  (c) not notified to Africa CDC (25 Oct) or ECDC (27 Oct). Method (culture/PCR vs RDT) and serogroup not stated.
+  (d) the 2 specimens were already "indeterminate" in the wk37 bulletin (wk37's own specimen tested negative), so they
+      were collected before 2026-09-07: they carry no information about transmission inside the window.
+  Decision: value kept (the source states it in narrative and appendix; blanking it would suppress a Level 1 figure), row
+  DOWNWEIGHTED 0.85 -> 0.7 with the evidence appended. No modelling effect: build_weekly_timeseries.py does not read cCh and
+  coverage-skips row 1543. Out-of-scope conflict left for the next full run: row 1236 (cCh=0, 2025-12-29..2026-09-06).
+
+=== STEP 4: ZERO ROWS ===
+1526 (wk39), 1527 (wk41), 1528 (wk42): source states "Zero suspected cases were reported" + appendix 0 in all 15 county
+columns + 98/98 districts reporting + facility completeness 99% (974/974/973 of 979). Explicit statement, not silence ->
+Documented_Absence justified; none retracted. 1528 kept at 0.85 (cumulative +2 late reports in a zero week, unattributed).
+No zero row was written for 2026-11-02..2026-11-16 (correct: publication lag, not absence).
+
+=== STEP 5: CONFIDENCE vs TIER ===
+NPHIL = Level 1 (0.9-1.0): 21 rows at 0.9 - OK. 1528 at 0.85 (documented inconsistency) - OK. 1543 now 0.7 (contested
+cCh, documented) - deliberate deviation below band. Metadata 333 (Africa CDC, Level 2) supports no data value; reference
+only (validator INFO metadata_unused) - acceptable.
+
+=== ACTIONS ===
+py/revise_observation.py LBR --index 1543 --confidence 0.7 --agent 7 --append-note "[RECENCY-20261116 AUDIT] ..."
+  --reason "[RECENCY-20261116 AUDIT] cCh=2 contested: ... downweight 0.85 to 0.7" -> EXIT 0 (REVISED; backup by tool)
+Retractions: none. Value corrections: none. Sources added by Agent 7: none.
+
+=== VALIDATOR ===
+python3 py/validate_quality.py LBR (pre-audit)  -> ERROR 0, WARN 14, INFO 308, exit 0
+python3 py/validate_quality.py LBR (post-audit) -> ERROR 0, WARN 14, INFO 308, exit 0
+All 14 WARN are historical rows (13 CFR_high_flagged_for_review, 1 period_single_day on 1996-05-14); none on 1521-1543.
+Window national/county overlaps all reported "documented".
+
+=== WINDOW COVERAGE (analyze_effective_gaps.analyse() in memory; ./reference NOT rewritten - parallel recency runs) ===
+BEFORE (recency rows excluded): latest obs 2026-09-06, 71 days stale; months_with_data 644/683 (94.3%); months_ai_only 20;
+  open gap 2026-09-01..2026-11-16 (77 d).
+AFTER: latest obs 2026-11-01, 15 days stale; months_with_data 646/683 (94.6%); months_ai_only 22 (+Sep, +Oct 2026);
+  open gap 2026-11-01..2026-11-16 at month resolution.
+Window 2026-09-07..2026-11-16 (71 d): national weekly rows cover 2026-09-07..2026-11-01 = 56/71 days (78.9%).
+Still empty 2026-11-02..2026-11-16 (epi-weeks 45-46 + 1 day): NPHIL wk45 bulletin NOT posted (re-checked WordPress
+media/posts API at ~14:20: newest = wk44, 2026-11-09; search "Epi-week-45" returns only the 2024 issue). 2026 posting
+lag 8-23 days after week end (wk41-43 posted together on 2026-11-02), so wk45 (ended 11-08) is not yet overdue. Data exists and will appear; not a zero.
+
+=== STAGE 1 PERFORMANCE ===
+4 batches / 80 queries (>= 3-batch minimum), yields [5,0,0,0]% (no yield >100%), stop rule correctly applied.
+Rows claimed (23, Index 1521-1543) = rows present with the tag (23). Productive query: 1 (NPHIL WordPress API deep dive).
+Extraction accuracy: 23/23 quotes and numbers verified; wk41 header misprint caught; late-report arithmetic disclosed.
+
+Agent 7 Status: COMPLETE
+End Time: 2026-11-16 14:23:34
