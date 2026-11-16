@@ -6,3 +6,68 @@ Start Time: 2026-11-16 14:47:36
 Tag: [RECENCY-20261116] on every --note and --discovery
 Scope: trailing window only; no historical gaps; no xref apply
 
+=== PRE-SEARCH ===
+Existing rows in/near window (./data/BEN/cholera_data_ai.csv): 28 (2026-01-01..05-31 zero), 29 (06-01..08-26 zero),
+  658 (2026-08-27..2026-09-20 zero) - all Inferred_Absence, conf 0.5, resting on absence from multi-country lists.
+  Nothing has TR > 2026-09-20. ./data/BEN/cholera_data_who.csv does not exist (BEN not in the WHO weekly feed).
+  ./data/BEN/cholera_presence_ai.csv: no 2025/2026 entries.
+Context carried from full run (rows 658 notes): Benin's failure mode is NON-DECLARATION (2024: MoH SIMR 1,906 suspected
+  vs WHO/Africa CDC zero), so absence from WHO/Africa CDC/ECDC lists is uninformative; Nigeria epidemic 2026 (>72k).
+Rule for this pass: absence from a multi-country list is NOT evidence of zero -> no Inferred_Absence row will be written
+  for the window from list omission alone.
+=== XREF QUEUE ===
+python3 -I -B py/xref_harvest.py queue BEN -> 55 open candidates, all 1997-2022 (CONFLICT/CORROBORATES/LOG_*);
+  none inside 2026-09-21..2026-11-16 -> no leads to apply. (xref apply NOT run, per recency instructions.)
+Tooling: WebSearch [WS]; direct retrieval [curl]; REST [API]; image-only PDFs rendered with pdftoppm and read
+  with macOS Vision OCR (scratch scripts /tmp/ben_rec_scripts/, downloads /tmp/ben_rec_dl/).
+
+=== BATCH 1 | PHASE 1 | BEN ===
+Gap targeted : 2026-09-21..2026-11-16 (57d, recent) - national first
+Category mix : WHO/official 6, Regional 4, Humanitarian 5, Linguistic (fr) 5
+Queries (20):
+ 1. [API] africacdc.org /wp-json/wp/v2/wpdmpro (date-desc, modified-desc, search 'november 2026') -> NEW October 2026
+          package (posted 21 Oct, modified 8 Nov) holding issues of 19 Oct and 25 Oct 2026; no November package
+ 2. [PDF+OCR] Africa CDC Epidemic Intelligence Weekly Report 25 Oct 2026 -> cholera event 'Cholera in Africa':
+          171,724 cases/2,855 deaths 2026 from 20 AU MS (Nigeria 72,375); BENIN ABSENT. Only Benin string = 2025
+          cVDPV2 polio note 'Benin (3; 0)'. List absence only -> no row
+ 3. [PDF+OCR] Africa CDC EI Weekly Report 19 Oct 2026 -> 160,487 cases 2026; Benin absent (polio note only) -> no row
+ 4. [curl] ECDC cholera monthly overview listing -> NEW update 'as of 27 October 2026'
+ 5. [curl] ECDC public-health-events/2006-eip-00031/2026-10-27 -> African countries with new cases 28 Sep-27 Oct:
+          Angola, Burundi, Cameroon, DRC, Mozambique, Nigeria, Rwanda, Somalia, South Sudan, Zambia (Nigeria 70,553 to
+          11 Oct); 'no updates' list does not include Benin; 'Benin' 0 hits -> no row
+ 6. [WS] choléra Bénin octobre 2026 -> only 2019-2022 items -> nothing
+ 7. [WS] Benin cholera outbreak October 2026 -> only 2010/2021-22 items -> nothing
+ 8. [WS] choléra Cotonou novembre 2026 cas -> Lake Chad cross-border meeting Douala 2-4 Nov (data to 30 Oct: CMR 3,103,
+          TCD 1,431, CAF 784, NGA 73,416; Benin not covered); BSS 'over 3,000 dead from cholera this year' (WHO) -> nothing
+ 9. [WS] Bénin épidémie de choléra 2026 ministère de la santé communiqué -> Benin Ebola PRE-ALERT after imported
+          Bundibugyo case in Abuja (20 Oct 2026); WHO meningitis bulletin wk25 (Benin IDSR reporting) -> nothing cholera
+10. [WS] Nigeria cholera Ogun Oyo Kwara Lagos October 2026 NCDC -> Lagos reports dated 21 Oct 2026 (unverified page
+          dates); no Ogun/Oyo/Kwara figures -> context only (NGA, no BEN data)
+11. [WS] Togo choléra cas 2026 Lomé -> no 2026 Togo cholera (floods Jun 2026 only) -> nothing
+12. [curl] UNICEF WCARO press release 11-12 Aug 2026 'cholera spreads across borders' -> six countries (DRC, Congo,
+          Nigeria, Chad, Cameroon, CAR); Benin not among them; pre-window -> nothing
+13. [curl] bne IntelliNews / BSS articles -> HTTP 403 both
+14. [curl] WHO AFRO Benin country news (afro.who.int/countries/15530/news) -> 404 (regional headlines only, no Benin)
+15. [API] WordPress REST, 17 Beninese outlets, terms choléra/cholera/diarrhée/inondation, posts after 2026-09-15:
+          matinlibre, lanouvelletribune, fraternitebj, benin24tv, quotidienlematinal, beninwebtv, journaldubenin -> 0
+          cholera posts; controls work (inondation 10/11/4 posts: Cotonou Akogbato floods 30 Sep; govt disaster needs
+          6 Oct; Ebola pre-alert 21 Oct). Others 404/timeout/not WordPress -> nothing
+16. [curl] ReliefWeb API v1 (decommissioned) / v2 (needs approved appname) -> HTML river advanced-search=(PC36)+cholera
+          -> newest Benin cholera-tagged item 26 Mar 2026 (UNICEF WCARO HSR) -> nothing in window
+17. [curl] ReliefWeb river (PC36) all reports -> IFRC field report 'BEN: Inondation 10-2026 Adjohoun, Dangbo,
+          Zogbodomey (2026-10-20)'; WFP Country Brief Oct 2026; ICRC -> no cholera item
+18. [API] IFRC GO country 209 events + field report 18625 -> floods: 19,006 households affected, 3,301 displaced
+          (Adjohoun 1,559; Dangbo 497; Zogbodomey 1,245), DREF planned; epi fields empty; 0 cholera/diarrhoea mentions;
+          no Benin epidemic event in 2026 -> nothing
+19. [curl] WER 101(40)-(46) pages -> 101(44) of 6 Nov 2026 'Multi-country outbreak of cholera, data as of 27 September
+          2026': 19 African-Region countries, Benin absent (footnote: missing data do not imply absence); 101(46) not
+          online -> no row
+20. [curl] WER 101(41) signal tables -> weekly 'Africa: Cholera' DEBS signals (no country named); WHO published
+          'Rapid Risk Assessment - Cholera, African Region v1' in week 41 -> lead for batch 2
+Sources found: 0 with Benin counts    Registered: none (no row or presence to attach)
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (minimum 3 batches)
+

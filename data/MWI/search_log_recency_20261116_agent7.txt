@@ -5,3 +5,117 @@ Scope: rows of ./data/MWI/cholera_data_ai.csv whose processing_notes contain [RE
 Start Time: 2026-11-16 14:48:31
 Stage 1 log: ./data/MWI/search_log_recency_20261116_agent1.txt -- PRESENT (stage 1 ran)
 
+=== STEP 0 - INPUTS ===
+- Stage 1 log read in full: 5 batches (100 queries), yields B1 5% | B2 5% | B3 0% | B4 0% | B5 0%; stop after 3 consecutive
+  sub-5% batches (B3-B5) with the 3-batch minimum met - stopping rule applied correctly (5% is not below 5%, so the streak
+  starts at B3). Yield never >100%. Claimed rows 2577-2582 (6) and sources 457-462 (6): all 6 rows found in
+  ./data/MWI/cholera_data_ai.csv, all 6 sources in ./data/MWI/metadata_ai.csv. State file ./data/MWI/workflow_state_recency_20261116.json
+  consistent with the log. Stage 1 incident (accidental full run of py/build_weekly_timeseries.py, derived files only) noted; not re-run.
+- Tagged rows found by filtering processing_notes for "[RECENCY-20261116]": 6 (Index 2577-2582). No sampling - all 6 audited.
+- ./data/MWI/cholera_data_jhu.csv not loaded (ends early 2025). ./data/MWI/cholera_data_who.csv filtered to 2026 rows only.
+- Pre-audit validator: python3 py/validate_quality.py MWI -> ERROR 0, WARN 12, INFO 395, exit 0. No finding on file positions
+  2505-2510 (the tagged rows); the 12 WARN are pre-existing (4 single-day periods, 8 CFR>15%).
+- Fetch method: python3 -I urllib script (/tmp/mwi_audit7_scripts/fetch.py), each document in its own new directory under
+  /tmp/mwi_audit7_dl/, text via pdftotext -layout into /tmp/mwi_audit7_txt/. Nothing executed from download directories.
+
+=== STEP 1 - SOURCE VERIFICATION (every tagged row) ===
+Index 2577 <- metadata 457 https://phim.health.gov.mw/wp-content/uploads/2026/10/IDSR_Epi_Bulletin_Week_39_Malawi.pdf
+  HTTP 200, 673,729 bytes, sha256 72ae62d624fc1f09ae08118af3ca4af6224f954f99195c4b832a5ef8b2375f98, Last-Modified 2026-10-02.
+  Header 'Published on 2nd October 2026' / 'Epidemiological Week 39 (21st to 27th September 2026)' -> TL/TR/reporting_date correct.
+  Table 1 'Reported alerts ... reported during Epidemiological Week 39', columns 'Suspected cases | Deaths': 'Cholera 0 0' -> weekly
+  count, not cumulative. Quoted context verified: Diarrhea with blood 859, Typhoid 95, SARI 63/3 deaths, Meningococcal 5;
+  '90% completeness and 90% timeliness'; Annex 1 Karonga 67%, Likoma 33%, national W38 95% (narrative says 94% - source-internal).
+Index 2578 <- metadata 458 .../2026/10/IDSR_Epi_Bulletin_Week_40_Malawi_.pdf
+  HTTP 200, 675,649 bytes, sha256 c3b1a73f7d4efe7d9fbf1da766227503e905f3245b9ed210047bc271e3fe842b, Last-Modified 2026-10-24 (re-upload).
+  'Epidemiological Week 40 (28th to 4th October, 2026)'; printed 'Published on 2nd October 2026' precedes week end (template carry-over);
+  PHIM WordPress post 'IDSR Epidemiological Bulletin - Week 40' dated 2026-10-07T19:56 -> reporting_date 2026-10-07 correct.
+  Table 1 'Cholera 0 0'; DwB 752, SARI 143/1, Typhoid 90, Meningococcal 6/1; 95%/95%; Annex 1 Karonga 92% - all verified.
+Index 2579 <- metadata 459 .../2026/10/IDSR_Epi_Bulletin_Week_41_Malawi.pdf
+  HTTP 200, 776,743 bytes, sha256 6574956d07e4b3137020aeaba6d92a42f711d1409ebb042f5a0dec4fcd5164d6, Last-Modified 2026-10-24.
+  'Epidemiological Week 41 (5th to 11th October, 2026)', 'Published on 18 October 2026' (WP post 2026-10-16; either date >= TR).
+  Table 1 'Cholera 0 0'; DwB 740, Typhoid 80, SARI 77/2, Meningococcal 8; '95% for both completeness and timeliness'; Karonga 67% - verified.
+Index 2580 <- metadata 460 .../2026/10/IDSR_Epi_Bulletin_Week_42_Malawi__.pdf
+  HTTP 200, 785,300 bytes, sha256 93f70589b06e1919da4bf495eb644df047c4c6b55232299a5e6c7a07838eeebf, Last-Modified 2026-10-26.
+  'Epidemiological Week 42 (12th to 18th October 2026)', 'Published on 25th October 2026' (WP post 2026-10-25).
+  Table 1 'Cholera 0 0'; DwB 974, SARI 100, Typhoid 64, Meningococcal 6; 94%/93%; Karonga 83% - verified.
+Index 2581 <- metadata 461 .../2026/11/IDSR_Epi_Bulletin_Week_43_Malawi__.pdf
+  HTTP 200, 799,408 bytes, sha256 b65f31554b5b535e5174002ca797a002d00745861962b8705423bbf6cbbd29d7, Last-Modified 2026-11-02.
+  'Epidemiological Week 43 (19th to 25th October 2026)', 'Published on 26th October 2026' (WP post 2026-10-30).
+  Table 1 'Cholera 0 0'; DwB 1025, Typhoid 156/1, SARI 53, Meningococcal 6; 97%/95%; Karonga 75% - verified.
+  Annex-1 note: in the wk41-43 bulletins the Annex-1 columns before W40 are shifted one week (PHIM template defect; the current-week
+  columns used by the rows are correct and match the narrative).
+CONTROL (is the Table 1 cholera line live, or a template default?): fetched outbreak-era PHIM bulletins
+  wk24 2026 (sha256 39a1eb2e...e885): Table 1 'Cholera 42 0' = narrative 'Forty-two (42) suspected cholera cases';
+  wk26 2026 (sha256 ef6aa9fc...6cde): Table 1 'Cholera 1 0' = narrative '1 new suspected Cholera case';
+  wk37 2026 (sha256 fc0a14a5...8720): 'Cholera 0 0'. -> The line tracks real counts; the wk39-43 zeros are reported zeros.
+Index 2582 <- metadata 462 https://www.who.int/publications/journals/weekly-epidemiological-record/wer101-44
+  HTTP 200, 262,382 bytes, sha256 2869784abe0f6f2d304c8b4233eebe49f78de3df87c5a1fdf80ed07967c73a08.
+  Quote verified verbatim: 'Table 1. Reported cholera and AWD cases and deaths by WHO Region, as of 27 September 2026' ...
+  'Malawi | 3 213 | 30 | 0.9 | 18 | - | - | - | - | -'. Footnote '** Missing data in this report do not imply the absence of cholera ...
+  The data presented in this report are based on the latest available information and may not reflect the current situation.'
+  PERIOD CHECK FAILED: WHO's own data file on HDX ('World Health Organization (WHO) Cholera Data', modified 2026-11-05;
+  https://who.maps.arcgis.com/sharing/rest/content/items/3aa7bfec5da047a7ba7d4f9bcebd0061/data, sha256 cfc9ef91...417e) reads
+  '"MALAWI","African Region","MWI",2025-12-29,2026-06-29,3213,30' -> WHO's last Malawi epi-week starts 2026-06-29 (ends 07-05).
+  The WER figure is that total carried forward to the report cut-off; the '-' last-28-day cells mean no data, not zero.
+
+=== STEP 2 - DUPLICATION ===
+- WHO baseline (./data/MWI/cholera_data_who.csv): 27 AFR::MWI weekly rows 2025-12-29..2026-07-05, sum 3,213 cases / 30 deaths; max TR 2026-07-05;
+  none overlaps the window -> no tagged weekly zero restates a WHO week. Index 2582 = exact restatement of the WHO weekly sum (same WHO feed).
+- AI layer: the only rows overlapping 2026-09-14..2026-11-16 are the 6 tagged rows; 2577-2581 are distinct Mon-Sun weeks; no duplicate TL/TR.
+  The only other calendar-year-2026 cumulative AI row is Index 72 (WHO epi update #38, 3,088/30 to 2026-05-31) - not a duplicate.
+- National vs ADM1: all 6 are AFR::MWI; no ADM1 rows in the window; zero rows state 'National total - no provincial rows for this week'.
+
+=== STEP 3 - PLAUSIBILITY ===
+- deaths <= sCh (0 <= 0), cCh blank, CFR 0.0 for 2577-2581; 2582 CFR 0.93 = 30/3213 (WER prints 0.9).
+- Curve continuity: WHO weekly 63, 38, 14, 7, 3 (2026-06-01..07-05) -> PHIM documented zeros wk28-37 (AI) -> wk39-43 zeros. Monotone end of
+  the 2025-26 season; outbreak declared over 31 Aug (WHO AFRO 30 Oct release) / 4 Sep 2026 (Index 66). Dry season (profile: rainy Nov-Apr).
+- Neighbours (./reference/country_profiles.json: MOZ, TZA, ZMB): WER101-44 last 28 days to 27 Sep 2026 - Zambia 239 cases (+5,875% m/m),
+  Tanzania 91, Mozambique 67; ECDC (via search snippet, epipulse event 2100): Zambia 699 new cases 13 Sep-11 Oct 2026. No report of
+  spill-over into Malawi found.
+- Independent contradiction searches (WebSearch, standard): 'Malawi cholera case October 2026'; 'Malawi cholera November 2026 Ministry of
+  Health new cases'; 'Zambia cholera outbreak 2026 spread Malawi border Chipata Mchinji'; 'Karonga OR Nsanje OR Mangochi cholera suspected
+  case September October 2026 Malawi district health office'; 'ZNPHI Zambia cholera situation report October 2026 Lusaka cases provinces';
+  '"Malawi" cholera "2026" end of outbreak declared August September no new cases' -> no Malawi case reported in the window anywhere.
+- PHIM WordPress API re-checked (posts and media after 2026-09-10): bulletins wk39 (post 10-02), wk40 (10-07), wk41 (10-16), wk42 (10-25),
+  wk43 (10-30); no wk38 bulletin ever posted (wk37 PDF 09-20, next wk39 PDF 10-02); no wk44+ (latest items: FETP notice 11-09, logo 11-14).
+
+=== STEP 4 - ZERO ROWS ===
+- 2577-2581: explicit numeric zero in the national IDSR priority-disease table, line proven live, completeness 90-97%, other diseases
+  non-zero -> explicit evidence of absence with surveillance operating; canonical token 'Evidence type: Documented_Absence' justified.
+- No zero inferred from silence was written by stage 1: wk38 and wk44-46 were left empty; ECDC/Africa CDC list absences were screened out.
+
+=== STEP 5 - CONFIDENCE WEIGHTS ===
+- 457-461 are Level 1 (PHIM = national public health institute of the MoH): 0.95 (wk40-43), 0.90 (wk39: 90% completeness, Karonga 67%,
+  Likoma 33%) - inside the Level-1 band and consistent with the identical wk32-37 series (Index 307-312 at 0.95). Kept.
+  (wk41 also has Karonga at 67% but national completeness 95%; 0.95 accepted.)
+
+=== BUILDER / GAP-ANALYSIS WHAT-IF (in memory, nothing written to the repo) ===
+- /tmp/mwi_audit7_scripts/sim_builder.py loads py/build_weekly_timeseries.py as a module with DATA_DIR repointed at temp copies
+  (/tmp/mwi_audit7_sim2/{cur,no2582,nozeros,notag}/MWI):
+  cur vs no2582: 0 weeks differ (2582 is coverage-skipped); cur vs nozeros: 5 weeks differ (2026-W39..W43 observed AI zeros);
+  2026 national weekly total 3,213 in every variant. W38 and W44+ stay empty (no assumed/inferred fill).
+- Same check on the live post-audit files: 2026 total 3,213; W39-W43 observed AI zeros; W38, W44+ empty.
+- py/analyze_effective_gaps.analyse('MWI') in memory: latest_positive_observation 2026-09-27 with 2582 -> 2026-09-04 without it
+  (the value now rests on Index 66, a pre-window cumulative row); coverage unchanged 632/683 months (92.5%), months_ai_only 97;
+  remaining recent gap (month view) 2026-11-01..2026-11-16. ./reference/* NOT regenerated (other countries' passes run in parallel).
+
+=== ACTIONS (all via py/revise_observation.py, reasons prefixed [RECENCY-20261116 AUDIT]) ===
+1. Index 2582 RETRACTED (--delete --agent 7): period misread (WER report cut-off taken as data end; WHO's Malawi data end 2026-07-05) and,
+   read correctly, an exact restatement of the WHO baseline weeks; 0 builder weeks; it had moved latest_positive_observation to 2026-09-27.
+   Tombstone written to ./data/MWI/retracted_rows_ai.csv (retracted_on 2026-11-16).
+2. metadata 462 Description annotated (original text kept + AUDIT NOTE: Malawi figure is a carry-forward of WHO's dashboard total; do not
+   re-cite for a Malawi count). Status left 'Active' (URL/attribution are correct; 'Superseded' is for wrong citations).
+3. Index 2577-2581: audit-pass note appended (--append-note --agent 7); values, dates, weights and canonical evidence token unchanged
+   (re-verified after writing: Documented_Absence first token; no 'primary: false').
+
+=== RESULT ===
+Rows checked 6 | kept 5 (2577-2581) | corrected 0 | retracted 1 (2582).
+Post-audit validator: python3 py/validate_quality.py MWI -> ERROR 0, WARN 12 (unchanged, pre-existing), INFO 395
+  (national_subnational_overlap 335 -> 334: 2582's Jan-Sep overlap gone; metadata_unused 60 -> 61: metadata 462), exit 0.
+Window 2026-09-14..2026-11-16 (64 d): covered 35 d (54.7%) = 2026-09-21..2026-10-25 by documented weekly zeros.
+Empty: 2026-09-14..09-20 (wk38 - PHIM never published it; no explicit zero anywhere) and 2026-10-26..11-16 (wk44-46 - not yet published).
+Files changed: ./data/MWI/cholera_data_ai.csv, ./data/MWI/metadata_ai.csv, ./data/MWI/retracted_rows_ai.csv (tool-written, with backups),
+  ./data/MWI/search_report.txt (section appended), this log. Not touched: baselines, dashboard, workflow_state.json, search_log_agent_7.txt,
+  other countries, ./reference/*.
+End Time: 2026-11-16 15:01:34
+Agent 7 (recency audit) Status: COMPLETE
