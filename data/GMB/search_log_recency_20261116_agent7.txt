@@ -1,0 +1,102 @@
+=== RECENCY PASS 20261116 - AGENT 7 (QUALITY AUDIT) INITIALIZATION ===
+Country: Gambia (GMB)
+Stage: AUDIT (stage 2 of 2-stage recency pass)
+Window audited: 2026-09-21 to 2026-11-16
+Scope: rows of ./data/GMB/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116]"
+Start Time: 2026-11-16 15:25:50
+Stage-1 log present: ./data/GMB/search_log_recency_20261116_agent1.txt (YES)
+Agent 7 Status: INITIALIZED
+
+=== STEP 1: STAGE-1 OUTPUT VERIFICATION ===
+Read: ./data/GMB/search_log_recency_20261116_agent1.txt and ./data/GMB/workflow_state_recency_20261116.json
+Stage 1 claims: 3 batches / 60 queries (44 WebSearch, 9 ReliefWeb API, 10 page/PDF fetches); yield B1 0% | B2 0% | B3 0%;
+  rows added 0; presence rows 0; sources registered 0; zero rows 0; stop = 3-batch minimum met + 3 consecutive batches <5%.
+File check (grep "RECENCY-20261116", count of matches):
+  ./data/GMB/cholera_data_ai.csv      0
+  ./data/GMB/metadata_ai.csv          0
+  ./data/GMB/cholera_presence_ai.csv  0
+  ./data/GMB/retracted_rows_ai.csv    0   (so nothing was added and then deleted)
+  mtimes unchanged since the full run: cholera_data_ai.csv 2026-10-03 12:46:25; metadata_ai.csv 2026-10-03 12:46:56;
+  cholera_presence_ai.csv 2026-10-03 09:10:39; retracted_rows_ai.csv 2026-10-03 09:12:08.
+  Latest AI row TR = 2026-09-20 (Index 41). No AI row falls inside the window.
+Stage-1 claims MATCH the files. No yield >100%, no rows claimed but missing, stop rule applied correctly.
+Baseline duplicate check: no ./data/GMB/cholera_data_who.csv exists (Gambia is not in the WHO weekly feed);
+  ./data/GMB/cholera_data_jhu.csv (16 rows, filtered with csv) ends at TR 2024-12-31. Nothing in the window to duplicate.
+
+=== STEP 2: PER-ROW AUDIT OF TAGGED ROWS ===
+Tagged rows: 0. Nothing to source-check, de-duplicate, plausibility-check, check as a zero row or re-weight.
+Rows checked 0 | kept 0 | corrected 0 | retracted 0. py/revise_observation.py was not called.
+
+=== STEP 3: INDEPENDENT CHECK OF STAGE 1'S EMPTY RESULT (Agent 7, 9 queries) ===
+Purpose: with no rows to audit, the remaining risk is a false negative, i.e. a Gambian cholera report that stage 1 missed.
+ V1 [RW API] search --country GMB --from 2026-09-21 -> 13 reports, none about cholera: OCHA West Africa humanitarian
+     leadership (16 Nov), IOM shipwrecks (9 Nov), FAO Desert Locust 576/577, MMC Q3 mixed migration (EN/FR),
+     UNHCR RBWCA Sept map, EU EOM (16 Oct), UNICEF WCA dashboard Jan-Jun, IOM arrivals (13 Oct), UNFPA (8 Oct),
+     OCHA WCA flooding to 30 Sep (8 Oct), GIEWS Gambia brief (22 Sep).
+ V2 [RW API] search "Weekly Bulletin on Outbreaks and Other Emergencies" --from 2026-10-12 -> only wk41 is mirrored
+     (id 4235066, published 21 Oct). Weeks 42+ are not yet on ReliefWeb.
+ V3 [RW get 4235066 --download] OEW41-11102026.pdf (data to 11 Oct 2026) -> pdftotext; searched the full text:
+     "Gambia" appears once, as a label on the "Ongoing events" map page (txt line 50). The all-events table has no
+     Gambia row. Neighbours in the table: Senegal diphtheria (161 cases, 11 deaths, as of wk39 2026) + mpox;
+     Guinea-Bissau mpox; Guinea diphtheria/Lassa/measles/mpox; Mauritania CCHF/diphtheria. No cholera event in
+     SEN/GNB/GIN/MRT. CONFIRMS stage 1 batch 2 query 2.
+ V4 [web-fetch] https://www.who.int/publications/journals/weekly-epidemiological-record/wer101-44 (6 Nov 2026), HTTP 200.
+     "Data as of 27 September 2026"; 1 Jan-27 Sep 2026: 308 956 cases, 3018 deaths, 28 countries; AFR 169 880 cases,
+     19 countries: Angola, Burundi, Cameroon, CAR, Chad, Congo, DRC, Ethiopia, Kenya, Malawi, Mozambique, Namibia,
+     Nigeria, Rwanda, South Africa, South Sudan, Tanzania, Zambia, Zimbabwe. Gambia, Senegal, Guinea-Bissau and
+     Mauritania do not appear in the verbatim text. Footnote, verbatim: "** Missing data in this report do not imply the
+     absence of cholera or AWD cases or deaths in the respective country." Every figure matches stage 1 batch 3
+     query 7. LIMITATION: the fetch returned only the first 39 910 of 93 969 characters verbatim, the same truncation
+     stage 1 hit.
+ V5 [WS std] Gambia cholera cases 2026 -> no Gambia figure (results: WHO epi updates #33-37, ECDC maps, Southern Africa).
+ V6 [WS std] Gambie cholera cas octobre novembre 2026 (FR) -> nothing on Gambia (INSPQ travel page, undated; Zambia,
+     Congo items).
+ V7 [WS std] Senegal cholera outbreak 2026 -> no 2026 Senegal cholera (historical 2005 items; regional Nigeria).
+ V8 [WS std] Africa CDC cholera 2026 countries reporting list November 2026 -> ECDC to 27 Oct 2026: top countries
+     NGA, COD, SSD, CMR, BDI; Gambia not named. A top-5 list is not proof of absence.
+ V9 [WS ext] "The Gambia" cholera suspected case Ministry of Health Oct-Nov 2026 -> nothing in the window (old The Point
+     item, Tripadvisor forum, 2025 mpox declaration).
+Result: stage 1's empty result STANDS. No missed figure, no missed explicit zero, no presence evidence. Nothing written to
+  ./data/GMB/cholera_presence_ai.csv.
+Downloads (untrusted, outside the repo): /tmp/gmb_audit7_oew41_20261116/ (PDF) and /tmp/gmb_audit7_oew41_txt_20261116/ (text).
+
+=== STEP 4: WINDOW COVERAGE AND CONTEXT ===
+Window 2026-09-21..2026-11-16 (57 days): 0 days covered by any layer (AI 0, WHO n/a, JHU ends 2024).
+ 2026-09-21..2026-10-27  No sign of cholera, but nothing documents zero. Gambia is only left off multi-country lists (WER
+                         to 27 Sep; AFRO OEW wk41 to 11 Oct; ECDC to 27 Oct, snippets only). This pass does not accept list
+                         exclusion as zero evidence, and the WER footnote warns against it. Gambia MoH IDSR weekly bulletins
+                         have not been online since wk13 2024. Not adding a zero row was CORRECT.
+ 2026-10-28..2026-11-16  Not yet published: no multi-country source covers this span yet.
+Effective-gap files (./reference/effective_surveillance_gaps_*.csv, regenerated by the runner 2026-11-16 15:22:45):
+  GMB coverage 97.8% (668/683 months); months_jhu 192, months_who 0, months_ai 575, months_ai_only 476;
+  3 gap periods: 1978-12 (31 d), 1982 (365 d), recent 2026-10-01..2026-11-16 (47 d at month resolution, because Index 41
+  covers 20 of the 30 days of Sep 2026). Recency: latest_observation 2026-09-20, latest_positive 2021-12-31, 74 obs.
+  This pass did not change any of these numbers.
+  py/analyze_effective_gaps.py was NOT re-run: no GMB data changed, and the script rewrites shared ./reference/ files
+  that other countries' parallel recency runs are reading.
+Weekly series ./data/GMB/cholera_weekly_GMB.csv (read only) ends at ISO wk38 2026 (2026-09-14..20, inferred_zero from
+  Index 41). Window weeks 39-46 are not rendered, so the window carries no false zeros.
+OUT OF SCOPE, NOT AUDITED: AI Index 41 (2026-01-01..2026-09-20, sCh 0, Inferred_Absence, weight 0.5) was written in the
+  2026-10-03 full run. Its basis is list exclusion from the WHO HDX country summary, and it is labelled honestly. This pass's
+  rule would not accept that basis for a zero. Referred to the next full audit; no action taken.
+
+=== STEP 5: VALIDATOR ===
+python3 py/validate_quality.py GMB (start of audit) -> 59 data rows, 70 metadata sources; ERROR 0, WARN 0, INFO 40; exit 0.
+
+=== FINAL GATE ===
+python3 py/validate_quality.py GMB (end of audit, 2026-11-16 15:30:38) -> exit 0 (ERROR 0, WARN 0, INFO 40; 59 data rows, 70 sources)
+
+=== FILES ===
+Written:   ./data/GMB/search_log_recency_20261116_agent7.txt (this log)
+Appended:  ./data/GMB/search_report.txt, section "=== RECENCY PASS 20261116: window 2026-09-21 to 2026-11-16 ===" (34 lines;
+           report 324 -> 359 lines; the full-run text above it is untouched)
+Untouched: ./data/GMB/cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv,
+           cholera_data_jhu.csv, cholera_weekly_GMB.csv, workflow_state.json, workflow_state_recency_20261116.json,
+           search_log_agent_7.txt; the dashboard; ./reference/; other countries.
+
+=== SUMMARY ===
+Tagged rows audited 0 (kept 0 / corrected 0 / retracted 0). Sources added 0. Window covered 0 of 57 days.
+Stage 1's empty result was independently re-checked and STANDS: no missed Gambian figure, explicit zero or presence evidence.
+Validator exit 0.
+End Time: 2026-11-16 15:30:38
+Agent 7 Status: COMPLETE

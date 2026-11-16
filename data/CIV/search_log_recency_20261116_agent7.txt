@@ -6,3 +6,80 @@ Start Time: 2026-11-16 15:20:38
 Stage 1 log: ./data/CIV/search_log_recency_20261116_agent1.txt (present)
 Agent 7 Status: INITIALIZED
 
+=== STEP 0: SCOPE CHECK ===
+Stage 1 log read in full (3 batches x 20 queries, yields 0/0/0, stop = 3 consecutive sub-5% after the 3-batch minimum).
+Tagged rows found:
+  ./data/CIV/cholera_data_ai.csv       [RECENCY-20261116] rows: 0  (file unchanged since 2026-10-01 11:58; 1753 rows)
+  ./data/CIV/cholera_presence_ai.csv   tagged rows: 0  (unchanged since 2026-10-01)
+  ./data/CIV/retracted_rows_ai.csv     tagged rows: 0  (unchanged since 2026-10-01)
+  ./data/CIV/metadata_ai.csv           tagged rows: 6  (Index 302-307, Discovery_Method/Search_Technique tagged; appended only)
+Integrity of the metadata append (vs ./data/CIV/.backup_metadata_ai_20261116-151836218628.csv, the pre-pass state):
+  301 -> 307 rows; 0 existing rows changed; 0 rows lost; Index sequential 1..307; no new URL duplicates an existing one.
+  None of 302-307 is cited by a data row (validator: INFO metadata_unused only).
+Row-level checks 1-5 (quote/period, duplication, plausibility, zero-row evidence, weight vs tier): NOT APPLICABLE - no data rows.
+Stage-1 compliance: batches 3 (>= minimum), yield never >100%, rows claimed (0) = rows written (0), sources claimed (6) = written (6).
+
+=== STEP 1: VALIDATOR (before any audit change) ===
+python3 py/validate_quality.py CIV --json /tmp/CIV_recency_audit.json -> exit 0 | 1753 rows | 307 sources
+  ERROR 0 | WARN 96 (50 same_period_conflict, 31 CFR_high, 10 multiyear_aggregate, 5 period_single_day - all historical
+  rows written before this pass; none references a [RECENCY-20261116] item) | INFO 535 (448 national_subnational_overlap,
+  87 metadata_unused incl. 302-307).
+
+=== STEP 2: SOURCE VERIFICATION (each registered source re-fetched; all HTTP 200 on 2026-11-16) ===
+  302 WER 101(44) who.int issue page: 'Vol. 101 - Issue 44', '30 October 2026 - pp. 319-321'; 'Table 1. Reported cholera and
+      AWD cases and deaths by WHO Region, as of 27 September 2026'; African Region rows = the 19 countries listed (AGO BDI CMR
+      CAF TCD COG COD ETH KEN MWI MOZ NAM NGA RWA ZAF SSD TZA ZMB ZWE); 'Ivoire' occurs 0 times on the page. Footnote:
+      '** Missing data in this report do not imply the absence of cholera or AWD cases or deaths' -> no-zero decision correct.
+      WER 101(39) Table 1 'Data as of 30 August 2026' = same 19, CIV mentioned only in YF/NTD sections; 101(40)-(43) and (45)
+      carry no cholera Table 1 (CIV only in NTD tables of 101(45)); 101(46) not yet online (404). CONFIRMED.
+  303 ECDC dated page 2026-10-27: quote 'Since 28 September 2026 and as of 27 October 2026, 42 136 new cholera cases,
+      including 501 new deaths...' and the 11-country new-cases list verbatim; African updates 'as of 11 October 2026';
+      no CIV mention; still the newest dated cholera update on the ECDC event page. CDTR W40 PDF re-read: new cases 26 Aug-
+      28 Sep from AFG AGO BGD COG COD HTI MOZ PAK SOM YEM ZMB; 'no updates' list as described. CONFIRMED.
+  304 Africa CDC 25 Oct 2026 PDF (5.7 MB, 16 pp, image-only; pages 2 and 9 rendered and read): p.9 quote verbatim
+      ('171,724 cases (2,198 confirmed; 169,526 suspected) and 2,855 deaths ... from 20 AU MS: Angola ... Zimbabwe (36; 2)');
+      CIV only in the 2025 note ('Cote d'Ivoire (556; 24)'); p.2 cholera highlights = Congo, Somalia, Zambia. No November
+      2026 page yet (404). CONFIRMED.
+  305 AFRO OEW W41 (ReliefWeb page + attachment OEW41-11102026.pdf): all-events row 'Cote d'Ivoire Yellow fever Ungraded
+      15-Feb-26 5-Feb-26 6-Sep-26 14 14 2 14.29' verbatim; 15 cholera events (AGO BDI CMR CAF TCD COG COD KEN MOZ NAM RWA
+      ZAF SSD TZA ZMB), none CIV; page-1 map checked visually (the '5 900 000' text near the CIV label belongs to a
+      humanitarian-crisis marker, not a CIV cholera figure). afro.who.int listing: W41 still newest. CONFIRMED.
+  306 UNICEF CIV HSR Q3 (ReliefWeb id 4234441, posted 16 Oct 2026; attachment PDF re-read): YF quote verbatim; cholera/AWD
+      treatment indicator target 600, result '-' (0%); footnote 4 'Le VIGILE ... N938/2026 - Semaine 34 (du 17/08/2026 au
+      23/08/2026)'; 'NEXT SITREP: 31 January 2027'. Programme indicator, not a surveillance zero -> no row correct. CONFIRMED.
+  307 Liberia NPHIL bulletins W38-W44 (all 7 PDFs re-fetched via nphil.gov.lr WP REST media list): weekly AWD/cholera
+      counts and cumulatives exactly as described (W38 5; W39 0/cum 154; W40 2/cum 156; W41 0/cum 156; W42 0/cum 158 as
+      printed; W43 2/cum 161; W44 7/cum 168). Two description defects found: (a) 'Nimba, Grand Kru and Maryland border CIV'
+      - Grand Kru does NOT border CIV (border counties are Nimba, Grand Gedeh, River Gee, Maryland); (b) omits that the 2026
+      cumulative lab result is '50 tested: 48 not a case, and 2 Lab-confirmed' (W44), i.e. 'specimens negative' is not the
+      whole picture. Context-only source, no row affected -> CORRECTED (see Step 4).
+
+=== STEP 3: INDEPENDENT RE-SEARCH OF THE WINDOW (did stage 1 miss in-window CIV data?) ===
+  a1 ReliefWeb API --country CIV --from 2026-10-15 (17 reports, all topics): YF DON (6 Nov), CRCI/IFRC YF field report,
+     UNHCR/MMC/SeeD/FAO items; no cholera item.                                                              NOTHING
+  a2 ReliefWeb API 'Weekly Bulletin on Outbreaks and other Emergencies' from 2026-10-15: only W41.            NOTHING
+  a3 ReliefWeb API 'cholera' from 2026-10-27 (48 reports): CMR, COD, TCD, ZMB, SOM, SSD, SDN, YEM, MWI, HTI... no CIV,
+     no West-Africa coastal item.                                                                            NOTHING
+  a4 ReliefWeb API OCHA WCA 'Latest events at a glance' from 2026-10-28: none newer than 20-26 Oct.          NOTHING
+  a5 ECDC event page 2006-eip-00031: newest dated update 2026-10-27; CDTR list newest W42.                   NOTHING
+  a6 africacdc.org WP search + November page: newest issue 25 Oct 2026; November page 404.                   NOTHING
+  a7 bsp.inspci.org WP REST media/posts: newest = Supplement CSP-CI 5 (4 Nov 2026; congress abstracts, 28 'chol'
+     hits = cholinesterase/cholesterol/general mentions, no 2026 case data); no BSP-CI 4.3 / Le Vigile after N931.  NOTHING
+  a8 who.int WER 101(45) (8 Nov 2026) and 101(46) (404): no cholera table.                                    NOTHING
+  a9 afro.who.int OEW listing: W41 newest. WHO DON API (12 newest): no cholera DON; YF African Region 6 Nov.  NOTHING
+  a10 IFRC GO API country 182: newest event 8123 YF (14 Oct 2026); newest field report 18628 YF (22 Oct 2026);
+     last cholera event 7519 (May 2025).                                                                     NOTHING
+  a11 WebSearch FR 'cholera Cote d'Ivoire novembre 2026' (extended): only 2025 epidemic material (Amnesty 2026 annual
+     report = 2025 events), IPCI/Pasteur Network wastewater pilot launched 8 Jan 2026 for 6 months (no results
+     published; no count).                                                                                   NOTHING
+  a12 WebSearch EN 'Ivory Coast cholera cases 2026': 2025 epidemic + IFRC MDRCI018 final report only.        NOTHING
+  a13 WebSearch FR 'cholera Abidjan cas suspects octobre 2026': 2025 Vridi Akobrakre only.                    NOTHING
+  a14 WebSearch FR INHP 'aucun cas'/'cas suspect' 2026: 2025 only.                                            NOTHING
+  a15 WebSearch ProMED/FluTrackers CIV Oct-Nov 2026: nothing.                                                 NOTHING
+  a16 WebSearch AFRO OEW W43/W44 2026: not published/indexed.                                                 NOTHING
+  a17 Neighbours: Ghana Nov 2026 (only hit with a 2026 sidebar date is a 2011 MyJoyOnline article - checked:
+     datePublished 2011-03-25); Guinea ANSS 2026 (no cholera); Mali/Burkina Oct-Nov 2026 (nothing); Liberia (sporadic
+     suspected AWD only, see 307).                                                                           NOTHING
+  Result: stage 1's conclusion stands - no in-window CIV cholera count, presence signal, or explicit zero statement is
+  publicly available as of 2026-11-16. No row can be added; none was wrongly omitted.
+
