@@ -6,3 +6,132 @@ Scope: rows of ./data/GHA/cholera_data_ai.csv whose processing_notes contain "[R
 Stage 1 log: ./data/GHA/search_log_recency_20261116_agent1.txt (present: yes, 21632 bytes, mtime 2026-11-16 14:16)
 Agent 7 Status: INITIALIZED
 
+=== STEP 1: STAGE 1 LOG READ ===
+./data/GHA/search_log_recency_20261116_agent1.txt present. Stage 1 reports 4 batches (80 queries: 63 WebSearch + 17 direct
+fetches), yields 10% / 0% / 0% / 0%, stop = 3 consecutive sub-5% batches (B2-B4) after the 3-batch minimum.
+Claimed: rows 2472, 2473; sources 663, 664; 0 presence records; xref apply not run.
+Cross-check against files and ./data/GHA/workflow_state_recency_20261116.json (read only):
+  - Rows carrying "[RECENCY-20261116]" in ./data/GHA/cholera_data_ai.csv: exactly 2 (2472, 2473) -> matches claim.
+  - Metadata entries tagged in ./data/GHA/metadata_ai.csv: exactly 2 (663, 664) -> matches claim.
+  - Tagged rows in cholera_presence_ai.csv: 0; tagged tombstones in retracted_rows_ai.csv: 0 -> matches claim.
+  - Yield arithmetic: B1 = 2 productive queries / 20 = 10% (B1-02, B1-03); no yield above 100%; minimum 3 batches met.
+  - Stage 1 compliance: OK. No over-claiming found.
+
+=== STEP 2: AUDIT OF EVERY TAGGED ROW (2 of 2; no sampling) ===
+Downloads kept outside the repo in /tmp/gha_recency_audit_dl/ (one empty directory per document; text via pdftotext).
+
+--- ROW 2472 | AFR::GHA 2026-08-31..2026-09-06 | sCh 0 deaths 0 | Documented_Absence | w 0.85 | source 663 ---
+1. SOURCE: https://phd.teamdesk.pro/api/reports/977d7b37-6bcc-4f2c-8df6-d84613aa3df5/pdf -> HTTP 200, application/pdf,
+   491,574 bytes, 4 pages. Quoted CHOLERA paragraph found VERBATIM on page 3: "In Week 36, five (5) suspected cases of
+   Cholera were reported from the Central and Ashanti regions. Central Region reported 1 case from Gomoa East District
+   while the Ashanti Region reported 4 cases from Atwima-Nwabiagya South District. Stool samples were collected from all
+   suspected cases and sent to the NPHRL and the Kumasi South Hospital Laboratory for testing. Vibrio cholerae was not
+   isolated by culture from any of the specimens."  Other note claims verified: dateline "06 SEPTEMBER, 2026"; 528 IDSR
+   cases and 6 signals; RPSS 32 of 36 sites, 15 of 16 regions; mpox 20 suspects, 1 positive; AFP, meningitis, yellow
+   fever, measles sections present.
+   PERIOD: single ISO week 36 (Mon 2026-08-31 .. Sun 2026-09-06, checked with datetime.fromisocalendar); not cumulative,
+   not year-to-date. reporting_date 2026-10-06 = live index createdAt 2026-10-06T09:54:37Z (index re-read this session).
+2. DUPLICATION: cholera_data_who.csv GHA rows end 2025-09-14 (no overlap); cholera_data_jhu.csv ends 2024-12-31 (filtered
+   read, no overlap); cholera_presence_ai.csv has nothing in the window; the only AI rows touching 2026-08-31..09-13 are
+   2472 and 2473; no duplicate Index values. National only, no ADM1 rows -> no double counting.
+3. PLAUSIBILITY: deaths 0 <= sCh 0; cCh blank; CFR 0.0 (zero-row convention). Continuous with documented zeros for
+   weeks 31-35 of 2026 (rows 652, 656) and the 2026 series back to January. WHO: WER 101/44 shows Ghana absent for
+   1 Jan-27 Sep 2026, consistent with the culture-negative suspects never being counted as cholera. Land neighbours
+   BFA, CIV and TGO (per ./reference/country_profiles.json) are all absent from WER 101/44 Table 1; independent searches
+   found no 2026 cholera in Togo or Cote d'Ivoire.
+4. ZERO EVIDENCE: explicit, not silence. Every suspect was cultured and V. cholerae-negative; surveillance operating
+   (full IDSR returns). The GHA SUSPECT-DISCARD RULE (row 2225, Agent 5 full run; GTFCC: culture/PCR-negative suspects
+   are discarded) applies cleanly because all suspects have a negative result. Documented_Absence is acceptable.
+5. WEIGHT: 0.85 for a Level-1 national bulletin read through the discard rule = same as other 2026 discard weeks
+   (rows 2457, 2458; 2225 in 2025). Weeks with zero suspects carry 0.9. Consistent.
+   NOTE PRECISION ISSUE: the note says "every GWER cholera section for weeks 1-37 ends culture-negative", but the GWER
+   index has no week-7 issue for 2026 (weeks 1-6 and 8-37 = 36 issues; week 7 rests on row 58, WHO-based). Premise
+   (no lab-confirmed cholera in Ghana in 2026) still holds via WER 101/44.
+VERDICT: KEPT. No value changed. Audit appendix incl. precision fix added with py/revise_observation.py
+   (--agent "Recency Agent 7", reason prefixed "[RECENCY-20261116 AUDIT]").
+
+--- ROW 2473 | AFR::GHA 2026-09-07..2026-09-13 | sCh 0 deaths 0 | Documented_Absence | w 0.85 | source 664 ---
+1. SOURCE: https://phd.teamdesk.pro/api/reports/ba40db1c-146e-4f2b-833e-0e8d2cac17e5/pdf -> HTTP 200, application/pdf,
+   458,972 bytes, 4 pages. Quoted CHOLERA paragraph found VERBATIM on page 2: "In Week 37, five (5) suspected cases of
+   Cholera were reported from Gomoa East in the Central region. Stool samples were collected from all the suspected
+   cases and sent to the National Public Health Reference Laboratory (NPHRL) for testing. Vibrio cholerae was not
+   isolated via culture from any of the samples tested."  Other note claims verified: dateline "13 SEPTEMBER, 2026";
+   522 IDSR cases; 10 EBS signals; RPSS 33 of 36 sites, all regions except Upper West; mpox 11 suspects, 0 positive.
+   PERIOD: single ISO week 37 (Mon 2026-09-07 .. Sun 2026-09-13). reporting_date 2026-10-06 = createdAt
+   2026-10-06T09:56:55Z. Index re-read 2026-11-16 ~14:20: still 55 issues, Vol. 8 tops out at week 37, newest createdAt
+   2026-10-06 -> no later issue supersedes this row.
+2. DUPLICATION: as for 2472 - no WHO/JHU/presence/AI overlap; national only.
+3. PLAUSIBILITY: continuous with 2472; same regional picture.
+4. ZERO EVIDENCE: all 5 suspects cultured and negative -> discard rule applies; Documented_Absence acceptable.
+5. WEIGHT: 0.85, consistent with the series.
+   Same week-7 precision issue in the note ("weeks 1-37").
+   WATCH: Gomoa East has had 1 (wk36) + 5 (wk37) culture-negative suspects. Independent searches found no news of a
+   2026 Gomoa East cluster. If a later GWER confirms V. cholerae there, revisit: the rule counts suspects inside a
+   confirmed outbreak, and culture can miss cases.
+VERDICT: KEPT. No value changed. Audit appendix (precision fix + Gomoa East watch) added with py/revise_observation.py.
+
+=== STEP 3: CONTEXT CLAIMS IN THE ROW NOTES (re-verified against the documents) ===
+- WHO WER 101/44 page (https://www.who.int/publications/journals/weekly-epidemiological-record/wer101-44, HTTP 200):
+  "Multi-country outbreak of cholera - Data as of 27 September 2026"; "In September 2026 (epidemiological weeks 36 to
+  39) ... 19 countries across four WHO regions"; Table 1 African Region = Angola, Burundi, Cameroon, CAR, Chad, Congo,
+  DRC, Ethiopia (50), Kenya (41), Malawi, Mozambique, Namibia, Nigeria, Rwanda, South Africa (2), South Sudan, Tanzania,
+  Zambia, Zimbabwe = 19. "Ghana" appears 0 times on the page; no Togo, Cote d'Ivoire, Burkina Faso or Benin.
+  Footnote "Missing data in this report do not imply the absence of cholera" present. -> CLAIM VERIFIED.
+- ECDC CDTR week 40 2026 PDF (communicable-disease-threats-report-week-40-2026.pdf, HTTP 200): cholera roundup
+  26 Aug-28 Sep 2026; new cases from Afghanistan, Angola, Bangladesh, Congo, DRC, Haiti, Mozambique, Pakistan, Somalia,
+  Yemen, Zambia; "no updates" list Burundi ... Zimbabwe. "Ghana" appears 0 times. -> CLAIM VERIFIED.
+- ECDC cholera worldwide overview 2026-10-27 (HTTP 200): Africa new cases 13 Sep-11 Oct 2026; "Since 28 September 2026,
+  no updates have been reported by: CAR, Chad, Congo, Ethiopia, Kenya, Malawi, Namibia, South Africa, Sudan, Tanzania
+  and Zimbabwe". "Ghana" appears 0 times. -> CLAIM VERIFIED.
+- WHO AFRO Weekly Bulletins wk36 (bitstream 91ec53ce-...) and wk37 (95e6c0f4-...): NOT READ. iris.who.int timed out
+  (urllib, 25 s) and refused a web-fetch agent (ECONNREFUSED 54.174.254.19:443). AFRO landing pages (afro.who.int)
+  are navigation only. Access failure, recorded as such; not evidence either way.
+- WHO AFRO Ghana news release 11 Nov 2026 (emergency care, GMA conference 6 Nov 2026): no cholera mention. Context only.
+
+=== STEP 4: INDEPENDENT CONTRADICTION SEARCHES (WebSearch, standard mode) ===
+Q1 "Gomoa East cholera suspected cases September 2026" -> only 2024-25 outbreak items                    [no contradiction]
+Q2 "Atwima Nwabiagya South cholera 2026" -> nothing for 2026 in that district; July 2026 'no outbreak yet' [no contradiction]
+Q3 "Ghana cholera outbreak confirmed September 2026" -> 2024-25 items; undated '67 deaths' pages = 2024-25 outbreak
+   (sidebar dates only; same item stage 1 already date-checked)                                           [no contradiction]
+Q4 "Togo cholera cas septembre 2026" -> no 2026 Togo cholera                                               [consistent]
+Q5 "Cote d'Ivoire cholera 2026 cas confirmes" -> last outbreak 2025 (Vridi); none in 2026                  [consistent]
+Q6 "WHO Weekly Epidemiological Record cholera data as of 27 September 2026" -> led to WER/ECDC docs above  [consistent]
+Result: nothing contradicts either zero row.
+
+=== STEP 5: CROSS-COUNTRY HARVEST ROWS ===
+./data/GHA/cholera_data_ai.csv contains 0 rows with "[XREF-HARVEST"; ./reference/xref/harvest_log.csv has 0 rows with
+target_iso = GHA. Stage 1 did not run xref apply. Nothing to audit.
+
+=== STEP 6: VALIDATOR ===
+Before revisions: python3 py/validate_quality.py GHA -> exit 0 | ERROR 0 | WARN 29 | INFO 589 (2404 rows, 664 sources)
+After revisions : python3 py/validate_quality.py GHA -> exit 0 | ERROR 0 | WARN 29 | INFO 589
+Findings touching rows 2472/2473 or sources 663/664: 0. All 29 WARN (20 CFR>15%, 4 single-day, 3 same-period conflict,
+2 multi-year aggregate) are on pre-existing historical rows, outside this pass's scope.
+Post-revision check: 2472/2473 values unchanged; first canonical "Evidence type:" token still Documented_Absence (the one
+py/build_weekly_timeseries.py reads); tag still present.
+
+=== STEP 7: WINDOW COVERAGE (computed from the CSV) ===
+COVERED 2026-08-31..2026-09-13 = 14 of 78 days (18%), ISO weeks 36-37, national documented zeros only.
+EMPTY   2026-09-14..2026-11-16 = 64 of 78 days (82%), ISO weeks 38-46 + Mon 16 Nov.
+  Why: GWER (Ghana's only weekly national source) not yet published past week 37 (last upload 2026-10-06; GHS uploads
+  in batches). Data probably exist; they are just not out yet. WER 101/44 and ECDC list absence was deliberately NOT turned
+  into zero rows (recency rule). AFRO bulletins wk38-46 unreadable (IRIS).
+Latest positive observation unchanged: 2025-12-31 (row 1545, annual 2025 total); latest weekly positive = WHO week
+2025-09-01..2025-09-07 (8 sCh). This pass added no case counts.
+py/analyze_effective_gaps.py NOT run: it rewrites the shared all-country ./reference/effective_surveillance_gaps_*.csv
+files while parallel recency runs are active, and the brief bars touching other countries. Coverage computed directly.
+
+=== FILES TOUCHED ===
+- ./data/GHA/cholera_data_ai.csv: rows 2472, 2473 (processing_notes appended only; tool made timestamped backups)
+- ./data/GHA/search_log_recency_20261116_agent7.txt (this log)
+- ./data/GHA/search_report.txt (recency section appended; full-run text untouched)
+NOT touched: metadata_ai.csv (Validation_Status for 663/664 stays "Pending": py/revise_observation.py has no verb for that
+field, and hand-editing is barred), baselines, dashboard, workflow_state.json, search_log_agent_7.txt, other countries.
+
+=== SUMMARY ===
+Rows checked 2 | kept 2 (2472, 2473) | values corrected 0 | notes clarified 2 | retracted 0
+Sources added this pass 2 (663, 664, by stage 1) | by Agent 7: 0
+Agent 7 effort: 6 WebSearch + 11 direct fetches (2 GWER PDFs, GWER index, ECDC CDTR wk40, ECDC overview, WER 101/44,
+AFRO listing, AFRO wk36/wk37 pages, AFRO Ghana news, IRIS probe) + 1 web-fetch agent (IRIS wk36-37, failed)
+End Time: 2026-11-16 14:25:51
+Agent 7 Status: COMPLETE
