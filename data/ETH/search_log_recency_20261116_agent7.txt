@@ -6,3 +6,123 @@ Scope: rows of ./data/ETH/cholera_data_ai.csv whose processing_notes contain "[R
 Stage 1 log: ./data/ETH/search_log_recency_20261116_agent1.txt (present)
 Agent 7 Status: INITIALIZED
 
+=== PRE-AUDIT STATE ===
+Stage 1 log read: ./data/ETH/search_log_recency_20261116_agent1.txt (7 batches / 140 queries; yields 5,0,0,10,0,0,0 %;
+  stopped on 3 consecutive sub-5% batches B5-B7; minimum 3 batches met). State file
+  ./data/ETH/workflow_state_recency_20261116.json agrees with the log (batches, yields, rows 3417-3419, sources 505-508).
+  Process compliance: >=3 batches YES; no yield >100% (max 10%); every claimed row present in ./data/ETH/cholera_data_ai.csv.
+Tagged rows found (processing_notes contain [RECENCY-20261116]): 3 of 3,309 -> Index 3417, 3418, 3419. All 3 audited (no sampling).
+  Also checked (auxiliary, not a data row): presence record AFR::ETH::Amhara::Waghimira 2026-10-01..10-27 (src 508) in
+  ./data/ETH/cholera_presence_ai.csv.
+[XREF-HARVEST] rows touching the window: none (xref apply was not run in this pass).
+Validator before audit: python3 py/validate_quality.py ETH --json /tmp/ETH_audit.json -> exit 0; ERROR 0, WARN 15, INFO 306.
+  No finding on the tagged rows (validator line numbers 3308-3310 = Index 3417-3419; the 15 WARN are on lines 80-3183,
+  all pre-existing). INFO 'national_subnational_overlap 2026-07-08..2026-10-10 ... documented'; INFO metadata 508 unused
+  by data rows (it is cited by the presence file only) - both expected.
+Downloads (untrusted) in /tmp/ETH_a7_20261116/dl/<name>/; scripts in /tmp/ETH_a7_20261116/scripts/ (Python run with -I).
+
+=== ROW 3417 | AFR::ETH::Amhara 2026-07-01..2026-08-31 | sCh 15, deaths 0 | src 505 UNICEF HSR No.4 | w 0.75 ===
+1. Source: refetched https://reliefweb.int/attachments/fc419347-.../UNICEF Ethiopia Humanitarian Situation Report No.4 (July
+   to August 2026).pdf -> HTTP 200, application/pdf, 6 pages, PDF CreationDate 12 Oct 2026; ReliefWeb landing page
+   datePublished 2026-10-13 (= reporting_date). Both quoted fragments found verbatim (whitespace-normalised substring test):
+   'During July–August 2026, UNICEF-supported health services reached 570,489 women and children ...' and 'In Amhara, 15
+   cholera cases were reported and treated, with no deaths.' HAC table row confirmed: 'Individuals treated for cholera/acute
+   watery diarrhoea | 30,223 | 15 | 15 | 0.05%' (annual target | July-Aug result | cumulative to 31 Aug | achieved).
+   Period type: bimonthly period count ('During July-August 2026'; 'July-Aug result'), NOT year-to-date. Dates correct.
+2. Duplication: no WHO week in window (./data/ETH/cholera_data_who.csv national series ends 2026-03-09..03-15); no other
+   AI row for Amhara or any ADM2 of Amhara overlaps 2026-07-01..08-31; no exact duplicate on (Location,TL,TR,sCh,deaths).
+   Role stated: 'Provincial subset - do not sum with any national row'.
+3. Plausibility: deaths 0 <= sCh 15; CFR 0.00 correct; 15 Amhara cases <= national derived ~24 (Index 3419); continuous
+   with the Quara/Bermil presence (src 491, to 14 Jul 2026) and the low early-2026 tail (WHO 50 cases 2025-12-29..
+   2026-03-15; Amhara 51 Mar-Apr, Index 3268). Neighbours: SSD/SDN large 2026 outbreaks, KEN small Moyale wave - a low
+   Ethiopian count is plausible.
+4. Not a zero row.  5. Weight 0.75 inside the Level-2 band (0.7-0.9).
+VERDICT: KEPT unchanged; audit note appended. Stage-1 note on the HAC 'cumulative to 31 Aug = 15' vs 51 Amhara cases in
+   Mar-Apr (Index 3268) is pre-window and out of scope - left for a full re-audit.
+
+=== ROW 3418 | AFR::ETH::South_Ethiopia 2026-09-14..2026-09-18 | zero | src 506 Ethiopia Insider | w 0.5 ===
+1. Source: refetched https://ethiopiainsider.com/2026/18734/ (HTTP 200) and WP REST /wp-json/wp/v2/posts/18734 (post
+   18734, published 2026-09-21T11:11:22, modified 11:24). Both quoted Amharic sentences found verbatim. Own reading of
+   the Amharic: the South Ethiopia Regional Public Health Institute's letter (to 12 zone health departments + Sodo, Dilla,
+   Arba Minch) 'mentioned that at present a cholera outbreak has not occurred "in any area" of the region', warns El Nino
+   rain may let it re-occur, and recalls an outbreak 'years ago' (article: South Omo, Ginbot 2015 EC). Date: 'last Friday,
+   Meskerem 8, 2019' re-converted algorithmically (Calendrical Calculations fixed-from-ethiopic) = Friday 2026-09-18;
+   article Monday 21 Sep 2026 = reporting_date. Correct.
+2. Duplication: no other row for South Ethiopia in window; no WHO overlap. Sub-national only, stated 'NOT a national zero'.
+   Checked the built series ./data/ETH/cholera_weekly_ETH.csv: national week 2026-38 (14-20 Sep) = 1.6698 from AI (row
+   3419 disaggregation), i.e. this zero does NOT reach the national series.
+3. Plausibility: no contradicting presence/count for South Ethiopia in Sep 2026 (presence file: none for the region);
+   Kenyan Moyale wave borders Oromia, not South Ethiopia.
+4. Zero-row test: absence is STATED by the competent authority (explicit 'has not occurred in any area'), not inferred
+   from silence -> Documented_Absence justified. Surveillance operating: the RPHI was running regional early warning and
+   instructing every zone; region not conflict-affected -> 'operational' supported. Canonical 'Evidence type:
+   Documented_Absence' token unchanged (single occurrence). Window kept narrow (point-in-time 'at present'); not extended.
+5. Weight 0.5 inside the Level-3 band (news outlet relaying an official letter).
+VERDICT: KEPT unchanged; audit note appended.
+
+=== ROW 3419 | AFR::ETH 2026-07-08..2026-10-10 | sCh 24 (DERIVED) | src 507 EPHI Telegram 9631 | w 0.5 ===
+1. Source: refetched https://t.me/EthPHI/9631?embed=1 and https://t.me/s/EthPHI/9631 (HTTP 200; post datetime
+   2026-11-10T03:27:00Z; 2.73K views). Both quoted fragments found verbatim, incl. 'ከ2018 ዓ.ም. ተመሳሳይ ወቅት ጋር ሲነጻጸር ...
+   የኮሌራ ታማሚዎች ቁጥር በ98.9% ... መቀነሱ' (compared with the same period of 2018 EC, cholera patients fell 98.9%).
+   Period type: year-on-year % change for 'የ2019 ዓ.ም. የመጀመሪያ ሩብ ዓመት' (first quarter, EFY 2019). Fiscal-year reading
+   confirmed: a review held/posted 10 Nov cannot be of the EC calendar quarter Meskerem-Hidar (ends 9 Dec). Algorithmic
+   EC conversion: Hamle 1 2018 = 2026-07-08 (Wed), Meskerem 30 2019 = 2026-10-10 (Sat), 95 days; comparator Hamle 1 2017
+   = 2025-07-08 .. Meskerem 30 2018 = 2025-10-10. TL/TR correct.
+   Arithmetic re-done from ./data/ETH/cholera_data_who.csv (filtered): 14 ISO weeks 2025-07-07..2025-10-12 =
+   96+98+144+189+283+197+210+131+100+105+129+253+185+127 = 2,247 cases, 26 deaths; prorated (6/7 first week, 5/7 last)
+   = 2,197.0; x 0.011 = 24.17 -> 24; bounds 23.07 (98.95%, prorated) .. 25.84 (98.85%, unprorated). All as stated.
+   Baseline integrity: WHO weekly ISO-2025 national series sums to 8,505 cases / 84 deaths = the WER 2025 annual figure
+   (Index 595), so the comparator is the official national series EPHI itself reported.
+   Search for EPHI's own absolute figure (would replace the estimate): EPHI Telegram archive scanned 2025-08-03..2025-12-29
+   (215 posts via ?before= pagination) - no Q1 EFY2018 cholera count; ephi.gov.et WP posts 2026-11-01..11-11 (6) - no
+   mirror of the Q1 review; WebSearch x4 (Amharic exact phrase, English, EFY2018 Q1 Amharic, Oct-Nov 2026) - nothing.
+   WHO AFRO 'Health Emergency Intelligence and Surveillance - Quarter three report 2026' (IRIS bitstream 9e9a8ab8-...):
+   iris.who.int timed out from this host (75 s) and refused the web-fetch agent (ECONNREFUSED) - NOT READ.
+2. Duplication: no WHO week in window; no other national AI row overlaps; WHO 2025 weeks used only as a denominator for a
+   different period (no double count). Role stated: 'National total - includes provinces not individually listed';
+   Index 3417/3418 flagged 'do not sum'.
+3. Plausibility: implies ~1.8 cases/week; continuous with the WHO tail (2026 wks: 3,10,2,0,0,0,0,0,8,27,0) and Amhara
+   51 (Mar-Apr) -> 15 (Jul-Aug); 98.9% (not 100%) = cholera present. Not contradicted by Waghimira presence (27 Oct, after
+   the quarter). Deaths/CFR blank (not stated) - correct.
+4. Not a zero row.
+5. Weight 0.5 is BELOW the Level-1 band (0.9-1.0) deliberately: the count is derived (official % x external baseline) and
+   single-source. Justified; not changed.
+VERDICT: KEPT unchanged as a low-confidence ESTIMATED row; audit note appended. Caveat for users: the 23-26 range covers
+   rounding only; if EPHI's internal comparator differs from WHO's series the estimate scales with it.
+
+=== PRESENCE RECORD (auxiliary) | AFR::ETH::Amhara::Waghimira 2026-10-01..10-27 | src 508 ===
+Refetched https://t.me/AddisstandardEng/23921?embed=1 (HTTP 200; 2026-10-27T12:14:40Z): 'A cholera outbreak in Wag Hamra
+   zone in Amhara remains a concern, with humanitarian sources reporting limited availability of treatment supplies,
+   including fluids.' found verbatim. Correctly held as presence (no count), not a data row. No change.
+
+=== ACTIONS ===
+python3 /tmp/ETH_a7_20261116/scripts/append_audit_notes.py -> py/revise_observation.py ETH --index {3417,3418,3419}
+   --append-note '[RECENCY-20261116 AUDIT] VERIFIED, KEPT ...' --agent 7 --reason '[RECENCY-20261116 AUDIT] Agent 7 source
+   re-verification - row kept unchanged' -> exit 0 x3 (processing_notes appended 651/813/1100 chars; no value changed;
+   tool wrote its timestamped backup). Re-read: all values identical, 3418 still has one canonical evidence token.
+Corrected: 0. Retracted: 0. Sources added by Agent 7: 0.
+Not changed (no tool verb): metadata Validation_Status for 505-508 remains 'Pending' (py/revise_observation.py can set
+   only Description/Status); not hand-edited.
+
+=== WINDOW COVERAGE (read-only: analyze_effective_gaps.analyse() imported; ./reference/ NOT rewritten) ===
+Before pass (tagged rows removed): gap 2026-07-01..2026-11-16 (139 d); ETH 46.9% (320/683 months); months_ai_only 17;
+   latest observation 2026-06-30, latest positive 2026-04-30.
+After pass: Jul, Aug, Sep 2026 covered (AI only); Oct (10/31 days) and Nov not covered; remaining gap 2026-10-01..11-16
+   (47 d); ETH 47.3% (323/683); months_ai_only 20; latest observation and latest positive 2026-10-10 (the positive end
+   date comes from the derived estimate 3419). National days covered in window: 95/139 (68.3%), 2026-07-08..2026-10-10.
+Still empty nationally: 2026-07-01..07-07 and 2026-10-11..11-16 - NON-REPORTING, not quiet (no WHO epi-week since
+   2026-03-02; ECDC 27 Oct 'no updates since 28 September'; OEW wk41 no Ethiopian cholera event; cholera present in
+   Waghimira late Oct amid renewed northern conflict). No zero is justified for these days.
+
+=== FINAL VALIDATION ===
+python3 py/validate_quality.py ETH --json /tmp/ETH_audit_final.json -> exit 0; ERROR 0, WARN 15 (pre-existing rows only),
+   INFO 306. Same counts as before the audit.
+Report: section appended to ./data/ETH/search_report.txt ('=== RECENCY PASS 20261116: window 2026-07-01 to 2026-11-16 ===').
+
+=== CLOSE ===
+Final validator re-run after report append: python3 py/validate_quality.py ETH -> exit 0 (ERROR 0, WARN 15, INFO 306).
+Files written by Agent 7: ./data/ETH/search_log_recency_20261116_agent7.txt (this log); ./data/ETH/cholera_data_ai.csv (processing_notes of
+  Index 3417-3419 appended via py/revise_observation.py only); ./data/ETH/search_report.txt (recency section appended, prior text intact).
+Not touched: search_log_agent_7.txt, workflow_state.json, baselines (jhu/who), metadata_ai.csv, presence file, dashboard, ./reference/, other countries.
+End Time: 2026-11-16 14:55:55
+Agent 7 Status: COMPLETE (3 checked / 3 kept / 0 corrected / 0 retracted)
