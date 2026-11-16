@@ -1,0 +1,139 @@
+=== RECENCY PASS 20261116 - AGENT 7 (AUDIT) ===
+Country: Namibia (NAM)
+Window: 2026-07-16 to 2026-11-16 (124 days)
+Start Time: 2026-11-16 14:11:18
+Scope: rows of ./data/NAM/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116]"
+Stage 1 log: ./data/NAM/search_log_recency_20261116_agent1.txt -> PRESENT (stage 1 ran; claims 0 rows, 0 sources)
+Agent 7 Status: INITIALIZED
+
+=== STEP 1 | SCOPE CHECK: TAGGED ROWS ===
+grep '[RECENCY-20261116]' -> 0 matches in every NAM file: ./data/NAM/cholera_data_ai.csv, ./data/NAM/metadata_ai.csv,
+  ./data/NAM/cholera_presence_ai.csv, ./data/NAM/retracted_rows_ai.csv, ./data/NAM/cholera_data_who.csv,
+  ./data/NAM/metadata_who.csv (./data/NAM/attribution_review.csv absent).
+./data/NAM/cholera_data_ai.csv: 202 rows, Index 2-226 (202 unique) - matches stage 1's count. Latest AI row = AI 50
+  (AFR::NAM zero 2026-05-01..2026-07-15, MoHSS end-of-outbreak notice). AI rows overlapping 2026-07-16..2026-11-16,
+  tagged OR untagged: 0.
+git diff HEAD on cholera_data_ai / metadata_ai / cholera_presence_ai / retracted_rows_ai (NAM): no change since commit
+  a4193698 (2026-09-30 full run). Stage 1 wrote nothing to the AI layer, as its log and
+  ./data/NAM/workflow_state_recency_20261116.json state (rows_added 0, sources_registered 0, presence_added 0).
+Baselines (filtered with csv, not loaded wholesale): ./data/NAM/cholera_data_who.csv 57 rows, none in window; last NAM
+  week 2026-04-13..04-19 (sCh 0); weekly curve 2026-02-23..03-29 = 24, 22, 16, 12, 7, then 0, 0, 0 (to 04-19) - the
+  epidemic had run down to zero before the window. ./data/NAM/cholera_data_jhu.csv 26 rows, max TR 2024-12-31.
+Per-row checks 1-5 (quote/period, duplication, plausibility, zero-row evidence, weight): NOT APPLICABLE - no rows.
+Corrections / retractions: none (py/revise_observation.py not run).
+XREF-HARVEST audit: out of scope for this pass (instructions: tagged rows only); no XREF row overlaps the window.
+Re-ran python3 -I -B py/xref_harvest.py queue NAM -> 62 open candidates / 49 documents; candidates with period end
+  >= 2026-07-16: 0 (latest whomc:epi:38, 2026-01-01..05-31). Confirms stage 1.
+
+=== STEP 2 | REVIEW OF STAGE 1 NON-ENTRY DECISIONS ===
+Stage 1 found four in-window figures for Namibia and entered none. Each checked against the document:
+ (a) WHO Rapid Risk Assessment 'Cholera, WHO African Region' v1, 02 Oct 2026 (EW1-38, 'data received as of 20
+     September 2026'): re-extracted from stage 1's PDF copy with pdftotext -> 'Namibia (213)' (p.1 case list);
+     'Eight countries stopped weekly reporting at some point since week 4' (countries not named). VERIFIED.
+ (b) ECDC CDTR week 40/2026 (26 Sep-2 Oct; cholera data as of 28 Sep): re-extracted -> 'Since 26 August 2026, no
+     updates have been reported by: Burundi, Cameroon, Central African Republic, Chad, Ethiopia, Kenya, Malawi,
+     Namibia, Nigeria, Rwanda, South Africa, Sudan, United Republic of Tanzania or Zimbabwe.' VERIFIED.
+ (c) Africa CDC weekly report, 25 Oct 2026, p.9 (image-only; viewed stage 1's render p9_text1.png): 'Namibia (49; 0)'
+     in the 2026 cumulative list; 'Since the last update (18 October 2026), a total of 389 new cases and three new
+     deaths of cholera were reported from three AU MS: Congo, Somalia, and Zambia.' VERIFIED.
+ (d) ECDC monthly update of 27 Oct 2026 'Since 28 September 2026, no updates have been reported by: ... Namibia ...':
+     direct fetch of ecdc.europa.eu (node/33195, cholera-monthly) -> HTTP 403 twice. An exact-phrase WebSearch returned
+     an ecdc.europa.eu/en/epipulse_event/2100 snippet listing Namibia among African countries not updating since 28 Sep
+     (as of 27 Oct 2026). CORROBORATED BY SNIPPET ONLY - not read first-hand.
+ Verdict: correct not to enter. All four are frozen cumulatives already in the dataset (213 = AI 14, WHO count complete
+  by data to 29 Mar 2026; 49 = ECDC 23 Mar value, 'recorded, not used' in AI 14 notes) and carry no new information.
+  Builder check (py/build_weekly_timeseries.py lines 584-671): a 2026-01-01..2026-09-xx row of sCh 213 is a positive
+  multi-week aggregate whose nested WHO weeks (wk53/2025-wk15/2026) already sum to 213; residual ~0, so lines 661-671
+  stamp every still-empty week of its span - i.e. the window - 'inferred_zero', and py/analyze_effective_gaps.py would
+  then count the window months as covered. Stage 1's word 'decumulate' is imprecise (_decumulate works within one
+  source and drops zero increments), but its conclusion stands. Same ground as the 2026-09-30 retraction of AI 55.
+ Zero rows: none entered; correct. No source states absence for any part of the window: WHO's 'missing data ... do not
+  imply the absence', ECDC names Namibia as not reporting, and the Zambezi Region acute diarrhoea outbreak (epi-week 31
+  1,146 cases; 24-30 Aug 6,960; 12 under-5 deaths; metadata 61/72) never had a published aetiology.
+
+ (e) WER 101(39) (2 Oct 2026; Table 1 'as of 30 August 2026') and WER 101(44) (6 Nov 2026; Table 1 'as of 27
+     September 2026'), who.int HTML issue pages (IRIS PDFs ECONNREFUSED): both 'Namibia | 213 | 0 | 0.0 | 7 | - | - |
+     - | - | -'; footnote 'Missing data in this report do not imply the absence of cholera or AWD cases or deaths in
+     the respective country.' Neighbour rows match stage 1: Zambia 1059/19 -> 1 137/25 (last 28 d to 27 Sep: 239
+     cases); Angola 6126/122 -> 6 884/132 (last 28 d: 445); South Africa 2/0 and Zimbabwe 36/2 frozen; Botswana not
+     listed. VERIFIED.
+
+=== STEP 3 | INDEPENDENT FALSE-NEGATIVE CHECK (Agent 7 queries; no budget limit) ===
+WebSearch (standard):
+  1. 'Namibia cholera case confirmed 2026 Ministry of Health and Social Services new outbreak' -> latest Namibian item
+     is the July 2026 closure (NAMPA text/22965735: 82 confirmed, 1 death); nothing Aug-Nov 2026.
+  2. 'Zambezi region Namibia diarrhoea outbreak 2026 laboratory results cause rotavirus cholera' -> only The Namibian
+     25 Aug / 13 Sep 2026 (cause 'still not known'; low rotavirus coverage cited); no laboratory result.
+  3. 'Namibia cholera September 2026' -> nothing after July 2026.
+  4. 'Kazungula Sesheke cholera cases 2026 Zambia Botswana Namibia border' -> no district counts; ZNPHI Q1-Q2 2026
+     bulletins name Lusaka/Northern, not Western Province.
+  5. 'WHO AFRO weekly bulletin on outbreaks and other emergencies week 43 2026' -> not indexed/posted.
+  6. exact phrase 'Since 28 September 2026, no updates have been reported by' -> ECDC epipulse_event/2100 snippet
+     (Step 2d).
+Fetches (web-fetch subagent): WER 101(39)/(44) HTML OK (Step 2e); ECDC node/33195 + cholera-monthly -> HTTP 403;
+  WHO AFRO listing -> wk37-41/2026 posted (wk41 'current edition', 11 Oct; features Cholera Zambia, Bundibugyo
+  Kenya, Ethiopia), wk42-45 NOT posted; all five IRIS PDFs (wk37-41) ECONNREFUSED -> 'All events' tables UNREAD.
+Leads handed over by stage 1:
+  - Namibian Sun nmh006888 'Grootfontein on high alert over suspected cholera outbreak': byline timestamp
+    '2026-03-16 00:05:00' (Kenya Kambowe), paywalled, no figures. Not 2 May 2026 and not in the window; falls inside
+    the documented Nov 2025-Apr 2026 Grootfontein outbreak (AI 206), so no conflict with AI 50 (2026-05-01..07-15).
+    CLOSED.
+  - WHO Country Office Pretoria webinar 'Vibrio cholerae O1 serotype Ogawa' (J. Wamala, 06 Aug 2026; 'Data through
+    26 July 2026'; knowledgehub.health.gov.za): pdftotext of the full PDF -> 0 mentions of Namibia. CLOSED.
+Result: no in-window Namibian cholera figure, presence report or absence statement that stage 1 missed.
+Neighbour consistency: Angola (445 cases in the 28 days to 27 Sep) and Zambia (rising, ~1,958 by 2 Nov, not Western
+  Province) were both active during the window, so importation risk was real. An empty window is consistent with
+  non-reporting; it is NOT evidence of absence and must not be zero-filled.
+
+=== STEP 4 | STAGE 1 PROTOCOL COMPLIANCE (./templates/template_search_protocol.txt) ===
+  - 3 batches x 20 = 60 queries (minimum met); yields 0/0/0, in percent units (no >100% row-counting error); stop
+    rule (3 consecutive batches <5%) satisfied; rows claimed 0 = rows found 0; sources claimed 0 = 0.
+  - Minor: batch 3 items 18-19 were direct page fetches (WHO AFRO Namibia news listing; ReliefWeb, HTTP 403) counted
+    as queries -> 58 WebSearches + 2 fetches. Acceptable as institutional deep dives; noted, not a failure.
+  - Phases: Phase 1 and part of Phase 2 only; Phase 3 not reached because the yield rule stopped at the minimum, which
+    the protocol allows.
+  - Housekeeping: stage 1 left ./.scratch_nam_recency_20261116/ (untracked). Agent 7 used its PDFs/renders read-only
+    (pdftotext, image view) and did not delete it (outside remit).
+
+=== STEP 5 | COVERAGE (py/analyze_effective_gaps.py analyse() called in-process for NAM, horizon 2026-11-16) ===
+  Not run as a script: it rewrites ./reference/effective_* for all 40 countries, which other countries' parallel
+  recency runs are reading. Nothing written to ./reference/.
+  JHU+WHO+AI : 678/683 months (99.3%); 1 gap period 2026-07-01..2026-11-16 (139 d month-granular; day level
+               2026-07-16..11-16 = 124 d); latest_observation 2026-07-15; latest_positive 2026-04-26; months_ai_only 448.
+  JHU+WHO    : 229/683 months (33.5%); 5 gap periods; trailing gap 2026-05-01..2026-11-16.
+  This pass  : +0 rows -> 0 of 124 window days covered; gap unchanged. (The 99.3% is the 2026-09-30 full run's work,
+               carried largely by long absence rows: 448 AI-only months from 202 AI rows.)
+
+=== STEP 6 | VALIDATOR ===
+  python3 py/validate_quality.py NAM -> 202 data rows | 242 metadata sources | ERROR 0  WARN 0  INFO 112 | exit 0.
+
+=== AUDIT SUMMARY ===
+  Tagged rows checked 0 | kept 0 | corrected 0 | retracted 0 | sources added 0 | presence rows 0 | zero rows 0.
+  Window 2026-07-16..2026-11-16: EMPTY (124/124 days). Stage 1's classification (NON-REPORTING + no cholera signal,
+  not documented absence) is upheld. Stage 1's 'do not enter' calls on the frozen WHO/WER/RRA 213 and Africa CDC 49
+  are upheld. Stage 1's log and state are accurate.
+  Open items: AFRO bulletins wk37-41/2026 'All events' tables unread (iris.who.int ECONNREFUSED for both stages);
+  ECDC 27 Oct update read only via snippet (HTTP 403); wk42+ AFRO, the next WER cholera table (data to ~25 Oct) and
+  ECDC's late-Nov monthly not yet published; Zambezi diarrhoea aetiology unpublished.
+
+=== STEP 7 | WEEKLY SERIES CHECK (derived file, read-only) ===
+  ./data/NAM/cholera_weekly_NAM.csv shows as modified vs HEAD, but NOT by Agent 7: another process's dashboard
+  rebuild (py/with_lock.py dashboard -- bash update_dashboard.sh, started 14:11:52) rewrote all 40 countries'
+  weekly files 14:13-14:14:52 (NAM at 14:14:15). Neither py/validate_quality.py nor py/analyze_effective_gaps.py
+  writes weekly files. Left untouched.
+  Window rendering: weeks from 2026-W30 (20 Jul) through W47 are ABSENT (= missing, not zero) - correct.
+  ARTEFACT (pre-existing; same row in the 2026-10-08 HEAD build): W29 (2026-07-13..07-19) = documented_zero, AI,
+    0.8 from AI 50 (TR 2026-07-15, a Wednesday) under the builder's Monday-inside-span rule, so window days 16-19 Jul
+    inherit a documented zero they have no evidence for. AI 50 is accurate and out of scope; not revised. For the
+    builder owners: a documented zero should claim a week only when it covers most of that week.
+  Out-of-window note for the next full audit (not acted on): W17 (2026-04-20..04-26) is absent - AI 14's aggregate
+    is coverage-skipped and AI 225 starts 04-27.
+
+=== RECENCY PASS 20261116 - AGENT 7 FINAL STATUS ===
+  Tagged rows: 0 checked / 0 kept / 0 corrected / 0 retracted. Sources added: 0. Window covered: 0 of 124 days.
+  Section appended to ./data/NAM/search_report.txt (earlier content byte-identical).
+  Validator (final): python3 py/validate_quality.py NAM -> ERROR 0, WARN 0, INFO 112, exit 0.
+  Files written by Agent 7: this log; ./data/NAM/search_report.txt (append only). No CSV, baseline, dashboard,
+  workflow_state.json or other-country file touched.
+End Time: 2026-11-16 14:19:04
+Agent 7 Status: COMPLETE (recency pass 20261116, stage AUDIT)
