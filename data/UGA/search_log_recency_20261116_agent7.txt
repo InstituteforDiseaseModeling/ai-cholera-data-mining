@@ -6,3 +6,115 @@ Scope: rows of ./data/UGA/cholera_data_ai.csv whose processing_notes contain "[R
 Start Time: 2026-11-16 15:47:12
 Agent 7 Status: INITIALIZED
 
+=== STEP 0: STAGE 1 PRESENCE CHECK ===
+- ./data/UGA/search_log_recency_20261116_agent1.txt: PRESENT. Stage 1 status COMPLETE; claims 0 rows, 0 zero rows, 0 presence rows, 0 sources.
+- ./data/UGA/workflow_state_recency_20261116.json: rows_added 0, row_indices_added [], sources_registered 0 (read only; not modified).
+
+=== STEP 1: TAGGED-ROW INVENTORY (independent of stage 1's claim) ===
+- Lines containing "RECENCY-20261116": ./data/UGA/cholera_data_ai.csv 0 | ./data/UGA/metadata_ai.csv 0 |
+  ./data/UGA/cholera_presence_ai.csv 0 | ./data/UGA/retracted_rows_ai.csv 0 | ./data/UGA/attribution_review.csv absent.
+  No RECENCY tag of any date in any UGA AI file.
+- git status: ./data/UGA/cholera_data_ai.csv, ./data/UGA/metadata_ai.csv, ./data/UGA/cholera_presence_ai.csv unchanged vs HEAD
+  (last data commit e4e581dd 2026-10-05; mtimes 2026-10-08 / 2026-10-08 / 2026-10-04). Only the stage-1 log and the recency
+  state JSON changed today.
+- Rows overlapping the window (TL <= 2026-11-16 and TR >= 2026-09-21), filtered with python csv (JHU not loaded into context):
+    AI  ./data/UGA/cholera_data_ai.csv  (933 rows): 0 overlap; max TR 2026-09-20 (Index 1012); latest positive TR 2025-12-31 (Index 302)
+    WHO ./data/UGA/cholera_data_who.csv (103 rows): 0 overlap; max TR 2025-07-13
+    JHU ./data/UGA/cholera_data_jhu.csv (8709 rows): 0 overlap; max TR 2024-12-31 (stage 1 wrote "early 2025"; immaterial)
+  => No untagged in-window row exists. Stage 1's "0 rows added" claim is TRUE.
+- Rows audited: 0 (nothing to sample). py/revise_observation.py NOT invoked: nothing to correct or retract.
+
+=== STEP 2: STAGE 1 PROTOCOL CHECK ===
+- 3 batches x 20 = 60 queries (54 WebSearch + 6 ReliefWeb-API). Yields 0% / 0% / 0%. Stop rule met (>=3 batches; 3 consecutive <5%).
+- No yield >100%; no rows claimed that were not added; batch template followed; consulted documents listed with URLs / RW ids.
+- XREF queue re-run (python3 -I -B py/xref_harvest.py queue UGA): 137 open candidates; the only line mentioning 2026 is a 2025
+  YTD figure (LOG_TARGET_CITES, WHO update 33, period 2025-01-01..2025-12-28). Nothing for the window. Confirms stage 1.
+
+=== STEP 3: RE-VERIFICATION OF STAGE 1's NEGATIVE CLAIMS (documents re-read by Agent 7) ===
+1. WHO AFRO OEW week 41 (05-11 Oct 2026), RW 4235066, cache/reliefweb/UGA/rec20261116_afro_w41/4235066_OEW41-11102026.pdf
+   (pdftotext -layout). 'All events currently being monitored' Uganda rows:
+   'Uganda Anthrax Ungraded 10-Apr-25 11-Apr-25 29-Oct-25 83 50 2 2.41' and 'Uganda Mpox Grade 3 26-Jul-24 29-Jul-24 24-Jul-26 8 498 8 498 52 0.61'.
+   The cholera row printed between them belongs to 'United Republic of Tanzania Cholera Ungraded 21-Sep-26 17-Sep-26 21-Sep-26 148 148 0 0.00'
+   (Katavi: 'As of 21 September, 148 cholera cases ... had been recorded with no deaths'). CONFIRMED: no Uganda cholera event.
+2. Africa CDC Epidemic Intelligence Report, 'Date of Issue: 2026-10-25' (image-only DHIS2 print, 16 pp; read visually from
+   cache/recency_MWI_20261116/dl/acdc_20261025.pdf, p.9, event AC09337 'Cholera in Africa'):
+   'Since the beginning of 2026, a total of 171,724 cases (2,198 confirmed; 169,526 suspected) and 2,855 deaths (CFR: 1.51%) of cholera
+   have been reported from 20 AU MS: Angola (6,980 cases; 132 deaths), ... Tanzania (113; 2), Zambia (2,417; 44), and Zimbabwe (36; 2).'
+   Uganda absent. Same issue: p.3 BVD 'Uganda (20; 2)'; p.7 mpox 'Uganda (67; 1)'; p.9 2025 note 'Uganda (136; 3)'.
+   CONFIRMED verbatim against stage 1's transcription.
+   LAG EVIDENCE: this 25 Oct issue still shows Tanzania at 113 cases, FEWER than the 148 cases WHO AFRO reported for the Katavi
+   outbreak alone as of 21 Sep 2026 (item 1). The WHO AFRO RRA (item 4; data to 20 Sep) also shows Tanzania 113, so Katavi was never
+   added. The enumeration ran more than a month behind for a neighbour, so omission from it cannot certify zero for Uganda.
+3. WHO South Sudan weekly updates wk38/40/43/44/45 2026 (cache/reliefweb/UGA/rec20261116_who_ssd/, pdftotext): Uganda appears only
+   in BVD/Ebola context. CONFIRMED. Wk44 cholera: '54 new in the last 7 days from four counties (Fangak 45, Renk 4, Rubkona 4, Mayom 1)';
+   none borders Uganda. The 'Magwi' (Uganda-border county) items are MEASLES ('Magwi - 42 backlog suspected (line-list); reactive campaign 4-8 Nov').
+4. NEW, not in the stage 1 log: WHO 'Rapid risk assessment ... Cholera, WHO African Region', 'Date and version of current assessment:
+   02 October 2026, v1' (https://cdn.who.int/media/docs/default-source/_sage-2026/20261002_-regional-rra_-cholera-afr-v.1.pdf; fetched
+   via web-fetch, text via pdftotext). 'Between 1 January and 20 September 2026 (epidemiological weeks (EW) 1-38; data received as of
+   20 September 2026), a total of 160 799 cholera cases and 2466 deaths were reported across 19 countries'. Uganda is not listed. Its only
+   Uganda mention is a cross-border risk corridor: '(the Democratic Republic of the Congo-Rwanda-Burundi-Uganda)'.
+   Cut-off 20 Sep 2026 = BEFORE the window -> not an in-window lead. No action.
+5. Independent verification searches (Agent 7; 9 WebSearch; not a collection batch):
+   a 'Uganda cholera outbreak 2026' [extended]
+   b 'Uganda Ministry of Health cholera cases confirmed October November 2026' [extended]
+   c '"cholera" "Uganda" district outbreak declared September 2026'
+   d 'Africa CDC weekly epidemic intelligence report November 2026 cholera Member States'
+   e 'WHO AFRO weekly bulletin outbreaks emergencies week 43 2026'
+   f 'Uganda cholera refugees Kiryandongo Adjumani Nakivale Kyangwali 2026 outbreak'
+   g 'Uganda cholera news monitor.co.ug OR nilepost.co.ug OR newvision.co.ug OR ugandaradionetwork October 2026' [extended]
+   h 'Uganda suspected cholera cases isolated health centre November 2026'
+   i 'Uganda National Institute of Public Health weekly epidemiological bulletin 2026 week 40 41 42 cholera'
+   Result: no Ugandan cholera report dated 2026-09-21..2026-11-16. Hits were 2017-2025 outbreaks; the Aug-2026 PesaCheck fact-check
+   (already metadata Index 56 / row 72); the PLOS GPH elimination paper (Index 115/193); GTFCC PAMI (Index 302); and the ECDC
+   27 Oct 2026 monthly update. Its search snippet names new cases from Angola, Burundi, Cameroon, DRC, Mozambique, Nigeria, Rwanda,
+   Somalia, South Sudan, Yemen and Zambia, not Uganda. AFRO OEW wk42+ not indexed; Africa CDC November issue not surfaced; hejnu.ug
+   MoH-bulletin coverage in these results reaches only wk25.
+   => Stage 1's negative finding STANDS. No missed in-window lead found.
+
+=== STEP 4: PLAUSIBILITY / REGIONAL CONSISTENCY ===
+- No tagged rows, so the deaths<=sCh, cCh<=sCh, CFR and weight-vs-tier checks have nothing to apply to.
+- Curve continuity: ./data/UGA/cholera_weekly_UGA.csv ends at ISO wk 38 (2026-09-14..20). Weeks since 2026-06-01: 14 inferred_zero +
+  2 documented_zero (row 72). Last positive in any layer: AI annual row 302 (2025, 203 cases). An NA window after quiet weeks is continuous.
+- Neighbours in or near the window:
+  - DRC: ongoing (35,544 to 26 Jul per AFRO; 58,319 YTD per Africa CDC 25 Oct).
+  - South Sudan: waning; active counties are away from the Uganda border.
+  - Tanzania: Katavi outbreak from 17 Sep (Lake Tanganyika, not the Uganda border).
+  - Rwanda: Rusizi/Rutsiro (Western Province).
+  - Kenya: 1 confirmed case, Nairobi (20-23 Sep).
+  Importation risk is real (the WHO RRA names the Great Lakes corridor including Uganda), but no Ugandan case is reported.
+  An empty window is consistent with the regional picture.
+
+=== STEP 5: ZERO-ROW RULE / CONSISTENCY FLAG (OUT OF SCOPE - NO ACTION TAKEN) ===
+- Stage 1 was right not to write list-silence zeros for the window (recency rule: 'A zero inferred from silence must be retracted').
+  Further support: Agent 3's note on Index 262 records that WHO tables stopped Uganda at epi-week 2025-07-07 while the Elegu/Amuru/
+  Adjumani outbreak ran Jul-Sep 2025.
+- The AI zero rows immediately BEFORE the window rest on the same kind of evidence, all labelled Inferred_Absence:
+  Index 53 (2026-01-01..05-31, w 0.5, WHO update tables); 54 (06-01..08-16, w 0.60, AFRO OEW wk33);
+  262 (08-29..09-06, w 0.55, AFRO OEW wk36); 1012 (09-07..09-20, w 0.45, Africa CDC issue 2026-09-20 list).
+  Index 72 (08-17..08-28) is Documented_Absence from an explicit ministerial denial (PesaCheck) and is sound.
+- Consequence: the evidence standard changes at 2026-09-21 (inferred zeros to 09-20, empty after). Model impact is nil:
+  py/build_weekly_timeseries.py renders Inferred_Absence as inferred_zero (capped at 0.6), and MOSAIC-pkg treats inferred_zero weeks
+  as missing. But the dashboard series reads "zero" up to 09-20 and "missing" after. The next full UGA audit should decide
+  53/54/262/1012 consistently with the recency rule. Not modified here: outside the [RECENCY-20261116] scope.
+
+=== STEP 6: VALIDATOR ===
+- python3 py/validate_quality.py UGA --json /tmp/UGA_recency_audit.json -> EXIT 0; ERROR 0, WARN 45, INFO 324 (933 rows, 424 sources).
+  WARN classes: 21 CFR_high_flagged_for_review, 18 multiyear_aggregate, 5 same_period_conflict, 1 period_single_day. All are on
+  pre-existing rows, and there are no recency rows. Identical to stage 1's reported result.
+
+=== SUMMARY (Agent 7, RECENCY-20261116, UGA) ===
+Rows checked 0 | kept 0 | corrected 0 | retracted 0 | sources added 0 (./data/UGA/metadata_ai.csv stays at 424)
+Window covered: 0 of 57 days (ISO wk 39-46 plus 2026-11-16). Window weeks are NA in ./data/UGA/cholera_weekly_UGA.csv.
+Remaining empty:
+  2026-09-21..2026-10-25: probably quiet, but not documented. Every enumerating source omits Uganda; there is no explicit zero.
+  2026-10-26..2026-11-16: not yet published.
+Files written: this log; one appended section in ./data/UGA/search_report.txt. No CSV, baseline, dashboard or other-country file touched.
+
+=== FINAL VALIDATOR RUN (after report append) ===
+- python3 py/validate_quality.py UGA -> EXIT 0; ERROR 0   WARN 45   INFO 324
+- git status data/UGA: only search_log_recency_20261116_agent7.txt (M, this log) and search_report.txt (M, appended section).
+  The runner's auto-commit bee90c72 (15:53:38) had already committed the stage-1 log, the recency state JSON and the first 8 lines of
+  this log. AI CSVs (cholera_data_ai, metadata_ai, cholera_presence_ai, retracted_rows_ai): `git diff --quiet HEAD` -> identical to HEAD;
+  last changed in e4e581dd (2026-10-05). No CSV modified by this pass.
+End Time: 2026-11-16 15:55:15
+Agent 7 Status: COMPLETE (recency AUDIT stage)
