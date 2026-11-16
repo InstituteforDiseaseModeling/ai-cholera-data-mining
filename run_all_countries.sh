@@ -17,6 +17,16 @@
 #   bash run_all_countries.sh --only ETH,KEN         # specific countries
 #   bash run_all_countries.sh --first RWA,AGO        # these first, then the rest
 #   bash run_all_countries.sh --retry-failed         # re-attempt failures only
+#   bash run_all_countries.sh --mode recency --tag 20261116 --unattended
+#                                                    # recency-only pass (see below)
+#
+# --mode recency: bring every country up to the present without the full 7-agent
+# workflow. Each country gets a fixed window, from the day after its latest
+# observation to the pass date (frozen in reference/recency_windows_<tag>.csv),
+# and two stages: cholera-baseline-collector scoped to that window, then
+# cholera-quality-auditor scoped to the rows it wrote (tagged [RECENCY-<tag>]).
+# Prompts come from py/recency_prompt.py. State goes to its own manifest,
+# reference/run_manifest_recency_<tag>.csv, so the full-run manifest is untouched.
 #
 # State lives in reference/run_manifest.csv and survives interruption: a country
 # marked `done` is skipped on the next invocation, so Ctrl-C and restart is safe.
@@ -31,6 +41,8 @@ cd "$ROOT"
 RUNLOCK="reference/.runner.pid"
 
 MANIFEST="reference/run_manifest.csv"
+MODE="${MODE:-full}"                       # full | recency
+TAG="${TAG:-$(date +%Y%m%d)}"              # recency pass tag
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOGDIR="logs/run_${STAMP}"
 TIMEOUT_SECS=${TIMEOUT_SECS:-172800}       # 48h: hang detector only, not a budget
@@ -55,6 +67,8 @@ while [[ $# -gt 0 ]]; do
     --unattended)      PERMISSION_MODE="bypassPermissions" ;;
     --publish-progress) PUBLISH=1 ;;
     --dash-every)      DASH_EVERY="$2"; shift ;;
+    --mode)            MODE="$2"; shift ;;
+    --tag)             TAG="$2"; shift ;;
     -h|--help)         sed -n '2,32p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -62,6 +76,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 command -v claude >/dev/null || { echo "claude CLI not found" >&2; exit 1; }
+case "$MODE" in
+  full)    NEED_LOGS=7 ;;
+  recency) NEED_LOGS=2; MANIFEST="reference/run_manifest_recency_${TAG}.csv" ;;
+  *) echo "unknown --mode: $MODE (full|recency)" >&2; exit 2 ;;
+esac
 
 # `claude -p` stops waiting for background tasks after 600s and terminates.
 # The orchestrator runs its seven agents as background tasks, so with the
@@ -69,6 +88,10 @@ command -v claude >/dev/null || { echo "claude CLI not found" >&2; exit 1; }
 # and exits 0 - a silent partial run. 0 means wait indefinitely; the real bound
 # is the per-country `timeout` below.
 export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
+# WebSearch is capped per session (default 200) and every subagent in the session
+# draws on the same pool. In the 2026-09-29 cycle UGA exhausted it during Agent 3,
+# so Agents 4-6 ran with no search at all. Raise it for every country process.
+export CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION=${CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION:-2000}
 mkdir -p reference
 
 # ---------------------------------------------------------------- preflight --
@@ -87,6 +110,13 @@ python3 py/analyze_effective_gaps.py >/dev/null 2>&1 \
 # baselines are not enforced, so protect them at the filesystem layer instead.
 python3 py/protect_baselines.py lock >/dev/null 2>&1 \
   || { echo "  FAIL could not lock baselines"; fail=1; }
+
+if [[ "$MODE" == "recency" ]]; then
+  # Freeze each country's window now, before any country's new rows move its
+  # latest observation forward. Read-only if the windows file already exists.
+  python3 py/recency_prompt.py --windows --tag "$TAG" >/dev/null 2>&1 \
+    || { echo "  FAIL could not compute recency windows"; fail=1; }
+fi
 
 [[ $fail -eq 0 ]] && echo "  ok: profiles, validation gate, protocol, gap analysis, baselines locked" \
                   || { echo "preflight failed; not starting"; exit 1; }
@@ -174,6 +204,9 @@ for iso in $ORDER; do
     [[ "$st" == "failed" || "$st" == "timeout" ]] || continue
   else
     [[ "$st" == "done" ]] && continue
+    # A recency window can be genuinely quiet; a country that ran both stages
+    # and found nothing new is finished, not owed a retry.
+    [[ "$MODE" == "recency" && "$st" == "done_noyield" ]] && continue
   fi
   if [[ -n "$FROM" && $started -eq 0 ]]; then
     [[ "$iso" == "$FROM" ]] && started=1 || continue
@@ -186,6 +219,7 @@ echo ""
 echo "=== plan ==="
 echo "  countries queued : ${#QUEUE[@]}  ->  ${QUEUE[*]:-none}"
 echo "  per-country cap  : $((TIMEOUT_SECS/60)) min, $MAX_TURNS turns"
+echo "  mode             : $MODE$([[ "$MODE" == recency ]] && echo "  (tag $TAG, windows reference/recency_windows_${TAG}.csv)")"
 echo "  concurrency      : $PARALLEL country(ies) at a time"
 echo "  permission mode  : $PERMISSION_MODE"
 echo "  dashboard        : full rebuild (all figures) after every country"
@@ -231,7 +265,10 @@ fi
 # indistinguishable from a dead one to anyone watching remotely. The heartbeat
 # publishes dashboard/run_status.html every few minutes instead.
 HEARTBEAT_PID=""
-if [[ $PUBLISH -eq 1 ]]; then
+# The heartbeat's status page models the 7-agent cycle and the full-run manifest,
+# and finds live countries by a `claude -p ISO` command line; a recency prompt
+# matches none of that, so it is not started in recency mode.
+if [[ $PUBLISH -eq 1 && "$MODE" == "full" ]]; then
   HEARTBEAT_PUBLISH=1 nohup bash py/run_heartbeat.sh 600 >/dev/null 2>&1 &
   HEARTBEAT_PID=$!
   echo "  heartbeat       : pid $HEARTBEAT_PID -> dashboard/run_status.html (every 10 min)"
@@ -273,14 +310,36 @@ run_country () {
     attempt=$((attempt+1))
     [[ $attempt -gt 1 ]] && echo "  .. $iso retry $attempt/$MAX_ATTEMPTS ($st) $(date '+%H:%M:%S')"
 
-    timeout "$TIMEOUT_SECS" claude -p "$iso" \
-        --agent workflow-orchestrator \
-        --model claude-opus-5-5 \
-        --effort max \
-        --permission-mode "$PERMISSION_MODE" \
-        --max-turns "$MAX_TURNS" \
-        >> "$log" 2>&1 </dev/null
-    code=$?
+    if [[ "$MODE" == "full" ]]; then
+      timeout "$TIMEOUT_SECS" claude -p "$iso" \
+          --agent workflow-orchestrator \
+          --model claude-opus-5-5 \
+          --effort max \
+          --permission-mode "$PERMISSION_MODE" \
+          --max-turns "$MAX_TURNS" \
+          >> "$log" 2>&1 </dev/null
+      code=$?
+    else
+      # Two stages, each its own process. A stage whose log was already written
+      # in this country's window is skipped, so a retry resumes at the audit.
+      code=0
+      for stage in collect audit; do
+        if [[ $stage == collect ]]; then k=1; ag=cholera-baseline-collector; else k=7; ag=cholera-quality-auditor; fi
+        f="data/$iso/search_log_recency_${TAG}_agent${k}.txt"
+        [[ -f "$f" && "$f" -nt "$marker" ]] && continue
+        echo "=== $(date '+%Y-%m-%d %H:%M:%S') recency $TAG $iso stage $stage ($ag) attempt $attempt ===" >> "$log"
+        timeout "$TIMEOUT_SECS" claude -p "$(python3 py/recency_prompt.py "$iso" "$stage" --tag "$TAG")" \
+            --agent "$ag" \
+            --model claude-opus-5-5 \
+            --effort max \
+            --permission-mode "$PERMISSION_MODE" \
+            --max-turns "$MAX_TURNS" \
+            >> "$log" 2>&1 </dev/null
+        code=$?
+        [[ $code -ne 0 ]] && break
+        [[ -f "$f" && "$f" -nt "$marker" ]] || break   # stage exited 0 without its log
+      done
+    fi
 
     case $code in
       0)   st="done" ;;
@@ -313,11 +372,18 @@ run_country () {
     # are correctly ignored, and matching exact names means seven distinct
     # agents must each have run - not simply seven files of any kind.
     agents_ran=0
-    for k in 1 2 3 4 5 6 7; do
-      f="data/$iso/search_log_agent_${k}.txt"
-      [[ -f "$f" && "$f" -nt "$marker" ]] && agents_ran=$((agents_ran+1))
-    done
-    [[ "$st" == "done" && "$agents_ran" -ge 7 ]] && break
+    if [[ "$MODE" == "full" ]]; then
+      for k in 1 2 3 4 5 6 7; do
+        f="data/$iso/search_log_agent_${k}.txt"
+        [[ -f "$f" && "$f" -nt "$marker" ]] && agents_ran=$((agents_ran+1))
+      done
+    else
+      for k in 1 7; do
+        f="data/$iso/search_log_recency_${TAG}_agent${k}.txt"
+        [[ -f "$f" && "$f" -nt "$marker" ]] && agents_ran=$((agents_ran+1))
+      done
+    fi
+    [[ "$st" == "done" && "$agents_ran" -ge "$NEED_LOGS" ]] && break
     [[ -f STOP ]] && break
   done
 
@@ -325,8 +391,8 @@ run_country () {
   # A clean exit is not evidence the workflow ran. Classify on how many of the
   # seven agent logs were actually written during this country's run window.
   if [[ "$st" == "done" ]]; then
-    if [[ "$agents_ran" -lt 7 ]]; then
-      st="incomplete_${agents_ran}of7"
+    if [[ "$agents_ran" -lt "$NEED_LOGS" ]]; then
+      st="incomplete_${agents_ran}of${NEED_LOGS}"
     elif [[ "$ra" -eq "$rb" && "$sa" -eq "$sb" ]]; then
       st="done_noyield"
     fi
@@ -338,7 +404,7 @@ run_country () {
     "$iso" "$st" "$started_at" "$(date '+%Y-%m-%d %H:%M:%S')" \
     "$rb" "$ra" "$sb" "$sa" "$code" "$log" >> "$MANIFEST"
 
-  echo "  << $iso  $st  attempts ${attempt}  agents ${agents_ran}/7  rows ${rb}->${ra} (+$((ra-rb)))  sources ${sb}->${sa} (+$((sa-sb)))  $(( (t1-t0)/60 ))min"
+  echo "  << $iso  $st  attempts ${attempt}  agents ${agents_ran}/${NEED_LOGS}  rows ${rb}->${ra} (+$((ra-rb)))  sources ${sb}->${sa} (+$((sa-sb)))  $(( (t1-t0)/60 ))min"
   python3 py/validate_quality.py "$iso" --quiet >/dev/null 2>&1 \
     || echo "  !! $iso does not pass validation after its run"
 
@@ -353,7 +419,7 @@ run_country () {
   # ran it. Commit it the moment the country ends, whatever its status.
   if [[ $PUBLISH -eq 1 ]]; then
     echo "  .. $iso data: $(python3 py/publish.py "data/$iso/" reference/ \
-      -m "Country data: $iso $st (+$((ra-rb)) rows, +$((sa-sb)) sources) - $(date '+%Y-%m-%d %H:%M:%S')")"
+      -m "Country data: $iso $([[ "$MODE" == recency ]] && echo "recency $TAG ")$st (+$((ra-rb)) rows, +$((sa-sb)) sources) - $(date '+%Y-%m-%d %H:%M:%S')")"
   fi
 
   echo "$iso" >> "$LOGDIR/.completed"
@@ -406,21 +472,21 @@ python3 py/protect_baselines.py verify
 echo ""
 awk -F, 'NR>1 {c[$2]++} END {for (k in c) printf "  %-18s %d\n", k, c[k]}' "$MANIFEST"
 echo ""
-python3 - <<'PYEOF'
-import csv, json
+MANIFEST="$MANIFEST" python3 - <<'PYEOF'
+import csv, json, os
 mosaic = {k for k, v in json.load(open('reference/country_mapping.json'))['countries'].items()
           if v.get('mosaic_framework')}
 last = {}
-for r in csv.DictReader(open('reference/run_manifest.csv')):
+for r in csv.DictReader(open(os.environ['MANIFEST'])):
     last[r['iso']] = r['status']
-incomplete = sorted(i for i in mosaic if last.get(i) != 'done')
+incomplete = sorted(i for i in mosaic if last.get(i) not in ('done', 'done_noyield'))
 blocked = sorted(i for i in mosaic if last.get(i) == 'blocked_spend_limit')
 if blocked:
     print(f"BLOCKED BY SPEND LIMIT ({len(blocked)}): {' '.join(blocked)}")
     print("These did not run and did not fail. They resume on the next launch.")
 if incomplete:
     print(f"NOT YET COMPLETE ({len(incomplete)}/40): {' '.join(incomplete)}")
-    print("Re-run `bash run_all_countries.sh --unattended --publish-progress` to continue;")
+    print("Re-run the same command to continue;")
     print("countries already marked done are skipped.")
 else:
     print("ALL 40 COUNTRIES COMPLETE.")
