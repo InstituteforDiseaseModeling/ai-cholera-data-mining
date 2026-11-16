@@ -6,3 +6,119 @@ Start Time: 2026-11-16 15:05:12
 Stage 1 log: ./data/TCD/search_log_recency_20261116_agent1.txt (present)
 Agent 7 Status: INITIALIZED
 
+=== STEP 0 | INPUTS ===
+Stage 1 log read: 6 batches / 120 queries, stop on 3 consecutive <5% (B4-B6). Claims 20 rows (1797-1799, 1801-1817), 1 own retraction (1800),
+  5 presence rows, 9 sources (META 283-291). Confirmed in ./data/TCD/cholera_data_ai.csv: exactly 20 rows carry [RECENCY-20261116] (1797, 1798, 1799,
+  1801-1817); row 1800 tombstoned in ./data/TCD/retracted_rows_ai.csv (reason recorded); 5 tagged presence rows in ./data/TCD/cholera_presence_ai.csv.
+  No sampling: all 20 rows audited.
+Tooling: curl needs approval in this session -> documents fetched with the web-fetch agent; PDFs saved by WebFetch under the session tool-results dir
+  and read locally with pdftotext/pdfinfo (pages 2-3 of SITREP 044 rendered with pdftoppm into /tmp/tcd_audit_render_sitrep44 for the charts).
+Pre-audit validator: python3 py/validate_quality.py TCD -> exit 0, ERROR 0, WARN 38 (34 CFR_high on pre-existing rows, 1 period_single_day pre-existing,
+  3 national_subnational_overlap for periods 06-13..09-20 / ..10-01 / ..10-30).
+
+=== STEP 1 | SOURCE VERIFICATION (every cited URL fetched 2026-11-16) ===
+META 284 S37 bulletin PDF (HTTP 200, 5 pp, PDF created 2026-09-20; filename date 18092026): VERIFIED verbatim - 'Au 15 septembre 2026 : 1 066 cas et
+  47 décès, dont 23 communautaires (49 %) ; létalité : 4,4 %. Le Lac totalise 671 cas et 33 décès.'; 'Du 12 au 15 septembre, 106 nouveaux cas ... 50 au
+  Hadjer- Lamis, 49 au Lac, 3 à N'Djamena et 4 au Chari-Baguirmi.'; 'NB : situation choléra actualisée au 15 septembre 2026 - SITREP n°042'; '4 cas à Mandalia'.
+META 285 S38 bulletin PDF (HTTP 200, 5 pp, created 2026-09-29; cover misprint 'SEMAINE 37 · 2026 · 14 - 20 septembre'): VERIFIED verbatim - 1 184 cas /
+  51 décès / 4,3 %; Lac 756/37, Hadjer-Lamis 266/6, N'Djamena 158/8, Chari-Baguirmi 4/0; 'Du 16 au 20 septembre, 119 nouveaux cas et 4 décès ... 85 cas
+  au Lac, 25 au Hadjer-Lamis et 9 à N'Djamena ; aucun nouveau cas au Chari-Baguirmi'; Kouloudia '212 cas et 20 décès, soit une létalité de 9,4 %';
+  'contribution importante de Mani, Bol et Liwa'; SE38 weekly CFR 3,2 %; SITREP n°043 du 16 au 20 septembre.
+META 286 S40 bulletin PDF (HTTP 200, created 2026-10-19): prints 'comptabilise 1 329 cas et 58 décès' citing SITREP n°044 -> confirms Stage 1's
+  retraction of row 1800 (SITREP 044 itself: 1323; Tableau I total 1323; 1,184 + 139 = 1,323).
+META 290 MoH SITREP 044 PDF (HTTP 200, 7 pp, created 2026-10-07): VERIFIED verbatim - '1323 cas en cumul national avec 58 décès dont 25 communautaires
+  (43,1%), depuis le début de l'épidémie'; '+139 en 11 jours' / '+7 en 11 jours'; '13 juin 2026 : Notification de 2 cas suspects à Karal' (confirms TL
+  2026-06-13); province paragraph (Lac 82 = Kangalom 50, Liwa 26, Bol 6; HL 54 all Mani; NDJ 3; 'Aucun nouveau cas ... Chari-Baguirmi'; Kangalom
+  '50 nouveaux cas et 6 nouveaux décès'). Tableau I rows match the notes exactly; arithmetic checked: HL 168+129+23=320 (deaths 5+0+1=6); NDJ
+  97+25+9+21+9=161 (8); Lac 59+211+168+188+212=838 (deaths 4+3+9+8+20=44 = 37+7; text bullet '37' is stale); CB 4; total 1323/58, new 139/7.
+  Max 'date de dernière notification' is 20/09/2026 (NDJ Est), Kangallom 10/09, Mani/Bol/Liwa/Kouloudia 19/09.
+META 283 Tchadinfos 5 Nov 2026 (HTTP 200): VERIFIED - 'Déclaré le 31 octobre dernier, le foyer de choléra a enregistré, en cinq jours, 147 cas dont
+  15 décès.'; visit 'ce jeudi 5 novembre 2026' (5 Nov 2026 is a Thursday); 89 guéris + 43 en traitement (+15 deaths = 147); 'Une baisse des nouvelles
+  admissions est également observée'; bilan by provincial health delegate Dr Koulmini Sam.
+META 289 Tchadinfos 11 Nov 2026 (HTTP 200): VERIFIED - Isseirom 'dans le département de Koulkimé', Kiskawa 'dans le département de Liwa'; no counts.
+META 287 Cameroon Tribune 6 Nov 2026 (HTTP 200, partly paywalled; figures sentence free): VERIFIED - 'au 30 octobre 2026 le Cameroun comptait 3.103 cas
+  de choléra. Le Tchad en dénombrait 1.431, la République centrafricaine 784, et le Nigeria 73.416.' No Chad deaths, no basis.
+META 291 Les Dépêches de Brazzaville/AllAfrica 3 Nov 2026 (HTTP 200): VERIFIED - 'Au 30 octobre dernier, le Cameroun enregistrait 3 103 cas et 94 décès.
+  Le Tchad comptabilisait 1 431 cas ...'. Same meeting figures, so not independent of 287; confirms transcription and reference date.
+
+=== STEP 2 | EPIDEMIC-CURVE CHECK (SITREP 044 figures, read from the rendered charts; approximate, +/- reading error) ===
+Figure 2 (national, cases by epi week, N=1323): SE32 ~107, SE33 ~143, SE34 ~105, SE35 ~110, SE36 ~233, SE37 ~103, SE38 ~210, SE39 ~36, SE40 ~33 (sum ~1,314).
+  SE24-SE35 match the WHO dashboard weeks exactly (6,30,72,58,0,0,40,28,107,142,105,111). From SE36 the dashboard lags: SE36 158 vs ~233, SE37 10 vs ~103.
+Figure 4 (Lac daily, N=838): 16-20 Sep ~87 (row 1802 reports 85 - consistent); 21 Sep-1 Oct ~41 (8,13,2,0,1,4,1,0,7,0,5) vs 82 'nouveaux cas' reported
+  (row 1811). With the Tableau I footnote '*Mise à jour de la base du Lac', about half of Lac's period count is back-entered cases with earlier dates.
+Figure 5 (Hadjer-Lamis daily, N=320): cases continue every day to ~1 Oct, roughly 45 dated 21 Sep-1 Oct vs 54 reported - consistent within reading error;
+  shows the 'date de dernière notification' column is stale (Mani 19/09 while cases continue), so that column alone proves nothing.
+National weekly series built from these rows (./data/TCD/cholera_weekly_TCD.csv, built 15:04, not rebuilt by me): W36 158 (WHO), W37 10 (WHO), W38 118
+  (1799 increment, 16-20 Sep only), W39 70.9 + W40 68.1 (1810 increment 139), W41-W44 29.9/28.1/26.1/23.9 (1801 increment 108), W45+ empty.
+  -> W38 under-represents SE38 (~210) and W39-W40 carry ~2x the MoH's own epi-week counts (139 vs ~69). Sum W24-W44 = 1,232 vs MoH 1,431 at 30 Oct:
+  the 199-case residual of the 1,066 anchor (8-15 Sep) is not placed because WHO's stale W37 (10) outranks AI rows. Builder/baseline issue, pre-window.
+Neighbours: Cameroon 2,683 (14 Sep) -> 3,103 (30 Oct, ~65/wk), Nigeria 73,416, CAR outbreak declared over 19 Sep -> Chad's October decline (~27/wk) and a
+  focal flare on the Lake Chad islands (Isseirom, from 31 Oct) are consistent with the regional picture.
+
+=== STEP 3 | PER-ROW DECISIONS (20 of 20 tagged rows; ./data/TCD/cholera_data_ai.csv) ===
+Duplication: no tagged row restates a WHO dashboard week (./data/TCD/cholera_data_who.csv ends 2026-09-13; WER 101-44's 867/42 = dashboard sum was
+  correctly NOT added); no exact or near duplicate of another AI row (chain links have distinct TR; period rows nest inside cumulatives and are labelled).
+  py/build_weekly_timeseries.py reads AFR::TCD rows only, so no ADM1/ADM2 row can double-count nationally.
+Plausibility: deaths <= sCh and cCh blank on all rows; CFRs recomputed and correct (max 12.0% Kangallom period, 10.2% Isseirom - both flagged, plausible
+  for remote lake-island foci); monotone chains 1,066 -> 1,184 -> 1,323 -> 1,431 nationally; provincial cumulatives reconcile exactly
+  (Lac 756+82=838, HL 266+54=320, NDJ 158+3=161, CB 4+0=4; deaths 37+7=44, 6, 8, 0).
+  1797 Lac/Isseirom 147/15 (0.5)     KEEP - verified; note appended (89+43+15=147; not in national series by design).
+  1798 national 1,066/47 (0.9)       KEEP - verified; chain anchor (builder coverage-skips it).
+  1799 national 1,184/51 (0.9)       KEEP - verified; note appended on W38 partial-week undercount (builder/baseline limitation).
+  1801 national 1,431 (0.5)          KEEP - verified in both outlets; note appended (no deaths/basis; same meeting so not independent; CAR 784 > 728).
+                                     2025 stale-figure risk is low: the 2025 eastern outbreak had passed 1,891 by 9 Sep 2025 (IFRC MDRTD025 final report).
+  1802/1803/1804 Lac 85, HL 25, NDJ 9 (16-20 Sep, 0.9)   KEEP - verified; Lac 85 matches the SITREP 044 daily curve (~87).
+  1805 CB zero 16-20 Sep (0.9)       KEEP - explicit 'aucun nouveau cas', surveillance active; note appended with level role (was missing -> WARN).
+  1806/1807/1808/1809 ADM1/ADM2 cumulatives to 20 Sep (0.9)   KEEP - verified. Minor: Figure 4 shows ~5 Lac cases 28 Jul-2 Aug, before the chain TL
+                                     2026-08-03 (convention inherited from full-run row 26; TL left unchanged to keep the Lac chain consistent).
+  1810 national 1,323/58 (0.9->0.7)  CORRECTED - value exact; its decumulated +139 is ~2x the SITREP's own SE39-SE40 epi-week counts (~69).
+  1811 Lac 82/7 (0.9->0.6)           CORRECTED - Figure 4 has ~41 cases dated in period; '*Mise à jour de la base du Lac'.
+  1812 HL 54/0 (0.9)                 KEEP - Figure 5 supports in-period timing (~45 dated in period); note appended.
+  1813 NDJ 3/0 (0.9)                 KEEP - verified.
+  1814 CB zero 21 Sep-1 Oct (0.9)    KEEP - explicit 'Aucun nouveau cas n'a été rapporté', Mandalia 0 new; note appended with level role.
+  1815 Kangallom 50/6 (0.9->0.5)     CORRECTED - most likely holder of the Lac backlog (last notification 10/09; +13 over 1-20 Sep before the +50).
+  1816 Liwa 26/1, 1817 Bol 6/0 (0.9->0.7)   CORRECTED - share of the Lac backlog unknown; moderate downweight.
+Zero rows: 2 (1805, 1814), both Documented_Absence quoted verbatim from Level-1 sources with surveillance operating. No zero inferred from silence.
+Confidence vs tier: Level 1 rows 0.9 (before the conflict downweights), Level 3 rows 0.5 - within bands. Downweights below band are deliberate (conflict).
+Retractions by audit: none. Stage 1's retraction of 1800 confirmed correct (S40 printed 1,329; SITREP 044 = 1323).
+Metadata: META 286 Description now warns that its 1,329 is a transcription slip (cite META 290). Validation_Status of META 283-291 left 'Pending'
+  (py/revise_observation.py has no verb for that field; not hand-edited).
+
+=== STEP 4 | REVISIONS APPLIED (py/revise_observation.py TCD --agent 7, every --reason prefixed [RECENCY-20261116 AUDIT]) ===
+  --index 1805 append-note | --index 1814 append-note | --index 1810 --confidence 0.7 | --index 1811 --confidence 0.6 | --index 1815 --confidence 0.5
+  --index 1816 --confidence 0.7 | --index 1817 --confidence 0.7 | --index 1812/1797/1801/1799 append-note | --meta-index 286 --set-description
+  All exited 0. No sCh/deaths/dates/locations changed.
+
+=== STEP 5 | VALIDATOR ===
+python3 py/validate_quality.py TCD -> exit 0. ERROR 0, WARN 35 (was 38), INFO 319. Remaining WARNs: 34 CFR_high_flagged_for_review + 1 period_single_day,
+  all on untagged pre-existing rows. national_subnational_overlap: 3 WARN -> 0 (now INFO 'documented').
+
+=== STEP 6 | WINDOW COVERAGE (in-memory build via build_weekly_timeseries.process_country; no files rebuilt) ===
+National weekly series: W38 118/4 (conf 0.81), W39 70.9/3.6 (0.63, was 0.81), W40 68.1/3.4 (0.63, was 0.81), W41-W44 29.9/28.1/26.1/23.9 (0.45, no deaths).
+  -> 14 Sep-1 Nov filled (49 of 64 days; 7 of 9 ISO weeks W38-W46). Counts at any level reach 5 Nov (53/64 days) via the Lac subset row 1797.
+  EMPTY: national W45-W46 (2-15 Nov) and 16 Nov; no count at any level 6-16 Nov (presence only: Isseirom/Kiskawa kits 9 and 11 Nov).
+  Not quiet - Isseirom focus active from 31 Oct, so no zero row is warranted. October rests on one Level-3 cumulative spread evenly (no weekly shape).
+./data/TCD/cholera_weekly_TCD.csv on disk still shows W39/W40 at 0.81 until the runner's next rebuild (I did not rebuild: dashboard outputs out of scope).
+
+=== STEP 7 | STAGE 1 PERFORMANCE ===
+6 batches / 120 queries (>= 3-batch minimum); stop rule met (B4-B6 0%); yields 10/5/5/0/0/0 % - no >100% yield; the B1 revision (5 -> 10 %) credits
+  late-committed row 1801 to the query that found it, which is legitimate. Every claimed row exists and matches the log. Overstatements: 'every new
+  note states which level is primary' (false for 1805/1814, fixed); 'ReliefWeb refuses automated access' (true for the website, but
+  py/reliefweb.py's API route works - see leads). Quote transcription accuracy: 20/20 rows correct. Judgement quality: high (caught the 1,329 slip,
+  rejected dengue and stale WER figures, held the 1,431 for corroboration); the backlog caveat was noted but not quantified or weighted.
+
+=== STEP 8 | LEADS / FOLLOW-UP ===
+- py/reliefweb.py works (API v2, approved appname): Chad/cholera search from 2026-09-14 returns 11 reports.
+- The ReliefWeb 'Chad: Cholera Outbreak - DREF Final Report (MDRTD026)' (5 Nov 2026, id 4237117) is actually the MDRTD025 final report on the 2025
+  eastern outbreak (attachment MDRTD025dfr.pdf; ended 15 Dec 2025, 2,979/167). No 2026 data: drop this lead.
+- AFRO OEW weeks 36-40 are mirrored on ReliefWeb with PDFs (wk40, 28 Sep-5 Oct, tagged TCD, id 4234265). Use this route for wk41+ instead of IRIS.
+- OCHA Lac sitrep No.01 (as of 30 Sep, id 4232682) and the Lac snapshot (Jan-Sep, id 4235154) end before the empty period.
+- MoH SITREP 045+ / AFRO integrated bulletin S41+ (when posted); WER monthly cholera update and ECDC monthly (late Nov 2026).
+- Out of scope, flagged: untagged row 190 (N'Djamena 4-10 Sep, 25, conf 0.4) probably double counts the 19 late-August cases of row 25 ('six cas
+  sporadiques et 19 cas en lien épidémiologique'); the MoH chain allows only ~13 N'Djamena cases 1-11 Sep. Sub-national only (builder unaffected).
+- Builder/baseline: WHO's stale W37 (10 vs ~103 on the MoH curve) outranks AI rows, leaving the 199-case residual of the 1,066 anchor unplaced;
+  the series sums to 1,232 against the MoH's 1,431 at 30 Oct.
+
+End Time: 2026-11-16 15:20:57
+CORRECTION (15:22): the runner rebuilt ./data/TCD/cholera_weekly_TCD.csv at 15:19 (all-country dashboard refresh); it now matches the in-memory build above (W39/W40 at 0.63). I did not run the builder writer.
+Agent 7 Status: COMPLETE
