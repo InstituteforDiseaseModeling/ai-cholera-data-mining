@@ -8,8 +8,9 @@ APPROVED appname - and the attachment PDFs it links to download normally.
 
 The appname is a credential. It is read, in order, from:
   1. $RELIEFWEB_APPNAME
-  2. ./.env in this repo (gitignored)          RELIEFWEB_APPNAME=...
-  3. ~/literature-research/.env                (where it was originally approved)
+  2. MOSAIC/.env (the parent directory)        - same order as the `lit` tool
+  3. ./.env in this repo (gitignored)          RELIEFWEB_APPNAME=...
+  4. ~/literature-research/.env                (where it was originally approved)
 It is never printed, logged, or written into any output. Do not copy it into
 search logs, metadata, or commit messages - cite the report's url_alias instead.
 
@@ -48,7 +49,10 @@ def appname():
     v = os.environ.get("RELIEFWEB_APPNAME", "").strip()
     if v:
         return v
-    for p in (ROOT / ".env", Path.home() / "literature-research" / ".env"):
+    # Same order as `lit` (MOSAIC/CLAUDE.md): MOSAIC/.env first, then this repo's
+    # .env, then ~/literature-research/.env. An empty `KEY=` is skipped, so a
+    # blank line in an earlier file cannot shadow a real value in a later one.
+    for p in (ROOT.parent / ".env", ROOT / ".env", Path.home() / "literature-research" / ".env"):
         try:
             for line in p.read_text(encoding="utf-8").splitlines():
                 m = re.match(r"\s*RELIEFWEB_APPNAME\s*=\s*['\"]?([^'\"\s#]+)", line)
