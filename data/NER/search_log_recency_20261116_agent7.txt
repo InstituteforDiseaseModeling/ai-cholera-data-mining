@@ -6,3 +6,79 @@ Scope: rows of ./data/NER/cholera_data_ai.csv whose processing_notes contain "[R
 Stage 1 log: ./data/NER/search_log_recency_20261116_agent1.txt (present)
 Agent 7 Status: INITIALIZED
 
+=== STEP 0: STAGE-1 OUTPUT CHECK ===
+Stage 1 log read in full: ./data/NER/search_log_recency_20261116_agent1.txt (Agent 1 COMPLETE 2026-11-16 14:18).
+Rows tagged [RECENCY-20261116]: ./data/NER/cholera_data_ai.csv 0 | ./data/NER/metadata_ai.csv 0 |
+  ./data/NER/cholera_presence_ai.csv 0 | ./data/NER/retracted_rows_ai.csv 0.
+File mtimes: cholera_data_ai.csv 2026-10-04 04:09, metadata_ai.csv 2026-10-04 03:05, cholera_presence_ai.csv 2026-10-03 22:32
+  -> untouched by stage 1; git status shows no modification to any NER data file.
+AI rows overlapping 2026-07-27..2026-11-16: 0. Latest AI rows: Index 47-51 (AFR::NER weekly W26-W30: 2,3,13,18,34 sCh),
+  52 (AFR::NER::Diffa 2026-06-22..07-26: 70 sCh / 35 cCh / 1 death), 53 (Diffa district), all src 43 (Health Cluster N4).
+Baselines (filtered reads only): ./data/NER/cholera_data_who.csv 20 rows, latest TR 2025-01-19;
+  ./data/NER/cholera_data_jhu.csv latest TR 2024-12-31. Neither reaches the window.
+=> Per-row audit (URL/quote, period type, duplication, plausibility, zero evidence, weight): NOT APPLICABLE - no rows.
+   Rows checked 0 | kept 0 | corrected 0 | retracted 0. No py/revise_observation.py call was needed.
+
+=== STEP 1: STAGE-1 PROTOCOL COMPLIANCE (./templates/template_search_protocol.txt) ===
+- 3 batches x 20 queries = 60; yields 0%, 0%, 0%; STOP at the 3-batch floor with 3 consecutive <5% batches: COMPLIANT.
+- No yield above 100%; no rows/sources claimed that are absent from the files; ./data/NER/workflow_state_recency_20261116.json
+  agrees with the log (rows_added [], sources_registered []).
+- ./data/NER/workflow_state.json and ./data/NER/search_report.txt untouched (mtimes 2026-10-04): COMPLIANT.
+- No zero row inferred from absence in multi-country lists: CORRECT.
+- Minor miss: stage 1 did not find the nigerinfos.com mirror of ReliefWeb Health Cluster bulletins (see V4). It made no
+  difference this time.
+
+=== STEP 2: INDEPENDENT TESTS OF THE NULL RESULT (verification only; nothing collected) ===
+V1 WER 101-44 (6 Nov 2026, data to 27 Sep) and WER 101-39 (2 Oct 2026, data to 30 Aug), who.int HTML, HTTP 200:
+   AFRO Table 1 = 19 countries (AGO BDI CMR CAF TCD COG COD ETH KEN MWI MOZ NAM NGA RWA ZAF SSD TZA ZMB ZWE).
+   Niger is absent from the table and from the cholera text. The Table 1 footnote reads: "Missing data in this report do not
+   imply the absence of cholera or AWD cases or deaths in the respective country." Stage-1 reading CONFIRMED.
+V2 WHO Global Cholera/AWD dashboard back end (services.arcgis.com/5T5nSi527N4F7luB), HTTP 200:
+   cholera_report_period country=NIGER: 2024-09-02..2025-01-19 (1 feature). cholera_adm0_week iso_3_code=NER: count 20,
+   newest date_wk 2025-01-13 (epiwk 3/2025, 0 cases, cum 1,066/23). CONTROL: NGA newest 2026-10-19 (epiwk 42), so the layer
+   is current. Niger's WHO reporting period closed in Jan 2025; the 2026 Diffa event never entered the WHO global stream.
+   This is a non-listing, NOT a zero. Stage-1 claim CONFIRMED.
+V3 WHO Nigeria feature, 28 Sep 2026, "Nigeria and Niger coordinate vaccination across shared border" (afro.who.int, HTTP 200):
+   "reactive vaccination following a cholera outbreak in Madaroufa, Maradi Region, coordinated with Jibia Local Government
+   Area in Katsina State". It gives no year, month or counts. The "August 2026" exercise in the article = polio/routine
+   immunisation, not OCV. The APA FR copy returns 403. Madarounfa-Jibia cholera links are documented for 2018 (ReliefWeb
+   ep-2018-000132-ner) and 2021 (reactive OCV), so the event is probably historical. Stage-1 handling (no row, no presence
+   record) CORRECT.
+V4 Health Cluster "Bulletin mensuel" N5/N6 2026: 3 WebSearch queries (2 extended) -> not indexed anywhere.
+   nigerinfos.com mirrors ReliefWeb; https://nigerinfos.com/humanitaire/4227821 (HTTP 200) = N4: "Depuis le 23 juin 2026
+   jusqu'a la semaine 30, 70 cas au total ont ete enregistres dans la region de Diffa avec 1 deces soit (1,42%)". This matches
+   row 52 (70 sCh, 1 death); row 52 is pre-window and was not re-audited. The /humanitaire feed reaches back only to 23 Oct
+   2026 (newest 12 Nov), ?page=2 is ignored and search returns 404 -> N5 was neither found nor ruled out.
+V5 WHO AFRO OEW wk41 all-events table (iris.who.int bitstream 41f85b00-...): py/xref_harvest.py fetch --url retried
+   14:23-14:26. It hung and was killed at 170 s; cache meta.json is still 'failed http_0' (stage 1, 14:17). GHA/MRT/TGO
+   agents report the same IRIS failure today. STILL UNREAD.
+V6 Same-day re-reads by other auditors (read-only grep of their logs): TGO Agent 7 re-read Africa CDC EIR 25 Oct 2026 p.9
+   ("20 AU MS"; new cases since 18 Oct only Congo, Somalia, Zambia) and 11 Oct 2026 (20 MS; new: AGO BDI MOZ SOM ZMB).
+   MRT Agent 7 confirmed the ECDC 27 Oct new-case list (AGO BDI CMR COD MOZ NGA RWA SOM SSD ZMB) and no-update list (CAF TCD
+   COG ETH KEN MWI NAM ZAF SDN TZA ZWE). Niger is in none of them. Stage 1's 20-MS Africa CDC list (= WER AFRO 19 - ZAF + SOM
+   + SDN) is internally consistent.
+V7 Neighbour plausibility: NGA 72,374 cases / 467 deaths to 27 Sep (WER 101-44), last 28 d 3,111 (-71% m/m); TCD 867/42
+   (28 d 168/22). Lake Chad corridor active Jul-Sep. Diffa transmission into Aug 2026 is likely; its course after W30 is
+   unknown.
+
+=== STEP 3: VALIDATOR ===
+python3 py/validate_quality.py NER --json /tmp/NER_recency_audit.json -> exit 0. 904 data rows, 293 sources.
+ERROR 0, WARN 48 (44 CFR_high_flagged_for_review, 4 period_single_day: all pre-existing, none in the window), INFO 414.
+Same counts as stage 1 reported.
+
+=== STEP 4: WINDOW STATUS ===
+Covered: NOTHING (0/113 days; ISO 2026-W31..W47 all empty).
+Weekly builder: ./data/NER/cholera_weekly_NER.csv ends at 2026-W30 (34 sCh, observed). Window weeks are absent, not
+  zero-filled, so there are no false zeros.
+Effective gap file (read, not regenerated): NER 2026-08-01..2026-11-16, 108 days, era recent.
+Classification: REPORTING / PUBLICATION GAP, NOT ABSENCE. Do not zero-fill.
+Leads for next pass (Jan 2027): (1) Health Cluster N5/N6 via ReliefWeb from an unblocked network, or the ReliefWeb API with
+  an approved appname. Re-check the nigerinfos.com /humanitaire feed shortly after each month-end, since posts roll off in
+  ~3 weeks. (2) OEW wk37-45 all-events tables via IRIS. (3) WER monthly cholera update with Oct/Nov data. (4) UNICEF Niger
+  HSR 2026 (Jan-Sep or annual). (5) Africa CDC EIR Nov-Dec 2026.
+
+=== AGENT 7 RECENCY SUMMARY ===
+Rows checked 0, kept 0, corrected 0, retracted 0; sources added 0. Validator exit 0.
+Appended section to ./data/NER/search_report.txt. workflow_state.json and search_log_agent_7.txt were not touched.
+End Time: 2026-11-16 14:29:40
+Agent 7 Status: COMPLETE
