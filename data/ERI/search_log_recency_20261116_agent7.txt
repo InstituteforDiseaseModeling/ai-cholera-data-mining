@@ -5,3 +5,143 @@ Scope: rows of ./data/ERI/cholera_data_ai.csv whose processing_notes contain [RE
 Start Time: 2026-11-16 14:41:00
 Stage 1 log present: ./data/ERI/search_log_recency_20261116_agent1.txt (20696 bytes, mtime Nov 16 14:40)
 
+=== STEP 0: STAGE-1 EXISTENCE CHECK ===
+./data/ERI/search_log_recency_20261116_agent1.txt PRESENT (stage 1 ran; status COMPLETE).
+./data/ERI/workflow_state_recency_20261116.json PRESENT (stage COLLECT; batches 3; yields 0/0/0; rows_added []).
+Not touched by this audit: ./data/ERI/search_log_agent_7.txt, ./data/ERI/workflow_state.json, baselines, dashboard,
+other countries, ./reference/ (gap files NOT regenerated: no ERI data changed, and other countries run in parallel).
+
+=== STEP 1: SCOPE - ROWS TAGGED [RECENCY-20261116] ===
+grep 'RECENCY-20261116':
+  ./data/ERI/cholera_data_ai.csv      0 rows
+  ./data/ERI/cholera_presence_ai.csv  0 rows
+  ./data/ERI/retracted_rows_ai.csv    0 rows
+  ./data/ERI/metadata_ai.csv          3 entries (Index 286, 287, 288)
+Rows of ./data/ERI/cholera_data_ai.csv with TL or TR >= 2026-01-01, tagged OR untagged: 0 (136 rows, max Index 141).
+  Latest AI rows: 24 (AFR::ERI 2025 national zero, WER zero report, w 0.5); 140 (2024, RKI exported case);
+  131/132 (Tio Aug-Sep 2024 diaspora allegation, w 0.1).
+mtimes: cholera_data_ai.csv 2026-10-02 04:58; cholera_presence_ai.csv 2026-10-02 07:07 -> untouched by stage 1.
+Metadata diff vs pre-pass backup ./data/ERI/.backup_metadata_ai_20261116-143700691691.csv (285 rows):
+  added 286, 287, 288; removed 0; modified 0. Index 1..288 sequential, no gaps or duplicates.
+Baselines (filtered, not loaded wholesale): ./data/ERI/cholera_data_who.csv DOES NOT EXIST (ERI not in the WHO
+  weekly feed). ./data/ERI/cholera_data_jhu.csv has 16 rows; its last row is AFR::ERI 2023 annual zero (WHO annual
+  report). No WHO baseline weeks precede the window, so the epidemic-curve continuity test is moot.
+RESULT: per-row checks 1-5 (URL/quote, period type, duplication, plausibility, zero-row evidence, weight) have
+  NOTHING TO CHECK. Rows checked 0 | kept 0 | corrected 0 | retracted 0. No py/revise_observation.py call made.
+  The audit therefore tests the NO-ROW decision and the factual claims stage 1 wrote into metadata 286-288.
+
+=== STEP 2: RE-FETCH AND VERIFY STAGE-1 SOURCES (own downloads, one new dir each, /tmp/eri_audit_20261116/) ===
+[V1] metadata 286 - https://www.erinewspapers.com/hadas-eritrea/eritrea_profile_06062026.pdf
+     HTTP 200, 6.8 MB, 8 pages; masthead 'Vol. 32 No. 80 / Saturday, 6 June, 2026'. Page 2, verbatim:
+     'According to reports from the Ministry of Health's Health Management Information System, a total of 239,713
+     cases of suspected foodborne illnesses (including shigellosis, salmonellosis, cholera, anthrax, and others) were
+     reported between 2017 and 2026, with 30,600 cases reported in 2025 alone. Moreover, 76 fatalities were reported
+     during this period, including 10 deaths in 2025.'  Same page: 'Foodborne diseases, which are common in Eritrea
+     ... include, among others, brucellosis, cholera, anthrax, giardiasis, and salmonellosis.'
+     VERDICT: quote VERIFIED. No-row / no-presence decision CORRECT - multi-disease category, cholera named only as a
+     member of the category, no cholera-specific number, no 2026-only figure, no statement a 2026 case occurred.
+[V2] metadata 287 - https://reliefweb.int/attachments/3c61a0a2-e650-547e-b0b8-b951ef4d7f49/OEW41-11102026.pdf
+     HTTP 200, 2.6 MB, 19 pages; 'Week 41: 05 to 11 October 2026; Data as reported by: 17:00; 11 October 2026'.
+     Event table: no Eritrea row (grep: Eritrea appears only in the p.1 map label and the Ethiopia crisis text).
+     Ethiopia 'Humanitarian crisis, Protracted 3' row, verbatim: '... the conflict acquired a regional dimension when
+     Eritrean forces crossed the border at Zalambessa on 7 October after Eritrea severed diplomatic relations on 2
+     October.' Narrative page adds: Ethiopia's UNSC letter described an 'all-out invasion', 'which Eritrea denies'.
+     (A line-wrap first suggested a date conflict - '8-9 October' belongs to drone strikes near Adigrat; no conflict.)
+     P.1 map rendered and viewed: Eritrea shaded light green = legend 'WHO Member States with no reported events',
+     no event icon. VERDICT: VERIFIED. 'No reported events' describes reporting, not absence -> no zero row: CORRECT.
+[V3] metadata 288 (bundle) - spot checks of its load-bearing items:
+     (1) WER 101(44), https://www.who.int/publications/journals/weekly-epidemiological-record/wer101-44 (HTML; the
+         IRIS PDF bitstream ec4ca811-... timed out). 'Multi-country outbreak of cholera, Data as of 27 September 2026',
+         Table 1 African Region = Angola, Burundi, Cameroon, CAR, Chad, Congo, DRC, Ethiopia (50; 2), Kenya, Malawi,
+         Mozambique, Namibia, Nigeria, Rwanda, South Africa, South Sudan, Tanzania, Zambia, Zimbabwe. NO ERITREA.
+         EMR: Afghanistan, Pakistan, Somalia (233; 0), Sudan (3 120; 264; CFR 8.5), Yemen (8 535; 26; +130% month).
+         Footnote verbatim: 'Missing data in this report do not imply the absence of cholera or AWD cases or deaths
+         in the respective country.' All 4 'Eritrea' strings sit outside the cholera section (leishmaniasis). VERIFIED.
+     (2) ECDC https://www.ecdc.europa.eu/en/epipulse_event/2100 -> redirects to .../2006-eip-00031/2026-10-27.
+         'Since 1 January 2026 and as of 27 October 2026, 291 272 cholera cases, including 2 471 deaths'. 'Eritrea'
+         count = 0. 'no updates' list = CAR, Chad, Congo, Ethiopia, Kenya, Malawi, Namibia, South Africa, Sudan,
+         Tanzania, Zimbabwe - exactly as stage 1 wrote. VERIFIED.
+     (3) Africa CDC EI weekly report 25 Oct 2026 (image-only PDF, 16 pp; rendered p.9 and read visually, no OCR
+         binary used): 'Since the beginning of 2026, a total of 171,724 cases (2,198 confirmed; 169,526 suspected) and
+         2,855 deaths ... from 20 AU MS: Angola ... Ethiopia (15; 0), ... Somalia (3,009; 1), South Sudan (7,683; 0),
+         Sudan (1,511; 153), Tanzania (113; 2), Zambia (2,417; 44), and Zimbabwe (36; 2).' NO ERITREA. VERIFIED.
+         (Somalia 3,009 here explains stage 1's OCHA-map reading 'Somalia 2.6K' vs WER 233: different source
+         streams, not a misread. Ethiopia/Sudan also differ WHO vs Africa CDC. None of this touches ERI.)
+     (4) WHO Global Cholera & AWD dashboard ArcGIS backend (services.arcgis.com/5T5nSi527N4F7luB, endpoint taken from
+         ees-cholera-mapping/who_awd.py, read-only GETs): cholera_adm0_week 43 countries, 5,339 rows, latest
+         date_wk 2026-10-19; where adm0_name LIKE '%ERITREA%' -> 0; where iso_3_code='ERI' -> 0 (field exists);
+         cholera_report_period 43 rows, ERI 0. Horn neighbours present: Ethiopia, Somalia, South Sudan, Sudan, Yemen
+         (Djibouti absent). VERIFIED - matches stage 1's '5,339 rows to 2026-10-19, 43 countries'.
+     NOT re-checked (sampled out): OCHA ROSEA Oct 2026 map reading, UNICEF ESAR HSR No.1, WER 101(39), state-press
+       sweep beyond the 6 Jun issue, diaspora APIs, YouTube. The four checked items are the load-bearing ones and all
+       held; no claim checked was wrong.
+
+=== STEP 3: INDEPENDENT SEARCH (not anchored on stage 1's query list) ===
+14 WebSearch calls (12 standard, 2 extended):
+  A1 'Eritrea cholera 2026' | A2 [ext] 'Eritrea cholera outbreak cases deaths November 2026' | A3 'Erythree cholera
+  2026' | A4 Arabic 'Eritrea cholera outbreak 2026' | A5 Tigrinya 'cholera Eritrea' | A6 'Eritrea war Tigray October
+  2026 humanitarian disease outbreak diarrhoea' | A7 'Kassala cholera November 2026' | A8 'Gash Barka OR Tessenei OR
+  Assab OR Massawa diarrhoea outbreak 2026' | B1 'ICG oral cholera vaccine request Eritrea 2026' | B2 'Yemeni
+  refugees Assab Eritrea 2026 cholera OR diarrhoea' | B3 'Tigray cholera October 2026 Adigrat OR Zalambessa OR
+  Shire' | B4 'Eritrea Ministry of Health outbreak November 2026' | B5 [ext] '"Eritrea" cholera suspected cases 2026
+  WHO AFRO bulletin' | B6 'Eritreans fleeing war Sudan Ethiopia camp cholera 2026'
+  -> NO Eritrean 2026 cholera/AWD count, zero statement, OCV/ICG request, or allegation.
+Leads followed to source:
+  [L1] CERF-ERI-26-RR-1516, https://cerf.un.org/what-we-do/allocation/2026/summary/CERF-ERI-26-RR-1516 - 'Eritrea
+       Drought, 23 Jan 2026', $2,300,013 Rapid Response, FAO + UNICEF, Debubawi/Semienawi Keih Bahri, failed Bahri
+       rains. UNICEF project CERF-ERI-26-RR-CEF-38978 (WASH/Nutrition/MPC, 23 Feb - 22 Nov 2026, 33,840 people):
+       cholera 0, diarrh 0, AWD 0; 'outbreak' only in 'animal disease outbreaks'. NEW 2026 CHANNEL - no prior agent
+       or stage 1 opened it (only 2008/2009 CERF reports in earlier logs). No count; not registered.
+  [L2] WHO AFRO 'Rapid risk assessment ... Cholera, WHO African Region', 02 October 2026 v1,
+       https://cdn.who.int/media/docs/default-source/_sage-2026/20261002_-regional-rra_-cholera-afr-v.1.pdf
+       160 799 cases / 2466 deaths in 19 countries, 1 Jan-20 Sep 2026 (same 19 as WER Table 1); 'Eritrea' 0.
+       'six countries that reported in 2025 did not report in 2026' (unnamed); 'Follow up non-reporting and
+       intermittently reporting countries and assess whether interruptions represent true epidemiological
+       improvement or surveillance gaps.' NEW 2026 CHANNEL. Supports NON-REPORTING classification; no count;
+       not registered.
+  [L3] Dabanga 'Sudan cholera outbreak: 4 deaths, 105 new infections in Kassala' ('Eritrea closed its borders with
+       Kassala last week') - WP API date 2024-09-13 -> outside window; discarded.
+  IRIS retried twice (WER 101(44) bitstream ec4ca811-..., AFRO bulletin bitstream 8ec433a0-...): both timed out.
+
+=== STEP 4: PLAUSIBILITY / NEIGHBOUR CONSISTENCY ===
+No rows -> deaths<=sCh, cCh<=sCh, CFR, weight checks not applicable.
+Neighbours 2026 (verified above): Sudan 3,120 cases / 264 deaths to 27 Sep (WER; Kassala flagged as emerging area,
+  WHO EMRO Aug 2026 per stage 1 and search snippet); Ethiopia 50/2 (WER) or 15/0 (Africa CDC); Yemen 8,535/26 with
+  +130% month-on-month in Sep (WER). Import pressure on Gash-Barka and the Red Sea coast was real, and Eritrea has
+  stopped eSURV/ISS and is in an interstate conflict from Oct 2026 -> silence is NOT evidence of absence.
+Zero-row rule: no source states absence of cholera in Eritrea in 2026 -> no Documented_Absence row is licensed;
+  stage 1 correctly wrote none. No presence evidence -> stage 1 correctly wrote no cholera_presence_ai.csv record.
+
+=== STEP 5: STAGE-1 PROTOCOL COMPLIANCE ===
+3 batches / 60 queries (>= 3-batch floor); yields 0/0/0% (none > 100%); stop rule (3 consecutive < 5% after floor)
+  correctly applied at batch 3; no rows claimed that were not added; all writes tagged; validator run before handoff.
+DEFECTS (documentation only, no data impact):
+  D1 Log footer 'end time 2026-11-16 ~15:05' and workflow_state_recency_20261116.json "finished": "2026-11-16T15:05:00"
+     are PROJECTED, not observed: both files were last written 14:39-14:40 and this audit began 14:41. Not edited
+     (stage-1 file); flagged here and in the report.
+  D2 Metadata 288 bundles ten channels under one URL (WER 101(44)); items (3)-(10) cannot be re-fetched from
+     metadata alone (their URLs live only in stage 1's log and in /tmp, which is ephemeral). Recommend per-channel
+     URLs inside future bundle Descriptions.
+
+=== STEP 6: VALIDATOR ===
+python3 py/validate_quality.py ERI --json /tmp/eri_audit_20261116/ERI_validate.json -> EXIT 0
+  'Validated 1 countries | 136 data rows | 288 metadata sources | ERROR 0 WARN 0 INFO 259'
+  INFO = 245 metadata_unused (includes 286, 287, 288 - expected, no rows cite them) + 14 national_subnational_overlap
+  (all pre-window, all documented; none mention 2026).
+
+=== CONCLUSION ===
+Window 2026-01-01..2026-11-16 (320 days): covered 0 days. Effective gap remains open, classified NON-REPORTING.
+Stage 1's null result is CONFIRMED by independent re-fetch of six instruments (WER 101(44), ECDC 27 Oct, Africa CDC
+25 Oct, WHO dashboard backend, AFRO OEW wk41, AFRO cholera RRA 2 Oct) and 14 independent searches.
+Assessment: no public Eritrean 2026 cholera count exists as of 2026-11-16; whether cholera circulated cannot be
+determined from public sources. Earliest plausible official statement: WHO annual cholera report for 2026 (WER ~Sep 2027).
+Next pass: WER early-Dec 2026 (October data); Africa CDC Nov-Dec EI; AFRO OEW wk42+ (ReliefWeb copies when IRIS is
+down); CERF-ERI-26 RC/HC report (after project end 22 Nov 2026); AFRO cholera RRA v2 (may name the six non-reporting
+countries); state press Nov-Dec 2026 via erinewspapers.com.
+
+=== FINAL GATE ===
+python3 py/validate_quality.py ERI -> EXIT 0 | ERROR 0 WARN 0 INFO 259
+Writes by Agent 7: this log; appended 31-line section to ./data/ERI/search_report.txt (prior 398 lines byte-identical).
+No CSV writes (no revise_observation.py / add_observation.py calls): nothing tagged to correct or retract.
+Agent 7 Status: COMPLETE
+End Time (observed): 2026-11-16 14:54:07
