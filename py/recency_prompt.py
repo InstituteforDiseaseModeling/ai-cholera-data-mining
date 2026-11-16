@@ -146,6 +146,15 @@ WHERE RECENT DATA LIVES (lag is 1-6 weeks; the last weeks of the window may not 
   `python3 -I -B py/xref_harvest.py queue {iso}` and use any lead whose period falls in the
   window (add it yourself with add_observation.py; do NOT run `xref_harvest.py apply`).
 
+RELIEFWEB: the reliefweb.int website refuses automated fetches (HTTP 403), but its API works.
+  Use it - it is the main home of OCHA, UNICEF, Health Cluster, IFRC DREF and WHO sitreps:
+    python3 -I -B py/reliefweb.py search --country {iso} --query cholera --from {s}
+    python3 -I -B py/reliefweb.py search --query "cholera" --from {s} --limit 50   (multi-country)
+    python3 -I -B py/reliefweb.py get <url_alias> --download cache/reliefweb/{iso}
+  `get` prints the stored report text; --download saves the PDF attachments (they download
+  normally). Cite the report's url_alias in metadata. Never guess a ReliefWeb URL - search for it.
+  Never write the API appname anywhere; the tool keeps it out of its output.
+
 METHOD: follow ./templates/template_search_protocol.txt for batch structure and yield
 accounting, restricted to this window. Stopping rule unchanged: at least 3 batches of 20, then
 stop at 3 consecutive batches below 5% yield, or 12 batches. Every query should carry the
