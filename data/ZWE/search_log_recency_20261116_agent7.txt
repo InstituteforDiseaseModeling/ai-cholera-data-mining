@@ -6,3 +6,127 @@ Scope: rows of ./data/ZWE/cholera_data_ai.csv whose processing_notes contain "[R
 Stage 1 log: ./data/ZWE/search_log_recency_20261116_agent1.txt (present, 25806 bytes, mtime 2026-11-16 14:49)
 Agent 7 Status: INITIALIZED
 
+=== STEP 1: TAGGED-ROW INVENTORY ===
+grep -c 'RECENCY-20261116' -> ./data/ZWE/cholera_data_ai.csv 0 | ./data/ZWE/metadata_ai.csv 0 |
+  ./data/ZWE/cholera_presence_ai.csv 0 | ./data/ZWE/retracted_rows_ai.csv 0 | ./data/ZWE/retracted_presence_ai.csv 0.
+git status/diff -- ./data/ZWE/: data, metadata and presence CSVs UNCHANGED since commit 29d1c7e5 (2026-10-05);
+  only the two recency logs and ./data/ZWE/workflow_state_recency_20261116.json are new/modified.
+=> Stage 1's claim "0 rows, 0 sources, 0 presence records" is TRUE. No claimed-but-missing rows, no untagged writes.
+=> Row-level audit (URL/quote, period type, dedup, plausibility, zero-row evidence, weight) has NO ROWS to run on.
+   Audit effort redirected to (a) stage 1's 'not added' decisions and (b) an independent check for missed in-window data.
+
+=== STEP 2: BASELINE FACTS STAGE 1 RELIED ON (filtered reads; JHU never loaded wholesale) ===
+./data/ZWE/cholera_data_who.csv : 161 rows, max TR 2026-03-15; 0 rows overlap 2026-09-17..2026-11-16.
+./data/ZWE/cholera_data_jhu.csv : 967 rows, max TR 2024-12-29; 0 rows overlap the window.
+./data/ZWE/cholera_data_ai.csv  : 3194 rows, max TR 2026-09-16 (Index 55, Chiredzi sCh=1, src 28); 0 rows overlap the window.
+WHO dashboard 2026 weekly rows (TL 2025-12-29..TR 2026-03-15, n=11) SUM = 36 sCh / 2 deaths
+  -> the WHO/Africa CDC '36 cases, 2 deaths' 2026 figure is EXACTLY the WHO dashboard weeks already in
+     ./data/ZWE/cholera_data_who.csv. AI national row Index 36 (2026-05-09..07-20) = 66 sCh / 1 death (src 16).
+  -> A 1 Jan-27 Sep cumulative of 36 would (i) restate WHO baseline weeks and (ii) sit below Index 36 alone, so
+     decumulation would emit a false zero for mid-Mar..27 Sep. Stage 1's NOT-ADDED decision is CORRECT.
+
+=== STEP 3: VERIFICATION OF STAGE 1 EVIDENCE (web-fetch agents + local PDF text extraction) ===
+V1 ECDC epipulse_event/2100 (latest update 27 Oct 2026; Africa lines as of 11 Oct 2026): HTTP 200. Quote verified:
+   'Since 28 September 2026, no updates have been reported by: ... United Republic of Tanzania and Zimbabwe.'
+   No Zimbabwe number. Zambia 1 773 cases/37 deaths 2026 (as of 11 Oct); Mozambique 7 892/66.   -> stage 1 B1-12 CONFIRMED
+V2 ECDC CDTR week 40 2026 PDF (pdftotext, local copy in /tmp/zwe_audit_cdtr40_pdf/): quote verified p.20-21:
+   'Since 26 August 2026, no updates have been reported by: Burundi, ... United Republic of Tanzania or Zimbabwe.'
+   Mozambique +116 (2026 cum 7 814 / 66 d), Zambia +77 (1 074 / 19 d) as of 13 Sep 2026.           -> stage 1 B1-11 CONFIRMED
+   Both are absence-of-REPORTING statements; correctly not used as zeros.
+V3 Lead from my own search: gazettengr.com 'Zimbabwe records 215 cases of cholera in fresh outbreak' (page header
+   shows 2026 crawl dates). Fetched: byline 'May 10, 2023', '(Xinhua/NAN)', 'As of May 9 ... 766 suspected'.
+   -> 2023 outbreak, NOT in window. Lead closed.
+V4 WHO WER 101/44 (6 Nov 2026) HTML page who.int/publications/journals/weekly-epidemiological-record/wer101-44: HTTP 200.
+   'Data as of 27 September 2026'. Table 1 Zimbabwe: '36 | 2 | 5.6 | 0 | - | - | - | - | -' (cases/deaths/CFR/per 100k
+   1 Jan-27 Sep 2026; last-28-day and monthly-change columns '-'). Footnote: 'Missing data in this report do not imply
+   the absence of cholera or AWD cases or deaths in the respective country.' WER 101/39 (data to 30 Aug) row IDENTICAL.
+   Context: Zambia 1 137/25 (239 cases, 8 deaths in last 28 days = new Sep outbreak); Mozambique 8 192/71; Malawi 3 213/30.
+   -> stage 1 B1-19 quote CONFIRMED; exclusion UPHELD (see STEP 2: equals WHO dashboard weeks to 2026-03-15).
+V5 IFRC GO API: event 8001 updated_at 2026-09-08 (pre-window); only linked field report 18439 (2026-07-02; 99 susp /
+   28 conf / 67 prob / 3 deaths, source MoH - already src 51); appeal_document?appeal=4463 -> 1 document only
+   ('Zimbabwe - Cholera (MDRZW029)', DREF Operation, 2026-07-22). No MDRZW029 Operations Update; no MDRZW026 final
+   report. Field-report list ignores the event filter (count 5240), so a newer ZWE field report not linked to event
+   8001 cannot be fully excluded.                                                         -> stage 1 B2-15/B2-16 CONFIRMED
+V6 ZimEye 'Cholera Scare Grips Masvingo' (18 Sep 2026, a Friday): 'the patient was admitted at a Chiredzi hospital on
+   Tuesday' (= 15 Sep); Shamu 'We were informed that a cholera patient was admitted at a hospital in Chiredzi
+   yesterday' at 'a Zanu PF meeting held at Masvingo Polytechnic on Wednesday' (= 16 Sep).
+   -> pre-window Index 55 dates (2026-09-15..16) are CONSISTENT with the source; event is outside the window.
+V7 Masvingo Mirror 'Cholera breaks out in Masvingo': no publication date on page; only 'Last updated: 19 October 2026
+   9:27 am'; featured image wp-content/uploads/2026/09/shamu-pic.jpeg; identical Shamu quotes ('admitted at a hospital
+   in Chiredzi yesterday'; 'put the entire province under red alert once a case has been recorded') and the same
+   Masvingo Polytechnic Zanu PF meeting; one patient, no count/test/death. Wayback: web.archive.org CDX refused;
+   archive.org availability API returned no snapshot (not proof either way).
+   -> same 15-16 Sep event re-stamped; NOT an October event. Stage 1 B4-17 decision UPHELD (no row, no presence record).
+
+=== STEP 4: INDEPENDENT AUDIT SEARCH FOR MISSED IN-WINDOW DATA (no budget limit; not a collection batch) ===
+25 WebSearch calls (24 returned, 1 rejected for blocked domains and re-run) + document reads V1-V7 above:
+  A01 'Zimbabwe cholera suspected cases November 2026' (ext)           -> newest = IFRC GO 18439 (2 Jul)       [nothing in window]
+  A02 'Zimbabwe on high alert after Zambia cholera outbreak 2026 Chirundu Kariba Victoria Falls' (ext) -> 2023-25 only [nothing]
+  A03 'Chiredzi cholera patient results September 2026'                -> no outcome report; lead gazettengr (V3, 2023) [nothing]
+  A04 'Weekly Epidemiological Record 6 November 2026 ... cholera'      -> located WER series (read in V4)       [verification]
+  A05 'Africa CDC Epidemic Intelligence Report 25 October 2026 cholera'-> report itself not indexed; ECDC page found [verification]
+  A06 'ECDC cholera worldwide overview October 2026'                   -> epipulse_event/2100 (read in V1)      [verification]
+  A07 'Masvingo Mirror "Cholera breaks out in Masvingo"'               -> not indexed; read directly (V7)       [verification]
+  A08 'Mbire OR Kanyemba OR Hwange OR Binga cholera cases October 2026' -> Zambia 17 Oct (966 cases); ZWE items undated/old [nothing]
+  A09 'cholera Zimbabwe 2026' on 17 Zimbabwean news domains            -> newest = ZimEye 18 Sep; Nehanda 9 Sep opinion [nothing]
+  A10 'Zimbabwe cholera case confirmed October 2026' (wires; re-run)   -> newest = May 2026 Zvishavane          [nothing]
+  A11 'WHO AFRO weekly bulletin ... week 43 2026'                      -> not posted/indexed                    [nothing]
+  A12 '"wer101-44" OR "WER 101/44" ...'                                -> page URL pattern confirmed             [verification]
+  A13 'Zimbabwe cholera outbreak declared over 2026 ... 28 days'       -> no 2026 end-of-outbreak declaration    [nothing]
+  A14 'Mutare OR Manicaland cholera new cases October 2026 PMD'        -> newest = DREF Jul 2026                 [nothing]
+  A15 'Zimbabwe cholera preparedness 2026-2027 rainy season ... Nov 2026' (ext) -> newest = NewsDay 30 Jun 2026   [nothing]
+  A16 'Zimbabwe Red Cross cholera response October 2026'               -> newest = sEAP OU4 17 Jul; DREF 22 Jul  [nothing]
+  A17 'Africa CDC weekly EI report November 2026 cholera Zimbabwe'     -> not indexed                            [nothing]
+  A18 'Outbreak News Today Zimbabwe cholera 2026'                      -> nothing newer than Aug 2026 (EU funding) [nothing]
+  A19 'Rushinga OR Mount Darwin OR Mudzi OR Nyanga cholera Oct 2026'   -> newest = DREF Jul 2026                 [nothing]
+  A20 'Zimbabwe cholera Xinhua November 2026' (CN wire domains)        -> newest Xinhua ZWE cholera = Mar 2025   [nothing]
+  A21 'Gokwe OR Kwekwe OR Gweru OR Beitbridge OR Chitungwiza cholera case 2026' -> undated Herald items (2023-era) [nothing]
+  A22 'Health Times Zimbabwe cholera update October 2026' (ZW domains) -> Oct 2026 HealthTimes = Pandemic Fund, no cholera [nothing]
+  A23 'Zimbabwe imported cholera case from Zambia Lusaka outbreak 2026' -> Zambia: first case 13 Aug 2026 (Chibombo traveller),
+       304 susp/62 conf by 29 Sep; no ZWE import reported                                                   [nothing]
+  A24 'Kariba cholera 2026 suspected cases Mashonaland West'          -> Kariba 2024-25 outbreak ended 4 Feb 2025 [nothing]
+Result: 0 in-window Zimbabwe figures, 0 in-window presence evidence, 0 explicit zero statements. Stage 1's empty
+        result is reproduced by an independent search on different angles (Zambia spill-over, wires, Zimbabwean domains via
+        WebSearch allowed_domains, IFRC API, WHO WER HTML instead of iris PDF).
+V8 WHO AFRO Weekly Bulletin wk41 (5-11 Oct 2026; 'current edition' on the AFRO listing): landing page HTTP 200, single
+   download https://iris.who.int/bitstreams/41f85b00-a89e-4d52-9c69-9e3b8f96a164/download -> 'connect ECONNREFUSED
+   54.174.254.19:443'. Wk38-40 are also iris-only (e.g. bitstream 81e35bc7-...). Events table UNREAD in BOTH stages
+   -> access failure, not evidence. The only source family that might carry a fresher WHO-country-office ZWE line.
+
+=== STEP 5: VALIDATOR ===
+python3 py/validate_quality.py ZWE --json /tmp/ZWE_recency_audit.json -> EXIT 0
+  ERROR 0 | WARN 313 (220 period_single_day, 93 CFR_high_flagged_for_review) | INFO 325 | 3194 rows | 458 sources.
+  Identical to stage 1's reported run (313 WARN). The validator's 'row' field is the file line number (header = line 1):
+  that mapping matches 220/220 single-day findings. Using it, 0 ERROR/WARN findings touch any row with TR >= 2026-01-01,
+  so every warning is on a pre-existing historical row; none can involve the window (no row overlaps it).
+  Nothing to fix; nothing justified away. No file was modified by Agent 7 except this log and the appended
+  report section.
+
+=== STEP 6: STAGE 1 PROCESS ASSESSMENT ===
+  - Batches 4 (>= 3-batch floor); 80 counted queries; yields 0/0/0/0 % computed correctly (no >100% row-count error).
+  - Claims vs files: 0 rows / 0 sources / 0 presence claimed = 0 found. No untagged writes (git diff clean).
+  - State file ./data/ZWE/workflow_state_recency_20261116.json agrees with the log (batches, yields, query split).
+  - Minor: B4 counted 7 failed/empty site reads (Zimpapers search pages 403 x5, ZimLive empty render, MoHCC down)
+    inside its 20; immaterial because the stop rule was already met at B3. Domain-filtered WebSearch (allowed_domains)
+    reached Herald/Chronicle/NewsDay content that direct fetches could not - use that route next pass.
+  - Judgement calls (36/2 exclusion; Masvingo Mirror re-stamp; no zero from ECDC/WER list absence) all verified and upheld.
+  - Header inconsistency in stage 1 log ('admitted ~17 Sep' vs 'about 15 Sep'): ZimEye resolves it to Tue 15 Sep;
+    pre-window Index 55 (2026-09-15..16) is correct. Not revised (out of scope; no error).
+
+=== STEP 7: WINDOW COVERAGE (computed directly from the three layer files; shared ./reference/ files NOT regenerated,
+    since nothing changed for ZWE and the brief bars touching other countries' outputs) ===
+  COVERED 0 of 61 days. EMPTY 2026-09-17..2026-11-16 (61 days).
+  Why: NOT PUBLISHED / INTERNATIONAL REPORTING FROZEN - Zimbabwe's WHO line has been 36/2 since end-March (WER data to
+  27 Sep: last-28-day columns blank); ECDC 'no updates' since 26 Aug; IFRC GO event last updated 8 Sep, no MDRZW029
+  operations update; MoHCC website down; AFRO bulletin tables unreachable (iris). Not shown to be quiet (no explicit
+  zero statement anywhere), not a surveillance collapse (Chiredzi detection + provincial red alert mid-Sep).
+  -> Sep-Nov 2026 must be treated as MISSING, not zero. Latest national count remains 2 Jul 2026 (99 susp/28 conf/3 d).
+  Regional risk: Zambia new outbreak (first case 13 Aug; WER 239 cases/8 deaths in Sep; ECDC 1 773 cases to 11 Oct).
+
+=== RECENCY PASS 20261116 - AGENT 7 SUMMARY | ZWE ===
+Rows checked 0 (none tagged) | kept 0 | corrected 0 | retracted 0 | sources added 0 | presence added 0
+Stage 1 decisions reviewed 4 (WER/Africa CDC/AFRO RRA 36/2; Masvingo Mirror re-stamp; ECDC list absence x2): all upheld.
+Independent audit effort: 25 WebSearch + 13 document/API reads (V1-V8); 0 in-window figures found.
+Validator: exit 0, ERROR 0, WARN 313, INFO 325 (unchanged).
+End Time: 2026-11-16 14:58:12
+Agent 7 Status: COMPLETE
