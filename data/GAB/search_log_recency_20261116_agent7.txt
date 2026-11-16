@@ -6,3 +6,105 @@ Start Time: 2026-11-16 15:30:40
 Stage 1 log: ./data/GAB/search_log_recency_20261116_agent1.txt (present)
 Agent 7 Status: INITIALIZED
 
+=== STEP 0: STAGE 1 OUTPUT INVENTORY ===
+Stage 1 log read in full. Stage 1 state: ./data/GAB/workflow_state_recency_20261116.json.
+Rows in ./data/GAB/cholera_data_ai.csv tagged [RECENCY-20261116]: 0 (any RECENCY tag: 0). File unchanged since
+  2026-10-03 14:45 (41 rows, max Index 57). No AI row overlaps 2026-09-21..2026-11-16 (latest TR = 2026-09-20, Index 49).
+Metadata: ./data/GAB/metadata_ai.csv vs pre-write backup .backup_metadata_ai_20261116-152929807766.csv -> exactly one
+  appended row (Index 128); no other cell changed.
+Baselines (filtered, not loaded wholesale): ./data/GAB/cholera_data_who.csv does not exist (GAB not in WHO feed);
+  ./data/GAB/cholera_data_jhu.csv ends 2024-12-31 (19 rows). -> no WHO dashboard week can be duplicated.
+Weekly series ./data/GAB/cholera_weekly_GAB.csv ends ISO 2026-W38 (2026-09-14..20); no week inside the window.
+Stage 1 effort check: 3 batches / 60 queries, yields 0%/0%/0% -> meets the 3-batch floor and the 3-consecutive-sub-5%
+  stop rule; no yield >100%; rows claimed (0) = rows present (0); sources claimed (1, Index 128) = metadata diff. PASS.
+
+=== STEP 1: PER-ROW AUDIT (checks 1-5) ===
+No tagged rows -> checks 1-5 apply to no row. Rows checked 0, kept 0, corrected 0, retracted 0.
+Because the pass outcome is "window empty, no zero row", the audit instead verified the evidence behind that decision
+and the one stage-1 write (metadata Index 128). Own fetcher /tmp/gab_a7_scripts/fetch.py, own macOS Vision OCR
+/tmp/gab_a7_scripts/ocr (stage 1's helpers not reused); downloads isolated under /tmp/gab_a7_dl/.
+
+=== STEP 2: VERIFICATION OF INDEX 128 COMPONENTS ===
+V1 Africa CDC EIR, file 'Africa-CDC-Epidemic-Intelligence_Weekly-Report_25-Oct-2026_vf.pdf' (URL in metadata 128; HTTP 200,
+   16 pp, image-only, OCR'd). Printed 'Date of Issue: 2026-10-25'. Quote in 128 VERIFIED verbatim: 'Since the beginning of
+   2026, a total of 171,724 cases (2,198 confirmed; 169,526 suspected) and 2,855 deaths (CFR: 1.51%) of cholera have been
+   reported from 20 AU MS: Angola (6,980 cases; 132 deaths) ... and Zimbabwe (36; 2).' Gabon NOT in the list. Congo
+   'From epidemiological week 37-42, the MoH reported 55 new suspected cases' VERIFIED. Measles: 'Gabon (10; 0)' present.
+   2025 cholera list (24 AU MS) also omits Gabon (consistent with existing AI Index 10, WER 2025 zero report).
+V2 Africa CDC EIR, file '...Weekly-Report-19-0ctober-2026.pdf' (HTTP 200, 19 pp, OCR). DISCREPANCY: printed 'Date of
+   Issue: 2026-10-11' and 'Since the last update (04 October 2026)' - stage 1 and metadata 128 called it the 19 Oct issue.
+   Cholera '160,487cases ... from 20 AU MS', Gabon NOT listed - VERIFIED. Measles 'Gabon (10; 0)' - identical to the
+   25 Oct issue => static year-to-date figure. It shows Gabon is a tracked 2026 measles event; it does NOT show Gabon
+   submitted reports during the window. Stage 1's 'surveillance operating' inference is overstated -> corrected (Step 3).
+   The 25 Oct issue cites a '18 October 2026' update that is not on the October page (page lists only these 2 files).
+V3 Africa CDC WP API (wpdmpro after 2026-10-15): newest download = October 2026 EIR page (modified 2026-11-08); November
+   EIR page 404 under both slugs tried. No newer issue exists to read.
+V4 WER 101(44) https://www.who.int/publications/journals/weekly-epidemiological-record/wer101-44 (HTTP 200): 'Volume 101
+   Issue 44', 6 November 2026; cholera 'Data as of 27 September 2026'. Table 1 African Region = Angola, Burundi, Cameroon,
+   CAR, Chad, Congo, DRC, Ethiopia, Kenya, Malawi, Mozambique, Namibia, Nigeria, Rwanda, South Africa, South Sudan,
+   Tanzania, Zambia, Zimbabwe (19) - VERIFIED; 'Gabon' occurs 0 times in the page HTML. Footnote VERIFIED: 'Missing data
+   in this report do not imply the absence of cholera or AWD cases or deaths in the respective country.'
+V5 WHO AFRO OEW week 41 (5-11 Oct 2026), ReliefWeb id 4235066 (stage 1 cache PDF, text layer): 'Gabon' occurs once, as a
+   map label beside 'Congo'; no Gabon row in 'All events currently being monitored by WHO' - VERIFIED. ReliefWeb API
+   (from 2026-10-15) and afro.who.int/publications/cholera list no OEW after week 41.
+V6 UNICEF Cameroon Humanitarian Flash Update No.5 (ReliefWeb id 4238053): 'As of 23 October 2026, a total of 3,090 cholera
+   cases and 92 deaths have been reported across the two regions. The Far North region accounts for 3,032 cases and 85
+   deaths, while the North region has reported 58 cases and 7 deaths.' VERIFIED. No South/Littoral region cases.
+V7 Press/MoH re-run (own WP REST script, after 2026-09-01; each API returned posts up to 10-16 Nov 2026):
+   gabonreview 0 cholera; gabonmediatime 0 cholera; gabonactu 0; sante.gouv.ga 0; AGP 2 hits, neither about Gabon
+   (Rwanda 11 Nov; DRC vaccination 9 Nov). 'diarrhee' hits: gabonmediatime 30 Oct 2026 (child acute diarrhoea; body
+   loaded: rotavirus/viral; 0 mentions of cholera/Vibrio/epidemie) and 13 Nov 2026 (Samu social; 0 cholera). VERIFIED.
+V8 Added check: ECDC cholera update https://www.ecdc.europa.eu/en/public-health-events/2006-eip-00031/2026-10-27 -
+   'Since 28 September 2026 and as of 27 October 2026, 42 136 new cholera cases ... New cases have been reported from
+   Angola, Burundi, Cameroon, Democratic Republic of the Congo, Mozambique, Nigeria, Rwanda, Somalia, South Sudan, Yemen
+   and Zambia.' 'Gabon' occurs 0 times.
+V9 ReliefWeb API: --country GAB --query cholera --from 2026-09-21 -> 0; --country GAB (any) -> 8 reports, all refugee,
+   migration or humanitarian-leadership items, none on cholera.
+V10 WebSearch (5 queries: WER 101-44; 'Gabon choléra cas novembre 2026'; 'Gabon cholera outbreak 2026' [extended]; WHO
+   multi-country update Nov 2026; ECDC CDTR Nov 2026) -> no Gabon cholera report for 2026; only 2025 Gabonese
+   'aucun cas confirmé' items (out of window).
+V11 IRIS lead 8ec433a0-1ca9-4b3d-aca8-fce2a954e11e: Python urlopen timed out; web-fetch agent got ECONNREFUSED
+   (54.174.254.19:443). STILL UNREAD. WebSearch on its title returned no description of the document.
+Neighbour consistency: Cameroon outbreak confined to Far North/North (roughly 800-950 km straight-line from the Gabon border at Kye-Ossi/Ambam); Congo 55
+   new suspected EW37-42 (departments not given); no Equatorial Guinea cholera. No cross-border signal contradicting a
+   quiet Gabon - but this is context, not evidence of zero.
+
+=== STEP 3: CORRECTION ===
+python3 py/revise_observation.py GAB --meta-index 128 --set-description <...> --reason "[RECENCY-20261116 AUDIT] metadata
+  128: corrected first Africa CDC issue date (printed Date of Issue 2026-10-11, not 19 Oct), corrected overstated measles
+  'reporting' inference, added verified component URLs and ECDC 27 Oct check" -> exit 0.
+  Post-check vs backup .backup_metadata_ai_20261116-153913053867.csv: 1 cell changed (Index 128, Description); header
+  and row count (128) unchanged. Full new text saved at /tmp/gab_a7_scripts/meta128_new_description.txt.
+  Not changed (tool cannot, and no row depends on them): Validation_Status 'Pending'; Reliability_Level 'Level 1' (the
+  description now states Level 1 applies to the WHO/Africa CDC/ECDC parts only, the press part is Level 3).
+No data row written, revised or retracted. No zero row added: no source states Gabon had zero cholera in the window.
+
+=== STEP 4: VALIDATOR ===
+python3 py/validate_quality.py GAB --json /tmp/GAB_recency_audit.json -> ERROR 0, WARN 0, INFO 97, exit 0 (pre-fix).
+python3 py/validate_quality.py GAB -> ERROR 0, WARN 0, INFO 97, exit 0 (post-fix).
+  INFO = 94 metadata_unused (incl. Index 128, by design: context-only) + 3 national_subnational_overlap (pre-existing).
+
+=== WINDOW COVERAGE ===
+Covered: 0 of 57 days. Remaining empty: 2026-09-21..2026-11-16 in full. Classification: QUIET / NOT REPORTED.
+./reference/effective_surveillance_gaps_detailed.csv (regenerated 15:31 today; GAB data unchanged since 2026-10-03, so
+  current for GAB) lists the open gap as 2026-10-01..2026-11-16 (47 d): 21-30 Sep counts as covered only because the
+  >50%-of-days month rule credits September to rows ending 20 Sep. GAB coverage row unchanged: 86.5%, 363 AI-only months,
+  7 gap periods. analyze_effective_gaps.py NOT re-run: it rewrites shared ./reference files while the parallel recency
+  run is active, and no GAB data row changed.
+Why empty: Gabon absent from every in-window cholera list; no Gabonese press/MoH cholera item; publication lag - Africa
+  CDC November issues, OEW weeks 42-45 and the WER October cholera update were not yet published on 2026-11-16, so
+  26 Oct-16 Nov has press/MoH coverage only. Gabon's weekly IDSR bulletins are not published online.
+
+=== OUT-OF-SCOPE OBSERVATIONS (flagged, NO action) ===
+O1 Pre-window zero rows Index 12 (2026-07-27..09-13, src 16) and 49 (2026-09-14..09-20, src 98) are Inferred_Absence,
+   weight 0.7, and rest on Africa CDC 'reported from 20 AU MS' lists without Gabon - the same list-absence inference
+   this pass's rules reject. Recommend the next full audit re-adjudicates them (and Index 9, 11).
+O2 py/build_weekly_timeseries.py Tier 1 (line 553: 'if 6 <= r["span"] <= 7') labels any 6-7-day row 'observed'
+   with no evidence-type check, so Index 49 appears as 2026-W38 'observed' sCh=0 (alpha 0.85, line 800) instead of
+   'inferred_zero'. Affects any country with weekly Inferred_Absence zero rows. Builder code not touched.
+
+Files touched: ./data/GAB/search_log_recency_20261116_agent7.txt (this log), ./data/GAB/metadata_ai.csv (Index 128
+  Description via revise_observation.py), ./data/GAB/search_report.txt (appended section). NOT touched: cholera_data_ai.csv,
+  baselines, dashboard, workflow_state.json, search_log_agent_7.txt, other countries.
+End Time: 2026-11-16 15:40:55
+Agent 7 (recency audit) Status: COMPLETE
