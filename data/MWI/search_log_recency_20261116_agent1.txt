@@ -54,3 +54,51 @@ Yield        : 5%
 Consecutive sub-5% batches: 0   (5% is not below 5%)
 Decision     : CONTINUE (minimum 3 batches)
 
+=== INCIDENT NOTE (between batches 1 and 2) ===
+14:30:32-14:32:07: while checking how py/build_weekly_timeseries.py handles cumulative rows I ran it with `--help`; the script has no
+argument parser, so it ran a FULL build and rewrote all 40 derived files data/{ISO}/cholera_weekly_{ISO}.csv and
+figures/dashboard/timeseries/cholera_timeseries_{ISO}.png from the current data files. No source CSV (cholera_data_*/metadata_*)
+was touched. Verified afterwards: all 40 weekly CSVs parse (10 cols, no ragged rows); vs git HEAD (runner auto-update 14:26)
+38 countries were byte-identical; only data/MWI/cholera_weekly_MWI.csv (+5 lines = my wk39-43 zero rows) and
+data/ETH/cholera_weekly_ETH.csv (+13 lines, from ETH's own committed data) differed, plus ETH/MWI timeseries PNGs and the
+coverage barplot. The runner's next commit (44ea8664, 14:33:13, ETH recency done) superseded the ETH files. Not reverted
+(a revert would itself be a second edit and HEAD may be staler than the data). The builder was NOT run again; later
+what-if checks import its functions in memory against a temp copy (cache/recency_MWI_20261116/scripts/sim_builder.py),
+writing nothing outside cache/.
+
+=== BATCH 2 | PHASE 1 (multi-country official reports + local/cross-border) | MWI ===
+Gap targeted : 2026-09-14..2026-11-16 (64d, recent); residual after batch 1 = wk38 (09-14..09-20) and 10-26..11-16
+Queries      : 20
+  1. [direct] ECDC CDTR week 40 2026 PDF (data to 28 Sep 2026) -> 'Since 26 August 2026, no updates have been reported by: ... Malawi ...' (absence from list; not a zero)
+  2. [direct] afro.who.int/publications/cholera + outbreaks-and-other-emergencies-updates -> OEW wk38,39,40,41 2026 pages found
+  3. [direct] AFRO OEW wk38-41 pages -> PDFs on iris.who.int; IRIS downloads timed out (connection-level) twice; background retry pending
+  4. WebSearch '"multi-country outbreak of cholera" "epidemiological update" #41 OR #42 2026' -> series moved into the WER from July 2026
+  5. WebSearch 'WHO cholera epidemiological update September 2026 cases since 1 January 2026 Malawi' -> nothing new
+  6. WebSearch 'Africa CDC epidemic intelligence weekly report October 2026 cholera Malawi Zambia Mozambique' -> nothing direct
+  7. WebSearch 'reliefweb Malawi October 2026 health situation cholera' -> nothing in window
+  8. WebSearch 'Mangochi OR Karonga OR Nkhata Bay cholera case October 2026' -> nothing in window
+  9. WebSearch 'Malawi first cholera case 2026/2027 cholera season' -> nothing in window
+ 10. WebSearch 'WHO Malawi news October November 2026 cholera preparedness rainy season' -> UNICEF El Nino appeal only
+ 11. [direct] who.int WER101-36..46 HTML issues -> WER101-44 (6 Nov 2026) Table 1 'as of 27 September 2026': Malawi 3 213 cases / 30 deaths since 1 Jan 2026  ** ROW **
+     (WER101-39, data as of 30 Aug 2026: Malawi 3213/30 - TR before window, not recorded)
+ 12. [direct] IRIS retry of AFRO OEW wk38-41 with 150 s timeout (background) -> still timing out
+ 13. WebSearch 'Malawi cholera Blantyre Lilongwe November 2026' -> nothing in window
+ 14. WebSearch 'kolera Malawi Novembala 2026 odwala' (Chichewa) -> nothing in window
+ 15. WebSearch 'colera Mocambique novembro 2026 casos Tete Niassa Zambezia' -> latest MOZ national bulletins Jul/Aug 2026
+ 16. WebSearch 'Zambia cholera Eastern Province Chipata Lundazi October 2026' -> nothing current (ZMB 2026 outbreak centred on Lusaka)
+ 17. WebSearch 'travelhealthpro Malawi cholera outbreak update 2026' -> latest TravelHealthPro MWI cholera entry 18 Feb 2026
+ 18. WebSearch 'Malawi Ministry of Health cholera alert border districts Zambia outbreak October 2026 Mchinji' -> nothing in window
+ 19. WebSearch 'MSF Malawi 2026 cholera response' -> nothing in window
+ 20. [direct] africacdc.org search + monthly download pages -> Epidemic Intelligence Weekly Reports 24 Sep, 28 Sep, 19 Oct, 25 Oct 2026 (image-only DHIS2 PDFs, read visually)
+     25 Oct 2026 'Cholera in Africa': 'Since the beginning of 2026 ... Malawi (2,998; 5)'; 'Since the last update (18 October 2026), ... new cases ... from three AU MS: Congo, Somalia, and Zambia.'
+     SCREENED OUT: 2,998/5 equals ECDC's YTD as of 12 Jul 2026 (stale carry-forward, true as-of date unknown) and is below WHO's 3 213 in the same 1-Jan chain;
+     Malawi's absence from the 'new cases' list is not a zero.
+Sources found: WER101-44 (row); Africa CDC EIR 25 Oct (screened out); ECDC CDTR wk40 (no MWI count); AFRO OEW wk38-41 (unread, IRIS down)
+Registered   : index 462 (WER101-44)
+Rows added   : 1    Indices: 2582 (AFR::MWI 2026-01-01..2026-09-27, sCh 3213, deaths 30, cumulative since 2026-01-01, conf 0.9)
+               Builder what-if (in memory): 0 weeks changed; 2026 series already sums to 3213.
+Successful queries: 1/20
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches)
+
