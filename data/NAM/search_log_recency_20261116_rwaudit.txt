@@ -1,0 +1,83 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP (stage RWAUDIT) ===
+Country: Namibia (NAM)
+Window: 2026-07-16 to 2026-11-16
+Start Time: 2026-11-17 14:45
+Auditor: Agent 7 (cholera-quality-auditor)
+Scope: ONLY rows of ./data/NAM/cholera_data_ai.csv whose processing_notes contain [RECENCY-20261116-RW]
+Tool: python3 -I -B py/reliefweb.py (ReliefWeb v2 API; credential not recorded here)
+
+=== STEP 1 - COLLECTOR LOG ===
+Read ./data/NAM/search_log_recency_20261116_rw.txt (1,177 lines; stage RWCOLLECT, 2026-11-17 14:31:59 to 14:44:10;
+  last line 'RECENCY-STAGE-COMPLETE 20261116 rwcollect NAM').
+The log lists NO rows: 'Rows added: 0', 'ROW 0 | PRESENCE 0', zero rows 0, sources registered 0.
+  961 reports screened = 18 NAM-tagged (all opened, body + attachments) + 21 multi-country reports opened + 922
+  screened by title/tags. Decisions: OUT OF WINDOW 15, NO NAM DATA 946.
+
+=== STEP 2 - CONFIRMATION AGAINST THE CSVs (python csv parse of every field, not a grep) ===
+./data/NAM/cholera_data_ai.csv    : 202 rows (Index 2-226). Rows with [RECENCY-20261116-RW] in processing_notes: 0.
+                                    Any field: 0. Main-pass [RECENCY-20261116] rows: 0.
+./data/NAM/metadata_ai.csv        : 242 sources; 0 tagged (so the top-up registered no --discovery source).
+./data/NAM/cholera_presence_ai.csv: 10 rows; 0 tagged.
+./data/NAM/retracted_rows_ai.csv  : 24 rows; 0 tagged (nothing was added and then withdrawn).
+./data/NAM/attribution_review.csv : does not exist (nothing pending).
+git: no diff from HEAD for these four files. Their mtimes (2026-09-30, 2026-10-08) are all before the top-up began.
+  git status: the only untracked file in ./data/NAM/ is the collector's log.
+Latest rows unchanged: AI 50 (AFR::NAM zero 2026-05-01..2026-07-15, MoHSS end of outbreak); AI 14 (213 susp.,
+  2026-01-01..2026-04-26); AI 206 (282 susp./82 conf./1 death, 2025-11-18..2026-04-22). The WHO weekly rows in
+  ./data/NAM/cholera_data_who.csv end 2026-04-19 (ISO wk15/2026). No AI or WHO row overlaps the window, so it is
+  still EMPTY (0 of 124 days).
+PER-ROW AUDIT: rows checked 0 | kept 0 | corrected 0 | retracted 0 (no Index numbers affected).
+  py/revise_observation.py was not called; there was nothing to revise.
+  The checks for deaths <= sCh, CFR, curve continuity, national vs ADM1 roles and zero-row evidence had no rows to
+  apply to.
+
+=== STEP 3 - INDEPENDENT SPOT-CHECK OF THE ZERO RESULT (my own API calls; not the collector's cache) ===
+Working copies: /tmp/nam_rwaudit_20261117/ (outside the repo; untrusted downloads in their own subdirectories)
+a) search --country NAM --from 2026-07-16 --to 2026-11-17 --limit 200 -> totalCount 18, the same 18 reports as
+   collector section A (17 /report/ url_aliases + 1 /map/ url_alias; set comparison: no differences).
+   By publisher: UNHCR 8, WFP 4, OCHA 2, WHO 1 (AFRO wk37 bulletin), IOM 1, FAO 1, Amnesty 1. None of the 18 is a
+   Namibia situation report.
+b) search --country NAM --query cholera (same dates) -> totalCount 1: id 4234045
+   https://reliefweb.int/report/angola/southern-africa-humanitarian-snapshot-october-2026 (collector A.5).
+   Opened body + PDF (ROSEA_SA_Humanitarian_Snapshot_Oct_2026_14102026.pdf, pdftotext). Cholera appears only as the
+   regional key figure '19K CHOLERA CASES (JAN - SEP 2026)' (source 5: WHO Global Cholera and AWD Dashboard) and in the
+   line 'Cholera transmission remained active in many countries, including Angola, Mozambique and Zambia'. The Namibia
+   labels on the two maps are '408K' (food-insecure people) and '6.9K' (displacement). There is no per-country cholera
+   count. Collector decision NO NAM DATA CONFIRMED. Namibia being left out of that list is not a zero.
+c) search --country NAM --query "diarrhoea OR diarrhea OR AWD" (same dates) -> totalCount 0.
+d) get 4235066 --download (AFRO Weekly Bulletin wk41/2026, data to 11 Oct 2026; the latest edition on ReliefWeb)
+   https://reliefweb.int/report/zambia/weekly-bulletin-outbreaks-and-other-emergencies-week-41-05-11-october-2026-data-reported-1700-11-october-2026
+   The PDF (OEW41-11102026.pdf) reads 'Namibia Cholera Ungraded 2-Dec-25 19-Nov-25 8-Apr-26 277 82 0 0.00' and 'As of
+   7 April 2026, a total of 277 suspected cholera cases have been reported, of which 82 are confirmed (52 by culture and
+   30 Epi-linked), 9 are probable cases, and 6 case with pending culture results, while 180 suspected cases tested
+   negative.' This is word for word what the collector logged. The bulletin has no Namibia diarrhoea, AWD, Zambezi or
+   Katima entry. The other Namibia lines are malaria (23 640 to 1-Mar-26) and measles (3 437 to 13-Sep-26), not cholera.
+   The reporting period ends 8 Apr 2026 (out of window), and AI 206 supersedes the figure (282/82 to 22 Apr).
+   Collector decision OUT OF WINDOW CONFIRMED. AFRO's 0 deaths differs from AI 206's 1 death; AI 206's notes already
+   reconcile this (MoHSS final report: 'One person died during the outbreak at Opuwo'). No action; outside this scope.
+   This closes the main-pass audit's open item 'WHO AFRO bulletins wk37-41/2026 still unread'. All of them carry the
+   stale 8-Apr-26 entry and none records the July 2026 end-of-outbreak declaration.
+Minor wording point in the collector log, no decision affected: its summary says 'Namibia cholera' full-text queries
+  return 0 reports. The NAM-tagged 'cholera' query returns 1 (the OCHA snapshot above), which the collector itself opened
+  and screened as A.5. The two are different query forms.
+Spot-check verdict: no in-window Namibian figure was missed. ZERO ROWS IS THE CORRECT OUTCOME for this top-up.
+
+=== STEP 4 - VALIDATOR ===
+python3 py/validate_quality.py NAM -> Validated 1 countries | 202 data rows | 242 metadata sources
+  ERROR 0 | WARN 0 | INFO 112 (89 metadata_unused, 23 national_subnational_overlap; same as the main-pass audit)
+  exit 0. Re-run after writing this log and the report section: same result, exit 0.
+
+=== STEP 5 - REPORT ===
+Appended section '=== RECENCY PASS 20261116: RELIEFWEB TOP-UP ===' (under 20 lines) to ./data/NAM/search_report.txt.
+No other file or country was touched. The ReliefWeb credential is not written anywhere.
+
+=== STILL OPEN / NEXT ATTEMPT ===
+- The whole window 2026-07-16..2026-11-16 (Namibia NON-REPORTING; every international table repeats frozen figures).
+- No zero row is possible for Aug-Sep 2026. The cause of the Zambezi Region acute diarrhoea outbreak (metadata 61/72)
+  is unpublished, and nothing on ReliefWeb mentions it.
+- Re-run after early Dec 2026: WER cholera update (data to about 25 Oct), ECDC late-Nov monthly, AFRO wk42+ once they
+  are posted to ReliefWeb.
+
+End Time: 2026-11-17 14:50
+Stage status: COMPLETE (recency pass 20261116, stage RWAUDIT, NAM)
+RECENCY-STAGE-COMPLETE 20261116 rwaudit NAM
