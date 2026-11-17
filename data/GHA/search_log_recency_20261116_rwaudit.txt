@@ -1,0 +1,94 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (RWAUDIT) ===
+Country: Ghana (GHA)
+Window: 2026-08-31 to 2026-11-16
+Start Time: 2026-11-17 ~14:43 (began right after RWCOLLECT ended at 14:42:44)
+Scope: ONLY rows of ./data/GHA/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]".
+Revisions, if any, via py/revise_observation.py with --reason prefixed "[RECENCY-20261116-RW AUDIT]" (none were needed).
+The ReliefWeb appname is a credential: py/reliefweb.py read it from its configured location. It is not recorded here.
+RWAUDIT Status: INITIALIZED
+
+=== STEP 1: COLLECTOR LOG READ FIRST ===
+./data/GHA/search_log_recency_20261116_rw.txt exists (736 lines; run 2026-11-17 14:32:16-14:42:44; status COMPLETE;
+last line "RECENCY-STAGE-COMPLETE 20261116 rwcollect GHA"). It lists NO rows:
+  rows added 0 | presence records 0 | sources registered 0
+  decisions: row 0 | presence 0 | no GHA data 600 | out of window 17   (617 screened = 617 listed)
+
+=== STEP 2: "NO ROWS" CONFIRMED AGAINST THE FILES ===
+  ./data/GHA/cholera_data_ai.csv      2404 rows, Index 1..2473 (max unchanged); rows tagged [RECENCY-20261116-RW]: 0;
+                                      last modified 2026-11-16 14:23:55, before the RW run began
+  ./data/GHA/metadata_ai.csv          664 sources, max Index 664 (unchanged); RW tag in any field: 0;
+                                      last modified 2026-11-16 13:57:09
+  ./data/GHA/cholera_presence_ai.csv  152 records; RW tag: 0; last modified 2026-10-05
+  ./data/GHA/retracted_rows_ai.csv and ./data/GHA/retracted_presence_ai.csv: RW tag 0; last modified 2026-10-05
+                                      (so nothing was written and later retracted)
+  ./data/GHA/attribution_review.csv   does not exist
+  The only GHA file modified since 2026-11-17 14:32 is ./data/GHA/search_log_recency_20261116_rw.txt, which matches
+  the collector's "Files touched" line.
+  Rows in the window under any tag: 2472 and 2473 only. Both are main-pass [RECENCY-20261116] rows: AFR::GHA wk36 / wk37,
+  sCh 0, deaths 0, Documented_Absence, weight 0.85, sources 663/664. The main-pass Agent 7 audited them on 2026-11-16,
+  so they are outside this stage's scope. Nothing found here contradicts them (see step 3).
+
+=== STEP 3: IS THE ZERO RESULT RIGHT? (spot-check of the collector's evidence, read-only) ===
+  Enumeration: re-ran `python3 -I -B py/reliefweb.py search --country GHA --from 2026-08-31 --to 2026-11-17 --limit 200`
+    at about 14:45. totalCount 39, unchanged since RWCOLLECT. All 39 ids appear in the RW screening log
+    (29 'no GHA data', 10 'out of window'; 0 missing). The log holds 617 unique ids for 617 decisions.
+  Out-of-window calls (17): each describes a period that ends before 2026-08-31: Jan-Jun, Feb-May, Mar-Jun and Apr-Jul
+    2026 dashboards, AFRO weekly bulletins wk31-35, UNHCR figures to 31 Jul, and WER 101/38 (2025 annual). Correctly scoped.
+  WHO AFRO Weekly Bulletins wk36-41 (ids 4232043, 4232822, 4232823, 4233169, 4234265, 4235066): read every 'Ghana' line
+    of the cached pdftotext output. In the all-events tables Ghana appears only for mpox (1,075 confirmed to 29 May 2026;
+    clade Ib case notified 16 Jul) and, from wk37, for yellow fever (42 suspected / 16 lab-positive / 13 deaths, Upper
+    West, 30 Aug-22 Sep). None of the six has a Ghana cholera row. Confirms the collector.
+  Africa CDC Epidemic Intelligence Weekly, epi wk37 (id 4232352; image-only PDF): viewed rendered pages 6-10 directly.
+    p.9 'Cholera in Africa': "Since the beginning of 2026, a total of 119,052 cases (949 confirmed; 118,103 suspected)
+    and 1,893 deaths (CFR: 1.59%) of cholera have been reported from 20 AU MS". Ghana is not among the 20 listed.
+    p.10: Ghana appears only in the 2025 note "Ghana (2,870; 14)", which is out of window. p.6: Ghana appears only
+    under mpox, "Ghana (27; 0)". Confirms the collector.
+  Decision rule: leaving Ghana out of a multi-country list is not an explicit "no cases" statement, so it cannot support
+    a Documented_Absence zero (CLAUDE.md zero-row protocol; cross-country harvest guardrail "no zeros from absence in
+    a list"). The collector was right to write no zero row and no presence record for 2026-09-14..2026-11-16.
+    The IOM DTM Anloga/Keta 'diarrhea or vomiting (20%)' is the share of households citing a health concern, not a
+    cholera count, so it correctly produced no row.
+
+=== STEP 4: PER-ROW CHECKS ===
+  Tagged rows: 0, so there is no cited report to re-open with `py/reliefweb.py get`. None of the per-row checks apply
+  because there is no row to check: quote, numbers, period type, dates; duplication against WHO weeks
+  (./data/GHA/cholera_data_who.csv GHA weeks end 2025-09-14) or other AI rows; deaths <= sCh; CFR; curve continuity;
+  national vs ADM1 roles; zero-row evidence; confidence vs source tier.
+  Rows checked 0 | kept 0 | corrected 0 | retracted 0. py/revise_observation.py was not invoked.
+
+=== STEP 5: VALIDATOR ===
+  python3 py/validate_quality.py GHA -> exit 0 | ERROR 0 | WARN 29 | INFO 589 | 2404 rows, 664 sources.
+  Same result as RWCOLLECT and the main-pass audit. No finding names rows 2472/2473. All 29 WARN are on
+  pre-existing historical rows (rows 7..1938): 20 CFR_high_flagged_for_review, 4 period_single_day,
+  3 same_period_conflict, 2 multiyear_aggregate.
+
+=== WINDOW STATUS AFTER THE TOP-UP (unchanged) ===
+  COVERED  2026-08-31..2026-09-13: 14 of 78 days (18%), and only as zero rows (2472, 2473; GWER wk36-37).
+  EMPTY    2026-09-14..2026-11-16: 64 days (82%; ISO wk38-46 + 16 Nov). ReliefWeb adds no countable evidence.
+  Latest positive observation is still row 1545 (2025-01-01..2025-12-31, sCh 2442, deaths 21). The last positive WHO
+    week ends 2025-09-07.
+  Main-pass WATCH item (culture-negative suspects in Gomoa East, wk36-37): AFRO bulletins up to wk41 (5-11 Oct) list
+    no Ghana cholera event, which is consistent with rows 2472-2473. The watch stays open because an AFRO table is not
+    a Documented_Absence.
+  Open for the next pass: AFRO weekly bulletins wk42+ (not on ReliefWeb as of 2026-11-17); GWER wk38+
+    (phd.teamdesk.pro index); the WER cholera update with data to late October 2026.
+
+=== FILES TOUCHED ===
+  ./data/GHA/search_log_recency_20261116_rwaudit.txt (this log, created)
+  ./data/GHA/search_report.txt (16 lines appended: blank + "=== RECENCY PASS 20261116: RELIEFWEB TOP-UP ===" section;
+    the earlier 401 lines are byte-identical to the pre-append copy)
+  Scratch, outside the repo: /tmp/gha_rwaudit_out/ (search output, id lists, pre-append copy of search_report.txt),
+    /tmp/GHA_rwaudit_validate.txt and /tmp/GHA_rwaudit_validate_final.txt (validator output; the two runs are identical).
+  Read only: ./cache/reliefweb/GHA_rw20261116/ (the collector's downloads; read with grep and viewed as images, no
+    interpreter run on them).
+  NOT touched: cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_*.csv, the baselines, other
+    logs, workflow_state*.json, the dashboard, other countries.
+
+=== SUMMARY ===
+Tagged rows 0 | checked 0 | kept 0 | corrected 0 | retracted 0 | sources added 0 | presence added 0
+Collector's zero result confirmed against the CSVs and spot-checked against its key sources (GHA-tagged enumeration,
+AFRO wk36-41, Africa CDC wk37 p.6/9/10, all 17 out-of-window calls).
+Final validator: python3 py/validate_quality.py GHA -> exit 0 | ERROR 0 | WARN 29 | INFO 589 (2404 rows, 664 sources)
+End Time: 2026-11-17 14:48:20
+RWAUDIT Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 rwaudit GHA
