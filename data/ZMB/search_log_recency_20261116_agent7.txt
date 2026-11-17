@@ -7,3 +7,96 @@ Stage 1 log: ./data/ZMB/search_log_recency_20261116_agent1.txt (present; ends 'R
 Tagged rows found: 29 (Index 2095-2123); sources registered by stage 1: metadata Index 541-547
 Audit Status: INITIALIZED
 
+=== STAGE 1 COMPLIANCE ===
+Batches 9 (180 queries); yields % 0,5,0,15,0,5,0,0,0; stopped on 3 consecutive sub-5% batches (7-9) after the 3-batch minimum. OK.
+No yield above 100%. Rows claimed 2095-2123 (29) = rows present (29); no tagged presence rows; xref apply not run (none in window).
+Bookkeeping slip: the batch 4 block says "Rows added: 18" but lists 16 indices (2104-2119). Summary total 29 is correct.
+
+=== METHOD ===
+Each cited URL fetched with the web-fetch agent (curl is blocked in this session). The Africa CDC PDF exceeds the fetch tool's 10 MB limit;
+read from the copy the CIV recency pass downloaded (/private/tmp/civ_recency_dl/africacdc/Africa-CDC-Epidemic-Intelligence_Weekly-Report_25-Oct-2026_vf.pdf,
+5,730,043 bytes; the africacdc.org October page lists it at 5.5 MB). Pages 1-3 and 5-11 read as images.
+
+=== ROW-BY-ROW (all 29 tagged rows) ===
+idx541 NaTHNaC https://travelhealthpro.org.uk/outbreaks (read in full; items dated 01/14/22/27 Oct, 02/16 Nov 2026, each citing a MoH Facebook post):
+  2104 nat 1,207/207c/25d to 21 Oct   VERIFIED verbatim (22 Oct item; '16 districts in six provinces')            KEEP
+  2122 Lusaka dist 658, 2123 Chibombo 258 to 21 Oct  VERIFIED ('Lusaka (658 cases) and Chibombo (258 cases) districts')  KEEP
+  2097 nat 1,548/227c/30d to 27 Oct   VERIFIED ('18 districts in six provinces')                                KEEP
+  2105 nat 1,958/303c/40d to 2 Nov    VERIFIED ('seven provinces')                                              KEEP
+  2096 nat 3,099/437c/68d to 16 Nov   VERIFIED verbatim (headline item; 27 districts/7 provinces)                KEEP
+idx542 Zambia Monitor 29 Oct 2026 (A. Sichula; read in full):
+  2095 nat 1,622/228c/30d to 28 Oct   VERIFIED verbatim. 'Ministerial statement ... on Thursday' = 29 Oct. TR 28 Oct confirmed by Evrensel
+       ('28 Temmuz-28 Ekim') and Turkiye Today ('between July 28 and Oct. 28'). But both relay ONE Anadolu Agency wire, so the note's
+       independence claim was overstated. Independent check: MoH/NaTHNaC 27 Oct 1,548/30 + 74 new, 0 new deaths = 1,622/30.  KEEP, note appended
+  2098-2103 prov 1,090/298/133/88/11/2 to 28 Oct  VERIFIED verbatim; sum 1,622 = national                      KEEP
+idx543 News Diggers 12 Nov 2026 (paywalled after lead):
+  2106 nat 2,658/351c/56d (TR = publication date)  VERIFIED verbatim; 2,464 recovered + 138 in hospital + 56 dead = 2,658  KEEP
+  2108 Copperbelt 3 to 12 Nov  quote VERIFIED; RETRACTED (see below)
+idx544 Diamond TV 13 Nov 2026 (S. Khwawe; read in full):
+  2107 nat 2,743/62d  VERIFIED verbatim (last paragraph). No as-of date, no attribution, ZNPHI not named; no second source found
+       (audit searches '"2,743" cholera 62 deaths' and 'ZNPHI update 13 November 2026'). KEEP at 0.4, note appended
+idx545 Zambia Monitor 16/17 Nov 2026 (ZNPHI update issued 16 Nov; read in full):
+  2109-2118 districts 1,959/371/158/130/90/86/86/61/32/30  all 13 quoted fragments VERIFIED; the full 27-district list sums to 3,099;
+       Lusaka is called a 'district'                                                                              KEEP
+idx546 News Diggers 14 Nov 2026 (paywalled after lead):
+  2119 Mpongwe 28 cases/5 suspected deaths  VERIFIED verbatim ('28 cholera cases', 'five suspected cholera-related deaths', 18 discharged).
+       CFR 17.9% warning justified (suspected community deaths, small early denominator).        KEEP, note appended
+idx547 Africa CDC Epidemic Intelligence Report, issue 2026-10-25 (event AC09337):
+  2120 nat epi-week 43 295/24c/3d  VERIFIED verbatim on p.9 and in the p.2 table (1,202 (271) / 218 (24) / 28 (3)). 389 new cases across
+       3 member states = Congo 55 + Somalia 39 + Zambia 295.                                                   KEEP, note appended
+  2121 nat 1,420/218c/28d to 25 Oct  VERIFIED verbatim ('Since the beginning of this outbreak (July 2026)')      KEEP
+
+RETRACTION 2108 (revise_observation.py --delete; tombstone in ./data/ZMB/retracted_rows_ai.csv):
+  The Copperbelt Provincial Health Director's 'only recorded three cholera cases' was said while refuting reports of Mpongwe deaths. The same
+  article adds 'four cases have since been confirmed', so it is likely a confirmed-only figure. Finer data contradict it: Mpongwe district
+  alone had 28 cases with 18 already discharged by 14 Nov, and ZNPHI's 16 Nov list gives Copperbelt 61+5+1 = 67. A province total below one
+  of its own districts two days later is not supportable as sCh. Sub-national row, so the national weekly series is unchanged.
+
+=== DUPLICATION ===
+- WHO baseline ends at the 2026-10-12..18 week. No tagged row restates a WHO week. The TL 2026-07-28 chain overlaps WHO weeks only as
+  cumulative totals: the builder coverage-skips 2104 and decumulates the rest.
+- No exact (Location, TL, TR) duplicates. Pre-existing rows for this outbreak are anchored at 2026-08-13 (national 2040; districts 28-34;
+  provincial zeros 1436-1440), a separate chain that ends before the window.
+- The W43 chain increment (22-25 Oct, 213) is nested in observed row 2120 and is coverage-skipped: no double count.
+- Every row states its role (national primary / provincial or district subset). The validator raises no
+  national_subnational_overlap finding on tagged rows.
+
+=== PLAUSIBILITY ===
+- deaths <= sCh and cCh <= sCh on every row; CFRs recomputed and correct (national 1.0-2.3%).
+- National chain is monotone in cases, confirmed and deaths: 1,207 > 1,420 > 1,548 > 1,622 > 1,958 > 2,658 > 2,743 > 3,099 (25 > 68 deaths).
+  That is ~53-119 cases/day, consistent with the reported 24-h counts (68, 60, 74, 98, 74).
+- Continuity with WHO: the Africa CDC 11 Oct issue (650 suspected + 131 confirmed = 781 cases, 21 deaths) equals the WHO cumulative for W31-W41
+  exactly. WHO W42 = 128 (cumulative 909) = MoH 'as of 14 October', so WHO W42 holds only ~3 days. The implied 1,125 at 18 Oct means
+  ~216 cases (15-18 Oct) are in no layer, and the W41 307 > W42 128 > W43 295 dip is a WHO-snapshot artefact. The 18 Oct Africa CDC issue
+  is not posted (only 11 and 25 Oct), so 1,125 is inferred, not seen.
+- Neighbours (national rows, Oct-Nov 2026): COD ~2,100/week (W43 2,185, W44 2,083); AGO 19-40/week; TZA 15-45/week; MOZ and MWI ~0;
+  ZWE/NAM/BWA none. Consistent with a Lusaka-centred outbreak plus DRC-border lake districts (Chiengi, Nchelenge, Mwansabombwe, Nsama, Mpulungu).
+
+=== ZERO ROWS === none added; none warranted (active, growing outbreak throughout the window).
+=== CONFIDENCE === L2 (NaTHNaC, Africa CDC) 0.70-0.85; L3 (Zambia Monitor, News Diggers, Diamond TV) 0.35-0.60. All within band.
+
+=== BUILDER CHECK (in memory, nothing written) ===
+W42 128 WHO | W43 295 AI observed | W44 202 | W45 208 | W46 785 | W47 356 (fourier increments). This reproduces stage 1 exactly; cause traced in
+py/build_weekly_timeseries.py process_country Tier 2:
+ (a) 'nested' uses a +/-3-day tolerance, so the 29 Oct-2 Nov increment (336) subtracts the adjacent 26-27 Oct increment (128): W45 = 208,
+     and 128 cases and 2 deaths are lost;
+ (b) an increment goes to the week whose Monday it contains: 29 Oct-2 Nov (4 of 5 days in W44) goes to W45, and 14-16 Nov (2 of 3 days
+     in W46) goes to W47.
+ Interpolating the source cumulatives gives W44 ~470, W45 ~490, W46 ~600, W47 ~120 (16 Nov only). The rows are faithful; this is a builder
+ defect, so no row was changed to compensate (no hand-differencing).
+
+=== COVERAGE (in-memory analyse(); reference files NOT regenerated) ===
+Window days with national data 0/29 > 29/29; days with a directly observed weekly count 7/29 (19-25 Oct). Oct 2026 18 > 31 days covered;
+Nov 2026 0 > 16/30 days (now a covered month). Country: 683/683 months, months_ai_only 85, gap periods 0. Latest observation
+2026-10-18 > 2026-11-16 (1 day stale on 2026-11-17).
+
+=== VALIDATOR ===
+python3 py/validate_quality.py ZMB: before ERROR 0 / WARN 32 / INFO 324; after ERROR 0 / WARN 32 / INFO 324, exit 0.
+The only finding on tagged rows is WARN CFR 17.9% on Index 2119 (justified in its note).
+
+=== WRITES ===
+revise_observation.py: --delete 2108; --append-note 2095, 2107, 2119, 2120 (all reasons prefixed [RECENCY-20261116 AUDIT]).
+No metadata change. No baseline, dashboard, other-country or reference/ file touched. ./data/ZMB/search_report.txt: section appended.
+Finished: 2026-11-17
+Audit Status: COMPLETE (29 checked, 28 kept, 1 retracted [2108], 4 notes appended; validator exit 0)
+RECENCY-STAGE-COMPLETE 20261116 audit ZMB
