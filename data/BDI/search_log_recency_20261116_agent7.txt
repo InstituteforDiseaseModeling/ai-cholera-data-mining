@@ -9,3 +9,87 @@ Stage 1 log: ./data/BDI/search_log_recency_20261116_agent1.txt PRESENT (6522 byt
   completion/stopping record. Stage 1 appears to have stopped (or been cut off) after 20 queries, below the
   3-batch floor in ./templates/template_search_protocol.txt.
 
+=== STAGE 1 COMPLIANCE ===
+- Batches: 1 (20 queries). Successful queries 1/20 (Q4) -> yield 5%: arithmetic correct (counts queries, not rows).
+- Log ends 'Decision: CONTINUE (minimum 3 batches)' at 16:32; ./data/BDI/cholera_data_ai.csv and metadata_ai.csv last
+  written 16:29. No batch 2/3 and no stopping record -> stage 1 FELL SHORT of the 3-batch floor (truncated run).
+- Claims vs files: rows 1385, 1386 and sources 519, 520 all exist as logged. No unlogged [RECENCY-20261116] rows/sources.
+- Presence lead (IFRC Imminent DREF MDRBI028, 9 Nov: 'in the context of the ongoing cholera epidemic', no counts) was
+  logged but NOT written to ./data/BDI/cholera_presence_ai.csv. Not added here (auditor does not collect); flagged.
+
+=== SCOPE ===
+Tagged rows in ./data/BDI/cholera_data_ai.csv: 2 (Index 1385, 1386). Both checked (no sampling). Both cite metadata 519.
+
+=== CHECK 1: SOURCE TEXT (independent re-fetch, not stage-1 cache) ===
+- python3 -I -B py/reliefweb.py get 4238377 --download cache/recency_BDI_20261116_a7/dl_unicef
+  -> UNICEF Burundi Humanitarian Situation Report No. 25, 30 October 2026 (ReliefWeb id 4238377, posted 13 Nov);
+     PDF 311,473 bytes, 8 pp, CreationDate 13 Nov 2026; 'Reporting Period: 01 to 30 October 2026'.
+     (First attempt: PDF download 'connection reset'; API body has Highlights only. Retry succeeded.)
+- p.2 Situation Overview, verbatim: 'Meanwhile, cholera cases reached a yearly peak of 242 during epidemiological week
+  44 (26 October), compared with 163 in week 15 (6-12 April). By week 44, cumulative cases stood at 2,762, with six
+  deaths reported.'  -> row 1385 quote and first 1386 quote CONFIRMED.
+- p.3 Health, verbatim: 'In response to the cholera outbreak, UNICEF supported case management, with 556 cholera/AWD
+  cases treated during the reporting period. By epidemiological week 44, cumulative cases reached 2,762, including six
+  deaths.' -> second 1386 quote CONFIRMED. p.6 results table: '# individuals receiving treatment for cholera/acute
+  watery diarrhea ... 1,296 | 2,762 | 213 %' (2026, reached 01 Jan-30 Oct).
+- OCHA ROSEA El Nino Flash Update No.1 (ReliefWeb id 4238144) PDF re-fetched to cache/recency_BDI_20261116_a7/dl_ocha:
+  'Burundi is also facing a persistent cholera outbreak, with more than 2,700 cases and six deaths reported across 13
+  health districts between January and October this year.' -> corroboration quote (metadata 520) CONFIRMED.
+
+=== CHECK 1b: PERIOD TYPE AND DATES ===
+- 1385 = WEEKLY. ISO 2026-W44 = Mon 26 Oct - Sun 1 Nov (ISO W1 = 29 Dec 2025). Source's 'week 15 (6-12 April)' = ISO W15
+  and its 163 equals ./data/BDI/cholera_data_who.csv row 2026-04-06..04-12 (163; WHO labels it wk14). TL/TR CORRECT.
+- 1386 = YEAR-TO-DATE CUMULATIVE from epi week 1 to end W44. TL 2025-12-29: 2,762 - 556 = 2,206 = WHO sum
+  2025-12-29..2026-10-04 exactly; excluding W1 gives 2,155 (no week-boundary match). TL/TR CORRECT.
+- Caveat: report period ends 30 Oct while W44 ends 1 Nov; PDF compiled 13 Nov so W44 is probably complete, but 242
+  could understate the week if extracted early. Not grounds to change value or weight.
+
+=== CHECK 2: DUPLICATION / DOUBLE COUNTING ===
+- WHO baseline ./data/BDI/cholera_data_who.csv ends 2026-10-12..10-18 (92). WHO ArcGIS layer cholera_adm0_week
+  re-queried 17 Nov (cache/recency_BDI_20261116_a7/dl_who/bdi_2026.json): still ends date_wk 2026-10-12. -> 1385 is
+  not a WHO restatement.
+- AI rows overlapping the window: only 1385 and 1386. No other AI row for W44.
+- 1386 vs builder (py/build_weekly_timeseries.py read, not run): _decumulate chains 1386 to row 99 (2026-01-01..09-20,
+  2,044; TL within 3 d) -> increment 718 over 2026-09-21..11-01 (W39-W44); 5/6 weeks observed (WHO W39-42 + AI 1385)
+  >= COVERAGE_THRESHOLD 0.50 -> coverage_skipped. 1386 is never the predecessor of another row (latest TR). No
+  inflation. Stage 1 dry-run claim confirmed. ./data/BDI/cholera_weekly_BDI.csv: W42 92 WHO, W43 absent, W44 242 AI.
+- Validator national_subnational_overlap INFO for 2025-12-29..2026-11-01 is marked 'documented' (1386 notes state
+  national cumulative, do not sum). 1385's week has no sub-national rows.
+
+=== CHECK 3: PLAUSIBILITY ===
+- 1385: deaths blank (source gives none for the week; cumulative deaths unchanged at 6 -> 0 implied, not hand-entered).
+- 1386: deaths 6 <= 2,762; CFR 6/2762 = 0.217% -> 0.22 correct; low CFR consistent with WHO 2026 (6/2,407) and 2025.
+- Curve: WHO W38-W42 67/64/70/109/92; implied W43 ~113 (2,762-2,407-242); W44 242 = new 2026 high (prior max 163, W15).
+  Doubling coincides with El Nino-enhanced Oct-Dec rains, 7 Oct Busuma rains, IFRC flood DREF 9 Nov. Plausible.
+- Neighbours (read-only): RWA WHO W36-W41 24/43/53/94/73/123, AI W42-W45 89/99/68/66 (Western Prov. active); COD national
+  1,686-2,974/wk; TZA 15-45/wk. Regional activity elevated; consistent.
+
+=== CHECK 4: ZERO ROWS === none written in this pass -> nothing to test.
+=== CHECK 5: CONFIDENCE === UNICEF = Level 2 (0.7-0.9); both rows 0.8 -> consistent.
+
+=== INDEPENDENT CORROBORATION SEARCH (4 WebSearch + 1 fetch) ===
+- 'Africa CDC epidemic intelligence weekly report November 2026 cholera Burundi' -> none in window.
+- 'Burundi choléra novembre 2026 cas semaine épidémiologique' -> none in window.
+- 'Burundi cholera cases week 44 2026 "2,762" OR "242"' -> no second source.
+- 'ECDC communicable disease threats report November 2026 cholera Burundi' -> latest CDTR W40.
+- ECDC EpiPulse event 2100 fetched 17 Nov: still 'Monthly update 27 October 2026', Burundi as of 11 Oct (pre-window).
+=> 1385 remains single-source (Tier 2, 100-1000 cases: acceptable at Level 2, flagged single-source in notes).
+
+=== ACTIONS ===
+- py/revise_observation.py BDI --index 1385 --agent 7 --append-note '[RECENCY-20261116 AUDIT] VERIFIED ...'
+  --reason '[RECENCY-20261116 AUDIT] Agent 7 verification of recency row: kept unchanged' -> exit 0
+- py/revise_observation.py BDI --index 1386 (same pattern) -> exit 0
+- Values, dates, weights unchanged. Retractions: 0. Corrections: 0. Sources added by Agent 7: 0.
+
+=== RESULT ===
+Kept 2 / corrected 0 / retracted 0. Window covered: ISO W44 only (7 of 29 days). Empty: W43 (reporting lag, implied
+~113 not hand-differenced), W45-W46 + 16 Nov (no counts published yet; epidemic ongoing per IFRC 9 Nov -> must stay
+empty, not zero).
+
+=== VALIDATOR ===
+python3 py/validate_quality.py BDI -> exit 0 ; ERROR 0   WARN 34   INFO 415
+(34 WARN all pre-existing; none on rows 1385/1386; INFO metadata_unused for source 520 expected.)
+Report: appended 31-line section '=== RECENCY PASS 20261116: window 2026-10-19 to 2026-11-16 ===' to ./data/BDI/search_report.txt
+  (original 442 lines verified unchanged). search_log_agent_7.txt and workflow_state.json NOT touched.
+End Time: 2026-11-17 08:33:55
+Agent 7 Status: COMPLETE
