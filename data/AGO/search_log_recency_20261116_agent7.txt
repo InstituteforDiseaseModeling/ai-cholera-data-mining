@@ -169,3 +169,128 @@ Why resumed: the attempt above (07:38-08:37) ended without the RECENCY-STAGE-COM
 Plan: (1) re-scan ALL files for [RECENCY-20261116] rows, including any the resumed collector added after 08:37;
   (2) re-check stage 1's completeness and the batch-3 non-entry decisions against the documents; (3) re-check the
   sources whose next issue was due; (4) validator; (5) addendum to ./data/AGO/search_report.txt.
+
+=== STEP 0 (resumed) | DID STAGE 1 FINISH? YES - IT WAS RE-RUN AND STOPPED PER PROTOCOL ===
+The recency redo run (./logs/recency_redo_20261116.out; ./logs/run_20261117-125926/) queued AGO 8th of 9 and started it
+  at 13:00:31 (rows=9630 sources=1011). Stage 1 appended '=== RESUMED 2026-11-17 13:01:23 PST ===' and ran BATCH 3.
+Combined record: 3 batches / 60 queries (attempt 1: B1, B2; resume: B3), yields 0%, 0%, 0% (0/20 each). After the
+  3-batch minimum it had 3 consecutive sub-5% batches -> STOP. The floor in ./templates/template_search_protocol.txt is
+  now met, and the log ends 'RECENCY-STAGE-COMPLETE 20261116 collect AGO'.
+./data/AGO/workflow_state_recency_20261116.json agrees: batches_completed 3, batch_yields_percent [0,0,0], rows_added 0,
+  sources_registered 0, presence_rows_added 0, window_covered_days 0.
+Honesty: no yield above 100%. It claims 0 rows, 0 sources and 0 presence rows, matching the files (STEP 1). Its three
+  GDELT attempts (HTTP 429) were correctly not counted as queries.
+The earlier STEP 0 finding ('cut off below the 3-batch floor') is SUPERSEDED for AGO: batch 3 made up the shortfall.
+
+=== STEP 1 (resumed) | ALL TAGGED ROWS, RE-SCANNED AFTER THE RESUMED COLLECTOR ===
+csv scan at 13:10 for '[RECENCY-20261116]' found 0 rows in each of:
+  ./data/AGO/cholera_data_ai.csv (9,630 rows), ./data/AGO/metadata_ai.csv (1,011 sources, max Index 1011),
+  ./data/AGO/cholera_presence_ai.csv (48), ./data/AGO/retracted_rows_ai.csv (69), ./data/AGO/attribution_review.csv.
+Rows of ANY tag overlapping 2026-10-19..2026-11-16: 0 in the AI, presence and retracted files. Latest AI TR is still
+  2026-09-19 (AI 366). The 8 [XREF-HARVEST rows (max TR 2017-02-26) lie outside the window and outside this pass.
+git: the data/AGO CSVs are unchanged; only the stage-1 log is modified, and workflow_state_recency_20261116.json is new.
+Per-row checks 1-5: NOT APPLICABLE, because there are no rows. Checked 0, kept 0, corrected 0, retracted 0.
+  py/revise_observation.py was not run.
+
+=== STEP 2 (resumed) | STAGE 1 BATCH-3 NON-ENTRIES, CHECKED AGAINST THE DOCUMENTS ===
+  - Q4  afro.who.int/fr/node/18809 'Extraordinary Summit Addresses Cholera Situation in SADC Region' carries
+        '2 février 2024'; its Nov-2026 dates belong to sidebar items. VERIFIED: out of scope, no row.
+  - Q5  Jornal de Angola CMS (POST, objecto[].dataNoticia): 677559 'Autoridades asseguram que cólera em Luanda está sob
+        controlo' = 2026-06-02T15:07:15; 686230 'Angola defende cooperação internacional no combate às pandemias' =
+        2026-09-27T21:21:18. VERIFIED: the Google News dates of 20 and 25 Oct are re-index artefacts.
+  - Q6  ECDC 2006-eip-00031: the update list still ends at 2026-10-27. The Angola paragraph is unchanged: 'as of 11
+        October 2026, ... 6 940 cases, including 132 deaths'. VERIFIED.
+  - Q7  WHO AFRO OEW listing: newest is still 'Week 41: 05 to 11 October 2026'. VERIFIED.
+  - Q9  Africa CDC wpdmpro (orderby=modified): the newest EI package is 'October 2026' (posted 2026-10-21, modified
+        2026-11-08); there is no November package. VERIFIED.
+  - Q19 ./data/AGO/metadata_ai.csv Index 503 = 'MINSA Angola - Boletim Informativo da Colera No 354/2025 (27 Dec 2025)'.
+        VERIFIED.
+  - WER 101(45) (13 Nov): the 2-8 Nov signals list 'Africa ... Cholera' with no country. The two country lists on that
+        page that contain 'Angola' belong to the NTD (schistosomiasis) table, not to cholera. WER 101(46): HTTP 404.
+        The WER 101(44) (6 Nov) cholera table is 'Data as of 27 September 2026'. VERIFIED.
+  Every batch-3 decision holds; no source was wrongly discarded.
+
+=== STEP 3 (resumed) | RE-CHECK OF SOURCES WHOSE NEXT ISSUE WAS DUE (13:11-13:20 PST; audit only, no collection) ===
+31 checks: 11 direct page fetches, 9 site/API queries (Africa CDC, WHO DON API, RNA, O País, GDELT, Jornal de Angola x4),
+  3 Google News RSS feeds, 3 ReliefWeb API searches (py/reliefweb.py), and 5 WebSearch queries (standard mode).
+  - ECDC: newest update is 27 Oct (Angola data to 11 Oct); nothing newer.
+  - WHO AFRO OEW: newest Week 41. Africa CDC: no EW44-46 issues public.
+  - WER 101(46): 404. WHO DON API: newest 13 Nov (MERS, Qatar); no cholera or Angola DON in the list back to July 2026.
+  - WHO Angola country news (20 Oct-9 Nov: vaccination campaign, quality of care, ARMED medicines): none on cholera.
+  - ReliefWeb: AGO + cholera from 19 Oct = 0; AGO, any topic, from 10 Nov = 0; cholera from 15 Nov = 2 (IFRC Somalia
+    DREF; WHO Sudan October spotlight). No Angola item.
+  - Jornal de Angola: 'cólera' 359 items, newest 2026-09-25 ('Trabalhadores da Saúde destacados no combate à cólera e
+    Mpox'); 'colera' 2 items (2025). 0 dated on or after 19 Oct.
+  - RNA posts since 1 Nov: 1 (5 Nov, the DRC epidemic story; no Angola figure). O País since 1 Nov: 1 (16 Nov, epidemic
+    response training; no counts).
+  - Google News RSS: pt, 7 days: 0 items. en, 7 days: 3 items (WHO's global briefing of 10-11 Nov). pt, 30 days:
+    7 items, all already resolved above or by stage 1.
+  - WebSearch ('Angola cólera casos novembro 2026', 'Angola cholera cases November 2026', Africa CDC EI November 2026,
+    AFRO OEW week 42 2026, ECDC monthly November 2026): nothing in the window. The newest Angola-specific items are
+    from Aug 2026 (allAfrica, Uíge).
+  - GDELT DOC API: HTTP 429 (rate-limited). ANGOP: RemoteDisconnected (unreachable, as in every earlier attempt).
+  - WHO DON HTML listing: script-rendered and inconclusive; superseded by the DON API above.
+RESULT: as of 2026-11-17 13:20 PST, no source checked publishes an Angolan cholera count, or a statement of zero cases,
+  for any day of 2026-10-19..2026-11-16. Stage 1 missed nothing that exists today.
+
+=== STEP 4 (resumed) | PLAUSIBILITY AND NEIGHBOURS (read-only look at other countries' files; nothing edited) ===
+  - Angola's WHO weeks before the window, ending 13 Sep to 18 Oct: 116, 86, 68, 19, 40, 39 cases; 0 deaths in the last three.
+  - DRC: COD recency rows AI 11139 (national, 19-25 Oct) 2,185 cases / 30 deaths and AI 11140 (26 Oct-1 Nov) 2,083 / 46.
+  - Zambia: ZMB recency rows report the outbreak through 16 Nov (AI 2096: 3,099 cases since 28 Jul).
+  - Namibia (WHO last 2026-04-19, 0) and Congo (WHO last 2026-09-13, 0): no rows in the window.
+  Transmission in Angola very likely continued. A zero row would be implausible and unsupported, and correctly none
+  was entered. Africa CDC's EW43 omission of Angola is non-reporting, not absence.
+
+=== STEP 5 (resumed) | WEEKLY SERIES AND COVERAGE ===
+  ./data/AGO/cholera_weekly_AGO.csv ends at ISO week 42 (2026-10-12..10-18, WHO observed 39). The window weeks are
+    absent, which is correct: missing, with no false zeros.
+  ./reference/effective_surveillance_gaps_*.csv were regenerated at 13:07:40 by another process. I did not re-run
+    py/analyze_effective_gaps.py: those are shared files being written mid-run, and no AGO row changed. AGO:
+    580/683 months (84.9%); months_jhu 411, months_who 22, months_ai 539, months_ai_only 147; 4 gap periods (1976;
+    1997-02..2003-12; 2004-06..12; recent 2026-11-01..11-17). ./reference/effective_surveillance_recency.csv: latest
+    observation and latest positive both 2026-10-18, 30 days stale.
+  AI contribution of this pass: 0 months closed; months_ai_only is unchanged at 147.
+  Caveat: October 2026 counts as 'covered' because the WHO rows span 1-18 Oct (18 of 31 days > 50%). The month-level
+    metric therefore hides the 19-31 Oct hole.
+  Window covered: 0 of 29 days.
+
+=== STEP 6 (resumed) | VALIDATOR ===
+  python3 py/validate_quality.py AGO --json /tmp/AGO_recency_audit_resumed.json -> exit 0 | 9,630 rows | 1,011 sources |
+    ERROR 0, WARN 39, INFO 475.
+  The WARNs are 35 CFR_high_flagged_for_review and 4 period_single_day. Resolved by Index, every WARN row has
+    TR <= 2025-12-22: none is tagged and none is in the window. The counts are identical to the 08:37 run and to stage
+    1's run. Nothing fixed, nothing suppressed.
+
+=== OUT-OF-SCOPE OBSERVATION (flag only; NOT edited, because this pass may not re-audit the rest of the dataset) ===
+  AI 364-366 (metadata 125, Africa CDC EI issue of 13 Sep 2026) look like WHO baseline weeks shifted ~6 days later:
+    AI 365 2026-09-06..09-12 175/0  = WHO 2026-08-31..09-06 175/0
+    AI 366 2026-09-13..09-19 116/0  = WHO 2026-09-07..09-13 116/0, and it overlaps WHO 2026-09-14..09-20 (86/2)
+    AI 364 2026-08-30..09-05 181/4 ~= WHO 2026-08-24..08-30 184/4
+  If this is right, the rows restate WHO weeks under the wrong dates, and 13-19 Sep carries two different counts. The
+  next full AGO audit should check the MoH epi-week convention behind these rows (and AI 363 and 9701) against the WHO
+  weeks.
+
+=== STEP 7 (resumed) | FILES ===
+  Written: this log (appended) and an '(addendum)' section appended to ./data/AGO/search_report.txt.
+  NOT touched: cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv, the baselines,
+    workflow_state.json, workflow_state_recency_20261116.json, search_log_agent_7.txt, the dashboard, other countries.
+  Downloads: /tmp/ago_r7b_dl.SVbxLX/. Scripts: /tmp/ago_r7b_scripts/ (both outside the repo).
+
+=== RECOMMENDATIONS (updated) ===
+1. Re-run AGO for this window after ~25 Nov 2026 (ECDC monthly update; Africa CDC November EI package with EW44-46) and
+   again in early December (WER cholera table with data to ~25 Oct). The WHO dashboard baseline refresh will probably
+   fill ISO weeks 43+ first; do not add AI rows that merely restate WHO dashboard weeks.
+2. Recommendation 1 of the 08:37 section (re-run stage 1) is satisfied by the redo run. Recommendation 2 (gate each
+   stage on its completion line, not on the log's existence) is reflected in this pass's instructions; not re-verified
+   here.
+3. If Angola is again absent from Africa CDC's 'new cases' lists, log it as non-reporting, never as a zero. A YTD
+   cumulative that equals the WHO weekly sum adds nothing; do not enter it as a row over the window.
+4. Next full AGO audit: check the week alignment of AI 363-366 and 9701 (see the OUT-OF-SCOPE OBSERVATION).
+
+=== FINAL CHECK (resumed) ===
+2026-11-17 13:18:33 PST: tag re-scan found 0 '[RECENCY-20261116]' rows in all five AGO files. python3 py/validate_quality.py AGO ->
+  exit 0 | 9,630 rows | 1,011 sources | ERROR 0, WARN 39, INFO 475.
+git status data/AGO: only this log and ./data/AGO/search_report.txt are modified.
+Agent 7 Status: COMPLETE
+End Time: 2026-11-17 13:18:33 PST
+RECENCY-STAGE-COMPLETE 20261116 audit AGO
