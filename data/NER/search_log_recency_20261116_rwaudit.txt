@@ -1,0 +1,124 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (STAGE RWAUDIT) ===
+Country: Niger (NER)
+Window: 2026-07-27 to 2026-11-16 (113 days, ISO 2026-W31..W47)
+Auditor: Agent 7 (Quality Auditor)
+Start Time: 2026-11-17 14:53 (first audit command)
+Scope: ONLY rows of ./data/NER/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]".
+       Pre-window rows, [XREF-HARVEST] rows and the main pass's audit are outside this stage.
+Tool: python3 -I -B py/reliefweb.py (ReliefWeb v2 API). The credential is not recorded here.
+Agent Status: INITIALIZED
+
+=== STEP 0: TOP-UP LOG READ ===
+./data/NER/search_log_recency_20261116_rw.txt EXISTS (3,261 lines; stage RWCOLLECT 2026-11-17 14:31:49 to 14:52; last line
+"RECENCY-STAGE-COMPLETE 20261116 rwcollect NER"). The collector claims:
+  - 1,050 unique ReliefWeb reports screened. All 190 NER-tagged reports were enumerated; 91 were opened with attachments.
+  - Decisions: ROW 0 | PRESENCE 0 | NO-NER-DATA 1039 | OUT-OF-WINDOW 11.
+  - "Rows added: NONE". No sources registered. ./data/NER/cholera_presence_ai.csv untouched.
+I re-tallied the per-report screening record: 1,050 decision lines for 1,050 unique report ids = 1,039 NO-NER-DATA +
+11 OUT-OF-WINDOW. No ROW, PRESENCE or ZERO decision appears anywhere in the log. The record matches the summary.
+The log lists no rows, so the task is to confirm that against the CSVs (step 1).
+
+=== STEP 1: CONFIRM "NO ROWS" AGAINST THE CSVs (python3 -I csv.DictReader parse of every field, not a line grep) ===
+./data/NER/cholera_data_ai.csv - 904 rows, 14 columns, Index unique 904/904:
+  processing_notes containing "[RECENCY-20261116-RW]" ................ 0
+  "RECENCY-20261116-RW" in ANY column ................................ 0
+  "RECENCY-20261116" (main pass or top-up) in ANY column ............. 0
+  rows with TL <= 2026-11-16 and TR >= 2026-07-27 (window overlap) ... 0   (max TR 2026-07-26 = rows 51 and 52)
+./data/NER/metadata_ai.csv         - 293 sources, Index 1..293 sequential and unique; 0 tagged RECENCY-20261116
+                                     (the top-up registered no source).
+./data/NER/cholera_presence_ai.csv - 40 rows; 0 tagged RECENCY-20261116; 0 with TR >= 2026-07-27.
+./data/NER/retracted_rows_ai.csv   - 55 rows; 0 mention RECENCY-20261116 (nothing was written and then retracted).
+./data/NER/attribution_review.csv  - does not exist (nothing pending).
+Write history:
+  git status data/NER: the only entry is "?? search_log_recency_20261116_rw.txt" (the collector's log).
+  cholera_data_ai.csv and metadata_ai.csv: no diff vs HEAD (last commit touching them dca95f0b, 2026-10-04 04:25).
+  mtimes: cholera_data_ai.csv 2026-10-04 04:09, metadata_ai.csv 2026-10-04 03:05, cholera_presence_ai.csv
+  2026-10-03 22:32, retracted_rows_ai.csv 2026-10-04 00:16. Newest backup:
+  .backup_cholera_data_ai_20261004-040932565081.csv. Nothing was written on 2026-11-16 or 2026-11-17.
+Latest rows unchanged (all src 43 = Niger Health Cluster 'Bulletin mensuel' N4 2026, Level 1):
+  - national W26-W30, rows 47-51: sCh 2, 3, 13, 18, 34 (TR 2026-07-26)
+  - row 52, Diffa 2026-06-22..07-26: 70 sCh / 35 cCh / 1 death
+  - row 53, Diffa district 2026-06-23..07-21: 41 sCh / 1 death
+  ./data/NER/cholera_data_who.csv has 20 rows, latest TR 2025-01-19. No layer covers the window: still 0 of 113 days.
+RESULT: 0 rows in scope. The top-up's claim "Rows added: NONE" is CONFIRMED.
+
+=== STEP 2: PER-ROW AUDIT ===
+Rows checked 0 | kept 0 | corrected 0 | retracted 0. No Index numbers were affected. py/revise_observation.py was not
+called, because there was nothing to revise. No rows existed for the per-row checks:
+  - quote, numbers, period type and dates against the cited report
+  - duplication against WHO dashboard weeks and other AI rows
+  - deaths <= sCh, CFR and curve continuity
+  - national vs ADM1 roles, zero-row evidence, and confidence vs source tier
+
+=== STEP 3: INDEPENDENT SPOT-CHECK OF THE NULL RESULT ===
+My own API calls, not the collector's cache. Working copies are in /tmp/ner_rwaudit_20261117/, outside the repo.
+a) search --country NER --from 2026-07-27 --to 2026-11-17 --limit 200 -> totalCount 190. Set comparison with the log's
+   LIST 1: 190 = 190, no differences in either direction.
+b) search --country NER --query cholera (same dates) -> totalCount 11, the same 11 as the log. Each has a logged decision:
+     4237200 OUT-OF-WINDOW: IOM Zinder mobility mapping, Aug-Sep 2025
+     4235880 / 4235881 NO-NER-DATA: OCHA WCA, 20-26 Oct
+     4234375 NO-NER-DATA: ACF, 10 largest food crises
+     4231251 NO-NER-DATA: KSrelief-WHO Lake Chad cholera agreement, no count
+     4230262 OUT-OF-WINDOW: UNICEF WCARO HSR No.1, to 30 Jun
+     4227821 OUT-OF-WINDOW: Health Cluster N4, data to W30, already rows 47-53
+     4227221 / 4227222 NO-NER-DATA: OCHA WCA, 18-24 Aug
+     4226085 / 4226088 NO-NER-DATA: OCHA WCA, 11-17 Aug
+   search --country NER --query "choléra" -> 11, matching the log.
+   search --country NER --query "diarrhoea OR diarrhea OR diarrhée" -> 1: 4236844, UNICEF 'Water Under Fire' vol. 4.
+   I re-read it. The body never names Niger, and the log has it as NO-NER-DATA. Correct.
+c) 4235880 (OCHA, 20-26 Oct), re-read:
+     Niger item: "On 21 October, a fire broke out at an IDP site in N'Guigmi, in eastern Diffa Region, affecting
+       approximately 100 households".
+     Cholera item is DRC only: "More than 55,000 suspected cholera cases have been reported nationwide since January".
+     No Niger cholera, as logged.
+   4226085 (OCHA, 11-17 Aug), re-read:
+     Cholera item is Cameroon Far North: "As of 12 August, 1,252 cases and 31 deaths had been reported".
+     Niger appears only in "funded ... 16 per cent in Niger". As logged.
+d) search --country NER --query "Cluster Santé bulletin" --from 2025-06-01 -> totalCount 4:
+     N1 4210087 (9 Apr), N2 4212737 (22 May), N3 4221965 (17 Jul), N4 4227821 (31 Aug 2026).
+   No N5 or N6 is on ReliefWeb as of 2026-11-17. Collector finding F2 CONFIRMED.
+e) My own download of WHO AFRO OEW week 41 (4235066, data to 11 Oct 2026; OEW41-11102026.pdf, 2,585,728 bytes), read
+   with pdftotext. I checked every line naming Niger (not Nigeria). Niger's event rows are:
+     Diphtheria, Grade 2: 949 cases / 36 deaths to 20-Sep-26
+     Hepatitis E, ungraded: 215 / 18 to 4-Oct-26
+     Humanitarian crisis, protracted: to 30-Jun-26
+     Measles, ungraded: 10,379 / 16 to 26-Jul-26
+   The cover-map labels repeat these. There is no Niger cholera row, so collector finding F3 is CONFIRMED for wk41.
+   This is a non-listing at event level, NOT a zero.
+I found no missed figure. I did not re-check: the individual OEW wk31-40 PDFs, the Africa CDC EIR 13-Sep image PDF,
+UNICEF Niger HSR No.1, or the 860 multi-country title screens.
+
+=== STEP 4: VALIDATOR ===
+python3 py/validate_quality.py NER -> exit 0.
+  904 data rows | 293 metadata sources | ERROR 0, WARN 48 (44 CFR_high_flagged_for_review + 4 period_single_day), INFO 414.
+This matches the collector's post-stage run and the main-pass audit. Every WARN is pre-window and pre-existing.
+
+=== STEP 5: ASSESSMENT ===
+The window 2026-07-27..2026-11-16 is still EMPTY in every layer (0 of 113 days). AI ends 2026-07-26, WHO ends
+2025-01-19 and JHU ends 2024-12-31.
+Classification unchanged: REPORTING/PUBLICATION GAP, NOT ABSENCE. When the data stop, the Diffa outbreak was still rising
+(W30 national 34 sCh). Do NOT zero-fill.
+The top-up added no data. It did settle the main pass's two open ReliefWeb leads:
+  - Health Cluster N5/N6 are not on ReliefWeb at all, so they are unpublished there, not merely blocked.
+  - AFRO OEW wk37-41 list no Niger cholera event.
+Collector performance: thorough and accurate. Every claim I re-checked reproduced exactly. It:
+  - wrote no phantom rows and inflated no yields
+  - correctly declined the pre-window UNHCR Q2 figure (5 suspected cases, 29 Jun-3 Jul; consistent with rows 47-48)
+  - correctly refused to read the WHO AFRO and Africa CDC non-listings as zeros
+Leads for the next pass, unchanged from the collector:
+  1. Health Cluster N5 2026
+  2. UNICEF Niger HSR No.2 2026 ('Next sitrep: October 2026')
+  3. AFRO OEW wk42 onwards
+  4. WER 2025 annual Niger total (pre-window, so it belongs to the cross-country harvest)
+  5. IFRC MDRTD026 cross-border cholera meeting communique
+
+=== FILES TOUCHED ===
+Created : ./data/NER/search_log_recency_20261116_rwaudit.txt (this log)
+Appended: ./data/NER/search_report.txt (section "=== RECENCY PASS 20261116: RELIEFWEB TOP-UP ===")
+Not touched: cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv, baselines,
+             workflow_state*.json, other logs, other countries.
+Scratch, outside the repo: /tmp/ner_rwaudit_20261117/ (API listings, OEW wk41 PDF and text) and
+                           /tmp/NER_rwaudit_validate.txt (validator output).
+End Time: 2026-11-17 14:58
+Agent Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 rwaudit NER
