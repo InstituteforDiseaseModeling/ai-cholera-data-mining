@@ -6,3 +6,89 @@ Scope: rows in ./data/CMR/cholera_data_ai.csv whose processing_notes contain [RE
 Stage 1 log: ./data/CMR/search_log_recency_20261116_agent1.txt (present, 17746 bytes, mtime Nov 17 08:43)
 Status: INITIALIZED
 
+=== STAGE 1 VERIFICATION ===
+- Stage 1 log and ./data/CMR/workflow_state_recency_20261116.json present.
+- Claimed writes vs files: rows_added [1162] -> present; it is the ONLY row in ./data/CMR/cholera_data_ai.csv (1,116 rows)
+  tagged [RECENCY-20261116]. sources_registered [329, 330] -> present in ./data/CMR/metadata_ai.csv (max Index 330).
+  Revision of 1162 (Journal du Cameroun conflict note, conf 0.60 -> 0.55) -> present in processing_notes.
+- Batches: 4 (80 queries = 68 WebSearch + 12 ReliefWeb API), yields 5/0/0/0 % (per query, none >100%).
+  3-batch minimum met; stopped after 3 consecutive <5% batches (B2-B4) - correct.
+- Cross-country harvest: xref apply not run (queue had no in-window candidate) -> no [XREF-HARVEST] rows written in this pass.
+  CMR's only harvest row (Index 1161, 2020, run xref-20261008b) predates this pass - outside this audit's scope per brief.
+
+=== PRE-AUDIT VALIDATOR ===
+python3 py/validate_quality.py CMR -> ERROR 0, WARN 46, INFO 219, exit 0. No finding on row 1162.
+
+=== ROW AUDIT: Index 1162 (1 of 1 tagged rows = 100%) ===
+As found: AFR::CMR TL 2026-01-01 TR 2026-10-30 sCh 3103 deaths 94 cCh blank CFR 3.03 reporting 2026-11-03 src 329 conf 0.55
+1. SOURCE (web-fetch agent, 2026-11-17):
+   - https://fr.allafrica.com/stories/202611030391.html : HTTP 200, not paywalled. 'Afrique Centrale: Choléra, Ebola, Mpox - La région
+     face à l'urgence sanitaire commune', Par Noël Ndong, Les Dépêches de Brazzaville, 3 Novembre 2026. Exact sentence present:
+     'Au 30 octobre dernier, le Cameroun enregistrait 3 103 cas et 94 décès.' Same paragraph: Tchad 1 431, RCA 784, Nigeria 73 416
+     (cases only). No period wording; figures attributed to no one. -> PASS: quote and numbers match the row.
+   - Corroboration, metadata 330: https://www.cameroon-tribune.cm/article.html/82387/fr.html/details_2 : HTTP 200, paywalled after lead.
+     'Bassin du Lac Tchad: Le front anti-épidémies se renforce', Par Alliance, 06 Nov 2026: 'Selon des chiffres communiqués à l'entame
+     de la réunion, au 30 octobre 2026 le Cameroun comptait 3.103 cas de choléra.' Meeting 2-4 Nov, Douala, opened by Minister
+     Malachie Manaouda. No deaths figure visible. -> PASS.
+   - Conflict-note source (Journal du Cameroun, 2 Nov 2026, Arnaud Nicolas Mawel): 'au moins 2 500 cas et une vingtaine de décès'
+     present, undated, unsourced. -> stage 1's note accurate.
+   - Cross-reference UNICEF Flash Update No.5 (via python3 -I -B py/reliefweb.py get ... --download; PDF in
+     cache/recency_cmr_audit/unicef_fu5/): 'As of 23 October 2026, a total of 3,090 cholera cases and 92 deaths'; 'cumulative since
+     the onset of the outbreak in June 2026'; 8 active cases; 20 districts with confirmed cases. -> stage 1's note accurate.
+2. PERIOD TYPE / DATES: cumulative as of 30 Oct 2026 - correct (3,103 as a period count is impossible next to WHO October weeks of 0-56).
+   TL 2026-01-01 gave the right total (WHO CMR 2025-W53 and every Jan-May 2026 week = 0) but the wrong effect: running
+   py/analyze_effective_gaps.py analyse() in memory, TL=Jan-01 makes Jan-May 2026 count as months WITH cholera
+   (months_with_positive_cases 654 -> 658). Outbreak onset = week of 2026-06-01 (first 2026 WHO cases, 16; MoH declaration 29 Jun;
+   UNICEF 'since the onset of the outbreak in June 2026'). -> CORRECTED TL to 2026-06-01. reporting_date 2026-11-03 >= TR: ok.
+3. DUPLICATION: ./data/CMR/cholera_data_who.csv has no row with this span, so it restates no WHO week. It nests WHO weekly rows
+   2026-W23..W43 (3,098/94), national AI rows 205, 328, 1127-1129 and ADM1/camp rows 58, 331-333, 880, 881, 888, 889, 1009-1014.
+   No duplicate AI row (no other AI row has TR >= 2026-09-21).
+   Builder check (my script /tmp/cmr_audit_scripts/without_row.py: build_weekly_timeseries.process_country on the live files vs a temp
+   copy without 1162): coverage_skipped 69 -> 70; 0 of 2,964 weeks differ; 2026 weekly total 3,098 either way. Same after the TL fix.
+   Role note appended (national cumulative anchor only; never sum with the nested rows).
+4. PLAUSIBILITY: deaths 94 <= sCh 3,103; cCh blank; CFR 94/3103 = 3.03% (correct). Curve: WHO W40 56, W41 19, W42 5, W43 0 -> 3,098/94
+   at 25 Oct; 3,103/94 at 30 Oct = +5/+0, consistent with a declining tail. Neighbours vs WHO AWD raw file
+   (../ees-cholera-mapping/data/cholera/who/awd/cholera_country_weekly.csv, read-only): NGA 73,416 = 2025-W53 (220) + 2026-W1..W42
+   (73,196) EXACTLY -> the meeting set was at least partly compiled from the WHO feed with data to ~25 Oct. TCD 1,431 vs WHO 867 to 13 Sep
+   (WHO TCD stale; plausible). CAF 784 vs WHO 725 to 6 Sep (plausible). -> PASS, with a caveat appended: CMR's +5 may be MINSANTE's own
+   count or a since-revised dashboard value and is NOT evidence of onsets on 26-30 Oct. (WHO revises heavily: between baseline snapshots
+   e9099917 and 4ebaef52 the CMR week of 2026-08-17 went 78 -> 359.)
+5. ZERO ROWS: none written in this pass. Correct: no statement of absence exists for the window.
+6. CONFIDENCE: source 329 = Level 3 (news), band 0.3-0.6 -> 0.55 kept.
+ACTION: python3 py/revise_observation.py CMR --index 1162 --tl 2026-06-01 --append-note "[RECENCY-20261116 AUDIT] ..." \
+        --agent "Recency Agent 7" --reason "[RECENCY-20261116 AUDIT] TL set to outbreak onset ..." -> EXIT 0.
+        Diff vs .backup_cholera_data_ai_20261117-085338176340.csv: only Index 1162 changed (TL, processing_notes); 1,116 rows before and after.
+VERDICT 1162: KEPT, CORRECTED (TL only; values, TR, weight unchanged).
+
+=== INDEPENDENT WINDOW CHECK (auditor; not collection) ===
+11 WebSearch: (1) Cameroun choléra novembre 2026 situation épidémiologique nouveaux cas; (2) Cameroon cholera outbreak November 2026
+[extended]; (3) WHO AFRO weekly bulletin week 43 2026 cholera Cameroon; (4) IFRC DREF Cameroon cholera 2026 operation update Far North;
+(5) réunion transfrontalière Douala choléra 4 novembre 2026 clôture recommandations; (6) OCHA Cameroon Far North situation report
+November 2026 cholera; (7) "MDRCM045" Cameroon; (8) "MDRCM043" Cameroon DREF; (9) UNICEF Cameroon flash update No. 6 cholera
+Oct-Nov 2026; (10) Tchad choléra novembre 2026 cas cumulés; (11) NCDC Nigeria cholera sitrep week 43/44 2026.
+Fetched: IFRC go-api DownloadFile/96455/MDRCM045do (pdftotext): 'DREF Operation - Cameroon: floods in Fako', published 20-08-2026 -> not
+cholera. MDRCM043 = 'Cameroon Fire 2026' DREF -> not cholera.
+Result: no CMR figure dated 26 Oct-16 Nov from any source; agrees with stage 1. No closing communiqué of the Douala meeting online.
+Context only, from search snippets (pages not fetched): WER No.44 2026 (6 Nov) gives CMR 3,018 cases/90 deaths 1 Jan-27 Sep and
+585 cases/17 deaths in September (both equal to the WHO dashboard; no new information); ECDC October update CMR 2,712/79 to 11 Oct;
+Chad declared a new focus at Isseirom (Lac) on 31 Oct (147 cases/15 deaths in 5 days, tchadinfos).
+
+=== METRICS (in memory, end date 2026-11-16; shared ./reference files NOT regenerated - parallel pass) ===
+                         latest_obs  latest_pos  months_ai  months_ai_only  months_pos  open gaps
+JHU+WHO only             2026-10-25  2026-10-18      0            0            630    3 (1970, 1977, 2026-11-01..11-16)
++AI without 1162         2026-10-25  2026-10-18    617           24            654    1 (2026-11-01..11-16, 16 d)
++AI with 1162 (TL 06-01) 2026-10-30  2026-10-30    618           24            654    1 (2026-11-01..11-16, 16 d)
+Coverage 682/683 months (99.9%) in all AI cases. Row 1162 closes no gap period.
+NOTE: ./reference/effective_surveillance_recency.csv (written 08:39 by the runner) already shows CMR latest_positive 2026-10-30 - from
+this cumulative row; the last positive WHO week is 2026-10-12..18 (5 cases).
+
+=== POST-AUDIT VALIDATOR ===
+python3 py/validate_quality.py CMR -> ERROR 0, WARN 46 (45 CFR_high + 1 period_single_day, all pre-existing historical rows), INFO 219,
+exit 0. Only recency-related finding: INFO metadata_unused for Index 330 (Cameroon Tribune) - corroboration-only source, cited in
+1162's notes; accepted.
+
+=== SUMMARY ===
+Rows checked 1 | kept 1 | corrected 1 (1162: TL) | retracted 0 | zero rows 0 | sources added by stage 1: 2 (329, 330) | by Agent 7: 0
+Window: 26-30 Oct touched only by a cumulative anchor; weekly series still ends 2026-W43; 31 Oct-16 Nov empty (not yet published).
+End Time: 2026-11-17 08:56:30
+Status: COMPLETE
