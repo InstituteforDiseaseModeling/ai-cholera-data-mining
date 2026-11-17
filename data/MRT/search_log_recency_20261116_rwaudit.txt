@@ -1,0 +1,104 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (RWAUDIT) ===
+Country: Mauritania (MRT)
+Window: 2026-09-14 to 2026-11-16 (64 days)
+Scope: rows of ./data/MRT/cholera_data_ai.csv whose processing_notes contain [RECENCY-20261116-RW]
+Start Time: 2026-11-17 14:56 (approx.)
+Top-up log: ./data/MRT/search_log_recency_20261116_rw.txt -- PRESENT (740 lines; last line
+  "RECENCY-STAGE-COMPLETE 20261116 rwcollect MRT"; claims 0 rows, 0 zero rows, 0 presence entries, 0 sources)
+Tool: python3 -I -B py/reliefweb.py (appname not recorded here)
+Status: INITIALIZED
+
+=== STEP 1: SCOPE - WHAT DID THE TOP-UP WRITE? ===
+grep "RECENCY-20261116-RW" -> 0 lines in ./data/MRT/cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv,
+  retracted_rows_ai.csv and retracted_presence_ai.csv. Main-pass tag [RECENCY-20261116]: also 0 lines in every file.
+  ./data/MRT/attribution_review.csv does not exist.
+csv.DictReader parse of ./data/MRT/cholera_data_ai.csv: 133 rows, Index 3..143, all unique, max Index 143. This matches
+  the top-up log's claim (line 715: "unchanged (133 rows, max Index 143)").
+  Rows overlapping 2026-09-14..2026-11-16 (TL<=2026-11-16 and TR>=2026-09-14): 0.
+  Rows with reporting_date >= 2026-09-14: 2. Both are untagged full-run rows whose periods end before the window:
+    Index 47  AFR::MRT 2026-09-01..2026-09-13 sCh 0, Inferred_Absence, w 0.7, reported 2026-09-24
+    Index 137 AFR::MRT 2025-01-01..2025-12-31 sCh 0, Documented_Absence (WER Table 5), w 0.95, reported 2026-09-25
+./data/MRT/metadata_ai.csv: 134 sources, max Index 134, none mentions RECENCY-20261116.
+File state: cholera_data_ai.csv mtime 2026-09-29 22:51; metadata_ai.csv and cholera_presence_ai.csv 2026-09-29 22:49.
+  The newest ./data/MRT/.backup_cholera_data_ai_* is 20260929-225112, so add_observation/revise_observation have not
+  written since 2026-09-29. git status ./data/MRT/ was clean at audit start (the 14:55:39 auto-update committed the
+  top-up log).
+Baselines: ./data/MRT/cholera_data_who.csv does not exist (MRT is not in the WHO dashboard feed), so there is no WHO
+  week to dedupe against. MRT has no [XREF-HARVEST] rows (outside this stage's scope in any case).
+RESULT: 0 tagged rows. Rows checked 0 | kept 0 | corrected 0 | retracted 0. No py/revise_observation.py call made.
+
+=== STEP 2: PER-ROW CHECKS ===
+The per-row checks have nothing to apply to (0 tagged rows): quote, numbers, period type and dates against the cited
+report; duplication against WHO weeks (no WHO file) and other AI rows, including main-pass [RECENCY-20261116] rows
+(none exist); deaths <= sCh; CFR; curve continuity; national vs ADM1 roles; zero-row evidence; confidence vs source tier.
+
+=== STEP 3: SPOT-CHECK OF THE TOP-UP'S NEGATIVE RESULT (read-only) ===
+A zero-yield stage can hide a miss, so the reads behind its "no MRT data" conclusion were re-opened. Downloads went to
+new empty directories under /tmp (outside the repo) and were read with pdftotext only. They have been deleted.
+(a) WHO AFRO Weekly Bulletin on Outbreaks and Other Emergencies, wk41 (5-11 Oct 2026), ReliefWeb id 4235066
+    https://reliefweb.int/report/zambia/weekly-bulletin-outbreaks-and-other-emergencies-week-41-05-11-october-2026-data-reported-1700-11-october-2026
+    attachment OEW41-11102026.pdf, all-events table. It has exactly two Mauritania rows:
+      "Mauritania  Crimean-Congo haemorrhagic Fever (CCHF)  Ungraded  27-Aug-26  30-Aug-26  1  1  0  0.00"
+      "Mauritania  Diphtheria  Ungraded  17-Sep-25  23-Sep-25  97  10  8  8.25"
+    No Mauritania cholera or AWD row. Cholera rows: Angola, Burundi, Cameroon, Chad, Congo, Kenya, Mozambique, Namibia,
+    Rwanda, South Africa, South Sudan, Zambia. Senegal = diphtheria + mpox; Mali = humanitarian crisis + measles.
+    This CONFIRMS top-up log lines 52-58. The CCHF narrative mentions "bloody diarrhoea" as a CCHF symptom; the top-up
+    correctly did not use it.
+(b) The only MRT-tagged ReliefWeb report matching "cholera" in the window: UNICEF West and Central Africa Region
+    Humanitarian Situation Report No. 1, 30 June 2026 (id 4230262, published 2026-09-17)
+    https://reliefweb.int/report/congo/unicef-west-and-central-africa-region-humanitarian-situation-report-no-1-30-june-2026
+    Mauritania narrative (p.34): no cholera/AWD figure (only generic outbreak-risk and WASH wording).
+    Mauritania results table (p.54): "Individuals receiving treatment for cholera/acute watery diarrhoea in UNICEF-
+    supported facilities | Total needs - | 2026 targets 11,614 | Total results - | 0%".
+    11,614 is a programme TARGET (CLAUDE.md: REJECT "targeted"), the result is blank, and the period (Jan-Jun 2026) lies
+    outside the window. It is not a count, not a zero and not presence, and it does not conflict with full-run zero rows
+    Index 123, 32 or 33.
+    -> Decision "no MRT data" UPHELD. The only issue is a ledger imprecision: log line 669 says the MRT section "has no
+    cholera/AWD", but it does carry this target-only indicator. No data consequence.
+(c) Fresh py/reliefweb.py searches, 2026-11-17 ~14:57-15:00:
+    --country MRT --from 2026-11-16                         -> 1 report (4238473; ledger line 99)
+    --country MRT --query cholera --from 2026-09-14         -> 1 report (4230262 = item b; ledger line 669)
+    --country MRT --query diarrh* --from 2026-09-14         -> 0
+    --query "Mauritania cholera" --from 2026-09-14          -> 0
+    --query "Mauritanie choléra" --from 2026-09-14          -> 0
+    --query "Weekly Bulletin on Outbreak" --from 2026-11-01 -> 3, all SPC Pacific alert maps: AFRO wk42+ still absent
+    --query "Latest Events at a glance" --from 2026-10-27   -> OCHA WCA 20-26 Oct (4235880) and 10-16 Nov (4238632),
+        plus a WHO yellow fever DON (4237367); all three are in the ledger. Editions 27 Oct-2 Nov and 3-9 Nov still absent.
+    Nothing has appeared since the top-up ended at 14:55:01, and every report returned is already in its ledger.
+Zero-row rule: no ReliefWeb text states that Mauritania had zero cholera in the window, and absence from a
+  multi-country list is not zero evidence. The top-up was right to add no add-zero row. UPHELD.
+
+=== STEP 4: TOP-UP PERFORMANCE ===
+The top-up enumerated exhaustively (623 unique reports screened, 126 read with body + attachments) rather than running
+  20-query batches, so the 3-batch floor does not apply. It claimed no yield figure and no rows (claim 0 = CSV 0).
+It closed a gap: it read the AFRO all-events tables for wk38-41, which the main pass logged as UNREAD because
+  iris.who.int refused connections. That item is now CLOSED for wk38-41: no MRT cholera event to 11 Oct 2026.
+It added no data: 0 rows. On the evidence this is because no cholera was reported in Mauritania, not because the
+  search failed.
+
+=== STEP 5: VALIDATOR ===
+python3 py/validate_quality.py MRT (final run 2026-11-17 15:01:17, after the search_report.txt append) -> EXIT 0
+  ERROR 0 | WARN 6 | INFO 81. The validator numbers warnings by file line (52/65/76/99/125/126). They map to
+  pre-existing, untagged rows outside the window: Index 59, 72, 85, 108 and 134 (implied CFR >15%, 1971-1988) and
+  Index 135 (single-day period, 2005). These are outside this stage's scope, already listed in the main-pass audit,
+  and unchanged.
+
+=== STEP 6: NOT DONE, AND WHY ===
+py/analyze_effective_gaps.py was not re-run. It rewrites ./reference/effective_surveillance_gaps_*.csv for all
+  countries, this stage may not touch other files, and the MRT AI layer is unchanged, so MRT coverage and
+  months_ai_only are the same as after the main pass.
+Carried forward, not changed (outside scope): the main-pass audit noted that 2026-01-01..2026-09-13 is covered by
+  full-run Inferred_Absence zero rows (Index 123, 32, 33, 47; w 0.7). Those rows rest on list-absence evidence that
+  this pass's rule rejects. A human still needs to decide whether to keep them.
+
+=== FINAL SUMMARY - RECENCY PASS 20261116, RELIEFWEB TOP-UP AUDIT (RWAUDIT), MRT ===
+Rows checked 0 | kept 0 | corrected 0 | retracted 0 | sources added 0 | CSV writes 0 | revise_observation calls 0.
+Window covered: still 0 of 64 days. Classification unchanged: QUIET (event reporting active; no cholera reported in
+  2026; last positive observation 2011). This is not a surveillance failure. No explicit zero statement exists.
+Next pass (Jan 2027): AFRO bulletins wk42+ (ReliefWeb or IRIS); OCHA WCA editions 27 Oct-9 Nov; WER monthly cholera
+  update with Oct-Nov 2026 data; WER annual cholera report for 2026 (an explicit MRT zero there = Documented_Absence).
+Files written: this log (new); ./data/MRT/search_report.txt (16-line section appended; its first 26,791 bytes were
+  checked byte-identical to the original). No CSV, metadata, presence, workflow_state, baseline or dashboard file touched.
+End Time: 2026-11-17 15:02
+Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 rwaudit MRT
