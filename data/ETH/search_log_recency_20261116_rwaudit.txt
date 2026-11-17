@@ -1,0 +1,155 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (STAGE RWAUDIT) ===
+Country: Ethiopia (ETH)
+Window: 2026-07-01 to 2026-11-16 (139 days)
+Auditor: Agent 7 (Quality Auditor)
+Start Time: 2026-11-17 ~15:10 (first audit command; the collector finished 15:08:54)
+Scope: ONLY rows of ./data/ETH/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]".
+       Outside this stage: the main pass's [RECENCY-20261116] rows (Index 3417-3419, audited 2026-11-16 in
+       ./data/ETH/search_log_recency_20261116_agent7.txt), pre-window rows and [XREF-HARVEST] rows.
+Tools: python3 py/validate_quality.py; python3 -I csv parsing; pdftotext / pdftoppm on the collector's cached PDFs in
+       cache/reliefweb/ETH/ (gitignored). This audit made NO ReliefWeb API or attachment request: no tagged row needed
+       re-opening, and the attachment host was throttling concurrent top-ups (HTTP 429). The ReliefWeb credential is not
+       recorded here.
+Agent Status: INITIALIZED
+
+=== STEP 0: TOP-UP LOG READ ===
+./data/ETH/search_log_recency_20261116_rw.txt EXISTS: 1,548 lines, stage RWCOLLECT 2026-11-17 14:32:12 to 15:08:54, last
+line "RECENCY-STAGE-COMPLETE 20261116 rwcollect ETH". The collector claims:
+  - It screened 1,356 ReliefWeb reports with date.original 2026-07-01..2026-11-17:
+      390 ETH-tagged: title and body checked, all 328 attachments full-text grepped, image-only PDFs OCR'd.
+      966 not ETH-tagged: title and body checked; attachments of 165 multi-country or neighbour-tagged reports grepped.
+  - Decisions: row 0 | presence 0 | already captured 1 | duplicate of the WHO baseline 3 | frozen pre-window
+    cumulative 2 | out of window 13 | no ETH data 1,337.
+  - "Rows added: 0". ./data/ETH/cholera_data_ai.csv unchanged at 3309 rows (max Index 3419). 0 sources registered
+    (508 unchanged), 0 presence records.
+I re-tallied the per-report screening table (log lines 106-1469, parsed by report id):
+  - 1,356 decision lines for 1,356 unique ids, no repeats.
+  - 1,339 'no ETH data' variants. These include the 2 Africa CDC 'no ETH data in window' lines (the collector's 'frozen'
+    pair) and the UNHCR SSD #12 'not a zero' line.
+  - 13 out of window, 3 duplicate, 1 already captured. Total 1,356.
+  - No decision begins with row, presence or zero.
+The table matches the collector's summary. The log lists no rows, so the stage task is to confirm that against the CSVs
+(step 1).
+
+=== STEP 1: CONFIRM "NO ROWS" AGAINST THE CSVs ===
+Tag counts (fixed-string grep over every line, so every column of every row):
+  file                                   "[RECENCY-20261116-RW]"   "[RECENCY-20261116" (main pass + top-up)
+  ./data/ETH/cholera_data_ai.csv                    0                    3  (= main-pass Index 3417, 3418, 3419)
+  ./data/ETH/metadata_ai.csv                        0                    4  (= main-pass sources 505-508)
+  ./data/ETH/cholera_presence_ai.csv                0                    1  (= main-pass Waghimira presence, src 508)
+  ./data/ETH/retracted_rows_ai.csv                  0                    0  (nothing was written and later retracted)
+  ./data/ETH/attribution_review.csv                 0                    0
+  ./data/ETH/retracted_presence_ai.csv does not exist.
+csv.DictReader parse:
+  ./data/ETH/cholera_data_ai.csv: 3,309 rows, max Index 3419.
+  ./data/ETH/metadata_ai.csv: 508 sources, max Index 508.
+  ./data/ETH/cholera_presence_ai.csv: 115 rows.
+  These match the collector's before and after figures.
+Rows overlapping 2026-07-01..2026-11-16 (TL <= 2026-11-16 and TR >= 2026-07-01): 3. All are main-pass rows; none is
+RW-tagged.
+  3417 AFR::ETH::Amhara          2026-07-01..08-31  15 sCh / 0 deaths            src 505  w 0.75
+  3418 AFR::ETH::South_Ethiopia  2026-09-14..09-18  documented zero              src 506  w 0.5
+  3419 AFR::ETH                  2026-07-08..10-10  24 sCh (derived estimate)    src 507  w 0.5
+  Presence rows overlapping the window: 3 (Afar src 237, Amhara Quara src 491, Amhara Waghimira src 508). None is
+  RW-tagged.
+File state:
+  - mtimes: ./data/ETH/cholera_data_ai.csv 2026-11-16 14:49:56; ./data/ETH/metadata_ai.csv 2026-11-16 14:25:21;
+    ./data/ETH/cholera_presence_ai.csv 2026-11-16 14:25:29. All three predate the top-up's start (2026-11-17 14:32:12).
+  - No ./data/ETH/.backup_* file is dated 20261117. add_observation.py and revise_observation.py write a backup before
+    every write; the newest is ./data/ETH/.backup_cholera_data_ai_20261116-144956284757.csv.
+  - git: `git status --porcelain -- ./data/ETH` is clean. The three CSVs have no diff vs HEAD (48119016, 2026-11-17
+    15:09:57, the auto-update that committed the top-up log). They were last changed in commit 1aff689b (2026-11-16
+    14:54:24). The HEAD copies carry 0 "[RECENCY-20261116-RW]" tags.
+RESULT: 0 tagged rows. Rows checked 0 | kept 0 | corrected 0 | retracted 0. No py/revise_observation.py call was made.
+
+=== STEP 2: PER-ROW CHECKS ===
+Not applicable: no [RECENCY-20261116-RW] row exists. None of these checks has a subject:
+  - quote, numbers, period type and dates against the cited report;
+  - duplicate of a WHO week or another AI row (including the main pass's rows);
+  - deaths <= sCh, CFR, curve continuity;
+  - national vs ADM1 role, zero-row evidence, confidence vs source tier.
+For the record, ./data/ETH/cholera_data_who.csv has no week overlapping the window. Its last ETH week is
+2026-03-09..03-15.
+
+=== STEP 3: SPOT-CHECK OF THE ZERO-ROW OUTCOME (collector's cached copies only, no network) ===
+Purpose: make sure "0 rows" is not a missed figure. I checked the three decisions that carried an Ethiopian number.
+  a) 4233738 UNICEF Ethiopia Humanitarian Situation Report No.4 (July to August 2026), checked with pdftotext.
+     - Health narrative: 'In Amhara, 15 cholera cases were reported and treated, with no deaths.'
+     - HAC row 'Individuals treated for cholera/acute watery diarrhoea': target 30,223 | Jul-Aug 15 | cumulative 15 |
+       0.05%.
+     - No other cholera or AWD count appears in the document.
+     This is existing Index 3417. ALREADY CAPTURED, CONFIRMED.
+  b) 4233562 OCHA ROSEA 'Eastern Africa: Humanitarian Snapshot (As of October 2026)'. Page rendered with pdftoppm and read.
+     - The disease-outbreak map labels ETHIOPIA cholera 50. The key figure reads 'CHOLERA CASES (JAN - SEP 2026)'.
+       Footnote 5 gives the source as the WHO Global Cholera and AWD Dashboard.
+     - ./data/ETH/cholera_data_who.csv, epi-year 2026 (11 weeks, 2025-12-29..2026-03-15), sums to 50 sCh / 2 deaths.
+       It is 47 if ISO week 1 (2025-12-29..2026-01-04, 3 cases) is left out.
+     - The OCHA figure restates the WHO baseline: DUPLICATE, CONFIRMED.
+     - Not re-rendered: the Aug and Sep ROSEA products (4225651, 4233837). Their text layers also carry a '50' map label,
+       which is consistent with the collector's reading.
+     - Corollary: the WHO dashboard had no new Ethiopian cholera week between mid-March and its September cut.
+  c) 4232352 Africa CDC Epidemic Intelligence Weekly Report, September 2026 (image-only). Cholera page (p.9) rendered and
+     read.
+     - It says cases '... have been reported from 20 AU MS: ... Ethiopia (15; 0) ...'.
+     - It also says 'Since the last update (6 September, 2026), a total of 8,863 new cases and 109 new deaths of cholera
+       were reported from six AU MS: Angola, Congo, DRC, Mozambique, Somalia and Zambia.'
+     - 15/0 equals the WHO baseline weeks 2025-12-29..2026-02-22 (3+10+2+0+0+0+0+0 cases, 0 deaths). Africa CDC's
+       Ethiopia figure has therefore been frozen since late February.
+     - It gives no in-window count. Ethiopia's absence from the new-case list is not a zero either, because UNICEF
+       documents 15 Amhara cases in Jul-Aug (Index 3417). NO ROW, CONFIRMED.
+  The collector's cross-references exist as stated:
+    - Index 3268: AFR::ETH::Amhara 2026-03-01..04-30, 51 sCh, src 470.
+    - Index 749: AFR::ETH::Gambela::Luakdong_Refugee_Camp zero, 2026-02-01..06-30, src 167.
+Verdict: the collector's zero-row outcome is correct. Nothing I checked contained a missed in-window figure.
+
+=== STEP 4: VALIDATOR (first run, before any write by this stage) ===
+python3 py/validate_quality.py ETH -> exit 0.
+  - 3,309 rows / 508 sources. ERROR 0, WARN 15, INFO 306.
+  - The WARNs are 7 multiyear_aggregate, 7 CFR_high_flagged_for_review and 1 period_single_day. All are on pre-existing
+    rows outside the window.
+  - These counts are identical to the collector's pre- and post-run figures and to the main-pass audit (2026-11-16).
+Nothing to fix in this stage.
+
+=== OBSERVATIONS FOR THE NEXT PASS ===
+  - ReliefWeb's only Ethiopian cholera count for a period inside the window is the UNICEF HSR No.4 figure: Amhara 15/0,
+    Jul-Aug, = Index 3417.
+  - Every regional product restates frozen pre-window figures:
+      - WHO dashboard: 50/2, last week 2026-03-09..15.
+      - OCHA ROSEA maps (Aug, Sep and Oct 2026 products): 'ETHIOPIA 50' for Jan-Jul or Jan-Sep 2026.
+      - Africa CDC: 15/0 since late February.
+    Do not difference these against later issues, and do not read Ethiopia's absence from their new-case lists as zero.
+  - Nationally, 2026-07-01..07-07 and 2026-10-11..11-16 remain empty in every layer. This is NON-REPORTING, not absence:
+    AFRO OEW wk31-41 list Ethiopian measles every week but no Ethiopian cholera event, and the main pass found Waghimira
+    cholera presence in late Oct. No zero is justified.
+  - Main-pass item, unchanged by this stage: the UNICEF HAC cumulative restarts in July. 'Cumulative to 31 Aug = 15' is
+    not a Jan-Aug total and does not contradict Index 3268 (51 Amhara cases, Mar-Apr).
+  - Not on ReliefWeb at 2026-11-17, re-check next pass:
+      - UNICEF Ethiopia HSR No.5 (Sep-Oct 2026)
+      - WHO GHoA SitRep No.2 (Jul-Sep 2026)
+      - UNHCR Ethiopia Jul-Sep 2026 public-health and WASH factsheets
+      - AFRO OEW wk42+
+      - Africa CDC EIWR after Sep 2026
+      - OCHA ROSEA snapshot after Oct 2026
+
+=== STEP 5: FILES WRITTEN AND FINAL VALIDATION ===
+Validator re-run after the report append: python3 py/validate_quality.py ETH -> exit 0.
+  - 3,309 rows / 508 sources. ERROR 0, WARN 15, INFO 306.
+  - The findings are identical to the first run.
+Files written by this stage:
+  - this log (new): ./data/ETH/search_log_recency_20261116_rwaudit.txt
+  - ./data/ETH/search_report.txt: a 19-line section "=== RECENCY PASS 20261116: RELIEFWEB TOP-UP ===" was appended. The
+    first 27,544 bytes are byte-identical to the original (sha256 7de5dbe4...88cfefa before and after the append).
+Not touched:
+  - ./data/ETH/{cholera_data_ai,metadata_ai,cholera_presence_ai}.csv (mtimes still 2026-11-16)
+  - the baselines, workflow_state*.json, other logs, the dashboard, other countries
+  - No py/revise_observation.py call, no xref apply or rollback, no ReliefWeb API call.
+Scratch, outside the repo:
+  - /tmp/eth_rwaudit_txt.pxNZ5X (pdftotext output)
+  - /tmp/eth_rwaudit_img.cd4zfD (rendered pages)
+  - /tmp/eth_rwaudit_scripts.OYG1da (contact-sheet, crop and tally helpers)
+  - /tmp/ETH_rwaudit_validate.txt and /tmp/ETH_rwaudit_validate_final.txt (validator output)
+SUMMARY: rows checked 0 | kept 0 | corrected 0 | retracted 0, because no [RECENCY-20261116-RW] row exists. The
+  collector's zero-row outcome was verified. Validator exit 0.
+End Time: 2026-11-17 15:16
+Agent Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 rwaudit ETH
