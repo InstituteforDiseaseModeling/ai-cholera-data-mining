@@ -8,3 +8,58 @@ Agent 1 Status: INITIALIZED
 Scope: trailing window only; no searches/edits for periods before 2026-10-12.
 Tag: every --note and --discovery begins with [RECENCY-20261116]
 
+=== PRE-SEARCH ===
+- Read ./templates/template_search_protocol.txt; ./reference/country_profiles.json (RWA: adm1 Kigali/Eastern/Northern/
+  Southern/Western; languages en/fr/rw; health domains moh.gov.rw, rbc.gov.rw; Lake Kivu shoreline Rubavu/Rusizi with DRC
+  importation); ./reference/effective_surveillance_recency.csv (RWA latest obs 2026-10-11, 36 days stale).
+- ./data/RWA/cholera_data_who.csv ends 2026-10-11 (WHO wk 40 = 123). ./data/RWA/cholera_data_ai.csv: no row with
+  TR >= 2026-09-14 before this pass (RBC bulletins mined to wk 37 by the full run).
+- === XREF QUEUE === python3 -I -B py/xref_harvest.py queue RWA: 34 open candidates, ALL with periods ending <= 2026-05-31
+  -> none in the window; nothing to add (apply not run, per instructions).
+- Tooling: curl not permitted in this session; Python urllib to www.rbc.gov.rw timed out on TLS, but rbc.gov.rw (no www)
+  downloads fine. PDFs saved under ./cache/recency_20261116/RWA/rbc_wNN/ (one directory per file), text via pdftotext.
+- Calendar: RBC uses ISO weeks (2026-W42 = 12-18 Oct ... W45 = 2-8 Nov; W46 = 9-15 Nov). The WHO dashboard labels the same
+  dates one week lower (its "week 40" = 5-11 Oct = RBC/ISO W41).
+
+=== BATCH 1 | PHASE 1 | RWA ===
+Gap targeted : 2026-10-12..2026-11-16 (36d, recent) - trailing recency window
+Queries      : 20
+  1  WebFetch RBC publications index https://rbc.gov.rw/publications/health-surveillance-emergency-preparedness-reponse
+     -> 2026 list now runs to wk 45 (wk 38-45 links captured; wk 46 not yet posted)  [WHO/official]
+  2  Fetch RBC bulletin wk42 2026 (12-18 Oct) PDF -> IBS 89 suspected cholera / 25 HF; W. Province box 480 cum as of 20 Oct
+     -> ROWS 684, 688  [WHO/official]
+  3  Fetch RBC bulletin wk43 2026 (19-25 Oct) PDF -> IBS 99 / 26 HF; box repeats wk42 (480/34/446/29) -> ROW 685  [WHO/official]
+  4  Fetch RBC bulletin wk44 2026 (26 Oct-1 Nov) PDF -> IBS 68 / 14 HF; box 542 cum, 45 lab as of 6 Nov -> ROWS 686, 689
+  5  Fetch RBC bulletin wk45 2026 (2-8 Nov) PDF -> IBS 66 / 17 HF; box 582 cum, 45 lab as of 8 Nov -> ROWS 687, 690
+  6  Fetch RBC bulletins wk38-41 2026 (CONTEXT ONLY, pre-window, no rows): IBS 53/94/73/123 = WHO dashboard rows for
+     2026-09-14..10-11 exactly (so the RBC IBS count IS the WHO RWA series); wk41 box still 'Rusizi district' 361 cum
+     as of 10 Oct -> renamed 'Western Province' from wk42  [technical]
+  7  WebSearch: Rwanda cholera October 2026 Rusizi Rutsiro cases -> older RBC bulletins only
+  8  WebSearch: Rwanda cholera outbreak November 2026 -> ECDC: RWA 394 cases since 1 Jan as of 11 Oct 2026 (365 since
+     13 Sep) - cumulative END 2026-10-11 is BEFORE the window -> not recorded
+  9  WebSearch: RBC weekly epidemiological bulletin week 43 2026 cholera -> nothing new
+ 10  WebSearch: ECDC cholera worldwide overview November 2026 Rwanda -> ECDC monthly 'as of 27 Oct' (global only for window)
+ 11  WebSearch: Africa CDC epidemic intelligence weekly report October 2026 cholera Rwanda -> none found
+ 12  WebSearch: WHO AFRO weekly bulletin outbreaks emergencies Oct 2026 wk43 cholera Rwanda -> listing to wk41 only
+ 13  WebSearch [rw]: korera Rusizi Rutsiro Ukwakira 2026 abarwayi -> nothing on cholera
+ 14  ReliefWeb API: --country RWA --query cholera --from 2026-10-12 -> 1 hit (UNICEF Great Lakes SitRep 2, Jan-Jun 2026;
+     out of window)  [humanitarian]
+ 15  ReliefWeb API: --query cholera --from 2026-10-12 (82 reports, 2 pages) -> none carry RWA figures  [humanitarian]
+ 16  WebSearch: ECDC CDTR week 45 2026 cholera monthly update -> ECDC moved to daily updates from Oct 2026; no wk45 CDTR
+ 17  WebSearch: WHO multi-country outbreak of cholera epidemiological update 42/43 2026 -> series ended at #38 (30 Jun);
+     monthly update moved into the WER from July 2026
+ 18  WebSearch: newtimes.co.rw cholera Rusizi 2026 Western Province -> none (DRC Ruzizi/South Kivu context only)
+ 19  WebSearch [fr]: choléra Rwanda Rusizi novembre 2026 cas -> none
+ 20  WebSearch: Weekly Epidemiological Record cholera monthly update November 2026 WER101 -> latest found WER101-39
+     (August data, as of 30 Aug); September/October updates not located yet
+Sources found: 8 RBC bulletins (wk38-45) + ECDC/WER leads   Registered: index 412, 413, 414, 415
+Rows added   : 7    Indices: 684, 685, 686, 687 (AFR::RWA weekly, ISO wk42-45: 89, 99, 68, 66 sCh);
+               688, 689, 690 (AFR::RWA::Western cumulative 480/34c as of 20 Oct, 542/45c as of 6 Nov, 582/45c as of 8 Nov;
+               TL 2026-04-20 inferred, conf 0.75/0.75/0.7)
+Skipped      : wk43 Western Province box ('as of 26 October' 480/34/446/29) - identical to wk42 in all four figures,
+               evidently not updated (IBS reported 99 new suspected that week); recording it would imply zero increment.
+Successful queries: 4/20   (queries 2, 3, 4, 5 - each bulletin fetch is counted as one retrieval query)
+Yield        : 20%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches)
+
