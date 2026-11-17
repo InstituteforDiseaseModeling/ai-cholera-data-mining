@@ -6,3 +6,85 @@ Scope: rows of ./data/SLE/cholera_data_ai.csv whose processing_notes contain "[R
 Stage 1 log: ./data/SLE/search_log_recency_20261116_agent1.txt (present)
 Agent 7 Status: INITIALIZED
 
+
+=== RESUMED 2026-11-17 13:01:21 ===
+Prior audit session initialized this log at 2026-11-16 16:32:47 and recorded nothing further (status INITIALIZED only):
+no row checks, no validator run, no search_report.txt section. Everything below is re-done from scratch.
+
+=== A. SCOPE CHECK ===
+Stage 1 log ./data/SLE/search_log_recency_20261116_agent1.txt: present and complete (ends "=== END AGENT 1 RECENCY LOG ===");
+  stage 1 state ./data/SLE/workflow_state_recency_20261116.json: rows_added 0, sources_registered 0, rows_revised 0.
+Tagged rows ("[RECENCY-20261116]"), grep on 2026-11-17:
+  ./data/SLE/cholera_data_ai.csv 0 | ./data/SLE/cholera_presence_ai.csv 0 | ./data/SLE/metadata_ai.csv 0 | ./data/SLE/retracted_rows_ai.csv 0
+  No collector resume added rows after stage 1 finished.
+File state matches stage 1's summary: cholera_data_ai.csv 379 rows, max Index 410 (mtime 2026-10-02 17:37); metadata_ai.csv 188 sources.
+  `git diff HEAD` on cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv shows no change since
+  commit 9a8d32bd (SLE full run, 2026-10-02). Stage 1 claimed no rows it did not add.
+No AI row overlaps the window: latest TR in the file = 2026-09-28 (Index 302). No [XREF-HARVEST] rows exist for SLE; harvest_log has 0 SLE rows.
+WHO baseline: ./data/SLE/cholera_data_who.csv does not exist (SLE is not in the WHO weekly feed), so there is nothing to deduplicate against.
+  The JHU baseline was not loaded; it ends in early 2025.
+Per-row checks 1-5 (quote/period, duplication, plausibility, zero evidence, weight): NOT APPLICABLE, 0 rows. Nothing to retract or correct;
+  py/revise_observation.py was not run.
+
+=== B. PROCESS CHECK OF STAGE 1 ===
+3 batches x 20 = 60 queries (57 WebSearch + 3 ReliefWeb API) plus 7 primary-document reads. This meets the 3-batch floor.
+  Yields 0/0/0%, so the stop rule was applied correctly. No yield above 100%, and rows claimed = rows written = 0.
+Re-checked stage 1's main evidence, its WHO AFRO OEW wk40 + wk41 text extracts (./cache/recency_20261116_SLE_a1/txt/oew40*.txt, oew41*.txt):
+  "Sierra Leone" appears only as a map label and in a Guinea mpox comment ("related to recent Mpox cases in Sierra Leone").
+  Cholera event rows: Angola, Burundi, Cameroon, Chad, Congo, Kenya, Mozambique, Namibia, Rwanda, South Africa, South Sudan, Zambia. No SLE. CONFIRMED.
+Stage 1's decisions were correct under the brief: no add-zero from silence or list absence, and the list-absence chain (Index 20/42/288/302)
+  was not extended into the window.
+
+=== C. INDEPENDENT CHECK FOR MISSED POSITIVE SIGNALS (audit only; no rows added) ===
+ReliefWeb API --country SLE --from 2026-09-29 (run 2026-11-17): 15 reports, none on cholera or AWD. They are WFP country briefs Oct + Nov 2026,
+  OCHA WCA flood monitor to 30 Sep, UNICEF WCA dashboard Jan-Jun 2026, FAO locust bulletins, UNHCR map, Concern, WHH, FEWS NET, and an OCHA RC meeting note.
+  Bodies of ids 4238524, 4234724, 4238473 and 4233219 were scanned for cholera/diarrh/waterborne: 0 hits.
+ReliefWeb API "Weekly Bulletin on Outbreaks and other Emergencies" --from 2026-10-12 returned only wk41, which stage 1 already read. Wk42+ is not yet posted.
+WebSearch (5, standard): SLE cholera Nov 2026 | SLE cholera/AWD Oct 2026 district | NPHA weekly epi bulletin wk42-44 2026 |
+  Africa CDC weekly report Nov 2026 | Freetown/Kenema/Bo/Makeni cholera 2026. None found an SLE cholera report for the window,
+  and none found an NPHA 2026 wk40-46 bulletin.
+Two leads checked and closed:
+  (a) gazettengr.com/?p=427625 ("Sierra Leone ... 99 per cent decline, reaching 31 days without a confirmed case") is about MPOX.
+      The article byline is 28 Nov 2025 and it does not mention SLE in its cholera passage.
+  (b) thenewhumanitarian.org/node/178878 (Freetown "633 ... to 863") returned HTTP 403. The same quote is already in the dataset as Index 43/44
+      (Western Area, 22-28 Sep 1999, source 34), so it is 1999, not 2026.
+Verdict: stage 1's EMPTY finding stands. No positive or zero evidence exists for SLE in the window as of 2026-11-17.
+
+=== D. BUILDER ARTEFACT INSIDE THE WINDOW (flagged, not fixed: out of scope) ===
+./data/SLE/cholera_weekly_SLE.csv (rebuilt 2026-11-17 09:17) labels ISO 2026-W40 (28 Sep-4 Oct) documented_zero, weight 0.75, source AI.
+  It comes from Index 302 (TL 2026-09-14, TR 2026-09-28; 28 Sep 2026 is a Monday). py/build_weekly_timeseries.py weeks_in_range() keeps
+  every week whose Monday falls in [TL, TR], so one covered day becomes a whole-week zero. As a result, 29 Sep-4 Oct (6 of the window's 49 days)
+  reads as a documented zero in the weekly series with no source for those days, and Index 302 itself rests on absence from a list.
+  The full-run report already noted this ("2026 W40 ... single covered day"). Index 302 is untouched because its TR is its source's
+  "as of 28 September 2026" date. The fix belongs in the builder, for example by requiring >=4 of 7 days inside [TL, TR] before a zero is
+  spread into a week. ISO weeks 41-46 are absent from the weekly series: genuinely empty, not zero-filled.
+
+=== E. WINDOW COVERAGE (2026-09-29..2026-11-16, 49 days) ===
+cholera_data_ai.csv covers 0 of 49 days (unchanged by this pass).
+  2026-09-29..2026-10-25: quiet but undocumented. No source reports cholera in SLE, and no explicit national zero exists
+    (NPHA bulletins are online only to wk25; the DHSE archive ends in 2023; the One Health Data Hub requires a login).
+  2026-10-26..2026-11-16: not yet published by any enumerating source (OEW to 11 Oct, Africa CDC to 25 Oct, ECDC to 27 Oct, WER 101(44) to 27 Sep).
+./reference/effective_surveillance_gaps_detailed.csv (regenerated 2026-11-17 12:59, not by this audit) has SLE gap 2026-10-01..2026-11-17
+  (48 d, recent). Recency file: latest_observation 2026-09-28 (a list-absence zero), latest_positive_observation 2018-06-17.
+
+=== C2. ECDC RE-READ (independent of stage 1, which got HTTP 403 and relied on the GIN log) ===
+https://www.ecdc.europa.eu/en/epipulse_event/2100 returned HTTP 200 on 2026-11-17. Latest update 27 Oct 2026: "Since 28 September 2026 and as of
+  27 October 2026, 42 136 new cases, including 501 new deaths, have been reported worldwide."
+  Africa new cases: Angola, Burundi, Cameroon, DRC, Mozambique, Nigeria, Rwanda, Somalia, South Sudan, Zambia.
+  Africa "no updates": CAR, Chad, Congo, Ethiopia, Kenya, Malawi, Namibia, South Africa, Sudan, Tanzania, Zimbabwe.
+  Sierra Leone, Guinea and Liberia are not mentioned. This is list absence only, so nothing was written; it confirms stage 1's finding.
+
+=== F. LOG SLIP IN STAGE 1 (cosmetic) ===
+Stage 1 described its validator WARNs as "historical rows 7/22/37/38/283/287". Those are CSV line numbers, not Index numbers.
+  They map to Index 24 (Port Loko 1999), 39 (Kambia 2006), 54 + 55 (national 1986), 313 + 317 (Dec 1970-Jan 1971).
+  All six are pre-existing CFR_high_flagged_for_review WARNs, out of scope and untouched.
+
+=== G. FINAL ===
+Writes by this audit: this log, and one appended section in ./data/SLE/search_report.txt ("=== RECENCY PASS 20261116: window
+  2026-09-29 to 2026-11-16 ===", 37 lines, written once with no addendum because no earlier section existed).
+  The audit did not touch cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv, workflow_state.json,
+  search_log_agent_7.txt, the baselines, the dashboard, or any other country. py/revise_observation.py was not run (no tagged rows).
+Rows checked 0 | kept 0 | corrected 0 | retracted 0 | sources added 0 | window covered 0/49 days.
+Validator (final, 2026-11-17 13:07:09): python3 py/validate_quality.py SLE -> exit 0; ERROR 0, WARN 6 (pre-existing CFR_high, Index 24/39/54/55/313/317), INFO 151.
+End Time: 2026-11-17 13:07:09
+RECENCY-STAGE-COMPLETE 20261116 audit SLE
