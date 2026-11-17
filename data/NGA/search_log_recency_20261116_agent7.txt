@@ -5,3 +5,87 @@ Scope: rows of ./data/NGA/cholera_data_ai.csv whose processing_notes contain "[R
 Start Time: 2026-11-17 08:57:19
 Stage 1 log: ./data/NGA/search_log_recency_20261116_agent1.txt (present,    24030 bytes)
 
+=== STAGE 1 SUMMARY (from its log and ./data/NGA/workflow_state_recency_20261116.json) ===
+5 batches x 20 = 100 queries; yields 0 / 5 / 0 / 0 / 0 %. Stop: B3-B5 at 0% after the 3-batch minimum -> rule correctly applied.
+Claimed: 1 row (Index 6096), 1 source (metadata 752). Files show exactly that: 1 data row and 1 metadata row carry
+[RECENCY-20261116]; no untagged AI row has TR >= 2026-10-26. Yield is counted per query (max 5%), not per row. PASS.
+
+=== SCOPE ===
+Tagged rows: 1 -> all audited (no sampling). XREF-HARVEST rows in window: none, and stage 1 did not run apply. Harvest
+audit therefore not applicable to this pass. Rest of dataset not re-audited (out of scope).
+
+=== ROW 6096 | AFR::NGA::FCT::Municipal_Area_Council | 2026-11-09..2026-11-11 | deaths 5 | sCh/cCh blank | w 0.4 | src 752 ===
+CHECK 1 - SOURCE (https://dailytrust.com/5-die-of-suspected-cholera-in-abuja-community/, fetched via web-fetch agent, HTTP 200)
+  - Headline "5 die of suspected cholera in Abuja community"; byline Adam Umar; "Thu, 12 Nov 2026 4:36:43 WAT".
+  - All 4 quoted passages present verbatim: (a) "At least five persons have died following a suspected cholera outbreak
+    in Gwagwa community, Abuja Municipal Area Council (AMAC) of the Federal Capital Territory"; (b) "...outbreak which hit
+    the area on Monday has led to the death of five residents"; (c) "...two victims were buried alongside three other
+    victims at the community cemetery on Wednesday"; (d) "about nine patients had been admitted at the facility since
+    the outbreak began" (Ngozi Clinic; no deaths there, none discharged, as of the previous day).
+  - Dates: python calendar: 2026-11-12 = Thursday, 2026-11-09 = Monday, 2026-11-11 = Wednesday. TL/TR/reporting_date OK.
+  - Period type: cumulative since onset (3-day outbreak-to-report span), "at least five" -> deaths 5 is a lower bound. OK.
+  - No community-wide case total in the article -> sCh blank is correct (lower bound of ~14 = 9 + 5 NOT imputed;
+    CLAUDE.md allows imputation only for typos).
+  - FINDING: row note and metadata 752 Description said "community deaths". The article never states place of death
+    (it says only that Ngozi Clinic had recorded none; deaths could have occurred at Capital/Crown clinics). Over-reading.
+    -> CORRECTED (see EDITS). Counts unchanged.
+CHECK 2 - DUPLICATION
+  - ./data/NGA/cholera_data_who.csv: 198 rows, all AFR::NGA national weekly; last = 2026-10-19..10-25 (36/0). No WHO row
+    with TR >= 2026-10-26. Live WHO layer re-queried 2026-11-17 (/tmp/nga_rec_audit/tools/who_check.py): lastEditDate
+    2026-11-04 17:19 UTC; global max epiwk 2026 = 42; NGA epiwk 40/41/42 = 361/9, 271/7, 36/0 (date_wk 10-05/10-12/10-19).
+  - No other AI row in the window. Aminiya (Hausa, 12 Nov) = same reporter / outlet group -> not independent, no row. OK.
+  - National vs district role: note only said "nothing to double-count against" (true today, stale once a national
+    week arrives; also does not match the validator's double-count phrases). -> CORRECTED: explicit "do not sum ...
+    national row is the primary count" line added.
+  - Downstream: py/build_weekly_timeseries.py load_national_rows() reads Location == "AFR::NGA" only and skips blank sCh
+    (line ~510); MOSAIC-pkg/R/process_AI_cholera_data.R reads only cholera_weekly_<ISO>.csv. Row 6096 therefore never
+    reaches MOSAIC. ./data/NGA/cholera_weekly_NGA.csv (built 09:03:13) ends ISO wk43 2026-10-19..25 (36, WHO); no window
+    weeks, no false zeros.
+CHECK 3 - PLAUSIBILITY
+  - deaths<=sCh / cCh<=sCh: not testable (sCh blank); no CFR computed. Validator: no finding on this row.
+  - Epi curve: WHO national weekly 1098 (wk of 31 Aug), 839, 619, 555, 374, 361, 271 (wk of 12 Oct), 36 (19-25 Oct,
+    incomplete): declining but ongoing; a late-season urban focus is consistent.
+  - Place history: AMAC 625 cases 2021 (row 4828; Gwagwa was a 2021 epicentre per search results); FCT 8 cases
+    Jan-Sep 2025 (row 1440); FCT zero Q4 2025 (row 1101). Not a "new geographic area" -> single source acceptable (<100 tier).
+  - Mechanism in source: no piped water >2 months, boreholes down, vendor water. Symptoms vomiting/diarrhoea, IV fluids.
+  - Neighbours (per stage 1): Chad new Lac focus declared 31 Oct; Cameroon Far North declining. Abuja is inland, so weak
+    evidence either way; nothing contradicts.
+  - Follow-up to 2026-11-17: WebSearch extended "Gwagwa cholera FCTA confirms OR refutes..." and standard "Gwagwa Abuja
+    cholera deaths cases update FCT Health Secretariat"; Google News RSS "cholera Abuja OR FCT OR Gwagwa when:10d",
+    "Gwagwa when:14d", Hausa "kwalara Abuja when:10d" -> only the Daily Trust original, TheCable headline relay, Aminiya.
+    No FCTA confirmation, refutation, lab result or case count. Row remains SUSPECTED, unconfirmed.
+CHECK 4 - ZERO ROWS: none written. Stage 1 non-entries endorsed:
+  - Cameroon Tribune 6 Nov "Nigeria 73.416 au 30 octobre": VERIFIED = sum of 43 WHO weekly rows 2025-12-29..2026-10-25
+    (73,416 cases / 493 deaths) -> restatement with a compile date; writing it would duplicate the baseline.
+  - Abia "no cases of cholera during the period under review" (17 Nov): no period stated -> no zero row. Correct.
+  - Gombe Billiri (4-21 Oct, 74 treated, 2 deaths) pre-window; no post-24 Oct close-out -> no zero row. Correct.
+CHECK 5 - WEIGHT: 0.4, inside the Level 3 band (0.3-0.6) for a single unconfirmed national-newspaper report. KEPT.
+VERDICT: KEEP, with 2 wording corrections (no count, date, location or weight change).
+
+=== EDITS (all via tools; reasons prefixed [RECENCY-20261116 AUDIT]) ===
+1. python3 py/revise_observation.py NGA --index 6096 --agent 7 --append-note "...": verification record, place-of-death
+   correction, ROLE line ("do not sum with any national AFR::NGA row ... national row is the primary count").
+2. python3 py/revise_observation.py NGA --meta-index 752 --set-description "...": "at least five community deaths" ->
+   "at least five residents dead (place of death not stated; Ngozi Clinic had recorded none)".
+Retractions: 0. Rows added: 0. Sources added by audit: 0.
+
+=== OTHER CHECKS ===
+- XREF queue (python3 -I -B py/xref_harvest.py queue NGA): 132 open candidates, none dated in window. Latest-ending item is
+  a LOG_SUBNATIONAL OCHA ROWCA entry to 2026-08-24 (stage 1 said 08-09; immaterial, not harvestable).
+- ./reference/effective_surveillance_*.csv (generated 2026-11-17 08:57:49, after stage 1; NOT regenerated by me because
+  they are shared across concurrently running countries): NGA 682/683 months (99.9%), months_ai_only 24, 1 gap
+  2026-11-01..2026-11-17. Recency: latest_observation = latest_positive = 2026-11-11, 6 days stale. That date comes ONLY
+  from row 6096 (district, deaths only, unconfirmed). National series ends 2026-10-25 (23 days stale). Flagged in report.
+- Housekeeping: stage 1 left ./.scratch_nga_recency_20261116/ (12 MB, untrusted downloads + helper scripts) in the repo
+  working tree, NOT gitignored. Not deleted (not mine); flag so it is not committed. My scratch is /tmp/nga_rec_audit/.
+
+=== VALIDATION ===
+python3 py/validate_quality.py NGA --json /tmp/nga_rec_audit/NGA_audit.json -> EXIT 0 | ERROR 0, WARN 197, INFO 326
+(identical to stage 1 and the full-run audit). Findings on row 6096 or metadata 752: 0.
+
+=== FILES WRITTEN ===
+./data/NGA/cholera_data_ai.csv (row 6096 processing_notes appended), ./data/NGA/metadata_ai.csv (752 Description),
+./data/NGA/search_report.txt (recency section appended), ./data/NGA/search_log_recency_20261116_agent7.txt (this log).
+Not touched: search_log_agent_7.txt, workflow_state.json, workflow_state_recency_20261116.json, baselines, dashboard,
+other countries.
+End Time: 2026-11-17 09:05:35
