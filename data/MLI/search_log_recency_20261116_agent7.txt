@@ -5,3 +5,94 @@ Start Time: 2026-11-16 16:21:46
 Scope: rows of ./data/MLI/cholera_data_ai.csv tagged [RECENCY-20261116] only
 Stage 1 log: ./data/MLI/search_log_recency_20261116_agent1.txt (present)
 
+=== STEP 1: STAGE 1 LOG READ ===
+./data/MLI/search_log_recency_20261116_agent1.txt: 3 batches / 60 queries, yields 0/0/0%, STOP (3-batch floor +
+3 consecutive <5%). Rows added 0, sources registered 0, presence rows 0. Window classified EMPTY.
+
+=== STEP 2: TAG SCAN (what is there to audit) ===
+grep -c 'RECENCY-20261116':
+  ./data/MLI/cholera_data_ai.csv 0 | ./data/MLI/metadata_ai.csv 0 | ./data/MLI/cholera_presence_ai.csv 0 |
+  ./data/MLI/retracted_rows_ai.csv 0 | ./data/MLI/attribution_review.csv (absent)
+File mtimes: cholera_data_ai.csv 2026-10-03 06:59, metadata_ai.csv 10-03 06:51, cholera_presence_ai.csv 10-03 04:36,
+  retracted_rows_ai.csv 10-03 01:03 -> nothing written to MLI data files since the full run.
+AI rows overlapping 2026-09-29..2026-11-16: 0 (max AI TR = 2026-09-28, Index 379).
+./reference/xref/harvest_log.csv: no MLI entries; 0 '[XREF-HARVEST' rows in MLI -> harvested-row audit not applicable.
+./data/MLI/workflow_state_recency_20261116.json matches the log (batches 3, yields [0,0,0], rows_added 0).
+
+=== STEP 3: PER-ROW AUDIT ===
+Rows checked 0 | kept 0 | corrected 0 | retracted 0. No py/revise_observation.py call was needed.
+
+=== STEP 4: STAGE 1 COMPLIANCE ===
+3 batches (floor met); yields in percent of queries, none >100%; stop rule applied correctly; 0 rows claimed = 0 written.
+COMPLIANT.
+
+=== STEP 5: INDEPENDENT RE-CHECK OF STAGE 1's NON-ENTRY DECISIONS (from stage 1's cache, read as text) ===
+(a) MoH SISE dashboard, ./cache/recency_20261116_MLI/dl/sise_dashboard.html, hidden 'epi-weeks-data' block, 17 weeks
+    S25-S41, field order palu,rougeole,dengue,cholera,...:
+      S25-S33 (15 Jun-16 Aug): cholera = '0' in all 20 regions (basis of full-run Index 39, Documented_Absence)
+      S34-S41 (17 Aug-11 Oct): cholera = 'null' in all 20 regions, while malaria and dengue carry values
+                               (dengue sums S40 = 7, S41 = 9). S40 source 'Conseil des ministres - S40 2026 - version
+                               validee' (updated 08 Oct); S41 'Communication verbale S41/2026'.
+    The static stat card '<strong id="cholera">0</strong>' is a placeholder (the dengue card is also a static 0).
+    => null is 'not reported', not zero. No Documented_Absence possible for S40-S41. Stage 1 CORRECT.
+(b) Council of Ministers communiques (./cache/recency_20261116_MLI/dl/ccm/: 30 Sep, 9 Oct, 16 Oct, 23 Oct, 6 Nov,
+    13 Nov 2026): each reads '...informe le Conseil des Ministres de la situation epidemiologique du pays, marquee
+    notamment par une diminution/augmentation du nombre de cas confirmes de dengue...'; 'chol' occurs 0 times in all
+    six. 'notamment' = not exhaustive => no zero. Stage 1 CORRECT.
+(c) MoH 'Alertes sanitaires' (./cache/recency_20261116_MLI/dl/sante_alertes.html): only the S30 and S31 notes
+    ('Aucun cas confirme de cholera n'a ete notifie cette semaine'), both before the window. Stage 1 CORRECT.
+(d) Multi-country lists omit Mali (ECDC 27 Oct, Africa CDC 25 Oct, OEW wk41, WER 101(44)). Omission != zero.
+    Stage 1 CORRECT not to write a zero.
+
+=== STEP 6: INDEPENDENT SEARCHES (6 x WebSearch, extended) ===
+ 1 'Mali cholera cases October November 2026' -> ECDC monthly 27 Oct 2026: new cases since 28 Sep from AGO, BDI,
+   CMR, COD, MOZ, NGA, RWA, SOM, SSD, YEM, ZMB; Mali absent. No Mali count.
+ 2 'Mali cholera cases 2026 ministry of health epidemic' (query in French) -> no 2026 Mali cholera. Summary
+   (a) repeated '429 suspected/29 deaths/46 confirmed at 11 Nov 2025 (OCHA)' as cholera. Already refuted in the full
+   run: it is Mali's 2025 DIPHTHERIA outbreak (WHO DON 21 Nov 2025: 430 suspected, 29 deaths, 46 confirmed;
+   metadata 309; search_log_agent_3.txt). No conflict with Index 883. (b) Summary read the SISE placeholder as
+   '0 confirmed cholera, S41' -- the trap in Step 5(a).
+ 3 'cholera West Africa Sahel November 2026 NER BFA MLI SEN' -> Lake Chad basin outbreaks (NGA, TCD, CMR) only;
+   WER 101(44) (6 Nov 2026): September AFR total 14 749 new cases in 13 countries; nothing for Mali/neighbours.
+ 4 'Africa CDC epidemic intelligence weekly report November 2026 cholera' -> no November issue indexed (agrees
+   with stage 1's HTTP 404).
+ 5 'WHO AFRO OEW week 43/44/45 2026' -> latest 2026 OEW indexed = week 41 (5-11 Oct) (agrees with stage 1).
+ 6 'Mali cholera November 2026 Gao/Mopti/Segou/Kayes/Bamako' -> no cholera. Context only: ~160 000 people returned
+   into Mali after Guinea suspended artisanal gold mining at Siguiri (~100 000 Bamako district, 60 000 at the
+   Kouremale border; Maliexpress, 10 Nov 2026). No cholera link. Watch item for the next pass.
+ => Stage 1 did not miss a Mali cholera count or an explicit zero in the window.
+
+=== STEP 7: DUPLICATION / BASELINE OVERLAP ===
+./data/MLI/cholera_data_who.csv: absent (Mali not in the WHO weekly feed). ./data/MLI/cholera_data_jhu.csv streamed
+with csv (not loaded): 13 198 rows, max TR 2024-12-31, 0 rows in the window, latest positive TR 2021-12-31.
+Nothing to deduplicate.
+
+=== STEP 8: COVERAGE ===
+./reference/effective_surveillance_gaps_*.csv (generated 2026-11-16 16:18, after stage 1; not regenerated here --
+nothing changed and other countries run in parallel): MLI 681/683 months (99.7%), months_ai_only 261, 1 gap period
+2026-10-01..2026-11-16 (47 d, recent). Recency: latest_observation 2026-09-28 (49 d stale), latest_positive
+2021-12-31. Window covered by this pass: 0 of 49 days. ./data/MLI/cholera_weekly_MLI.csv ends 2026-W39, so the
+window is NA downstream, not zero.
+
+=== STEP 9: VALIDATOR ===
+python3 py/validate_quality.py MLI --json /tmp/MLI_recency_audit.json -> exit 0 | ERROR 0 | WARN 131 | INFO 389.
+WARN = 127 CFR_high_flagged_for_review, 3 same_period_conflict (CSV lines 868/889/1048), 1 period_single_day
+(line 196). The same set as stage 1's run (./cache/recency_20261116_MLI/validate_MLI.txt, diff empty). The validator
+'row' is the CSV line number, not Index; mapped that way, no finding falls on a row with TR >= 2026-01-01.
+
+=== STEP 10: FLAGS FOR THE NEXT FULL AUDIT (outside this pass's scope; NOT changed) ===
+- Indices 222 (08-17..08-26, w 0.45, ECDC), 223 (08-27..09-13, w 0.5, Africa CDC), 380 (09-14..09-20, w 0.5,
+  Africa CDC), 379 (09-21..09-28, w 0.45, ECDC) are Inferred_Absence zeros built on Mali's omission from
+  multi-country lists, which this pass rejects. Over the same weeks the MoH's own cholera field is null (S34+).
+- Builder: ./data/MLI/cholera_weekly_MLI.csv shows W34-W37 as 'inferred_zero' but W38 (Index 380) and W39 (Index
+  379) as 'observed' zeros. Short zero rows enter py/build_weekly_timeseries.py Tier 1 without evidence grading
+  (the BFA audit found the same; it affects all countries).
+- Index 379 processing_notes cite '2026-09-14..2026-09-28' while TL = 2026-09-21 (notes and period disagree).
+
+=== STEP 11: NEXT PASS ===
+SISE dashboard S42+ (does the cholera field return to 0 or a count?); MoH Alertes sanitaires (catid=29); SGG Council
+of Ministers communiques; Africa CDC November EI issues; ECDC monthly (late Nov); WER cholera update with October
+data; AFRO OEW wk42-46; INSP 'Bulletin de sante publique du Mali'; the Siguiri-return influx (Bamako/Kouremale).
+Human follow-up already listed in the full-run report: ask DGSHP why the cholera field is blank since S34.
+End Time: 2026-11-16 16:26:42
+Agent 7 Status: COMPLETE (recency audit; 0 tagged rows; validator exit 0)
