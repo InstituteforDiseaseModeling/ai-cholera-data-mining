@@ -1,0 +1,46 @@
+=== RECENCY PASS 20261116 - AGENT 1 (COLLECT) ===
+Country: Senegal (SEN)
+Window: 2026-09-29 to 2026-11-16 (49 days)
+Latest observation (any layer) before pass: 2026-09-28; latest positive observation: 2012-12-31
+Start Time: 2026-11-16 16:15:26
+Scope: trailing recency window only; no historical gaps; tag [RECENCY-20261116] on every note/discovery
+Agent 1 Status: INITIALIZED
+
+=== PRE-SEARCH CHECKS ===
+- Existing AI rows near the window (./data/SEN/cholera_data_ai.csv): latest rows are inferred/documented zeros 186 (2026-09-07..09-20, src 109 WHO HDX summary), 221 (2026-09-21..09-28, src 141 ECDC CDTR wk40); regional documented zeros 1118-1131 (14 medical regions, 2026-01-05..09-06, src 269 WAHO API). Nothing inside 2026-09-29..2026-11-16.
+- ./data/SEN/cholera_data_who.csv: SEN not in WHO weekly feed (no WHO baseline to dedup against). JHU ends early 2025 (not read).
+- xref queue (python3 -I -B py/xref_harvest.py queue SEN): 23 open candidates from 8 documents, ALL historical (1997-2019). None inside the window -> no xref lead used. (xref apply NOT run, per recency instructions.)
+- WAHO ECOWAS Outbreak Dashboard API (metadata 269; source of the 2026 explicit weekly zeros W02-W36): queried 2026-11-16 16:2x for SEN national (org unit vJRQh3jzmwU) with full-year, monthly and single-week ranges, aggregates and events endpoints -> every call HTTP 500 '{"error":"Failed to fetch analytics data"}' (also for 2025, so a backend outage, not a missing-data signal). Dashboard front-end (data.wahooas.org/outbreaks) loads; endpoint scheme unchanged (checked main.cca215ef.chunk.js); underlying DHIS2 analytics requires login. Will retry later in run.
+- Senegal MoH sites: www.sante.gouv.sn -> 'Maintenance en cours | Senegal Numerique SA' (site down); informationsanitaire.sec.gouv.sn (weekly BEH) -> connection reset (as in Oct run). curl not permitted in this session; Python urllib works.
+
+=== BATCH 1 | PHASE 1 (broad discovery, window-bound) | SEN ===
+Gap targeted : 2026-09-29..2026-11-16 (49d, recent)
+Queries      : 20
+  Q1  [RW API] country=SEN query=cholera from=2026-09-29 -> totalCount 0
+  Q2  [RW API] query=cholera from=2026-09-29 (all countries, 117 reports, 3 pages read) -> none tagged SEN; West-African items only CMR/NGA/TCD/NER; WHO AFRO Weekly Bulletin wk41 (id 4235066, tagged ETH,KEN,WLD,ZMB); 'Global cholera early action framework (As of Oct 2026)'; OCHA WCA 'Latest events at a glance 20-26 Oct 2026' (tagged COD,COG,NER)
+  Q3  [WS] Sénégal choléra octobre 2026 -> only diphtheria (301 cases/12 deaths at 11-12 Oct 2026, 13 regions), RVF, measles; no cholera
+  Q4  [WS] Senegal cholera cases October November 2026 -> no SEN cholera; Kebemer food-poisoning cluster (548 cases) Nov 2026
+  Q5  [WS] choléra Sénégal novembre 2026 cas ministère de la santé -> Kebemer 'syndrome digestif aigu'/TIAC: 649 cases 2-9 Nov 2026, Salmonella sp. in 5/5 samples (Institut Pasteur Dakar), no deaths; not cholera
+  Q6  [WS] WHO AFRO weekly bulletin outbreaks week 43 2026 -> listing pages only
+  Q7  [FETCH] WAHO venus_api aggregates/events (SEN, 2026 + narrow weeks) -> HTTP 500 backend failure (see above)
+  Q8  [FETCH] sante.gouv.sn + informationsanitaire.sec.gouv.sn -> maintenance page / connection reset
+  Q9  [WS] ECDC CDTR cholera monthly update October 2026 -> ECDC update as of 27 Oct 2026: 42 136 new cases/501 deaths since 28 Sep; 291 272 cases/2 471 deaths YTD; country list (excerpt) Angola, Mozambique, Rwanda, Somalia, Zambia, Yemen... no Senegal
+  Q10 [WS] WHO multi-country cholera external situation report October 2026 -> series renamed 'epidemiological update'; #38 (30 Jun) latest surfaced; no SEN
+  Q11 [WS] Africa CDC weekly epidemic intelligence report October 2026 cholera -> no Africa CDC issue surfaced
+  Q12 [WS] Kébémer TIAC novembre 2026 choléra écarté analyses -> MoH point 10 Nov: 649 cases, Salmonella 5/5; no explicit cholera statement
+  Q13 [WS] Guinée choléra octobre 2026 (neighbour) -> no 2026 Guinea cholera
+  Q14 [WS] Gambia cholera October 2026 (neighbour) -> none
+  Q15 [WS] Mali choléra 2026 Kayes Mopti octobre (neighbour) -> none (diphtheria only)
+  Q16 [WS] Guiné-Bissau cólera 2026 casos outubro (neighbour, PT) -> none (mpox only)
+  Q17 [WS] Mauritanie choléra 2026 Nouakchott (neighbour) -> none (diphtheria, RVF)
+  Q18 [WS] OCHA West and Central Africa latest events November 2026 cholera -> UNICEF Aug 2026: 6 WCA countries with cholera, Nigeria largest; SEN not named
+  Q19 [WS] Sénégal inondations octobre 2026 maladies hydriques diarrhée -> Dakar floods 4 Oct 2026 (>140 mm/24h, deaths); no diarrhoea/cholera counts
+  Q20 [WS] WER 101(44) November 2026 cholera monthly update -> WER 101(43) 30 Oct landing; Aug 2026 update: 41 915 cases, 17 countries; no SEN
+Sources found: 0 usable for SEN cholera counts    Registered: none
+Rows added   : 0    Indices: -
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (minimum 3 batches)
+Notes        : No signal of cholera in Senegal or its land neighbours in the window. Multi-country lists that omit SEN are NOT used as zero evidence (recency rule). Explicit-zero sources (WAHO weekly IDSR, MoH BEH) currently unreachable.
+
