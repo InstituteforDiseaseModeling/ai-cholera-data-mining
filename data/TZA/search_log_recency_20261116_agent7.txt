@@ -5,3 +5,95 @@ Start Time: 2026-11-17 08:46:52
 Scope: audit only rows of ./data/TZA/cholera_data_ai.csv tagged [RECENCY-20261116]
 Stage 1 log: ./data/TZA/search_log_recency_20261116_agent1.txt (present)
 
+=== STEP 1: STAGE-1 CLAIMS vs FILES ===
+Stage 1 (./data/TZA/search_log_recency_20261116_agent1.txt; ./data/TZA/workflow_state_recency_20261116.json) claims:
+  3 batches / 60 queries (47 WebSearch + 13 ReliefWeb API), yields 0% | 0% | 0%, stop = 3-batch minimum met and
+  3 consecutive batches <5%. Rows 0, zero rows 0, presence rows 0, sources registered 0, xref apply not run.
+Verified against files:
+  - grep "[RECENCY-20261116]": 0 hits in ./data/TZA/cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv,
+    retracted_rows_ai.csv.
+  - mtimes unchanged by the pass: cholera_data_ai.csv 2026-10-08 01:09, metadata_ai.csv 2026-10-01 13:44,
+    cholera_presence_ai.csv 2026-10-01 13:11, retracted_rows_ai.csv 2026-10-08 01:11.
+  - cholera_data_ai.csv: 1,508 rows, max Index 1547, max AI TR 2026-05-10; 0 AI rows of any tag overlap
+    2026-10-26..2026-11-16. Presence file: 0 rows touching >= 2026-06-01. JHU baseline ends 2024-12-31.
+  - Batch arithmetic checks out (RW API 7+3+3 = 13; WebSearch 13+17+17 = 47). Minor: B2 #20 failed (API refused the
+    bbc.com domain) and was re-run as B3 #1, so 59 distinct queries actually returned results. Not material.
+  - No yield >100%, no claimed-but-missing rows, no rows written outside scope. Verdict: stage 1 claims are accurate.
+  - ./data/TZA/cholera_weekly_TZA.csv was rewritten at 08:45:27 during stage 1, but all 40 countries' weekly files
+    were rewritten 08:44:04-08:45:37 (a pipeline-wide rebuild, not a stage-1 action). The TZA series ends at
+    2026-W43 (19-25 Oct, WHO, 15 sCh). W44-W46 are ABSENT, not zero-filled: no false zeros in the window.
+
+=== STEP 2: PER-ROW AUDIT ===
+Tagged rows: 0. Checked 0 | kept 0 | corrected 0 | retracted 0. No py/revise_observation.py call was needed.
+Items 1-5 of the audit brief (URL/quote, duplication, plausibility, zero rows, confidence weight) are vacuous here.
+Applying item 4 to the decision NOT to add rows: correct. No source states absence for any window day, so any zero
+would be inferred from silence. ECDC 27 Oct ("no updates ... since 28 September 2026") is a reporting gap, not
+absence. The WHO feed shows active transmission into the window's edge:
+  2026-W40..W43 = 34, 15, 45, 15 sCh (0 deaths). Resurgence since 2026-08-03.
+Neighbours were active as well: Burundi "more than 2,700 cases and six deaths ... across 13 health districts between
+January and October" (OCHA ROSEA El Nino Flash Update No.1, 12 Nov 2026); Zambia 573 cumulative, 15 deaths, "The
+epidemic is accelerating" (AFRO OEW wk41, to 4 Oct); DRC Tanganyika province resurgence in Oct (stage 1).
+A zero row for this window would be implausible as well as unsupported.
+
+=== STEP 3: INDEPENDENT RE-CHECK OF STAGE 1's NEGATIVE RESULT (14 checks, 2026-11-17 ~08:47-09:00) ===
+ 1. RW API "Weekly Bulletin on Outbreaks and other Emergencies" --from 2026-10-12 -> 1 hit, Week 41 only. Wk42+ not out.
+ 2. RW API --country TZA --from 2026-10-20 -> 24 reports (ECHO cyclone map 16 Nov, IFRC EAP floods 11 Nov, UNHCR TZA
+    Oct op update 14 Nov, UNICEF Burundi HSR 25, OCHA El Nino FU1 12 Nov, UNICEF BVD HSR 3, IFRC Mbeya flood 5 Nov,
+    IFRC Morogoro DREF final, WFP brief Oct, UNHCR dashboards). None is a TZA cholera report.
+ 3. OCHA ROSEA El Nino Flash Update No.1 (RW 4238144) PDF text: cholera only for Burundi; Tanzania = floods. No TZA count.
+ 4. UNHCR Tanzania Operational Update Oct 2026 (RW 4238329) PDF: Nyarugusu top morbidity = URTI 23%, malaria 20%,
+    UTI 13%; no cholera/AWD. No count.
+ 5. IFRC GO field report Mbeya Nzonvwe floods, 5 Nov (RW 4237852) PDF: no cholera mention.
+ 6. IFRC EAP riverine floods activation, 11 Nov (RW 4238550) body: no cholera mention.
+ 7. AFRO OEW wk41 (RW 4235066) PDF p. TZA: "Cholera Ungraded 21-Sep-26 17-Sep-26 21-Sep-26 148 148 0 0.00" and "As
+    of 21 September, 148 cholera cases (70 females and 78 males) had been recorded with no deaths". Stage 1 read it
+    correctly. Pre-window, so not added.
+ 8. WebSearch "Tanzania cholera cases November 2026" -> nothing dated in window (Jul 2026 'Zero Cholera' items; WHO
+    65-beds item, no counts).
+ 9. WebSearch "kipindupindu Katavi Tanganyika Novemba 2026" -> nothing.
+10. WebSearch [extended] Katavi/Tanganyika DC late Oct-Nov 2026 -> nothing in window; WER 101(44) data as of 27 Sep;
+    "Tanganyika" 2026 hits are DRC province (country-name trap, correctly ignored by stage 1).
+11. WebSearch "kipindupindu wagonjwa Oktoba Novemba 2026" restricted to 8 TZ outlets (mwananchi, habarileo,
+    dailynews, thecitizen, ippmedia, millardayo, jamhurimedia, thechanzo) -> nothing in window.
+12. WebSearch "Tanzania" cholera "November 2026" MoH/WHO/UNICEF -> nothing in window.
+13. WebSearch WER No.45 2026 cholera -> index shows issues to 43; 44 (6 Nov) cholera table is data as of 27 Sep.
+14. web-fetch jamhurimedia.co.tz "Dk Magembe: Hakuna mgonjwa wa kipindupindu..." -> dated 25 Feb 2026 ("leo Februari
+    25, 2026"). This is the CMO statement already used by AI 1079. Pre-window; NOT absence evidence for the window.
+Result: as of 2026-11-17 no source publishes a TZA cholera count, or a statement of absence, for any day from
+  2026-10-26 to 2026-11-16. Stage 1 missed nothing that exists today.
+
+=== OUT-OF-SCOPE OBSERVATIONS (recorded, NOT changed - for the next full run) ===
+ a. Katavi event under-represented. AFRO OEW wk41 gives 148 confirmed cases in Tanganyika DC, 17-21 Sep. The WHO
+    dashboard national weeks 14-20 Sep and 21-27 Sep total 17 + 20 = 37. Either the dashboard undercounts the event
+    or reporting lags. The AI layer has nothing after 2026-05-10, so 2026-08..10 rests on the WHO feed alone. When
+    window rows arrive, check epidemic-curve continuity against BOTH sources.
+ b. UNICEF Great Lakes HSR No.1 (22 Jun 2026) "493 TZA cases Jan-Mar 2026" (stage 1 lead) vs WHO 113 in Jan and
+    MoH-documented absence from ~late Jan (AI 1079, 1080; WHO weeks Feb-Jun = 0). Unreconciled; pre-window.
+ c. AI 1079 / 1080 (national zeros 2026-02-02..2026-05-10) are consistent with the WHO feed (0 every week) and quote
+    explicit MoH statements. No conflict found.
+
+=== STEP 4: COVERAGE ===
+Window covered: 0 of 22 days in any layer (JHU ends 2024-12-31; WHO 2026-10-25; AI 2026-05-10).
+./reference/effective_surveillance_gaps_coverage.csv (regenerated 2026-11-17 08:39, after the 16 Nov baseline
+  refresh; no TZA data has changed since): TZA 682/683 months (99.9%), months_ai_only 83, gap_periods 1.
+./reference/effective_surveillance_gaps_detailed.csv: TZA 2026-11-01..2026-11-17 (17 d, recent). The majority-day
+  month rule credits October to the WHO feed, so 26-31 Oct is empty at day level but not counted as a gap.
+./reference/effective_surveillance_recency.csv: latest observation = latest positive = 2026-10-25, 23 days stale.
+analyze_effective_gaps.py NOT re-run: no TZA row changed, and a re-run rewrites the shared ./reference files for
+  all 40 countries while other recency workers are running.
+
+=== STEP 5: VALIDATOR ===
+python3 py/validate_quality.py TZA --json /tmp/TZA_recency_audit.json -> exit 0 | ERROR 0, WARN 52, INFO 263.
+Same counts as the full-run final audit (./data/TZA/search_report.txt section 4: 0/52/263) and as stage 1.
+WARN mix: 47 CFR_high, 2 multiyear_aggregate, 2 period_single_day, 1 same_period_conflict. All pre-existing and
+  justified in the full run; none is on a tagged or in-window row. Nothing fixed, suppressed or relabelled.
+
+=== FILES WRITTEN BY AGENT 7 ===
+  ./data/TZA/search_log_recency_20261116_agent7.txt (this log)
+  ./data/TZA/search_report.txt (appended recency section only; full-run text untouched)
+  Not touched: cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, baselines, search_log_agent_7.txt,
+  workflow_state.json, dashboard, ./reference, other countries.
+  Temp downloads (untrusted, outside repo): /tmp/tza_rw_dl.5q7OYv, /tmp/tza_oew41.z5Nwro (+ text extracts).
+End Time: 2026-11-17 08:52:23
+Agent 7 Status: COMPLETE
+Final validator (post-report): python3 py/validate_quality.py TZA -> exit 0 | ERROR 0 WARN 52 INFO 263
