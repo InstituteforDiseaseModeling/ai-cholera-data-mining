@@ -187,3 +187,56 @@ Successful queries: 0/20
 Yield        : 0%
 Consecutive sub-5% batches: 3
 Decision     : STOP - 3 consecutive batches below 5% yield (batches 2, 3, 4); minimum of 3 batches met (4 run)
+
+=== POST-BATCH CHECKS (not counted as a batch) ===
+- 2026-11-17 13:16: RBC publications index re-fetched -> still no week 46 bulletin (wk45 is the latest). WER101-46 -> HTTP 404.
+  Africa CDC .../africa-cdc-epidemic-intelligence-weekly-report-november-2026/ -> HTTP 404.
+- Read-only check of ./data/RWA/cholera_weekly_RWA.csv: ISO wk42-45 appear as observed AI national counts 89 / 99 / 68 / 66
+  (deaths blank), directly after the WHO weeks ending 2026-10-11 (123). The AFR::RWA::Western cumulative rows 688-690 do
+  not alter the national series.
+- INCIDENT (disclosed): at ~13:13-13:15 I ran `python3 py/build_weekly_timeseries.py --help` to look for a dry-run flag.
+  The script does not parse arguments, so this ran the full weekly build for all 40 countries, rewriting
+  ./data/{ISO}/cholera_weekly_{ISO}.csv and ./figures/dashboard/timeseries/*.png. The runner's own scheduled dashboard
+  rebuild ('after SLE', auto-commit 6313a6dd at 13:15:09) ran at the same time. Afterwards
+  `git status -- 'data/*/cholera_weekly_*.csv' figures/dashboard/ dashboard/` shows NO residual differences from that
+  commit, so no derived file outside RWA was left changed. The build only writes derived outputs: no country's
+  cholera_data_ai.csv, metadata_ai.csv or cholera_presence_ai.csv was touched. Do not call that script with flags
+  expecting usage text.
+- python3 py/validate_quality.py RWA -> exit 0 (ERROR 0, WARN 0, INFO 242; the window's INFO items are the documented
+  national/sub-national overlap notes for rows 684-690).
+
+=== SUMMARY | RECENCY PASS 20261116 | AGENT 1 (COLLECT) | RWA ===
+Window       : 2026-10-12 .. 2026-11-16 (36 days)
+Batches run  : 4 (80 queries). Batch 1 was run by the interrupted attempt; batches 2-4 were run after the resume.
+Yield/batch  : B1 20% | B2 0% | B3 0% | B4 0%
+Stop reason  : 3 consecutive batches below 5% yield (B2-B4); 3-batch minimum met
+Rows added   : 7, all from this pass, all written by the interrupted attempt (none added after the resume), all tagged
+               [RECENCY-20261116] in ./data/RWA/cholera_data_ai.csv:
+               684 AFR::RWA 2026-10-12..2026-10-18 sCh 89  (RBC IBS, ISO wk42)  national total, primary
+               685 AFR::RWA 2026-10-19..2026-10-25 sCh 99  (ISO wk43)           national total, primary
+               686 AFR::RWA 2026-10-26..2026-11-01 sCh 68  (ISO wk44)           national total, primary
+               687 AFR::RWA 2026-11-02..2026-11-08 sCh 66  (ISO wk45)           national total, primary
+               688 AFR::RWA::Western 2026-04-20..2026-10-20 sCh 480 cCh 34  cumulative (TL inferred), provincial subset
+               689 AFR::RWA::Western 2026-04-20..2026-11-06 sCh 542 cCh 45  cumulative (TL inferred), provincial subset
+               690 AFR::RWA::Western 2026-04-20..2026-11-08 sCh 582 cCh 45  cumulative (TL inferred), provincial subset
+Sources reg. : 412, 413, 414, 415 (RBC Weekly Epidemiological Bulletins wk42-45), all registered by the interrupted attempt;
+               none registered after the resume (no new in-window source carried RWA counts)
+Coverage now : 2026-10-12..2026-11-08 covered nationally by weekly counts (ISO wk42-45). Western Province cumulative
+               checkpoints on 20 Oct, 6 Nov and 8 Nov.
+Still empty  : 2026-11-09..2026-11-16 (ISO wk46 + 16 Nov), because nothing is published yet. RBC posts each bulletin
+               7-10 days after week end (wk45 PDF created 14/15 Nov), so wk46 is expected around 22-25 Nov. The WER
+               monthly cholera update for October data, the Africa CDC November issues and the ECDC November monthly are
+               also not out. This is NOT a quiet or no-surveillance period: the wk45 bulletin reports eIDSR completeness
+               98% and timeliness 97%, and the Western Province outbreak was ongoing as of 8 Nov. No zero row and no
+               presence row was written for it.
+Deaths       : no source states cholera deaths for the window. The eIDSR death breakdowns in wk42-45 attribute no deaths to
+               cholera, but this is never said explicitly, so deaths are left blank, not 0.
+For stage 2  : (a) rows 688-690 use an inferred TL of 2026-04-20 (the bulletin box gives no start date; reasoning is in the
+               row notes). (b) Row 690 is internally inconsistent (45 lab + 437 epilink = 482, not 582); the headline 582
+               is kept, at conf 0.7. (c) Rows 684-687 are the same RBC IBS series the WHO dashboard carries for RWA. When
+               ./data/RWA/cholera_data_who.csv is refreshed past 2026-10-11 they will duplicate those WHO weeks, so dedupe
+               at that refresh. (d) Out of window, not acted on: ECDC gives '365 new cases 13 Sep-11 Oct' against
+               343 (53+94+73+123) for the WHO/RBC weeks of 14 Sep-11 Oct.
+Excluded (pre-window cumulatives): ECDC 394 since 1 Jan as of 11 Oct; Africa CDC 25 Oct issue 'Rwanda (394; 0)', not
+               updated in that issue; WER101-44 data as of 27 Sep (795 cases, 0 deaths, September 214).
+RECENCY-STAGE-COMPLETE 20261116 collect RWA
