@@ -8,3 +8,85 @@ Scope: trailing window only; no edits to periods before 2026-10-26.
 Tag: every --note and --discovery begins with [RECENCY-20261116]
 Agent 1 Status: INITIALIZED
 
+=== PRE-SEARCH CHECKS ===
+- Window confirmed empty: ./data/SSD/cholera_data_ai.csv max TR = 2026-09-20; ./data/SSD/cholera_data_who.csv ends 2026-10-19..2026-10-25 (10 cases, WHO wk42 - latest dashboard week is incomplete: the WHO country weekly update W45 gives 103 for the week of 19 Oct).
+- xref queue (python3 -I -B py/xref_harvest.py queue SSD): no item with a period inside 2026-10-26..2026-11-16 (latest LOG_WINDOW item ecdc:2026:35 ends 2026-07-20). Nothing to add from the queue. xref apply NOT run (per instructions).
+- AI national cumulative chain (TL 2024-09-28) ends at AI 49 (2026-02-16, 98,372).
+
+=== BATCH 1 | PHASE 1 (broad discovery: WHO/official, humanitarian, news, linguistic) | SSD ===
+Gap targeted : 2026-10-26..2026-11-16 (22d, recent - trailing recency window)
+Queries      : 20
+  Q1  [RW API] reliefweb.py search --country SSD --query cholera --from 2026-10-20  -> WHO SSD weekly W43/W44/W45, OCHA Snapshot Oct 2026, UNICEF SitRep 8 (Sep), MSF 4 Nov  ** SUCCESS **
+  Q2  [RW API] reliefweb.py search --query cholera --from 2026-10-26 --limit 60 (multi-country) -> nothing new for SSD
+  Q3  [WS] South Sudan cholera cases November 2026 -> pre-window figures only (110,574 as of 5 Aug)
+  Q4  [WS] South Sudan Ministry of Health cholera situation report November 2026 -> none
+  Q5  [WS] WHO AFRO weekly bulletin on outbreaks and other emergencies week 44 2026 cholera South Sudan -> AFRO listing ends wk41 2026
+  Q6  [WS] "multi-country outbreak of cholera" November 2026 South Sudan -> latest WHO epi update No.38 (Jun 2026)
+  Q7  [WS] ECDC communicable disease threats report November 2026 cholera -> ECDC epipulse 2100 (27 Oct 2026 update): SSD data 'as of 11 October 2026' = PRE-WINDOW, not used
+  Q8  [WS] "South Sudan" longest cholera outbreak "critical stage" WHO 2026 -> Gazette NGR item is a July 2025 NAN story (page header date misleading) - not used
+  Q9  [WS] Fangak cholera cases Paguir Kuerdar 2026 -> none
+  Q10 [WS] Aweil West Wedweil cholera suspected cases 2026 -> 2025 context only (Wedweil IRC clinic)
+  Q11 [WS] Radio Tamazuj cholera November 2026 -> none in window
+  Q12 [WS] (ar) الكوليرا جنوب السودان نوفمبر 2026 حالات -> MSF Arabic version of 4 Nov release (no count)
+  Q13 [WS] Eye Radio Fangak cholera cases October 2026 -> none in window (page date headers misleading)
+  Q14 [WS] Africa CDC weekly epidemic intelligence report November 2026 cholera -> none
+  Q15 [WS] South Sudan IDSR weekly bulletin week 43 2026 cholera -> AFRO 2026 IDSR listing indexed only to early 2026
+  Q16 [WS] Renk cholera cases October November 2026 Upper Nile -> 2024 items only
+  Q17 [RW API] --country SSD --query "health cluster bulletin" --from 2026-10-01 -> 0
+  Q18 [RW API] --country SSD --query "DREF cholera" --from 2026-08-01 -> 0
+  Q19 [RW API] --country SSD --query "Ongoing Health Emergency Events" --from 2026-11-11 -> 0 (W46 not yet published)
+  Q20 [WS] site:afro.who.int South Sudan cholera 2026 Fangak knock-out plan -> none
+Sources found: 5 relevant (WHO W44, WHO W45, OCHA Snapshot Oct 2026, MSF 4 Nov 2026, ECDC Oct update)
+Registered   : index 363 (WHO SSD weekly W45), 364 (WHO SSD weekly W44)
+Rows added   : 8    Indices: 1793-1800 (all source 363)
+  1793 AFR::SSD 2026-10-26..11-01 sCh 81 d 0  (PRIMARY national epi-week 'week of 26 October')
+  1794 AFR::SSD 2026-10-29..11-04 sCh 73 d 0  (secondary: rolling 'last 7 days', overlaps 1793 - do not sum)
+  1795 Jonglei::Fangak 2026-10-29..11-04 sCh 33 d 0
+  1796 Upper Nile::Renk 2026-10-29..11-04 sCh 11 d 0
+  1797 Unity::Rubkona 2026-10-29..11-04 sCh 1 d 0
+  1798 Northern Bahr el Ghazal::Aweil West 2026-10-29..11-04 sCh 28 d 0 (conf 0.75: 'mostly untested' Wedweil cluster)
+  1799 Jonglei::Fangak 2026-10-26..11-01 sCh 35 d 0
+  1800 AFR::SSD 2024-09-28..2026-11-04 sCh 114,317 d 1,732 (cumulative since 28 Sep 2024; conf 0.7)
+Presence     : 1 -> ./data/SSD/cholera_presence_ai.csv  Unity::Mayom 2026-10-28 (last RDT positive; source 364)
+NOT ENTERED (decisions):
+  - W44 'last 7 days' 54 (Fangak 45, Renk 4, Rubkona 4, Mayom 1): period = 22-28 Oct (data cut-off 28 Oct implied by the 4-week window '29 Sep-28 Oct' and last-positive dates), TL before the window -> out of scope; superseded by the epi-week row 1793.
+  - W44 cumulative 112,406 / 1,728 (cut-off 28 Oct) and OCHA Snapshot Oct 2026 'As of 31 October, 112,406 cases and 1,728 deaths' (same figure): NOT entered. Builder simulation (temp copy, /tmp/ssd_rec_scripts/gate.py): the W44+W45 cumulative pair decumulates to a phantom 1,911-case week 2026-11-02..08 whenever week 26 Oct-1 Nov is not observed; the +1,911 jump (vs 73 new cases) is a backlog reconciliation. With W45's cumulative alone the increment runs from AI 49 (16 Feb) and is coverage-skipped: series unchanged except the new week 44 = 81. (W38 had given 112,542, so the W44 figure is itself a downward revision.)
+  - 4-week windows (W44: 29 Sep-28 Oct 221 cases/2 deaths; W45: 8 Oct-4 Nov 295 cases/2 deaths) - mostly pre-window periods, not entered.
+  - OCHA Snapshot 'transmission persisting in Fangak, Renk, Rubkona, Mayom and Pariang' (as of 31 Oct): Pariang contradicts WHO W44's 4-county list (Pariang absent from the 29 Sep-28 Oct county table) -> no presence row for Pariang.
+  - MSF 4 Nov 2026: 'nearly 110,000 cholera cases and 1,970 deaths' since 2024 (approximate, inconsistent deaths) and 'January to September, more than 14,000' -> pre-window/approximate, no in-window count.
+Builder check: simulated before writing; with rows 1793-1800 the SSD series gains only ISO 2026-W44 = 81 (AI observed); 2025/2026 totals otherwise unchanged.
+Successful queries: 1/20
+Yield        : 5%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches)
+
+=== BATCH 2 | PHASE 1->2 (humanitarian listings, county-targeted news, cross-border, linguistic) | SSD ===
+Gap targeted : 2026-10-26..2026-11-16 (22d, recent)
+Queries      : 20
+  Q1  [RW API] reliefweb.py search --country SSD --from 2026-10-26 --limit 100 (full SSD listing, 84 reports) -> leads read: OCHA Humanitarian Update (as of 30 Oct 2026; cholera 'As of 21 October, a cumulative 112,323 cases and 1,728 deaths' = PRE-WINDOW), OCHA El Nino Flash Update No.1 (12 Nov; cholera only for Burundi - other country, not touched), WHO Voices #26 (digital health, no cholera), IOM Wunthou border clinic (no cholera count)
+  Q2  [WS ext] Wedweil Aweil West cholera outbreak November 2026 Northern Bahr el Ghazal -> 2024 items only; no corroboration of the Wedweil cluster
+  Q3  [WS] Sudan White Nile cholera November 2026 Joda Kosti cases -> 2025 items only (cross-border)
+  Q4  [WS] Gambella Ethiopia cholera outbreak November 2026 -> 2025 items only (cross-border)
+  Q5  [WS] ProMED cholera South Sudan November 2026 -> none
+  Q6  [WS] (fr) Soudan du Sud cholera novembre 2026 cas -> mesvaccins (Jul 2026 data) only
+  Q7  [RW API] --country SSD --query "Cholera Outbreak Situation Report" --from 2026-06-01 -> only No.78 (2 Jun 2026): the MoH/WHO sitrep series has not been posted since; the WHO 'Ongoing Health Emergency Events' weekly is now the national vehicle
+  Q8  [RW API] --country SSD --query cholera --from 2026-10-01 --to 2026-10-25 -> pre-window items only (W40, OCHA Sep snapshot, UNICEF SitRep 7)
+  Q9  [WS] "Ongoing Health Emergency Events in South Sudan" week 46 2026 -> not yet published
+  Q10 [WS ext] Fangak cholera knockout plan WHO November 2026 Jonglei -> none (2021 Fangak illness items)
+  Q11 [WS] Old Fangak MSF cholera cases 2026 -> MSF moved Old Fangak activities to Paguir and Toch (context; no count)
+  Q12 [WS] Sudans Post cholera Jonglei November 2026 -> none in window
+  Q13 [WS] (ar) كوليرا فنجاك جونقلي 2026 -> none in window
+  Q14 [WS] Bentiu Rubkona cholera new cases November 2026 -> none in window
+  Q15 [WS] Malakal cholera November 2026 Upper Nile cases -> none in window
+  Q16 [WS] "South Sudan" cholera "end of outbreak" declaration December 2026 -> none (2018/2015 declarations only); WHO W45 projects earliest end-of-outbreak 2 Dec 2026 (conditional)
+  Q17 [WS] "South Sudan Health Cluster Bulletin" October 2026 -> not yet published
+  Q18 [WS] UNICEF South Sudan Humanitarian Situation Report No. 9 October 2026 -> not yet published (No.8 for September came out 9 Nov)
+  Q19 [RW API] --country SSD --query Fangak --from 2026-10-01 -> only known WHO weekly W40/W43/W44/W45 + OCHA snapshot
+  Q20 [RW API] --country SSD --query Aweil --from 2026-10-01 -> only W45 (already used); no second source for Aweil West
+Sources found: 0 new with in-window counts   Registered: none
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (minimum 3 batches)
+
