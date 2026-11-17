@@ -6,3 +6,106 @@ Start Time: 2026-11-16 16:00:19
 Agent 7 Status: INITIALIZED
 Stage 1 log present: ./data/BFA/search_log_recency_20261116_agent1.txt (23163 bytes, written 2026-11-16 15:59)
 
+=== STEP 1: SCOPE - ROWS TAGGED [RECENCY-20261116] ===
+Stage 1 log read in full (./data/BFA/search_log_recency_20261116_agent1.txt) plus its state file
+  ./data/BFA/workflow_state_recency_20261116.json: 3 batches, 60 queries, yields 0/0/0%, rows_added 0, sources 0.
+Tag search (grep 'RECENCY-20261116'):
+  ./data/BFA/cholera_data_ai.csv      0     ./data/BFA/metadata_ai.csv         0
+  ./data/BFA/cholera_presence_ai.csv  0     ./data/BFA/retracted_rows_ai.csv   0
+  ./data/BFA/attribution_review.csv   absent ./data/BFA/cholera_data_who.csv   absent (BFA not in WHO weekly feed)
+  No RECENCY tag of any date exists in any BFA CSV.
+Untagged in-window writes: none. ./data/BFA/cholera_data_ai.csv has 668 rows (Index 1-708, all unique); max TR
+  2026-09-28 (Index 363), max reporting_date 2026-10-02. No row has TL or TR inside 2026-09-29..2026-11-16.
+git: data CSVs clean vs HEAD; last commit that changed them = 46aa8b8e (2026-10-03, full run). Today's
+  auto-commits 28af1b64 / bee90c72 / 61b0a582 touched only the recency log/state files.
+JHU baseline (filtered with csv, not loaded): 19,050 rows, max TR 2024-12-31, 0 rows touching the window.
+=> Rows to audit: 0. Per-row checks 1-5 (quote/period, duplication, plausibility, zero evidence, weight): not
+   applicable. Kept 0, corrected 0, retracted 0. py/revise_observation.py not used.
+
+=== STEP 2: STAGE 1 PERFORMANCE CHECK ===
+Batches 3 (= protocol floor), 20 queries each (27 WebSearch + 33 direct/API/PDF/OCR, tallies agree with the log).
+Yields 0/0/0% -> stop after batch 3 is correct (floor met + 3 consecutive <5%). No yield >100%. Claimed rows 0 =
+  rows written 0. Did not run xref apply (correct for a recency pass; 26 queue items all 2000-2022).
+Rule compliance: stage 1 correctly refused to write an Inferred_Absence zero from list omission.
+
+=== STEP 3: INDEPENDENT RE-VERIFICATION OF STAGE 1'S NEGATIVE FINDINGS ===
+(scripts: /tmp/bfa_a7_scripts/; downloads: one new dir per file under /tmp/bfa_a7_dl/)
+ V1 Africa CDC EI Weekly Report, issue 25 Oct 2026 (October 2026 package, file
+    Africa-CDC-Epidemic-Intelligence_Weekly-Report_25-Oct-2026_vf.pdf; 16 pp, no text layer; page 9 read visually).
+    AC09337 'Cholera in Africa': 'Since the beginning of 2026, a total of 171,724 cases (2,198 confirmed; 169,526
+    suspected) and 2,855 deaths (CFR: 1.51%) of cholera have been reported from 20 AU MS: Angola ... Zimbabwe (36; 2).'
+    Burkina Faso not among the 20. 'Since the last update (18 October 2026), a total of 389 new cases and three new
+    deaths of cholera were reported from three AU MS: Congo, Somalia, and Zambia.' -> stage 1 quote ACCURATE.
+    The same page's 2025 note (24 AU MS, 343,857 cases) also omits Burkina Faso.
+ V2 Africa CDC wp-json wpdmpro (newest 12 by modified): newest EI package still 'October 2026' (modified 8 Nov
+    10:45); no November 2026 package -> stage 1 ACCURATE.
+ V3 ECDC 'Cholera - Monthly update 27 October 2026'
+    (https://www.ecdc.europa.eu/en/public-health-events/2006-eip-00031/2026-10-27): 'Burkina' 0 hits. 'Since 28
+    September 2026 and as of 27 October 2026, 42 136 new cholera cases, including 501 new deaths ... New cases have been
+    reported from Angola, Burundi, Cameroon, Democratic Republic of the Congo, Mozambique, Nigeria, Rwanda, Somalia,
+    South Sudan, Yemen and Zambia.' BFA is not in the 'no updates' lists either -> stage 1 ACCURATE.
+ V4 WHO dashboard back end (services.arcgis.com/5T5nSi527N4F7luB): cholera_adm0_week iso_3_code='BFA' -> count 0;
+    cholera_report_period -> 43 countries, max end_date 2026-10-25, no Burkina Faso -> stage 1 ACCURATE.
+    Neighbours (BEN CIV GHA MLI NER TGO): rows exist for CIV 11, GHA 56, NER 20, TGO 67; newest positive weeks
+    are GHA 2025-W36 and CIV 2025-W33; none in 2026 -> no neighbour signal in the window.
+ V5 WHO AFRO OEW wk41 (05-11 Oct 2026; https://reliefweb.int/attachments/3c61a0a2-e650-547e-b0b8-b951ef4d7f49/
+    OEW41-11102026.pdf; pdftotext): BFA table rows = 'Humanitarian crisis Protracted 2' and 'Measles Ungraded
+    11 072 / 35 deaths to 21-Jun-26' only; cholera event rows = AGO, BDI, CMR, TCD, COG, KEN, MOZ, NAM, RWA, ZAF,
+    SSD, TZA, ZMB (+COD). Cover map rendered at 300 dpi and cropped: BFA shows only measles + humanitarian icons; no
+    cholera symbol in BFA or any neighbour. The text-layer '9 0' label beside 'Burkina Faso' is a Nigeria event
+    (position artefact) -> stage 1 ACCURATE.
+    ReliefWeb API: newest OEW mirror since 1 Oct is still wk41 (id 4235066, posted 21 Oct).
+ V6 ReliefWeb API (py/reliefweb.py): --country BFA --query cholera --from 2026-09-29 -> 0; 'choléra' -> 0;
+    all-country cholera reports since 20 Oct screened for BFA/neighbours/West Africa -> none.
+ V7 WebSearch x4: 'Burkina Faso choléra 2026' (standard), 'Burkina Faso cholera cases October November 2026'
+    (extended), 'Niger OR Mali choléra cas octobre novembre 2026', 'Ghana OR Togo OR Benin OR Côte d'Ivoire cholera
+    outbreak October 2026' -> no BFA cholera in 2026; no neighbour cholera in the window. A Gazette NGR page that
+    mentions Mali 'new or resurgent cases' was fetched: it is a NAN story dated 15 Jan 2026 on 2025 data and the
+    sentence is about Ebola surveillance -> not in window, not a neighbour signal.
+ Not re-verified (context only, no data consequence): stage 1's measles figures for BFA in the Africa CDC reports,
+    the sante.gov.bf maintenance page and Wayback reads, the WHO Burkina T3 2026 bulletin, the 17-outlet WP sweep.
+Result: 7/7 re-checks reproduce stage 1. No missed BFA cholera report found. Nothing to add.
+
+=== STEP 4: WINDOW COVERAGE ===
+./reference/effective_surveillance_gaps_*.csv were regenerated at 15:56 today, after the last BFA data change
+  (2026-10-03), so they are current for BFA; not regenerated by this agent (shared global files).
+  detailed: BFA 2026-10-01..2026-11-16, 47 d, recent (only open BFA gap).
+  coverage: 683 months, 681 with data (99.7%), months_ai_only 284, gap_periods 1.
+  recency : latest_observation 2026-09-28, latest_positive 2022-12-31.
+Day-level: 0 of the 49 window days covered by any layer. 29-30 Sep sit in September, which month-level coverage
+  credits (28/30 days from Index 33 + 363), hence the gap file starts 1 Oct.
+Weekly series ./data/BFA/cholera_weekly_BFA.csv ends 2026-W39; py/build_weekly_timeseries.py never zero-fills
+  weeks after the latest observation (ASSUMED_ZERO_LAG_WEEKS=52), so the window is NA downstream, not zero. Correct.
+
+=== OUT-OF-SCOPE FLAGS (reported, NOT changed - outside the tagged-row scope) ===
+ F1 Index 33 (AFR::BFA 2026-01-01..2026-09-20, sCh 0, Inferred_Absence, conf 0.6, src 19 Africa CDC EIR 20 Sep) and
+    Index 363 (2026-09-21..2026-09-28, sCh 0, Inferred_Absence, conf 0.5, src 169 ECDC CDTR wk40) are zero rows that
+    rest on multi-country list omission - the inference this pass's rule rejects. Recommend the next full BFA audit
+    re-adjudicate them (retract, or keep with an explicit caveat).
+ F2 Builder: Index 363 has a 7-day span, so py/build_weekly_timeseries.py Tier 1 (6 <= span <= 7) emits 2026-W39 as
+    method 'observed' (sCh 0, conf 0.5) and bypasses evidence grading; a longer zero would have been capped as
+    'inferred_zero'. Applies to any weekly-span Inferred_Absence zero in any country. Pipeline issue, not fixed here.
+ F3 Validator WARNs (47 CFR_high_flagged_for_review, 1 period_single_day row 621) are all historical, pre-existing.
+    (F2 also covers sub-weekly zero rows: spans <6 days are summed by _sum_subweekly and emitted as 'observed'.
+    Tier 3 inferred-zero grading, with the 0.6 cap, applies only to spans >7 days.)
+
+=== STEP 5: DELIVERABLES ===
+Appended to ./data/BFA/search_report.txt: section '=== RECENCY PASS 20261116: window 2026-09-29 to 2026-11-16 ==='
+  (34 lines plus one blank separator; original 224 lines verified byte-identical before/after).
+Final validator: python3 py/validate_quality.py BFA -> EXIT 0 (668 data rows, 222 metadata sources;
+  ERROR 0, WARN 48, INFO 144 - identical to the start-of-audit run; JSON copy at /tmp/BFA_audit.json).
+Files changed by Agent 7: ./data/BFA/search_log_recency_20261116_agent7.txt (this log) and
+  ./data/BFA/search_report.txt (append only). NOT touched: ./data/BFA/cholera_data_ai.csv, metadata_ai.csv,
+  cholera_presence_ai.csv, retracted_rows_ai.csv, search_log_agent_7.txt, workflow_state.json,
+  workflow_state_recency_20261116.json, baselines (cholera_data_jhu.csv), ./reference/*, the dashboard, other
+  countries. py/revise_observation.py and py/add_observation.py were not invoked (nothing to correct or add).
+
+=== SUMMARY - RECENCY PASS 20261116, AGENT 7, BFA ===
+Rows audited 0 | kept 0 | corrected 0 | retracted 0 | sources added 0
+Window 2026-09-29..2026-11-16: 0/49 days covered - STILL EMPTY in every layer (justified: no BFA cholera report or
+  zero statement exists; list omission is not accepted as zero; late Oct-mid Nov not yet published anywhere).
+Stage 1 verdict: PASS - protocol followed (3 batches, correct stop), claims match the files, 7/7 key negative
+  readings independently reproduced, no missed source found.
+Validator: EXIT 0.
+End Time: 2026-11-16 16:07:37
+Agent 7 Status: COMPLETE
