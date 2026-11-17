@@ -4,3 +4,159 @@ Window: 2026-10-19 to 2026-11-16
 Start Time: 2026-11-17 01:30:54
 Scope: rows of ./data/AGO/cholera_data_ai.csv tagged [RECENCY-20261116] only
 
+Stage 1 log: ./data/AGO/search_log_recency_20261116_agent1.txt -> PRESENT (79 lines, last written 2026-11-16 16:32:51)
+Agent 7 Status: INITIALIZED
+(Clock note: the session was suspended between the header above and the checks below; checks ran 2026-11-17
+ 07:38-08:37 PST.)
+
+=== STEP 0 | DID STAGE 1 FINISH? NO - IT WAS CUT OFF BY A NETWORK FAILURE ===
+Stage 1's log ends after BATCH 2 with 'Decision: CONTINUE (minimum 3 batches)'. There is no batch 3, no stop record,
+  and no ./data/AGO/workflow_state_recency_20261116.json.
+Cause, from ./logs/run_20261116-135253/AGO.log:
+  attempt 1  2026-11-16 16:22:17  stage collect -> 'API Error: Can't reach the API server - check your internet or
+             DNS (ENOTFOUND)'. Four countries (AGO, RWA, ZAF, SLE) failed together at 18:23:16, and SLE's push then
+             failed with 'Could not resolve': a shared outage.
+  attempt 2  2026-11-16 18:23:16  stage AUDIT -> 'Connection lost while your computer was asleep'
+  attempt 3  2026-11-17 00:00:26  stage AUDIT (this run)
+  run_all_countries.sh line 329 skips any stage whose log is newer than the country marker, so the partial stage-1
+  log counted as a finished stage and neither retry re-ran the collector.
+Stage 1 therefore ran 40 queries (2 batches, yields 0% and 0%), below the 3-batch floor in
+  ./templates/template_search_protocol.txt. The shortfall came from the outage, not from a stopping decision.
+Honesty of the stage-1 log: it claims 0 rows and 0 sources, which matches the files (STEP 1). Its yields were not
+  inflated (0/20 each), and no row was claimed that was not added.
+CONSEQUENCE: if this audit exits cleanly, lines 391-399 classify AGO as done_noyield (both logs written, row and
+  source counts unchanged), and line 209 never retries done_noyield in recency mode. The AGO window was NOT searched
+  to protocol; done_noyield must not be read as a quiet window. BDI's and COD's stage-1 logs end the same way
+  (after batch 1 and batch 2), per their own agent-7 logs.
+
+=== STEP 1 | SCOPE CHECK: TAGGED ROWS ===
+grep '[RECENCY-20261116]' -> 0 matches in ./data/AGO/cholera_data_ai.csv, ./data/AGO/metadata_ai.csv,
+  ./data/AGO/cholera_presence_ai.csv and ./data/AGO/retracted_rows_ai.csv.
+git: no uncommitted change in data/AGO/. The last commit to the AI CSVs is 70061e42 (2026-10-08, xref harvest).
+  Commits to data/AGO/ since the baseline refresh 4ebaef52 touched only cholera_weekly_AGO.csv (83cae47c, dashboard
+  rebuild), the stage-1 log (64ab0d7e, 38e0b616) and this log (3ab9cd2e).
+./data/AGO/cholera_data_ai.csv: 9,630 rows. Latest TR is 2026-09-19 (AI 366, metadata 125 = Africa CDC EI weekly
+  report, 13 Sep 2026 issue). AI rows of any tag overlapping 2026-10-19..2026-11-16: 0.
+Baselines (filtered with csv, not loaded wholesale):
+  ./data/AGO/cholera_data_who.csv: last row 2026-10-12..10-18, 39 cases, 0 deaths. Weeks ending 20 Sep-18 Oct:
+    86, 68, 19, 40, 39 cases.
+  ./data/AGO/cholera_data_jhu.csv: 583 rows, max TR 2024-12-31.
+Per-row checks 1-5 (quote and period, duplication, plausibility, zero-row evidence, weight): NOT APPLICABLE - no rows.
+Corrections and retractions: none. py/revise_observation.py was not run.
+XREF: python3 -I -B py/xref_harvest.py queue AGO -> 164 open candidates from 100 documents. The latest period end is
+  2026-09-13 (ecdc:2026:40, DUPLICATE_SUBNATIONAL); 0 fall in the window. This confirms stage 1.
+
+=== STEP 2 | STAGE 1'S NON-ENTRY DECISIONS, CHECKED AGAINST THE DOCUMENTS ===
+(a) ECDC monthly update of 27 Oct 2026, fetched directly (HTTP 200):
+    https://www.ecdc.europa.eu/en/public-health-events/2006-eip-00031/2026-10-27
+    'Angola : Since 13 September 2026 and as of 11 October 2026, 289 new cases, including five new deaths, have been
+    reported. Since 1 January 2026 and as of 11 October 2026, 6 940 cases, including 132 deaths, have been reported.'
+    VERIFIED. The data end 11 Oct, before the window, and WHO weekly rows already cover that period, so the figure
+    was correctly not entered. Angola is not on ECDC's 'Since 28 September 2026, no updates have been reported by:'
+    list, so it was still reporting into mid-October.
+(b) Africa CDC Epidemic Intelligence Weekly Report, issue of 25 Oct 2026. Source: the October 2026 package
+    (wpdmdl=24034), file Africa-CDC-Epidemic-Intelligence_Weekly-Report_25-Oct-2026_vf.pdf. The PDF is image-only:
+    16 pages, a DHIS2 export created 7 Nov. I rendered p.1 and p.9 with pdftoppm and read them.
+    p.9: 'Angola (6,980 cases; 132 deaths)' in the 2026 list; 'Since the last update (18 October 2026), a total of
+    389 new cases and three new deaths of cholera were reported from three AU MS: Congo, Somalia, and Zambia.'
+    VERIFIED. p.1 reads 'Date of Issue: 2026-10-25', and the map shows cholera markers on Congo, Somalia and Zambia
+    only. The Zambia paragraph is 'In epidemiological week 43', so this issue covers 19-25 Oct, inside the window.
+    Verdict: correctly NOT entered.
+      - The 6,980/132 is a stale cumulative. It matches the WHO weekly sum from 2025-12-29 to 2026-10-18 (6,982/132).
+        Stage 1's '6,982/132' holds only with the year-straddling week 2025-12-29..2026-01-04 (61/1) included; the
+        weeks from 2026-01-05 alone sum to 6,921/131.
+      - A YTD row ending 25 Oct would be a positive aggregate with ~0 residual over the nested WHO weeks. The weekly
+        builder would then stamp EW43 inferred_zero, creating a false zero.
+      - No zero row: the source does not say Angola reported zero cases. Angola sent no update, its last three
+        weeks were 19, 40 and 39 cases, and non-reporting is not absence.
+(c) WHO AFRO OEW listing (afro.who.int): newest is 'Week 41: 05 to 11 October 2026'. VERIFIED; week 42 onward not
+    posted.
+(d) WER 101(45): its 2-8 Nov 2026 signals list 'Africa ... Cholera' with no country. WER 101(46): HTTP 404.
+    VERIFIED. WHO epi update #38 (30 Jun 2026) moved the monthly cholera update into the WER from July. The newest
+    table, WER 101(44), is 'as of 27 September' (per the NAM audit), so it is pre-window.
+(e) National media and ministry, all VERIFIED as stage 1 reported:
+    - Jornal de Angola CMS API (POST, 'cólera'/'colera'): 361 items, newest 2026-09-25; 0 dated on or after 19 Oct.
+    - RNA WP REST, cholera posts after 15 Oct: 2. 5 Nov is the DRC epidemic story (Angola appears only in site
+      navigation); 21 Oct is the polio/measles/yellow-fever campaign.
+    - Correio da Kianda: 1 unrelated post (10 Nov).
+    - O País (rest_route): 1 post, 16 Nov 'Mais de 172 profissionais capacitados para responder às epidemias'.
+      It mentions 'surtos mais recentes de cólera' but gives no counts.
+    - MINSA /web/noticias: 0 cholera mentions.
+Stage 1's minor imprecision: it labels the last baseline week 'WHO wk41', while the weekly series calls 2026-10-12..18
+  ISO week 42. Both mean the same dates; no effect.
+
+=== STEP 3 | INDEPENDENT CHECK FOR IN-WINDOW DATA (audit only; Agent 7 does not collect) ===
+33 checks: 7 WebSearch (standard mode), 7 ReliefWeb API, 8 site APIs, 11 direct fetches.
+  Africa CDC
+    - wpdmpro API, ordered by modified date: the newest EI package is 'October 2026' (posted 21 Oct, modified 8 Nov).
+      It holds two files, the 19 Oct and 25 Oct issues. There is no November package, and the 1, 8 and 15 Nov issues
+      (EW44-46) are not public. Issues appear about two weeks after their epi-week.
+  ReliefWeb API (py/reliefweb.py)
+    - --country AGO --query cholera from 2026-10-19: 0.
+    - --country AGO, all topics, from 2026-11-10: 0.
+    - --query cholera from 2026-11-10: 11 reports (SOM, SDN, COD, CMR, NGA, SSD), none on Angola.
+    - 'Eastern and Southern Africa' from 2026-10-19: 21 reports, none with Angola cholera counts.
+    - 'Southern Africa cholera' from 2026-10-01: only UNICEF ESARO HSR No.1 (data to 30 Jun) and the OCHA Southern
+      Africa snapshot (13 Oct); both pre-window.
+    - 'Angola cholera' from 2026-10-19: 0.
+  WebSearch
+    - 'Angola cólera casos novembro 2026' and 'Angola cholera cases November 2026': 2025 and early-2026 items only.
+      mesvaccins 23653 is dated 17/11/2025. allAfrica's Uíge '>400 cases' story is Aug 2026.
+    - 'Africa CDC press briefing November 2026 cholera Angola': 2025 briefings only.
+    - 'WHO AFRO regional cholera bulletin 2026 week 43 44 Angola': nothing new.
+    - 'multi-country epi update 41/42': none exists; #38 confirms the move to the WER.
+    - AFP, 10 Nov 2026: WHO briefing by L. Pezzoli (Rio Times copy fetched; Ahram, SCMP and Daily Sun return 403).
+      Global deaths of 'more than 3,000' for Jan-Sep 2026; Angola is named only for 2025. No window figure.
+    - 'Lusa Angola cólera outubro 2026': newest item Feb 2026.
+  Other sites
+    - WHO Angola country news (items 20 Oct-9 Nov): none on cholera.
+    - ANGOP site search: connection reset (unreachable, as in the full run).
+    - Outbreak News Today 'angola-cholera-update': Jan 2025.
+    - RSOE-EDIS event 1001784: rendered by JavaScript, no Angola text (Level 4, inconclusive).
+RESULT: as of 2026-11-17, no source checked publishes an Angolan cholera count for any day of 2026-10-19..11-16.
+  Stage 1 missed nothing that exists today. Its truncation will matter once the late-November sources appear.
+Plausibility and neighbours: transmission almost certainly continued.
+  - Angola: 19-40 cases a week up to 18 Oct, with Africa CDC's EW43 update showing no new submission.
+  - DRC Kwilu (COD recency rows AI 11136-11138): Sia 11 and Djuma 8 suspected cases, 19-24 Oct.
+  - Zambia EW43: 295 cases in Central, Copperbelt, Luapula, Lusaka, Northern and Southern, none bordering Angola.
+  - Namibia: not reporting.
+  A zero for the window would be implausible and unsupported.
+
+=== STEP 4 | WEEKLY SERIES AND COVERAGE ===
+./data/AGO/cholera_weekly_AGO.csv (rebuilt 2026-11-16, commit 83cae47c): the last week is 2026-10-12..10-18
+  (ISO 42, observed WHO 39). There are no window weeks, so the window is correctly missing, not zero-filled.
+./reference/effective_surveillance_gaps_*.csv (regenerated 2026-11-17 08:34 by another process). I did not re-run
+  py/analyze_effective_gaps.py: it rewrites shared files mid-run, and no AGO AI data changed.
+  - AGO coverage: 580/683 months (84.9%); months_ai_only 147; months_who 22; months_jhu 411; 4 gap periods.
+  - The gaps: 1976; 1997-02..2003-12; 2004-06..2004-12; 2026-11-01..11-17 (recent). October counts as covered
+    because of the WHO rows for 1-18 Oct.
+  - ./reference/effective_surveillance_recency.csv: latest observation 2026-10-18 (30 days stale); latest positive
+    2026-10-18.
+Window covered: 0 of 29 days.
+
+=== STEP 5 | VALIDATOR ===
+python3 py/validate_quality.py AGO --json /tmp/AGO_recency_audit.json
+  -> exit 0 | 9,630 rows | 1,011 sources | ERROR 0, WARN 39, INFO 475
+  - WARN: 35 CFR_high_flagged_for_review and 4 period_single_day. This is the same count and the same classes as the
+    2026-09-30 full-run audit, which justified them. None is on a tagged or in-window row.
+  - INFO rose from 467 to 475 because of the 8 xref-harvest rows of 2026-10-08, not this pass.
+  - Nothing fixed, nothing suppressed.
+
+=== STEP 6 | FILES ===
+Written: this log, plus a new section appended to ./data/AGO/search_report.txt.
+NOT touched: cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv, the baselines,
+  workflow_state.json, search_log_agent_7.txt, the dashboard and other countries.
+Downloads: /tmp/ago_r7_dl.e2MZHY/ (Africa CDC 25 Oct PDF and renders, ECDC page). Scripts: /tmp/ago_r7_scripts/.
+
+=== RECOMMENDATIONS ===
+1. Re-run AGO stage 1 for this window by hand. The runner will not, because AGO will be done_noyield.
+2. Runner fix (not made here; the run is live): treat a stage as complete only when its log carries a completion
+   record or the stage process exited 0. A log that merely exists is not enough. Check BDI, COD and any other
+   country whose stage-1 log stops mid-protocol at ~16:32 on 2026-11-16.
+3. Timing: after ~25 Nov (ECDC monthly update; Africa CDC November package with EW44-46) and in early December (WER
+   cholera table with data to ~25 Oct). The WHO dashboard refresh will probably fill weeks 42+ before any AI source.
+4. If Angola is again absent from Africa CDC's 'new cases' lists, log it as non-reporting, never as a zero.
+   Cumulatives that equal the WHO weekly sum add nothing; do not enter them as YTD rows over the window.
+
+Agent 7 Status: COMPLETE (end 2026-11-17, see timestamp below)
+End Time: 2026-11-17 08:37:51 PST

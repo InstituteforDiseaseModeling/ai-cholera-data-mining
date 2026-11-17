@@ -215,3 +215,40 @@ F. VALIDATOR (python py/validate_quality.py AGO)
    end   18:07 : exit 0 | 9 622 rows | 1 010 sources | ERROR 0 WARN 39 INFO 467 (JSON /tmp/AGO_audit.json)
                  (WARN: the same 39 rows as at start, Index-checked; INFO 365 overlap, 102 metadata_unused)
    --no-baseline gives identical counts (no AGO debt entries).
+
+=== RECENCY PASS 20261116: window 2026-10-19 to 2026-11-16 ===
+Audit: Agent 7, 2026-11-17. Logs: ./data/AGO/search_log_recency_20261116_agent1.txt (collect; INCOMPLETE) and
+  ./data/AGO/search_log_recency_20261116_agent7.txt (audit).
+RESULT: NOTHING ADDED. The 29-day window is still completely empty, and it was NOT searched to protocol.
+  Rows tagged [RECENCY-20261116]: 0. Checked 0 | kept 0 | corrected 0 | retracted 0 (no Index numbers affected).
+  Sources added: 0. Presence rows: 0. Zero rows: 0.
+  ./data/AGO/cholera_data_ai.csv is unchanged at 9,630 rows (no change since commit 70061e42, 2026-10-08), and no
+  AI row of any tag overlaps the window.
+STAGE 1 WAS CUT OFF, NOT SATURATED. It ran 2 of the 3 minimum batches (40 queries, yields 0% and 0%), and its log
+  ends 'Decision: CONTINUE'. Attempt 1 died on a network failure (ENOTFOUND; ./logs/run_20261116-135253/AGO.log).
+  Both retries went straight to this audit, because run_all_countries.sh line 329 treats any existing stage-1 log as
+  a finished stage. The runner will now record AGO as done_noyield and never retry it; that status does NOT mean a
+  quiet window. BDI and COD were hit by the same defect.
+Window covered: 0 of 29 days. Effective coverage: 580/683 months (84.9%); months_ai_only 147; 4 gap periods (1976;
+  1997-02..2003-12; 2004-06..12; trailing 2026-11). Latest observation and latest positive: 2026-10-18 (WHO week
+  12-18 Oct, 39 cases), 30 days stale.
+WHY EMPTY: reporting lag. Nothing says there was no cholera.
+  - Stage 1's non-entries hold up against the documents:
+    * ECDC 27 Oct update: Angola 6 940 cases / 132 deaths 'as of 11 October', pre-window. Angola was still reporting.
+    * Africa CDC 25 Oct issue (EW43 = 19-25 Oct; image PDF, p.9 read): 'Angola (6,980 cases; 132 deaths)', and new
+      cases came 'from three AU MS: Congo, Somalia, and Zambia'. 6,980/132 equals the WHO weekly sum to 18 Oct
+      (6,982/132), so it is a stale cumulative. A YTD row would make the weekly builder stamp EW43 inferred_zero. A
+      zero row is barred: Angola sent no update, and its prior weeks were 19, 40 and 39 cases.
+  - Agent 7 ran 33 independent checks: Africa CDC API, ECDC, ReliefWeb API, WHO AFRO OEW, WER 101(45)/(46), WHO
+    Angola news, MINSA, Angolan media APIs, Lusa, and AFP's 10 Nov WHO briefing. As of 17 Nov none publishes an
+    Angolan count for any window day. Africa CDC's November issues (EW44-46), AFRO OEW week 42+, WER 101(46) and
+    ECDC's next monthly update are not out yet. Stage 1 missed nothing that exists today.
+  - Transmission was likely ongoing: Angola had 86, 68, 19, 40 and 39 cases in the weeks ending 20 Sep-18 Oct, and
+    DRC Kwilu and Zambia (295 cases in EW43) were active in the window.
+  - The weekly series ./data/AGO/cholera_weekly_AGO.csv ends at 12-18 Oct; window weeks are absent, i.e. correctly
+    missing, with no false zeros.
+Next attempt: re-run AGO stage 1 by hand after ~25 Nov (ECDC monthly update, Africa CDC November package) and again
+  in early December (WER table with data to ~25 Oct). The WHO dashboard baseline will probably fill weeks 42+ first.
+Validator: python3 py/validate_quality.py AGO -> exit 0 | ERROR 0, WARN 39, INFO 475.
+  The 39 WARN (35 high-CFR, 4 single-day) are the full-run set justified on 2026-09-30; none is on a tagged or
+  in-window row. Nothing fixed or suppressed.
