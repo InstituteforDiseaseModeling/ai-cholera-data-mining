@@ -237,10 +237,94 @@ RECENCY-STAGE-COMPLETE {tag} audit {iso}
 The runner treats the audit as unfinished without it. Write it only when you are really done."""
 
 
+def rw_collect_prompt(w, tag):
+    """ReliefWeb top-up: one source, swept exhaustively, for a country whose main
+    recency collector ran before py/reliefweb.py existed."""
+    iso, country = w["iso"], w["country"]
+    s, e = w["window_start"], w["window_end"]
+    return f"""RECENCY PASS {tag} - RELIEFWEB TOP-UP - {country} ({iso}). Stage: RWCOLLECT.
+
+WHY: the main recency collector for {iso} (log ./data/{iso}/search_log_recency_{tag}_agent1.txt)
+ran before the ReliefWeb API helper existed. reliefweb.int pages return HTTP 403 to fetch tools,
+so it could not read OCHA, UNICEF, Health Cluster, IFRC DREF, WHO and NGO sitreps there.
+Your job is to close exactly that hole - ReliefWeb only, same window.
+
+WINDOW (unchanged from the main pass): {s} to {e}.
+Read the main collector's log first: what it found, its dedup notes, and the ReliefWeb leads it
+could not open. Do not repeat its non-ReliefWeb work, and do not search other sources except to
+open a document a ReliefWeb report links to.
+
+METHOD - exhaustive enumeration, not query batches:
+  1. List every ReliefWeb report tagged {iso} in the window:
+       python3 -I -B py/reliefweb.py search --country {iso} --from {s} --to {e} --limit 200
+     (page with --offset if totalCount > 200). Screen EVERY title.
+  2. List multi-country cholera reports in the window that may carry {iso} figures:
+       python3 -I -B py/reliefweb.py search --query cholera --from {s} --to {e} --limit 200
+     plus "acute watery diarrhoea", "AWD", the French/Portuguese/Arabic terms for cholera in
+     ./reference/country_profiles.json, and "epidemic", "outbreak", "weekly bulletin on outbreaks".
+  3. Scope is decided by the PERIOD the figures describe, not the publication date. Figures for
+     periods inside {s}..{e} are in scope even if published later (widen --to to today to catch
+     them); figures only for periods before {s} are out of scope, however recent the report.
+  4. For each candidate: `py/reliefweb.py get <url_alias> --download cache/reliefweb/{iso}`,
+     read the body and the attachments, extract {iso} cholera counts for periods in the window.
+  Done when every listed report has been screened. Log each report: url_alias, title, decision
+  (row / presence / no {iso} data / out of window) - this replaces the batch-yield accounting,
+  because the source is enumerated completely rather than sampled.
+
+RULES (same as the main pass):
+  - Write only via py/add_observation.py. Begin every --note with "[RECENCY-{tag}-RW]" and every
+    --discovery with "[RECENCY-{tag}-RW]". Cite the report's url_alias in metadata.
+  - Dedup against ./data/{iso}/cholera_data_who.csv ({who_extent_text(iso)}) and against
+    existing AI rows, including the main pass's [RECENCY-{tag}] rows. A sitrep restating a WHO
+    dashboard week is a duplicate; one adding ADM1 detail, deaths, or missing weeks is not.
+  - Cumulative-to-date figures: record only when the cumulative END date is inside the window;
+    keep the source's start date as TL; say "cumulative since <date>" in --note.
+  - Zero rows only with an explicit statement of no cholera and operating surveillance. Absence
+    from a multi-country list is NOT zero. Presence without a count -> add-presence.
+  - National vs provincial: say which is the primary count in --note.
+  - Never write the ReliefWeb appname anywhere. Do not read cholera_data_jhu.csv wholesale.
+
+FILES: log to ./data/{iso}/search_log_recency_{tag}_rw.txt (create, or append under
+"=== RESUMED <timestamp> ===" if it exists from an interrupted attempt - keep its rows and
+continue). Do not touch the main pass's logs, workflow_state*.json, search_report.txt,
+baselines, the dashboard, or other countries.
+
+FINISH: run `python3 py/validate_quality.py {iso}` (must exit 0). Summarise: reports screened,
+rows added (Index numbers), sources registered, what the window now has from ReliefWeb.
+The LAST line of the log must be exactly:
+RECENCY-STAGE-COMPLETE {tag} rwcollect {iso}"""
+
+
+def rw_audit_prompt(w, tag):
+    iso, country = w["iso"], w["country"]
+    s, e = w["window_start"], w["window_end"]
+    return f"""RECENCY PASS {tag} - RELIEFWEB TOP-UP - {country} ({iso}). Stage: RWAUDIT.
+
+Audit ONLY rows of ./data/{iso}/cholera_data_ai.csv whose processing_notes contain
+"[RECENCY-{tag}-RW]" (window {s} to {e}). Read ./data/{iso}/search_log_recency_{tag}_rw.txt
+first; if it does not exist the top-up did not run - log that and finish. If it lists no rows,
+confirm that against the CSV, log it, and finish.
+
+For every tagged row: re-open the cited report (`python3 -I -B py/reliefweb.py get <url_alias>`
+and its attachment) and confirm the quote, numbers, period type and dates; check it duplicates
+neither a WHO dashboard week in ./data/{iso}/cholera_data_who.csv nor another AI row (including
+the main pass's [RECENCY-{tag}] rows); check deaths <= sCh, CFR, curve continuity, national vs
+ADM1 roles, zero-row evidence, and confidence vs source tier. Correct or retract with
+py/revise_observation.py, --reason prefixed "[RECENCY-{tag}-RW AUDIT]". Never hand-edit CSVs.
+Then `python3 py/validate_quality.py {iso}` must exit 0.
+
+FILES: log to ./data/{iso}/search_log_recency_{tag}_rwaudit.txt (create, or append if resuming).
+APPEND to ./data/{iso}/search_report.txt a section "=== RECENCY PASS {tag}: RELIEFWEB TOP-UP ==="
+(under 20 lines: rows checked/kept/corrected/retracted with Index numbers, validator result).
+Never write the ReliefWeb appname. Do not touch other files or countries.
+The LAST line of your log must be exactly:
+RECENCY-STAGE-COMPLETE {tag} rwaudit {iso}"""
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("iso", nargs="?")
-    ap.add_argument("stage", nargs="?", choices=["collect", "audit"])
+    ap.add_argument("stage", nargs="?", choices=["collect", "audit", "rwcollect", "rwaudit"])
     ap.add_argument("--tag", required=True, help="pass tag, e.g. 20261116")
     ap.add_argument("--end", default=date.today().isoformat(), help="window end (default today)")
     ap.add_argument("--windows", action="store_true", help="print the frozen window table")
@@ -259,7 +343,9 @@ def main():
     if iso not in w:
         print(f"no recency window for {iso}", file=sys.stderr)
         return 2
-    print(collect_prompt(w[iso], a.tag) if a.stage == "collect" else audit_prompt(w[iso], a.tag))
+    fn = {"collect": collect_prompt, "audit": audit_prompt,
+          "rwcollect": rw_collect_prompt, "rwaudit": rw_audit_prompt}[a.stage]
+    print(fn(w[iso], a.tag))
     return 0
 
 

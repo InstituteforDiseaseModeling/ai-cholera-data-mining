@@ -81,9 +81,13 @@ done
 command -v claude >/dev/null || { echo "claude CLI not found" >&2; exit 1; }
 case "$MODE" in
   full)    NEED_LOGS=7 ;;
-  recency) NEED_LOGS=2; MANIFEST="reference/run_manifest_recency_${TAG}.csv"
+  recency) NEED_LOGS=2; MANIFEST="reference/run_manifest_recency_${TAG}.csv"; STAGES="collect audit"
            STAGE_DIR="cache/recency_state/${TAG}"; mkdir -p "$STAGE_DIR" ;;
-  *) echo "unknown --mode: $MODE (full|recency)" >&2; exit 2 ;;
+  # ReliefWeb-only top-up of an existing recency pass: same TAG, same frozen
+  # windows, its own stages, logs, row tag ([RECENCY-<tag>-RW]) and manifest.
+  recency-rw) NEED_LOGS=2; MANIFEST="reference/run_manifest_recency_${TAG}_rw.csv"; STAGES="rwcollect rwaudit"
+           STAGE_DIR="cache/recency_state/${TAG}"; mkdir -p "$STAGE_DIR" ;;
+  *) echo "unknown --mode: $MODE (full|recency|recency-rw)" >&2; exit 2 ;;
 esac
 
 # `claude -p` stops waiting for background tasks after 600s and terminates.
@@ -115,7 +119,7 @@ python3 py/analyze_effective_gaps.py >/dev/null 2>&1 \
 python3 py/protect_baselines.py lock >/dev/null 2>&1 \
   || { echo "  FAIL could not lock baselines"; fail=1; }
 
-if [[ "$MODE" == "recency" ]]; then
+if [[ "$MODE" == recency* ]]; then
   # Freeze each country's window now, before any country's new rows move its
   # latest observation forward. Read-only if the windows file already exists.
   python3 py/recency_prompt.py --windows --tag "$TAG" >/dev/null 2>&1 \
@@ -212,7 +216,7 @@ for iso in $ORDER; do
     [[ "$st" == "done" ]] && continue
     # A recency window can be genuinely quiet; a country that ran both stages
     # and found nothing new is finished, not owed a retry.
-    [[ "$MODE" == "recency" && "$st" == "done_noyield" ]] && continue
+    [[ "$MODE" == recency* && "$st" == "done_noyield" ]] && continue
   fi
   if [[ -n "$FROM" && $started -eq 0 ]]; then
     [[ "$iso" == "$FROM" ]] && started=1 || continue
@@ -225,7 +229,7 @@ echo ""
 echo "=== plan ==="
 echo "  countries queued : ${#QUEUE[@]}  ->  ${QUEUE[*]:-none}"
 echo "  per-country cap  : $((TIMEOUT_SECS/60)) min, $MAX_TURNS turns"
-echo "  mode             : $MODE$([[ "$MODE" == recency ]] && echo "  (tag $TAG, windows reference/recency_windows_${TAG}.csv)")"
+echo "  mode             : $MODE$([[ "$MODE" == recency* ]] && echo "  (tag $TAG, windows reference/recency_windows_${TAG}.csv)")"
 echo "  concurrency      : $PARALLEL country(ies) at a time"
 echo "  permission mode  : $PERMISSION_MODE"
 echo "  dashboard        : full rebuild (all figures) after every country"
@@ -334,9 +338,13 @@ run_country () {
       # the active-outbreak countries were marked done with collection cut short.
       # An interrupted collector is re-run and resumes from its own log.
       code=0
-      for stage in collect audit; do
-        if [[ $stage == collect ]]; then k=1; ag=cholera-baseline-collector; else k=7; ag=cholera-quality-auditor; fi
-        f="data/$iso/search_log_recency_${TAG}_agent${k}.txt"
+      for stage in $STAGES; do
+        case $stage in
+          collect)   ag=cholera-baseline-collector; f="data/$iso/search_log_recency_${TAG}_agent1.txt" ;;
+          audit)     ag=cholera-quality-auditor;    f="data/$iso/search_log_recency_${TAG}_agent7.txt" ;;
+          rwcollect) ag=cholera-baseline-collector; f="data/$iso/search_log_recency_${TAG}_rw.txt" ;;
+          rwaudit)   ag=cholera-quality-auditor;    f="data/$iso/search_log_recency_${TAG}_rwaudit.txt" ;;
+        esac
         sentinel="$STAGE_DIR/${iso}.${stage}.done"
         [[ -f "$sentinel" ]] && continue
         echo "=== $(date '+%Y-%m-%d %H:%M:%S') recency $TAG $iso stage $stage ($ag) attempt $attempt ===" >> "$log"
@@ -396,7 +404,7 @@ run_country () {
         [[ -f "$f" && "$f" -nt "$marker" ]] && agents_ran=$((agents_ran+1))
       done
     else
-      for stage in collect audit; do
+      for stage in $STAGES; do
         [[ -f "$STAGE_DIR/${iso}.${stage}.done" ]] && agents_ran=$((agents_ran+1))
       done
     fi
@@ -436,7 +444,7 @@ run_country () {
   # ran it. Commit it the moment the country ends, whatever its status.
   if [[ $PUBLISH -eq 1 ]]; then
     echo "  .. $iso data: $(python3 py/publish.py "data/$iso/" reference/ \
-      -m "Country data: $iso $([[ "$MODE" == recency ]] && echo "recency $TAG ")$st (+$((ra-rb)) rows, +$((sa-sb)) sources) - $(date '+%Y-%m-%d %H:%M:%S')")"
+      -m "Country data: $iso $([[ "$MODE" == recency* ]] && echo "$MODE $TAG ")$st (+$((ra-rb)) rows, +$((sa-sb)) sources) - $(date '+%Y-%m-%d %H:%M:%S')")"
   fi
 
   echo "$iso" >> "$LOGDIR/.completed"
