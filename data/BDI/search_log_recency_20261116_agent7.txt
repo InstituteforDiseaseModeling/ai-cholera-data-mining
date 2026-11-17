@@ -101,3 +101,108 @@ sources 521-524 and two presence rows. This resumed audit re-checks ALL tagged r
 two new rows and a re-check of 1385/1386 for interactions with them.
 Stage 1 log re-read: ./data/BDI/search_log_recency_20261116_agent1.txt (28565 bytes, ends 'RECENCY-STAGE-COMPLETE 20261116
 collect BDI' at 13:29:14). Tagged rows found now: 4 (Index 1385, 1386, 1387, 1388).
+
+=== STAGE 1 COMPLIANCE (resumed run, re-assessed) ===
+- Combined run: 6 batches x 20 = 120 queries; yields B1 5 | B2 0 | B3 5 | B4 0 | B5 0 | B6 0 (%). Stop = B4-B6 three
+  consecutive <5% after the 3-batch floor -> stopping rule now MET (the earlier truncation flag is closed).
+- Yield arithmetic counts queries, not rows: B3 = 1/20 although 2 rows came from that query (counted once). Correct.
+- Batch 5 Q20 was self-corrected in the log (an archive sub-pass first counted as a query; a real 20th query run). Accepted.
+- Claims vs files: rows 1387, 1388; sources 521-524; 2 presence rows (521 national 27 Oct-3 Nov, 524 Bujumbura Mairie
+  26 Oct-7 Nov) all exist as logged. No unlogged [RECENCY-20261116] rows. The stage-2 presence flag (IFRC MDRBI028) is closed.
+
+=== CHECK 1: SOURCE TEXT, NEW ROWS (independent re-fetch to ./cache/recency_BDI_20261116_a7r/, own fetcher) ===
+- Row 1387 / source 522: Anadolu FR, https://www.aa.com.tr/fr/afrique/burundi-plus-de-2850-cas-de-chol%C3%A9ra-en-dix-mois/4116580
+  -> HTTP 200, page dated '09 Novembre 2026'. Verbatim: 'Plus de 2850 cas de choléra ont été enregistrés au Burundi du 1er
+  janvier au 3 novembre 2026, a déclaré, dimanche, via son compte X, le bureau de l'Organisation mondiale de la santé, OMS,
+  à Bujumbura. « Du 1er janvier au 3 novembre 2026, le Burundi a enregistré 2855 cas de choléra dans 13 districts
+  sanitaires »' -> quote, number (2855), dates CONFIRMED. No deaths given (blank correct). Sunday = 8 Nov 2026 (correct).
+- Row 1388 / source 523: SOS Médias 31 Oct, HTTP 200. Verbatim: 'Une dizaine de cas ont été signalés depuis près d'une
+  semaine, dont un décès à domicile.' / 'les quatre premiers cas de choléra ont été identifiés la semaine dernière dans la
+  zone de Kizuka' / 'sept personnes sont encore hospitalisées. Une personne est décédée à domicile, tandis que trois autres
+  ont déjà guéri.' -> CONFIRMED. SOS Médias 7 Nov (524, HTTP 200) restates it ('une dizaine de cas ... en l'espace d'une
+  semaine à la fin du mois d'octobre. Sept ... hospitalisées, une autre ... décédée à domicile et trois ... guéri').
+- FALSE LEAD noted for future passes: the 31 Oct page's sidebar shows 'Épidémie de choléra à Gihanga : vingt cas signalés,
+  trois morts' next to '17 novembre 2026', but its link is /2025/10/16/... (an Oct-2025 article; the date is the widget's).
+
+=== CHECK 1b: PERIOD TYPE AND DATES, NEW ROWS ===
+- 1387 = YEAR-TO-DATE CUMULATIVE, source's own TL 2026-01-01, TR 2026-11-03 (a Tuesday, mid ISO W45). Read correctly.
+- 1388 = SHORT EVENT COUNT, TL 2026-10-24 approximate ('depuis près d'une semaine' before Sat 31 Oct; first 4 cases 'la
+  semaine dernière'), TR 2026-10-31, reporting_date 2026-10-31 >= TR. Read correctly; spans ISO W43/W44.
+
+=== CHECK 2: DUPLICATION / DOUBLE COUNTING ===
+- ./data/BDI/cholera_data_who.csv: 198 rows, max TR 2026-10-18 (W42 = 92). JHU has no row in 2026-09..11. No AI row other
+  than 1385-1388 touches the window; no other Rumonge row in Oct-Nov 2026. -> no restatement of a baseline week.
+- 1388 is ADM1 (legacy AFR::BDI::Rumonge, 50 existing rows use it); notes say provincial subset, do not sum; the national
+  builder reads AFR::BDI only. No double count.
+- 1387 vs 1386: same national YTD series in the builder's eyes (TL 1 Jan vs 29 Dec, within the 3-day chain tolerance),
+  different originators (WHO country office X post via Anadolu vs UNICEF SitRep 25). See CHECK 3.
+
+=== CHECK 3: PLAUSIBILITY + WEEKLY-BUILDER EFFECT ===
+- 1388: deaths 1 <= sCh 11; CFR 1/11 = 9.09 (small numbers, one community death; within the 0.5-10% review band).
+  11 cases in Rumonge (Lake Tanganyika endemic focus) inside a national W44 of 242: plausible.
+- 1387: 2,855 vs 1386's 2,762 = +93 over 2-3 Nov (46.5/day vs 34.6/day in W44). The magnitude is plausible and matches
+  OCHA (>2,700, 13 districts) and UNICEF. The search summariser that called 2,855 'inconsistent' was wrong (it compared with
+  Feb/Aug figures).
+- Independent builder dry run (own harness ./cache/recency_BDI_20261116_a7r/tools/builder_ablation.py, temp copies only):
+    CURRENT  : W42 92 WHO observed | W43 -- | W44 242 AI observed c0.80 | W45 93.0 AI fourier_* c0.54 | W46 --
+    NO_1387  : W42 92 WHO observed | W43 -- | W44 242 AI observed c0.80 | W45 --                       | W46 --
+  1386's increment (+718, 21 Sep-1 Nov) is coverage-skipped (5/6 weeks observed). Row 1387's ONLY effect on the series is
+  W45 = 93: a 2-of-7-day increment written as the whole ISO week with method fourier_*, which MOSAIC-pkg
+  process_AI_cholera_data() keeps as data. The series would fall 242 -> 93 (-62%) in the last observed week while the
+  sources say the opposite (Bujumbura spread, 'pas un jour sans qu'un nouveau malade soit signalé', SOS Médias 7 Nov).
+  The 93 is also not a reliable 2-day count: it differences two documents with different originators and start
+  conventions (29 Dec vs 1 Jan; the 29 Dec-4 Jan week had 51 cases) and possible late-report revision (harvest-skill
+  guardrail 'Preliminary totals get revised'). Builder gate rules 1-6 do not catch it (2026 moves 2,649 -> 2,742, closer
+  to 2,855). It is the LOG_SHORT mechanism ('the builder would read them as observed weeks') reached through a chain increment.
+  -> 1387 FAILS curve continuity as the model would see it. Equivalent to CONFLICT_BUILDER: correct row, not written.
+
+=== CHECK 4: ZERO ROWS === none in this pass (resumed run wrote no zero rows) -> nothing to test.
+=== CHECK 5: CONFIDENCE ===
+- 1387 0.6 = top of Level 3 (wire service relaying WHO country office): consistent with tier.
+- 1388 0.4 = Level 3 local news with approximate count; existing SOS Médias rows range 0.25-0.6 (mostly 0.45-0.55): consistent.
+
+=== RE-CHECK 1385 / 1386 (verified 08:33; unchanged since) ===
+- Values, dates, weights unchanged. WHO baseline unchanged (still ends 18 Oct). 1388 does not touch the national series.
+  Without 1387, 1386 is again the latest cumulative and nothing chains to it. Both KEPT.
+
+=== CORROBORATION SEARCH (3 WebSearch) ===
+- 'Burundi choléra "2855" OR "2 855" cas novembre 2026 OMS' -> no second source (WHO X post not indexed).
+- 'Rumonge Kizuka Gatete choléra octobre 2026' -> nothing (DRC items only).
+- 'Burundi cholera cases November 2026 WHO epidemiological week 45' -> nothing past ECDC 11 Oct / Africa CDC 18 Oct.
+
+=== ACTIONS (resumed audit; all via py/revise_observation.py, driver ./cache/recency_BDI_20261116_a7r/tools/apply_revisions.py) ===
+- 1386 --append-note: corroboration from WHO Burundi X post via Anadolu (522), 2,855 to 3 Nov; values unchanged -> exit 0
+- 1387 --delete (13:37:00): RETRACTED, tombstone in ./data/BDI/retracted_rows_ai.csv. Reason prefixed
+  '[RECENCY-20261116 AUDIT]': correct transcription, but its only builder effect is a 2-day increment (+93, 2-3 Nov)
+  written as all of ISO 2026-W45 (fourier_*, conf 0.54, kept by MOSAIC-pkg), a false 242 -> 93 drop in the latest week;
+  the 93 differences two documents with different originators and start dates. Equivalent to CONFLICT_BUILDER.
+  Restore once W45 is observed (then coverage-skipped) or the builder stops writing sub-week increments as whole weeks. -> exit 0
+- 1388 --append-note: VERIFIED, kept unchanged -> exit 0
+- metadata 522 --set-description: original text kept, plus 'corroboration only; row 1387 retracted ...'. Status stays
+  Active (attribution is correct, as for 520) -> exit 0
+- Post-revision dry run (temp copy): W42 92 WHO | W43 -- | W44 242 AI observed | W45 -- | 2026 total 2,649. Artifact gone.
+- NOT touched: baselines, dashboard, other countries, search_log_agent_7.txt, workflow_state.json,
+  workflow_state_recency_20261116.json (stage 1's), cholera_presence_ai.csv.
+- STALE DERIVED FILE: ./data/BDI/cholera_weekly_BDI.csv was rebuilt at 13:34:27 by the runner's update_dashboard.sh
+  (PID 65586, started 13:33:07), before the retraction, so it still holds W45 = 93 fourier_country_k2. Its next run
+  removes it. Not rebuilt here (dashboard out of scope). My harness imports the builder as a module, and main() (the
+  only writer) does not run, so it wrote nothing to data/.
+
+=== RESULT (all tagged rows, both audit sessions) ===
+Checked 4 / kept 3 (1385, 1386, 1388) / corrected 0 / retracted 1 (1387). Agent 7 added no sources.
+Window coverage, national weekly series as MOSAIC reads it: ISO W44 only (26 Oct-1 Nov, 242), 7 of 29 days.
+  Sub-national: Rumonge 24-31 Oct (1388). Presence, no counts: AFR::BDI 27 Oct-3 Nov (521), Bujumbura Mairie 26 Oct-7 Nov (524).
+Empty, and must stay empty, never zero: W43 (implied ~113, not hand-differenced); W45 (the only figure was a 2-day
+  cumulative step, retracted; presence confirms transmission); W46 + 16 Nov (nothing published). All are publication
+  lag in an ongoing epidemic that is spreading to Bujumbura.
+
+=== VALIDATOR ===
+python3 py/validate_quality.py BDI --json /tmp/BDI_audit_recency_a7r.json -> exit 0 ; ERROR 0   WARN 34   INFO 419
+  (1363 data rows, 524 sources). All 34 WARNs predate this pass; none references a recency row. New INFO
+  metadata_unused for 521/522/524 (presence/corroboration sources) is expected. National/sub-national overlap
+  2026-10-26..11-01 (1385 vs 1388) is marked documented.
+Report: appended a 34-line '=== RECENCY PASS 20261116: window 2026-10-19 to 2026-11-16 (addendum) ===' section to
+  ./data/BDI/search_report.txt. The first 473 lines were verified byte-identical before and after.
+End Time: 2026-11-17 13:39:27
+Agent 7 Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 audit BDI
