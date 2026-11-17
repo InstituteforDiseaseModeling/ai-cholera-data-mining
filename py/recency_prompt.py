@@ -160,9 +160,16 @@ accounting, restricted to this window. Stopping rule unchanged: at least 3 batch
 stop at 3 consecutive batches below 5% yield, or 12 batches. Every query should carry the
 window's time constraint (months/year, "2026", epi-week numbers).
 
+RESUMING: if ./data/{iso}/search_log_recency_{tag}_agent1.txt already exists, an earlier
+attempt was interrupted (network loss or the machine sleeping). Read it and ./data/{iso}/
+workflow_state_recency_{tag}.json if present. Keep every row it wrote (find them by the
+[RECENCY-{tag}] tag), do not repeat its queries, and continue from the next batch number,
+APPENDING to the log under a line "=== RESUMED <timestamp> ===". Batch and yield counts carry
+over, so the stopping rule applies to the combined run.
+
 FILES:
   - Log to ./data/{iso}/search_log_recency_{tag}_agent1.txt. Create it at once with a header
-    (country, window, start time). Do NOT write or overwrite ./data/{iso}/search_log_agent_1.txt
+    (country, window, start time) - or append, if resuming. Do NOT write or overwrite ./data/{iso}/search_log_agent_1.txt
     or any other search_log_agent_*.txt - those are the full-run logs.
   - Do NOT write ./data/{iso}/workflow_state.json or search_report.txt. If you need state, use
     ./data/{iso}/workflow_state_recency_{tag}.json.
@@ -172,8 +179,11 @@ FILES:
 FINISH: run `python3 py/validate_quality.py {iso}` and fix any ERROR on your own rows (via
 py/revise_observation.py). End the log with a summary: batches run and yield per batch, rows
 added (Index numbers), sources registered, which parts of the window are now covered, which
-remain empty and why (not yet published / no surveillance / quiet). Then stop - stage 2 is run
-by the runner, not by you."""
+remain empty and why (not yet published / no surveillance / quiet). The LAST line of the log
+must be exactly:
+RECENCY-STAGE-COMPLETE {tag} collect {iso}
+The runner treats the stage as unfinished without it and will run you again. Write it only when
+you are really done. Then stop - stage 2 is run by the runner, not by you."""
 
 
 def audit_prompt(w, tag):
@@ -206,14 +216,25 @@ Retract or correct with `py/revise_observation.py` (never hand-edit the CSVs); a
 
 Then run `python3 py/validate_quality.py {iso}`; it must exit 0.
 
+If ./data/{iso}/search_log_recency_{tag}_agent7.txt already exists, an earlier audit was
+interrupted: append under "=== RESUMED <timestamp> ===", re-check whatever it did not finish,
+and check ALL tagged rows including any the collector added after it (a resumed collector may
+have added more).
+
 FILES:
-  - Log to ./data/{iso}/search_log_recency_{tag}_agent7.txt (create at start). Do NOT overwrite
+  - Log to ./data/{iso}/search_log_recency_{tag}_agent7.txt (create at start, or append). Do NOT overwrite
     search_log_agent_7.txt or workflow_state.json.
   - APPEND (do not replace) a section to ./data/{iso}/search_report.txt headed
     "=== RECENCY PASS {tag}: window {s} to {e} ===" giving: rows checked, kept, corrected,
     retracted (with Index numbers and reasons), sources added, part of the window now covered,
-    what remains empty and why, and the validator result. Keep it under 40 lines.
-  - Do not touch baselines, the dashboard, or other countries."""
+    what remains empty and why, and the validator result. Keep it under 40 lines. If a
+    section for this pass is already there from an interrupted audit, add an
+    "(addendum)" section rather than duplicating it.
+  - Do not touch baselines, the dashboard, or other countries.
+
+The LAST line of your log must be exactly:
+RECENCY-STAGE-COMPLETE {tag} audit {iso}
+The runner treats the audit as unfinished without it. Write it only when you are really done."""
 
 
 def main():

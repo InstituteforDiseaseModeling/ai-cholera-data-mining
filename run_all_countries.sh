@@ -17,6 +17,8 @@
 #   bash run_all_countries.sh --only ETH,KEN         # specific countries
 #   bash run_all_countries.sh --first RWA,AGO        # these first, then the rest
 #   bash run_all_countries.sh --retry-failed         # re-attempt failures only
+#   bash run_all_countries.sh --mode recency --tag 20261116 --only KEN,ZMB --force
+#                                                    # re-run listed countries even if marked done
 #   bash run_all_countries.sh --mode recency --tag 20261116 --unattended
 #                                                    # recency-only pass (see below)
 #
@@ -51,7 +53,7 @@ PERMISSION_MODE="acceptEdits"
 MAX_TURNS=${MAX_TURNS:-600}
 DASH_EVERY=${DASH_EVERY:-1}                # retained for CLI compat; every refresh is now a full rebuild
 PARALLEL=${PARALLEL:-1}                    # countries running concurrently
-DRY=0; LIMIT=0; FROM=""; ONLY=""; FIRST="${FIRST:-}"; RETRY_FAILED=0; PUBLISH=0
+DRY=0; LIMIT=0; FROM=""; ONLY=""; FIRST="${FIRST:-}"; RETRY_FAILED=0; PUBLISH=0; FORCE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -61,6 +63,7 @@ while [[ $# -gt 0 ]]; do
     --only)            ONLY="$2"; shift ;;
     --first)           FIRST="$2"; shift ;;
     --retry-failed)    RETRY_FAILED=1 ;;
+    --force)           FORCE=1 ;;
     --timeout)         TIMEOUT_SECS="$2"; shift ;;
     --parallel)        PARALLEL="$2"; shift ;;
     --permission-mode) PERMISSION_MODE="$2"; shift ;;
@@ -78,7 +81,8 @@ done
 command -v claude >/dev/null || { echo "claude CLI not found" >&2; exit 1; }
 case "$MODE" in
   full)    NEED_LOGS=7 ;;
-  recency) NEED_LOGS=2; MANIFEST="reference/run_manifest_recency_${TAG}.csv" ;;
+  recency) NEED_LOGS=2; MANIFEST="reference/run_manifest_recency_${TAG}.csv"
+           STAGE_DIR="cache/recency_state/${TAG}"; mkdir -p "$STAGE_DIR" ;;
   *) echo "unknown --mode: $MODE (full|recency)" >&2; exit 2 ;;
 esac
 
@@ -200,7 +204,9 @@ refresh_dashboard () {   # $1 = "light" | "full" (both now rebuild everything), 
 QUEUE=(); started=0
 for iso in $ORDER; do
   st="$(status_of "$iso")"
-  if [[ "$RETRY_FAILED" -eq 1 ]]; then
+  if [[ "$FORCE" -eq 1 && -n "$ONLY" ]]; then
+    :   # --force with --only: run the listed countries whatever the manifest says
+  elif [[ "$RETRY_FAILED" -eq 1 ]]; then
     [[ "$st" == "failed" || "$st" == "timeout" ]] || continue
   else
     [[ "$st" == "done" ]] && continue
@@ -320,13 +326,19 @@ run_country () {
           >> "$log" 2>&1 </dev/null
       code=$?
     else
-      # Two stages, each its own process. A stage whose log was already written
-      # in this country's window is skipped, so a retry resumes at the audit.
+      # Two stages, each its own process. A stage counts as complete only when
+      # its process EXITED 0 - recorded as a sentinel in gitignored cache/. The
+      # first version treated "its log exists" as complete, but agents create
+      # the log at START: on 2026-11-16 eight collectors died mid-batch when the
+      # laptop slept, and every retry skipped straight to the audit, so most of
+      # the active-outbreak countries were marked done with collection cut short.
+      # An interrupted collector is re-run and resumes from its own log.
       code=0
       for stage in collect audit; do
         if [[ $stage == collect ]]; then k=1; ag=cholera-baseline-collector; else k=7; ag=cholera-quality-auditor; fi
         f="data/$iso/search_log_recency_${TAG}_agent${k}.txt"
-        [[ -f "$f" && "$f" -nt "$marker" ]] && continue
+        sentinel="$STAGE_DIR/${iso}.${stage}.done"
+        [[ -f "$sentinel" ]] && continue
         echo "=== $(date '+%Y-%m-%d %H:%M:%S') recency $TAG $iso stage $stage ($ag) attempt $attempt ===" >> "$log"
         timeout "$TIMEOUT_SECS" claude -p "$(python3 py/recency_prompt.py "$iso" "$stage" --tag "$TAG")" \
             --agent "$ag" \
@@ -337,7 +349,13 @@ run_country () {
             >> "$log" 2>&1 </dev/null
         code=$?
         [[ $code -ne 0 ]] && break
-        [[ -f "$f" && "$f" -nt "$marker" ]] || break   # stage exited 0 without its log
+        # Exit 0 is not enough either: on 2026-11-16 SLE's audit died on
+        # "API Error: Can't reach the API server" and claude -p still exited 0.
+        # Require the agent's own completion line as well.
+        if ! grep -qx "RECENCY-STAGE-COMPLETE $TAG $stage $iso" "$f" 2>/dev/null; then
+          code=75; echo "  .. $iso $stage exited without its completion line - will retry" ; break
+        fi
+        date '+%Y-%m-%d %H:%M:%S' > "$sentinel"
       done
     fi
 
@@ -378,9 +396,8 @@ run_country () {
         [[ -f "$f" && "$f" -nt "$marker" ]] && agents_ran=$((agents_ran+1))
       done
     else
-      for k in 1 7; do
-        f="data/$iso/search_log_recency_${TAG}_agent${k}.txt"
-        [[ -f "$f" && "$f" -nt "$marker" ]] && agents_ran=$((agents_ran+1))
+      for stage in collect audit; do
+        [[ -f "$STAGE_DIR/${iso}.${stage}.done" ]] && agents_ran=$((agents_ran+1))
       done
     fi
     [[ "$st" == "done" && "$agents_ran" -ge "$NEED_LOGS" ]] && break
