@@ -7,3 +7,100 @@ Scope: rows of ./data/GNB/cholera_data_ai.csv tagged [RECENCY-20261116] only; fu
 Stage 1 log: ./data/GNB/search_log_recency_20261116_agent1.txt (EXISTS - stage 1 ran, 3 batches/60 queries,
   claims 0 rows added, 0 sources registered, 0 presence rows).
 
+=== STEP 1: VERIFY STAGE-1 CLAIM (0 rows added) ===
+- Exact tag "[RECENCY-20261116]" and loose case-insensitive "RECENCY" scanned over every column of
+  ./data/GNB/cholera_data_ai.csv (986 rows), ./data/GNB/metadata_ai.csv (310), ./data/GNB/cholera_presence_ai.csv (33)
+  and ./data/GNB/retracted_rows_ai.csv (103): 0 matches in all four files.
+- No AI row has TL or TR >= 2026-09-29. Latest AI TR = 2026-09-28 (Index 67). Max AI Index 1090; max metadata Index 310.
+- File mtimes: cholera_data_ai.csv and metadata_ai.csv 2026-10-03 21:47:28, cholera_presence_ai.csv 21:26:11,
+  retracted_rows_ai.csv 21:23:31 -> nothing written since the full run. git status ./data/GNB: clean. Today's runner
+  commits 61b0a582 and 066d1a27 touched only search_log_recency_20261116_agent{1,7}.txt and
+  workflow_state_recency_20261116.json under ./data/GNB.
+- ./data/GNB/cholera_data_who.csv does not exist (GNB is not in the WHO weekly feed) -> no WHO-week restatement possible.
+- [XREF-HARVEST] rows: none can fall in the window (no AI row reaches it); stage 1 did not run xref apply.
+RESULT: stage-1 claim CONFIRMED. Tagged rows to audit: 0 -> kept 0 / corrected 0 / retracted 0.
+  Per-row checks 1-5 (quote and period type, duplication, plausibility, zero evidence, confidence weight) are vacuous.
+  No py/revise_observation.py call was needed.
+
+=== STEP 2: STAGE-1 PROTOCOL COMPLIANCE ===
+- 3 batches x 20 = 60 queries (38 WebSearch, 7 ReliefWeb API searches + 2 gets, 13 fetches, 1 PubMed MCP, 1 lit).
+- Yields 0% / 0% / 0%. Stop = minimum 3 batches met AND 3 consecutive batches <5% -> correct application.
+- No yield >100%; rows claimed (0) = rows present (0); sources claimed (0) = sources registered (0).
+- Zero-row discipline correct: list exclusion (AFRO OEW, Africa CDC, ECDC, OCHA WCA) was NOT turned into zero rows.
+- Minor documentation note: the log dates the first Africa CDC issue "2026-10-11". That is the printed 'Date of Issue',
+  but the same issue reports events of 13-14 Oct 2026 (Kenya BVD case, RVF discharge), so its effective date is ~18 Oct
+  (the 25 Oct issue says 'Since the last update (18 October 2026)'). Immaterial: GNB is absent from cholera either way.
+- Housekeeping: stage 1 left an untracked, non-gitignored scratch dir ./.scratch_gnb_recency_20261116/ at the repo root
+  (untrusted downloads, OCR text, a locally compiled Swift OCR tool in bin/). Not removed by Agent 7 (outside this
+  stage's file scope) - flagged for cleanup so it is never swept into a commit.
+
+=== STEP 3: SPOT-CHECK OF STAGE-1 NEGATIVE EVIDENCE (texts stage 1 saved; read-only, grep/sed only) ===
+- Africa CDC EI Report, 'Date of Issue: 2026-10-11' (OCR): 'Since the beginning of 2026, a total of 160,487cases (2,068
+  confirmed; 158,419 suspected) and 2,387 deaths ... reported from 20 AU MS: Angola ... and Zimbabwe' - no
+  Guinea-Bissau. Mpox list contains 'Guinea Bissau (19; 0)'.
+- Africa CDC EI Report, 'Date of Issue: 2026-10-25' (OCR): 'a total of 171,724 cases (2,198 confirmed; 169,526
+  suspected) and 2,855 deaths ... from 20 AU MS' - no Guinea-Bissau; new since 18 Oct: Congo, Somalia, Zambia. Mpox list
+  'Guinea Bissau (19; 0)'. CONFIRMED as logged.
+- ECDC epipulse_event/2100 (as of 27 Oct 2026): 'New cases have been reported from Angola, Burundi, Cameroon, Democratic
+  Republic of the Congo, Mozambique, Nigeria, Rwanda, Somalia, South Sudan, Yemen and Zambia'; 'no updates' list: CAR,
+  Chad, Congo, Ethiopia, Kenya, Malawi, Namibia, South Africa, Sudan, Tanzania, Zimbabwe. GNB in neither. CONFIRMED.
+- WHO AFRO OEW wk41 (05-11 Oct 2026; ReliefWeb id 4235066): only GNB line 'Guinea-Bissau Mpox Protracted2 1-Jul-26
+  19-Jul-26 3 3 0 0.00'; 15 cholera event rows, none for GNB. CONFIRMED.
+
+=== STEP 4: INDEPENDENT RE-CHECK BY AGENT 7 (run after stage 1 finished, 16:06) ===
+Q1  [RW API] --country GNB --from 2026-09-29 -> 9 items, the same 9 stage 1 read (OCHA West Africa leadership 16 Nov;
+    IOM shipwrecks 9 Nov; FAO Desert Locust 576/577; IFRC NSIA grants x2; UNHCR RBWCA map; UNICEF WCA dashboard
+    Jan-Jun 2026; UNICEF GNB Flash Update No. 3 mpox to 30 Sep). None about cholera or diarrhoea.
+Q2  [RW API] full text (Guinea-Bissau name variants) AND (cholera|cólera|choléra|diarrhoea|diarrhea|diarreia)
+    --from 2026-09-29 -> totalCount 0.
+Q3  [RW API] '"Weekly Bulletin on Outbreaks and other Emergencies"' --from 2026-10-05 -> wk41 only; no wk42+ posted.
+Q4  [WS] Guiné-Bissau cólera casos 2026 (pt) -> nothing for 2026; GNB 2026 health news = mpox.
+Q5  [WS] Guinea-Bissau cholera outbreak November 2026 -> nothing for 2026. TRAP rejected: ReliefWeb 'Guinea Bissau:
+    OCHA Cholera Update - Week 46' (14'004 cases, 221 deaths; 'legislatives elections ... on Sunday 16 November') =
+    ReliefWeb id 288068, dated 2008-11-21 (verified via py/reliefweb.py get). 16 Nov 2026 is a Monday and GNB's 2026
+    elections are set for 6 Dec. Historical; not in window; not added.
+Q6  [WS] choléra Guinée-Bissau 2026 (fr) -> nothing for 2026. TRAP rejected: mesvaccins.net news 4765 'Choléra en
+    Guinée-Bissau' ('Une nouvelle épidémie est signalée dans les deux régions sud du pays (Tombali et Quinara)', no
+    counts) = published 19/10/2013 (verified by fetch; '2026' appears only in the footer copyright). Not added.
+Q7  [WS] Guiné-Bissau Ministério da Saúde Pública surto novembro 2026 (pt) -> mpox only (newest Aug 2026).
+Q8  [WS] Sénégal choléra cas novembre 2026 (fr, neighbour) -> no cholera. Kébémer (Louga, northern Senegal) cluster is
+    reported by the MoH as a TIAC (collective food-borne toxi-infection): 649 cases notified 2-9 Nov 2026, 0 deaths.
+Q9  [WS] Guinée choléra Boké novembre 2026 (fr, neighbour) -> no cholera. Tanènè (Boké): 22 people ill after drinking
+    cow's milk on 6 Nov 2026, cause under investigation - not cholera.
+Q10 [WS] WHO AFRO OEW week 43 2026 -> not indexed.
+Q11 [WS] Guiné-Bissau diarreia aguda surto Gabú Bafatá Oio outubro 2026 (pt, ADM1) -> nothing for 2026.
+Q12 [FETCH via web-fetch agent] mesvaccins.net news 4765 -> dated 2013 (see Q6).
+Neighbour recency logs (read-only): GIN stage 1 'NO SIGNAL of Guinean cholera in any source', 0 rows; GMB stage 1 0 rows,
+  0 presence records. SEN has no stage-1 recency log.
+RESULT: 0 GNB cholera figures and 0 explicit GNB zeros for the window. Stage 1's conclusion stands.
+
+=== STEP 5: WINDOW COVERAGE ===
+- Covered: 0 of 49 days. No AI, WHO or JHU row touches 2026-09-29..2026-11-16.
+- 2026-09-29..2026-10-27: EMPTY - quiet but undocumented. Only list exclusion (Africa CDC to 25 Oct, ECDC to 27 Oct,
+  AFRO OEW to 11 Oct); the MoH reporting channel was operating (mpox 19 confirmed / 0 deaths to Africa CDC), but no
+  source says GNB had zero cholera. GNB publishes no weekly IDSR/INASA bulletin online.
+- 2026-10-28..2026-11-16: EMPTY - not yet published (next ECDC monthly ~late Nov; WER cholera monthly with October data
+  ~early Dec; AFRO OEW wk42+ not on ReliefWeb; Africa CDC November issues not posted).
+- Gap analysis NOT regenerated: GNB data is unchanged, so GNB's row would be identical, and the shared
+  ./reference/effective_* files are in use by other countries' parallel recency passes. Current
+  ./reference/effective_surveillance_recency.csv: GNB latest_observation 2026-09-28, days_stale 49,
+  latest_positive_observation 2014-12-31.
+
+=== OUT-OF-SCOPE FLAG FOR THE NEXT FULL AUDIT (no change made) ===
+- AI Index 23 (2025-05-14..2026-06-19, source 19 ECDC monthly overview) and Index 67 (2026-06-20..2026-09-28, source
+  32 ECDC CDTR wk40): sCh=0, deaths=0, w=0.5, labelled Inferred_Absence, built on ECDC list absence - the evidential
+  class this recency pass refuses. Index 23's 'surveillance operational' rests on neighbouring countries reporting, not
+  on GNB itself. Both pre-window -> outside this stage's scope; left untouched.
+
+=== STEP 6: VALIDATOR ===
+python3 py/validate_quality.py GNB -> exit code 0. 986 data rows / 310 sources. ERROR 0, WARN 22 (21
+CFR_high_flagged_for_review, 1 period_single_day - all on pre-existing historical rows), INFO 344. Identical to stage
+1's post-run result; this pass changed no data.
+
+=== FILES WRITTEN BY AGENT 7 ===
+- ./data/GNB/search_log_recency_20261116_agent7.txt (this log)
+- ./data/GNB/search_report.txt (appended section; the prior 327 lines are untouched)
+- No CSV changed. ./data/GNB/search_log_agent_7.txt and ./data/GNB/workflow_state.json untouched. No baseline,
+  dashboard or other-country file touched. A temporary validator output file at the repo root was deleted after use.
+End Time: 2026-11-16 16:13:06
+Agent 7 Recency Status: COMPLETE
