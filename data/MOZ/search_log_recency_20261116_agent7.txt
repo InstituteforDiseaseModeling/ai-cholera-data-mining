@@ -6,3 +6,104 @@ Start Time: 2026-11-17 08:45:51
 Agent 7 Status: INITIALIZED
 Stage 1 log ./data/MOZ/search_log_recency_20261116_agent1.txt: PRESENT
 
+=== STEP 1: TAGGED-ROW CENSUS ===
+grep "[RECENCY-20261116]" in ./data/MOZ/:
+  cholera_data_ai.csv      0 rows   (5222 rows; mtime 2026-10-08 01:09 - untouched by this pass)
+  metadata_ai.csv          0 rows   (793 sources, max Index 793; mtime 2026-10-08 01:11)
+  cholera_presence_ai.csv  0 rows   (mtime 2026-10-03 20:30)
+  retracted_rows_ai.csv    0 rows   (no add-then-retract by stage 1)
+AI rows overlapping 2026-10-26..2026-11-16 with or without tag: 0. Newest AI row ends 2026-09-20 (Index 67, src 19).
+WHO baseline ./data/MOZ/cholera_data_who.csv: newest week 2026-10-19..2026-10-25 = 0 cases/0 deaths; 0 rows in window.
+=> Stage 1's claim of 0 rows / 0 sources / 0 zero rows / 0 presence records is TRUE. Nothing to fetch, retract or correct:
+   rows checked 0, kept 0, corrected 0, retracted 0. py/revise_observation.py not invoked.
+
+=== STEP 2: STAGE-1 EXCLUSION CHECK (DNSP Boletim No 404) ===
+Re-downloaded https://reliefweb.int/attachments/1ba43236-a0e0-4feb-bc63-b752f47e247d/Boletim_Colera_nr_404_26.10.2026.pdf
+(HTTP 200, 395,253 bytes). sha256 4c4e8d4d...a8e51b is identical to stage 1's copy in ./cache/reliefweb/MOZ/.
+pdftotext confirms: 'Boletim No: 404', 'Data: 26/10/2026', 'Dados cumulativos (03/09/25 a 25/10/26)', 'Total de Casos 9.831',
+'Óbitos 91' (27 intra-hospital + 64 community), 'Nas últimas 24 horas não foram notificados casos novos', 0 inpatients,
+CFR 0.9%. Provincial table: Niassa 0/0, Tete 2,974/33, Sofala 1,144/6, Manica 441/3, Gaza 1/0, Inhambane 0/0,
+Zambézia 146/2, Cabo Delgado 1,137/8, Nampula 3,986/39, Maputo Cidade 1/0, Maputo Província 1/0.
+The data period ends 25 Oct (the day before the window) and the "last 24 h" zero is also 25 Oct, so stage 1 was right to
+exclude it, and no in-window zero can be taken from it. Boletim 347 (to 29 Aug) -> 404: +123 cases, deaths unchanged.
+WHO weeks for the same span (31 Aug-25 Oct: 30+13+17+7+54+1+0+0 = 122) agree, so the pre-window curve is internally
+consistent. Tete was unchanged at 2,974/33 from 29 Aug to 25 Oct.
+
+=== STEP 3: INDEPENDENT RE-CHECK OF THE "NOTHING PUBLISHED" CLAIM ===
+A3.1 ReliefWeb API (py/reliefweb.py, --country MOZ --from 2026-10-20): colera -> Boletim 404 only; cholera -> OCHA Africa
+     Humanitarian Overview mid-year (6 Nov); boletim -> Boletim 404 only. No Boletim >= No 405. AGREES with stage 1.
+A3.2 WHO ArcGIS cholera_adm0_week, iso_3_code='MOZ', date_wk >= 2026-09-20: newest epiwk 42 (date_wk 2026-10-19) 0/0, cum
+     64,038/336. Layer last edited 2026-11-04T17:19Z. No in-window weeks. AGREES with stage 1.
+A3.3 WebSearch x13 (PT/EN national, DNSP bulletin, Africa CDC Nov, AFRO OEW wk43-44, provinces, Tete districts, ProMED,
+     Zambia/Luangwa): no in-window figure. AGREES with stage 1.
+A3.4 Google News RSS with a recency operator ("when:30d"; script in /tmp/moz_recency_audit_20261116/scripts/), with a
+     "Moçambique saúde" control (33 in-window items, so the feed is current). DISAGREES with stage 1. Two items are dated
+     inside the window:
+  (a) @Verdade, 2026-11-03T19:15:55, "Cólera mata mais de uma dezena de pessoas em Tete"
+      https://verdade.co.mz/colera-mata-mais-de-uma-dezena-de-pessoas-em-tete/ (WP post 120860). Tags: cólera, Macanga,
+      Ministério da Saúde, Tete. The visible lede says: 'existe mais um C, de cólera, que nos últimos dias causou a morte
+      de mais de uma dezena de moçambicanos ... Desde a…'. The rest of the article is behind a member paywall and was NOT
+      accessed (CLAUDE.md prohibits paywalled content).
+      Reading: more than 12 cholera deaths "in recent days" before 3 Nov 2026, apparently in Macanga district, Tete. There
+      is no case count, no exact death count and no dates. Its "51 anos" of Frelimo rule dates the writing to 2026.
+      Corroboration searched and NOT found:
+        - WP-REST since 20 Oct (Macanga since 1 Oct): MZNews, AIM, Notícias, Club of Mozambique, Rádio Moçambique,
+          Ikweli, Evidências, Carta, 360mozambique, Macau News.
+        - Google News: "Macanga", "cólera Tete mortos", "Furancungo", "diarreias Tete".
+        - WebSearch x3.
+        - MZNews "doze vítimas mortais" (Tete) is dated 2025-12-18, so it is an older event, not this one.
+        - Unreachable: O País (ECONNRESET) and TVM (HTTP 468).
+      Neighbours:
+        - Zambia's new outbreak (declared Sep 2026) was in Central, Luapula, Lusaka, Northern and Southern provinces as
+          of 29 Sep, not Eastern.
+        - Malawi's IDSR showed zeros to wk43 (stage 1).
+        - No cross-border link found.
+      Assessment: UNCORROBORATED, Level 3-4 (partisan op-ed framing). Not admissible to cholera_data_ai.csv because it
+      gives no specific number. NOT written: Agent 7 audits and does not collect. It is a presence-record candidate for
+      ./data/MOZ/cholera_presence_ai.csv once a collector verifies the article body or finds an official source.
+      It contradicts stage 1's "all signals point to QUIET", and it rules out any zero row (national or Tete) for this
+      window without explicit official evidence.
+  (b) Integrity Magazine, 2026-11-16, "Cuamba está há cinco anos sem registar casos de cólera, mas enfrenta dificuldades
+      no abastecimento de água". Known from the Google News listing only: WP-REST returns 401, the feeds return 403, and
+      WebSearch does not find it.
+      The claim conflicts with AIM, 20 Feb 2024 (https://aimnews.org/2024/02/20/reduz-para-33-numero-de-distritos-com-
+      surtos-de-colera-em-mocambique/): 'Os distritos de Lichinga, Cuamba, Majune e Chimbonila ... anotaram casos de
+      cólera nos últimos dias'. It is NOT usable as absence evidence.
+
+=== STEP 4: STAGE-1 PROTOCOL COMPLIANCE ===
+OK:
+  - 4 batches (>= 3-batch minimum). Yields 0/0/0/0%, counted per query, never above 100%.
+  - Stop rule met at B3; B4 run anyway.
+  - Claimed rows equal actual rows (0).
+  - No zero row inferred from silence.
+  - xref apply not run, per the brief.
+  - Pre-window candidates correctly excluded.
+  - Validator was run.
+DEFICIENT:
+  (1) ./cache/recency_MOZ_20261116/scripts/news_rss.py sends the bare query with no "when:" operator, so the
+      relevance-ranked feed (50 items, mostly from the Jan-Sep 2026 epidemic) crowded out the single 3 Nov item. The
+      El Niño control query proved that the feed was current, not that one new item in a crowded topic would surface.
+  (2) verdade.co.mz was missing from the WP-REST outlet sweep.
+  (3) The log header labels the window "WHO epi-weeks 2026-W44..W46". WHO's own calendar puts date_wk 2026-10-19 at epiwk
+      42, so the window is WHO epiwk 43-45 plus day 1 of wk46 (ISO W44-W46 plus day 1 of W47). No data impact; the
+      stage-1 watch list correctly says "wk43+".
+Net: the CSV outcome (0 rows) is correct, since no admissible in-window figure exists. The narrative conclusion
+("QUIET"; "no MOZ cholera news after 2 Sep") is NOT supported.
+
+=== STEP 5: VALIDATOR ===
+python3 py/validate_quality.py MOZ --json /tmp/moz_recency_audit_20261116/MOZ_audit.json gave:
+  exit 0 | ERROR 0 | WARN 123 | INFO 957 | 5222 rows | 793 sources
+  WARN breakdown: 52 CFR_high_flagged_for_review, 33 period_single_day, 28 same_period_conflict, 10 multiyear_aggregate.
+These are identical to stage 1's count and all pre-existing. None touches the window, which has no rows.
+py/analyze_effective_gaps.py was NOT run: its outputs in ./reference/ are shared by countries running in parallel, and MOZ
+data are unchanged. Window coverage was computed directly: 0 of 22 days.
+FYI, outside scope and not acted on: 17 pre-existing AI rows (source_index 19, WHO ArcGIS weekly, 2026-05-25..2026-09-20)
+restate WHO-baseline weeks with identical counts. The next full pass should confirm the weekly builder does not
+double-count them.
+
+=== FILES ===
+Appended a recency section to ./data/MOZ/search_report.txt.
+Not touched: workflow_state.json, search_log_agent_7.txt, baselines, the dashboard, other countries.
+Scratch files are in /tmp/moz_recency_audit_20261116/ (outside the repo).
+End Time: 2026-11-17 08:55:55
+Agent 7 (recency audit) Status: COMPLETE
