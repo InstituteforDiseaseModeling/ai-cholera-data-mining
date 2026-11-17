@@ -6,3 +6,103 @@ Scope: audit ONLY rows of ./data/GIN/cholera_data_ai.csv tagged [RECENCY-2026111
 Stage 1 log: ./data/GIN/search_log_recency_20261116_agent1.txt (present)
 Agent 7 Status: INITIALIZED
 
+=== STEP 0: STAGE 1 OUTPUT CHECK ===
+Stage 1 log read in full. Stage 1 states: 3 batches / 60 queries (40 WebSearch + 20 API/document reads),
+yields [0, 0, 0]%, stopped on 3-batch minimum + 3 consecutive sub-5% batches, rows_added 0, sources registered 0,
+presence rows 0, xref apply not run (35 queue candidates, all 2000-2019).
+Verification of the claim "no rows added":
+  - grep -c "RECENCY-20261116" ./data/GIN/cholera_data_ai.csv      -> 0
+  - grep -c "RECENCY-20261116" ./data/GIN/metadata_ai.csv          -> 0
+  - grep -c "RECENCY-20261116" ./data/GIN/cholera_presence_ai.csv  -> 0
+  - grep -c "RECENCY-20261116" ./data/GIN/retracted_rows_ai.csv    -> 0
+  - git diff --stat HEAD on those four files -> no change (files last modified 2026-10-03; the only GIN files touched
+    today are the two recency logs, ./data/GIN/workflow_state_recency_20261116.json and the rebuilt weekly series).
+  - [XREF-HARVEST] rows in ./data/GIN/cholera_data_ai.csv -> 0; GIN entries in ./reference/xref/harvest_log.csv -> 0.
+  -> Stage 1's claims match the files. Tagged rows to audit: 0 (sampling question moot).
+Stage 1 protocol compliance (./templates/template_search_protocol.txt): 3-batch minimum met; stop rule correctly
+applied; yields in percent (0-100) counting queries, not rows; batch log blocks in the required shape; state written
+to the recency state file, not ./data/GIN/workflow_state.json. COMPLIANT.
+
+=== STEP 1: PER-ROW AUDIT ===
+No [RECENCY-20261116] rows exist -> items 1-5 of the per-row checklist (quote/URL, duplication, plausibility,
+zero-row evidence, confidence tier) have nothing to apply to. No revise_observation.py call was made.
+Rows checked 0 | kept 0 | corrected 0 | retracted 0.
+
+=== STEP 2: INDEPENDENT SPOT-CHECK OF STAGE 1's NEGATIVE FINDING (audit, not collection) ===
+Purpose: a zero-row pass is only as good as its negative claims; re-test the claims that would change the outcome.
+  V1 ANSS WordPress API, python3 -I urllib over plain http (downloads in /tmp/gin_a7_dl_anss, deleted afterwards):
+     dlm_download (9 items, all batch-uploaded 2026-07-30 12:06-12:20): 'Bulletin Hebdomadaire d'Information
+     Epidemiologique - Guinee' S20, S21, S23-S29 2026 only; latest epi-week = S29 (id 11337, '(VF)').
+     media newest = 2026-08-02 (5 images); newest PDF = S29 bulletin (2026-07-30). posts newest = 2025-06-14.
+     -> CONFIRMED: no ANSS bulletin after S29 2026 is online. Window non-publication, not a zero.
+  V2 ReliefWeb API (py/reliefweb.py) --country GIN --query cholera --from 2026-09-29 -> totalCount 0. CONFIRMED.
+  V3 ReliefWeb API --country GIN --from 2026-09-29 -> 20 items, none health/cholera. Read two in-window items:
+     4238101 Croix-Rouge malienne 10 Nov 2026 (arrivals from Guinean gold-mining sites, '>8 000 personnes ... en
+     72 heures' per OCHA; needs: food, water, shelter, sanitation, health care) - pdftotext of attachment: no
+     cholera/diarrhoea mention. 4237744 WFP Guinea Country Brief Nov 2026 - no health/cholera mention.
+  V4 WebSearch "Guinee cholera 2026 cas" (fr) -> no 2026 Guinea cholera item (diphtheria items). One undated
+     afrik.com piece ('Le cholera gangrene la Guinee': epidemic declared in February; Conakry, Forecariah, Boffa,
+     Beyla) matches the 2012 epidemic and cannot be 2026: ANSS S29 2026 gives cholera 0 cumulative S01-S29.
+  V5 WebSearch "orpailleurs Guinee afflux Mali novembre 2026 Siguiri" (fr) -> cause = Guinean anti-illegal-mining
+     operation launched 2026-11-02 at Siguiri; Malian Security Ministry (7 Nov): >100,000 arrived in Bamako, 60,000
+     blocked at Kouremale (connectionivoirienne.net 9 Nov; le360 '160 000 personnes refoulees'). No disease link
+     reported. Context only: mass movement + poor WASH at transit sites = cholera risk to watch next pass.
+  V6 WebSearch "Sierra Leone cholera cases 2026 Ministry of Health" -> no 2026 SLE cholera figures (2012 items only).
+     ANSS S25-S29 'Sierra Leone resurgence' signal remains uncorroborated.
+  V7 WebSearch "bulletin hebdomadaire epidemiologique Guinee semaine 40-43 2026 ANSS" (fr) -> none; newest press relay
+     of an ANSS bulletin = guineenews 2 Mar 2026. CONFIRMED.
+Result: nothing found that stage 1 missed. Per the auditor role, no rows or sources were added.
+
+=== STEP 3: PLAUSIBILITY / CONTINUITY CONTEXT ===
+  - No ./data/GIN/cholera_data_who.csv (Guinea not in the WHO weekly feed) -> no WHO baseline weeks before the window.
+  - Rows bordering the window (read only, not re-audited): 1274 ANSS S29 explicit national zero 2025-12-29..07-19
+    (Level 1, 0.95); 23 (06-20..07-26), 24 (07-27..09-06), 33 (09-07..09-28) = WHO AFRO OEW / ECDC list-absence
+    zeros labelled Documented_Absence, weight 0.85. Latest positive observation 2024-12-31. A quiet window is
+    continuous with the preceding curve; the window is end of rainy season, historically a transmission period.
+  - Neighbours: LBR NPHIL sporadic suspected cholera in border counties Nimba/Lofa wk37-44 2026 (from
+    ./data/LBR/search_log_recency_20261116_agent1.txt, read only); no 2026 SLE/MLI/SEN/GNB/CIV figures found.
+
+=== STEP 4: FINDINGS FLAGGED OUT OF SCOPE (NOT REVISED - recency scope forbids re-auditing other rows) ===
+  F1 ./data/GIN/cholera_weekly_GIN.csv (rebuilt 2026-11-16 15:55): 2026-W40 (09-28..10-04) = sCh 0,
+     disaggregation_method documented_zero, from row 33, whose period covers only 09-28 of that week. So 6 days of
+     this window (09-29..10-04) carry a documented zero in the model input with no source behind them. Cause is the
+     builder's week labelling (already noted in the full-run report, section I); row 33 itself correctly ends at
+     the ECDC cut-off. W41-W46 are absent from the series (correctly empty).
+  F2 Rows 24 and 33 (2026-07-27..09-28, ~9 weeks) and the last week of row 23 (07-20..07-26) are Documented_Absence
+     zeros that rest only on Guinea's absence from multi-country lists - the inference this pass's rules reject and
+     the cross-country-harvesting guardrail 'no zeros from absence in a list' forbids. Their 'IHR reporting
+     operational' justification is weaker than stated: stage 1 found every Guinea event in AFRO OEW last updated
+     <= 26 Jul 2026, the same time ANSS stopped publishing. Recommend at the next full run/audit: re-label
+     Inferred_Absence at weight <= 0.7 or retract, unless ANSS S30+ bulletins confirm zero.
+
+=== STEP 5: COVERAGE (read from ./reference/, regenerated 2026-11-16 15:56; GIN data unchanged since 2026-10-03) ===
+  ./reference/effective_surveillance_gaps_coverage.csv GIN: 61.6% (421/683 months), months_jhu 372, months_who 0,
+     months_ai 401, months_ai_only 49, gap_periods 4 - identical before/after this pass (0 rows added).
+  ./reference/effective_surveillance_gaps_detailed.csv GIN recent gap: 2026-10-01..2026-11-16 (47 d) - NOT closed.
+  ./reference/effective_surveillance_recency.csv GIN: latest_observation 2026-09-28, latest_positive 2024-12-31.
+  py/analyze_effective_gaps.py NOT re-run: it rewrites shared ./reference/ files read by the other countries'
+  recency agents running in parallel, and with zero data change it would reproduce the same GIN numbers.
+  Window coverage: 0 of 49 days covered by any row (0%).
+
+NOTE: ./.scratch_gin_recency_20261116/ (stage 1 downloads: txt/json/html only, no .py) left in place - not mine.
+
+=== STEP 6: DELIVERABLES ===
+  - Appended section '=== RECENCY PASS 20261116: window 2026-09-29 to 2026-11-16 ===' to ./data/GIN/search_report.txt
+    (35 lines, now lines 230-264; original lines 1-228 verified unchanged by diff).
+  - ./data/GIN/search_log_agent_7.txt and ./data/GIN/workflow_state.json NOT touched. No CSV edited, no
+    revise_observation.py / add_observation.py / repair_data_integrity.py / xref_harvest.py call made (nothing to fix).
+  - Baselines, dashboard, ./reference/ and other countries not touched.
+
+=== FINAL VALIDATION ===
+python3 py/validate_quality.py GIN -> 1541 data rows | 279 metadata sources | ERROR 0  WARN 25  INFO 333 | EXIT 0
+  WARN breakdown: 13 same_period_conflict, 11 CFR_high_flagged_for_review, 1 multiyear_aggregate - all on
+  pre-existing historical rows (none in or near the window).
+
+=== SUMMARY ===
+Rows checked 0 | kept 0 | corrected 0 | retracted 0 | sources added 0 | window covered 0/49 days.
+Stage 1 compliant and its zero-row result independently confirmed. Window left genuinely empty (ANSS non-publication
+after S29 + list absence only). Two out-of-scope flags for the next full run: W40 builder zero (F1), list-only
+Documented_Absence rows 23 (last week), 24, 33 (F2).
+  - Downloaded files (/tmp/gin_a7_dl_anss, /tmp/gin_a7_dl_rw1, /tmp/gin_a7_dl_rw2, /tmp/gin_a7_txt) deleted.
+End Time: 2026-11-16 16:06:24
+Agent 7 Status: COMPLETE
