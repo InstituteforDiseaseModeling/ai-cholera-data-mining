@@ -1,0 +1,130 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (RWAUDIT) ===
+Country: Central African Republic (CAF)
+Window: 2026-09-19 to 2026-11-16 (59 days)
+Log created: 2026-11-17 15:33:46 (the checks in A-F were run immediately before this, in this session)
+Scope: ONLY rows of ./data/CAF/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]".
+Top-up log: ./data/CAF/search_log_recency_20261116_rw.txt EXISTS, so the top-up ran.
+  1856 lines. Start 2026-11-17 15:03:45, End 15:28:23. Last line "RECENCY-STAGE-COMPLETE 20261116 rwcollect CAF".
+What the top-up log lists:
+  Rows added NONE ("./data/CAF/cholera_data_ai.csv unchanged: 91 rows, max Index 103").
+  Presence rows NONE. Zero rows NONE. Sources registered NONE (147).
+Any correction or retraction would go through py/revise_observation.py with --reason prefixed "[RECENCY-20261116-RW AUDIT]".
+  None was needed.
+
+=== A. CONFIRMATION OF "NO ROWS" AGAINST THE CSVs ===
+Fixed-string search for "[RECENCY-20261116-RW", and separately for any "RECENCY-20261116" at all:
+  ./data/CAF/cholera_data_ai.csv       0 lines  (91 rows parsed; max Index 103; 91 distinct Index values)
+  ./data/CAF/metadata_ai.csv           0 lines  (147 sources; max Index 147)
+  ./data/CAF/cholera_presence_ai.csv   0 lines
+  ./data/CAF/retracted_rows_ai.csv     0 lines
+  ./data/CAF/attribution_review.csv    absent
+  No CSV in ./data/CAF contains "RECENCY-20261116", so the main pass's [RECENCY-20261116] rows also number 0.
+Rows overlapping 2026-09-19..2026-11-16: 0.
+  The latest AI row is still Index 28: AFR::CAF, 2026-09-07..2026-09-18, sCh 0 / deaths 0, Inferred_Absence, weight 0.45.
+git diff HEAD on the 4 files above is empty.
+  The last commit touching them is f94f8285 (2026-10-03 23:53, "CAF done").
+  Their mtimes are all 2026-10-03, before the top-up.
+  The newest ./data/CAF/.backup_* file is 2026-10-03 23:40, so no add/revise write has hit CAF since then.
+=> The top-up log's "no rows" claim is TRUE.
+   ROWS: checked 0, kept 0, corrected 0, retracted 0. No Index numbers. No py/revise_observation.py call.
+
+=== B. FILE-TOUCH AND CREDENTIAL CHECK ON THE TOP-UP ===
+The top-up's claim "Files written: this log only" is CONSISTENT with the file system.
+  - Untouched: search_report.txt (mtime 2026-11-16 15:04, the main-pass audit),
+    workflow_state.json (2026-10-03), workflow_state_recency_20261116.json (2026-11-16 14:55).
+  - git shows the top-up log as modified against HEAD. HEAD holds a 521-line MID-RUN snapshot,
+    picked up by the runner's dashboard auto-commits:
+      48119016 15:09 "after NER"
+      b919d96b 15:24 "after SOM"
+    The working copy is the same file grown append-only (+1335 / -0 lines). Not an anomaly.
+  - ./data/CAF/cholera_weekly_CAF.csv mtime 2026-11-17 15:25:32 falls inside the top-up's run. This was NOT a top-up write:
+      all 40 countries' weekly files were rebuilt 15:25-15:26 (the global dashboard refresh);
+      CAF's weekly content is identical to HEAD.
+ReliefWeb appname: ABSENT from the 3 recency logs, search_report.txt, metadata_ai.csv and cholera_data_ai.csv.
+  Checked with a boolean containment test; the value was never printed.
+Cache ./cache/reliefweb/CAF_rw20261116*/ exists and is gitignored.
+  It has 160 CAF-item subdirectories, matching the 160 claimed.
+
+=== C. COLLECTOR ACCOUNTING ===
+Per-report entries: C 160 + M 335 + X 80 + E 24 = 599, all distinct report ids. This matches "599 distinct ReliefWeb reports".
+The arithmetic is internally consistent:
+  21 CAF-tagged + 415 others = 436 union; 335 + 80 = 415; 160 + 439 = 599.
+Every C-entry decision is "no CAF ..." or "out of window".
+  The 7 out-of-window items are all pre-window CAR content.
+  Examples: UNICEF CAR HSR No.1 to 30 Jun; AFRO OEW wk37 CAR row frozen at 3 Aug (724 / 16 confirmed / 45 deaths).
+Cosmetic mismatch, no effect on the data: section 2a says 67 items were fetched with get --download,
+  but ./cache/reliefweb/CAF_rw20261116_multi/ holds 68 subdirectories.
+
+=== D. INDEPENDENT RE-RUN OF THE DECISIVE QUERIES (python3 -I -B py/reliefweb.py; 3 API calls) ===
+All three use --from 2026-09-19 --to 2026-11-17:
+  search --country CAF --query cholera                                   -> totalCount 1: id 4232332
+  search --query 'cholera AND "Central African Republic"'               -> totalCount 1: id 4232332
+  search --query 'choléra AND (Centrafrique OR centrafricaine)'         -> totalCount 0
+These are the same results the top-up logged. Nothing new was posted after it ended (15:28).
+id 4232332 = UNICEF Central African Republic Situation Report No. 1 (Mid-Year), 30 June 2026
+  https://reliefweb.int/report/central-african-republic/unicef-central-african-republic-situation-report-no-1-mid-year-30-june-2026
+  Re-read from the cached attachment text (./cache/reliefweb/CAF_rw20261116_txt/4232332_*.pdf.txt):
+    "Reporting Period 1 January to 30 June";
+    "As of 30 June, 197 ...";
+    "Declared on June 26, 2026, the cholera outbreak, affected 197 people with 24 community deaths".
+  The period ends 30 Jun, before the window. The top-up's "out of window" decision is CORRECT.
+  It is the only report in the window whose title or body names both cholera and CAR,
+  so no in-window figure was missed there.
+
+=== E. ROW-LEVEL CHECKS (apply only to tagged rows) ===
+These checks are NOT APPLICABLE because 0 rows are tagged:
+  - re-verifying quotes, numbers, period type and dates;
+  - deduplication against ./data/CAF/cholera_data_who.csv (ends 2026-09-06; the last 4 weeks, 2026-08-10..09-06, are 0/0);
+  - deduplication against other AI rows, including [RECENCY-20261116] (none exist);
+  - deaths <= sCh, CFR, curve continuity, national vs ADM1 roles, zero-row evidence, confidence vs source tier.
+The top-up's zero and presence decisions are UPHELD:
+  - No in-window source says CAR had no cholera while surveillance operated, so no zero row is justified.
+  - No in-window source says cholera was present.
+  - OCHA sitrep silence and the frozen AFRO OEW listing are not evidence either way.
+The window stays EMPTY. This is post-declaration non-reporting, not a confirmed zero.
+  It agrees with the main-pass audit, ./data/CAF/search_log_recency_20261116_agent7.txt.
+
+=== F. NOTED, NOT ACTED ON (pre-existing rows, not RW-tagged, outside this stage's scope) ===
+F1. AI Index 85-89 duplicate WHO baseline weeks.
+    - The rows: source_index 108, WHO dashboard live query, epiweeks 31-35, 2026-08-03..2026-09-06, weight 0.85.
+    - Their Location, TL, TR and values (sCh/deaths 1/0, 0/0, 0/0, 0/0, 0/0) exactly match 5 weeks in ./data/CAF/cholera_data_who.csv.
+    - When they were added on 2026-10-03, the WHO baseline ended 2026-08-02 (15 rows, commit e9099917).
+    - The 2026-11-16 refresh (4ebaef52) added exactly those 5 weeks (20 rows, ending 2026-09-06), so they are now redundant.
+    - Harmless. ./data/CAF/cholera_weekly_CAF.csv takes WHO for those weeks, e.g. 2026-08-03..09 = 1 (not 2). No inflation.
+    - A full-run audit may retire them, or keep them as cross-validation.
+    - The same pattern is likely wherever agents back-filled the dashboard before 2026-11-16; other countries were not checked.
+F2. Collector observation 1: AFRO OEW wk38-41 CAR humanitarian row (period to 13 Sep) says the health system is
+    "simultaneously managing cholera".
+    - This overlaps Index 28's Inferred_Absence period (2026-09-07..09-18).
+    - The statement is qualitative, and the outbreak was formally open until the 18 Sep declaration.
+    - WHO weeks to 2026-09-06 = 0 still support Index 28. Left for a full-run audit.
+F3. The 9 validator WARNs (CFR_high_flagged_for_review, rows 10/17/19/20/40/60/62/64/84) are pre-existing historical flags.
+
+=== G. VALIDATION (before writing the report) ===
+python3 py/validate_quality.py CAF -> exit 0
+  ERROR 0, WARN 9, INFO 119. 91 data rows, 147 metadata sources.
+  Identical to the top-up and to the main-pass audit.
+
+=== H. ACTIONS AND DELIVERABLES ===
+Retractions: none. Corrections: none. Sources registered: none (the auditor does not collect).
+  No py/revise_observation.py call: there was nothing tagged to revise.
+Files written by this audit:
+  - This log (new).
+  - ./data/CAF/search_report.txt: appended section "=== RECENCY PASS 20261116: RELIEFWEB TOP-UP ===".
+    17 text lines plus a separating blank line; the file went from 346 to 364 lines.
+    The original first 20469 bytes are byte-identical: sha256 628cba2c...08401bc7, before and after.
+  - Scratch output in /tmp only.
+Not touched:
+  - cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv;
+  - the JHU/WHO baselines, cholera_weekly_CAF.csv, workflow_state*.json;
+  - the other CAF logs, the dashboard, other countries.
+  The concurrent writes seen during this audit were NOT made by it:
+  - the runner's dashboard refresh rebuilt all 40 cholera_weekly_*.csv files;
+  - the TCD rwaudit stage wrote its own files.
+Final validator run after writing the report: python3 py/validate_quality.py CAF -> exit 0
+  ERROR 0, WARN 9, INFO 119; 91 data rows, 147 metadata sources. Unchanged.
+AUDIT STATUS: COMPLETE.
+  - The top-up added 0 rows. Its no-yield verdict is upheld.
+  - The window 2026-09-19..2026-11-16 stays EMPTY by design: post-declaration non-reporting, not a confirmed zero.
+End Time: 2026-11-17 15:34:41
+RECENCY-STAGE-COMPLETE 20261116 rwaudit CAF
