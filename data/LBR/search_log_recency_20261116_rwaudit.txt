@@ -1,0 +1,77 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (RWAUDIT) ===
+Country: Liberia (LBR)
+Auditor: Agent 7 (cholera-quality-auditor), stage RWAUDIT
+Window: 2026-09-07 to 2026-11-16
+Audit run: 2026-11-17, starting right after the collector closed at 14:43:06
+Scope: only rows of ./data/LBR/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]".
+
+=== STEP 1: TOP-UP LOG READ ===
+./data/LBR/search_log_recency_20261116_rw.txt exists (769 lines, written 2026-11-17 14:32:08-14:43:06, last line
+"RECENCY-STAGE-COMPLETE 20261116 rwcollect LBR"). Its RESULT section claims 0 rows added, 0 presence entries,
+0 sources registered and 0 rows revised. It enumerated 664 ReliefWeb reports and opened 42. Decisions:
+NO_LBR_DATA 657, OUT_OF_WINDOW 7, ROW 0, PRESENCE 0.
+
+=== STEP 2: "NO ROWS" CHECKED AGAINST THE CSVs ===
+Searched every column of every LBR AI file for the tag "[RECENCY-20261116-RW":
+  ./data/LBR/cholera_data_ai.csv      1476 rows, max Index 1543  -> 0 tagged rows
+  ./data/LBR/metadata_ai.csv          333 sources, max Index 333 -> 0 tagged
+  ./data/LBR/cholera_presence_ai.csv  71 entries                 -> 0 tagged
+  ./data/LBR/retracted_rows_ai.csv    67 entries                 -> 0 tagged
+These counts match the "unchanged" state the collector reported (1476 rows, max Index 1543, 333 sources).
+Every file was last modified before the top-up started at 2026-11-17 14:32:08:
+  cholera_data_ai.csv 2026-11-16 14:22:15 | metadata_ai.csv 2026-11-16 14:09:08 | presence and retracted 2026-10-02.
+git status of data/LBR/: the only change since commit 54aedd03 ("LBR recency 20261116 done") is the untracked
+top-up log. The top-up wrote no data file. The window rows are still the 23 main-pass rows, 1521-1543.
+
+=== STEP 3: SPOT-CHECK OF THE "0 ROWS" OUTCOME ===
+Not required when no rows are tagged. Done to test whether "0 rows" hides a missed figure.
+Local cache ./cache/reliefweb/LBR/ (gitignored) has 42 report directories, one per opened report, and 36 PDFs.
+a) pdftotext over all 36 cached PDFs: no line names Liberia together with cholera, AWD, diarrhoea or Vibrio.
+b) WHO AFRO Weekly Bulletins wk36-41 (ids 4232043, 4232822, 4232823, 4233169, 4234265, 4235066): Liberia's
+   All-events rows are Lassa fever only (Ungraded, data to 5-Aug-26) and mpox (Grade 3, data to 27-Aug-26).
+   Countries with cholera rows: AGO BDI CMR TCD COG MOZ NAM RWA ZAF SSD, plus KEN and ZMB from wk39.
+   This matches the collector.
+c) IFRC DREF MDRLR012 (4229812, 31 pp.): cholera appears only as a flood risk and as an IDSR monitoring
+   priority. The text says "Although no major disease outbreak has been reported to date". The collector
+   rightly did NOT enter this as a zero: it is not an explicit no-cholera statement, and NPHIL wk37 (row 1521)
+   has 6 suspected cases for 2026-09-07..09-13.
+d) Re-opened with py/reliefweb.py get (the collector did not cache these bodies):
+   4236789 WHO field mission to Lofa/Bong/Margibi, 19-23 Oct 2026: Ebola preparedness; no cholera, AWD or
+     diarrhoea mention.
+   4229293 OCHA "six countries" cholera story: the six are NGA, CMR, TCD, COD, COG and CAF; Liberia is not
+     mentioned.
+e) The full-text AND query "cholera Liberia" (title+body, in window) has a cached listing that reads
+   "totalCount 0".
+f) Africa CDC EI report of 2026-09-13 (4232352): 16 image-only pages, not re-read. Its 2026 country list is
+   cumulative year-to-date, and the main-pass audit found Liberia absent from the later 25 Oct issue, so
+   Liberia cannot have been listed on 13 Sep unless it was later removed. Either way it is silence and could
+   not support a row.
+Verdict: the collector's "0 rows" holds. I found no Liberia figure for the window that ReliefWeb holds and the
+collector missed.
+
+=== STEP 4: ROW AUDIT ===
+Rows checked 0 | kept 0 | corrected 0 | retracted 0. No py/revise_observation.py call was needed or made.
+Main-pass rows 1521-1543 are outside this stage's scope and were not modified. They were audited on 2026-11-16;
+see ./data/LBR/search_log_recency_20261116_agent7.txt.
+
+=== ASSESSMENT ===
+- The top-up was a disciplined negative. It enumerated ReliefWeb exhaustively, read the attachments, made no
+  reference-only registrations, and wrote no zero row from silence or from the DREF's "no major disease
+  outbreak" sentence. It replaced batch-yield accounting with a per-report screening log; that is reasonable
+  for a fully enumerated single source.
+- The disappointing number: ReliefWeb added nothing for Liberia. Window coverage is unchanged at 56 of 71 days
+  (2026-09-07..11-01, from NPHIL). 2026-11-02..11-16 (epi-weeks 45-46) is still empty. The cause is NPHIL's
+  publication lag, and no ReliefWeb product reaches those weeks: the AFRO bulletins on ReliefWeb stop at wk41.
+- Row 1543's cCh=2 is still single-source. ReliefWeb neither corroborates nor contradicts it.
+- Useful by-product: the AFRO weekly bulletin PDFs that iris.who.int refuses can be downloaded as ReliefWeb
+  attachments. Future runs and the cross-country harvest should use that route.
+
+Files written by this stage: this log, plus a section appended to ./data/LBR/search_report.txt. No CSV was touched.
+
+=== STEP 5: VALIDATOR (final run, after this stage's writes) ===
+python3 py/validate_quality.py LBR -> exit 0; ERROR 0 WARN 14 INFO 308 (1476 rows, 333 sources). This matches
+the main-pass audit and the collector's run. All 14 WARN are on historical rows: 13 CFR_high_flagged_for_review
+(230, 1085, 1087, 1200, 1201, 1237, 1239, 1247, 1249, 1251, 1313, 1317, 1363) and 1 period_single_day (1444).
+None is in the recency window.
+End Time: 2026-11-17 14:47:38
+RECENCY-STAGE-COMPLETE 20261116 rwaudit LBR
