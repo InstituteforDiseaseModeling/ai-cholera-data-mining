@@ -1,0 +1,95 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP - AUDIT (stage RWAUDIT) ===
+Country: Zimbabwe (ZWE)
+Window: 2026-09-17 to 2026-11-16 (61 days)
+Start Time: 2026-11-17 15:22 (first audit command; RWCOLLECT ended 15:21:30)
+Scope: rows of ./data/ZWE/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]"
+Collect log: ./data/ZWE/search_log_recency_20261116_rw.txt - PRESENT (686 lines, 155028 bytes, mtime 2026-11-17 15:21;
+  last line "RECENCY-STAGE-COMPLETE 20261116 rwcollect ZWE"). Read in full: pre-screen, steps 1-2, AFRO key read,
+  screening sections A-E, summary.
+Collector's claim: ROW 0 | PRESENCE 0 | OUT OF WINDOW 2 | NO ZWE DATA 466 (468 unique reports); rows added 0, presence 0,
+  zero rows 0, sources registered 0; validator exit 0, ERROR 0 / WARN 313 / INFO 325.
+Agent 7 (RW audit) Status: INITIALIZED
+
+=== STEP 1: TAGGED-ROW INVENTORY (the log lists no rows - confirmed against the CSVs) ===
+grep -cF '[RECENCY-20261116-RW' -> ./data/ZWE/cholera_data_ai.csv 0 | ./data/ZWE/metadata_ai.csv 0 |
+  ./data/ZWE/cholera_presence_ai.csv 0 | ./data/ZWE/retracted_rows_ai.csv 0 | ./data/ZWE/retracted_presence_ai.csv 0.
+  The main-pass tag 'RECENCY-20261116' also occurs 0 times in every one of these files, so no main-pass row exists to
+  collide with either. ./data/ZWE/attribution_review.csv does not exist.
+csv parse of ./data/ZWE/cholera_data_ai.csv: 3194 rows, 14 columns, 3194 unique Index (max 3325). 0 rows carry the tag in
+  any field and 0 rows overlap 2026-09-17..2026-11-16. Latest row by TR is Index 55 AFR::ZWE::Masvingo::Chiredzi
+  2026-09-15..16, sCh=1 (pre-window), as the collector stated.
+./data/ZWE/metadata_ai.csv: 458 sources (max Index 458), unchanged as claimed.
+./data/ZWE/cholera_presence_ai.csv: 91 rows, 0 in the window, latest 2026-07-21..08-07, as claimed.
+./data/ZWE/cholera_data_who.csv: 161 rows, latest AFR::ZWE 2026-03-09..15 (12 sCh, 1 death), 0 in the window, as claimed.
+./data/ZWE/cholera_data_jhu.csv: 967 rows, latest TR 2024-12-29, 0 in the window.
+Write trace: py/add_observation.py copies the CSV to .backup_<stem>_<stamp>.csv before every write, and
+  py/revise_observation.py imports that write path. The newest backup in ./data/ZWE/ is 20261008-010949, and the data,
+  metadata, presence and retracted CSVs were last modified 2026-10-05..10-08, so nothing was written during RWCOLLECT
+  (15:04-15:21 on 2026-11-17) and no row was added and then retracted.
+  git status -- ./data/ZWE/ shows only search_log_recency_20261116_rw.txt modified. ./data/ZWE/cholera_weekly_ZWE.csv
+  (mtime 15:19) was part of a pipeline-wide rebuild (all 40 cholera_weekly_*.csv were rewritten 15:00-15:30). It is
+  tracked and git shows its content unchanged. This stage did not write it.
+=> The collector's claim "0 rows, 0 sources, 0 presence, 0 zero rows" is TRUE. There are no claimed-but-missing rows and
+   no untagged writes.
+=> The row-level checks have NO ROWS to run on: the cited report (quote, numbers, period type, dates), duplication
+   against WHO weeks or AI rows including main-pass [RECENCY-20261116] rows, deaths <= sCh, CFR, curve continuity,
+   national vs ADM1, zero-row evidence and confidence vs tier. py/revise_observation.py was not run: there is nothing
+   to correct or retract.
+
+=== STEP 2: SPOT-CHECK OF THE COLLECTOR'S DECLINES (read-only; is "0 rows" the right outcome?) ===
+S1 Enumeration re-run: python3 -I -B py/reliefweb.py search --country ZWE --from 2026-09-17 --to 2026-11-17 --limit 200
+   returns totalCount 23, and the 23 ids are IDENTICAL to log section A. With --query cholera it returns totalCount 2
+   (4234789 UNICEF ESAR HSR No.1; 4234045 OCHA ROSEA snapshot), both opened in section A. The log's decision lines are
+   466 NO ZWE DATA + 2 OUT OF WINDOW = 468 unique ids, matching its summary.
+S2 WHO AFRO weekly bulletins wk34-41 (cached text ./cache/reliefweb/ZWE/r<id>/*.pdf.txt, ids as in log section B):
+   each of the 8 has exactly one 'Zimbabwe' string, the base-map label line '82 0 Zimbabwe'. The '82 0' are Namibia's
+   map figures (wk41 table: 'Namibia Cholera Ungraded 2-Dec-25 19-Nov-25 8-Apr-26 277 82 0 0.00'). No bulletin has a
+   Zimbabwe event row or a Zimbabwe closure. UPHELD: absence from a multi-country list gives no row and is not a zero.
+S3 4234789 UNICEF ESAR HSR No.1 (1 Jan-30 Jun 2026): quote re-read (split by the two-column layout): 'Between January
+   and April 2026, 36 cholera cases and two deaths were reported, alongside 3,526 diarrhoeal cases and four deaths'.
+   The 11 WHO weeks 2025-12-29..2026-03-15 in ./data/ZWE/cholera_data_who.csv sum to exactly 36 sCh / 2 deaths, so this
+   restates the baseline, and its period ends before the window. UPHELD.
+S4 4234045 OCHA ROSEA Southern Africa snapshot (Oct 2026): body text 'Since the beginning of the year, Southern Africa
+   has recorded over 19,000 cholera cases ... Cholera transmission remained active in many countries, including Angola,
+   Mozambique and Zambia'. Zimbabwe is not named; the 2 'ZIMBABWE' strings in the PDF are map-panel labels. UPHELD
+   (not presence, not zero).
+S5 4236113 IFRC DREF MDRZW030 (Masvingo Urban hailstorm, 5 Oct 2026): 0 'cholera' hits in the body or the PDF text,
+   only the generic 'risk of waterborne diseases'. UPHELD.
+S6 4231853 WER 101/38 (2025 annual): Table 1 'Zimbabwe 524 0 3.1 15 5 1.0' = 524 total cases, 0 imported, 3.1 per
+   100 000, 15 total deaths, 5 facility deaths, facility CFR 1.0%. The text agrees: '... Zimbabwe were just below 1% but
+   are shown as 1.0% in Table 1 after rounding'. Out of window. 2025 is already held by 52 WHO weekly rows (sum 522 sCh /
+   21 deaths); an annual AI row would overlap them and add nothing at weekly resolution. UPHELD.
+   For a full pass, not this stage: WER 2025 deaths (15) differ from the WHO dashboard weekly sum (21); cases are
+   524 vs 522.
+Consistency with existing zeros: all 17 pre-existing ZWE zero rows that reach 2026 are Documented_Absence rows quoting an
+  explicit statement (e.g. Index 84, IFRC GO 18439: 'no cases were reported between 13 April and 8 May 2026'). The
+  window has only list absence, so the refusal to write a zero applies the same rule; it is not a double standard.
+Scratch files, all outside the repo: /tmp/ZWE_rwaudit_validate.txt, /tmp/zwe_rwaudit_tagged.txt,
+  /tmp/zwe_rwaudit_tagged_cholera.txt, /tmp/zwe_rwaudit_ids_api.txt, /tmp/zwe_rwaudit_ids_logA.txt.
+
+=== STEP 3: VALIDATOR ===
+python3 py/validate_quality.py ZWE -> exit 0. ERROR 0, WARN 313 (220 period_single_day, 93 CFR_high_flagged_for_review),
+  INFO 325; 3194 data rows, 458 metadata sources. Identical to stage 1 and RWCOLLECT.
+  The validator's 'row N' is the file line number (header = line 1). Read that way, all 313 warnings match their rows
+  (date or deaths/cases), and none is on a 2026 row (the latest flagged TL is in 2025). All are pre-existing rows; this
+  stage changed no data file.
+
+=== RESULT ===
+Rows checked 0 | kept 0 | corrected 0 | retracted 0 (no Index affected). Collector declines spot-checked: 6 (S1-S6), all
+  upheld. No source, presence or zero row was added or changed.
+Window 2026-09-17..2026-11-16: still EMPTY in every layer (JHU, WHO, AI, presence), 0 of 61 days. The top-up added
+  EVIDENCE, not data. The WHO AFRO events tables that the main pass could not reach (iris.who.int ECONNREFUSED,
+  recorded there as 'an access failure, not evidence') were read through the ReliefWeb attachments: Zimbabwe has no
+  event in wk34-41 (to 11 Oct 2026). That is a list absence, not a statement of zero cases. Classification unchanged:
+  NOT PUBLISHED / REPORTING FREEZE, so the window is MISSING, not zero.
+Disappointing: ReliefWeb holds no Zimbabwe cholera sitrep for the window (no OCHA, UNICEF, Health Cluster, IFRC MDRZW029
+  ops update or MDRZW026 final report, WHO or Africa CDC item). The latest AI national row is still Index 36
+  (2026-05-09..07-20: 66 sCh, 25 cCh, 1 death), and the latest positive observation is 1 suspected case on
+  2026-09-15..16 (Index 55).
+Files written by this stage: this log, and the section "=== RECENCY PASS 20261116: RELIEFWEB TOP-UP ===" appended to
+  ./data/ZWE/search_report.txt (19 lines). No CSV, metadata, presence, workflow_state, baseline, dashboard or
+  other-country file was touched. The ReliefWeb credential is not recorded.
+Final validator re-run after writing: python3 py/validate_quality.py ZWE -> exit 0; ERROR 0 WARN 313 INFO 325
+End Time: 2026-11-17 15:29:54
+Agent 7 (RW audit) Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 rwaudit ZWE
