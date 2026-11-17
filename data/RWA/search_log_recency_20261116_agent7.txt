@@ -10,3 +10,103 @@ Stage 1 log found: ./data/RWA/search_log_recency_20261116_agent1.txt (exists,   
 Prior audit attempt (started 2026-11-16 19:23:53) wrote only its header: no rows checked, no revisions, no report
 section. At that time the stage 1 log was 5,376 bytes (batch 1 only); the collector later resumed and finished
 (log now 21,522 bytes, last line 'RECENCY-STAGE-COMPLETE 20261116 collect RWA'). Re-checking ALL tagged rows from scratch.
+
+--- INPUTS ---
+- Stage 1 log ./data/RWA/search_log_recency_20261116_agent1.txt read in full: 4 batches (80 queries), yields 20/0/0/0%,
+  stopped on 3 consecutive sub-5% batches after the 3-batch minimum. Rows claimed: 684-690. Sources claimed: 412-415.
+  Ledger check: exactly 7 rows in ./data/RWA/cholera_data_ai.csv carry [RECENCY-20261116] = 684-690, and metadata
+  412-415 exist in ./data/RWA/metadata_ai.csv (max Index 415). Claims match the files; no extra or missing rows.
+- Baseline context (filtered, not loaded wholesale): ./data/RWA/cholera_data_who.csv ends 2026-10-11 (last 4 weeks
+  53 / 94 / 73 / 123, deaths 0); ./data/RWA/cholera_data_jhu.csv ends 2024-12-31 (66 rows) - nothing near the window.
+- Validator before audit: python3 py/validate_quality.py RWA -> exit 0, ERROR 0, WARN 0, INFO 242.
+
+--- SOURCE RE-FETCH (all 4 cited URLs, fetched by the auditor with python -I urllib, one empty dir per file) ---
+  412 .../The_bulletin_week_42_from_12-18_October_2026.pdf            HTTP 200 (2nd try; 1st = TLS handshake timeout)
+      15 pp, created 2026-10-28, sha256 1eb4e48e...0259
+  413 .../The_bulletin_week_43_from_19th_to_25th_October_2026.pdf      HTTP 200, 14 pp, created 2026-11-02 PST, sha256 bbffdedf...cd47
+  414 .../The_bulletin_week_44_from_26th_October_1st__November_2026.pdf HTTP 200, 14 pp, created 2026-11-11, sha256 aa72da93...3291
+  415 .../The_bulletin_week_45_from_2nd_to_8th_November_2026.pdf      HTTP 200, 15 pp, created 2026-11-14 PST, sha256 c28e3b67...c5a
+  All four are byte-identical to the collector's copies in ./cache/recency_20261116/RWA/rbc_w42..w45/source.pdf.
+  Text re-extracted by the auditor (pdftotext -layout), not taken from the collector's text.txt; the box pages
+  (p.12 of wk44 and wk45) were also rendered and read as images.
+
+--- PER-ROW CHECKS ---
+684 AFR::RWA 2026-10-12..10-18 sCh 89 (src 412) - QUOTE OK: p.6 'A. IMMEDIATE REPORTABLE DISEASES - EPI WEEK 42 ...
+    216 cases ... notified by 93 health facilities ... 89 suspected cases of cholera were reported by 25 health
+    facilities'; itemised list 56+29+11+89+6+2+9+6+4+4 = 216 (matches). PERIOD OK: weekly (one epi week), cover
+    'WEEK 42 12-18 October 2026' = ISO 2026-W42 (Mon 12 Oct). reporting_date 2026-10-28 = PDF creation date.
+    DUP: none - WHO file ends 2026-10-11, no other AI national row in the window. ROLE: national primary; notes
+    say do not sum with Western rows. PLAUS: continues WHO 53/94/73/123 (RBC wk38-41 IBS = those WHO weeks exactly,
+    checked in the cached wk38-41 text); no stale-template repeat (each week's count and facility number differs
+    from the week before - the known RBC failure mode, cf. row 337 note on wk36/37). Deaths blank: no cholera
+    death in any window bulletin's eIDSR death list (wk42 'Kinunu HC in Murunda DH (1 death due to severe
+    malaria)' is the only Western-lakeshore item), but the bulletin never states 'no cholera deaths', so blank
+    (not 0) is right. WEIGHT 0.9 = Level 1 NPHI bulletin. -> KEEP. Note text says the Western cumulative is
+    'recorded separately' - stale after the 688 retraction below; annotated.
+685 AFR::RWA 2026-10-19..10-25 sCh 99 (src 413) - QUOTE OK: p.5 '421 cases ... notified by 139 health facilities ...
+    99 suspected cases of cholera were reported by 26 health facilities' (list sums to 418 vs 421; cholera item
+    unambiguous). Cover 'WEEK 43 19-25 October 2026'. Completeness/timeliness 98%/97%. reporting_date 2026-11-03
+    (PDF 2026-11-02 17:22 PST = 11-03 Kigali). The wk43 box 'as of 26th October' (480/34/446/29) repeats wk42
+    exactly - collector correctly did not record it. WEIGHT 0.9. -> KEEP.
+686 AFR::RWA 2026-10-26..11-01 sCh 68 (src 414) - QUOTE OK: p.6 '252 cases ... 96 health facilities ... 68 suspected
+    cases of cholera were reported by 14 health facilities' (list sums to 253 vs 252). Cover 'WEEK 44 26
+    October-01 November 2026'. Completeness/timeliness 99%/97% (highlights page; 98%/97% in the body). WEIGHT 0.9.
+    -> KEEP.
+687 AFR::RWA 2026-11-02..11-08 sCh 66 (src 415) - QUOTE OK: p.6 '339 cases ... 97 health facilities ... 66 suspected
+    cases of cholera were reported by 17 health facilities'; list sums exactly to 339. Cover 'WEEK 45 02-08
+    November 2026'. Completeness/timeliness 98%/97%. reporting_date 2026-11-15 (PDF 11-14 23:59 PST). WEIGHT 0.9.
+    -> KEEP.
+688/689/690 AFR::RWA::Western cumulative, TL 2026-04-20 (inferred) - QUOTES OK (verbatim, incl. the wk45 box on the
+    rendered p.12: 582 / 45 / 437, no follow-up line; wk44 p.12: 542 / 45 / 497 / 20 'as of 6th November 2026').
+    BUT THE ROW CONSTRUCTION FAILS the 'does not contradict finer data' check. Western Province district rows
+    already in this file over the claimed span: Rutsiro chain from its DOCUMENTED onset 15 Jul 2026, 214 by 13 Sep
+    with 0 under follow-up (rows 67, 339; RBC wk38 box re-read: 214 / 4 / 0); Rubavu first outbreak 30 (Apr-May,
+    ended) and second outbreak 39 by 13 Sep (rows 69, 341); Rusizi 361 by 10 Oct (RBC wk41 box 'Rusizi district, as
+    of 10th October 2026': 361 / 8 lab / 353 epilink). Total >= 644 Western cases before 20 Oct, against 480 in the
+    box 'as of 20th October'. So the box is the ongoing-outbreak line list (likely Rusizi + Rubavu's second chain:
+    lab 8 + 20 -> 34), not a province total, and NO TL can make 'AFR::RWA::Western, TL..20 Oct = 480' true: an April
+    TL undercounts the province, a later TL overcounts (it contains the April-onward Rusizi chain).
+    688 (480 as of 20 Oct): no same-scope predecessor (wk41 box was 'Rusizi district') -> no increment derivable
+        -> RETRACT.
+    689 (542 as of 6 Nov): both 480 (wk42) and 542 (wk44) come from same-titled, internally consistent boxes
+        (34+446=480; 45+497=542) -> CORRECT to the within-box increment 2026-10-21..2026-11-06: sCh 62, cCh 11,
+        conf 0.7.
+    690 (582 as of 8 Nov): box internally inconsistent (45+437=482). One of 582/437 is a typo and the source
+        cannot say which (6->8 Nov change would be +40, about 5x the box's earlier pace, or -60, impossible for a
+        cumulative). Neither a cumulative nor an increment row is supportable -> RETRACT; re-check against wk46 box.
+    Downstream impact of the original rows: none on the national series (py/build_weekly_timeseries.py reads
+    Location == 'AFR::RWA' only, templates use JHU+WHO only), but they would mislead any sub-national use.
+
+--- ACTIONS (all via py/revise_observation.py --agent 7; reasons prefixed [RECENCY-20261116 AUDIT]) ---
+- 689 CORRECTED: TL 2026-04-20 -> 2026-10-21, sCh 542 -> 62, cCh 45 -> 11, conf 0.75 -> 0.7; correction note appended
+  (within-box increment 480 'as of 20 Oct' -> 542 'as of 6 Nov'; provincial subset, do not sum with 685-687).
+- 688 RETRACTED (tombstone ./data/RWA/retracted_rows_ai.csv): inferred TL contradicted by district rows; no same-scope
+  predecessor box, so no increment derivable.
+- 690 RETRACTED (tombstone): wk45 box internally inconsistent (45+437=482 vs 582); same TL contradiction.
+- 684, 685, 686, 687 KEPT; verification notes appended (684's stale reference to row 688 updated).
+- No rows added, no sources registered, no metadata edited. Baselines, dashboard, workflow_state.json and
+  search_log_agent_7.txt untouched. The weekly builder was not run (it rewrites all 40 countries).
+
+--- WINDOW STATUS / CONTEXT CHECKS ---
+- RBC publications index re-fetched by the auditor at 2026-11-17 13:29: 45 bulletins for 2026, latest wk45; wk46 NOT
+  posted -> 2026-11-09..2026-11-16 (8 of 36 days) is empty because it is unpublished, not because nothing happened. No
+  zero row is warranted: surveillance is operating (wk45 completeness 98%, timeliness 97%) and the outbreak is ongoing.
+- Independent web searches (4): 'Rwanda cholera November 2026' -> nothing in-window beyond the RBC bulletins (ECDC
+  365/394 end 11 Oct); 'South Kivu cholera October 2026' -> no Oct counts, Q1 4,607 + MSF late-Aug resurgence
+  (14,819 in N+S Kivu), Ruzizi zone affected; 'Burundi cholera Oct-Nov 2026' -> nothing in window; 'WHO multi-country
+  cholera Oct 2026' -> series ended at update #38 (30 Jun). Neighbour pattern consistent with continued Rwandan
+  transmission; nothing contradicts rows 684-687 or 689.
+- Builder check (read-only, source code): py/build_weekly_timeseries.py uses Location == 'AFR::RWA' only, and one
+  observed entry per ISO week with priority WHO > JHU > AI, so a later WHO refresh covering wk42-45 will supersede,
+  not double, rows 684-687. The ADM1 Western rows never reach the national series.
+- IBS vs line list: in-window ~186 IBS (pro-rata, 21 Oct-6 Nov) vs +62 line-listed; pre-window wk39-41 IBS 290 vs
+  Rusizi box +30 (331 as of 20 Sep -> 361 as of 10 Oct). The national series is suspected-case surveillance; reported.
+
+--- RESULT ---
+- Rows checked 7 | kept 4 (684-687) | corrected 1 (689) | retracted 2 (688, 690) | sources added 0 (412-415 by stage 1)
+- Window covered nationally 2026-10-12..2026-11-08 (28/36 days); empty 2026-11-09..2026-11-16 (unpublished).
+- python3 py/validate_quality.py RWA -> exit 0 | ERROR 0 | WARN 0 | INFO 241 (before audit: INFO 242).
+- Report section appended to ./data/RWA/search_report.txt ('=== RECENCY PASS 20261116: window 2026-10-12 to
+  2026-11-16 ===', 36 lines).
+End Time: 2026-11-17 13:31:48
+RECENCY-STAGE-COMPLETE 20261116 audit RWA
