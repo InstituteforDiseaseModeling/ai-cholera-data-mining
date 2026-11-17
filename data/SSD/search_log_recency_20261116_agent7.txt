@@ -6,3 +6,93 @@ Start Time: 2026-11-17 08:54:42
 Agent 7 Status: INITIALIZED
 Stage 1 log ./data/SSD/search_log_recency_20261116_agent1.txt: PRESENT (stage 1 ran)
 
+=== INPUTS READ ===
+- Stage 1 log ./data/SSD/search_log_recency_20261116_agent1.txt and ./data/SSD/workflow_state_recency_20261116.json (agree with each other).
+- Tagged rows in ./data/SSD/cholera_data_ai.csv: 8 (Index 1793-1800), all source_index 363. Presence row: 1 in
+  ./data/SSD/cholera_presence_ai.csv (AFR::SSD::Unity::Mayom 2026-10-28, source 364). No zero rows. No [XREF-HARVEST] rows among them
+  (stage 1 did not run xref apply; the queue had nothing dated in the window) -> XREF audit not applicable to this pass.
+- Sources fetched (ReliefWeb pages 403; used python3 -I -B py/reliefweb.py get <url_alias> --download):
+    363 W45 PDF (id 4238058, 2026-11-10) -> /tmp/ssd_rec7_dl_w45/ ; text /tmp/ssd_rec7_txt/w45.txt ; cholera page rendered /tmp/ssd_rec7_img/w45p-3.png
+    364 W44 PDF (id 4237027, 2026-11-04) -> /tmp/ssd_rec7_dl_w44/ ; text /tmp/ssd_rec7_txt/w44.txt
+  Both URLs in ./data/SSD/metadata_ai.csv (363, 364) resolve to these reports (title, date, WHO source match).
+
+=== PERIOD-TYPE CHECKS (apply to all rows) ===
+- 'Week of X' = Monday-start week: W45 'June peak (743 on 1 June)' equals the WHO dashboard week 2026-06-01..06-07 = 743 in
+  ./data/SSD/cholera_data_who.csv; 1 Jun, 19 Oct and 26 Oct 2026 are Mondays; W44's own title is 'Week #44, 26 Oct - 1 Nov 2026'.
+  -> 'week of 26 October' = 2026-10-26..2026-11-01. CORRECT.
+- Data cut-off: W45 4-week window '8 Oct-4 Nov' (28 days) and last positives (Fangak 4 Nov, Renk 1 Nov, Rubkona 30 Oct) -> cut-off 4 Nov,
+  'last 7 days' = 2026-10-29..2026-11-04. W44: '29 Sep-28 Oct' -> its 'last 7 days' = 22-28 Oct. CORRECT.
+- Cumulative = since 28 Sep 2024 onset (W45 does not restate the start; the chain rows 49/1686-1689/1693/1699 share TL 2024-09-28). CORRECT TL.
+
+=== PER-ROW AUDIT ===
+1793 AFR::SSD 26 Oct-1 Nov sCh 81 d 0 cw 0.9 - quote verbatim in W45 p.3 ('eased to 81 in the week of 26 October'). Deaths 0 holds: W45 last
+     7 days (29 Oct-4 Nov) 'no deaths'; W44 last 7 days (22-28 Oct) 'no deaths'; both 4-week windows carry the same 2 deaths (Mayom, CFR
+     20%/22%) and the WHO dashboard places 2 deaths in 5-11 Oct and none after, so no death falls in 26 Oct-1 Nov. Not a WHO dashboard restatement (dashboard
+     ends 19-25 Oct). Curve: dashboard 41 (28 Sep), 41 (5 Oct), 57 (12 Oct), then W45's 103 (19 Oct) -> 81 is continuous. PRIMARY national.
+     Preliminary (W45 revised 19 Oct 83->103). KEEP, no change.
+1794 AFR::SSD 29 Oct-4 Nov sCh 73 d 0 cw 0.9 - quote verbatim; rolling 7 days, correctly dated. Same-source overlap with 1793 (4 days), roles
+     stated. The builder keys both to ISO 2026-W44 by TL and keeps the larger (81), so 1794 never fills W45 and cannot double-count. Parent row
+     of the county split 1795-1798 (33+11+1+28 = 73). KEEP, no change.
+1795 Jonglei::Fangak 29 Oct-4 Nov 33 / 1796 Upper Nile::Renk 11 / 1797 Unity::Rubkona 1 - verbatim ('Fangak (33) ... Renk (11) and Rubkona
+     (1)'), 'no deaths'; county subsets, do-not-sum stated; location codes match ./reference/country_profiles.json ADM1 and existing rows.
+     KEEP, no change.
+1798 Northern Bahr el Ghazal::Aweil West 29 Oct-4 Nov 28 cw 0.75 - verbatim; WHO includes the 28 in its national 73 and its 4-week county
+     chart (Aweil West 60). 'Emerging ... cluster - 60 mostly untested cases (only 2 of 60 tested), last positive 13 October - under
+     investigation': all in-period cases untested; downweight 0.9 -> 0.75 is justified and documented. No corroboration (stage 1 B2-B4;
+     ReliefWeb re-check 2026-11-17). KEEP; NOTE APPENDED (corroboration status, W46 follow-up, retract if WHO discards the cluster).
+1799 Jonglei::Fangak 26 Oct-1 Nov 35 - 'with Fangak falling from 60 to 35'; 60 for the week of 19 Oct is confirmed independently by W44
+     ('83 in the week of 19 October, driven by Fangak (60)'), so 35 = week of 26 Oct. Fangak curve 14->31->60->35; W45 4-week Fangak 144
+     vs 14+31+60+35 = 140 (window offset 3 days): consistent. Overlap with 1795 stated. KEEP, no change.
+1800 AFR::SSD 28 Sep 2024-4 Nov 2026 cumulative 114,317 / 1,732, CFR 1.52, cw 0.7 - verbatim; 112,416 discharged + 1,732 deaths consistent
+     with '98.3% recovered'. Defect in note: called 28 Sep 2024 the 'outbreak declaration' - it is the onset; declared 28 Oct 2024 (AI 1699).
+     Single source (no other report restates 114,317; ReliefWeb search 2026-11-17). Unstable series: W38 112,542 -> W44 112,406 -> W45 114,317
+     (+1,911 with 73 new cases); the source does not explain the step. Dashboard check: WHO weeks 16 Feb-25 Oct 2026 sum to 12,515 cases / 102
+     deaths vs 15,945 / 108 for the AI 49 -> 1800 increment, so this cumulative must never be differenced. Builder: increment spans ISO
+     2026-W08..W45, 37/38 weeks observed (WHO W01-W43 continuous + AI W44) -> coverage-skipped. KEEP; NOTE APPENDED (onset wording, re-verification,
+     builder). Multi-year WARN justified (source states a since-onset total; cw 0.7 cap).
+Presence (Mayom 2026-10-28, src 364): 'last positive: Mayom 28 Oct' in W44 and repeated in W45; no count -> correct file. Cosmetic only: its
+     note repeats 'Source states:' twice; left unchanged.
+
+=== DUPLICATION / DOUBLE-COUNTING ===
+- ./data/SSD/cholera_data_who.csv: max TR 2026-10-25 -> no WHO week in the window; no tagged row restates a dashboard week.
+- ./data/SSD/cholera_data_jhu.csv (filtered, not loaded): max TR 2025-03-27 -> no overlap.
+- AI layer: only the 8 tagged rows touch the window; none identical to another row. Validator INFO national_subnational_overlap for
+  2026-10-26..11-01 and 2026-10-29..11-04 = 'documented'.
+- Weekly series ./data/SSD/cholera_weekly_SSD.csv (rebuilt by the runner's dashboard update at 08:49, commit 49e516f0 'after AGO', not by
+  stage 1): gained ISO 2026-W44 = 81 / 0 (AI, observed) only; W45, W46 absent (NA, not zero-filled). 2026 total 15,139. Stage 1's builder
+  simulation is confirmed by the real file.
+
+=== PLAUSIBILITY / NEIGHBOURS ===
+deaths <= sCh everywhere; no cCh; CFRs 0.00 and 1.52 recomputed. Neighbour layers (read-only): ETH AI 24 cases 8 Jul-10 Oct 2026; KEN WHO
+zeros to 11 Oct; COD WHO 1,686-2,617/week to 18 Oct (DRC focus not on the SSD border); UGA, CAF none. A waning low-level South Sudan tail is
+consistent with the region; stage 1 found no in-window cross-border report (Sudan White Nile, Gambella, Kakuma).
+
+=== STAGE 1 PROCESS CHECK ===
+4 batches / 80 queries (>= 3-batch minimum); yields 5, 0, 0, 0 percent (query-based, <= 100%); stop rule applied correctly (B1 = 5% is not
+<5%; B2-B4 are the three sub-5% batches). Claimed rows (8), sources (363, 364) and presence row (1) all exist as claimed. W44 cumulative
+112,406 correctly withheld (it would pair with 1800 into a 1,911-case step).
+
+=== REVISIONS (py/revise_observation.py, --agent 7, reasons prefixed [RECENCY-20261116 AUDIT]) ===
+- Index 1800: note appended (onset vs declaration; values re-verified; single-source; builder coverage-skip). Values unchanged.
+- Index 1798: note appended (corroboration not found; W46 follow-up). Values unchanged.
+- Retracted: none. Value corrections: none. Sources added by Agent 7: none.
+
+=== WINDOW COVERAGE (in-memory analyse() from py/analyze_effective_gaps.py; shared ./reference/ gap files NOT rewritten because 10
+    countries are running in parallel) ===
+- Before: latest observation 2026-10-25 (22 days stale at 16 Nov). After: 2026-11-04 (12 days stale). Month-level gap 2026-11-01..11-16
+  (16 d) remains (only 1-4 Nov observed: 4 of 30 days, the month rule needs >15); gap count 12 unchanged; months_ai 303 -> 304 (Oct 2026); months_ai_only 105 unchanged.
+- 26 Oct-1 Nov covered by an epi-week count (7/22 days); 2-4 Nov only inside the rolling row 1794 (3 days); 5-16 Nov EMPTY (12 days).
+- Remaining empty: publication lag, not absence. WHO SSD weekly W46 (9-15 Nov) still not on ReliefWeb at the 2026-11-17 re-check
+  (search --country SSD --query "Ongoing Health Emergency Events" --from 2026-11-11 -> 0). Transmission active, surveillance operating;
+  no zero row is warranted.
+
+=== VALIDATOR ===
+python3 py/validate_quality.py SSD -> exit 0; ERROR 0, WARN 14, INFO 178 (before and after the revisions). Only WARN on a tagged row:
+multiyear_aggregate row 1509 (= AI 1800), justified above. INFO metadata_unused 364: W44 is cited by the presence row only.
+
+=== NEXT PASS ===
+- When W46 posts (~18-19 Nov): compare its 'week of 26 October' with 1793 (revise if changed), add 'week of 2 November', and check the Wedweil
+  outcome (1798). When the WHO dashboard adds 26 Oct-1 Nov it will outrank 1793; compare the two.
+- Pre-window, out of scope: the dashboard's 19-25 Oct week = 10 vs 103 in W45; the weekly series still carries 10 (WHO observed).
+End Time: 2026-11-17 09:03:12
+Agent 7 Status: COMPLETE
