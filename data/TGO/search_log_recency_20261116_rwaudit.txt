@@ -1,0 +1,91 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (STAGE RWAUDIT) ===
+Country: Togo (TGO)
+Window: 2026-08-27 to 2026-11-16 (82 days)
+Auditor: Agent 7 (Quality Auditor)
+Start Time: 2026-11-17 14:49
+Scope: ONLY rows of ./data/TGO/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]".
+       Pre-window rows, [XREF-HARVEST] rows and the main pass's audit are outside this stage.
+Agent Status: INITIALIZED
+
+=== STEP 0: TOP-UP LOG READ ===
+./data/TGO/search_log_recency_20261116_rw.txt EXISTS (912 lines; last line "RECENCY-STAGE-COMPLETE 20261116
+rwcollect TGO"). It claims: 747 unique ReliefWeb reports screened (37 TGO-tagged), 70 opened with attachments;
+737 NO TGO DATA + 10 OUT OF WINDOW; 0 row, 0 presence and 0 zero decisions. "Rows added: NONE". Sources
+registered: metadata 338 only (caveat).
+Independent re-tally of the 747-entry per-report screening record: 737 "NO TGO DATA" + 10 "OUT OF WINDOW" = 747.
+No ROW / PRESENCE / ZERO decision appears anywhere in the log. The record matches the summary.
+The log lists no rows, so the task is to confirm that against the CSVs (step 1).
+
+=== STEP 1: CONFIRM "NO ROWS" AGAINST THE CSVs (python3 -I csv.DictReader parse, not line grep) ===
+./data/TGO/cholera_data_ai.csv - 922 rows, 14 columns:
+  processing_notes containing "[RECENCY-20261116-RW]" ................ 0
+  "RECENCY-20261116-RW" in ANY column ................................ 0
+  "RECENCY-20261116" (main pass or top-up) in ANY column ............. 0
+  rows with TL <= 2026-11-16 and TR >= 2026-08-27 (window overlap) ... 0   (max TR 2026-08-26 = row 50)
+  rows citing source_index 335 / 336 / 337 / 338 ..................... 0 / 0 / 0 / 0
+  Index values unique ................................................ 922 / 922
+./data/TGO/cholera_presence_ai.csv - 154 rows; 0 tagged RECENCY-20261116; 0 overlapping the window.
+./data/TGO/retracted_rows_ai.csv   - 55 rows; 0 mention RECENCY-20261116 (nothing was written and then retracted).
+Write history:
+  cholera_data_ai.csv: no diff vs git HEAD (last commit touching it 67394b68, 2026-10-04); file mtime and newest
+    backup (.backup_cholera_data_ai_20261008-010948660382.csv) are both 2026-10-08, so nothing was written on
+    2026-11-16 or 2026-11-17.
+  metadata_ai.csv: git diff = 1 line added, 0 removed (Index 338 only). 338 rows, Index 1..338 sequential and
+    unique. Only Index 338 carries [RECENCY-20261116-RW]. The two metadata backups of 2026-11-17 (14:44:31,
+    14:47:05) match the log's register-source followed by revise_observation.py --set-description.
+  git status data/TGO (excluding backups): M known_source_traps.txt, M metadata_ai.csv, ?? search_log_recency_20261116_rw.txt.
+    This matches the top-up's "FILES TOUCHED" list.
+Layer coverage of the window (re-computed): JHU max TR 2024-12-31, WHO max TR 2025-03-23, AI max TR 2026-08-26
+  -> 0 rows in the window in any layer.
+RESULT: 0 rows in scope. The top-up's claim "Rows added: NONE" is CONFIRMED.
+
+=== STEP 2: SPOT CHECK OF CAVEAT SOURCE 338 (no row cites it; checked because it is the stage's only data-file write) ===
+Cached attachments ./cache/reliefweb/TGO/<id>/OEW*.pdf were read locally with pdftotext -layout (untrusted data,
+nothing executed from the cache; no network call needed):
+  wk35 4231105 | wk36 4232043 | wk37 4232822 | wk38 4232823 | wk39 4233169 | wk40 4234265 | wk41 4235066
+  In every edition the only Togo row in the event table is
+    "Togo | Measles | Ungraded | 13-Oct-24 | 13-Oct-24 | 19-Jul-26 | 1 673 | 1 001 | 0 | 0.00"
+  followed by the measles-phase note quoted in the metadata. Togo lines that also contain "chol": 0 in all seven.
+  wk41 has one other Togo text-layer line, the page-1 cover-map label line "Sierra Leone | Togo | 24 19 | ...". This is
+  the TRAP 25 case in ./data/TGO/known_source_traps.txt. This audit did NOT re-render the map. The event table,
+  which has no Togo cholera row, is authoritative, so the figures cannot be a Togo cholera event.
+  The metadata 338 URL is the same as the url_alias recorded for id=4235066 (wk41) in the top-up's screening record
+  (entry 098). MATCH.
+  Description, Date_Range (2026-08-24..2026-10-11), Data_Type ("Caveat / non-listing check - NO observation rows
+  derived"), Level 1 and "NOT a cholera zero" framing: accurate. NO CHANGE.
+  This closes the main pass's UNRESOLVED item (AFRO OEW wk36-41 end tables unread because IRIS refused connections).
+  Confirmed above.
+
+=== STEP 3: VALIDATOR ===
+python3 py/validate_quality.py TGO -> EXIT 0; ERROR 0, WARN 60, INFO 431 (922 data rows, 338 metadata sources).
+  WARN 60 = 46 multiyear_aggregate + 7 CFR_high_flagged_for_review + 7 same_period_conflict. All are on pre-window
+    rows and match the main-pass audit (WARN 60; the data file is unchanged since then).
+  INFO 431 = 309 national_subnational_overlap + 122 metadata_unused. The +1 vs the main pass (430) is
+    "metadata Index 338 ... is not referenced by any data row", which is expected for a caveat source.
+  JSON copy: /tmp/TGO_rwaudit.json (outside the repo).
+
+=== STEP 4: TOP-UP COMPLIANCE ===
+Claimed rows = actual rows = 0. Claimed sources = actual sources = 1 (Index 338). Claimed file list = git status.
+Method declared by the stage: exhaustive ReliefWeb enumeration (747 reports, union of 30+ queries, every page
+fetched), not 20-query batches. The batch-yield stopping rule therefore does not apply and there is no yield to
+mis-count. No flags.
+
+=== CORRECTIONS / RETRACTIONS ===
+None, because no rows are in scope. py/revise_observation.py was not called. No CSV was touched by this audit.
+Files written by this audit: this log; an appended section in ./data/TGO/search_report.txt.
+Scratch outside the repo: /tmp/tgo_rwaudit_scripts/confirm_rows.py, /tmp/TGO_rwaudit.json, /tmp/tgo_rwaudit_validate.txt.
+
+=== WINDOW STATUS AFTER THE TOP-UP ===
+Still 0 of 82 days covered in any layer. 2026-08-24..2026-10-11 now also carries WHO AFRO event-level non-listing
+(metadata 338). That is not a count and not a zero; the window stays empty by design. The same channels missed
+Togo's 12 BNTIS-notified Q1-2026 cases (row 344).
+Still open: BNTIS T3/2026 (ISO wk 27-39) on bk.sante.gouv.tg; AFRO OEW wk42-46 (not on ReliefWeb on 2026-11-17);
+WER October-data monthly update; ECDC late-November update; Africa CDC November issues.
+
+=== SUMMARY ===
+End Time: 2026-11-17 14:55
+Rows checked 0 | kept 0 | corrected 0 | retracted 0 (no [RECENCY-20261116-RW] rows exist; confirmed against the CSV).
+Caveat source 338 spot-checked against all 7 cached OEW editions: accurate, unchanged.
+Validator: python3 py/validate_quality.py TGO -> exit 0 (ERROR 0, WARN 60, INFO 431).
+Agent Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 rwaudit TGO
