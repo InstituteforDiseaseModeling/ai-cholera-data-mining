@@ -497,10 +497,14 @@ python3 py/protect_baselines.py verify
 echo ""
 awk -F, 'NR>1 {c[$2]++} END {for (k in c) printf "  %-18s %d\n", k, c[k]}' "$MANIFEST"
 echo ""
-MANIFEST="$MANIFEST" python3 - <<'PYEOF'
+MANIFEST="$MANIFEST" ONLY="$ONLY" python3 - <<'PYEOF'
 import csv, json, os
 mosaic = {k for k, v in json.load(open('reference/country_mapping.json'))['countries'].items()
           if v.get('mosaic_framework')}
+# A --only run is complete when ITS countries are, not all 40 (the 2026-11-17
+# ReliefWeb top-up of 16 reported "NOT YET COMPLETE (24/40)" for the rest).
+if os.environ.get('ONLY'):
+    mosaic &= {c.strip().upper() for c in os.environ['ONLY'].split(',') if c.strip()}
 last = {}
 for r in csv.DictReader(open(os.environ['MANIFEST'])):
     last[r['iso']] = r['status']
@@ -510,11 +514,11 @@ if blocked:
     print(f"BLOCKED BY SPEND LIMIT ({len(blocked)}): {' '.join(blocked)}")
     print("These did not run and did not fail. They resume on the next launch.")
 if incomplete:
-    print(f"NOT YET COMPLETE ({len(incomplete)}/40): {' '.join(incomplete)}")
+    print(f"NOT YET COMPLETE ({len(incomplete)}/{len(mosaic)}): {' '.join(incomplete)}")
     print("Re-run the same command to continue;")
     print("countries already marked done are skipped.")
 else:
-    print("ALL 40 COUNTRIES COMPLETE.")
+    print(f"ALL {len(mosaic)} COUNTRIES IN THIS RUN COMPLETE.")
 PYEOF
 echo ""
 python3 py/validate_quality.py --quiet 2>&1 | sed -n '2,4p'
