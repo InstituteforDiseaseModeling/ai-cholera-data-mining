@@ -10,3 +10,103 @@ Agent 7 (recency audit) Status: INITIALIZED
 Stage 1 claims: 3 batches / 60 queries, yields 0%/0%/0%, 0 rows added, 0 sources registered, 0 presence rows,
 validator ERROR 0 / WARN 0 / INFO 63.
 
+=== STEP 1: TAGGED-ROW INVENTORY (scope of this audit) ===
+grep "RECENCY-20261116": ./data/GNQ/cholera_data_ai.csv 0 | ./data/GNQ/metadata_ai.csv 0 | ./data/GNQ/cholera_presence_ai.csv 0 |
+  ./data/GNQ/retracted_rows_ai.csv 0. No recency tag of any date exists in any GNQ AI-layer file.
+File state: all four AI-layer CSVs last modified 2026-10-02 (data 19:53, metadata 19:51, presence 18:12, retracted 19:48);
+  last git commit touching them = 33fb6340 (2026-10-02 19:56). Today's commits touching data/GNQ/ changed only
+  cholera_weekly_GNQ.csv (83cae47c 14:19, global rebuild before stage 1 started), stage 1's log/state (066d1a27, 2dee2e7f)
+  and this log. `git status data/GNQ/` clean. -> Stage 1 wrote nothing to any data file, as it claims.
+AI rows overlapping 2026-09-29..2026-11-16: 0 (of 39). Latest AI row = Index 41, 2026-09-21..2026-09-28, sCh=0, w=0.6,
+  Inferred_Absence, src 68 (ECDC CDTR wk40) - full-run row, untagged, OUT OF SCOPE.
+WHO baseline: ./data/GNQ/cholera_data_who.csv does not exist (GNQ not in WHO weekly feed) -> no WHO-week duplication possible.
+JHU baseline (filtered read, 19 rows): ends 2024-12-31 -> nothing in window.
+Per-row checks 1-5 (source/quote, duplication, plausibility, zero-row evidence, weight tier): NOT APPLICABLE - 0 rows.
+Rows checked 0 | kept 0 | corrected 0 | retracted 0. py/revise_observation.py not invoked (nothing to revise).
+
+=== STEP 2: STAGE-1 COMPLIANCE ===
+Batches 3 x 20 = 60 queries (53 WebSearch, 4 ReliefWeb API, 2 web-fetch, 1 PubMed); yields 0/0/0%.
+Stop rule: 3-batch minimum met, then 3 consecutive <5% batches -> STOP correct. No yield >100%.
+Claimed vs written: rows 0/0, zero rows 0/0, presence rows 0/0, sources 0/0 -> consistent.
+Pass rule (omission is not zero) applied correctly: no add-zero was written from silence in a multi-country list.
+xref: queue has 1 item (2004 annual WER, LOG_TARGET_CITES) - outside window, correctly not applied. 0 [XREF-HARVEST] rows
+  in GNQ; reference/xref/harvest_log.csv has no GNQ row.
+Side effect check: cholera_weekly_GNQ.csv mtime 16:09 was a global sweep (all countries' weekly files rebuilt
+  16:09-16:10 by py/build_weekly_timeseries.py), not a stage-1 action.
+
+=== STEP 3: RE-VERIFICATION OF STAGE-1 NEGATIVE CLAIMS (cached shared docs, read-only) ===
+Pattern Equatorial|Ecuatorial|[ée]quatoriale|GNQ|Malabo|Bioko|Ebebiy|Annob, per file:
+  ECDC CDTR 2026 W37-W42: 0 each | ECDC 27 Oct 2026 update: 0 | ECDC monthly: 0
+  WER 101(39): 6 (LF/YF tables) | 101(40): 2 (NTD tables) | 101(41)-(43): 0 | 101(44): 2 (visceral leishmaniasis: VL
+  endemicity; 2025 imported-VL country list) - its cholera section (data to 27 Sep 2026) never names GNQ | 101(45): 2
+  (non-cholera country lists).
+  WHO AFRO OEW wk41: 1 (line 79 = map label). Events table (lines ~660-1120) has cholera rows for AGO, BDI, CMR, CAF, TCD,
+  COG, COD, KEN, MOZ, NAM, RWA - no GNQ row. -> stage 1 claims CONFIRMED.
+  Africa CDC Epidemic Intelligence Report (cache/recency_MWI_20261116/dl/acdc_20261025.pdf, image-only) p.9 rendered
+  (pdftoppm, /tmp/gnq_acdc_audit_20261116_img) and read: 'Since the beginning of 2026, a total of 171,724 cases ... reported
+  from 20 AU MS: Angola ... Cameroon (2,712; 79) ... Nigeria (72,375; 487) ... Zimbabwe (36; 2)' - no Equatorial Guinea;
+  'Since the last update (18 October 2026) ... reported from three AU MS: Congo, Somalia, and Zambia'. 2025 note (24 AU
+  MS) also omits GNQ. -> stage 1 quotes CONFIRMED verbatim.
+
+=== STEP 4: INDEPENDENT RE-SEARCH (Agent 7; not anchored on stage-1 query strings) ===
+ReliefWeb API (python3 -I -B py/reliefweb.py), 9 searches:
+  R1 --country GNQ --from 2026-09-29 -> 8 reports, the same 8 stage 1 listed (UNHCR x5 Cameroon MCO / RBWCA stats; OCHA
+     WCA flood monitoring to 30 Sep; UNICEF WCA child-rights dashboard Jan-Jun 2026; Small Arms Survey) - none on cholera.
+  R2 --country GNQ --query cholera --from 2026-01-01 -> 4 multi-country reports, all published BEFORE the window.
+  R3 boolean cholera AND GNQ names; R4 "Equatorial Guinea cholera"; R5 "Guinea Ecuatorial"; R6 "Guinée équatoriale
+     choléra" (all from 2026-09-29) -> 0 each.
+  R7 "Equatorial Guinea" from 2026-09-29 -> 4 (FEWS NET weather hazards x3, WHO WPRO El Nino) - no cholera.
+  R8 "Weekly Bulletin on Outbreaks and other Emergencies" from 2026-10-10 -> only Week 41 (5-11 Oct, posted 21 Oct):
+     weeks 42+ NOT yet published - confirms stage 1.
+  R9 "Multi-country outbreak of cholera" / "Africa CDC Epidemic Intelligence" / "ECDC cholera worldwide" (from Oct) -> 0
+     (these series are not mirrored on ReliefWeb).
+WebSearch, 10 queries (3 extended): en/es/fr GNQ cholera 2026; GNQ outbreak Nov 2026; AFRO OEW wk42 2026; Africa CDC Nov
+  2026; Cameroon South region Ambam/Kye-Ossi Nov 2026; Gabon Nov 2026; Africa countries reporting Nov 2026; Malabo/Bata/
+  Bioko diarrhoea Oct-Nov 2026 -> no GNQ cholera item for any date in the window. Hits were the 2005 Malabo outbreak,
+  travel-health advice, re-dated 2023 Marburg items, AP 18 Oct 2026 malaria story. Regional: Cameroon outbreak in Far
+  North/North (West named in a June update), ~2,500 cases by early Nov, nothing in South region (GNQ border); Gabon no
+  confirmed case; UN News early Nov names DRC, Nigeria, Somalia, Zambia, Djibouti (and Yemen).
+NEW document (not seen by stage 1): WHO AFRO Rapid risk assessment 'Cholera, WHO African Region', '02 October 2026, v1',
+  https://cdn.who.int/media/docs/default-source/_sage-2026/20261002_-regional-rra_-cholera-afr-v.1.pdf (saved PDF copied to
+  /tmp/gnq_rra_audit_20261116_dl, pdftotext). 'Between 1 January and 20 September 2026 (EW 1-38; data received as of
+  20 September 2026), a total of 160 799 cholera cases and 2466 deaths were reported across 19 countries' - list of 19
+  excludes GNQ; GNQ/Malabo/Bioko named 0 times in the whole document. Data end before the window and it is omission
+  only -> no row, not registered (no GNQ figure; would be cited by no row). Does not contradict pre-window Index 41.
+RESULT: no GNQ cholera count, presence signal or explicit nil exists online for 2026-09-29..2026-11-16. Stage 1 missed
+  nothing.
+
+=== STEP 5: WINDOW COVERAGE ===
+0 of 49 days covered by any layer (JHU ends 2024-12-31; no WHO file; AI ends 2026-09-28).
+./data/GNQ/cholera_weekly_GNQ.csv (read only) ends 2026-W39 (2026-09-21..27, 'observed' zero from Index 41); W40 onward not
+  emitted -> window is MISSING, not zero-filled. No false zeros were introduced.
+./reference/effective_surveillance_gaps_detailed.csv (regenerated 16:14 by another process; read only): GNQ recent gap
+  2026-10-01..2026-11-16 (47 d) - September credited by the >50%-of-days month rule. Coverage row unchanged by this pass:
+  683 months, 259 with data (37.9%), months_ai 146, months_ai_only 55, gap_periods 6.
+py/analyze_effective_gaps.py deliberately NOT run: it rewrites the global ./reference files for all 40 countries while
+  other recency agents run in parallel (pass rule: do not touch other countries); GNQ inputs are unchanged, so GNQ's row
+  would not move.
+
+=== STEP 6: OUT-OF-SCOPE OBSERVATION (no action taken) ===
+Index 33, 36, 37, 41 (2026-08-27..2026-09-28) are Inferred_Absence zeros resting on multi-country list omission (w 0.6-0.7,
+  surveillance 'partial'); Index 7 and 11 (2026-01-01..2026-08-26) carry mixed Documented/Inferred labels. The weekly
+  builder emits 36, 37, 41 as 'observed' zeros (already flagged in A7 of the full-run report). This pass rejected the same
+  logic for the window, so the two are now inconsistent. Flag for the next full audit; untouched here per scope.
+
+=== STEP 7: VALIDATOR (completion gate) ===
+python3 py/validate_quality.py GNQ -> EXIT 0; ERROR 0, WARN 0, INFO 63 (56 metadata_unused, 7 national_subnational_overlap).
+  Same at audit start and audit end; 0 findings reference a window date. Matches stage 1's reported result.
+
+=== FINAL SUMMARY (Agent 7, RECENCY-20261116 AUDIT) ===
+End Time: 2026-11-16 16:17:59
+Tagged rows audited : 0 (none exist). Checked 0 | kept 0 | corrected 0 | retracted 0.
+Sources added       : 0 (./data/GNQ/metadata_ai.csv unchanged).
+Stage 1             : compliant (3 batches, 0/0/0% yield, claims match files). Negative findings independently confirmed
+                      by 9 ReliefWeb API searches, 10 web searches, 16 cached documents and 2 PDFs (Africa CDC 25 Oct p.9;
+                      WHO AFRO RRA 02 Oct 2026).
+Window coverage     : 0 of 49 days; weekly series ends 2026-W39, so the window is missing, not zero-filled.
+Files written       : ./data/GNQ/search_log_recency_20261116_agent7.txt (this log); section appended to
+                      ./data/GNQ/search_report.txt (35 lines; original 216 lines untouched).
+Not touched         : cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv,
+                      workflow_state.json, search_log_agent_7.txt, baselines, ./reference, dashboard, other countries.
+Temp files (outside repo): /tmp/gnq_rra_audit_20261116_dl, /tmp/gnq_acdc_audit_20261116_img, /tmp/GNQ_recency_audit.json.
+Agent 7 (recency audit) Status: COMPLETE
