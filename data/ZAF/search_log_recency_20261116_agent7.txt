@@ -8,3 +8,92 @@ Agent 7 Status: INITIALIZED
 
 === RESUMED 2026-11-17 13:19:39 ===
 Resume note: the earlier audit attempt (started 2026-11-16 19:34:54) wrote only its initialization header - no row was checked, no revision made. Stage 1 log (./data/ZAF/search_log_recency_20261116_agent1.txt) was completed later (resumed collector, 2026-11-17, ends with RECENCY-STAGE-COMPLETE 20261116 collect ZAF). Re-checking ALL [RECENCY-20261116] rows from scratch, including any added after the earlier audit attempt.
+
+=== AUDIT SCOPE | 2026-11-17 13:32:18 ===
+Tagged rows found in ./data/ZAF/cholera_data_ai.csv (processing_notes contains "[RECENCY-20261116]"): 1 -> Index 2576
+  (no sampling: all tagged rows checked). Tagged metadata: Index 605 (./data/ZAF/metadata_ai.csv). No tagged rows in
+  ./data/ZAF/cholera_presence_ai.csv. No [XREF-HARVEST rows overlap the window (cross-country harvest audit not in scope here).
+Stage 1 log read: ./data/ZAF/search_log_recency_20261116_agent1.txt (4 batches / 80 queries, yields 5/0/0/0 %, stopped on
+  3 consecutive sub-5% batches after the 3-batch minimum; rows claimed = 1 (AI 2576), source claimed = 605; both exist; no
+  yield above 100%; protocol followed).
+Audit tools (written by Agent 7, independent of stage 1's scripts): ./cache/recency_ZAF_20261116_a7/tools/a7_pbi_models.py,
+  a7_pbi_query.py; downloads in ./cache/recency_ZAF_20261116_a7/dl/ (pbi/, web/).
+
+=== ROW AUDIT | AI 2576 | AFR::ZAF 2026-10-01..2026-11-08 sCh=0 deaths=0 | source 605 | w=0.75 ===
+1. SOURCE / QUOTE / PERIOD
+   - Source 605 URL (Power BI public view) returns 200; https://www.nicd.ac.za/cholera-dashboard/ still embeds the same report key.
+   - Live modelsAndExploration (re-fetched 17 Nov): dataset 2496889 LastRefreshTime 2026-11-17T17:07:14 UTC (daily refresh).
+     Stage 1's saved 16 Nov models.json: LastRefreshTime 2026-11-16T17:06:56 UTC = the refresh quoted in the row. OK.
+   - Report's OWN filters (read from the report definition, not from stage 1): report level PROVINCE_NAME<>'UNKNOWN',
+     ZALOCATION not UNKNOWN / ISAZI IMPORT / NOT APPLICABLE, NMCSYMPTOMDATE not null; page level CASECLASSIFICATION1 not null,
+     LEVEL='Sub-district'. These are exactly the filters stage 1 applied. OK.
+   - Memo text quoted in the row ('Cholera is classified as a category 1 notifiable medical condition and must be reported
+     immediately upon clinical suspicion ... Data cleaning and case classification are conducted by the team at the Centre for
+     Enteric Diseases') is verbatim in the live 'Dashboard Memo' page. OK.
+   - Pivot 'Total Number of Cumulative and New Cases by Province': columns displayed as 'Suspected Cases in the last 30 days'
+     (measure SuspectedCases-Last 30 days; the field reference is still named 'Last 7 days' but binds the 30-day measure) and
+     'Confirmed Cases in the last 30 days'. Labels quoted correctly.
+   - Decoded stage 1's saved 16 Nov responses: national 0 | 0, cumulative 1473, deaths 57; all 9 provinces 0 | 0 (Gauteng
+     cumulative 868); raw notifications since 1 Jun: Ekurhuleni South 2 14 Jun discarded, Mogale City 8 Jul confirmed, Tshwane 3
+     15 Jul confirmed, Umhlathuze onset 10 Oct notified 13 Oct discarded, Johannesburg D notified 3 Nov discarded.
+     => every number in the row's quote reproduces exactly as of its reporting date (16 Nov).
+   - Period type: not a weekly/cumulative/YTD figure but a zero over a stated period, built from the case-based onset data plus
+     the rolling 30-day cards; dates read correctly (TL 1 Oct; TR 8 Nov = Sunday, end of ISO week 45; reporting 16 Nov >= TR).
+2. LIVE RE-CHECK (17 Nov refresh) - IMPORTANT NEW FINDING
+   - National 'Suspected Cases in the last 30 days' is now 1 (Gauteng 1), confirmed 0; cumulative 1474 (+1).
+   - The new record: Gauteng / Ekurhuleni Metro / Ekurhuleni East 2, onset 2026-11-11, diagnosed 2026-11-15, notified
+     2026-11-16, NMC class 1 'Clinical notification' (displayed as 'Suspected case'; no pending code exists, so this is an
+     unreviewed notification). Raw table, no filters: max onset 2026-11-11, max notification 2026-11-16.
+   - Its onset is AFTER TR (8 Nov) -> does not contradict AI 2576. Raw fact table (no filters, imports included) still holds
+     only the two discarded notifications dated 1 Oct-8 Nov; no suspected, confirmed or imported case with onset in TL..TR.
+   - Stage 1's choice to stop TR at 8 Nov (lag allowance) proved right: a TR of 16 Nov would now be contradicted.
+   - Base rate (raw table, 52 notifications Jan 2025-3 Nov 2026): 38 discarded, 7 confirmed, 7 left suspected.
+     Onset->notification lag for suspected/confirmed records: median 8 d, 33% > 9 d. TR is now 9 days behind the latest
+     refresh; expected missed cases in the last days before TR ~0.03 (about 15 suspected/confirmed cases in 23 months).
+   - NOT ADDED: the 11 Nov notification (auditor does not collect; unclassified clinical notification, most such
+     notifications are discarded; recorded here and in the row's note for the next pass). Not a presence row either
+     (presence file is for confirmed cholera without a count).
+3. DUPLICATION
+   - ./data/ZAF/cholera_data_who.csv: ZAF weekly rows end 2026-07-19; none overlap the window. JHU latest TR 2024-12-31
+     (filtered read, not loaded wholesale). No other AI row overlaps 1 Oct-8 Nov (AI 2209 ends 30 Sep). National row only;
+     notes say "National total - do not sum with provincial rows (none overlap)". OK.
+4. PLAUSIBILITY
+   - deaths 0 <= sCh 0; cCh blank; CFR 0.0. Curve continuity: WHO 1 case/wk in ISO wks 28-29 (6-19 Jul) -> AI zeros wks 30-39
+     (AI 2482, 198, 2209) -> this zero wks 40-45. Weekly builder output (./data/ZAF/cholera_weekly_ZAF.csv, built 17 Nov)
+     shows wks 40-45 documented_zero at 0.75 and wk 46 absent (not zero-filled) - so the 11 Nov notification sits in a gap,
+     not under a false zero.
+   - Neighbours: MOZ national WHO weekly 54 (wk 39) -> 1 (wk 40) -> 0 (wks 41-42); MWI documented zeros to 25 Oct; SWZ/BWA
+     zeros to 20 Sep; ZMB outbreak (2 743 cases by 13 Nov) is not adjacent; NAM Kunene outbreak is in the far north-west.
+     A ZAF zero is consistent with the region.
+5. ZERO-ROW EVIDENCE
+   - Explicit statement by the surveillance authority: 0 suspected / 0 confirmed in the last 30 days, national and every
+     province (16 Nov). For 1-16 Oct: the case-based NMC line list has no suspected/confirmed onset between 16 Jul and
+     10 Nov, and the 10 Oct uMhlathuze notification shows a suspected cholera notification in this exact period being
+     investigated and discarded. Surveillance operating: 2 in-window notifications classified; NICD lab testing of the
+     Bronkhorstspruit GI cluster (NICD alert 21 Oct 2026, fetched: 'Between 7-18 October 2026, 408 cases of gastrointestinal
+     illness were reported ... no cholera bacteria were [detected]'). Documented_Absence + 'operational' are justified; this is
+     not a zero inferred from silence.
+   - Context checked, correctly NOT used as a zero by stage 1: ECDC 27 Oct 2026 lists South Africa only under 'Since 28
+     September 2026, no updates have been reported by'.
+6. CONFIDENCE
+   - Source 605 Level 1 (NICD). 0.75 = government-surveillance zero anchor 0.8 minus 0.05 for a live dashboard with lag and
+     retrospective revision (demonstrated today: +1 notification overnight; cumulative 1478 on 4 Oct -> 1473 on 16 Nov).
+     Same as AI 2209 (same dashboard), below NICD's finalised monthly-report zeros (AI 1438 0.85, AI 1543-1549 0.9). KEPT.
+DECISION: KEEP (values unchanged). CORRECTION: audit note appended to processing_notes via
+  python3 py/revise_observation.py ZAF --index 2576 --agent 7 --append-note "[RECENCY-20261116 AUDIT] ..." --reason
+  "[RECENCY-20261116 AUDIT] ..." (exit 0; timestamped backup written by the tool). Canonical evidence token unchanged.
+
+=== SUMMARY ===
+Rows checked 1 | kept 1 (AI 2576) | values corrected 0 | note appended 1 (AI 2576) | retracted 0 | sources added by audit 0
+Window 2026-10-01..2026-11-16 (47 d): covered 2026-10-01..2026-11-08 (39 d, 83%; ISO wks 40-45, national documented zero).
+Empty 2026-11-09..2026-11-16 (8 d): one unclassified clinical notification (onset 11 Nov, Ekurhuleni East 2, Gauteng) plus
+  notification/classification lag; periodic NICD NMC reports for Oct/Nov not yet published. Next pass: re-read the dashboard
+  once that notification is classified (discarded -> extend the zero; suspected/confirmed -> add sCh 1 for wk 46, Gauteng).
+Validator: python3 py/validate_quality.py ZAF -> exit 0 | 2525 rows | 605 sources | ERROR 0 | WARN 189 | INFO 532
+  (all WARNs pre-existing; none on the recency row, file line 2526).
+Files written: ./data/ZAF/cholera_data_ai.csv (AI 2576 note only), this log, ./data/ZAF/search_report.txt (appended section).
+Not touched: baselines, dashboard, workflow_state.json, search_log_agent_7.txt, other countries.
+
+Final validator run 2026-11-17 13:32:52: python3 py/validate_quality.py ZAF -> exit 0 (ERROR 0, WARN 189, INFO 532).
+Agent 7 Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 audit ZAF
