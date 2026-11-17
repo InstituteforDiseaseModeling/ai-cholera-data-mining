@@ -1,0 +1,120 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (STAGE RWAUDIT) ===
+Country: Botswana (BWA)
+Window: 2026-09-21 to 2026-11-16 (57 days)
+Auditor: Agent 7 (cholera-quality-auditor)
+Start Time: 2026-11-17 ~15:23 (first audit command, just after the collector closed its log at 15:22:10)
+Scope (brief): ONLY rows of ./data/BWA/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]".
+
+=== STEP 0 - PRE-READ: ./data/BWA/search_log_recency_20261116_rw.txt ===
+Exists: yes (1,620 lines). Stage RWCOLLECT, start 15:10:51, end 15:22:10; last line 'RECENCY-STAGE-COMPLETE 20261116 rwcollect BWA'.
+  The top-up DID run.
+Logged summary: 493 unique ReliefWeb reports (7 BWA-tagged + 486 from multi-country/topical queries), every title screened;
+  24 opened (19 body + attachment text, 4 maps rendered, 5 body-only); /v2/disasters checked (no Botswana cholera disaster).
+  Decisions: ROW 0 | PRESENCE 0 | NO BWA DATA 481 | NO BWA DATA / OUT OF WINDOW 3 | OUT OF WINDOW 9. Sources registered: 0.
+The log lists NO rows -> per the brief: confirm against the CSV, log, finish.
+Internal consistency (Python parse of the per-report screening table): 493 entries, 493 unique ids, tally 481 + 3 + 9 = 493;
+  report dates 2026-09-01..2026-11-17 (the single 2026-09-01 item is the pre-window Pacific map the log itself flags).
+  No add / add-zero / add-presence / register-source / revise_observation command, no 'Index N allocated', no 'ROW n>0'.
+Version note: dashboard auto-commit cfbd8e89 (2026-11-17 15:17:01, 'after MRT') captured an interim 25-line copy of this log
+  (header + PRE-READ only). The later auto-commit b919d96b (15:24:02, 'after SOM') committed the final 1,620-line copy, which
+  now matches HEAD. Not a data issue.
+
+=== STEP 1 - CONFIRM 'NO ROWS' AGAINST THE CSVs (read-only, Python csv.DictReader) ===
+./data/BWA/cholera_data_ai.csv      80 rows, 14 columns. Rows with [RECENCY-20261116-RW] in processing_notes: 0. Rows with
+                                    the string 'RECENCY-20261116' in ANY field: 0 (so no main-pass row either).
+                                    Rows overlapping the window: 0. Max TR 2026-09-20 (Index 20, Inferred_Absence, Africa CDC
+                                    EIR 20 Sep 2026). 3 rows carry an in-window reporting_date (Index 16 and 19: 2026-10-02;
+                                    Index 88: 2026-09-25), but they describe pre-window periods and were written on 2026-10-03,
+                                    before this pass. They are out of scope.
+./data/BWA/metadata_ai.csv          82 sources, Index 1-82 contiguous; 0 tagged.
+./data/BWA/cholera_presence_ai.csv  1 row (AFR::BWA::Francistown, 2008-12-10..2008-12-17); 0 tagged.
+./data/BWA/retracted_rows_ai.csv    8 rows; 0 tagged -> nothing was written and then withdrawn.
+./data/BWA/cholera_data_who.csv     does not exist (Botswana is not in the WHO weekly feed) -> no WHO week to duplicate.
+git: all four CSVs above are identical to HEAD (git diff --quiet HEAD). Newest ./data/BWA/.backup_* is dated 20261003; none
+  dated 2026-11 -> nothing has been written to BWA data since 3 Oct 2026. [XREF-HARVEST] rows for BWA: 0.
+Result: the collector's 'Rows 0 / Presence 0 / Sources 0' claim is TRUE.
+
+=== STEP 2 - PER-ROW CHECKS ===
+Not applicable. With no tagged rows there is nothing to re-open or confirm (quote, numbers, period type, dates) and no WHO-week
+  or AI-row duplicate to test. The deaths<=sCh, CFR, curve-continuity, national-vs-ADM1, zero-evidence and confidence-tier
+  checks had no input. No py/revise_observation.py call was made.
+
+=== STEP 3 - LIGHT RE-CHECK OF THE 'NOTHING WRITABLE' CONCLUSION (read-only; no repo writes) ===
+py/reliefweb.py search (prints only; no --download):
+  --country BWA --from 2026-09-21 --to 2026-11-17        -> totalCount 7: 4238523, 4236808, 4236208, 4235541, 4234556,
+                                                            4234045, 4231442 = the collector's 7 (none posted after 15:22).
+  --query Botswana (title+body), same dates              -> totalCount 2: 4233998 (WHO, emergencies SRH), 4231630 (UNAIDS,
+                                                            UNGA81) = the collector's 2; neither concerns cholera.
+  --query "Botswana cholera" --from 2026-06-01            -> totalCount 0.
+  --country BWA --query cholera --from 2026-01-01         -> totalCount 7. Only 4234045 is dated in the window. The other 6
+                                                            (OCHA SA snapshots Dec-2025/Mar/Jul 2026, OCHA floods flash
+                                                            updates No.3 and No.4, UNICEF ESAR HSR No.2 end-2025) were
+                                                            published before 21 Sep -> out of window, as logged.
+  --query "Weekly Bulletin on Outbreak(s) and other Emergencies" --from 2026-10-01 -> newest AFRO bulletin on ReliefWeb is
+                                                            still OEW41 (4235066, 5-11 Oct 2026); OEW42+ not posted, as logged.
+Spot-check of the only in-window BWA-tagged report that mentions cholera: OCHA 'Southern Africa: Humanitarian Snapshot (as of
+  October 2026)', id 4234045, https://reliefweb.int/report/angola/southern-africa-humanitarian-snapshot-october-2026
+  Body (py/reliefweb.py get 4234045): 'Since the beginning of the year, Southern Africa has recorded over 19,000 cholera cases
+    ... Cholera transmission remained active in many countries, including Angola, Mozambique and Zambia'. This matches the
+    collector's quote verbatim. 'Botswana' does not occur in the body.
+  Attachment ROSEA_SA_Humanitarian_Snapshot_Oct_2026_14102026.pdf (1 page, A4) went to /tmp/bwa_rwaudit_dl.JfyWei/, outside
+    the repo. It was treated as untrusted data and read only with pdftotext and pdftoppm. Text layer: key figure '19K'
+    'CHOLERA CASES (JAN - SEP 2026)', source note 5 'WHO Global Cholera and Acute Watery Diarrhoea (AWD) Dashboard';
+    'BOTSWANA' occurs only as map labels.
+    I rendered the 'Rainfall performance / disease outbreak' panel at 200 dpi and inspected it. Cholera icons: Angola 6.1K,
+    Mozambique 8.2K, Malawi 3.2K, Zambia 1.2K, Namibia 213, Tanzania 113, Zimbabwe 36, South Africa 2. Botswana has NO cholera
+    icon. This confirms the collector's reading exactly.
+Result: no missed row and no missed presence record. No in-window document gives a Botswana cholera count, suspected case or
+  alert.
+
+=== STEP 4 - ZERO-ROW RULE ===
+Not writing a zero row was correct. Two pieces of evidence exist, and both are non-listing in multi-country products:
+  Botswana's absence from the OCHA cholera map, and the AFRO OEW39-41 shading of Botswana as 'WHO Member States with no
+  reported events'. Neither is an explicit Botswana no-cholera statement made alongside working surveillance, so neither can
+  support a Documented_Absence row.
+  The collector also notes that AFRO gives Zimbabwe the same shading, yet the OCHA map above shows 36 Zimbabwe cholera cases.
+  So the shading means 'no event tracked', not 'no cases'.
+Cumulative rule: the only cumulative ending in the window is regional (>19,000, Jan-Sep 2026) with no Botswana component ->
+  nothing to record.
+
+=== STEP 5 - COLLECTOR PROCESS CHECK ===
+Method: exhaustive enumeration. Every in-window BWA-tagged report plus the topical and multi-country query results got a
+  logged decision. The stage states this replaces batch-yield accounting, so the 3-batch floor and yield checks do not apply.
+Claims vs actions: the collector claimed 0 rows, 0 presence records and 0 sources, and wrote none (STEP 1). It reports no
+  yield percentage, so there is no >100% yield issue.
+Credential hygiene: a membership test (printed True/False only) found the ReliefWeb appname in neither
+  ./data/BWA/search_log_recency_20261116_rw.txt nor ./data/BWA/search_report.txt. This log does not contain it.
+
+=== STEP 6 - IMPACT AND OPEN ITEMS ===
+I did NOT run py/analyze_effective_gaps.py. This stage added 0 rows, so BWA coverage cannot have changed, and the tool
+  rewrites the shared ./reference/effective_surveillance_gaps_*.csv files, which this stage's brief does not allow me to touch.
+  Window coverage is as the main-pass audit measured it: 0 of 57 days in any layer (AI rows end 2026-09-20; no WHO file; JHU
+  ends 2024-12-31). The window is left missing, not zero-filled.
+Still open (human decision; unchanged; outside this stage): Index 19, 16 and 20 (2026-01-01..2026-09-20) are Inferred_Absence
+  zeros. They rest on non-listing in WER 101(39) and Africa CDC EIR 20 Sep 2026, the same evidence type both recency stages
+  refuse for this window. The weekly series switches from inferred zero to missing at 21 Sep because the rule changed, not
+  because the evidence changed.
+  For whoever decides: the 6 pre-window BWA-tagged ReliefWeb reports that mention cholera (STEP 3) were opened by neither
+  stage. They are the ReliefWeb material relevant to Jan-Sep 2026.
+Leads for the next pass: AFRO OEW42+ (ReliefWeb attachments); IFRC MDRBW009 final report (operation 27 Mar-30 Sep 2026);
+  OCHA Southern Africa snapshot 'as of January 2027'; UNICEF ESAR HSR covering Jul-Dec 2026; the WER 2026 annual cholera
+  report (~Sep 2027), which could document a Botswana zero for 2026.
+
+=== STEP 7 - VALIDATOR ===
+python3 py/validate_quality.py BWA (run before this log and the report section were written): 80 data rows, 82 metadata
+  sources; ERROR 0, WARN 0, INFO 52; exit 0. Identical to the collector's result.
+Re-run after appending the section to ./data/BWA/search_report.txt: 80 data rows, 82 metadata sources; ERROR 0, WARN 0,
+  INFO 52; exit 0 (the validator does not read report or log files, so this could not differ).
+
+=== FILES CHANGED BY THIS STAGE ===
+Created ./data/BWA/search_log_recency_20261116_rwaudit.txt (this log). Appended one 18-line section
+  '=== RECENCY PASS 20261116: RELIEFWEB TOP-UP ===' to ./data/BWA/search_report.txt.
+Unchanged: every CSV in ./data/BWA/, workflow_state*.json, all other logs, ./reference/, other countries.
+Scratch, outside the repo: /tmp/bwa_rwaudit_dl.JfyWei/ (OCHA PDF) plus /tmp/bwa_rwaudit_dl.JfyWei.body.txt and .pdf.txt, and
+  /tmp/bwa_rwaudit_render.YagM2j/ (page and map renders).
+
+=== RWAUDIT SUMMARY (BWA) ===
+Tagged rows: 0 | checked 0 | kept 0 | corrected 0 | retracted 0 | validator exit 0 (ERROR 0, WARN 0, INFO 52)
+End Time: 2026-11-17 15:27:56
+RWAUDIT Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 rwaudit BWA
