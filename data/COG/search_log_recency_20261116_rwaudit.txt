@@ -1,0 +1,92 @@
+=== RECENCY PASS 20261116 - RELIEFWEB TOP-UP AUDIT (RWAUDIT) - AGENT 7 ===
+Country: Republic of the Congo (COG)
+Window: 2026-09-14 to 2026-11-16 (the period the figures describe)
+Log created: 2026-11-17 14:54:02
+Scope: rows of ./data/COG/cholera_data_ai.csv whose processing_notes contain "[RECENCY-20261116-RW]"
+Top-up log: ./data/COG/search_log_recency_20261116_rw.txt - present and read (842 lines; its last line is
+  'RECENCY-STAGE-COMPLETE 20261116 rwcollect COG'; run 2026-11-17 14:32:27 to about 14:48)
+Status: INITIALIZED
+
+=== STEP 0: WHAT THE TOP-UP CLAIMS ===
+Data rows added to ./data/COG/cholera_data_ai.csv     : 0 (no Index allocated)
+Zero rows                                            : 0
+Presence records -> ./data/COG/cholera_presence_ai.csv : 2 - AFR::COG::Likouala 2026-09-14..09-30 (source 192, conf 0.6) and
+                                                        AFR::COG::Likouala 2026-10-09..10-18 (source 193, conf 0.5)
+Sources registered -> ./data/COG/metadata_ai.csv      : 2 - Index 192 (UNICEF HSR No.3, BVD regional) and 193 (IFRC DREF MDRCG030)
+Stated reason for 0 rows: ReliefWeb carries no COG cholera count for any period inside the window. The newest COG figures there end
+  26 Jul 2026 (WHO AFRO OEW weeks 36-41, stale Congo line) and 6 Sep 2026 (Africa CDC 13 Sep issue). Both are already in the
+  AI layer (metadata 37 and 88).
+
+=== STEP 1: CONFIRMATION AGAINST THE CSV ===
+- '[RECENCY-20261116-RW]' in ./data/COG/cholera_data_ai.csv: 0 rows. In ./data/COG/retracted_rows_ai.csv: 0, so no row was added and
+  later removed (that file was last written 2026-10-08).
+- ./data/COG/cholera_data_ai.csv is identical to git HEAD 44e86c17 (the main-pass commit, 2026-11-16 14:25): 612 rows in both, max
+  Index 632, Index unique. Its mtime, 2026-11-16 14:22:22, predates the top-up. The four presence/metadata writes of 2026-11-17
+  14:44-14:45 each left a backup; no 2026-11-17 backup of cholera_data_ai.csv exists. The write tools never opened the data file.
+- git status ./data/COG/: M cholera_presence_ai.csv (+2 lines), M metadata_ai.csv (+2 lines), ?? search_log_recency_20261116_rw.txt.
+  This matches the top-up's 'Files touched' line exactly.
+- The only RECENCY-tagged data row is Index 632 (AFR::COG, 2026-09-07..10-18, 55 sCh, 0 deaths, source 189, conf 0.9). The main pass
+  tagged it [RECENCY-20261116], and it was audited in ./data/COG/search_log_recency_20261116_agent7.txt. It is the only AI row that
+  overlaps the window. It is out of scope here and was not re-audited.
+- Dedup anchors: the WHO baseline ./data/COG/cholera_data_who.csv ends 2026-09-07..09-13 (sCh 0, deaths 0), and no WHO row has
+  TR >= 2026-09-14.
+RESULT: rows checked 0 | kept 0 | corrected 0 | retracted 0. There are no Index numbers to report; py/revise_observation.py was not
+  called.
+
+=== STEP 2: SPOT-CHECK OF THE ZERO-ROW CONCLUSION (read-only; output in /tmp/cog_rwaudit/, outside the repo) ===
+- python3 -I -B py/reliefweb.py search --country COG --from 2026-09-14 --to 2026-11-17 --limit 200 -> totalCount 32. All 32 ids are in
+  the top-up's screening table, all marked COG-tagged. The table's other 4 COG-tagged ids are pre-window (published 2026-03-13, 09-04,
+  09-07 and 09-10), as the top-up says ('36 COG-tagged incl. 4 published before the window').
+- The same listing with --query cholera -> totalCount 3: OCHA WCA 'Latest Events at a glance' 20-26 Oct 2026 (EN 4235880, FR 4235881)
+  and UNICEF WCA HSR No.1 (id 4230262; period Jan-Jun 2026, which the top-up marked OUT OF WINDOW).
+- Re-read id 4235880 (get, body only, no download). The Republic of the Congo item is 'Flooding affects nearly 43,000 people in
+  northern Likouala' and does not mention cholera. The cholera item, 'More than 55,000 suspected cholera cases have been reported
+  nationwide since January', sits under Democratic Republic of the Congo. Top-up decision NO COG DATA: confirmed.
+- The full-text query does not search attachments. That is why 4237429 (UNICEF, source 192) and 4235463 (IFRC, source 193) are absent
+  from it; the top-up opened both attachments.
+- Not re-opened: OEW weeks 36-41, the Africa CDC 13 Sep issue, and sources 192 and 193. None of them produced a data row. The
+  'stale OEW Congo line' finding is the top-up's, and is reported as such below.
+
+=== STEP 3: ROW CHECKS ===
+deaths <= sCh, CFR, curve continuity, national vs ADM1 roles, zero-row evidence and confidence vs source tier do not apply: no tagged
+row exists. Their consequences for the window, checked anyway:
+- National vs ADM1: the window holds one counted row (632, national) and no ADM1 data rows, so nothing is double-counted. The two
+  Likouala presence records mark sub-national presence inside the period row 632 counts. They are not counts or zeros, and must never
+  be summed with it.
+- Zero rows: correctly none. No source states that Congo had no cholera in the window, absence from multi-country lists is not
+  evidence of zero, and transmission was ongoing at the last report.
+- Presence records (outside this stage's scope; observation only): they sit in ./data/COG/cholera_presence_ai.csv, not in the data
+  file, so the weekly builder cannot turn them into false zeros. Neither py/build_weekly_timeseries.py nor
+  py/analyze_effective_gaps.py reads them, so the top-up leaves the series and the gap files unchanged.
+
+=== STEP 4: VALIDATOR ===
+python3 py/validate_quality.py COG --json /tmp/cog_rwaudit/COG_validate.json -> exit 0 | ERROR 0 | WARN 10 | INFO 220
+  WARN 10: CFR_high_flagged_for_review on pre-existing rows 49, 80, 83, 115, 118, 160, 171, 443, 471 and 555. None is in the window;
+    this is the same set the main-pass audit reported.
+  INFO 220 = 187 national_subnational_overlap + 33 metadata_unused. That is 2 more than the main-pass audit's 218: metadata_unused
+    for Index 192 and 193, by design, because they back presence records rather than data rows.
+
+=== WINDOW STATUS (the top-up changed nothing) ===
+COUNTED : 2026-09-14..2026-10-18 - Index 632 only (Africa CDC 25 Oct 2026 issue, which ReliefWeb does not mirror).
+EMPTY   : 2026-10-19..2026-11-16 (29 days: ISO W43-W46 plus 16 Nov). ReliefWeb holds no COG cholera material for it. It stays empty;
+          neither a zero row nor a presence row is justified.
+ASSESSMENT: the top-up added no count. That is disappointing, but every check above supports the zero-row conclusion. What it did
+  contribute is negative evidence: ReliefWeb mirrors the WHO AFRO bulletin only up to week 41, and by the top-up's reading the
+  Congo line there is still stuck at 26 Jul 2026. That settles weeks 38-41 of the main pass's 'AFRO bulletin weeks 38-45' lead;
+  weeks 42-45 are still unread.
+NEXT PASS (the main pass's open leads plus the top-up's): Africa CDC issues for EW43-46; WHO AFRO OEW weeks 42-46 once posted; the
+  IFRC MDRCG028 final report; the Republic of Congo section of UNICEF BVD regional HSR No.4 (Oct-Nov); WHO Congo bulletin No.002;
+  WHO dashboard Congo weeks after 13 Sep.
+
+=== SECRET CHECK ===
+The ReliefWeb appname value is absent from this log and from ./data/COG/search_report.txt. Checked by value against
+  py/reliefweb.py appname(); the value was never printed.
+
+=== FILES ===
+Touched: this log (new) and ./data/COG/search_report.txt (17-line section appended; earlier text unchanged).
+Not touched: ./data/COG/cholera_data_ai.csv, metadata_ai.csv, cholera_presence_ai.csv, retracted_rows_ai.csv, the baselines,
+  workflow_state*.json, the other logs, ./cache/reliefweb/COG/ (no --download was used), reference/, the dashboard, other countries.
+Scratch output: /tmp/cog_rwaudit/ (outside the repo).
+End Time: 2026-11-17 14:54:42
+Agent 7 Status: COMPLETE
+RECENCY-STAGE-COMPLETE 20261116 rwaudit COG
