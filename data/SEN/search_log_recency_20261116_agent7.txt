@@ -8,3 +8,107 @@ Stage 1 log: ./data/SEN/search_log_recency_20261116_agent1.txt (present)
 
 === RESUMED 2026-11-17 13:11:31 ===
 Prior audit (started 2026-11-16 19:35:02) wrote only its header: no rows were checked, no revisions made, no report section written. Stage 1 was itself resumed afterwards (2026-11-17 13:00:48, batches 4-5), so the full tagged-row set is re-derived from the CSV now and every tagged row is checked.
+
+=== AUDIT SCOPE (re-derived 2026-11-17 13:12 from the files, not from the Stage 1 log) ===
+- ./data/SEN/cholera_data_ai.csv: 1480 rows; rows tagged [RECENCY-20261116] = 1 (Index 1537).
+  Rows overlapping the window 2026-09-29..2026-11-16 with or without the tag = 1537 only.
+- ./data/SEN/metadata_ai.csv: tagged sources = 1 (Index 339, the highest Index, so no later source exists).
+- ./data/SEN/cholera_presence_ai.csv: 0 tagged. ./data/SEN/retracted_rows_ai.csv: 0 tagged (nothing retracted by Stage 1).
+- [XREF-HARVEST] rows in SEN: 0. reference/xref/harvest_log.csv has no SEN entries, so no harvest audit applies.
+- ./data/SEN/cholera_data_who.csv does not exist. SEN is not in the WHO weekly feed, so there is no WHO baseline week to restate.
+- All tagged rows were checked (1 of 1, no sampling).
+
+=== STAGE 1 PROCESS CHECK (./data/SEN/search_log_recency_20261116_agent1.txt) ===
+- Batches: 5 (100 queries), above the 3-batch minimum. Yields B1 0% | B2 5% | B3 0% | B4 0% | B5 0%.
+  Yield was counted per query: B2 = 1 successful query (Q2) of 20. No yield above 100%.
+- Stopping rule applied correctly: B2 at 5% is not below 5%, so the count reset; B3-B5 were 3 consecutive batches below 5%.
+- Claims match the files: 1 row (1537) and 1 source (339), and nothing else carries the tag. No rows claimed but not added.
+- No zero was inferred from silence. Multi-country products that omit Senegal (AFRO wk40-41, ECDC to 27 Oct, UKHSA,
+  OCHA WCA, TravelHealthPro) were explicitly not used as zero evidence. Mekhe (Thies) cluster: no lab result
+  was published, so no row was added. Both decisions are correct.
+
+=== ROW 1537 - AFR::SEN::Louga::Kebemer 2026-11-02..2026-11-09, sCh 0, deaths 0, CFR 0.0, rep 2026-11-10, src 339, cw 0.5 ===
+1. Source check: live fetch of https://lesoleil.sn/actualites/sante/kebemer-649-cas-de-tiac-recenses-la-situation-sanitaire-se-stabilise/
+   returned HTTP 200 (article:published_time 2026-11-10T18:00:33Z, 'mardi 10 novembre 2026', byline C.G. DIOP).
+   Each quoted passage is in the page verbatim:
+     'Depuis le debut de cet episode, survenu le 2 novembre, 649 cas ont ete recenses dans onze sites du district, selon
+      les donnees de la surveillance epidemiologique arretees ce mardi a 10 h 30.'
+     'Les analyses effectuees a l'Institut Pasteur de Dakar ont permis d'isoler la bacterie Salmonella sp. chez les cinq
+      premiers cas examines.'
+     'En revanche, les six echantillons de selles analyses au laboratoire de l'hopital regional de Louga n'ont revele la
+      presence ni de salmonelle, ni de shigelle, ni de vibrio cholerae.'
+     'Aucun cas grave ni deces n'a ete enregistre a ce stade.'   CNGE meeting 'lundi 9 novembre' (consistent with the note).
+   Independent relay: Dakaractu a278044 (HTTP 200, published 2026-11-10 19:27 -01:00) quotes the same MSHP communique:
+     'la surveillance epidemiologique arretee au 10 novembre a 10h30 fait etat de 649 cas notifies entre le 2 et le
+      9 novembre 2026, repartis dans onze sites du district' and 'six echantillons de selles analyses au laboratoire de
+      l'hopital regional de Louga n'ont revele ni Salmonella, ni Shigella, ni Vibrio cholerae.'
+   Period type: a cumulative total for one episode, notified 2-9 Nov (not weekly, not year-to-date). TL/TR were read correctly.
+   reporting_date 2026-11-10 is the communique and publication date and is >= TR. Day-of-week check: 9 Nov 2026 is a
+   Monday and 10 Nov 2026 a Tuesday, as the articles say.
+2. Duplication: there is no WHO file for SEN and no other AI row in the window, so there is nothing to duplicate. The
+   district role is stated ('NOT a national zero'). ADM1 Louga row 1125 ends 2026-09-06, so it does not overlap.
+   py/build_weekly_timeseries.py builds the national series from rows with Location == AFR::SEN exactly
+   (load_national_rows). The template pools read only the JHU and WHO files. ./data/SEN/cholera_weekly_SEN.csv ends
+   2026-W39. So row 1537 cannot become a national zero and does not change the series MOSAIC reads.
+3. Plausibility: deaths 0 <= sCh 0; cCh blank; CFR 0.0 per the zero template.
+   Continuity: the row follows national zeros 186 (09-07..09-20) and 221 (09-21..09-28), WAHO regional documented
+   zeros to 2026-09-06 (Louga row 1125), and no positive national observation since 2012, so a zero fits the curve.
+   Neighbours: audit searches on 17 Nov found no cholera in GMB, GIN, GNB, MLI or MRT for Oct-Nov 2026. In Aug 2026
+   UNICEF WCA listed active outbreaks only in NGA, COD, COG, TCD, CMR and CAF. Consistent.
+4. Zero evidence: V. cholerae was explicitly tested for, and the culture was negative, during an active outbreak
+   investigation. Surveillance was operating: daily district counts across 11 sites, a CNGE meeting on 9 Nov, and both
+   the IPD and the regional lab were testing. This is not a zero inferred from silence.
+   Weaknesses: (a) only 6 specimens; (b) the Louga lab grew no Salmonella from its 6 samples while IPD grew it in 5 of
+   5, so the Louga lab's culture sensitivity (or its specimen handling) was poor and its V. cholerae negative carries
+   little weight; (c) unlike row 1433 (Diourbel 2010-11: 'origine cholerique ... ecartee du point de vue clinique et
+   bacteriologique'), the MSHP never says in words that cholera was excluded.
+   Supporting: a point-source pattern linked to the Monday market (317 cases in 72 h, then no new cases by day 8),
+   with fever, 0 deaths, 0 severe cases and 0 inpatients among 649 cases. A cholera outbreak of that size would be
+   expected to produce severe dehydration and some deaths.
+   Decision: keep Documented_Absence, at district scope only.
+5. Confidence weight: 0.5 is inside the Level 3 band (0.3-0.6) for a press relay of a ministry communique. It is
+   correctly ranked below row 1433's pre-corroboration 0.6 because the exclusion statement is weaker. Kept.
+OUTCOME: KEPT, no values changed. An audit note was appended with
+   python3 py/revise_observation.py SEN --index 1537 --agent 7 --append-note "[RECENCY-20261116 AUDIT] KEPT ..."
+   --reason "[RECENCY-20261116 AUDIT] verified against the cited source and an independent relay; kept, with sensitivity caveat recorded"
+   The tool wrote a backup to ./data/SEN/.backup_cholera_data_ai_20261117-131609288519.csv.
+   After the revision the canonical 'Evidence type' token is still documented_absence and the row is still primary.
+
+=== SOURCE 339 ===
+The URL is live and the Description matches both articles (649 cases in 11 sites, 2-9 Nov, Salmonella 5/5 at IPD,
+6 Louga samples negative for V. cholerae). Level 3 is right for a press relay. Validation_Status is still 'Pending'
+because py/revise_observation.py can set only the Description and Status of a metadata row, and hand edits are
+prohibited. The verification is recorded on row 1537 instead.
+
+=== SOURCE AVAILABILITY RE-CHECK (2026-11-17 13:15:46, Python urllib) ===
+- WAHO venus_api aggregates, SEN national (vJRQh3jzmwU), 20260928-20261116: HTTP 500 INTERNAL SERVER ERROR. The outage has lasted about 21 h.
+- informationsanitaire.sec.gouv.sn (MoH BEH portal): [Errno 54] connection reset by peer.
+- www.sante.gouv.sn: HTTP 200 'Maintenance en cours | Senegal Numerique SA'.
+These are the only known sources of explicit weekly national zeros for the window, so the national gap is a
+source-access problem, not missing evidence of disease.
+
+=== AUDIT QUERIES (verification only; no collection) ===
+WS1 'Dakaractu Kebemer TIAC six echantillons selles Louga vibrio cholerae ...' -> Dakaractu a278044 and a277903, AllAfrica 202611070015 (548 cases, 6-7 Nov)
+WS2 'Kebemer TIAC bilan serotypage Salmonella novembre 2026' -> nothing newer than 10 Nov (serotyping not yet published)
+WS3 'Senegal cholera cas novembre 2026' -> no Senegal cholera report. Kebemer coverage only (APA 56 cases 2-4 Nov; Louga sitrep 8 Nov 642 cases)
+WS4 'cholera West Africa November 2026 Guinea Gambia Mali Mauritania Guinea-Bissau' -> no neighbour outbreaks; UNICEF WCA Aug 2026 lists six other countries
+F1 Le Soleil (metadata 339 URL) -> verified. F2 Dakaractu a278044 -> verified. F3 status re-check of WAHO, BEH and MoH sites (above).
+
+=== VALIDATOR ===
+python3 py/validate_quality.py SEN --json /tmp/SEN_recency_audit.json, run before and after the revision -> exit 0.
+ERROR 0, WARN 34, INFO 397. There are 0 findings on row 1537. The 34 WARN rows (CFR above 15% 29, same-period
+conflict 4, multi-year 1) map through the CSV line numbers to Index 16-1246: all are rows from the full run, outside
+this pass.
+
+=== FILES WRITTEN BY THIS AUDIT ===
+- ./data/SEN/cholera_data_ai.csv: Index 1537 processing_notes appended, through py/revise_observation.py. No other row touched.
+- ./data/SEN/search_report.txt: section 'RECENCY PASS 20261116' appended.
+- ./data/SEN/search_log_recency_20261116_agent7.txt: this log.
+Not touched: cholera_data_jhu.csv, metadata_jhu.csv, workflow_state.json, workflow_state_recency_20261116.json,
+search_log_agent_7.txt, the dashboard, and other countries.
+
+=== AUDIT COMPLETE ===
+Final validator run 2026-11-17 13:18:41: python3 py/validate_quality.py SEN -> exit 0 (ERROR 0, WARN 34, INFO 397; none on row 1537).
+Result: 1 tagged row checked, 1 kept (annotated), 0 corrected, 0 retracted; 1 tagged source verified (339).
+End Time: 2026-11-17 13:18:41
+RECENCY-STAGE-COMPLETE 20261116 audit SEN
