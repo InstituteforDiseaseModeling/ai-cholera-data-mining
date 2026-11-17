@@ -19,6 +19,42 @@
 # Enable strict error handling
 set -euo pipefail
 
+# ---------------------------------------------------------------- coalescing --
+# The runner calls this after EVERY country, serialised by `py/with_lock.py
+# dashboard`. A rebuild takes ~7 min; on 2026-11-16 short recency countries
+# finished every 2-3 min, so finished countries queued for the lock (38 min
+# deep) and held their parallel slots, leaving 3 of 10 slots collecting.
+#
+# Every queued rebuild after the first is redundant: a rebuild that STARTED
+# after this request was queued reads the disk after that country's data was
+# written, so it already contains it. So: when invoked under with_lock, take
+# the time the lock was requested (the with_lock process's start), and skip if
+# a rebuild has started since. Manual invocations (parent is not with_lock) are
+# never skipped. A failed rebuild clears its stamp so waiters do not skip it.
+DASH_STAMP="reference/.dashboard_rebuild_started"
+if ps -o command= -p "$PPID" 2>/dev/null | grep -q "with_lock.py dashboard"; then
+    queued_at=$(python3 - "$PPID" <<'PYEOF'
+import subprocess, sys, time
+et = subprocess.run(["ps", "-o", "etime=", "-p", sys.argv[1]], capture_output=True, text=True).stdout.strip()
+days = 0
+if "-" in et:
+    d, et = et.split("-", 1); days = int(d)
+parts = [int(x) for x in et.split(":")]
+while len(parts) < 3:
+    parts.insert(0, 0)
+h, m, s = parts
+print(int(time.time() - (days * 86400 + h * 3600 + m * 60 + s)))
+PYEOF
+)
+    last_start=$(cat "$DASH_STAMP" 2>/dev/null || echo 0)
+    if [[ "$queued_at" =~ ^[0-9]+$ && "$last_start" =~ ^[0-9]+$ ]] && (( last_start >= queued_at )); then
+        echo "coalesced: a rebuild started at $(date -r "$last_start" '+%H:%M:%S'), after this request was queued at $(date -r "$queued_at" '+%H:%M:%S'); it already includes this data - skipping"
+        exit 0
+    fi
+    date +%s > "$DASH_STAMP"
+    trap 'rm -f "$DASH_STAMP"' ERR
+fi
+
 # Function to check if Python package is available
 check_python_package() {
     local package=$1
