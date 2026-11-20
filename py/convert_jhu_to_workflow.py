@@ -10,8 +10,13 @@ Handles variable JHU file formats and column structures robustly.
 
 import pandas as pd
 import os
+import sys
+import csv
 from pathlib import Path
 import logging
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -133,7 +138,8 @@ def safe_numeric_convert(value):
     except (ValueError, TypeError, AttributeError):
         return None
 
-def convert_jhu_observation_to_workflow(obs_row, metadata_df, country_iso, source_index_start):
+def convert_jhu_observation_to_workflow(obs_row, metadata_df, country_iso, source_index_start,
+                                        pilot=False):
     """
     Convert a single JHU observation row to AI workflow format.
     
@@ -176,12 +182,20 @@ def convert_jhu_observation_to_workflow(obs_row, metadata_df, country_iso, sourc
     elif deaths is not None:
         processing_notes += f" - JHU reported {deaths} deaths"
     
-    # Handle zero transmission periods (phantom data with 0 cases)
+    if pilot and sch is None and cch is not None:
+        processing_notes += f" - JHU reported {cch} confirmed cases (cCh only)"
+
+    # Phantom rows are JHU's own aggregates (e.g. Nepal 2021: the national
+    # total of the municipal rows), not validated absences. A phantom zero was
+    # previously noted "Zero transmission period validated by JHU", which it is
+    # not. Note text only; the weekly builder reads no evidence from it.
     if phantom and (sch is None or sch == 0):
-        processing_notes += " - Zero transmission period validated by JHU"
+        processing_notes += " - Phantom row; zero not verified"
     
-    # Skip rows with no meaningful data
-    if location == '' or tl == '' or tr == '' or (deaths is None and sch is None):
+    # Skip rows with no meaningful data. Pilot countries keep rows that carry
+    # only a confirmed count (Nepal EDCD/EWARS report lab-confirmed cases).
+    if location == '' or tl == '' or tr == '' or \
+            (deaths is None and sch is None and not (pilot and cch is not None)):
         return None
     
     return {
@@ -252,14 +266,28 @@ def convert_jhu_metadata_to_workflow(jhu_metadata_df, country_name):
     
     return workflow_metadata
 
-def process_country(country_name, country_iso):
-    """Process a single country's JHU data and convert to workflow format."""
+STRATA_COLS = ("age_L", "age_R", "sex")
+SKIP_LOG_COLS = ["collection_uid", "row", "Location", "TL", "TR", "sCh", "cCh", "deaths",
+                 "Primary", "Phantom", "age_L", "age_R", "sex", "reason"]
+
+
+def process_country(country_name, country_iso, out_root=None):
+    """Process a single country's JHU data and convert to workflow format.
+
+    Pilot countries (reference/pipeline_countries.json) differ in three ways:
+    rows stratified by age or sex are dropped (the unstratified totals are
+    kept), rows with only a confirmed count are kept, and every skipped row is
+    logged to data/{ISO}/jhu_skipped_rows.csv. Phantom rows are kept for every
+    country. The 40 MOSAIC countries are converted exactly as before.
+    """
+    pilot = scope.is_pilot(country_iso)
+    skipped = []
     
-    logger.info(f"Processing {country_name} ({country_iso})")
+    logger.info(f"Processing {country_name} ({country_iso}){' [pilot]' if pilot else ''}")
     
     # Paths
     jhu_country_path = f"{JHU_DATA_PATH}/{country_name}"
-    output_country_path = f"{OUTPUT_DATA_PATH}/{country_iso}"
+    output_country_path = f"{out_root or OUTPUT_DATA_PATH}/{country_iso}"
     
     # Check if JHU data exists
     if not os.path.exists(jhu_country_path):
@@ -307,10 +335,20 @@ def process_country(country_name, country_iso):
                     continue
                 
                 # Convert each observation
-                for _, obs_row in obs_df.iterrows():
-                    workflow_obs = convert_jhu_observation_to_workflow(obs_row, jhu_metadata_df, country_iso, metadata_index)
+                for row_no, (_, obs_row) in enumerate(obs_df.iterrows(), start=1):
+                    def _log(reason):
+                        skipped.append({"collection_uid": uid, "row": row_no, "reason": reason,
+                                        **{c: safe_get_value(obs_row, c, "") for c in SKIP_LOG_COLS
+                                           if c not in ("collection_uid", "row", "reason")}})
+                    if pilot and any(safe_get_value(obs_row, c) is not None for c in STRATA_COLS):
+                        _log("age/sex stratum (pilot: unstratified totals kept)")
+                        continue
+                    workflow_obs = convert_jhu_observation_to_workflow(obs_row, jhu_metadata_df, country_iso,
+                                                                       metadata_index, pilot=pilot)
                     
                     if workflow_obs is None:  # Skip rows with no meaningful data
+                        if pilot:
+                            _log("no location/date or no case/death count")
                         continue
                     
                     # Update source information from metadata
@@ -348,6 +386,14 @@ def process_country(country_name, country_iso):
         
         workflow_data_df.to_csv(data_file_path, index=False)
         workflow_metadata_df.to_csv(metadata_file_path, index=False)
+        if pilot:
+            with open(f"{output_country_path}/jhu_skipped_rows.csv", "w", newline="",
+                      encoding="utf-8") as fh:
+                w = csv.DictWriter(fh, fieldnames=SKIP_LOG_COLS)
+                w.writeheader()
+                w.writerows(skipped)
+            logger.info(f"Pilot {country_iso}: {len(skipped)} JHU rows skipped -> "
+                        f"{output_country_path}/jhu_skipped_rows.csv")
         logger.info(f"Created JHU baseline for {country_name}: {len(workflow_data_df)} observations, {len(workflow_metadata_df)} sources")
         
         logger.info(f"Successfully converted {country_name}: {len(workflow_data_df)} observations, {len(workflow_metadata_df)} sources")
@@ -358,14 +404,35 @@ def process_country(country_name, country_iso):
         return False
 
 def main():
-    """Main conversion process."""
+    """Main conversion process.
+
+    --iso ISO[,ISO]  convert only these (MOSAIC or named pilot countries; a
+                     pilot such as NPL is converted only when named here)
+    --out-dir DIR    write {DIR}/{ISO}/ instead of ./data/{ISO}/
+    """
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--iso", help="comma-separated ISO3 codes (default: the 40 MOSAIC countries)")
+    ap.add_argument("--out-dir", help="output root (default ./data)")
+    args = ap.parse_args()
+    out_root = args.out_dir or OUTPUT_DATA_PATH
+    mapping = dict(COUNTRY_ISO_MAPPING)
+    if args.iso:
+        try:
+            wanted = scope.resolve_isos(args.iso.split(","))
+        except ValueError as e:
+            raise SystemExit(str(e))
+        for iso in wanted:
+            if scope.is_pilot(iso):
+                mapping[scope.settings(iso).get("jhu_name") or scope.country_name(iso)] = iso
+        mapping = {k: v for k, v in mapping.items() if v in wanted}
     
     logger.info("Starting JHU to AI Workflow conversion (Fixed Version)")
     logger.info(f"JHU data path: {JHU_DATA_PATH}")
-    logger.info(f"Output path: {OUTPUT_DATA_PATH}")
+    logger.info(f"Output path: {out_root}")
     
     # Ensure output directory exists
-    os.makedirs(OUTPUT_DATA_PATH, exist_ok=True)
+    os.makedirs(out_root, exist_ok=True)
     
     # Process each MOSAIC framework country
     success_count = 0
@@ -373,9 +440,9 @@ def main():
     successful_countries = []
     failed_countries = []
     
-    for country_name, country_iso in COUNTRY_ISO_MAPPING.items():
+    for country_name, country_iso in mapping.items():
         total_count += 1
-        if process_country(country_name, country_iso):
+        if process_country(country_name, country_iso, out_root):
             success_count += 1
             successful_countries.append(f"{country_name} ({country_iso})")
         else:

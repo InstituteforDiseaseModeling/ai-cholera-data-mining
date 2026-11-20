@@ -248,6 +248,14 @@ def validate_country(iso, rep):
     data_path = cdir / "cholera_data_ai.csv"
     meta_path = cdir / "metadata_ai.csv"
 
+    # A pilot country before its first run has baselines but no AI layer yet;
+    # Agent 1 creates it. That is "not started", not a failed validation.
+    if scope.is_pilot(iso) and not data_path.exists() and not meta_path.exists():
+        rep.info(iso, "pilot_not_started",
+                 "pilot country has no AI layer yet (data/{0}/cholera_data_ai.csv "
+                 "and metadata_ai.csv are created by Agent 1)".format(iso))
+        return {"rows": 0, "sources": 0}
+
     meta_rows, err = read_csv(meta_path)
     if err:
         rep.error(iso, "metadata_readable", err)

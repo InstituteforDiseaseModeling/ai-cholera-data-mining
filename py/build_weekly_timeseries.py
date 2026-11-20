@@ -884,10 +884,14 @@ def _typed_observed(rows, value_key, merged, diag):
 def _typed_periods(rows, value_key, series_name, merged, claim, periods):
     """Multi-week totals: recorded in `periods`; when `claim`, their still-empty
     weeks become "undistributed" (blank count, total on the first claimed week)."""
+    # Cumulative chains are decumulated within ONE source document (count-basis
+    # key: JHU collection, WHO dashboard, AI source), not across a whole layer:
+    # pooled by layer, JHU 21508's cumulative 2024 chain (95 to 29 Dec) absorbed
+    # WHO-annual collection 436's separate 2024 total of 95 as a zero increment.
     aggs = []
-    for label in ("WHO", "JHU", "AI"):
+    for key in sorted({r["skey"] for r in rows}):
         aggs += _decumulate([dict(r, sch=r[value_key]) for r in rows
-                             if r["source"] == label and r["span"] > 7])
+                             if r["skey"] == key and r["span"] > 7])
     def order(r):
         return (r.get("order_span", r["span"]), -SOURCE_PRIORITY[r["source"]], -r["conf"])
     for r in sorted(aggs, key=order):
@@ -1131,10 +1135,17 @@ def plot_typed_series(iso, series, confirmed, country_name, fig_dir):
                 ax.bar(mdates.date2num(e["monday"]), e["sch"], width=5.5, color=COLORS[e["source"]],
                        alpha=0.85, linewidth=0, align="edge")
             elif e["method"] == "undistributed" and e.get("period_total"):
-                wks = sum(1 for x in ser.values() if x["method"] == "undistributed"
-                          and x["_origin"] == e["_origin"] and x["source"] == e["source"])
-                x0 = mdates.date2num(e["monday"])
-                ax.add_patch(mpatches.Rectangle((x0, 0), 7 * max(wks, 1), e["period_total"] / max(wks, 1),
+                claimed = sorted(x["monday"] for x in ser.values() if x["method"] == "undistributed"
+                                 and x["_origin"] == e["_origin"] and x["source"] == e["source"])
+                o0, o1 = e["_origin"]
+                # Draw only the part of the total not already shown as observed
+                # weeks inside its span (2010: 1,790 annual, 937 observed weekly).
+                seen = sum(x["sch"] for x in ser.values() if x["method"] == "observed"
+                           and o0 <= x["monday"] <= o1)
+                rest = max(e["period_total"] - seen, 0.0)
+                x0 = mdates.date2num(claimed[0])
+                span_days = (claimed[-1] - claimed[0]).days + 7
+                ax.add_patch(mpatches.Rectangle((x0, 0), span_days, rest / max(len(claimed), 1),
                                                 facecolor=COLORS[e["source"]], alpha=0.25, hatch="//",
                                                 edgecolor=COLORS[e["source"]], linewidth=0))
         _style_xaxis(ax)
@@ -1146,7 +1157,7 @@ def plot_typed_series(iso, series, confirmed, country_name, fig_dir):
     n_und = sum(1 for e in series.values() if e["method"] == "undistributed")
     n_conf = len(confirmed)
     ax_s.text(0.0, 1.01, f"Suspected: observed {n_obs} wks | undistributed {n_und} wks (hatched: "
-              f"period total at its mean weekly level)   Confirmed: observed {n_conf} wks   "
+              f"period total less observed weeks, at its mean weekly level)   Confirmed: observed {n_conf} wks   "
               f"No zero weeks (zero_policy none); no seasonal template", transform=ax_s.transAxes,
               fontsize=8, color="#888", va="bottom", ha="left")
     ax_s.set_title(f"{country_name}  ({iso})  -  Weekly Cholera Surveillance (PILOT: count types "
@@ -1392,7 +1403,9 @@ def main(argv=None):
                   f"{len(diag['periods'])} period totals; {len(diag['holdout'])} rows held out "
                   f"(see data/{iso}/builder_holdout.csv)")
             if prov:
-                print(f"      provisional count types used: {', '.join(prov)}")
+                print(f"      {len(prov)} period totals rest on PROVISIONAL count types "
+                      f"(status column of data/{iso}/cholera_period_totals_{iso}.csv), e.g. "
+                      f"{', '.join(prov[-5:])}")
             continue
         if not series:
             print(f"  {iso}: no data")
@@ -1421,8 +1434,8 @@ def main(argv=None):
 
     print(f"\nDone.  {len(csvs)} CSVs and {len(plots)} plots written.")
     print(f"  CSVs:  {out_dir or 'data'}/{{ISO}}/cholera_weekly_{{ISO}}.csv")
-    if plots:
-        print(f"  Plots: figures/dashboard/timeseries/")
+    for d in sorted({str(Path(p).parent.relative_to(BASE_DIR)) for p in plots if p}):
+        print(f"  Plots: {d}/")
 
 
 if __name__ == "__main__":
