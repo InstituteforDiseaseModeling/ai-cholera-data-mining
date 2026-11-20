@@ -21,6 +21,10 @@ import os
 import json
 from pathlib import Path
 import logging
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402
 from PIL import Image
 
 # Setup logging
@@ -100,17 +104,22 @@ def load_country_data(country_iso):
         logger.warning(f"Error loading {country_iso}: {e}")
         return pd.DataFrame()
 
-def separate_national_subnational_data(data_df):
-    """Separate data into national and sub-national based on Location field."""
+def separate_national_subnational_data(data_df, country_iso):
+    """Separate data into national and sub-national based on Location field.
+
+    National = a national-shaped code under each prefix the country accepts
+    (reference/pipeline_countries.json): AFR::{ISO} for the 40, SEAR::NPL for
+    the Nepal pilot. EMR::SOM rows stay sub-national-classified, as before,
+    until Somalia's accept_prefixes change.
+    """
     
     if len(data_df) == 0:
         return pd.DataFrame(), pd.DataFrame()
     
-    # National data: Location format is AFR::{ISO} (no additional subdivisions)
-    national_data = data_df[data_df['Location'].str.match(r'^AFR::[A-Z]{3}$', na=False)].copy()
-    
-    # Sub-national data: Location format includes provinces/districts (AFR::{ISO}::{PROVINCE} or more levels)
-    subnational_data = data_df[~data_df['Location'].str.match(r'^AFR::[A-Z]{3}$', na=False)].copy()
+    nat_re = scope.national_shape_re(country_iso)
+    is_nat = data_df['Location'].map(lambda v: bool(isinstance(v, str) and nat_re.match(v)))
+    national_data = data_df[is_nat].copy()
+    subnational_data = data_df[~is_nat].copy()
     
     return national_data, subnational_data
 
@@ -278,7 +287,15 @@ def generate_summary_stats(national_data, subnational_data, country_name):
     return stats
 
 def main():
-    """Generate dual timeline plots for all countries."""
+    """Generate dual timeline plots for all countries (or --iso ...)."""
+    import argparse
+    global OUTPUT_PATH
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--iso", nargs="+", metavar="ISO",
+                    help="only these countries; pilot countries (e.g. NPL) are "
+                         "allowed here and default to figures/pilot/{ISO}/")
+    ap.add_argument("--out-dir", metavar="DIR", help="write plots here")
+    args = ap.parse_args()
     
     logger.info("=" * 80)
     logger.info("DUAL TIMELINE PLOT GENERATOR - NATIONAL vs SUB-NATIONAL")
@@ -288,6 +305,15 @@ def main():
     
     # Load country mapping
     country_mapping = load_country_mapping()
+    if args.iso:
+        isos = scope.resolve_isos(args.iso)
+        country_mapping = {i: {"name": scope.country_name(i)} for i in isos}
+        if args.out_dir:
+            OUTPUT_PATH = args.out_dir
+        elif all(scope.is_pilot(i) for i in isos):
+            OUTPUT_PATH = f"./figures/pilot/{'_'.join(isos)}"
+    elif args.out_dir:
+        OUTPUT_PATH = args.out_dir
     
     if not country_mapping:
         logger.error("❌ No country mapping found. Cannot generate timeline plots.")
@@ -320,7 +346,7 @@ def main():
                 subnational_data = pd.DataFrame()
             else:
                 # Separate national and sub-national data
-                national_data, subnational_data = separate_national_subnational_data(country_data)
+                national_data, subnational_data = separate_national_subnational_data(country_data, country_iso)
                 logger.info(f"  📈 National: {len(national_data)} obs | Sub-national: {len(subnational_data)} obs")
             
             # Create dual timeline plot
@@ -346,7 +372,7 @@ def main():
             continue
     
     # Save summary statistics
-    if all_stats:
+    if all_stats and not args.iso:
         stats_df = pd.DataFrame(all_stats)
         stats_file = f"{OUTPUT_PATH}/dual_timeline_summary.csv"
         stats_df.to_csv(stats_file, index=False)

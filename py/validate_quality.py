@@ -54,7 +54,10 @@ META_COLUMNS = [
 
 VALID_SOURCE_DB = {"JHU", "WHO", "AI"}
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-LOCATION_RE = re.compile(r"^AFR::[A-Z]{3}(::[^:]+)*$")
+# WHO region prefix: AFR for the 40 MOSAIC countries; EMR is how JHU codes
+# Somalia; SEAR is the pilot country Nepal. Which prefixes a given country may
+# use is checked separately against reference/pipeline_countries.json.
+LOCATION_RE = re.compile(r"^(AFR|EMR|SEAR)::[A-Z]{3}(::[^:]+)*$")
 
 # Location segments that are not geographic administrative units. CLAUDE.md
 # prohibits these outright - they describe programmes or demographics, not a
@@ -378,11 +381,17 @@ def validate_country(iso, rep):
         else:
             if not LOCATION_RE.match(loc):
                 rep.error(iso, "location_format",
-                          f"Location {loc!r} does not match AFR::ISO[::unit...]", row=i)
+                          f"Location {loc!r} does not match "
+                          f"{scope.location_prefix(iso)}::ISO[::unit...]", row=i)
             parts = loc.split("::")
             if len(parts) >= 2 and parts[1] != iso:
                 rep.error(iso, "location_iso_mismatch",
                           f"Location {loc!r} does not belong to {iso}", row=i)
+            elif LOCATION_RE.match(loc) and parts[0] not in scope.accept_prefixes(iso):
+                rep.error(iso, "location_prefix",
+                          f"Location {loc!r} uses prefix {parts[0]}::, but {iso} "
+                          f"accepts only {scope.accept_prefixes(iso)} "
+                          f"(reference/pipeline_countries.json)", row=i)
             # Match per SEGMENT, anchored at segment start, so a token cannot
             # fire on a substring inside a legitimate place name.
             for seg in parts[2:]:
@@ -615,7 +624,7 @@ def validate_country(iso, rep):
     nat, sub = [], []
     for r in data_rows:
         loc = (r.get("Location") or "").strip()
-        if not loc.startswith(f"AFR::{iso}"):
+        if not scope.location_belongs(loc, iso):
             continue
         tl_, tr_ = parse_date(r.get("TL")), parse_date(r.get("TR"))
         if not tl_ or not tr_:

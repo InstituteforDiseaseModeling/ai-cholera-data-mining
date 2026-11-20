@@ -16,6 +16,10 @@ import os
 import json
 from pathlib import Path
 import logging
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -106,13 +110,19 @@ def load_all_country_data():
     return meaningful_data
 
 def separate_national_subnational_data(data_df):
-    """Separate data into national and sub-national based on Location field."""
-    
-    # National data: Location format is AFR::{ISO} (no additional subdivisions)
-    national_data = data_df[data_df['Location'].str.match(r'^AFR::[A-Z]{3}$', na=False)].copy()
-    
-    # Sub-national data: Location format includes provinces/districts (AFR::{ISO}::{PROVINCE} or more levels)
-    subnational_data = data_df[~data_df['Location'].str.match(r'^AFR::[A-Z]{3}$', na=False)].copy()
+    """Separate data into national and sub-national based on Location field.
+
+    National = a national-shaped code under each prefix the country accepts
+    (reference/pipeline_countries.json; AFR for the 40, so EMR::SOM rows stay
+    sub-national-classified exactly as before until Somalia's own change).
+    """
+    if len(data_df) == 0:
+        return data_df.copy(), data_df.copy()
+    is_nat = [bool(isinstance(loc, str) and scope.national_shape_re(iso).match(loc))
+              for loc, iso in zip(data_df['Location'], data_df['country_iso'])]
+    is_nat = pd.Series(is_nat, index=data_df.index)
+    national_data = data_df[is_nat].copy()
+    subnational_data = data_df[~is_nat].copy()
     
     logger.info(f"National observations: {len(national_data)}")
     logger.info(f"Sub-national observations: {len(subnational_data)}")

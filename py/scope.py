@@ -145,5 +145,17 @@ def national_re(iso):
     return re.compile(rf"^(?:{alts})::{re.escape(iso)}$")
 
 
+def national_shape_re(iso):
+    """Regex for a national-SHAPED code under this country's prefixes, any ISO.
+
+    The dashboard figures classify national vs sub-national by shape alone
+    (historically ^AFR::[A-Z]{3}$), so a mis-filed row such as AFR::ZWE inside
+    data/ZAF/cholera_data_jhu.csv still plots as national. Kept that way so the
+    40 countries' figures do not change; only the prefix set is per country.
+    """
+    alts = "|".join(re.escape(p) for p in accept_prefixes(iso))
+    return re.compile(rf"^(?:{alts})::[A-Z]{{3}}$")
+
+
 def pilot_tag(iso):
     return settings(iso).get("pilot_tag")

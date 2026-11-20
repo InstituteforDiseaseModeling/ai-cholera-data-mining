@@ -37,6 +37,10 @@ import matplotlib.patches as mpatches
 from pathlib import Path
 from datetime import date, timedelta
 from collections import defaultdict
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402  (per-country prefixes, pilot settings)
 
 # ---------------------------------------------------------------------------
 # Paths & constants
@@ -218,10 +222,10 @@ def build_template_from_data(data_rows):
 def load_all_weekly_rows(iso, data_dir, national_only=False):
     """
     Load weekly (≤7 day) non-zero rows from JHU + WHO for template building.
-    national_only=True: restrict to AFR::{iso} rows (avoids sub-national bias).
+    national_only=True: restrict to the national code(s) (avoids sub-national bias).
     national_only=False: include all geographic levels (used for regional/continental pools).
     """
-    national_code = f"AFR::{iso}"
+    national = set(scope.national_codes(iso))
     rows = []
     for src in ("jhu", "who"):
         f = data_dir / f"cholera_data_{src}.csv"
@@ -229,7 +233,7 @@ def load_all_weekly_rows(iso, data_dir, national_only=False):
             continue
         with open(f, newline="", encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
-                if national_only and row.get("Location", "").strip() != national_code:
+                if national_only and row.get("Location", "").strip() not in national:
                     continue
                 tl = parse_date(row.get("TL", ""))
                 tr = parse_date(row.get("TR", ""))
@@ -302,17 +306,18 @@ def build_all_templates(country_map):
 
 def load_national_rows(iso, src, data_dir):
     """
-    Load all rows where Location == "AFR::{iso}" exactly.
+    Load all rows whose Location is the country's national code exactly, for
+    each prefix it accepts (AFR::{iso} for the 40; SEAR::NPL for the pilot).
     Returns list of dicts with keys: tl, tr, sch, deaths, confidence, source_db.
     """
-    national_code = f"AFR::{iso}"
+    national = set(scope.national_codes(iso))
     rows = []
     f = data_dir / f"cholera_data_{src}.csv"
     if not f.exists():
         return rows
     with open(f, newline="", encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
-            if row.get("Location", "").strip() != national_code:
+            if row.get("Location", "").strip() not in national:
                 continue
             tl = parse_date(row.get("TL", ""))
             tr = parse_date(row.get("TR", ""))

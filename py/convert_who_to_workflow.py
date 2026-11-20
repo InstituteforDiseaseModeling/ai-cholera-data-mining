@@ -37,6 +37,11 @@ import os
 import json
 from datetime import datetime, timedelta
 import logging
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -247,7 +252,7 @@ def convert_who_data_to_workflow(who_data, country_iso, country_name):
             deaths_clean = None if pd.isna(deaths) else int(deaths)
             
             cholera_data_entry = {
-                'Location': f'AFR::{country_iso}',
+                'Location': f'{scope.location_prefix(country_iso)}::{country_iso}',
                 'TL': tl,
                 'TR': tr,
                 'deaths': deaths_clean,
@@ -388,8 +393,19 @@ def main():
         if a == "--only" and i + 1 < len(_sys.argv):
             only = {x.strip().upper() for x in _sys.argv[i + 1].split(",")}
 
+    # Pilot countries (reference/pipeline_countries.json) are converted only
+    # when named with --only; their WHO name comes from the overlay's who_name.
+    who_map = dict(WHO_TO_ISO_MAPPING)
+    for iso in scope.pilot_isos():
+        if iso in only and scope.settings(iso).get("who_name"):
+            who_map[scope.settings(iso)["who_name"]] = iso
+            mosaic_countries[iso] = {"name": scope.country_name(iso)}
+    unknown = sorted(only - set(who_map.values()))
+    if unknown:
+        logger.warning(f"--only codes with no WHO name mapping (skipped): {unknown}")
+
     # Process each WHO country
-    for who_country, iso_code in WHO_TO_ISO_MAPPING.items():
+    for who_country, iso_code in who_map.items():
         if only and iso_code not in only:
             continue
         _existing = os.path.join(DATA_PATH, iso_code, "cholera_data_who.csv")

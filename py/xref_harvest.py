@@ -82,6 +82,13 @@ csv.field_size_limit(sys.maxsize)
 
 MOSAIC = sorted(k for k, v in json.load(open(REF / "country_mapping.json"))["countries"].items()
                 if v.get("mosaic_framework"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402
+# Pilot countries (reference/pipeline_countries.json; currently NPL) are
+# harvested and screened like the 40, but `apply --all` never writes them:
+# they are processed only when named (apply --iso NPL).
+PILOTS = scope.pilot_isos()
+SCOPE = MOSAIC + PILOTS
 
 # ------------------------------------------------------------------ series --
 # key: (reliability level, confidence weight for harvested rows, priority when
@@ -168,14 +175,15 @@ COUNTRY_PATTERNS = [
     ("TGO", _CI(r"\bTogo\b")),
     ("UGA", _CI(r"Uganda|Ouganda")),
     ("ZMB", _CI(r"Zambia|Zambie|Z[âa]mbia")),
+    ("NPL", _CI(r"\bNepal\b|\bN[ée]pal\b|नेपाल")),
     ("XOT", _CI(r"\b(?:Yemen|Y[ée]men|Afghanistan|Haiti|Ha[iï]ti|Comoros|Comores|Mayotte|Madagascar|Djibouti|"
                 r"Lesotho|Mauritius|Maurice|Cabo\s+Verde|Cape\s+Verde|Sao\s+Tome|S[ãa]o\s+Tom[ée]|Egypt|Libya|"
-                r"Tunisia|Algeria|Morocco|Syria|Lebanon|Iraq|Iran|Pakistan|India|Bangladesh|Nepal|Myanmar|"
+                r"Tunisia|Algeria|Morocco|Syria|Lebanon|Iraq|Iran|Pakistan|India|Bangladesh|Myanmar|"
                 r"Burma|Philippines|Dominican\s+Republic|Sri\s+Lanka|China|Indonesia|Ecuador|Peru|Mexico|"
                 r"Taiwan|Viet\s?Nam|Thailand|Malaysia|Cambodia|Saudi\s+Arabia|Oman|Kuwait|Bahrain|Qatar)\b")),
 ]
 COUNTRY_RX = [(iso, re.compile(p)) for iso, p in COUNTRY_PATTERNS]
-assert {iso for iso, _ in COUNTRY_PATTERNS if not iso.startswith("X")} == set(MOSAIC)
+assert {iso for iso, _ in COUNTRY_PATTERNS if not iso.startswith("X")} == set(SCOPE)
 
 
 def find_countries(text):
@@ -516,7 +524,8 @@ NDAYS = (TODAY - EPOCH).days + 800
 
 # WHO region prefixes in Location codes: JHU codes Somalia EMR::SOM (WHO EMRO),
 # and an AFR-only filter hid all 736 of its rows from screening.
-REGION_PREFIXES = ("AFR", "EMR")
+# SEAR is the Nepal pilot's prefix (reference/pipeline_countries.json).
+REGION_PREFIXES = tuple(sorted({"AFR", "EMR"} | set(scope.all_prefixes())))
 
 
 def is_national(loc, iso):
@@ -622,17 +631,21 @@ def cover_fraction(rows, tl, tr):
 
 def load_gaps():
     g = defaultdict(list)
-    for r in read_csv(REF / "effective_surveillance_gaps_detailed.csv"):
-        a, b = d(r["gap_start"]), d(r["gap_end"])
-        if a and b:
-            g[r["iso_code"]].append((a, b))
+    # Pilot countries' gaps are written to reference/pilot/ (not the shared
+    # 40-country file) by py/analyze_effective_gaps.py.
+    for f in (REF / "effective_surveillance_gaps_detailed.csv",
+              REF / "pilot" / "effective_surveillance_gaps_detailed.csv"):
+        for r in read_csv(f):
+            a, b = d(r["gap_start"]), d(r["gap_end"])
+            if a and b:
+                g[r["iso_code"]].append((a, b))
     return g
 
 
 # ---------------------------------------------------------------- registry --
 def metadata_docs():
     """Yield (iso, metadata row, series, doc_key) for every harvestable entry."""
-    for iso in MOSAIC:
+    for iso in SCOPE:
         for m in read_csv(DATA / iso / "metadata_ai.csv"):
             url = (m.get("URL") or "").strip()
             if not url.lower().startswith(("http://", "https://")):
@@ -656,12 +669,12 @@ def build_registry(quiet=False):
         if len(ds) >= 2 and d(ds[0]) and d(ds[-1]) and d(ds[0]) <= d(ds[-1]):
             e["date_ranges"].add((d(ds[0]), d(ds[-1])))
     idx_periods = defaultdict(list)
-    for iso in MOSAIC:
+    for iso in SCOPE:
         for r in read_csv(DATA / iso / "cholera_data_ai.csv"):
             tl, tr = d(r.get("TL")), d(r.get("TR"))
             if tl and tr:
                 idx_periods[(iso, (r.get("source_index") or "").strip())].append((tl, tr))
-    cov = {iso: Coverage(iso) for iso in MOSAIC}
+    cov = {iso: Coverage(iso) for iso in SCOPE}
     out = []
     for k, e in docs.items():
         for iso, idxs in e["citing"].items():
@@ -671,7 +684,7 @@ def build_registry(quiet=False):
         periods = sorted(e["periods"]) or sorted(e["date_ranges"])
         if len(periods) > 60:
             periods = periods[:: max(1, len(periods) // 60)]
-        bene = [iso for iso in MOSAIC if iso not in e["citing"] and
+        bene = [iso for iso in SCOPE if iso not in e["citing"] and
                 (not periods or any(cov[iso].equal_or_finer(a, b) < 0.5 for a, b in periods))]
         level, weight = SERIES[series][0], SERIES[series][1]
         best = sorted(e["urls"], key=lambda u: (not re.search(r"\.pdf($|\?)|/content$|/bitstreams?/", u, re.I),
@@ -1209,7 +1222,7 @@ def parse_ecdc(text, doc):
                 tl, tr, sch, de = parse_text_date(g.group(1)), parse_text_date(g.group(2)), g.group(3), g.group(4)
             else:
                 tl, tr, sch, de = date(int(g.group(1)), 1, 1), parse_text_date(g.group(2)), g.group(3), g.group(4)
-            out.append(dict(doc_key=doc, target_iso=iso, location=f"AFR::{iso}", tl=tl, tr=tr, period_type=ptype,
+            out.append(dict(doc_key=doc, target_iso=iso, location=f"{scope.location_prefix(iso)}::{iso}", tl=tl, tr=tr, period_type=ptype,
                             sch=to_int(sch), cch="", deaths=to_int(de), quote=g.group(0), extractor="auto_ecdc",
                             notes=f"ECDC monthly cholera update, paragraph '{head}:'"))
     return out
@@ -1386,7 +1399,7 @@ def parse_oew(text, doc):
             flags.append("SUSPECT_DEFINITION")
         if r["imported"]:
             flags.append("IMPORTED")
-        loc = f"AFR::{r['iso']}" + ("::UNSPECIFIED" if "SUBNATIONAL_EVENT" in flags else "")
+        loc = f"{scope.location_prefix(r['iso'])}::{r['iso']}" + ("::UNSPECIFIED" if "SUBNATIONAL_EVENT" in flags else "")
         out.append(dict(doc_key=doc, target_iso=r["iso"], location=loc, tl=r["tl"], tr=r["tr"],
                         period_type="outbreak_cumulative", sch=total, cch=conf if conf is not None else "",
                         deaths=deaths, quote=r["quote"], extractor="auto_oew",
@@ -1506,8 +1519,8 @@ def assess(r, info, text, rows, cov, gaps, subrows=None):
     """One candidate -> (decision, reason, extras). Shared by screen, verify, apply."""
     iso = (r.get("target_iso") or "").strip().upper()
     ex = {}
-    if iso not in MOSAIC:
-        return "REJECT_SCOPE", "target not a MOSAIC country", ex
+    if iso not in SCOPE:
+        return "REJECT_SCOPE", "target not a MOSAIC or pilot country", ex
     if not info:
         return "REJECT_DOC", "doc_key not in registry or cache", ex
     if info.get("series") == "WER" and info.get("wer_kind_text") == "notifications":
@@ -1785,14 +1798,14 @@ def cmd_screen(a):
     for r in cands:
         k, iso = (r.get("doc_key") or "").strip(), r["target_iso"]
         info = infos.get(k)
-        if iso in MOSAIC and iso not in cov:
+        if iso in SCOPE and iso not in cov:
             rows_by[iso] = national_rows(iso)
             subs_by[iso] = subnational_rows(iso)
             cov[iso] = Coverage(iso, rows_by[iso])
-        if iso in MOSAIC:
+        if iso in SCOPE:
             dec, why, ex = assess(r, info, texts.get(k), rows_by[iso], cov[iso], gaps, subs_by[iso])
         else:
-            dec, why, ex = "REJECT_SCOPE", "target not a MOSAIC country", {}
+            dec, why, ex = "REJECT_SCOPE", "target not a MOSAIC or pilot country", {}
         r.update(ex)
         r.update(decision=dec, reason=why, candidate_id=candidate_id(r), series=(info or {}).get("series", ""),
                  doc_date=(info or {}).get("doc_date", ""), doc_title=(info or {}).get("title", ""),
@@ -2249,6 +2262,9 @@ def cmd_apply(a):
         todo = [r for r in read_csv(SCREENED) if r["decision"] == "ADD" and r["candidate_id"] not in done]
         if a.iso:
             todo = [r for r in todo if r["target_iso"] in a.iso.upper().split(",")]
+        else:
+            # --all writes the 40 only; a pilot is applied only when named.
+            todo = [r for r in todo if r["target_iso"] not in PILOTS]
         print(f"{len(todo)} ADD candidates{' (dry run)' if a.dry_run else ''}", flush=True)
         stats = Counter()
         by_iso = defaultdict(list)
@@ -2274,7 +2290,7 @@ def cmd_apply(a):
                 info = infos.get(k) or {}
                 dec, why, ex = assess(r, info, texts.get(k), rows, cov, gaps, subs)
                 if dec == "ADD" and gate and before is not None:
-                    trial = {"Index": "0", "Location": f"AFR::{iso}", "TL": r["tl"], "TR": r["tr"],
+                    trial = {"Index": "0", "Location": f"{scope.location_prefix(iso)}::{iso}", "TL": r["tl"], "TR": r["tr"],
                              "sCh": str(to_int(r["sch"])), "deaths": r.get("deaths", ""), "cCh": r.get("cch", ""),
                              "confidence_weight": ex["weight"], "processing_notes": "trial", "source_database": "AI"}
                     after = gate.series(iso, trial)
@@ -2318,7 +2334,7 @@ def cmd_apply(a):
                         f"{info.get('sha256', '')[:16]}); quote verified verbatim; screened against existing rows "
                         f"(equal-or-finer coverage {ex.get('equal_or_finer_cover', '')}). {national} "
                         f"Do not sum with sub-national rows.")
-                args = ["add", iso, "--source-index", midx, "--location", f"AFR::{iso}", "--tl", r["tl"],
+                args = ["add", iso, "--source-index", midx, "--location", f"{scope.location_prefix(iso)}::{iso}", "--tl", r["tl"],
                         "--tr", r["tr"], "--confidence", f"{weight:.2f}", "--quote", r["quote"], "--note", note,
                         "--reporting-date", str(rep)]
                 for f, flag in (("sch", "--sch"), ("cch", "--cch"), ("deaths", "--deaths")):
