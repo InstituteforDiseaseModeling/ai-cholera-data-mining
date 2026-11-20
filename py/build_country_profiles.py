@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from country_profiles_data_a import PROFILES_A  # noqa: E402
 from country_profiles_data_b import PROFILES_B  # noqa: E402
+from country_profiles_data_pilot import PROFILES_PILOT  # noqa: E402
 import scope  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
@@ -116,10 +117,10 @@ def validate(profiles, mosaic_isos, mapping):
 
 def main():
     check_only = "--check" in sys.argv
-    profiles = {**PROFILES_A, **PROFILES_B}
+    profiles = {**PROFILES_A, **PROFILES_B, **PROFILES_PILOT}
     mosaic_isos, mapping = load_mosaic_isos()
 
-    overlap = set(PROFILES_A) & set(PROFILES_B)
+    overlap = (set(PROFILES_A) & set(PROFILES_B)) | ((set(PROFILES_A) | set(PROFILES_B)) & set(PROFILES_PILOT))
     if overlap:
         print(f"FAIL: ISO codes defined in both part A and part B: {sorted(overlap)}")
         return 1

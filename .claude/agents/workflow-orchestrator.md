@@ -89,6 +89,21 @@ ministry URL it produced was unverifiable model recall that varied between runs.
 `country_profiles.json` is that database, made real: 40 countries, 596
 first-level administrative units, 244 cities, 53 ministry domains, 15 languages.
 
+**Pilot countries.** If the profile entry has a `country_notes` field (pilot
+countries listed in `reference/pipeline_countries.json`; currently Nepal, NPL),
+this country is outside the 40 and its rules differ:
+- Paste the `country_notes` list **verbatim** at the top of every subagent
+  prompt, under the heading "COUNTRY RULES (override the general rules where
+  they differ)". Agents never see the profile otherwise.
+- Its gap files are under `./reference/pilot/` (same names as the shared
+  `./reference/effective_surveillance_*.csv`); pass those gap rows, not the
+  shared files.
+- Pass the profile's `regional_sources` and `archive_hints` as the source
+  lists to use in place of WHO AFRO, Africa CDC and francophone/lusophone
+  archives.
+- Agent 3 writes no zero rows for a pilot whose notes say so; brief it to
+  document absence evidence in its search log and `cholera_presence_ai.csv`.
+
 Then initialise:
 
 ```bash
@@ -113,8 +128,10 @@ printf '=== AGENT 1 INITIALIZATION ===\nCountry: %s (%s)\nStart: %s\nStatus: INI
 | 7 | `cholera-quality-auditor` | validate, repair, report |
 
 For each, pass: the ISO code, the country's profile entry, the gap rows for that
-country from `./reference/effective_surveillance_gaps_detailed.csv`, and the
-accumulated `workflow_state.json`.
+country from `./reference/effective_surveillance_gaps_detailed.csv` (pilot
+countries: `./reference/pilot/effective_surveillance_gaps_detailed.csv`), the
+accumulated `workflow_state.json`, and for a pilot country its `country_notes`
+verbatim at the top of the prompt.
 
 ## Between agents - gate, do not assume
 

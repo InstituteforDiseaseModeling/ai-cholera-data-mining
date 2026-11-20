@@ -62,7 +62,8 @@ gap are not equally valuable to close.
 Cover all four institutional families before you move to Phase 2:
 
 - **WHO systematic** - Weekly Epidemiological Record by decade, Disease Outbreak
-  News, AFRO bulletins, GHO, the annual cholera summary tables. WER back-issues
+  News, AFRO bulletins, GHO, the annual cholera summary tables. (Pilot countries:
+  use the profile's `regional_sources` in place of AFRO and Africa CDC.) WER back-issues
   are the single richest historical source for 1970-2000 and are routinely
   missed because they are PDFs behind `apps.who.int/iris`.
 - **UN humanitarian** - ReliefWeb, OCHA sitreps, UNICEF country reports

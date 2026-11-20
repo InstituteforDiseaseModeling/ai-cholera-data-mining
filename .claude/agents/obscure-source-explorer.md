@@ -73,7 +73,8 @@ dataset.
   now 404s. `./reference/url_check_broken.csv` already lists known-dead links.
 - **Colonial and missionary archives.** For lusophone countries try
   `memoria-africa.ua.pt` and `digitarq.arquivos.pt`; for francophone, the
-  ORSTOM/IRD document repository.
+  ORSTOM/IRD document repository. (Pilot countries: use the profile's
+  `archive_hints` instead.)
 - **National statistical yearbooks and ministry annual reports**, often the only
   record of a 1980s epidemic.
 - **Theses and dissertations** - national university repositories hold

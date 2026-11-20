@@ -243,6 +243,51 @@ def read_csv(path):
     return rows, None
 
 
+# ---- pilot-country rules (reference/pipeline_countries.json) ---------------
+# Acute gastroenteritis is reported separately from cholera in Nepal and must
+# never be counted. "AGE" is matched case-sensitively and on word boundaries so
+# it does not fire on "village", "average" or "stage".
+AGE_RE = re.compile(r"\bAGE\b|(?i:\b(?:acute\s+)?gastro-?enteritis\b)|झाडापखाला")
+WHO_ANNUAL_RE = re.compile(r"(?i)\b(?:WER|Weekly\s+Epidemiological\s+Record|WHO\s+annual|"
+                           r"annual\s+cholera\s+report|cholera\s*,\s*(?:19|20)\d\d)\b")
+
+
+def pilot_context(iso):
+    keys = set()
+    f = ROOT / "reference" / "count_basis" / f"{iso}.csv"
+    if f.exists():
+        with open(f, newline="", encoding="utf-8") as fh:
+            keys = {(r.get("source_key") or "").strip() for r in csv.DictReader(fh)}
+    return {"tag": scope.pilot_tag(iso), "zero_none": scope.settings(iso)["zero_policy"] == "none",
+            "typed_keys": keys}
+
+
+def check_pilot_row(iso, r, i, notes, is_zero, rep, ctx):
+    """Rules for pilot countries (plan Phase 5e). AI rows only: this validator
+    reads cholera_data_ai.csv."""
+    if ctx["tag"] and ctx["tag"] not in notes:
+        rep.error(iso, "pilot_tag_missing",
+                  f"AI row lacks the pilot tag {ctx['tag']} in processing_notes "
+                  f"(py/add_observation.py adds it; hand-edited rows must too)", row=i)
+    if ctx["zero_none"] and is_zero:
+        rep.error(iso, "pilot_zero_row",
+                  f"{iso} takes no zero rows (zero_policy none in "
+                  f"reference/pipeline_countries.json); record the period in "
+                  f"cholera_presence_ai.csv or the search log instead", row=i)
+    has_count = any((r.get(c) or "").strip() not in ("", "0") for c in ("sCh", "cCh"))
+    if has_count and AGE_RE.search(notes):
+        rep.warn(iso, "pilot_age_mention",
+                 "processing_notes mention acute gastroenteritis (AGE) on a row with a "
+                 "case count; confirm the count is cholera, not AGE", row=i)
+    key = f"AI:{(r.get('source_index') or '').strip()}"
+    if has_count and WHO_ANNUAL_RE.search(notes + " " + (r.get("source") or "")) \
+            and key not in ctx["typed_keys"]:
+        rep.warn(iso, "pilot_count_basis_missing",
+                 f"row cites a WHO/WER annual figure but {key} has no entry in "
+                 f"reference/count_basis/{iso}.csv; WHO annual totals for {iso} are "
+                 f"confirmed-only in some years", row=i)
+
+
 def validate_country(iso, rep):
     cdir = DATA / iso
     data_path = cdir / "cholera_data_ai.csv"
@@ -355,6 +400,8 @@ def validate_country(iso, rep):
             rep.warn(iso, "data_column_order",
                      "column order differs from the specified order")
 
+    pilot = scope.is_pilot(iso)
+    pilot_ctx = pilot_context(iso) if pilot else None
     seen_rows = {}
     seen_periods = {}
     used_sources = set()
@@ -587,6 +634,8 @@ def validate_country(iso, rep):
             rep.warn(iso, "notes_missing_quote",
                      "processing_notes lacks the mandated \"Source states: '...'\" "
                      "quote supporting the interpretation", row=i)
+        if pilot:
+            check_pilot_row(iso, r, i, notes, is_zero, rep, pilot_ctx)
         if is_zero:
             if not notes.strip():
                 rep.error(iso, "zero_row_undocumented",
