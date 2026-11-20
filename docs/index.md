@@ -17,6 +17,7 @@
 - [Data Standards](technical/data-standards.md) - Column definitions and formats
 - [Quality Control](technical/quality-control.md) - Validation protocols
 - [Dashboard System](technical/dashboard-system.md) - Automated tracking
+- [Nepal Integration Plan](technical/nepal-integration-plan.md) - Proposed pilot extension beyond the 40 African countries
 - [API Reference](technical/api-reference.md) - File formats and interfaces
 
 ### For Data Scientists
