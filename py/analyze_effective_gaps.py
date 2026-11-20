@@ -253,7 +253,8 @@ def write_csv(path, rows, fields):
         w.writeheader()
         w.writerows(rows)
     os.replace(tmp, path)
-    print(f"  {path.relative_to(ROOT)}  ({len(rows)} rows)")
+    shown = path.relative_to(ROOT) if path.is_relative_to(ROOT) else path
+    print(f"  {shown}  ({len(rows)} rows)")
 
 
 def main():
@@ -266,7 +267,12 @@ def main():
                     help="analysis horizon (default: today). Coverage is never "
                          "credited beyond this date.")
     ap.add_argument("--prefix", default="effective")
+    ap.add_argument("--out-dir", metavar="DIR",
+                    help="write the gap files here instead of reference/ "
+                         "(used by py/regression_snapshot.py)")
     args = ap.parse_args()
+    out = Path(args.out_dir) if args.out_dir else REF
+    out.mkdir(parents=True, exist_ok=True)
 
     end_date = parse_date(args.end_date)
     if not end_date:
@@ -286,13 +292,13 @@ def main():
 
     print(f"Effective gap analysis | layers={'+'.join(args.layers)} | "
           f"horizon={end_date} | min gap={args.min_gap_days}d\n")
-    write_csv(REF / f"{args.prefix}_surveillance_gaps_detailed.csv", all_detailed,
+    write_csv(out / f"{args.prefix}_surveillance_gaps_detailed.csv", all_detailed,
               ["country", "iso_code", "gap_start", "gap_end", "days", "months", "years", "era"])
-    write_csv(REF / f"{args.prefix}_surveillance_gaps_annual.csv", all_annual,
+    write_csv(out / f"{args.prefix}_surveillance_gaps_annual.csv", all_annual,
               ["country", "iso_code", "gap_year", "months_missing", "months_in_year"])
-    write_csv(REF / f"{args.prefix}_surveillance_gaps_coverage.csv", all_cov,
+    write_csv(out / f"{args.prefix}_surveillance_gaps_coverage.csv", all_cov,
               list(all_cov[0]))
-    write_csv(REF / f"{args.prefix}_surveillance_recency.csv",
+    write_csv(out / f"{args.prefix}_surveillance_recency.csv",
               sorted(all_rec, key=lambda r: r["latest_observation"]), list(all_rec[0]))
 
     mean_cov = sum(c["percent_coverage"] for c in all_cov) / len(all_cov)

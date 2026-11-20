@@ -750,8 +750,10 @@ WEEKLY_COLS = [
     "sCh", "deaths", "source", "confidence_weight", "disaggregation_method",
 ]
 
-def write_weekly_csv(iso, series):
-    out = DATA_DIR / iso / f"cholera_weekly_{iso}.csv"
+def write_weekly_csv(iso, series, out_dir=None):
+    base = (out_dir / iso) if out_dir else (DATA_DIR / iso)
+    base.mkdir(parents=True, exist_ok=True)
+    out = base / f"cholera_weekly_{iso}.csv"
     with open(out, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=WEEKLY_COLS)
         writer.writeheader()
@@ -930,11 +932,39 @@ def load_country_map():
     }
 
 
-def main():
+def parse_args(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--iso", nargs="+", metavar="ISO",
+                    help="build only these countries (default: all 40 MOSAIC). "
+                         "Seasonal templates are still built from the full pool.")
+    ap.add_argument("--as-of", metavar="YYYY-MM-DD",
+                    help="series end date (default: today). Pin it for "
+                         "reproducible output (py/regression_snapshot.py).")
+    ap.add_argument("--out-dir", metavar="DIR",
+                    help="write weekly CSVs to DIR/{ISO}/ instead of data/{ISO}/")
+    ap.add_argument("--no-plots", action="store_true", help="skip the PNG figures")
+    return ap.parse_args(argv)
+
+
+def main(argv=None):
+    global SERIES_END
+    args = parse_args(argv)
+    if args.as_of:
+        SERIES_END = date.fromisoformat(args.as_of)
+    out_dir = Path(args.out_dir) if args.out_dir else None
+
     country_map = load_country_map()
     iso_to_name = {
         iso: meta.get("name", iso) for iso, meta in country_map.items()
     }
+    targets = sorted(country_map)
+    if args.iso:
+        targets = [i.upper() for i in args.iso]
+        bad = [i for i in targets if i not in country_map]
+        if bad:
+            raise SystemExit(f"not MOSAIC framework countries: {bad}")
 
     print(f"Building seasonal templates for {len(country_map)} countries…")
     templates = build_all_templates(country_map)
@@ -946,7 +976,7 @@ def main():
           f"|  Continental fallback: {n_cont}")
 
     csvs, plots = [], []
-    for iso in sorted(country_map):
+    for iso in targets:
         d = DATA_DIR / iso
         if not d.is_dir():
             continue
@@ -965,15 +995,16 @@ def main():
         n_nonzero = sum(1 for e in series.values() if e["sch"] > 0)
         tmpl_meth = template_info[1]
 
-        csv_path = write_weekly_csv(iso, series)
+        csv_path = write_weekly_csv(iso, series, out_dir)
         csvs.append(csv_path)
 
-        fig_path = plot_weekly_series(
-            iso, series,
-            country_name=iso_to_name.get(iso, iso),
-            template_method=tmpl_meth,
-        )
-        plots.append(fig_path)
+        if not args.no_plots:
+            fig_path = plot_weekly_series(
+                iso, series,
+                country_name=iso_to_name.get(iso, iso),
+                template_method=tmpl_meth,
+            )
+            plots.append(fig_path)
 
         print(f"  {iso}: {n_weeks} weeks total, {n_nonzero} non-zero  "
               f"[template: {tmpl_meth}]  (sub-weekly dropped {diag['subweekly_dropped']}, "
@@ -982,8 +1013,9 @@ def main():
               f"{diag['jhu_nonprimary_dropped']})")
 
     print(f"\nDone.  {len(csvs)} CSVs and {len(plots)} plots written.")
-    print(f"  CSVs:  data/{{ISO}}/cholera_weekly_{{ISO}}.csv")
-    print(f"  Plots: figures/dashboard/timeseries/")
+    print(f"  CSVs:  {out_dir or 'data'}/{{ISO}}/cholera_weekly_{{ISO}}.csv")
+    if plots:
+        print(f"  Plots: figures/dashboard/timeseries/")
 
 
 if __name__ == "__main__":

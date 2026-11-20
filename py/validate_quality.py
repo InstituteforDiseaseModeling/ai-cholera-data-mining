@@ -92,8 +92,11 @@ ZERO_EVIDENCE_TYPES = ["Documented_Absence", "Inferred_Absence", "Surveillance_G
 ZERO_EVIDENCE_RE = re.compile("|".join(ZERO_EVIDENCE_TYPES), re.I)
 
 
+AS_OF = None   # --as-of pins "today" for reproducible output (regression gate)
+
+
 def today():
-    return date.today()
+    return AS_OF or date.today()
 
 
 def parse_date(s):
@@ -673,7 +676,13 @@ def main():
                     help="ignore reference/validation_debt.json and report raw severities")
     ap.add_argument("--traceback", action="store_true",
                     help="print tracebacks for per-country validator crashes")
+    ap.add_argument("--as-of", metavar="YYYY-MM-DD",
+                    help="treat this date as today for the future-date checks "
+                         "(reproducible output for py/regression_snapshot.py)")
     args = ap.parse_args()
+    global AS_OF
+    if args.as_of:
+        AS_OF = date.fromisoformat(args.as_of)
 
     mapping = json.loads(MAPPING.read_text())["countries"]
     mosaic = sorted(k for k, v in mapping.items() if v.get("mosaic_framework"))
