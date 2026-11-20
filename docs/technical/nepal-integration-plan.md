@@ -1,8 +1,32 @@
 # Development Plan: Adding Nepal (NPL) to the AI Data Mining Pipeline
 
-**Status:** Proposed. First draft 2026-11-18; revised 2026-11-20 after two red-team reviews (see `## Changes from the first draft`). Nothing in this plan is implemented yet.
+**Status:** Phases 0–5 implemented on branch `feature/nepal-pilot` (2026-11-20), plus the MOSAIC-pkg guard on MOSAIC-pkg branch `feature/ai-pilot-iso-guard`. Phase 6 (the pilot run) has not been run. First draft 2026-11-18; revised 2026-11-20 after two red-team reviews (see `## Changes from the first draft`).
 **Scope:** Nepal only, as a pilot that tests whether the pipeline generalises beyond the 40 African MOSAIC countries.
 Bangladesh is deliberately excluded (see `## Why not Bangladesh too`).
+
+## Implementation status (2026-11-20)
+
+One commit per phase on `feature/nepal-pilot`. The regression gate (`py/regression_snapshot.py`, reference snapshot `reference/regression/snapshot_c6a1d680_asof_2026-11-18.json`) reports 84/84 items identical after every phase. Tests: `python -m pytest py/tests` (18 tests).
+
+Where the implementation departs from the text below:
+
+- **Gap files for pilots go to `reference/pilot/`,** not into the shared `reference/effective_surveillance_*.csv`. `analyze_effective_gaps.py` writes them automatically when `data/{ISO}/` exists for a pilot. Appending Nepal to the shared files would have changed the dashboard's coverage averages and the recency windows. The orchestrator and `country_notes` point Nepal's agents to the pilot files, and `xref_harvest.py` reads both.
+- **Nepal's domains are in `reference/priority_sources_pilot.txt`,** not `priority_sources.txt`, so the dashboard's source count does not change.
+- **Phase 1b.** Only the scripts that must accept a named pilot were switched to `py/scope.py`: `add_observation`, `validate_quality`, `build_weekly_timeseries`, `analyze_effective_gaps`, `build_country_profiles`, `convert_jhu/who_to_workflow`, `xref_harvest`, `generate_dual_timeline_plots` and `run_status`, plus the runner. The other scripts already loop over the 40 and need no change; switching them would have added risk without changing behaviour.
+- **Dashboard national-row classification** stays shape-based (`{prefix}::[A-Z]{3}`) with per-country prefixes. A strictly per-ISO rule would have reclassified one mis-filed JHU row, `AFR::ZWE` inside `data/ZAF/cholera_data_jhu.csv`. That row is reported, not changed.
+- **Count-basis `status` values** are `verified` (checked against source text), `inferred` (shown by the source data's own numbers, e.g. WHO 2016 169 = JHU 21303's confirmed count) and `provisional`. No entry is `verified` yet: that is pilot work. `WHO:dashboard` is `suspected`/`provisional`, because its annual sums exceed the confirmed counts in every year where both are known; 2024 (360 vs 95) remains the open conflict.
+- **Decumulation is per source document** (collection, dashboard or AI source) on the typed path. Pooled by layer, JHU 21508's cumulative 2024 chain absorbed WHO-annual 2024.
+- **`validate_quality.py NPL`** reports INFO `pilot_not_started`, not an error, until Agent 1 creates the AI layer.
+- **`add_observation.py` writes the pilot tag itself.** The validator still errors on hand-edited rows without it.
+- **The global cross-country sweep (`registry`/`parse`/`screen`) was not run.** It re-screens every country against data changed since 2026-10-08. 27 cached multi-country documents mention Nepal. Run the sweep between country runs, before Phase 6 step 1.
+- **Baseline-file note text.** The JHU converter's phantom-zero note now reads "Phantom row; zero not verified" for every country. This affects future conversions only; the 40 countries' baseline files are not regenerated on this branch.
+
+First Nepal build (`python py/build_weekly_timeseries.py --iso NPL`):
+- **Suspected series:** 84 observed weeks (2010 JHU weekly; 2023–2025 WHO dashboard) and 1,312 undistributed weeks.
+- **Confirmed series:** 10 observed weeks (2024).
+- **Period totals:** 49.
+- **Held out:** 139 rows (126 zero rows, 9 untyped or unknown, 4 AGE). Listed in `data/NPL/builder_holdout.csv`.
+- **Years with no usable suspected count:** 1999–2009, 2011–2015 and 2017–2020.
 
 ## Goal
 
