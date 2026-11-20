@@ -8,6 +8,8 @@
 
 **CRITICAL SCOPE RESTRICTION**: AI cholera data collection is **RESTRICTED TO THE 40 MOSAIC FRAMEWORK COUNTRIES ONLY**. Do not process any countries outside the MOSAIC framework. The analysis scope is limited to these 40 core modeling countries.
 
+**Pilot exception (Nepal, NPL)**: countries listed with `"pilot": true` in `./reference/pipeline_countries.json` may be processed **only when named explicitly** (e.g. `bash run_all_countries.sh --only NPL`, `python py/validate_quality.py NPL`). No default loop - run queue, preflight, dashboard, supervisor, status page, shared gap files - includes them. Nepal is the only pilot. Its rules differ: `SEAR::NPL` locations, no zero rows, a curated count-type table (`./reference/count_basis/NPL.csv`), gap files in `./reference/pilot/`, and every AI row tagged `[NPL-PILOT]`. See `docs/technical/nepal-integration-plan.md` and the `country_notes` in `./reference/country_profiles.json`.
+
 ## Data Sources & Hierarchy
 
 **Separate Source Files Architecture**: Each country now maintains separate baseline data files:
@@ -1293,9 +1295,11 @@ This methodology enables systematic, batch-organized search coverage (up to 1,44
 **Load MOSAIC Countries**: Read `./reference/country_mapping.json` and work ONLY on countries with `"mosaic_framework": true`:
 - AGO, BDI, BEN, BFA, BWA, CAF, CIV, CMR, COD, COG, ERI, ETH, GAB, GHA, GIN, GMB, GNB, GNQ, KEN, LBR, MLI, MOZ, MRT, MWI, NAM, NER, NGA, RWA, SEN, SLE, SOM, SSD, SWZ, TCD, TGO, TZA, UGA, ZAF, ZMB, ZWE
 
+**Pilot countries**: `./reference/pipeline_countries.json` entries with `"pilot": true` (currently **NPL** only), processed only when named explicitly. See the pilot exception at the top of this file.
+
 **PROHIBITED**: 
 - **NO analysis of non-MOSAIC countries**: COM, CPV, DJI, DZA, EGY, LBY, LSO, MAR, MDG, MUS, SDN, STP, SYC, TUN
-- **NO work outside the 40 MOSAIC framework countries**
+- **NO work outside the 40 MOSAIC framework countries and the named pilot countries**
 - **Scope validation required**: Always verify countries are MOSAIC-eligible before processing
 
 ## COMPREHENSIVE ACCESS PERMISSIONS

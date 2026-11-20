@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from country_profiles_data_a import PROFILES_A  # noqa: E402
 from country_profiles_data_b import PROFILES_B  # noqa: E402
+import scope  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
 MAPPING = ROOT / "reference" / "country_mapping.json"
@@ -34,11 +35,17 @@ REQUIRED_FIELDS = [
 # Non-MOSAIC neighbours that legitimately appear in `neighbors` for regional
 # context queries. Agents must NOT collect data for these - see the scope
 # restriction in CLAUDE.md - but may search them for cross-border evidence.
-OUT_OF_SCOPE_NEIGHBORS = {"DJI", "SDN", "DZA", "LBY", "LSO", "EGY", "MAR", "TUN", "ESH"}
+# IND and CHN border the pilot country Nepal (reference/pipeline_countries.json).
+OUT_OF_SCOPE_NEIGHBORS = {"DJI", "SDN", "DZA", "LBY", "LSO", "EGY", "MAR", "TUN", "ESH",
+                          "IND", "CHN"}
 
 
 def load_mosaic_isos():
-    mapping = json.loads(MAPPING.read_text())["countries"]
+    mapping = dict(json.loads(MAPPING.read_text())["countries"])
+    # Pilot countries are not in country_mapping.json; take their names from
+    # the overlay so the name check below has something to compare against.
+    for iso in scope.pilot_isos():
+        mapping.setdefault(iso, scope.country_meta(iso))
     return sorted(k for k, v in mapping.items() if v.get("mosaic_framework")), mapping
 
 
@@ -46,11 +53,16 @@ def validate(profiles, mosaic_isos, mapping):
     errors, warnings = [], []
     have = set(profiles)
     want = set(mosaic_isos)
+    pilots = set(scope.pilot_isos())
 
     for iso in sorted(want - have):
         errors.append(f"{iso}: MOSAIC country missing from profiles")
-    for iso in sorted(have - want):
-        errors.append(f"{iso}: profile present but not a MOSAIC framework country")
+    # A pilot without a profile is not an error for the 40-country gate; the
+    # runner refuses to start that pilot instead (preflight, --only).
+    for iso in sorted(pilots - have):
+        warnings.append(f"{iso}: pilot country has no profile yet; it cannot run")
+    for iso in sorted(have - want - pilots):
+        errors.append(f"{iso}: profile present but not a MOSAIC framework or pilot country")
 
     all_iso3 = set(mapping)
     for iso, p in sorted(profiles.items()):
@@ -148,7 +160,8 @@ def main():
                 "write reference/country_profiles_domain_status.json. "
                 "neighbors may include non-MOSAIC countries for regional-context "
                 "queries only - data collection remains restricted to the 40 "
-                "MOSAIC framework countries."
+                "MOSAIC framework countries plus named pilot countries "
+                "(reference/pipeline_countries.json)."
             ),
         },
         "countries": {k: profiles[k] for k in sorted(profiles)},

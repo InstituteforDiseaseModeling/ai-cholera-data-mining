@@ -53,6 +53,9 @@ ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data"
 REF = ROOT / "reference"
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402  (MOSAIC + named pilot countries, per-country settings)
+
 DATA_COLUMNS = [
     "Index", "Location", "TL", "TR", "deaths", "sCh", "cCh", "CFR",
     "reporting_date", "source_index", "source", "confidence_weight",
@@ -178,14 +181,24 @@ def save(path, rows, fields):
 
 
 def mosaic_isos():
-    m = json.loads((REF / "country_mapping.json").read_text())["countries"]
-    return {k for k, v in m.items() if v.get("mosaic_framework")}
+    return set(scope.mosaic_isos())
 
 
 def check_scope(iso):
-    if iso not in mosaic_isos():
-        die(f"{iso} is not one of the 40 MOSAIC framework countries; "
-            f"CLAUDE.md restricts collection to those", code=2)
+    if not scope.in_scope(iso):
+        die(f"{iso} is not one of the 40 MOSAIC framework countries or a named "
+            f"pilot country (reference/pipeline_countries.json); CLAUDE.md "
+            f"restricts collection to those", code=2)
+
+
+def check_location(loc, iso):
+    if not scope.location_belongs(loc, iso):
+        die(f"Location {loc!r} must start with "
+            f"{' or '.join(scope.national_codes(iso))}")
+
+
+def zero_policy_none(iso):
+    return scope.settings(iso)["zero_policy"] == "none"
 
 
 def parse_d(s, field):
@@ -336,8 +349,18 @@ def _append_row_locked(a, row, sch, deaths, cch, dpath):
     if deaths is not None and sch is None and cch is not None and deaths > cch:
         die(f"deaths {deaths} exceeds cCh {cch} and no sCh was given")
 
-    if not row["Location"].startswith(f"AFR::{a.iso}"):
-        die(f"Location {row['Location']!r} must start with AFR::{a.iso}")
+    check_location(row["Location"], a.iso)
+    # Pilot countries with zero_policy "none" (Nepal) take no zero rows of any
+    # kind: sentinel-site zeros and national-zero years would enter the series
+    # as evidence of absence. Record such periods in cholera_presence_ai.csv or
+    # the search log instead.
+    if zero_policy_none(a.iso) and sch is not None and sch == 0:
+        die(f"{a.iso} takes no zero rows (zero_policy none in "
+            f"reference/pipeline_countries.json). Record the period in "
+            f"data/{a.iso}/cholera_presence_ai.csv or the search log instead.")
+    tag = scope.pilot_tag(a.iso)
+    if tag and tag not in row["processing_notes"]:
+        row["processing_notes"] = f"{tag} {row['processing_notes']}"
     low = row["Location"].lower()
     for tok in ("vaccination", "training", "demographics", "age_", "laboratory_",
                 "surveillance_", "population", "capacity", "ocv"):
@@ -412,6 +435,11 @@ def cmd_add(a):
 
 
 def cmd_add_zero(a):
+    if zero_policy_none(a.iso):
+        die(f"{a.iso} takes no zero rows (zero_policy none in "
+            f"reference/pipeline_countries.json): no Documented_Absence or "
+            f"Inferred_Absence rows. Record the period in "
+            f"data/{a.iso}/cholera_presence_ai.csv or the search log instead.")
     if a.evidence in ZERO_EVIDENCE_REJECTED:
         die(f"--evidence {a.evidence} cannot back a zero row: "
             f"{ZERO_EVIDENCE_REJECTED[a.evidence]}")
@@ -427,7 +455,7 @@ def cmd_add_zero(a):
     if a.note:
         notes += " " + a.note.strip()
     row = {
-        "Location": a.location or f"AFR::{a.iso}", "TL": a.tl, "TR": a.tr,
+        "Location": a.location or f"{scope.location_prefix(a.iso)}::{a.iso}", "TL": a.tl, "TR": a.tr,
         "deaths": "0", "sCh": "0", "cCh": "", "CFR": "0.0",
         "reporting_date": a.reporting_date or "", "processing_notes": notes,
     }
@@ -452,8 +480,7 @@ def cmd_add_presence(a):
             die(f"TL {tl} is after TR {tr}")
         if tr > date.today():
             die(f"TR {tr} is in the future")
-        if not a.location.startswith(f"AFR::{a.iso}"):
-            die(f"Location {a.location!r} must start with AFR::{a.iso}")
+        check_location(a.location, a.iso)
 
         rows, fields = load(ppath, PRESENCE_COLUMNS)
         key = (a.location, a.tl, a.tr, si)

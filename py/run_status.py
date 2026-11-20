@@ -22,6 +22,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "py"))
+import scope  # noqa: E402
 OUT_JSON = ROOT / "dashboard" / "run_status.json"
 OUT_HTML = ROOT / "dashboard" / "run_status.html"
 MANIFEST = ROOT / "reference" / "run_manifest.csv"
@@ -92,7 +94,7 @@ def collect():
         "active": [], "current_country": None, "country_elapsed_minutes": None,
         "current_agent": None, "agent_log_age_minutes": None,
         "last_write_file": None, "last_write_age_minutes": None,
-        "stalled": False, "countries_done": 0, "countries_total": 40,
+        "stalled": False, "countries_done": 0, "countries_total": len(scope.mosaic_isos()),
         "done": [], "attempted_not_done": [],
     }
 
@@ -151,8 +153,14 @@ def collect():
             for r in csv.DictReader(fh):
                 if r.get("iso"):
                     last[r["iso"]] = r.get("status")
-        st["done"] = sorted(i for i, s in last.items() if s == "done")
-        st["attempted_not_done"] = sorted(i for i, s in last.items() if s != "done")
+        # The 40-country tally counts MOSAIC countries only; a pilot country
+        # run with --only (reference/pipeline_countries.json) is listed apart
+        # so the page never reads "41/40".
+        mosaic = set(scope.mosaic_isos())
+        st["done"] = sorted(i for i, s in last.items() if s == "done" and i in mosaic)
+        st["attempted_not_done"] = sorted(i for i, s in last.items()
+                                          if s != "done" and i in mosaic)
+        st["pilots"] = {i: s for i, s in sorted(last.items()) if scope.is_pilot(i)}
         st["countries_done"] = len(st["done"])
     return st
 

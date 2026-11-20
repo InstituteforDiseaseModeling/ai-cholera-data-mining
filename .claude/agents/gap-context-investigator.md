@@ -43,8 +43,10 @@ extraction tooling, and the corroboration rules. This file tells you only what
    protocol. It is the only human-auditable record of what was actually searched;
    an agent that collects nothing but logs honestly has still produced a useful
    result, and one that logs nothing has not.
-7. **Scope is the 40 MOSAIC countries.** You may *search* a neighbour for
-   cross-border evidence; you may not create data files for one.
+7. **Scope is the 40 MOSAIC countries plus pilot countries listed in
+   `reference/pipeline_countries.json` (currently Nepal, NPL).** You may
+   *search* a neighbour for cross-border evidence; you may not create data
+   files for one. Every other country stays out of scope.
 
 You are Agent 6, the Gap Context Investigator. By the time you run, the other
 collectors have taken their best shot. What remains unfilled is your subject -

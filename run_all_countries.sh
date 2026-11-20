@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
 # Sequential, resumable, unattended re-run of the 7-agent cholera workflow
-# across the 40 MOSAIC framework countries.
+# across the 40 MOSAIC framework countries. Pilot countries listed in
+# reference/pipeline_countries.json (currently NPL) run only when named with
+# --only; they are never in the default queue.
 #
 # ONE OS PROCESS PER COUNTRY. This is the whole point of the design: running all
 # 40 inside a single session exhausted memory and crashed. A separate `claude -p`
@@ -102,6 +104,28 @@ export CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0
 export CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION=${CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION:-2000}
 mkdir -p reference
 
+# -------------------------------------------------------------------- scope --
+# --only may name the 40 MOSAIC countries and pilot countries listed in
+# reference/pipeline_countries.json (currently NPL). Pilots never enter the
+# default queue: they run only when named here. Anything else is refused.
+PILOTS_IN_RUN=""
+if [[ -n "$ONLY" ]]; then
+  PILOTS_IN_RUN=$(python3 - "$ONLY" <<'PY'
+import sys
+sys.path.insert(0, "py")
+import scope
+try:
+    isos = scope.resolve_isos(sys.argv[1].split(","))
+except ValueError as e:
+    sys.exit(f"--only: {e}")
+print(" ".join(i for i in isos if scope.is_pilot(i)))
+PY
+) || exit 2
+  if [[ -n "$PILOTS_IN_RUN" && "$MODE" != "full" ]]; then
+    echo "pilot countries ($PILOTS_IN_RUN) run in --mode full only" >&2; exit 2
+  fi
+fi
+
 # ---------------------------------------------------------------- preflight --
 echo "=== preflight ==="
 fail=0
@@ -113,6 +137,18 @@ python3 py/validate_quality.py --quiet >/dev/null 2>&1 \
   || { echo "  FAIL search protocol missing"; fail=1; }
 python3 py/analyze_effective_gaps.py >/dev/null 2>&1 \
   || { echo "  FAIL gap analysis failed"; fail=1; }
+# Pilot countries named in --only: validated only once they have an AI layer
+# (Agent 1 creates it on a first run). Gap files go to reference/pilot/.
+for p in $PILOTS_IN_RUN; do
+  if [[ -f "data/$p/cholera_data_ai.csv" ]]; then
+    python3 py/validate_quality.py "$p" --quiet >/dev/null 2>&1 \
+      || { echo "  FAIL validate_quality $p does not pass"; fail=1; }
+  fi
+  [[ -f "reference/count_basis/$p.csv" ]] \
+    || { echo "  FAIL pilot $p has no reference/count_basis/$p.csv"; fail=1; }
+  python3 -c "import json,sys; sys.exit(0 if sys.argv[1] in json.load(open('reference/country_profiles.json'))['countries'] else 1)" "$p" \
+    || { echo "  FAIL pilot $p has no entry in reference/country_profiles.json"; fail=1; }
+done
 
 # Under bypassPermissions the deny rules protecting the read-only JHU/WHO
 # baselines are not enforced, so protect them at the filesystem layer instead.
@@ -437,6 +473,12 @@ run_country () {
   # so a parallel sibling never reads them mid-rebuild.
   python3 py/with_lock.py gaps -- python3 py/analyze_effective_gaps.py \
     >> "$LOGDIR/_dashboard.log" 2>&1
+  # Pilot countries are not in the dashboard build (40 countries only), so
+  # rebuild their weekly series here; figures go to figures/pilot/{ISO}/.
+  if [[ " $PILOTS_IN_RUN " == *" $iso "* ]]; then
+    python py/build_weekly_timeseries.py --iso "$iso" >> "$LOGDIR/_dashboard.log" 2>&1 \
+      || echo "  !! $iso pilot weekly build failed (see $LOGDIR/_dashboard.log)"
+  fi
 
   # The country's own data. --publish-progress used to push only dashboard/ and
   # the manifest, leaving data/{ISO}/ - the actual product, and the
@@ -498,13 +540,17 @@ echo ""
 awk -F, 'NR>1 {c[$2]++} END {for (k in c) printf "  %-18s %d\n", k, c[k]}' "$MANIFEST"
 echo ""
 MANIFEST="$MANIFEST" ONLY="$ONLY" python3 - <<'PYEOF'
-import csv, json, os
-mosaic = {k for k, v in json.load(open('reference/country_mapping.json'))['countries'].items()
-          if v.get('mosaic_framework')}
+import csv, os, sys
+sys.path.insert(0, 'py')
+import scope
+mosaic = set(scope.mosaic_isos())
 # A --only run is complete when ITS countries are, not all 40 (the 2026-11-17
 # ReliefWeb top-up of 16 reported "NOT YET COMPLETE (24/40)" for the rest).
+# Pilot countries count only when named; intersecting --only NPL with the 40
+# alone gave an empty set and reported the run trivially complete.
 if os.environ.get('ONLY'):
-    mosaic &= {c.strip().upper() for c in os.environ['ONLY'].split(',') if c.strip()}
+    named = {c.strip().upper() for c in os.environ['ONLY'].split(',') if c.strip()}
+    mosaic = (mosaic | set(scope.pilot_isos())) & named
 last = {}
 for r in csv.DictReader(open(os.environ['MANIFEST'])):
     last[r['iso']] = r['status']

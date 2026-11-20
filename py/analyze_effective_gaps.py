@@ -39,9 +39,13 @@ import csv
 import os
 import json
 import re
+import sys
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data"
@@ -257,6 +261,27 @@ def write_csv(path, rows, fields):
     print(f"  {shown}  ({len(rows)} rows)")
 
 
+def write_set(isos, out, args, end_date):
+    out.mkdir(parents=True, exist_ok=True)
+    all_detailed, all_annual, all_cov, all_rec = [], [], [], []
+    for iso in isos:
+        d, a, c, r = analyse(iso, scope.country_name(iso), args.layers, end_date,
+                             args.min_gap_days)
+        all_detailed += d
+        all_annual += a
+        all_cov.append(c)
+        all_rec.append(r)
+    write_csv(out / f"{args.prefix}_surveillance_gaps_detailed.csv", all_detailed,
+              ["country", "iso_code", "gap_start", "gap_end", "days", "months", "years", "era"])
+    write_csv(out / f"{args.prefix}_surveillance_gaps_annual.csv", all_annual,
+              ["country", "iso_code", "gap_year", "months_missing", "months_in_year"])
+    write_csv(out / f"{args.prefix}_surveillance_gaps_coverage.csv", all_cov,
+              list(all_cov[0]))
+    write_csv(out / f"{args.prefix}_surveillance_recency.csv",
+              sorted(all_rec, key=lambda r: r["latest_observation"]), list(all_rec[0]))
+    return all_detailed, all_cov, all_rec
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -278,28 +303,20 @@ def main():
     if not end_date:
         raise SystemExit(f"bad --end-date: {args.end_date}")
 
-    mapping = json.loads((REF / "country_mapping.json").read_text())["countries"]
-    mosaic = sorted(k for k, v in mapping.items() if v.get("mosaic_framework"))
-
-    all_detailed, all_annual, all_cov, all_rec = [], [], [], []
-    for iso in mosaic:
-        d, a, c, r = analyse(iso, mapping[iso]["name"], args.layers, end_date,
-                             args.min_gap_days)
-        all_detailed += d
-        all_annual += a
-        all_cov.append(c)
-        all_rec.append(r)
+    # The 40 MOSAIC countries go to the shared files every default consumer
+    # reads (run queue, dashboard, status page, recency windows). Pilot
+    # countries (reference/pipeline_countries.json) that have a data directory
+    # go to the same file names under {out}/pilot/, so they never enter the
+    # 40-country queue or the dashboard's coverage averages.
+    mosaic = scope.mosaic_isos()
+    pilots = [i for i in scope.pilot_isos() if (ROOT / "data" / i).is_dir()]
 
     print(f"Effective gap analysis | layers={'+'.join(args.layers)} | "
           f"horizon={end_date} | min gap={args.min_gap_days}d\n")
-    write_csv(out / f"{args.prefix}_surveillance_gaps_detailed.csv", all_detailed,
-              ["country", "iso_code", "gap_start", "gap_end", "days", "months", "years", "era"])
-    write_csv(out / f"{args.prefix}_surveillance_gaps_annual.csv", all_annual,
-              ["country", "iso_code", "gap_year", "months_missing", "months_in_year"])
-    write_csv(out / f"{args.prefix}_surveillance_gaps_coverage.csv", all_cov,
-              list(all_cov[0]))
-    write_csv(out / f"{args.prefix}_surveillance_recency.csv",
-              sorted(all_rec, key=lambda r: r["latest_observation"]), list(all_rec[0]))
+    all_detailed, all_cov, all_rec = write_set(mosaic, out, args, end_date)
+    if pilots:
+        print(f"\n  pilot countries ({' '.join(pilots)}):")
+        write_set(pilots, out / "pilot", args, end_date)
 
     mean_cov = sum(c["percent_coverage"] for c in all_cov) / len(all_cov)
     stale = [r for r in all_rec if isinstance(r["days_stale"], int) and r["days_stale"] > 180]

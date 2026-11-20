@@ -34,6 +34,8 @@ from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402  (MOSAIC + named pilot countries, per-country settings)
 DATA = ROOT / "data"
 MAPPING = ROOT / "reference" / "country_mapping.json"
 DEBT = ROOT / "reference" / "validation_debt.json"
@@ -684,13 +686,12 @@ def main():
     if args.as_of:
         AS_OF = date.fromisoformat(args.as_of)
 
-    mapping = json.loads(MAPPING.read_text())["countries"]
-    mosaic = sorted(k for k, v in mapping.items() if v.get("mosaic_framework"))
-
-    targets = [c.upper() for c in args.countries] if args.countries else mosaic
-    bad_scope = [c for c in targets if c not in mosaic]
-    if bad_scope:
-        print(f"ERROR: not MOSAIC framework countries: {bad_scope}", file=sys.stderr)
+    # No argument -> the 40 MOSAIC countries. A pilot country (e.g. NPL) is
+    # validated only when named, so the default gate never depends on it.
+    try:
+        targets = scope.resolve_isos(args.countries)
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
         return 2
 
     debt = {} if args.no_baseline else load_debt()
