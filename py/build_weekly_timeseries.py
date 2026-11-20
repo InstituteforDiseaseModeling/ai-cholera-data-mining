@@ -257,6 +257,11 @@ def build_all_templates(country_map):
     # Per-country templates — national rows preferred; sub-national as fallback
     per_country = {}
     for iso in sorted(country_map):
+        # Only countries in the African template pool share regional and
+        # continental templates (reference/pipeline_countries.json). Pilot
+        # countries are never in country_map and are added at the end.
+        if scope.settings(iso)["template_pool"] != "africa":
+            continue
         d = DATA_DIR / iso
         if not d.is_dir():
             continue
@@ -297,6 +302,12 @@ def build_all_templates(country_map):
             templates[iso] = (reg_tmpl, f"regional_{subregion}_k{reg_k}")
         else:
             templates[iso] = (continental, f"continental_k{k_cont}")
+
+    # Pilot countries with template_pool "none" get no seasonal template: their
+    # multi-week totals are written undistributed (process_country_typed).
+    for iso in scope.pilot_isos():
+        if (DATA_DIR / iso).is_dir() and scope.settings(iso)["template_pool"] == "none":
+            templates[iso] = (None, "undistributed")
 
     return templates
 
@@ -364,9 +375,18 @@ def load_national_rows(iso, src, data_dir):
             elif "inferred_absence"   in note: evidence = "inferred"
             elif "surveillance_gap"   in note: evidence = "gap"
             else:                              evidence = "none"
+            raw_cch = (row.get("cCh", "") or "").strip()
+            try:    cch = float(raw_cch) if raw_cch else None
+            except: cch = None
             rows.append({"tl": tl, "tr": tr, "sch": sch, "has_count": has_count,
                          "evidence": evidence, "deaths": deaths, "conf": conf,
-                         "primary": "primary: false" not in note})
+                         "primary": "primary: false" not in note,
+                         # Used only by the pilot path (process_country_typed):
+                         "cch": cch, "deaths_raw": deaths_raw,
+                         "src_name": (row.get("source", "") or "").strip(),
+                         "src_index": (row.get("source_index", "") or "").strip(),
+                         "row_index": (row.get("Index", "") or "").strip(),
+                         "location": row.get("Location", "").strip()})
     return rows
 
 
@@ -501,11 +521,13 @@ def process_country(iso, template_info, diag=None):
     "inferred_zero", "assumed_zero"); MOSAIC-pkg's process_AI_cholera_data()
     filters on them.
     """
+    if diag is None:
+        diag = {}
+    if _is_typed(iso):
+        return process_country_typed(iso, diag)
     template, tmpl_method = template_info
     d = DATA_DIR / iso
     merged = {}   # {(year, week): entry}
-    if diag is None:
-        diag = {}
     diag.update(subweekly_dropped=0, residual_skipped=0, coverage_skipped=0)
 
     rows = []
@@ -747,6 +769,258 @@ def process_country(iso, template_info, diag=None):
     return merged
 
 # ---------------------------------------------------------------------------
+# Typed path: countries whose count type varies by source and year (pilots)
+# ---------------------------------------------------------------------------
+#
+# Used for a country whose settings (reference/pipeline_countries.json) set
+# count_basis_table, zero_policy "none" or template_pool "none" - currently the
+# Nepal pilot only. The 40 MOSAIC countries never reach this code.
+#
+# Why a separate path (docs/technical/nepal-integration-plan.md, Phase 3):
+#   * Nepal's sources switch between counting suspected and lab-confirmed
+#     cases, and WHO's annual totals put confirmed-only figures in sCh in some
+#     years (2016: 169 = the confirmed count of the 2016 outbreak). MOSAIC
+#     models suspected cases with one reporting rate, so the two must never be
+#     mixed in one series. Each row's count type comes from a curated table,
+#     reference/count_basis/{ISO}.csv, not from which column it sits in.
+#   * Sentinel-site zero weeks and national-zero years are not evidence of
+#     absence: no zero row enters either series (zero_policy "none"), and no
+#     inferred or assumed zeros are generated. Weeks with no data stay absent.
+#   * Weekly data come from one or two outbreaks, too few for a seasonal
+#     template, so multi-week totals are not spread across weeks: their weeks
+#     are written "undistributed" with a blank sCh, the total on the first
+#     claimed week, and every total listed in cholera_period_totals_{ISO}.csv.
+
+COUNT_BASIS_DIR  = REF_DIR / "count_basis"
+COUNT_BASIS_COLS = ["source_key", "year_from", "year_to", "field", "basis", "status", "evidence"]
+VALID_BASIS      = {"suspected", "confirmed", "age", "mixed", "unknown"}
+VALID_STATUS     = {"verified", "inferred", "provisional"}
+
+
+def _is_typed(iso):
+    st = scope.settings(iso)
+    return bool(st["count_basis_table"] or st["zero_policy"] == "none"
+                or st["template_pool"] == "none")
+
+
+def load_count_basis(iso):
+    """Entries of reference/count_basis/{ISO}.csv, validated."""
+    f = COUNT_BASIS_DIR / f"{iso}.csv"
+    if not f.exists():
+        raise SystemExit(f"{iso}: count_basis_table is set but {f.relative_to(BASE_DIR)} is missing")
+    out = []
+    with open(f, newline="", encoding="utf-8") as fh:
+        for i, r in enumerate(csv.DictReader(fh), start=2):
+            if not (r.get("source_key") or "").strip() or r["source_key"].lstrip().startswith("#"):
+                continue
+            try:
+                e = {"key": r["source_key"].strip(), "y0": int(r["year_from"]), "y1": int(r["year_to"]),
+                     "field": r["field"].strip(), "basis": r["basis"].strip(),
+                     "status": r["status"].strip(), "line": i}
+            except (KeyError, ValueError) as ex:
+                raise SystemExit(f"{f.name} line {i}: {ex}")
+            if e["field"] not in ("sCh", "cCh") or e["basis"] not in VALID_BASIS \
+                    or e["status"] not in VALID_STATUS or e["y0"] > e["y1"]:
+                raise SystemExit(f"{f.name} line {i}: bad field/basis/status/years: {dict(r)}")
+            out.append(e)
+    return out
+
+
+def source_key(label, r):
+    """Count-basis key of a loaded row: JHU:<collection UID>, WHO:dashboard, AI:<metadata Index>."""
+    if label == "WHO":
+        return "WHO:dashboard"
+    if label == "JHU":
+        m = re.search(r"UID:\s*(\d+)", r.get("src_name", ""))
+        return f"JHU:{m.group(1)}" if m else "JHU:?"
+    return f"AI:{r.get('src_index', '')}"
+
+
+def resolve_basis(entries, key, field, tl, tr):
+    """(basis, status) for every calendar year a row touches, or ("unresolved", "").
+
+    A row spanning two years needs an entry for each, with the same basis."""
+    found = []
+    for y in range(tl.year, tr.year + 1):
+        hit = [e for e in entries if e["key"] == key and e["field"] == field and e["y0"] <= y <= e["y1"]]
+        if len(hit) != 1:
+            return ("unresolved" if not hit else "ambiguous"), ""
+        found.append(hit[0])
+    bases = {e["basis"] for e in found}
+    if len(bases) != 1:
+        return "mixed", ""
+    order = ["provisional", "inferred", "verified"]          # weakest status wins
+    return bases.pop(), min((e["status"] for e in found), key=order.index)
+
+
+def _typed_observed(rows, value_key, merged, diag):
+    """Tier 1 (observed weeks) over rows already filtered to one count type."""
+    def entry(key, v, deaths, source, conf):
+        mon, sun = isoweek_bounds(*key)
+        return {"sch": v, "deaths": deaths, "source": source, "confidence": conf,
+                "method": "observed", "monday": mon, "sunday": sun, "_origin": (mon, sun)}
+    candidates = defaultdict(dict)
+    for label in ("WHO", "JHU", "AI"):
+        src_rows = [dict(r, sch=r[value_key]) for r in rows if r["source"] == label]
+        for r in (r for r in src_rows if 6 <= r["span"] <= 7):
+            key = r["tl"].isocalendar()[:2]
+            prev = candidates[key].get(label)
+            if prev is None or prev.get("_daily") or r["sch"] > prev["sch"]:
+                candidates[key][label] = entry(key, r["sch"], r["deaths"], label, r["conf"])
+        sums, dropped = _sum_subweekly([r for r in src_rows if r["span"] < 6])
+        diag["subweekly_dropped"] = diag.get("subweekly_dropped", 0) + dropped
+        for key, v in sums.items():
+            if label in candidates[key]:
+                continue
+            e = entry(key, v["sch"], v["deaths"], label, v["conf"])
+            e["_daily"] = True
+            candidates[key][label] = e
+    for key, by_src in candidates.items():
+        best = max(by_src.values(), key=lambda e: SOURCE_PRIORITY[e["source"]])
+        best.pop("_daily", None)
+        merged[key] = best
+
+
+def _typed_periods(rows, value_key, series_name, merged, claim, periods):
+    """Multi-week totals: recorded in `periods`; when `claim`, their still-empty
+    weeks become "undistributed" (blank count, total on the first claimed week)."""
+    aggs = []
+    for label in ("WHO", "JHU", "AI"):
+        aggs += _decumulate([dict(r, sch=r[value_key]) for r in rows
+                             if r["source"] == label and r["span"] > 7])
+    def order(r):
+        return (r.get("order_span", r["span"]), -SOURCE_PRIORITY[r["source"]], -r["conf"])
+    for r in sorted(aggs, key=order):
+        weeks = weeks_in_range(r["tl"], r["tr"])
+        in_span = [k for k in weeks if isoweek_bounds(*k)[0] >= r["tl"]] or weeks
+        observed_in_span = sum(merged[k]["sch"] for k in in_span
+                               if k in merged and merged[k]["method"] == "observed")
+        eligible = [k for k in in_span if k not in merged] if claim else []
+        for j, k in enumerate(eligible):
+            mon, sun = isoweek_bounds(*k)
+            merged[k] = {"sch": None, "deaths": None, "source": r["source"],
+                         "confidence": r["conf"], "method": "undistributed",
+                         "monday": mon, "sunday": sun, "_origin": (r["tl"], r["tr"]),
+                         "period_total": r["sch"] if j == 0 else None,
+                         "period_deaths": r["deaths"] if j == 0 else None,
+                         "period_start": r["tl"] if j == 0 else None,
+                         "period_end": r["tr"] if j == 0 else None}
+        periods.append({
+            "series": series_name, "source": r["source"], "source_key": r["skey"],
+            "row_index": r.get("row_index", ""), "TL": r["tl"].isoformat(), "TR": r["tr"].isoformat(),
+            "total": r["sch"], "deaths": "" if r["deaths"] is None else r["deaths"],
+            "basis": r["basis"], "status": r["bstatus"],
+            "decumulated_increment": bool(r.get("increment")),
+            "weeks_in_span": len(in_span), "weeks_claimed_undistributed": len(eligible),
+            "observed_cases_in_span": round(observed_in_span, 4),
+        })
+
+
+def process_country_typed(iso, diag):
+    """Suspected series (returned) plus confirmed series, period totals and
+    held-out rows (in diag) for a country on the typed path."""
+    st = scope.settings(iso)
+    if st["zero_policy"] != "none":
+        raise SystemExit(f"{iso}: the typed builder path supports zero_policy 'none' only")
+    entries = load_count_basis(iso) if st["count_basis_table"] else []
+    d = DATA_DIR / iso
+    diag.update(subweekly_dropped=0, residual_skipped=0, coverage_skipped=0,
+                jhu_nonprimary_dropped=0)
+    holdout, susp, conf = [], [], []
+
+    def hold(r, field, value, reason, basis="", status=""):
+        holdout.append({"source": r["source"], "source_key": r["skey"], "row_index": r["row_index"],
+                        "Location": r["location"], "TL": r["tl"].isoformat(), "TR": r["tr"].isoformat(),
+                        "field": field, "value": value, "basis": basis, "status": status,
+                        "reason": reason})
+
+    rows = []
+    for src_name, label in [("who", "WHO"), ("jhu", "JHU"), ("ai", "AI")]:
+        for r in load_national_rows(iso, src_name, d):
+            r["source"], r["span"] = label, (r["tr"] - r["tl"]).days
+            r["skey"] = source_key(label, r)
+            rows.append(r)
+
+    # Same JHU non-primary de-duplication as the 40-country path.
+    jhu_primary = [r for r in rows if r["source"] == "JHU" and r["primary"]]
+    def _end(x):
+        return max(x["tr"], x["tl"] + timedelta(days=1))
+    def _dup(r):
+        span = max(r["span"], 1)
+        return any((min(_end(p), _end(r)) - max(p["tl"], r["tl"])).days >= 0.5 * (_end(r) - r["tl"]).days
+                   and max(p["span"], 1) <= 2 * span and span <= 2 * max(p["span"], 1)
+                   for p in jhu_primary)
+    kept = []
+    for r in rows:
+        if r["source"] == "JHU" and not r["primary"] and _dup(r):
+            hold(r, "sCh", r["sch"] if r["has_count"] else "", "JHU non-primary duplicate of a primary row")
+            diag["jhu_nonprimary_dropped"] += 1
+        else:
+            kept.append(r)
+
+    for r in kept:
+        sch = r["sch"] if r["has_count"] else None
+        cch = r["cch"]
+        # -- suspected: the sCh value, when its source-year is typed suspected
+        s_basis = s_status = ""
+        if sch is not None:
+            if r["source"] == "AI" and not any(e["key"] == r["skey"] and e["field"] == "sCh" for e in entries):
+                s_basis, s_status = "suspected", "agent"      # agents assign columns by definition
+            elif st["count_basis_table"]:
+                s_basis, s_status = resolve_basis(entries, r["skey"], "sCh", r["tl"], r["tr"])
+            else:
+                s_basis, s_status = "suspected", "column"
+        # -- confirmed: cCh when present; else sCh when its basis is confirmed
+        c_val, c_basis, c_status = None, "", ""
+        if cch is not None:
+            if st["count_basis_table"] and any(e["key"] == r["skey"] and e["field"] == "cCh" for e in entries):
+                c_basis, c_status = resolve_basis(entries, r["skey"], "cCh", r["tl"], r["tr"])
+            else:
+                c_basis, c_status = "confirmed", "column"     # cCh is lab-confirmed by definition
+            c_val = cch
+        elif s_basis == "confirmed":
+            c_val, c_basis, c_status = sch, "confirmed", s_status
+
+        if sch is not None and s_basis != "confirmed":
+            if s_basis != "suspected":
+                hold(r, "sCh", sch, f"count type {s_basis or 'unresolved'} - not suspected cholera",
+                     s_basis, s_status)
+            elif sch == 0:
+                hold(r, "sCh", 0, "zero row (zero_policy none)", s_basis, s_status)
+            else:
+                rr = dict(r, v=sch, basis=s_basis, bstatus=s_status)
+                if rr["deaths"] is not None and rr["deaths"] > sch:
+                    rr["deaths"] = None
+                susp.append(rr)
+        if c_val is not None:
+            field = "cCh" if cch is not None else "sCh"
+            if c_basis != "confirmed":
+                hold(r, field, c_val, f"count type {c_basis or 'unresolved'} - not confirmed cholera",
+                     c_basis, c_status)
+            elif c_val == 0:
+                hold(r, field, 0, "zero row (zero_policy none)", c_basis, c_status)
+            else:
+                rr = dict(r, v=c_val, basis=c_basis, bstatus=c_status)
+                if rr["deaths"] is not None and rr["deaths"] > c_val:
+                    rr["deaths"] = None
+                conf.append(rr)
+        if sch is None and cch is None:
+            hold(r, "", "", "no case count (deaths only)")
+
+    periods = []
+    merged_s, merged_c = {}, {}
+    _typed_observed(susp, "v", merged_s, diag)
+    _typed_periods(susp, "v", "suspected", merged_s, claim=(st["template_pool"] == "none"), periods=periods)
+    _typed_observed(conf, "v", merged_c, diag)
+    _typed_periods(conf, "v", "confirmed", merged_c, claim=False, periods=periods)
+
+    lo, hi = week_monday(SERIES_START), week_monday(SERIES_END)
+    merged_s = {k: v for k, v in merged_s.items() if lo <= v["monday"] <= hi}
+    merged_c = {k: v for k, v in merged_c.items() if lo <= v["monday"] <= hi}
+    diag.update(confirmed=merged_c, periods=periods, holdout=holdout, typed=True)
+    return merged_s
+
+# ---------------------------------------------------------------------------
 # Write CSV
 # ---------------------------------------------------------------------------
 
@@ -777,6 +1051,112 @@ def write_weekly_csv(iso, series, out_dir=None):
                 "confidence_weight": round(e["confidence"], 3),
                 "disaggregation_method": e["method"],
             })
+    return out
+
+TYPED_EXTRA_COLS = ["period_total", "period_deaths", "period_start", "period_end"]
+CONFIRMED_COLS = [
+    "iso_code", "year", "iso_week", "week_start", "week_end",
+    "cCh", "deaths", "source", "confidence_weight", "disaggregation_method",
+]
+PERIOD_COLS = ["series", "source", "source_key", "row_index", "TL", "TR", "total", "deaths",
+               "basis", "status", "decumulated_increment", "weeks_in_span",
+               "weeks_claimed_undistributed", "observed_cases_in_span"]
+HOLDOUT_COLS = ["source", "source_key", "row_index", "Location", "TL", "TR", "field", "value",
+                "basis", "status", "reason"]
+
+
+def _r4(v):
+    return round(v, 4) if v is not None else ""
+
+
+def write_typed_outputs(iso, series, diag, out_dir=None):
+    """Typed-path outputs (pilot countries):
+      cholera_weekly_{ISO}.csv            suspected series; undistributed weeks have a
+                                          blank sCh and the total on the first claimed week
+      cholera_weekly_confirmed_{ISO}.csv  confirmed series, observed weeks only. Its count
+                                          column is cCh, so MOSAIC-pkg's reader (which needs
+                                          sCh) never ingests it.
+      cholera_period_totals_{ISO}.csv     every multi-week total used, both series
+      builder_holdout.csv                 every national row held out, with the reason
+    """
+    base = (out_dir / iso) if out_dir else (DATA_DIR / iso)
+    base.mkdir(parents=True, exist_ok=True)
+    out = base / f"cholera_weekly_{iso}.csv"
+    with open(out, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=WEEKLY_COLS + TYPED_EXTRA_COLS)
+        w.writeheader()
+        for (yr, wk), e in sorted(series.items()):
+            ps, pe = e.get("period_start"), e.get("period_end")
+            w.writerow({"iso_code": iso, "year": yr, "iso_week": wk,
+                        "week_start": e["monday"].isoformat(), "week_end": e["sunday"].isoformat(),
+                        "sCh": _r4(e["sch"]), "deaths": _r4(e["deaths"]), "source": e["source"],
+                        "confidence_weight": round(e["confidence"], 3),
+                        "disaggregation_method": e["method"],
+                        "period_total": _r4(e.get("period_total")),
+                        "period_deaths": _r4(e.get("period_deaths")),
+                        "period_start": ps.isoformat() if ps else "",
+                        "period_end": pe.isoformat() if pe else ""})
+    with open(base / f"cholera_weekly_confirmed_{iso}.csv", "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=CONFIRMED_COLS)
+        w.writeheader()
+        for (yr, wk), e in sorted(diag["confirmed"].items()):
+            w.writerow({"iso_code": iso, "year": yr, "iso_week": wk,
+                        "week_start": e["monday"].isoformat(), "week_end": e["sunday"].isoformat(),
+                        "cCh": _r4(e["sch"]), "deaths": _r4(e["deaths"]), "source": e["source"],
+                        "confidence_weight": round(e["confidence"], 3),
+                        "disaggregation_method": e["method"]})
+    with open(base / f"cholera_period_totals_{iso}.csv", "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=PERIOD_COLS)
+        w.writeheader()
+        for r in sorted(diag["periods"], key=lambda r: (r["series"], r["TL"], r["TR"], r["source"])):
+            w.writerow(r)
+    with open(base / "builder_holdout.csv", "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=HOLDOUT_COLS)
+        w.writeheader()
+        for r in sorted(diag["holdout"], key=lambda r: (r["TL"], r["source"], r["row_index"])):
+            w.writerow(r)
+    return out
+
+
+def plot_typed_series(iso, series, confirmed, country_name, fig_dir):
+    """Two panels: suspected (observed bars; undistributed totals drawn as a
+    flat band at their mean weekly level) and confirmed (observed bars)."""
+    fig, (ax_s, ax_c) = plt.subplots(2, 1, figsize=(22, 7.5), sharex=True,
+                                     gridspec_kw={"height_ratios": [2, 1.4], "hspace": 0.12})
+    fig.patch.set_facecolor("white")
+    for ax, ser, label in ((ax_s, series, "Suspected cases / week"),
+                           (ax_c, confirmed, "Confirmed cases / week")):
+        for e in ser.values():
+            if e["method"] == "observed" and e["sch"]:
+                ax.bar(mdates.date2num(e["monday"]), e["sch"], width=5.5, color=COLORS[e["source"]],
+                       alpha=0.85, linewidth=0, align="edge")
+            elif e["method"] == "undistributed" and e.get("period_total"):
+                wks = sum(1 for x in ser.values() if x["method"] == "undistributed"
+                          and x["_origin"] == e["_origin"] and x["source"] == e["source"])
+                x0 = mdates.date2num(e["monday"])
+                ax.add_patch(mpatches.Rectangle((x0, 0), 7 * max(wks, 1), e["period_total"] / max(wks, 1),
+                                                facecolor=COLORS[e["source"]], alpha=0.25, hatch="//",
+                                                edgecolor=COLORS[e["source"]], linewidth=0))
+        _style_xaxis(ax)
+        _fmt_yaxis(ax)
+        ax.set_ylabel(label, fontsize=10)
+        ax.autoscale_view()
+    ax_s.set_xlim(mdates.date2num(SERIES_START), mdates.date2num(SERIES_END + timedelta(weeks=4)))
+    n_obs = sum(1 for e in series.values() if e["method"] == "observed")
+    n_und = sum(1 for e in series.values() if e["method"] == "undistributed")
+    n_conf = len(confirmed)
+    ax_s.text(0.0, 1.01, f"Suspected: observed {n_obs} wks | undistributed {n_und} wks (hatched: "
+              f"period total at its mean weekly level)   Confirmed: observed {n_conf} wks   "
+              f"No zero weeks (zero_policy none); no seasonal template", transform=ax_s.transAxes,
+              fontsize=8, color="#888", va="bottom", ha="left")
+    ax_s.set_title(f"{country_name}  ({iso})  -  Weekly Cholera Surveillance (PILOT: count types "
+                   f"kept separate)", fontsize=13, fontweight="bold", color="#222", pad=22, loc="left")
+    handles = [mpatches.Patch(facecolor=COLORS[k], alpha=0.85, label=k) for k in ("JHU", "WHO", "AI")]
+    ax_s.legend(handles=handles, loc="upper right", fontsize=9, frameon=False, ncol=3)
+    fig_dir.mkdir(parents=True, exist_ok=True)
+    out = fig_dir / f"cholera_timeseries_{iso}.png"
+    fig.savefig(out, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
     return out
 
 # ---------------------------------------------------------------------------
@@ -966,10 +1346,14 @@ def main(argv=None):
     }
     targets = sorted(country_map)
     if args.iso:
-        targets = [i.upper() for i in args.iso]
-        bad = [i for i in targets if i not in country_map]
-        if bad:
-            raise SystemExit(f"not MOSAIC framework countries: {bad}")
+        # MOSAIC or named pilot countries (reference/pipeline_countries.json).
+        # A pilot is built only when named; the default run is the 40.
+        try:
+            targets = scope.resolve_isos(args.iso)
+        except ValueError as e:
+            raise SystemExit(str(e))
+    for iso in targets:
+        iso_to_name.setdefault(iso, scope.country_name(iso))
 
     print(f"Building seasonal templates for {len(country_map)} countries…")
     templates = build_all_templates(country_map)
@@ -992,6 +1376,24 @@ def main(argv=None):
 
         diag = {}
         series = process_country(iso, template_info, diag)
+        if diag.get("typed"):
+            csv_path = write_typed_outputs(iso, series, diag, out_dir)
+            csvs.append(csv_path)
+            if not args.no_plots:
+                plots.append(plot_typed_series(iso, series, diag["confirmed"],
+                                               iso_to_name.get(iso, iso),
+                                               BASE_DIR / "figures" / "pilot" / iso))
+            n_obs = sum(1 for e in series.values() if e["method"] == "observed")
+            n_und = sum(1 for e in series.values() if e["method"] == "undistributed")
+            prov = sorted({f"{p['source_key']}:{p['TL'][:4]}" for p in diag["periods"]
+                           if p["status"] == "provisional"})
+            print(f"  {iso} [typed pilot path]: suspected {n_obs} observed + {n_und} undistributed wks; "
+                  f"confirmed {len(diag['confirmed'])} observed wks; "
+                  f"{len(diag['periods'])} period totals; {len(diag['holdout'])} rows held out "
+                  f"(see data/{iso}/builder_holdout.csv)")
+            if prov:
+                print(f"      provisional count types used: {', '.join(prov)}")
+            continue
         if not series:
             print(f"  {iso}: no data")
             continue

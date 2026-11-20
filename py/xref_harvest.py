@@ -1985,6 +1985,13 @@ class BuilderGate:
     def series(self, iso, extra_row=None):
         if iso not in self.templates:
             return None
+        # Pilot countries on the builder's typed path (count types kept apart,
+        # no zeros, multi-week totals undistributed) have no Fourier residual
+        # arithmetic for this gate to protect, and their undistributed weeks
+        # carry no weekly count. The gate is skipped for them, as for a country
+        # with no template.
+        if self.bwt._is_typed(iso):
+            return None
         if extra_row is None:
             self.bwt.DATA_DIR = self.real
         else:
