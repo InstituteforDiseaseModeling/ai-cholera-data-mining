@@ -5,6 +5,14 @@ Writes two things from one shared fragment:
   dashboard/country_status.html   standalone page
   dashboard/dashboard.html        injected between the COUNTRY-STATUS markers
 
+and, below it in both, a separate "Pilot countries" section (between the
+PILOT-COUNTRIES markers in the dashboard) for countries outside the 40 that
+were processed because they were named (reference/pipeline_countries.json,
+pilot=true; currently Nepal). Both country sets come from py/scope.py:
+mosaic_isos() for the table and every total, pilot_isos() for the pilot
+section. Nothing iterates over data/* directories, so a pilot's files can
+never enter the 40-country table or its totals.
+
 The table answers one question: what has the pipeline done to each country?
 Data-quality questions (how much of a series is a real measurement rather than a
 model fill) belong on a separate evidence page, not here.
@@ -37,10 +45,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "py"))
+import scope  # noqa: E402  (mosaic_isos() for the table, pilot_isos() for the pilot section)
+from stamp_figure_versions import pilot_figure_version  # noqa: E402
+
 OUT_PAGE = ROOT / "dashboard" / "country_status.html"
 DASHBOARD = ROOT / "dashboard" / "dashboard.html"
 MARK_START = "<!-- COUNTRY-STATUS:START -->"
 MARK_END = "<!-- COUNTRY-STATUS:END -->"
+PILOT_START = "<!-- PILOT-COUNTRIES:START -->"
+PILOT_END = "<!-- PILOT-COUNTRIES:END -->"
+PILOT_REF = ROOT / "reference" / "pilot"
 
 AGENT_NAMES = {
     1: "Baseline collection",
@@ -263,10 +278,8 @@ def active_countries():
     return out
 
 
-def collect():
-    cmap = json.loads((ROOT / "reference" / "country_mapping.json").read_text())["countries"]
-    mosaic = sorted(k for k, v in cmap.items() if v.get("mosaic_framework"))
-
+def run_context():
+    """Manifest-derived state shared by the MOSAIC table and the pilot section."""
     manifest = read_csv(ROOT / "reference" / "run_manifest.csv")
     run, productive = {}, {}
     for r in manifest:
@@ -285,10 +298,6 @@ def collect():
         if r.get("status") == "done" or moved:
             productive[iso] = r
 
-    rec = {r["iso_code"]: r for r in
-           read_csv(ROOT / "reference" / "effective_surveillance_recency.csv")}
-    active = active_countries()
-
     starts = [r.get("started") for r in manifest if r.get("started")]
     cycle_start = None
     if starts:
@@ -296,59 +305,117 @@ def collect():
             cycle_start = datetime.strptime(min(starts), "%Y-%m-%d %H:%M:%S").timestamp()
         except ValueError:
             cycle_start = None
+    return {"run": run, "productive": productive, "active": active_countries(),
+            "cycle_start": cycle_start}
 
-    rows = []
-    for iso in mosaic:
-        st = run.get(iso, {})
-        flags = agents_run(iso, cycle_start)
-        n_now = sum(1 for f in flags if f == "now")
-        had_full = last_full_pass(iso) is not None
 
-        # The state describes the DATA and the qualifier the refresh. Calling a
-        # country "Queued" implied it had never been processed, which was wrong
-        # for all 40 of them.
-        if had_full:
-            state, cls = "Complete", "ok"
-        elif n_now:
-            state, cls = "In progress", "warn"
-        else:
-            state, cls = "Not yet processed", "wait"
+def status_row(iso, name, ctx, rec):
+    """One country's pipeline state, agents, last run and AI-layer description."""
+    run, productive = ctx["run"], ctx["productive"]
+    active, cycle_start = ctx["active"], ctx["cycle_start"]
+    st = run.get(iso, {})
+    flags = agents_run(iso, cycle_start)
+    n_now = sum(1 for f in flags if f == "now")
+    had_full = last_full_pass(iso) is not None
 
-        if iso in active:
-            qual, qcls = "running now", "run"
-        elif n_now >= 7:
-            qual, qcls = "refreshed this cycle", "ok"
-        elif n_now:
-            qual, qcls = f"refreshing, {n_now} of 7", "warn"
-        else:
-            qual, qcls = "awaiting refresh", "wait"
+    # The state describes the DATA and the qualifier the refresh. Calling a
+    # country "Queued" implied it had never been processed, which was wrong
+    # for all 40 of them.
+    if had_full:
+        state, cls = "Complete", "ok"
+    elif n_now:
+        state, cls = "In progress", "warn"
+    else:
+        state, cls = "Not yet processed", "wait"
 
-        last = productive.get(iso, {})
-        try:
-            delta = int(last.get("rows_after") or 0) - int(last.get("rows_before") or 0)
-        except ValueError:
-            delta = 0
+    if iso in active:
+        qual, qcls = "running now", "run"
+    elif n_now >= 7:
+        qual, qcls = "refreshed this cycle", "ok"
+    elif n_now:
+        qual, qcls = f"refreshing, {n_now} of 7", "warn"
+    else:
+        qual, qcls = "awaiting refresh", "wait"
 
-        when = (last.get("finished") or "")[:16]
-        if not when:
-            lfp = last_full_pass(iso)
-            when = lfp.strftime("%Y-%m-%d") if lfp else ""
-            delta = 0
+    last = productive.get(iso, {})
+    try:
+        delta = int(last.get("rows_after") or 0) - int(last.get("rows_before") or 0)
+    except ValueError:
+        delta = 0
 
-        lo, hi = data_span(iso)
-        r = rec.get(iso, {}) or {}
-        rows.append({
-            "iso": iso, "name": cmap[iso].get("name", iso),
-            "state": state, "cls": cls, "qual": qual, "qcls": qcls,
-            "flags": flags, "n_agents": n_now,
-            "last_run": when, "delta": delta,
-            "last_obs": r.get("latest_observation", ""),
-            "last_positive": r.get("latest_positive_observation", ""),
-            "obs": count_rows(ROOT / "data" / iso / "cholera_data_ai.csv"),
-            "sources": count_rows(ROOT / "data" / iso / "metadata_ai.csv"),
-            "span": f"{lo}–{hi}" if lo else "",
+    when = (last.get("finished") or "")[:16]
+    if not when:
+        lfp = last_full_pass(iso)
+        when = lfp.strftime("%Y-%m-%d") if lfp else ""
+        delta = 0
+
+    lo, hi = data_span(iso)
+    r = rec.get(iso, {}) or {}
+    return {
+        "iso": iso, "name": name,
+        "state": state, "cls": cls, "qual": qual, "qcls": qcls,
+        "flags": flags, "n_agents": n_now,
+        "last_run": when, "delta": delta,
+        "last_obs": r.get("latest_observation", ""),
+        "last_positive": r.get("latest_positive_observation", ""),
+        "obs": count_rows(ROOT / "data" / iso / "cholera_data_ai.csv"),
+        "sources": count_rows(ROOT / "data" / iso / "metadata_ai.csv"),
+        "span": f"{lo}–{hi}" if lo else "",
+        "manifest_status": st.get("status", ""),
+    }
+
+def collect():
+    """The 40 MOSAIC countries (scope.mosaic_isos()); pilots never appear here."""
+    cmap = json.loads((ROOT / "reference" / "country_mapping.json").read_text())["countries"]
+    ctx = run_context()
+    rec = {r["iso_code"]: r for r in
+           read_csv(ROOT / "reference" / "effective_surveillance_recency.csv")}
+    return [status_row(iso, cmap[iso].get("name", iso), ctx, rec) for iso in scope.mosaic_isos()]
+
+
+def weekly_counts(iso):
+    """Weeks in a pilot's typed series: (suspected observed, suspected
+    undistributed, confirmed observed), from data/{ISO}/cholera_weekly_*.csv."""
+    s = read_csv(ROOT / "data" / iso / f"cholera_weekly_{iso}.csv")
+    c = read_csv(ROOT / "data" / iso / f"cholera_weekly_confirmed_{iso}.csv")
+    meth = [r.get("disaggregation_method", "") for r in s]
+    return (sum(1 for m in meth if m == "observed"),
+            sum(1 for m in meth if m == "undistributed"),
+            sum(1 for r in c if r.get("disaggregation_method", "observed") == "observed"))
+
+
+def collect_pilots():
+    """Pilot countries that have been processed (data/{ISO}/ exists), from
+    scope.pilot_isos(). Coverage and recency come from reference/pilot/, which
+    analyze_effective_gaps.py writes for pilots instead of the shared files."""
+    ctx = run_context()
+    rec = {r["iso_code"]: r for r in read_csv(PILOT_REF / "effective_surveillance_recency.csv")}
+    cov = {r["iso_code"]: r for r in read_csv(PILOT_REF / "effective_surveillance_gaps_coverage.csv")}
+    out = []
+    for iso in scope.pilot_isos():
+        d = ROOT / "data" / iso
+        if not d.is_dir():
+            continue
+        r = status_row(iso, scope.country_name(iso), ctx, rec)
+        # A finished manifest row outranks a matching process: the session that
+        # finishes a pilot also publishes the page, so it is still alive then.
+        if r["manifest_status"] == "done" and r["qual"] == "running now":
+            r["qual"], r["qcls"] = ("refreshed this cycle", "ok") if r["n_agents"] >= 7 \
+                else (f"refreshing, {r['n_agents']} of 7", "warn")
+        meta = scope.country_meta(iso)
+        fig = ROOT / "figures" / "pilot" / iso / f"cholera_timeseries_{iso}.png"
+        r.update({
+            "subregion": meta.get("subregion", ""),
+            "prefix": scope.location_prefix(iso),
+            "tag": scope.pilot_tag(iso) or "",
+            "presence": count_rows(d / "cholera_presence_ai.csv"),
+            "coverage": cov.get(iso, {}),
+            "weeks": weekly_counts(iso),
+            "figure": f"../figures/pilot/{iso}/{fig.name}" if fig.exists() else "",
+            "report": (d / "search_report.txt").exists(),
         })
-    return rows
+        out.append(r)
+    return out
 
 
 # ------------------------------------------------------------------ render --
@@ -428,7 +495,109 @@ historical sources; the qualifier beside each state shows how far that has got.
 </div>"""
 
 
-def standalone_page(rows):
+PILOT_CSS = """
+<style>
+.cs-wrap.cs-pilot { margin-top:2.4rem; padding-top:1.1rem; border-top:2px solid #e6e6e6; }
+.cs-wrap .cs-pilot-h { font-size:1.15rem; margin:0 0 .4rem; }
+.cs-wrap .cs-badge-pilot { display:inline-block; padding:.08rem .5rem; border-radius:10px;
+    font-size:.7rem; font-weight:700; letter-spacing:.06em; vertical-align:middle;
+    background:#efe5fb; color:#55288a; }
+.cs-wrap .cs-pilot-note { border-left:3px solid #8a5cc2; background:#f9f5fe;
+    padding:.6rem .85rem; margin:.5rem 0 .9rem; font-size:.88rem; }
+.cs-wrap .cs-pilot-table th { cursor:default; }
+.cs-wrap .cs-pilot-table td { white-space:normal; vertical-align:top; }
+.cs-wrap .cs-pilot-sub { display:block; color:#6b6b6b; font-size:.78rem; }
+.cs-wrap .cs-pilot-fig { margin:1rem 0 0; }
+.cs-wrap .cs-pilot-fig img { max-width:100%; height:auto; border:1px solid #e6e6e6; }
+.cs-wrap .cs-pilot-fig figcaption { color:#6b6b6b; font-size:.83rem; margin-top:.35rem; }
+</style>
+"""
+
+
+def pilot_fragment(prows, pversion=None):
+    """The separate "Pilot countries" section.
+
+    Pilot rows use class cs-pilot-iso, never cs-iso, so py/validate_dashboard.py
+    counts the 40 MOSAIC rows and the pilot rows apart. The figure URL carries
+    the pilot figure stamp (py/stamp_figure_versions.py), separate from the
+    40 countries' stamp.
+    """
+    if pversion is None:
+        pversion = pilot_figure_version()
+    codes = ", ".join(f"{r['prefix']}::{r['iso']}" for r in prows)
+    head = "".join(f"<th>{h}</th>" for h in
+                   ("ISO", "Country", "Pipeline state", "Agents run", "Last run",
+                    "Current data", "Coverage", "Weekly series"))
+    body, figs = [], []
+    for r in prows:
+        c = r["coverage"]
+        cov = (f'{float(c.get("percent_coverage") or 0):.1f}% of months '
+               f'({c.get("months_with_data", "")}/{c.get("total_months", "")})'
+               f'<small class="cs-pilot-sub">{c.get("gap_periods", "")} gap period(s); '
+               f'{c.get("months_ai_only", "")} months from the AI layer alone</small>'
+               if c else "&mdash;")
+        so, su, co = r["weeks"]
+        weeks = (f'suspected: {so:,} observed + {su:,} undistributed wks'
+                 f'<small class="cs-pilot-sub">confirmed: {co:,} observed wks</small>')
+        delta = (f' <small class="cs-delta" title="observations added by that run">'
+                 f'+{r["delta"]:,}</small>' if r["delta"] > 0 else "")
+        desc = (f'{r["obs"]:,} observations &middot; {r["sources"]:,} sources'
+                + (f' &middot; {r["span"]}' if r["span"] else "")
+                + f'<small class="cs-pilot-sub">{r["presence"]:,} presence-only records '
+                  f'(cholera reported, no count); no zero rows</small>')
+        body.append(
+            f'<tr>'
+            f'<td class="cs-pilot-iso" data-sort="{r["iso"]}">{r["iso"]} '
+            f'<span class="cs-badge-pilot">PILOT</span></td>'
+            f'<td>{r["name"]}<small class="cs-pilot-sub">{r["subregion"]} &middot; '
+            f'{r["prefix"]}::{r["iso"]}</small></td>'
+            f'<td><span class="cs-pill {r["cls"]}">{r["state"]}</span>'
+            f'<small class="cs-qual {r["qcls"]}">{r["qual"]}</small></td>'
+            f'<td>{agent_dots(r["flags"])}</td>'
+            f'<td class="cs-dt">{r["last_run"] or "&mdash;"}{delta}</td>'
+            f'<td class="cs-desc">{desc}</td>'
+            f'<td class="cs-desc">{cov}</td>'
+            f'<td class="cs-desc">{weeks}</td>'
+            f'</tr>')
+        iso = r["iso"]
+        links = ([f'<a href="../data/{iso}/search_report.txt">audit report</a>'] if r["report"] else []) + [
+            f'<a href="../data/{iso}/cholera_data_ai.csv">AI observations</a>',
+            f'<a href="../data/{iso}/metadata_ai.csv">sources</a>',
+            f'<a href="../data/{iso}/cholera_weekly_{iso}.csv">suspected weekly series</a>',
+            f'<a href="../data/{iso}/cholera_weekly_confirmed_{iso}.csv">confirmed weekly series</a>',
+            f'<a href="../data/{iso}/cholera_period_totals_{iso}.csv">period totals</a>']
+        if r["figure"]:
+            figs.append(
+                f'<figure class="cs-pilot-fig">'
+                f'<img src="{r["figure"]}?v={pversion}" loading="lazy" '
+                f'alt="{r["name"]} weekly cholera series, pilot: suspected and laboratory-confirmed panels">'
+                f'<figcaption><b>{r["name"]} ({iso}), pilot.</b> Top: suspected cases per ISO week '
+                f'(observed weeks as bars; multi-week totals shown as undistributed bands rather than '
+                f'spread across weeks). Bottom: laboratory-confirmed cases per week. Weeks without data '
+                f'are left empty. {" &middot; ".join(links)}</figcaption></figure>')
+        else:
+            figs.append(f'<p class="cs-hint">{" &middot; ".join(links)}</p>')
+    table = (f'<table class="cs-table cs-pilot-table">\n<thead><tr>{head}</tr></thead>\n'
+             f'<tbody>\n{chr(10).join(body)}\n</tbody></table>') if body else \
+        '<p class="cs-hint">No pilot country has been processed.</p>'
+    where = f" ({codes})" if codes else ""
+    return f"""<div class="cs-wrap cs-pilot">
+{PILOT_CSS}
+<h3 class="cs-pilot-h">Pilot countries <span class="cs-badge-pilot">PILOT</span></h3>
+<div class="cs-pilot-note"><b>Outside the 40 MOSAIC framework countries.</b> Pilot countries
+are processed only when named explicitly, to test whether the pipeline generalises beyond
+Africa. They are excluded from every 40-country table, figure, total and coverage statistic
+on this dashboard, and MOSAIC-pkg does not read them. Locations use the country's WHO region
+prefix{where}, not AFR::. The weekly series uses only rows whose count type is documented
+(reference/count_basis/), keeps suspected and laboratory-confirmed cases in separate series,
+has no zero rows, and leaves multi-week totals undistributed. Coverage counts any
+observation, including years held out of the typed series. Not yet suitable for modelling.</div>
+{table}
+{chr(10).join(figs)}
+</div>"""
+
+
+def standalone_page(rows, pilot_html=""):
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -452,6 +621,7 @@ surveillance data across the 40 MOSAIC framework countries.</p>
 have not been fully validated by human experts and may change as methods are
 refined. Verify independently before use.</div>
 {fragment(rows)}
+{pilot_html}
 <footer>
 Generated {datetime.now(timezone.utc).astimezone():%Y-%m-%d %H:%M %Z} &middot;
 <a href="dashboard.html">Full dashboard</a> &middot;
@@ -502,9 +672,10 @@ def live_stats():
             sum(1 for r in base if fnum(r, "percent_coverage") == 0))
 
     # WHO baseline extent, so "2023-2025" cannot go stale again.
+    # The 40 MOSAIC countries only (scope.mosaic_isos()), not every data/* dir.
     lo, hi = "9999", "0000"
-    for d in (ROOT / "data").iterdir():
-        f = d / "cholera_data_who.csv"
+    for iso in scope.mosaic_isos():
+        f = ROOT / "data" / iso / "cholera_data_who.csv"
         if not f.exists():
             continue
         for r in read_csv(f):
@@ -541,8 +712,10 @@ def patch_stats(html, stats):
     return out, n
 
 
-def inject(frag):
-    """Replace the marked region of the production dashboard."""
+def inject(frag, pilot_html=None):
+    """Replace the marked regions of the production dashboard: the country
+    table (COUNTRY-STATUS) and the pilot section (PILOT-COUNTRIES, created
+    directly below the table on first use)."""
     if not DASHBOARD.exists():
         print(f"  skipped: {DASHBOARD.relative_to(ROOT)} not found")
         return False
@@ -557,6 +730,15 @@ def inject(frag):
     i = html.index(MARK_START)
     j = html.index(MARK_END, i) + len(MARK_END)
     new = html[:i] + MARK_START + "\n" + frag + "\n" + MARK_END + html[j:]
+    if pilot_html is not None:
+        block = PILOT_START + "\n" + pilot_html + "\n" + PILOT_END
+        if PILOT_START in new and PILOT_END in new:
+            i = new.index(PILOT_START)
+            j = new.index(PILOT_END, i) + len(PILOT_END)
+            new = new[:i] + block + new[j:]
+        else:
+            k = new.index(MARK_END) + len(MARK_END)
+            new = new[:k] + "\n" + block + new[k:]
 
     stats = live_stats()
     new, n_stats = patch_stats(new, stats)
@@ -574,11 +756,14 @@ def inject(frag):
 
 def main():
     rows = collect()
+    prows = collect_pilots()
     frag = fragment(rows)
+    pilot_html = pilot_fragment(prows, pilot_figure_version())
     OUT_PAGE.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PAGE.write_text(standalone_page(rows))
-    print(f"Wrote {OUT_PAGE.relative_to(ROOT)}  ({len(rows)} countries)")
-    inject(frag)
+    OUT_PAGE.write_text(standalone_page(rows, pilot_html))
+    print(f"Wrote {OUT_PAGE.relative_to(ROOT)}  ({len(rows)} countries, "
+          f"{len(prows)} pilot: {' '.join(r['iso'] for r in prows) or 'none'})")
+    inject(frag, pilot_html)
     return 0
 
 

@@ -14,6 +14,10 @@ import io
 import re
 from pathlib import Path
 from collections import defaultdict
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402  (default loop = the 40 MOSAIC countries; pilots only when named)
 
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -206,7 +210,9 @@ def main(dry_run: bool = False):
     print(f"{'DRY RUN — ' if dry_run else ''}Normalizing metadata_ai.csv files\n")
     print(f"{'='*60}")
 
-    for d in sorted(DATA_DIR.iterdir()):
+    # Explicit scope (scope.mosaic_isos()), not every data/* directory: a pilot
+    # country (data/NPL/) must never enter a default all-country loop.
+    for d in (DATA_DIR / iso for iso in scope.mosaic_isos()):
         if not d.is_dir():
             continue
         iso = d.name

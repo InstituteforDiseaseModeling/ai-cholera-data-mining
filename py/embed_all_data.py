@@ -11,6 +11,11 @@ import pandas as pd
 from pathlib import Path
 import re
 from datetime import datetime
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402  (default loop = the 40 MOSAIC countries; pilots only when named)
+MOSAIC = set(scope.mosaic_isos())
 
 def read_csv_safe(file_path):
     """Read CSV file with proper error handling and encoding."""
@@ -44,7 +49,7 @@ def get_completed_countries():
         with open('dashboard/completion_checklist.csv', 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row.get('status') == 'COMPLETED':
+                if row.get('status') == 'COMPLETED' and row.get('iso') in MOSAIC:
                     completed.append(row.get('iso'))
         return completed
     except Exception as e:
@@ -58,7 +63,8 @@ def get_all_countries():
         with open('dashboard/completion_checklist.csv', 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                countries.append(row.get('iso'))
+                if row.get('iso') in MOSAIC:
+                    countries.append(row.get('iso'))
         return countries
     except Exception as e:
         print(f"Error reading completion checklist: {e}")
@@ -82,7 +88,7 @@ def process_who_data():
         who_df = df[df['source'] == 'WHO'].copy()
         
         # Group by country and format as CSV for embedding
-        for iso_code in who_df['iso_code'].unique():
+        for iso_code in (i for i in who_df['iso_code'].unique() if i in MOSAIC):
             country_data = who_df[who_df['iso_code'] == iso_code].copy()
             
             # Sort by year and week
@@ -117,7 +123,7 @@ def process_jhu_data():
         jhu_df = df[df['source'] == 'JHU'].copy()
         
         # Group by country and format as CSV for embedding
-        for iso_code in jhu_df['iso_code'].unique():
+        for iso_code in (i for i in jhu_df['iso_code'].unique() if i in MOSAIC):
             country_data = jhu_df[jhu_df['iso_code'] == iso_code].copy()
             
             # Sort by year and week

@@ -25,6 +25,10 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 from PIL import Image
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402  (explicit country sets: mosaic_isos(), pilot_isos())
 
 # ============================================================================
 # COMPLETION CHECKLIST FUNCTIONS
@@ -797,9 +801,15 @@ def update_dashboard_html(base_path: Path, updated_data: List[Dict]):
     # observations table fetches data/{ISO}/cholera_data_ai.csv on demand (the
     # Pages deploy publishes the whole repo with the page). embeddedCholeraData
     # stays as an empty stub.
+    #
+    # Explicit scope: the 40 MOSAIC countries (scope.mosaic_isos()). This loop
+    # used to iterate every data/* directory, which embedded the Nepal pilot's
+    # sources (data/NPL/) into the 40-country sources table on 2026-11-22.
+    # Pilot countries have their own section (py/generate_country_status_page.py).
     metadata_dict = {}
     data_dir = base_path / "data"
-    for country_dir in sorted(data_dir.iterdir()):
+    for iso in scope.mosaic_isos():
+        country_dir = data_dir / iso
         metadata_file = country_dir / "metadata_ai.csv"
         if not (country_dir.is_dir() and metadata_file.exists()):
             continue

@@ -17,6 +17,9 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402  (default loop = the 40 MOSAIC countries; pilots only when named)
+
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"
 OUTPUT_DIR = BASE_DIR / "reference"
@@ -109,7 +112,9 @@ def load_all_urls():
     all_entries = []
     missing_files = []
 
-    for country_dir in sorted(DATA_DIR.iterdir()):
+    # Explicit scope (scope.mosaic_isos()), not every data/* directory: a pilot
+    # country (data/NPL/) must never enter a default all-country loop.
+    for country_dir in (DATA_DIR / iso for iso in scope.mosaic_isos()):
         if not country_dir.is_dir():
             continue
         iso = country_dir.name

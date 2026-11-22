@@ -34,6 +34,8 @@ from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import scope  # noqa: E402  (default loop = the 40 MOSAIC countries; pilots only when named)
 CALENDAR = ROOT / "reference" / "who_epiweek_calendar.json"
 NOTE_RE = re.compile(r"for week (\d+) of (\d{4})")
 
@@ -52,7 +54,9 @@ def main():
     a = ap.parse_args()
 
     cal = load_calendar()
-    files = sorted((ROOT / "data").glob("*/cholera_data_who.csv"))
+    # The 40 MOSAIC countries only (scope.mosaic_isos()), not every data/* dir.
+    files = [f for f in (ROOT / "data" / iso / "cholera_data_who.csv" for iso in scope.mosaic_isos())
+             if f.exists()]
     tot_rows = tot_fixed = 0
     by_year = {}
     changed_files = []

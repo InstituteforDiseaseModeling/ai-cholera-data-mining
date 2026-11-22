@@ -14,6 +14,14 @@ file that no test covered:
 
 Both were mechanical and both would have been caught here. Run before publishing.
 
+Country scope is checked explicitly against py/scope.py: the country table and
+the embedded source metadata must hold exactly the 40 MOSAIC countries, and the
+separate "Pilot countries" section exactly the processed pilot countries
+(scope.pilot_isos() with a data/{ISO}/ directory). A rebuild that iterated over
+data/* once embedded the Nepal pilot's sources into the 40-country tables.
+dashboard/country_status.html is checked the same way when the default
+dashboard is validated.
+
 Exit status: 0 all checks pass, 1 a check failed.
 
 Usage:
@@ -29,6 +37,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT = ROOT / "dashboard" / "dashboard.html"
+STATUS_PAGE = ROOT / "dashboard" / "country_status.html"
+PILOT_START = "<!-- PILOT-COUNTRIES:START -->"
+PILOT_END = "<!-- PILOT-COUNTRIES:END -->"
+sys.path.insert(0, str(ROOT / "py"))
+import scope  # noqa: E402
 
 # The page is large because the source metadata is embedded in it (the
 # observations are not: they load from data/{ISO}/cholera_data_ai.csv). A result
@@ -49,6 +62,8 @@ REQUIRED = [
     "/cholera_data_ai.csv`",
     "<!-- COUNTRY-STATUS:START -->",
     "<!-- COUNTRY-STATUS:END -->",
+    PILOT_START,
+    PILOT_END,
 ]
 
 
@@ -57,14 +72,80 @@ def strip_css_noise(css):
     return re.sub(r'"[^"]*"|\'[^\']*\'', "", css)
 
 
-def check(path):
-    fails = []
-    t = path.read_text()
-
+def make_ok(fails):
     def ok(name, cond, detail=""):
         print(f"  {'PASS' if cond else 'FAIL'}  {name}" + (f"  {detail}" if detail and not cond else ""))
         if not cond:
             fails.append(name)
+    return ok
+
+
+def embedded_keys(t, decl):
+    """Top-level keys of `<decl> = { 'ISO': `...`, ... }`. Template literals are
+    skipped (their text is CSV with backslash escapes), so only real keys count."""
+    m = re.search(re.escape(decl) + r"\s*=\s*\{", t)
+    if not m:
+        return []
+    keys, depth, in_tpl, i, start = [], 1, False, m.end(), m.end()
+    while i < len(t) and depth:
+        c = t[i]
+        if in_tpl:
+            if c == "\\":
+                i += 2
+                continue
+            if c == "`":
+                in_tpl = False
+                start = i + 1
+        elif c == "`":
+            km = re.search(r"['\"]?([A-Za-z0-9_]+)['\"]?\s*:\s*$", t[start:i])
+            if km:
+                keys.append(km.group(1))
+            in_tpl = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+        i += 1
+    return keys
+
+
+def mosaic_rows(t):
+    return re.findall(r'<td class="cs-iso" data-sort="([A-Z]{3})"', t)
+
+
+def pilot_checks(t, ok, label):
+    """The pilot section: exactly the processed pilot countries, badged, kept
+    apart from the 40-country table, each with its prefix and its figure."""
+    pilots = sorted(i for i in scope.pilot_isos() if (ROOT / "data" / i).is_dir())
+    if PILOT_START in t and PILOT_END in t:
+        i = t.index(PILOT_START)
+        sec = t[i:t.index(PILOT_END, i)]
+    else:
+        k = t.find('<div class="cs-wrap cs-pilot">')
+        sec = t[k:] if k >= 0 else ""
+    rows = re.findall(r'<td class="cs-pilot-iso" data-sort="([A-Z]{3})"', t)
+    ok(f"{label}: pilot section present", bool(sec))
+    ok(f"{label}: pilot rows = processed pilot countries {pilots}", sorted(rows) == pilots,
+       f"found {rows}")
+    ok(f"{label}: pilot rows only inside the pilot section",
+       sec.count('<td class="cs-pilot-iso"') == len(rows))
+    ok(f"{label}: pilot section badged PILOT and marked outside the 40",
+       "cs-badge-pilot" in sec and "Outside the 40 MOSAIC framework countries" in sec)
+    ok(f"{label}: no pilot country in the 40-country table",
+       not set(mosaic_rows(t)) & set(scope.pilot_isos()))
+    for iso in pilots:
+        code = f"{scope.location_prefix(iso)}::{iso}"
+        ok(f"{label}: {iso} row shows its location prefix {code}", code in sec)
+        fig = ROOT / "figures" / "pilot" / iso / f"cholera_timeseries_{iso}.png"
+        if fig.exists():
+            ok(f"{label}: {iso} weekly-series figure shown",
+               f"../figures/pilot/{iso}/{fig.name}?v=" in sec)
+
+
+def check(path):
+    fails = []
+    t = path.read_text()
+    ok = make_ok(fails)
 
     ok(f"size within {MIN_BYTES//1_000_000}-{MAX_BYTES//1_000_000} MB",
        MIN_BYTES < len(t) < MAX_BYTES, f"{len(t):,} bytes")
@@ -132,15 +213,46 @@ def check(path):
     ok("country table populated",
        t.count('<td class="cs-iso"') == 40, f'{t.count(chr(60) + "td class=" + chr(34) + "cs-iso" + chr(34))} rows')
 
+    # ---- country scope: the 40 MOSAIC countries and the pilots, apart --
+    mosaic = scope.mosaic_isos()
+    ok("country table = the 40 MOSAIC countries (scope.mosaic_isos())",
+       len(mosaic) == 40 and sorted(mosaic_rows(t)) == mosaic,
+       f"{len(mosaic_rows(t))} rows; not MOSAIC: {sorted(set(mosaic_rows(t)) - set(mosaic))}")
+    meta_keys = embedded_keys(t, "const embeddedMetadata")
+    leaked = sorted(set(meta_keys) - set(mosaic))
+    ok("embedded metadata limited to the 40 MOSAIC countries",
+       bool(meta_keys) and not leaked, f"non-MOSAIC keys: {leaked}")
+    pilot_checks(t, ok, "dashboard")
+
     # ---- figure URLs cache-busted to the current figure set ----------
     # Pages caches PNGs for 4 h at fixed URLs; without a current ?v= stamp the
     # live page pairs new data with old figures (py/stamp_figure_versions.py).
     sys.path.insert(0, str(ROOT / "py"))
-    from stamp_figure_versions import FIG_REF, figure_version, stale_refs
-    stale = stale_refs(t, figure_version())
+    from stamp_figure_versions import FIG_REF, figure_version, pilot_figure_version, stale_refs
+    stale = stale_refs(t, figure_version(), pilot_figure_version())
     ok("figure URLs stamped with current figure version",
        bool(FIG_REF.search(t)) and not stale, f"{len(stale)} stale, e.g. {stale[:1]}")
 
+    return fails
+
+
+def check_status_page(path):
+    """dashboard/country_status.html: same scope rules as the dashboard."""
+    fails = []
+    t = path.read_text()
+    ok = make_ok(fails)
+    mosaic = scope.mosaic_isos()
+    ok("status page: country table = the 40 MOSAIC countries",
+       sorted(mosaic_rows(t)) == mosaic, f"{len(mosaic_rows(t))} rows")
+    pilot_checks(t, ok, "status page")
+    body = re.sub(r"<script\b.*?</script>", " ", t, flags=re.S)
+    for tag in ("div", "table", "tbody", "thead"):
+        o = len(re.findall(rf"<{tag}\b", body))
+        c = len(re.findall(rf"</{tag}>", body))
+        ok(f"status page: <{tag}> balanced", o == c, f"{o} open / {c} close")
+    from stamp_figure_versions import figure_version, pilot_figure_version, stale_refs
+    stale = stale_refs(t, figure_version(), pilot_figure_version())
+    ok("status page: figure URLs stamped", not stale, f"{len(stale)} stale, e.g. {stale[:1]}")
     return fails
 
 
@@ -151,6 +263,9 @@ def main():
         return 1
     print(f"Validating {path}")
     fails = check(path)
+    if len(sys.argv) <= 1 and STATUS_PAGE.exists():
+        print(f"Validating {STATUS_PAGE}")
+        fails += check_status_page(STATUS_PAGE)
     print()
     if fails:
         print(f"{len(fails)} check(s) FAILED: {', '.join(fails)}")
