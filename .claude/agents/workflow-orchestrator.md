@@ -90,7 +90,8 @@ ministry URL it produced was unverifiable model recall that varied between runs.
 first-level administrative units, 244 cities, 53 ministry domains, 15 languages.
 
 **Pilot countries.** If the profile entry has a `country_notes` field (pilot
-countries listed in `reference/pipeline_countries.json`; currently Nepal, NPL),
+countries listed in `reference/pipeline_countries.json`; currently Nepal NPL and
+Bangladesh BGD),
 this country is outside the 40 and its rules differ:
 - Paste the `country_notes` list **verbatim** at the top of every subagent
   prompt, under the heading "COUNTRY RULES (override the general rules where
@@ -103,6 +104,12 @@ this country is outside the 40 and its rules differ:
   archives.
 - Agent 3 writes no zero rows for a pilot whose notes say so; brief it to
   document absence evidence in its search log and `cholera_presence_ai.csv`.
+- If the notes say Agent 3 is **repurposed** (Bangladesh), do not brief it for
+  zero-transmission validation. Brief it, with the same subagent type, to map
+  the surveillance system year by year as the notes describe; it writes no
+  rows to `cholera_data_ai.csv`.
+- If the notes name a sidecar file (Bangladesh: `sentinel_positivity_ai.csv`),
+  pass its column list to every agent that collects data.
 
 Then initialise:
 

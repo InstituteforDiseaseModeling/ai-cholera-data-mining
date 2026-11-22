@@ -44,7 +44,7 @@ extraction tooling, and the corroboration rules. This file tells you only what
    an agent that collects nothing but logs honestly has still produced a useful
    result, and one that logs nothing has not.
 7. **Scope is the 40 MOSAIC countries plus pilot countries listed in
-   `reference/pipeline_countries.json` (currently Nepal, NPL).** You may
+   `reference/pipeline_countries.json` (currently Nepal NPL and Bangladesh BGD).** You may
    *search* a neighbour for cross-border evidence; you may not create data
    files for one. Every other country stays out of scope.
 

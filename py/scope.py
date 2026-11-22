@@ -7,7 +7,7 @@ Two sets:
                  preflight, dashboard, supervisor, status page, gap files -
                  uses this set and nothing else.
   pilot_isos()   countries in reference/pipeline_countries.json with
-                 pilot=true (currently NPL). They are processed only when a
+                 pilot=true (currently NPL, BGD). They are processed only when a
                  caller names them explicitly; resolve_isos() enforces that.
 
 settings(iso) merges the overlay's defaults with the country's overrides:
@@ -17,6 +17,10 @@ settings(iso) merges the overlay's defaults with the country's overrides:
                      or "none" (multi-week totals are written undistributed)
   count_basis_table  builder uses only rows typed in reference/count_basis/{ISO}.csv
   zero_policy        "default" or "none" (no zero rows of any kind)
+  strict_basis       every national value (sCh or cCh, any layer) needs a
+                     count-basis entry; untyped values are held out (BGD)
+  warn_estimate_terms validator warns on national AI rows whose notes cite
+                     estimates, models or burden figures (BGD)
 
 The overlay lives in its own file because py/get_iso_codes.py regenerates
 country_mapping.json with a fixed schema and would wipe added fields.
@@ -38,6 +42,8 @@ _FALLBACK_DEFAULTS = {
     "template_pool": "africa",
     "count_basis_table": False,
     "zero_policy": "default",
+    "strict_basis": False,
+    "warn_estimate_terms": False,
 }
 
 

@@ -2,7 +2,7 @@
 #
 # Sequential, resumable, unattended re-run of the 7-agent cholera workflow
 # across the 40 MOSAIC framework countries. Pilot countries listed in
-# reference/pipeline_countries.json (currently NPL) run only when named with
+# reference/pipeline_countries.json (currently NPL, BGD) run only when named with
 # --only; they are never in the default queue.
 #
 # ONE OS PROCESS PER COUNTRY. This is the whole point of the design: running all
@@ -106,7 +106,7 @@ mkdir -p reference
 
 # -------------------------------------------------------------------- scope --
 # --only may name the 40 MOSAIC countries and pilot countries listed in
-# reference/pipeline_countries.json (currently NPL). Pilots never enter the
+# reference/pipeline_countries.json (currently NPL, BGD). Pilots never enter the
 # default queue: they run only when named here. Anything else is refused.
 PILOTS_IN_RUN=""
 if [[ -n "$ONLY" ]]; then

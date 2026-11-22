@@ -84,7 +84,7 @@ MOSAIC = sorted(k for k, v in json.load(open(REF / "country_mapping.json"))["cou
                 if v.get("mosaic_framework"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import scope  # noqa: E402
-# Pilot countries (reference/pipeline_countries.json; currently NPL) are
+# Pilot countries (reference/pipeline_countries.json; currently NPL, BGD) are
 # harvested and screened like the 40, but `apply --all` never writes them:
 # they are processed only when named (apply --iso NPL).
 PILOTS = scope.pilot_isos()
@@ -176,9 +176,10 @@ COUNTRY_PATTERNS = [
     ("UGA", _CI(r"Uganda|Ouganda")),
     ("ZMB", _CI(r"Zambia|Zambie|Z[âa]mbia")),
     ("NPL", _CI(r"\bNepal\b|\bN[ée]pal\b|नेपाल")),
+    ("BGD", _CI(r"\bBangladesh\b|বাংলাদেশ|Cox['’]s\s+Bazar")),
     ("XOT", _CI(r"\b(?:Yemen|Y[ée]men|Afghanistan|Haiti|Ha[iï]ti|Comoros|Comores|Mayotte|Madagascar|Djibouti|"
                 r"Lesotho|Mauritius|Maurice|Cabo\s+Verde|Cape\s+Verde|Sao\s+Tome|S[ãa]o\s+Tom[ée]|Egypt|Libya|"
-                r"Tunisia|Algeria|Morocco|Syria|Lebanon|Iraq|Iran|Pakistan|India|Bangladesh|Myanmar|"
+                r"Tunisia|Algeria|Morocco|Syria|Lebanon|Iraq|Iran|Pakistan|India|Myanmar|"
                 r"Burma|Philippines|Dominican\s+Republic|Sri\s+Lanka|China|Indonesia|Ecuador|Peru|Mexico|"
                 r"Taiwan|Viet\s?Nam|Thailand|Malaysia|Cambodia|Saudi\s+Arabia|Oman|Kuwait|Bahrain|Qatar)\b")),
 ]
@@ -524,7 +525,7 @@ NDAYS = (TODAY - EPOCH).days + 800
 
 # WHO region prefixes in Location codes: JHU codes Somalia EMR::SOM (WHO EMRO),
 # and an AFR-only filter hid all 736 of its rows from screening.
-# SEAR is the Nepal pilot's prefix (reference/pipeline_countries.json).
+# SEAR is the Nepal and Bangladesh pilots' prefix (reference/pipeline_countries.json).
 REGION_PREFIXES = tuple(sorted({"AFR", "EMR"} | set(scope.all_prefixes())))
 
 
