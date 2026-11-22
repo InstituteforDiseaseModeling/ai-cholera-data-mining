@@ -795,6 +795,11 @@ COUNT_BASIS_DIR  = REF_DIR / "count_basis"
 COUNT_BASIS_COLS = ["source_key", "year_from", "year_to", "field", "basis", "status", "evidence"]
 VALID_BASIS      = {"suspected", "confirmed", "age", "mixed", "unknown"}
 VALID_STATUS     = {"verified", "inferred", "provisional"}
+# Optional column. "national" (default when blank or absent) or a count of part
+# of the country stored at the national code: "subset" (camps, one district or
+# city) or "sample" (sentinel sites, systematic samples). Any non-national
+# entry holds the whole row out of both national series (Bangladesh pilot).
+VALID_COVERAGE   = {"national", "subset", "sample"}
 
 
 def _is_typed(iso):
@@ -816,12 +821,14 @@ def load_count_basis(iso):
             try:
                 e = {"key": r["source_key"].strip(), "y0": int(r["year_from"]), "y1": int(r["year_to"]),
                      "field": r["field"].strip(), "basis": r["basis"].strip(),
-                     "status": r["status"].strip(), "line": i}
+                     "status": r["status"].strip(),
+                     "coverage": (r.get("coverage") or "").strip() or "national", "line": i}
             except (KeyError, ValueError) as ex:
                 raise SystemExit(f"{f.name} line {i}: {ex}")
             if e["field"] not in ("sCh", "cCh") or e["basis"] not in VALID_BASIS \
-                    or e["status"] not in VALID_STATUS or e["y0"] > e["y1"]:
-                raise SystemExit(f"{f.name} line {i}: bad field/basis/status/years: {dict(r)}")
+                    or e["status"] not in VALID_STATUS or e["y0"] > e["y1"] \
+                    or e["coverage"] not in VALID_COVERAGE:
+                raise SystemExit(f"{f.name} line {i}: bad field/basis/status/coverage/years: {dict(r)}")
             out.append(e)
     return out
 
@@ -851,6 +858,16 @@ def resolve_basis(entries, key, field, tl, tr):
         return "mixed", ""
     order = ["provisional", "inferred", "verified"]          # weakest status wins
     return bases.pop(), min((e["status"] for e in found), key=order.index)
+
+
+def resolve_coverage(entries, key, tl, tr):
+    """The first non-national coverage of any entry (either field) for this
+    source key in any year the row touches, else "national"."""
+    for y in range(tl.year, tr.year + 1):
+        for e in entries:
+            if e["key"] == key and e["y0"] <= y <= e["y1"] and e["coverage"] != "national":
+                return e["coverage"]
+    return "national"
 
 
 def _typed_observed(rows, value_key, merged, diag):
@@ -962,13 +979,21 @@ def process_country_typed(iso, diag):
         else:
             kept.append(r)
 
+    strict = bool(st.get("strict_basis"))
     for r in kept:
         sch = r["sch"] if r["has_count"] else None
         cch = r["cch"]
+        cov = resolve_coverage(entries, r["skey"], r["tl"], r["tr"]) if entries else "national"
+        if cov != "national":
+            for field, v in (("sCh", sch), ("cCh", cch)):
+                if v is not None:
+                    hold(r, field, v, f"coverage {cov} - not a national count")
+            continue
         # -- suspected: the sCh value, when its source-year is typed suspected
         s_basis = s_status = ""
         if sch is not None:
-            if r["source"] == "AI" and not any(e["key"] == r["skey"] and e["field"] == "sCh" for e in entries):
+            if r["source"] == "AI" and not strict \
+                    and not any(e["key"] == r["skey"] and e["field"] == "sCh" for e in entries):
                 s_basis, s_status = "suspected", "agent"      # agents assign columns by definition
             elif st["count_basis_table"]:
                 s_basis, s_status = resolve_basis(entries, r["skey"], "sCh", r["tl"], r["tr"])
@@ -977,7 +1002,8 @@ def process_country_typed(iso, diag):
         # -- confirmed: cCh when present; else sCh when its basis is confirmed
         c_val, c_basis, c_status = None, "", ""
         if cch is not None:
-            if st["count_basis_table"] and any(e["key"] == r["skey"] and e["field"] == "cCh" for e in entries):
+            if st["count_basis_table"] and (strict or any(e["key"] == r["skey"] and e["field"] == "cCh"
+                                                          for e in entries)):
                 c_basis, c_status = resolve_basis(entries, r["skey"], "cCh", r["tl"], r["tr"])
             else:
                 c_basis, c_status = "confirmed", "column"     # cCh is lab-confirmed by definition
