@@ -248,18 +248,36 @@ def read_csv(path):
 # never be counted. "AGE" is matched case-sensitively and on word boundaries so
 # it does not fire on "village", "average" or "stage".
 AGE_RE = re.compile(r"\bAGE\b|(?i:\b(?:acute\s+)?gastro-?enteritis\b)|झाडापखाला")
-WHO_ANNUAL_RE = re.compile(r"(?i)\b(?:WER|Weekly\s+Epidemiological\s+Record|WHO\s+annual|"
-                           r"annual\s+cholera\s+report|cholera\s*,\s*(?:19|20)\d\d)\b")
+# Whether a row's own value is a WHO/WER annual figure is judged from its
+# SOURCE (metadata Source, Data_Type, URL), not from processing_notes. Notes
+# routinely quote WER totals as a cross-check; matching them flagged 136 Nepal
+# rows on 2026-11-22, of which 4 actually came from a WER report.
+WHO_ANNUAL_SOURCE_RE = re.compile(
+    r"(?i)\bWeekly\s+Epidemiological\s+Record\b|\bWER\b|\bWHO\s+annual\b|"
+    r"\bannual\s+cholera\s+report\b|\bcholera\s+annual\s+report\b|"
+    r"\bGlobal\s+Health\s+Observatory\b")
+WHO_ANNUAL_URL_RE = re.compile(r"(?i)weekly-epidemiological-record|/wer/|/wer\d")
+COUNT_BASIS_DIR = ROOT / "reference" / "count_basis"
 
 
-def pilot_context(iso):
+def who_annual_source(m):
+    """True when a metadata row is a WHO/WER annual-figure source (any WER
+    issue, a WHO annual cholera report, or the WHO Global Health Observatory)."""
+    text = f"{m.get('Source') or ''} {m.get('Data_Type') or ''}"
+    return bool(WHO_ANNUAL_SOURCE_RE.search(text)
+                or WHO_ANNUAL_URL_RE.search(m.get("URL") or ""))
+
+
+def pilot_context(iso, meta_rows=()):
     keys = set()
-    f = ROOT / "reference" / "count_basis" / f"{iso}.csv"
+    f = COUNT_BASIS_DIR / f"{iso}.csv"
     if f.exists():
         with open(f, newline="", encoding="utf-8") as fh:
             keys = {(r.get("source_key") or "").strip() for r in csv.DictReader(fh)}
+    who = {to_index(m.get("Index")) for m in meta_rows if who_annual_source(m)}
+    who.discard(None)
     return {"tag": scope.pilot_tag(iso), "zero_none": scope.settings(iso)["zero_policy"] == "none",
-            "typed_keys": keys}
+            "typed_keys": keys, "who_annual_sources": who}
 
 
 def check_pilot_row(iso, r, i, notes, is_zero, rep, ctx):
@@ -279,13 +297,13 @@ def check_pilot_row(iso, r, i, notes, is_zero, rep, ctx):
         rep.warn(iso, "pilot_age_mention",
                  "processing_notes mention acute gastroenteritis (AGE) on a row with a "
                  "case count; confirm the count is cholera, not AGE", row=i)
-    key = f"AI:{(r.get('source_index') or '').strip()}"
-    if has_count and WHO_ANNUAL_RE.search(notes + " " + (r.get("source") or "")) \
-            and key not in ctx["typed_keys"]:
+    si = to_index(r.get("source_index"))
+    key = f"AI:{si}"
+    if has_count and si in ctx["who_annual_sources"] and key not in ctx["typed_keys"]:
         rep.warn(iso, "pilot_count_basis_missing",
-                 f"row cites a WHO/WER annual figure but {key} has no entry in "
-                 f"reference/count_basis/{iso}.csv; WHO annual totals for {iso} are "
-                 f"confirmed-only in some years", row=i)
+                 f"row's value comes from a WHO/WER annual report (metadata Index {si}) "
+                 f"but {key} has no entry in reference/count_basis/{iso}.csv; WHO annual "
+                 f"totals for {iso} are confirmed-only in some years", row=i)
 
 
 def validate_country(iso, rep):
@@ -401,7 +419,7 @@ def validate_country(iso, rep):
                      "column order differs from the specified order")
 
     pilot = scope.is_pilot(iso)
-    pilot_ctx = pilot_context(iso) if pilot else None
+    pilot_ctx = pilot_context(iso, meta_rows) if pilot else None
     seen_rows = {}
     seen_periods = {}
     used_sources = set()
