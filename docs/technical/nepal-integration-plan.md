@@ -1,6 +1,6 @@
 # Development Plan: Adding Nepal (NPL) to the AI Data Mining Pipeline
 
-**Status:** Phases 0–5 implemented on branch `feature/nepal-pilot` (2026-11-20), plus the MOSAIC-pkg guard on MOSAIC-pkg branch `feature/ai-pilot-iso-guard`. Phase 6 (the pilot run) has not been run. First draft 2026-11-18; revised 2026-11-20 after two red-team reviews (see `## Changes from the first draft`).
+**Status:** Phases 0–5 implemented on branch `feature/nepal-pilot` (2026-11-20), plus the MOSAIC-pkg guard on MOSAIC-pkg branch `feature/ai-pilot-iso-guard`. Phase 6 (the pilot run) completed on 2026-11-22 (see `## Pilot run status (2026-11-22)`), and Nepal now has a separate pilot section on the dashboard. First draft 2026-11-18; revised 2026-11-20 after two red-team reviews (see `## Changes from the first draft`).
 **Scope:** Nepal only, as a pilot that tests whether the pipeline generalises beyond the 40 African MOSAIC countries.
 Bangladesh is deliberately excluded (see `## Why not Bangladesh too`).
 
@@ -27,6 +27,18 @@ First Nepal build (`python py/build_weekly_timeseries.py --iso NPL`):
 - **Period totals:** 49.
 - **Held out:** 139 rows (126 zero rows, 9 untyped or unknown, 4 AGE). Listed in `data/NPL/builder_holdout.csv`.
 - **Years with no usable suspected count:** 1999–2009, 2011–2015 and 2017–2020.
+
+## Pilot run status (2026-11-22)
+
+Phase 6 ran as `run_20261120-165728` (Agents 1–6, all stopped by the yield rule: 12/12/12/11/10/3 batches) and was finished on 2026-11-22 by a resumed orchestrator session (`logs/run_20261122-npl-resume/briefing.txt`), after two sessions died on an expired API token during Agent 7. Agent 7's report is `data/NPL/search_report.txt`; the full audit trail is `data/NPL/search_log_agent_7.txt`.
+
+- **AI layer:** 387 rows (401 written, 14 retracted with tombstones), 290 sources, 14 presence-only rows, no zero rows. 286 rows are sub-national and never enter the national series.
+- **Count types:** `reference/count_basis/NPL.csv` went from 25 to 93 entries (30 verified, 52 inferred, 11 provisional). Every source-year 2018–2025 that feeds either series resolves through an entry. Notable retypes: WHO annual 2022 (77) suspected → confirmed (culture/PCR + RDT + hanging drop); JHU 21541 2021 (2,023) → mixed and held out (adds 453 door-to-door cases), so WHO's 1,609 is the 2021 suspected total; WHO dashboard split by year (2023 mixed, 2024 and 2025 suspected; 2024's 360 is the EWARS sentinel stream of all cholera classifications, not the 95 culture-confirmed).
+- **Final build:** suspected 75 observed + 1,244 undistributed weeks; confirmed 72 observed weeks; 88 period totals; 147 rows held out. In 2018–2025 only 2021 (1,609), 2024 (360) and 2025 (1,945) have a national suspected count, each from a different instrument. No zero weeks in either series.
+- **Validator rule change:** `pilot_count_basis_missing` (Phase 5e) is now judged from the row's source metadata (a WER issue or WHO annual report), not from `processing_notes`, which quote WER totals as cross-checks. On Nepal it fired 136 times before the change, 4 after, and 0 once Agent 7 added the entries.
+- **Dashboard (Phase 7 item, done on the user's instruction 2026-11-22):** Nepal is shown in a separate, badged "Pilot countries" section of `dashboard/dashboard.html` and `dashboard/country_status.html`, built from `scope.pilot_isos()`. It supersedes "Nepal is not added to the dashboard during the pilot" (Phase 1c) and "Don't link them from the dashboard" (Phase 6, step 5). The 40-country tables, figures and statistics still come from `scope.mosaic_isos()` only; a rebuild that iterated over `data/*` had embedded Nepal's sources into the 40-country sources table, and `py/validate_dashboard.py` now fails on that. Pilot figures carry their own `?v=` stamp, so a Nepal rebuild leaves the 40 countries' figure URLs unchanged.
+- **Regression gate:** 84/84 items identical after the pilot.
+- **Still open:** the MOSAIC-pkg ISO guard is on MOSAIC-pkg branch `feature/ai-pilot-iso-guard`, not merged. MOSAIC-pkg main reads every `data/**/cholera_weekly_*.csv` in the local checkout, so Nepal's observed suspected weeks would enter its processed AI file. The confirmed file is skipped because it has no `sCh` column. The global cross-country sweep has not been run for Nepal; the candidates files `reference/xref/candidates/agent_NPL_a4_20261121.csv` and `agent_NPL_a5_20261121.csv` wait for it.
 
 ## Goal
 
