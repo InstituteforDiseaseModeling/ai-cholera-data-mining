@@ -1,0 +1,809 @@
+=== AGENT 4 INITIALIZATION ===
+Agent        : 4 (obscure-source-explorer)
+Country      : Nepal (NPL) - PILOT country (SEAR::NPL locations, no zero rows, [NPL-PILOT] tag)
+Start Time   : 2026-11-21 02:47:01
+Agent 4 Status: INITIALIZED
+
+Pre-search checks
+  - Read ./templates/template_search_protocol.txt (batch = 20 queries; min 3 batches; stop at 3 consecutive <5% or 12 batches).
+  - Read ./data/NPL/workflow_state.json (Agents 1-3: 12 batches each; 99 + 68 + 70 rows; Agent 3 classified 1982-1988 and
+    1999-2006 NON_REPORTING to WHO).
+  - Read leads in ./data/NPL/search_log_agent_1.txt, search_log_agent_2.txt, search_log_agent_3.txt (JPRS 1982-88, SEARO Health
+    Situation Bulletin 1986-87 pp.233-250, DoHS annual reports, Bull WHO 1961 Cholera in Nepal 1958-60, WER 1992 67(37), USACHPPM HIO).
+  - Effective gaps re-computed into a scratch directory (python py/analyze_effective_gaps.py --out-dir cache/NPL_agent4_gaps; shared
+    ./reference/ files untouched): ./cache/NPL_agent4_gaps/pilot/effective_surveillance_gaps_detailed.csv now lists only
+      1982-01-01..1988-12-31 (2557d, historical)  and  2026-07-01..2026-11-21 (144d, recent; not mine)
+    1999-2006 is no longer a gap in the file because Agent 1's annual culture-confirmed rows (AI 27-34) count as coverage, but per
+    country_notes the held-out years have NO usable national SUSPECTED count: 1999-2006, 2007-2009, 2011-2015, 2017-2020.
+
+Targets (Agent 4)
+  T1 1982-1988 (historical era, 2557d): SEARO Health Situation bulletins, JPRS Worldwide Report: Epidemiology, Nepali press
+     (Gorkhapatra / Rising Nepal / Motherland), HMG DoHS annual reports, JNMA 1980s, MMWR, Lancet/BMJ, Google Books.
+  T2 1999-2006 national SUSPECTED totals (DoHS FY2055/56-2062/63, WER annual cholera reports 1999-2006, SEARO, OCHA, INSEC).
+  T3 Held-out 2007-2009, 2011-2015, 2017-2020 national suspected totals with stated case definitions (DoHS EDCD chapters,
+     large PDFs via curl + pdftotext).
+  T4 Pre-1970 extension: 1959-1964, 1967 (Bull WHO 1961; WER tables).
+  T5 Pre-2000 count types for JHU 436 1970-1998 (WER annual reports; WER 1992 67(37)).
+
+Tooling: py/add_observation.py only; downloads into cache/NPL_agent4/<name>/; scripts in cache/NPL_agent4_scripts/.
+
+QUERY-COUNTING CONVENTION (same as Agents 1-3): a query = one search operation (WebSearch, WHO IRIS search API call,
+Wayback CDX listing, NHRC eLibrary search, archive.org advanced search, Europe PMC search). Opening/OCR-ing documents a query
+surfaced is part of that query. New tooling this run: WHO IRIS (iris.who.int), whqlibdoc and the NHRC eLibrary
+(elibrary.nhrc.gov.np) are REACHABLE from this session (earlier agents found them unreachable); scanned PDFs are OCR'd locally
+with Apple Vision (cache/NPL_agent4_scripts/ocr.swift); DTIC (apps.dtic.mil) is 'Under Maintenance' (JPRS copies taken from
+archive.org instead).
+
+=== BATCH 1 | PHASE 3-first (deep archival: WER annual reports, SEARO Health Situation series, NHRC eLibrary) | NPL ===
+Gap targeted : 1982-01-01..1988-12-31 (2557d, historical); 1999-2006 national suspected (T2); pre-1970 1959-1964/1967 (T4);
+               pre-2000 count types (T5)
+Queries      : 20
+  B1Q1  [WHO/Historical] IRIS search "Cholera in 1982".."Cholera in 1988" (WER annual reports, 7 + 1988 update downloaded)  -> none
+        (Nepal absent from every Table 1 1982-1988 and from the 1988 update; WER 59(19): 'several additional countries could be
+         considered also to be infected on the basis of earlier reports' - Nepal not named)
+  B1Q2  [WHO/Archive] Wayback CDX searo.who.int/LinkFiles/Health_Situation* (187 files) + OCR of surveillance chapters 1982, 1983,
+        1984-85, 1986, country profiles 1986 and 1988, disease chapter 1988, Bulletin 1986-87, complete 1984-85   -> none
+        (SEARO 'Health Situation in SEAR 1982' Table 13: Nepal 1979 22, 1980 1, 1981 24 (= JHU 340-342), 1982 'Nil' - reporting evidence
+         below; 1983 Table 40 (from WER) has no Nepal; 1986 Nepal profile cites 'Epidemiological Bulletin (Quarterly), Vol.6, No.1-4,
+         1985, Epidemiology and Statistics Division, MOH, Nepal' - LEAD (national quarterly bulletin, not online); 1988 profile gives
+         only hospital gastroenteritis admissions (7,114, 52 districts) - AGE, excluded)
+  B1Q3  [Archive] NHRC eLibrary simple-search 'cholera' (86 items)                                                         -> none
+        (new: DoHS Annual Health Reports 2066/67, 2069/70, 2070/71 downloaded - cholera only as HMIS ICD-10 A00 inpatients and lumped
+         'Diarrhoea' outbreaks (2070/71: 15 outbreaks, 3,811 cases incl. Rautahat); Bhandari & Bhusal 2013 JNHRC 11(23):6-8 = Far-West
+         2009 27 V. cholerae of 51 stools = JHU 325 (3,080 are diarrhoea cases); NHRC 'Jajarkot Diarrhoea Outbreak, 2009' (Shrawan 15,
+         2066): 12,500 cases/128 deaths (= AI 108) and '13 lab tests, 5 were diagnosed Vibrio cholera' vs AI 142 (3) - for Agent 5)
+  B1Q4  [Historical] WebSearch (extended) "Nepal cholera outbreak 1984 OR 1985 OR 1986 deaths district gastroenteritis Rising Nepal" -> none
+  B1Q5  [Historical] WebSearch (extended) '"Worldwide Report" "Epidemiology" JPRS Nepal cholera 1983..1987'               -> none
+        (DTIC PDFs located but apps.dtic.mil is 'Under Maintenance'; JPRS 83768 (27 Jun 1983) lists 'NEPAL Meningitis Epidemic')
+  B1Q6  [Official] WebSearch (extended) '"Epidemiological Bulletin" "Epidemiology and Statistics Division" Ministry of Health Nepal 1985' -> none
+  B1Q7  [Historical/Archive] archive.org advancedsearch title:(worldwide report epidemiology / world epidemiology review / JPRS report
+        epidemiology) 1981-1990 (432 items; OCR text harvest started, cache/NPL_agent4/ia_jprs_epi/)                     -> PENDING (read in batch 2)
+  B1Q8  [Academic/Archive] Wayback CDX apjtm.org Rhee et al. 2020 APJTM 13(3):107-14 (archived full text 19 Jan 2021)      -> none
+        (Tables 2-3 and Figure 3 now behind Ovid (live image URLs return the Ovid page; not archived); count-type evidence below)
+  B1Q9  [WHO] IRIS search "Nepal cholera" (4,173)                                                                         -> none
+  B1Q10 [WHO] IRIS search "Nepal diarrhoeal diseases assignment report" (4,489)                                           -> none
+  B1Q11 [WHO/Historical] IRIS full-text 'Nepal AND (cholera OR gastroenteritis OR "diarrhoeal diseases")' dateIssued 1980-1990
+        (481; 15 WER issues/indexes downloaded)                                                                           -> none
+        (WER 62(13) 1987: NCDDP comprehensive review (diarrhoea survey estimates only, no cholera); WER 57(48), 59(51-52), 61(51-52)
+         list Nepal's national 'Epidemiological Bulletin (quarterly)'; WER 64(41)/(43) 1989 weekly notifications - 1989 not a gap)
+  B1Q12 [Historical/News] WebSearch (extended) "AP News archive Nepal cholera outbreak kills 1985..1988 villages western Nepal" -> none
+  B1Q13 [Historical] WebSearch (extended) 'OFDA "disaster history" Nepal epidemic cholera 1982..1988 deaths' -> ADRC/EM-DAT Nepal
+        databook (Wayback copy 2013)                                                                                      -> none
+        (Nepal epidemics listed: 1963 smallpox, 1967 plague, 1990 cholera (150 deaths, 3,800 affected, OFDA), 1991 cholera (1,334
+         deaths, 45,341 affected), 1992 gastroenteritis, 2000 May (250 deaths, IFRC; typed arbovirus) - none 1968-1989; 'affected' not cases)
+  B1Q14 [Academic] WebSearch site:jstage.jst.go.jp Nepal cholera Vibrio cholerae Kathmandu 1980s                           -> none
+        (JJID 63(3):185 NPHL 2008-09 surveillance = JHU 11119 / AI 42)
+  B1Q15 [Archive] NHRC eLibrary simple-search '"Department of Health Services" annual report' (229)                       -> none
+        (no DoHS annual report earlier than FY 2066/67 in the eLibrary)
+  B1Q16 [WHO/Historical] IRIS search WER annual cholera reports 1989-2006 (18 reports downloaded)                          -> ROW (AI 254)
+        WER 66(19) 1991 'Cholera in 1990': footnote on Nepal 23 888**: case definition based mainly on physicians' diagnosis; out of a
+        sample of 566 specimens, 243 (43%) positive for V. cholerae O1 El Tor (read from the page image) -> AI 254 national 1990 cCh 243.
+        Nepal ABSENT from WER annual tables for 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 (confirms no WHO-reported national
+        totals for 1999-2006). WER 1997/1998 Table 2: V. cholerae O139 detected in Nepal 1993 and 1994 (presence only).
+  B1Q17 [WHO/Historical] IRIS search "Abou-Gareeb cholera Nepal" -> Bull WHO 1961 25(1):130-4 'Cholera in Nepal, 1958-60' (scan with
+        text layer; lead from Agent 2 Q148)                                                                               -> ROWS (AI 239-253, 255)
+        Infectious Diseases Hospital, Katmandu, cholera cases/deaths by month, Kathmandu Valley residents: 1959 (8 months, 352/41) and
+        1960 to 11 Sep (8 months, 367/22) at SEAR::NPL::Bagmati; 1958 (2,452/342 from 14 Apr) NOT entered (national 1958 in JHU 436).
+  B1Q18 [WHO/Historical] IRIS search '"World health statistics annual" 1983' and 'cholera notified 1963-1982 review trend'  -> none
+        (Felsenfeld 1966 Bull WHO review and EB47/WP-8 1971: global totals only, no Nepal 1961-1964)
+  B1Q19 [Linguistic] WebSearch (extended) Nepali 'हैजा महामारी नेपाल २०४०..२०४५ साल बिरामी मृत्यु इतिहास'                      -> none
+  B1Q20 [Academic] Europe PMC REST full-text '(cholera AND Nepal) AND ("1982".."1988")' (581 hits, 100 screened)          -> none
+Sources found: 30+   Registered: index 218 (Abou-Gareeb 1961), 219 (WER 66(19) Cholera in 1990)
+Rows added   : 17    Indices: 239-255
+Successful queries: 2/20 (B1Q16, B1Q17)   [B1Q7 pending]
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches)
+
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1990 | sCh | suspected (physician diagnosis; 243/566 specimens = 43% V. cholerae O1 El Tor) | https://iris.who.int/handle/10665/228010 | "Nepal - Népal .. 23 888** ... ** Case definition based mainly on physicians' diagnosis - out of sample of 566 specimens, 243 (43%) were positive for Vibrio cholerae 01, El Tor."
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1979-1981 | sCh | reported 'incidence of cholera' to SEARO, no definition (22 / 1 / 24 = JHU 340-342) | archived searo.who.int/LinkFiles/Health_Situation_health-surv82.pdf (Health Situation in SEAR 1982, Table 13) | "Table 13. Incidence of cholera in SEAR, 1979-1982 ... Nepal | 22 | 1 | 24 | Nil"
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1991 | sCh | described as 'suspected cholera cases reported to the WHO' (Rhee 2020 misdates 30,648 to 1993) | archived https://www.apjtm.org/article.asp?issn=1995-7645;year=2020;volume=13;issue=3;spage=107;epage=114;aulast=Rhee;type=3 | "In 1993, suspected cholera cases reported to the WHO were at the highest of 30 648"
+=== REPORTING EVIDENCE (not a zero row; pilot) === 1982 national: reported 'Nil' cholera incidence to WHO SEARO | Health Situation in SEAR 1982 (archived Health_Situation_health-surv82.pdf p.27) | "Burma and Nepal, which had been reporting cases till 1981, had 'nil' incidence in 1982." | caution: Bangladesh is also listed 'Nil' for 1980-1982, so 'Nil' reflects reporting, not verified absence.
+=== REPORTING EVIDENCE === 1983-1988 national: Nepal absent from WER annual tables (WER 59(19), 60(20), 61(26), 62(20), 63(20), 64(19), 64(26)) and from SEARO 1983 Table 40 - NON_REPORTING (agrees with Agent 3).
+=== REPORTING EVIDENCE === 1999-2006 national: Nepal absent from WER annual tables (WER 75(31), 76(31), 77(31), 78(31), 79(31), 80(31), 81(31), 82(31)) - no WHO national totals exist for these years.
+
+=== XREF HARVEST === docs 20 fetched via xref_harvest.py fetch --url (WER annual cholera reports for 1982-1988, 1990, 1993-1996, 1998, 1999, 2003, 2005;
+    WER 66(19)/66(20) 'invalid_series' (OCR masthead) - not harvestable), candidates 208 from 12 docs -> reference/xref/candidates/agent_NPL_a4_20261121.csv,
+    verify rejects 0 (run with /Users/johngiles/homebrew/bin/python3.12 -I -B: the default python3 lacks numpy under -I).
+    Parser cache/NPL_agent4_scripts/wer_table_candidates.py: Table 1/2 region only (never weekly notification tables; WER 64(26) dropped - its only table is
+    'Notifications received 23-29 June 1989'), tool country patterns, figures marked * (incomplete) skipped (11), wrapped DRC names skipped (1), CFR column
+    cross-checked. Self-check against JHU national annual rows: 187 identical, 15 differ (WER first-print vs JHU values, e.g. CMR 1999 326 vs 1,584; SLE 1986
+    14 000 vs 8,957), 6 without a JHU annual row (ZWE 1993/1998/1999/2003/2005, BDI 1986). Earlier sweep files already cover WER 73(27), 76-78(31), 80(31),
+    82(31), 90(40). Pre-1984 tables (WER 58(27), 59(19)) and WER 63(20) yield no verifiable lines (spaced-letter OCR / no table title).
+
+--- Extraction during Batch 2 attributed to B1Q7 (archive.org JPRS harvest, 432 issues 1981-1990, OCR text) - NO yield change ---
+  JPRS 'Worldwide Report: Epidemiology' Nepal items 1982-1990 (Nepali press via FBIS): no cholera CASE COUNT for any year 1982-1988.
+   - 1982: Salyan district, Jul 1982: 39 gastro-enteritis deaths (Motherland 17 Jul 82) and RP Chairman visited 'the cholera affected areas'
+     (Rising Nepal 23 Jul 82) -> PRESENCE row Salyan (Karnali) 1982-07-11..07-22 (src 220, JPRS 81543, 16 Aug 1982, No. 290).
+     Other 1982 items: Dolpa 82 deaths (measles, gastro-enteritis, pneumonia), Kavre gastroenteritis, Kanti Hospital gastroenteritis surge,
+     Rasuwa 13 deaths - AGE/mixed, not cholera. 'Since the outbreak, 139 cholera cases' (Rising Nepal 19 Jun 82) is SABAH (Malaysia), not Nepal.
+   - 1983: Ramechhap jaundice. 1984: Gorkha (Subisin VP) 198 gastroenteritis deaths after the Sep 1984 floods (Radio Nepal 13 Oct 84) - AGE.
+   - 1985: AFP 21 Aug 85 (JPRS-TEP-85-015): 'Dysentery and gastroenteritis have killed at least 400 people recently in Nepal's Illam District
+     ... Official statistics have put the death toll from these diseases in western Nepalese districts in the past eight to 10 weeks at
+     [at] least 2,000 people' - not labelled cholera (context for Agent 6: major diarrhoeal epidemic in a NON_REPORTING year).
+   - 1986: encephalitis/meningitis (Terai). 1987-1988: no Nepal diarrhoeal items. 1990: Motherland 12 Jul 90: Kathmandu Valley
+     'During the stool test of 95 patients, 26 were found infected with cholera bacilli' (1990 covered by WER/JHU; evidence only).
+
+=== BATCH 2 | PHASE 2 (targeted gap filling: 1999-2006 suspected totals, held-out 2007-2015, Nepali journals, archives) | NPL ===
+Gap targeted : 1999-2006 national/sub-national suspected (T2); held-out 2007-2009, 2011-2015 (T3); 1982-1988 (continuing JPRS read)
+Queries      : 20
+  B2Q1  [WHO/Archive] Wayback SEARO 'Health Situation' 1991, 1994-97, 1998-2000 and 2001-2007 volumes (annex tables, chapter 3,
+        annexure-1, section B ch.4, country/regional tables 1991/1994; OCR)                                         -> none (generic cholera text only)
+  B2Q2  [Academic] NepJOL site search 'cholera' (pages not machine-readable)                                        -> none
+  B2Q3  [Academic] Crossref API query 'cholera' prefix 10.3126 (NepJOL) and 10.31729 (JNMA)                         -> none
+        (NJST 13(1) 2012 Shah et al. = NPHL Apr 2010-Jan 2011 series already in AI 137-139; JNMA 2003 'Cholera' (Nalin) = editorial)
+  B2Q4  [Academic] Europe PMC 'Cholera in selected countries in Asia' (Lopez 2020 Vaccine; Nepal 2011-2016 table) -> none (not OA; ScienceDirect 403)
+  B2Q5  [Official/Archive] Wayback CDX moh.gov.np, mohp.gov.np (to 2010), healthnet.org.np                           -> none
+        (HealthNet 'healthstat99': diarrhoea incidence only)
+  B2Q6  [WHO] IRIS search SEARO regional cholera/diarrhoea meetings 1997-2009                                      -> none
+  B2Q7  [News/Archive] Wayback CDX nepalnews.com.np Kathmandu Post daily mirror (20,054 captures, Jun 1999-Dec 2003); bulk harvest of
+        May-Oct index/local pages started (3,347 pages; Wayback throttled - restarted single-worker)                -> PENDING (batch 3)
+        (first 350 pages: 1999-07-31 EDCD Dr Bista - no flying teams needed in 1999 so far; 1999-08-27 Mahottari flood 'fear cholera')
+  B2Q8  [News/Archive] Wayback CDX nepalnews.com(.np)/archive 2002-2008 May-Oct (8,808 captures)                     -> PENDING (batch 3)
+  B2Q9  [Humanitarian] ReliefWeb API NPL 'epidemic OR diarrhoea OR cholera OR gastroenteritis' Apr-Dec 2000 (5)       -> none
+  B2Q10 [Humanitarian] WebSearch (extended) 'Nepal 2000 diarrhoea cholera epidemic Darchula Bajura Kailali Banke IFRC' -> none
+  B2Q11 [Archive] Wayback CDX travelhealth.gov.hk outbreak news 2003-2012 (319 weekly digests, 2006-2011 archived)  -> none so far
+        (2006-2007 Nepal items = Myagdi Oct 2006 (presence src 102), Kathmandu Jul 2007 223 (AI 222), Chitwan Sep 2007 (AI 141), Saptari
+         Nov 2007 34 deaths (JHU 370); 'Nepal: Diarrhoea ... 19 districts including Madhepura ...' (Oct 2007) are Bihar districts - not Nepal;
+         2008-2011 pages still downloading)
+  B2Q12 [Humanitarian] WebSearch (extended) INSEC Human Rights Yearbook epidemic deaths 2002-2005 + Yearbook 2005 PDF  -> none
+        (district 'died due to diarrhoea' totals only, no cholera)
+  B2Q13 [Linguistic] WebSearch (extended) 'हैजा प्रकोप २०५७ २०५८ २०५९ २०६० जिल्ला बिरामी मृत्यु नेपाल'                   -> none
+  B2Q14 [Academic] WebSearch (extended) 'Nepal cholera outbreak 2002 OR 2003 cases confirmed district Vibrio cholerae hospital' -> none
+  B2Q15 [Academic] PubMed 'cholera incidence diarrhea National Public Health Laboratory Nepal' (7)                   -> ROW (AI 256)
+        Karki & Tiwari 2007 JNMA 46(168): Kathmandu Valley Jan-Sep 1997, 88 V. cholerae O1 + 1 O139 of 349 stools (NPHL) -> Bagmati cCh 89
+  B2Q16 [Academic] PubMed '(cholera OR Vibrio cholerae) AND Nepal' 2000-2010 (13)                                    -> none (all known)
+  B2Q17 [Archive] NHRC eLibrary search 'vibrio' (30)                                                                 -> ROW (AI 257)
+        Lama & Sherchan 2007 JNHRC 5(1): Kanti Children's Hospital May-Oct 2005, V. cholerae O1 15 (Ogawa 12, Hikojima 2, Inaba 1) -> Kathmandu cCh 15
+  B2Q18 [Archive] NHRC eLibrary search 'diarrhoea outbreak' (52)                                                     -> ROW (AI 258)
+        DoHS Annual Report FY 2072/73 Table 4.11.1 (EDCD): cholera, 1 outbreak, Nuwakot/Dhading/Kathmandu/Lalitpur, 97 cases, 0 deaths
+        -> Bagmati 2015-07-17..2016-07-15 sCh 97 (held-out 2015). NHRC Annual Reports 2064/65, 2067/68, 2068/69 read: no counts.
+  B2Q19 [Archive] NHRC eLibrary search 'EWARS' (34)                                                                  -> none (same DoHS reports; NPHL 2015
+        earthquake investigation (Shakya 2018): no cholera isolated in camps)
+  B2Q20 [Historical] Google Books API '"cholera" "Nepal" 1984..1987 epidemic cases'                                  -> none (HTTP 429)
+Sources found: 25+   Registered: index 220 (JPRS 81543), 221 (Karki & Tiwari 2007), 222 (DoHS 2072/73), 223 (Lama & Sherchan 2007)
+Rows added   : 3    Indices: 256, 257, 258   (+1 presence row: Salyan 1982, src 220)
+Successful queries: 3/20 (B2Q15, B2Q17, B2Q18)   [B2Q7, B2Q8 pending]
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches)
+
+=== COUNT-TYPE EVIDENCE === AI:258 (DoHS 2072/73) | 2015 (FY 2072/73) | sCh | 'Total cases' of an EDCD-recorded cholera outbreak (definition not stated; 97 > 76-80 laboratory-confirmed) | https://elibrary.nhrc.gov.np/bitstream/20.500.14356/2824/1/2072_73.pdf | "Cholera 1 4 Nuwakot, Dhading, Kathmandu and Lalitpur 97 0"
+=== COUNT-TYPE EVIDENCE === EWARS (DoHS 2072/73) | 2015-2016 | cCh | EWARS immediate reporting of 'one or more confirmed cases of cholera' | same | "It prioritises the immediate reporting (within 24 hours of diagnosis) of one or more confirmed cases of cholera, severe and complicated malaria cases, one suspected/clinical case of dengue, or five or more cases of AGE and SARI"
+=== XREF HARVEST (update) === docs +7 fetched (WER 65(19) 1989, 67(34) 1991, 68(21) 1992, 83(31) 2007, 85(31) 2009, 87(31) 2011, 88(31) 2012), candidates +106
+    (87(31): no machine-readable table title - skipped), verify rejects 2 (Angola 1991 deaths printed '5B2' in OCR; Tanzania 1991 wrapped name) -> both rows
+    removed; file now 314 rows, verify rejects 0. JHU self-check on the new docs: 101 identical, 2 differ (RWA 1992 530/32 vs 503/35; ZWE 2012 23 vs 22), 3 no JHU annual.
+
+=== BATCH 3 | PHASE 3 (deep validation: WER count types for held-out years, Japanese/OpenAlex literature, SEARO RD reports, 1960s WHO tables) | NPL ===
+Gap targeted : held-out 2007-2012 count types (T3/T5); 1999-2006 (T2); 1982-1988 (T1); 1959-1967 (T4)
+Queries      : 20
+  B3Q1  [WHO/T5] IRIS WER annual reports for data years 1989, 1991, 1992, 2007, 2009, 2011, 2012 + WER 67(37) re-read  -> ROWS (AI 259, 260)
+        WER 67(37) 11 Sep 1992: 1991 'Vibrio cholerae O1 was isolated from a total of 483 faecal specimens (63%)', first 14 Jun, last
+        26 Sep 1991, 2 deaths among confirmed -> AI 260 national cCh 483 d 2; same item: 1990 '263 laboratory-confirmed cholera cases
+        (46% of those examined) during the entire 1990 epidemic period' -> AI 259 national 1990 cCh 263, and AI 254 (243, preliminary
+        WER 66(19) footnote) RETRACTED via py/revise_observation.py (tombstone in ./data/NPL/retracted_rows_ai.csv).
+        Count types (blocks below): 1991 WHO 30,648/873 = ESTIMATE ('+ = Estimated cases/deaths based on laboratory-confirmed samples',
+        WER 67(34), page image); 2009 WHO 82 = 82/158 positive stool samples (WER 85(31)); 2007 264, 2011 12, 2012 34 - no definition.
+  B3Q2  [WHO/Archive] Wayback CDX who.int/cholera/countries/* (WHO cholera country profiles)                         -> none (no Nepal profile)
+  B3Q3  [Historical] WebSearch (extended) ProMED 'Cholera, diarrhea and dysentery update' Nepal 2002-2005           -> none
+  B3Q4  [News/T2] WebSearch (extended) 'Nepal cholera 2000 outbreak cases deaths Kathmandu Post OR Rising Nepal OR Xinhua' -> none
+  B3Q5  [Academic/Linguistic] J-STAGE search API 'cholera Nepal' (81) and 'ネパール コレラ' (Japanese)                       -> ROW (AI 261)
+        Pandey et al. 2002 Jpn J Trop Med Hyg 30(2):133-7: STIDH Teku, Apr-May 2001, 'Vibrio cholerae 01 | 2 | 1.1' of 181 adults
+        (Table 1, OCR of page) -> Kathmandu cCh 2 (inside the 1999-2006 gap). JJID 2014 South/SE Asia outbreak review: Nepal entries known.
+  B3Q6  [Official/Archive] Wayback CDX edcd.gov.np captures before 2008                                               -> none (0 captures)
+  B3Q7  [Academic] lit search 'cholera outbreak Nepal district cases' (OpenAlex 100; CORE 401)                        -> none (known papers;
+        Aryal 2012 'history of disaster incidents Nepal 1900-2005' = deaths/affected only)
+  B3Q8  [WHO/Historical] IRIS 'Nepal diarrhoeal' dateIssued 1978-1990 (274) -> SEARO Regional Director annual reports 1981-82 to
+        1988-89 downloaded                                                                                             -> none (IHR tables 1979-82
+        known; Nepal outbreak notes 1983-88 are hepatitis, meningitis, JE; 1981-82 'outbreak of gastro-enteritis in hilly areas')
+  B3Q9  [News/Historical] lit search NYT archive 'Nepal cholera epidemic' (1851-)                                     -> none (HTTP 429, twice)
+  B3Q10 [News/Historical] WebSearch (extended) upi.com/washingtonpost.com 'Nepal cholera epidemic deaths 1982..1988'   -> none
+        (UPI 26 Aug 1987 '97 confirmed deaths from cholera' = Bangladesh; UPI 17 Jul 1992 'In Katmandu ... 194 cases reported' - 1992
+         covered nationally, start date not stated - LEAD only)
+  B3Q11 [WHO/T4] IRIS 'cholera Nepal' dateIssued 1961-1968 (WER 'Cholera in 1960', 'Cholera in 1963', 1958-62 table WER 38(35),
+        WER 41(10) 1966, WHSQ 1968 quarantinable diseases 1966-1967)                                                   -> none
+        WHO held no Nepal case counts for 1959 ('present'), 1960 (30 deaths only), 1961-1962 ('...'), 1963 ('present'), 1964 ('...'),
+        1967 (blank); 1965 727/97 and 1966 2 = JHU. WER 36(14): 'In Nepal the disease was not present in Kathmandu during 1960. Some 30
+        deaths were reported in the Bhairwa and Butwal areas ... in October' - CONFLICTS with Abou-Gareeb's laboratory-confirmed Kathmandu
+        hospital series (AI 246-253): conflict note appended to those rows with py/revise_observation.py.
+  B3Q12 [WHO/T3] WebSearch (extended) '"257" laboratory confirmed Vibrio cholerae Nepal 2007 July August WHO'         -> none
+  B3Q13 [WHO/T3] WebSearch (extended) 'Nepal 2014 cholera "933" cases WHO Rautahat'                                  -> none
+  B3Q14 [Historical] WebSearch (extended) 'Nepal 1987 OR 1988 cholera outbreak floods Terai earthquake Udayapur'       -> none
+  B3Q15 [Linguistic] WebFetch ne.wikipedia.org/wiki/हैजा (history section)                                           -> none (no Nepal history)
+  B3Q16 [Historical/Archive] archive.org advancedsearch Nepal + cholera/'health information bulletin'/DoHS 1975-1995   -> none (3 irrelevant)
+  B3Q17 [Academic] Europe PMC '(cholera OR Vibrio cholerae) AND (Teku OR Sukraraj OR STIDH OR "Kanti Children")' (24) -> none (known)
+  B3Q18 [WHO/T2] IRIS 'Nepal cholera outbreak' dateIssued 1999-2008 (1,835; African outbreak news + WHO CCS Nepal)    -> none
+  B3Q19 [Historical] WebSearch (extended) 'Ilam Nepal 1985 epidemic cholera gastroenteritis dysentery 400 deaths' -> GIDEON 'Infectious
+        Diseases of Nepal' 2015 ('Kathmandu reported 3,171 cases (405 fatal) during 1958 to 1960' = sum of AI 239-253/255 period;
+        'Talathi VDC, Saptari (111 cases)') -> KUMJ 10(4):36-39 (Yadav et al.)                                         -> ROW (AI 262)
+        Tilathi VDC Oct-Nov 2011: 'A total of 111 persons suffered with diarrhea and 02 died of it' in a laboratory-confirmed cholera
+        outbreak (3/5 stools V. cholerae O1 Ogawa) -> Tilathi Koiladi sCh 111 d 2 (held-out 2011; AI 111 holds the confirmed 3).
+        (B3Q12-B3Q14 and B3Q19 were run in parallel; GARP-Nepal 2015 and Bharati & Bhattacharya 2014 from the same results: no new data.)
+  B3Q20 [Regional/T2] WebSearch (extended) 'cholera Birgunj OR Raxaul OR Biratnagar OR Jogbani OR Nepalgunj 2003-2006'   -> none
+Sources found: 30+   Registered: index 224-232 (WER evidence sources 1988-2012), 233 (Pandey 2002), 234 (Yadav KUMJ)
+Rows added   : 4    Indices: 259, 260, 261, 262   (AI 254 retracted - superseded)
+Successful queries: 3/20 (B3Q1, B3Q5, B3Q19)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (3-batch minimum met; yield >= 5%)
+
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1991 | sCh/deaths | ESTIMATE, not a notification count | https://iris.who.int/handle/10665/228456 | "Nepal - Népal 30 648 + 873 + ... + = Estimated cases/deaths based on laboratory-confirmed samples."
+=== COUNT-TYPE EVIDENCE === AI:260 (WER 67(37), src 79) | 1991 | cCh | laboratory-confirmed (Central Health Laboratory) | https://pubmed.ncbi.nlm.nih.gov/1390040/ | "During 1991, Vibrio cholerae O1 was isolated from a total of 483 faecal specimens (63% of those examined)."
+=== COUNT-TYPE EVIDENCE === JHU:436 | 2009 | sCh 82 | CONFIRMED: equals the V. cholerae-positive outbreak stool samples (WHO annual 82 = 82/158) | https://iris.who.int/handle/10665/241610 | "Nepal registered more than 70 000 cases of acute watery diarrhoea during an outbreak in remote rural areas. A total of 82/158 (52%) stool samples from this outbreak tested positive for V. cholerae"
+=== COUNT-TYPE EVIDENCE === JHU:436 | 2007 | sCh 264 | unknown (no definition; Table 1 total incl. imported, imported blank) | https://iris.who.int/handle/10665/241184 | "Nepal – Népal 264 0 0.00"
+=== COUNT-TYPE EVIDENCE === JHU:436 | 2011 / 2012 | sCh 12 / 34 | unknown (no definition; 2012 table's 'Laboratory-confirmed cases only' marker is on another country) | https://iris.who.int/handle/10665/241944 ; https://iris.who.int/handle/10665/242099 | "Nepal (12)" ; "Nepal – Népal 34 0.0"
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1992 | sCh | WER first print 764 cases/15 deaths vs JHU 798/15 (later revision) | https://iris.who.int/handle/10665/228720 | "Nepal-N épal . . ......... 764 15"
+=== REPORTING EVIDENCE (pre-1970, T4) === WHO tables: 1959 'present', 1960 '...'/30 deaths, 1961 '...', 1962 '...', 1963 'present', 1964 '...', 1967 blank (WER 38(35), 39(39), 41(10); WHSQ 21:242-253) - no WHO counts exist for 1959-1964 or 1967; Abou-Gareeb (AI 239-253, 255) gives Kathmandu Valley 1959-1960.
+
+--- Extraction during Batch 4 attributed to B2Q7 (Kathmandu Post mirror harvest) - BATCH 2 YIELD REVISED 15% -> 20% (4/20) ---
+  AI 263: The Kathmandu Post 18 Aug 2000 (archived nepalnews mirror; src 235): '15 cholera patients recorded ... KALAIYA, Aug 17 - Cholera
+  epidemic has spread at Jagatpur, ward No 1 of Phenta VDC in Bara district since Aug 14. About 15 cholera patients ... admitted to Kalaiya
+  hospital' -> Bara 2000-08-14..08-17 sCh 15 (approximate, weight 0.4). Also KP 15 Jul 2000 (RSS): Teku 'cases of cholera have also been found
+  sporadically' (no count); Bhaktapur Hospital 'not a single case of cholera has been detected to date' (mid-Jul 2000) - hospital-level, log only.
+  KP 1999 (264 local + index pages Jun-Dec 1999) and 2000 (235 local pages Jun-Sep): no other cholera counts.
+
+=== BATCH 4 | PHASE 3 (theses, alternate archives, news mirrors, institutional repositories) | NPL ===
+Gap targeted : 1999-2006 (T2) sub-national suspected; held-out 2007-2009 (T3); 1982-1988 (T1)
+Queries      : 20
+  B4Q1  [Academic/Theses] TUCL eLibrary (DSpace 7 REST, elibrary.tucl.edu.np) 'cholera' (355) and 'vibrio cholerae' (80)        -> none
+        (Tandukar 2007 MSc: Kanti Children's Hospital Oct 2006-Sep 2007, V. cholerae 12 of 607 - June 3, July 7, August 2007 2, NONE
+         Oct-Dec 2006 (hospital-sample zero for the late-2006 gap, log only); same thesis quotes Kanti ORT centre 2007 '1,189 diarrhoeal
+         patients ... 36 with cholera' (facility subset of Valley 2007 rows - not entered); Chipalu 2007 MSc (Kanti May-Sep 2006): 'Vibrio
+         spp.' 12/386 - genus level, not entered; Shakya 2006 MSc (elderly, Aug 2005-Jul 2006): 'Vibrio spp. in 2 samples' - genus level;
+         Sharma 2013 MSc: 2012 Kathmandu outbreak 72 samples, O1 32% - covered by AI 49/235)
+  B4Q2  [News/Archive] Wayback CDX nepalnews.com.np/contents/* (directory census) -> The Rising Nepal mirror (Dec 1999-Apr 2003, 12,059
+        captures) found; harvest of Jun-Sep 2000-2002 local pages queued                                                   -> PENDING
+  B4Q3  [News] WebSearch (extended) site:nepalitimes.com cholera outbreak district cases 2001-2006                       -> none
+  B4Q4  [News] WebSearch (extended) site:himalmag.com cholera Nepal epidemic gastroenteritis deaths district             -> none
+  B4Q5  [WHO/Archive] Wayback CDX who.int/hac/crises/npl/* (WHO Health Action in Crises Nepal 2004-2006; May 2005 profiles read) -> none
+  B4Q6  [WHO/Historical] IRIS '"Epidemiological Bulletin" Nepal' 1978-1995 + WER 'Functioning of the IHR' 1982-1985 reports    -> none
+        (WHO received Nepal's 'Epidemiological Bulletin (quarterly)' in 1982 and 1985, but no cholera notifications)
+  B4Q7  [Historical] WebSearch (extended) promedmail.org 'ProMED cholera Nepal Kathmandu 2003..2005'                    -> none
+  B4Q8  [News/Archive] Wayback CDX thehimalayantimes.com 2002-2006                                                     -> none (not captured)
+  B4Q9  [News/Archive] Wayback CDX nepalnews 2006 English weeklies (Spotlight, Telegraph; 846)                          -> none (political weeklies; not harvested)
+  B4Q10 [Academic/Archive] ICDDR,B DSpace (dspace.icddrb.org)                                                           -> none (timed out)
+  B4Q11 [Academic] PubMed '"J Diarrhoeal Dis Res"[Journal] AND Nepal' (2)                                               -> none (1992 refugees, 1996 Cryptosporidium)
+  B4Q12 [Linguistic/T3] WebSearch (extended) 'हैजा २०६५ जिल्ला बिरामी संक्रमण पुष्टि साउन भदौ नेपाल'                         -> none
+  B4Q13 [News/T2] WebSearch (extended) 'Nepal cholera 2003 outbreak cases Kathmandu Valley Teku hospital'              -> none (2016 THT items)
+  B4Q14 [News/T2] WebSearch (extended) 'Nepal cholera Aug-Oct 2006 cases Teku Kathmandu district outbreak'              -> none (CMAJ 2006 = src 131; THT 2016 items)
+  B4Q15 [News/T2] WebSearch (extended) 'Nepal cholera 2005 outbreak district cases deaths'                              -> none
+  B4Q16 [Humanitarian] World Bank Documents API 'cholera Nepal' (159)                                                   -> none
+  B4Q17 [Corroboration/T3] WebSearch (extended) '2009 mid/far-western "1,400" clinical cholera "109" laboratory confirmed' -> none
+        (only the EDCD 2017 plan (src 180) and Rhee 2020 restating its 109 - not independent; retracted AI 221 stays retracted)
+  B4Q18 [Academic/Archive] Wayback researchgate.net Rhee 2020 table thumbnails (Table 2 = EDCD 2017 plan; Table 3 partial: one province
+        column 14/76/169/3/3 for 2014-2018 = existing Bagmati rows)                                                     -> none
+  B4Q19 [News/Archive] Wayback CDX nepalnews.com.np/contents/archive/mainnews (224 daily digests); harvest started          -> PENDING
+  B4Q20 [WHO/Historical] IRIS 1975-1992 'Nepal cholera control report visit' / surveillance assignment / CDD review            -> none
+Sources found: 15+   Registered: index 235 (KP 18 Aug 2000, for B2Q7)
+Rows added   : 0 attributable to Batch 4 queries (AI 263 belongs to B2Q7)
+Successful queries: 0/20   [B4Q2, B4Q19 pending]
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+=== GAP-TARGETED SEARCH BATCH 5 ===
+Target Gaps: T1 1982-1988 (historical non-reporting); T2 1999-2006 sub-national/national suspected; T3 held-out years.
+B5Q1 [Historical/Archive] DesInventar Nepal disaster database export (https://www.desinventar.net/DesInventar/download/DI_export_npl.zip, 13.5 MB; XML 182 MB, records 1971-2013 coded from Gorkhapatra/Kantipur) parsed with cache/NPL_agent4_scripts/desinv_parse.py + desinv_summ.py.
+  -> 3,608 EPIDEMIC/BIOLOGICAL records. Cholera-named epidemic records 1974-2012 (~30). 1982: Jhapa/Chandragadhi 4 Apr ('Many people died due to cholera', Gorkhapatra 1982-04-05) and Salyan/Manjhakanda 20 Jun ('Due to Cholera', Gorkhapatra 1982-06-22). 1983-1988: NO record names cholera; epidemics are coded 'Diarrhoea'/'Dysentry' - 1984: 65 diarrhoea/dysentery records, 592 deaths, 462 sick (Terai Aug-Nov 1984: Dhanusa, Mahottari, Rautahat 198 deaths, Bara, Saptari; hills May-Sep); 1988: 32 records, 132 deaths, 404 sick. Government daily used 'diarrhoea' throughout 1983-1988 - consistent with WHO non-reporting (lead for Agent 6: label avoidance, not absence).
+  -> Registered source 236 (DesInventar Nepal). ADDED AI row 264: SEAR::NPL::Madhesh::Sarlahi 2003-09-19..09-21 sCh 193 d 3 (record 03794 heridos=193 'injured/sick'; corroborated for deaths by Kathmandu Post 22 Sep 2003 'Cholera claims 3 in Sarlahi', fetched from Wayback into cache/NPL_agent4/kp_sep2003/; KP's 'around 1,000 residents ... infected' = DesInventar afectados, not used). conf 0.35.
+  -> Presence rows (cholera_presence_ai.csv): Koshi::Jhapa 1982-04-04 (src 236); Karnali::Salyan 1982-06-20 (src 236).
+  -> Not added: Myagdi Oct 2006 (heridos 40, d 4 = same 'more than 40 affected' report Agent 2 already held as presence); Kathmandu 2006-07 (heridos 20 = '14-15 patients per day'); mixed 'Diarrhoea and Cholera' records (1977, 1990 Rupandehi 500 sick/25 d, 1992 x6, 2004 Achham, 2008 Lalitpur 15+16) - AGE/diarrhoea mixtures never go in sCh; deaths-only cholera records 1991 Bhojpur (22 d), 1995 Dhankuta (4 d), 1997 Dhading (2 d)/Syangja (4 d), 1998 Rautahat (3 d)/Kapilbastu (10 d), 2004 Sarlahi Parwanipur (2 d), 2010 Banke (1 d) - logged as leads (deaths-only rows prohibited).
+  Result: 1 data row -> successful query.
+  B5Q2  [WHO/Archive] Wayback CDX nep.searo.who.int/LinkFiles/* (87 files; WHO Nepal country office, dead site) -> 25 PDFs downloaded
+        (cache/NPL_agent4/nepsearo_linkfiles/: EEWARS 2007 bulletins nos. 1-9, EHA newsletters Sep 2005-Nov 2006, Newsletters Jan/Apr/Aug 2007,
+        2009 diarrhoea-outbreak sitreps 21 Jul-10 Aug 2009, flood sitrep 3-5 Aug 2007)                                    -> ROWS (AI 265-267)
+        WHO EHA Newsletter Issue XII (Aug 2007) p.4, read from rendered page (cache/NPL_agent4/nepsearo_render/aug07-04.png), src 237:
+          AI 265 Bagmati (Kathmandu Valley hospitals) 2007-05-15..07-25 cCh 305 d 5 ('As of 25 July, 305 cases of confirmed cholera including five deaths')
+          AI 266 Madhesh::Rautahat (Gairatar VDC) 2007-06-19..06-25 sCh 406 (EDCD chart 'Cholera Outbreak in Gairatar VDC': <5 y 32 + >=5 y 374)
+          AI 267 Karnali::Kalikot (Khin VDC) 2007-06-17..06-23 sCh 459 (patients treated by Manma team; 7/10 stools positive; 39 deaths 20 May-late Jun not entered)
+        Not new: EEWARS 2007 nos. 1-9 cholera lines (weeks 1-21) = AI 218-220 already (cumulative 5 to week 21); 2009 sitreps = AGE totals
+        (rule: not sCh) + '8 of 20 samples positive for V. cholerae O1 from two districts' (district split not given; AI 142 has Jajarkot cCh 3) - lead only;
+        EHA newsletters 2005-2006: no Nepal cholera counts.
+  B5Q3  [WHO/Archive] Wayback CDX nep.searo.who.int/* (331 captures; section pages fetched)                             -> none
+        (Section60 'Diarrheal Outbreak 2009' = the same three sitreps)
+  B5Q4  [Academic] PubMed '(cholera OR vibrio) AND Nepal' 1960-1999 (15)                                                -> none
+        (Pokhrel & Kubo 1996 = AI 140; Ise 1996 J Trop Pediatr 42(5):305-7 (doi 10.1093/tropej/42.5.305) paywalled, no counts in abstract;
+         Marfin 1994 JAMA camp surveillance paywalled; Anniss 1966 Nursing Mirror 'Cholera epidemic in Nepal' - 1966 already JHU)
+  B5Q5  [Historical/T4] WebSearch (extended) 'Nepal cholera epidemic 1963 OR 1964 OR 1967 Kathmandu deaths'              -> none
+  B5Q6  [Official/Archive] Wayback CDX (mime pdf) dohs.gov.np, mohp.gov.np, nhssp.org.np, edcd.gov.np (1,013 PDF captures) -> ROW (AI 268)
+        No DoHS annual report older than FY 2066/67 is archived (2066/67-2078/79 all already read by Agents 2-3/me). EDCD news PDFs opened:
+        'cholera-information-updated' (May 2019: one confirmed case, Kathmandu ward 13, admitted 2076-01-17 = 30 Apr 2019 = AI 208 already);
+        'update-on-diarrhoea-outbreak-in-dadeldhura-district' (PDF created 21 Aug 2019), src 238:
+          AI 268 Sudurpashchim::Dadeldhura (Parshuram-8) 2019-08-14..08-21 sCh 81 ('Loose rice watery stool'; 'Total 81 cases of diarrhea were treated till date';
+          1 of 2 stools V. cholerae positive) - held-out year 2019; lab subset AI 53 (cCh 4).
+  B5Q7  [Official] EDCD 2018 'outbreak-updates-on-kalikotsolukhumbujajarkot' (Wayback)                                   -> none (image-only PDF, no text)
+  B5Q8  [Archive] archive.org advancedsearch 'Nepal Press Digest' and Nepal+cholera texts                               -> none (0 / 3 irrelevant)
+  B5Q9  [Archive] Digital Himalaya (himalaya.socanth.cam.ac.uk; hosts Nepali Times PDFs 2000-2006) site search          -> none (UNREACHABLE: ECONNREFUSED / network unreachable)
+  B5Q10 [Humanitarian] ReliefWeb API NPL 'cholera AND (Sunsari OR Koshi OR Inaruwa OR camp)' Aug-Dec 2008 (1)            -> none (Xinhua 20 Sep 2008 = src 29/AI 15)
+  B5Q11 [Humanitarian] ReliefWeb API NPL 'cholera AND (Situation Overview OR Situation Report OR bulletin)' 2006-2008 (7) -> none (rows)
+        NRCS Flood Bulletin 11 (26 Jul 2007): Gaidatar 'Total 368 are affected' -> corroboration note appended to AI 266 (revise_observation).
+        ABSENCE-CONTEXT (not zero rows; NPL has no zero rows): OCHA Floods Sitrep 4 (5 Sep 2006): 'According to WHO there are no confirmed cases
+        of cholera' (mid/far-west flood districts); WHO Nepal Sitrep 3 (31 Aug 2006): 'no cases of cholera has been reported in any of the three
+        major hospitals in Banke and health facilities in Bardiya'; OCHA Sitrep 5 (22 Oct 2008): 'Suspected cholera outbreak in Kailali
+        identified as food poisoning'. Lead for Agent 6 (2006-08..12 window: flood-area surveillance active, no confirmed cholera).
+  B5Q12 [Academic/Linguistic] CiNii Research 'ネパール コレラ' (416) and 'Nepal cholera' (30)                             -> none (all known)
+  B5Q13 [Linguistic] WebSearch (extended, French) 'choléra Népal épidémie cas décès 2003-2006 vallée de Katmandou'       -> none
+  B5Q14 [Regional] WebSearch (extended) 'cholera Nepal border Raxaul/Birgunj/Jogbani/Biratnagar/Kakarbhitta 2002-2006'   -> none
+  B5Q15 [Archive] NHRC eLibrary 'gastroenteritis' (47) -> DoHS Annual Health Report 2081/82 (handle 3060, 20.5 MB) read  -> none (target years)
+        LEAD (recent years, outside Agent 4 scope; earlier agents could not fetch these): NHRC eLibrary hosts DoHS Annual Health Reports
+        2079/80 (handle 2682), 2080/81 (2837), 2081/82 (3060). 2081/82 Table 9.9 SORMAS 'Cholera' FY 2079/80 63, 2080/81 61, 2081/82 1,187;
+        Table 9.7 EWARS events 'Probable Cholera' Bajura (Gaumul 1, Badimalika 2), Pokhara Academy 2 cases/1 death; 2025 RDT use >1,500, 198 positive.
+  B5Q16 [WHO] IRIS 'communicable disease newsletter South-East Asia' -> 7 SEARO CD Newsletters (2008-2013) + SEARO 'Overview and Assessment
+        of Communicable Disease Surveillance Systems ... Nepal Country Report 2023' (IRIS 2026) read                       -> none (rows)
+  B5Q17 [Linguistic/T3] WebSearch (extended) 'हैजा प्रकोप २०६१ OR २०६२ OR २०६३ जिल्ला बिरामी मृत्यु झाडापखाला'             -> none
+        (only Anumodan 23 Aug 2019 Dadeldhura '८५ जनामा हैजा' - used as corroboration in AI 268 note)
+  B5Q18 [Official/Archive] Wayback CDX edcd.gov.np news/download (259) + 15 situation updates 2017-2018 fetched            -> none (no cholera)
+  B5Q19 [Academic] Europe PMC '(cholera OR "vibrio cholerae") AND nepal' 1975-2012 (200)                                -> none (Tamang 2005 = src 50;
+        Shrestha 2010 = src 67; Karki 2007 = AI 256; Jpn J Infect Dis 2010 = AI 42)
+  B5Q20 [News/Archive] Wayback CDX kantipuronline.com to 2008 (96,377; kolnews.php 27,655 + kolnepalinews.php 11,582 article captures,
+        no date in URL; monsoon captures 2004 ~2,300, 2006 ~2,100)                                                        -> none (harvest deferred:
+        nepalnews 2004-2006 digests queued first in bg_news4)
+
+=== COUNT-TYPE EVIDENCE === EWARS (all years) | 2023 | cCh | EWARS 'confirmed' includes clinical diagnoses | https://iris.who.int (SEARO Nepal Country Report 2023, IRIS item 3e15b8db-1bb1-413e-b30c-4fdd858b661f, p.52) | "Immediate reporting: Confirmed cholera cases must be reported to EWARS within 24 hours of diagnosis (clinical and/or laboratory)" ; "Cholera is not currently a notifiable disease in Nepal." ; "Aggregate cholera cases are reported monthly in the HMIS."
+=== COUNT-TYPE EVIDENCE === AI:268 (EDCD Dadeldhura 2019) | 2019 | sCh | AWD by symptom description ('Loose rice watery stool 15-20 episodes') in a V. cholerae-confirmed outbreak; 'cases of diarrhea ... treated' | https://web.archive.org/web/20190922023251/http://www.edcd.gov.np/news/download/update-on-diarrhoea-outbreak-in-dadeldhura-district | "Total 81 cases of diarrhea were treated till date"
+=== COUNT-TYPE EVIDENCE === AI:265 (WHO EHA Aug 2007) | 2007 | cCh | 'confirmed cholera' from Valley hospitals | https://web.archive.org/web/20090618125431/http://www.nep.searo.who.int/LinkFiles/Newsletters_August_2007.pdf | "As of 25 July, 305 cases of confirmed cholera including five deaths were reported from Patan, Kanti, Bhaktapur and Teku Hospital as well as Nepal Medical College."
+=== REPORTING EVIDENCE (T1 1982-1988) === DesInventar Nepal (src 236) | 1983-1988 | no record names cholera; 1984 65 'Diarrhoea/Dysentry' records (592 deaths, 462 sick), 1988 32 records (132 deaths, 404 sick), all coded from Gorkhapatra | https://www.desinventar.net/DesInventar/download/DI_export_npl.zip | e.g. record 84355 'Rautahat ... 1984-10-13 ... 198 [deaths] ... Diarrhoea ... Many People were affected by diarrhoea' - epidemic diarrhoeal mortality was reported under 'diarrhoea' throughout the WHO non-reporting years.
+
+Sources found: 20+   Registered: index 236 (DesInventar Nepal), 237 (WHO EHA Newsletter Aug 2007), 238 (EDCD Dadeldhura update 21 Aug 2019)
+Rows added   : 5 (AI 264, 265, 266, 267, 268) + 2 presence rows (Jhapa 1982-04, Salyan 1982-06); 1 note appended (AI 266)
+Successful queries: 3/20 (B5Q1, B5Q2, B5Q6)
+Yield        : 15%
+Consecutive sub-5% batches: 0 (reset)
+Decision     : CONTINUE (B4Q2/B4Q19/B2Q8 harvests still running in background)
+
+=== BATCH 4 REVISION (pending harvest B4Q19 resolved during batch 6) ===
+  B4Q19 nepalnews mainnews digest harvest (128 of 181 pages saved so far; cache/NPL_agent4/nepalnews_mainnews/) -> ROWS (AI 269, 270)
+        AI 269 Bagmati::Kathmandu 2000-07-22..07-27 sCh 200 (lower bound; 'infected at least 200 persons in the last few days', arc111 28 Jul 2000, src 239;
+               = DesInventar 00313 afectados 200)
+        AI 270 Gandaki::Gorkha (Laptak/Laprak) 2000-08-16..08-23 sCh 37 d 6 ('killed at least six ... and infected 31 others', arc122 26 Aug 2000, src 240)
+        Not entered: arc107 15 Jul 2000 'Traces of cholera have been detected in Kathmandu' (no count); arc128 12 Sep 2000 Gorkha 'Diarrhoea Kills At
+        Least 23' (diarrhoea label); arc117 Palpa diarrhoea 8 deaths/200 treated, arc123 Bajhang diarrhoea 12 deaths/40 infected, Khotang diarrhoea
+        2 deaths/25, arc133 Dolpa gastroenteritis >100 deaths (summer 2000), arc30 Sindhupalchok influenza+gastroenteritis 47 deaths (Apr 1999/2000) -
+        all AGE/diarrhoea labels (country rule) - logged for Agent 6 as evidence of active epidemic reporting in 2000.
+  Batch 4 revised: successful queries 1/20 -> yield 5% (was 0%). Consecutive sub-5% count unaffected (batch 5 = 15% already reset it).
+
+=== BATCH 6 | PHASE 3 (institutional/statistical archives, Nepali-language press mirrors, WHO regional reports) | NPL ===
+Gap targeted : T2 1999-2006 sub-national/national; T4 1961-1964/1967; T1 1982-1988; held-out years
+Queries      : 20
+  B6Q1  [Official/Archive] Wayback CDX moh.gov.np, nphl.gov.np (3,034), nhrc.org.np (1,201) -> NPHL AMR bulletin Apr 2017, AMR summary 2018,
+        NPHL annual report 2021, NHRC research/thesis lists 2007-2013, NHRC situation report 2017 fetched                -> none
+        (AMR 2018 = src 177/AI 206 already; NHRC list: 'A Brief report on the Cholera outbreak, ENPHO, 1990' - lead only, 1990 covered)
+  B6Q2  [Linguistic/Japanese] WebSearch forth.go.jp (MHLW quarantine info) 'ネパール コレラ 発生 患者 死亡'                     -> none
+  B6Q3  [News] WebSearch People's Daily/Xinhua archives 'Nepal cholera 2004-2006'                                    -> none (Nepalgunj 1,400/8 = 2010, AI 103)
+  B6Q4  [Regional/News] WebSearch site:hindu.com 'Nepal cholera epidemic deaths district'                              -> none
+  B6Q5  [Humanitarian] IRIN/The New Humanitarian nodes 242380/246329/249155 (Nepal diarrhoea/cholera)                -> none (HTTP 403)
+  B6Q6  [News] WebSearch thehimalayantimes.com cholera 2004-2006                                                       -> none
+  B6Q7  [Official/Historical] WebSearch 'Statistical Year Book of Nepal' / 'Statistical Pocket Book' 1985-1989 cholera -> none (no 1980s CBS yearbook online;
+        Bharati & Bhattacharya 2014 review read: Nepal section = known items; its 1987-88 flood/institution outbreak text refers to another country)
+  B6Q8  [Official/Archive] Wayback CDX cbs.gov.np/nsonepal.gov.np (35,655) -> Statistical Year Books 2013/2015/2017, Pocket Books 2014/2016  -> none
+        (Table 5.2 STIDH Teku patients by disease FY 2002/03-2016/17: 'Gastro-Enteritis' only, no cholera category - context for Agent 6:
+         GE admissions 2003/04 2,262; 2004/05 5,416; 2005/06 3,432)
+  B6Q9  [WHO/Archive] WHO Country Cooperation Strategy Nepal 2006-2011 (nep.searo LinkFiles, Wayback)                -> none (diarrhoea indicators only)
+  B6Q10 [WHO/T4] IRIS SEARO Regional Director annual reports 1959-60, 1960-61, 1962-63, 1963-64, 1964-65, 1965-66, 1967-68, 1968-69   -> none (rows)
+        REPORTING EVIDENCE (T4): 1959-60 report: 'There has been no large outbreak of cholera during the year, although sporadic cases did occur
+        in the Terai area. Kathmandu ... remained free from this disease' (conflicts with Abou-Gareeb 1959 hospital series - note appended to AI
+        239-245, 255); 1960-61: 'There was sporadic cholera in Kathmandu' (note appended to AI 246-253); 1965-66: 'For Afghanistan and Nepal, this
+        was the first time that cholera had been reported since 1960 and 1961 respectively' (=> Nepal last reported cholera in 1961, nothing
+        1962-1964); 1967-68: 'No cases of cholera were reported from Afghanistan, Ceylon, the Maldive Islands, Mongolia or Nepal' (1967);
+        1968-69: 'an epidemic of acute gastro-enteritis in Nepal included some cases found to be cholera' (1968, JHU covered). No counts.
+  B6Q11 [WHO/T2] IRIS SEARO RD reports 2003-04, 2004, 2005, 2006, 2006-07, 2007, 2007-08, 2008 (all chapters)          -> none (no Nepal cholera passage)
+  B6Q12 [Archive/Missionary] archive.org 'United Mission to Nepal' / Shanta Bhawan / Patan / Tansen / BNMT              -> none
+        (Cobb 1963 'Come to Shanta Bhawan!' = lending-only, search-inside 403 - LEAD for 1961-1963 Kathmandu cholera; BNMT/ERHD Eastern Region
+         health assessment 2003: no cholera)
+  B6Q13 [Academic] PubMed (cholera OR vibrio OR watery diarrhoea) in Nepal Med Coll J / KUMJ / JNMA / JNHRC (13)        -> none (all known/irrelevant)
+  B6Q14 [Linguistic/Archive] Wayback CDX nepalnews.com.np/contents/nepalidaily/* (48,668 captures: Kantipur 1999-2003, Gorkhapatra 1999-2003,
+        Samacharpatra 2000-2003 mirrors; text in Kantipur legacy font = Preeti mapping; हैजा = 'x}hf') -> harvest of Kantipur local/index
+        pages Jun-Sep 2000-2003 (939) then Gorkhapatra 2000-2002 started (bg_news6.sh -> cache/NPL_agent4/kantipur_np, gorkhapatra_np);
+        converter cache/NPL_agent4_scripts/preeti.py written                                                            -> PENDING
+  B6Q15 [Linguistic] WebSearch 'हैजा site:himalkhabar.com OR ekantipur.com OR nagariknews 2063-2065 प्रकोप'               -> none
+  B6Q16 [Humanitarian] ReliefWeb API NPL '(cholera OR diarrhoea OR gastroenteritis)' 2006 (24) + 7 reports read         -> none
+        (no cholera in WHO HAC highlights May/Jun/Sep 2006, WHO Nepal sitrep 2 (30 Aug 2006), Bardiya/cantonment items)
+  B6Q17 [Academic] OpenAlex API 'cholera nepal' 1980-2010 (200 screened)                                               -> none
+        (Sharma 2002 JNMA Sunsari 1998 = src 103/AI 110 already (writer de-duplicated the URL); Kobe 1998 Achham 'unknown disease' 1996 - not cholera)
+  B6Q18 [Archive] Wayback CDX healthnet.org.np (8,239; HealthNet Nepal 2002-2007 journal PDFs + mirrored mailing lists incl. 'promed' 140,
+        'community' 52, 'epiinf' 55, 'epidemiol' 4 messages) -> harvest of 251 list messages started (cache/NPL_agent4/healthnet_msgs) -> PENDING
+  B6Q19 [Historical] WebSearch '"Nepal Press Digest" cholera/gastro-enteritis 1984-1988 Regmi' and follow-up on the 1946-2019 scoping review -> none
+        (= Rhee 2020 APJTM, already examined B1Q8/B4Q18; 'Understanding cholera in Nepal' (Dixit et al. 2011) - LEAD, not yet located)
+  B6Q20 [Historical/T1] WebSearch '"cholera" epidemic Nepal "1984" Terai Janakpur/Dhanusa/Mahottari/Rautahat'          -> none
+Also during batch 6: B4Q19 harvest completed (181/181 digests; only arc107/111/122 mention cholera) -> AI 269-270 (see BATCH 4 REVISION).
+Sources found: 25+   Registered: none new in batch 6 (src 239-240 belong to B4Q19)
+Rows added   : 0 attributable to batch 6 queries   [B6Q14, B6Q18 pending]
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE
+
+=== COUNT-TYPE EVIDENCE (T5, from WER annual reports already downloaded in B1Q16; no new query) ===
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1993 | sCh 31 d 0 | unknown (no definition; = WER 69(28) Table) | https://iris.who.int (WER 69(28) 'Cholera in 1993') | "Nepal-Népal ... 31 0"
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1994 | sCh 32 d 0 | unknown (no definition) | WER 70(28) 'Cholera in 1994' | "Nepal-Népal ... 32 0"
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1995 | sCh 157 d 0 | unknown (no definition) | WER 71(21) 'Cholera, 1995' | "Nepal – Népal ... 157 0"
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1996 | sCh 274 d 1 | unknown (no definition) | WER 72(31) 'Cholera in 1996' | "Nepal – Népal ... 274 1"
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1997 | sCh 245 d 0 | unknown; WER prints deaths '...' (not reported), JHU stores 0 | WER 73(27) 'Cholera in 1997' | "Nepal – Népal ... 245 ..."
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1998 | sCh 1,745 d 17 | SUSPECTED (includes suspect cases; 25% of tested positive) | WER 74(31) 'Cholera, 1998' | "Nepal – Népal ... 1 745 b 17" ; footnote "b Includes suspect cases (1 out of 4 cases tested positive)." ; text: "Nepal (1 745 cases, a [4-fold increase])"
+=== REPORTING EVIDENCE (T2) === EEWARS weekly bulletins 2007 (src 196-198, nep.searo LinkFiles): the 'Cumulative up to week N ... 2006' column is 'NA' for Cholera, AGE, Dengue and ILI - cholera was added to the sentinel EWARS only with the Enhanced EWARS in 2007; no national sentinel cholera series exists for 1999-2006 (only the AMR laboratory network, AI 27-34, and HMIS clinical counts in unpublished DoHS reports FY 2055/56-2062/63).
+
+=== BATCH 7 | PHASE 3 (regional WHO reports, national statistics, NGO/ministry archives; harvests running) | NPL ===
+Gap targeted : T2 1999-2006; T1 1982-1988 context; held-out-year national counts
+Queries      : 20
+  B7Q1  [WHO] IRIS 'Health situation in the South-East Asia Region' 1991-1993, 1998-2000 (no bitstreams), 2001-2007 (read)  -> none (no Nepal cholera table)
+  B7Q2  [Academic] WebSearch '"Understanding cholera in Nepal" Dixit' -> NHRC bitstream 2047 = Bhandari 2009 JNHRC (src 100)    -> none
+  B7Q3  [News/Archive] WebSearch site:archive.nepalitimes.com cholera (Nepali Times archive)                          -> none (2009+ items;
+        'Bahadur Nepali' recalls a 1947 Kathmandu Valley epidemic - pre-1958, outside series)
+  B7Q4  [Linguistic/Archive] Kantipur Online Nepali (kolnepalinews.php) Wayback captures by month                    -> none (captures start 2006;
+        2006 pages generic/English portal; harvest deferred)
+  B7Q5  [Academic/Theses] TUCL eLibrary (DSpace REST) theses citing DoHS cholera figures 2056-2062 BS               -> none (UNREACHABLE: connect timeouts)
+  B7Q6  [WHO] IRIS 'Nepal country health system profile' / 'Nepal health profile communicable diseases HMIS'       -> none
+  B7Q7  [Historical] ProMED-mail archive search endpoint (promedmail.org admin-ajax)                                -> none (HTTP 404)
+  B7Q8  [Humanitarian/Archive] Wayback CDX nrcs.org to 2009 (363) -> NRCS annual reports 2002 and 2004, disaster situation reports 2002-2004,
+        statistical disaster report Aug 2004, news Jun/Sep 2001 (14 files)                                             -> none (no cholera)
+  B7Q9  [Humanitarian/WHO] ReliefWeb API NPL diarrhoeal reports 2002-2005 (62) + WHO Nepal flood sitreps 23 Jul, 28 Jul, 3 Aug, 30 Aug 2004,
+        DPA 29 Jul 2004, TNH 8 Aug 2005, WHO HAC highlights 18/21/22/29 (2004)                                          -> none
+        (3 Aug 2004 sitrep repeats '288 cholera cases with no deaths, mostly in Kathmandu valley' = AI 14; no other cholera counts)
+  B7Q10 [Humanitarian] WebSearch UNICEF Nepal country office annual reports 2004-2006 cholera                       -> none
+  B7Q11 [Official/Archive] Wayback moh.gov.np 2002-2006 fact sheets, country profile, district profiles             -> none
+  B7Q12 [News/Archive] Wayback CDX nepalnews englishweekly/* (16,538; Spotlight etc.)                               -> none (non-descriptive filenames; not harvested)
+  B7Q13 [Linguistic/Chinese] WebSearch '尼泊尔 霍乱 疫情 死亡 2003-2006 新华网 加德满都'                                         -> none
+  B7Q14 [News/Archive] Wayback CDX gorkhapatra.org.np to 2009 (43,889; article captures with status 200 only Jun-Oct 2006, ~4,100) -> none (not harvested)
+  B7Q15 [Humanitarian] ReliefWeb IFRC/NRCS/ActionAid flood updates 2002-2003 (8 read)                               -> none (risk statements only)
+  B7Q16 [Academic] PubMed Nepal + (cholera/gastroenteritis/epidemic) News/Letter/Editorial 1975-2010 (146; 40 screened) -> none
+  B7Q17 [Official] WebSearch DoHS annual report 2058/59-2061/62 cholera HMIS + Wayback CDX hmis.gov.np/media        -> none (only AHR 2079/80, 2080/81 archived)
+  B7Q18 [Archive] scholar.archive.org full-text search 'cholera Nepal' 1975-2007                                     -> none (JS session challenge blocks automated access)
+  B7Q19 [Official/Archive] MoH NHSP Implementation Plan 2004 + NHSP economic analysis (moh.gov.np/new, Wayback)       -> none
+  B7Q20 [NGO/Archive] Wayback CDX enpho.org to 2012 (702) -> ENPHO Annual Report 2005, report lists 2003/2005       -> none
+Also during batch 7 (no new query): WER annual reports 1999-2006 re-grepped - no Nepal mention at all (non-reporting confirmed);
+  WER 1993-1998 Nepal figures logged as COUNT-TYPE EVIDENCE (1998 = suspected incl.; 1997 deaths '...' stored by JHU as 0).
+Harvest status: KP local 2000-2003 complete (949; only 2003-09-22 Sarlahi = AI 264); TRN 2000-2002 ~110/620; Kantipur (Nepali) ~125/939;
+  HealthNet lists ~75/251; nepalnews 2002-2006 digests queued (bg_news4/bg_news5).
+Sources found: 15+   Registered: none
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 2
+Decision     : CONTINUE (batch 8; pending harvests from B2Q8/B4Q2/B6Q14/B6Q18 may still revise earlier yields)
+
+=== BATCH 8 | PHASE 3 (slug-filtered news archives, journal OJS archives, Nepali/Hindi press; harvests continuing) | NPL ===
+Gap targeted : T2 1999-2006; T1 1984/1988 context; held-out years
+Queries      : 20
+  B8Q1  [Linguistic/News] Wayback CDX bbc.co.uk/nepali/news/story/* (2,277; 2004-2010 slugs filtered for haija/cholera/diarrhoea) -> none
+        (only 2009 Jajarkot items: 090706 jhadapakhala, 090722 cholera_outbreak, 090808 diarrhoea - covered)
+  B8Q2  [News/Archive] Wayback CDX thehimalayantimes.com fullNews/fullTodays (193,640; 2009-2026 headline slugs filtered for cholera) -> none
+        (Nepal items: Doti 2012 (AI 58/149), Kathmandu 15 (AI 235), Rautahat '18 suspected' page (added 2014-06-06) = Gaidatar subset of AI 135)
+  B8Q3  [Linguistic/Archive] Kantipur (Nepali) 1999 Jun-Sep local/index pages (244) - harvest started (bg_news7.sh)  -> PENDING
+  B8Q4  [Linguistic] WebSearch '"हैजा" २०५९-२०६१ साल प्रकोप गाविस बिरामी मृत्यु हिमाल खबरपत्रिका/कान्तिपुर'                  -> none
+  B8Q5  [Academic/Archive] HealthNet Nepal JNPS 'Gastro.pdf' (2003)                                                     -> none (capture is HTTP 401)
+  B8Q6  [Academic] Europe PMC full text '"cases of cholera" AND nepal AND 2001-2006' (70)                              -> none (NPHL AMR 2006-2016 = src 53)
+  B8Q7  [Academic] PubMed/SEAMEO: Ono et al. 2001 SEAJTMPH 32(3):520-6 full text (tm.mahidol.ac.th 2001_32_3/15-2737.pdf) -> none
+        (samples Jul 1996-Nov 1997: V. cholerae O1 8 in July 1996 - covered years)
+  B8Q8  [Humanitarian] MSF International Activity Reports 2005/06, 2006/07, 2007 (Nepal sections)                    -> none (diarrhoea only)
+  B8Q9  [Linguistic/Hindi] WebSearch '"नेपाल" "हैजा" फैला मौत 2003-2006 रक्सौल/बीरगंज/विराटनगर'                               -> none
+  B8Q10 [Historical] Wikipedia 'YYYY in Nepal' 1999-2006 (raw wikitext)                                               -> none (no epidemic entries)
+  B8Q11 [Academic] JIOM OJS archive search 'cholera' (2)                                                               -> none (Tandukar 2008 = Kanti 2006-07 thesis, known)
+  B8Q12 [Academic] JNMA OJS archive search 'cholera' (6)                                                               -> none (all known)
+  B8Q13 [Academic] OpenAlex 'cholera outbreak eastern nepal BPKIHS' (12; Health Renaissance query HTTP 429)           -> none (Ilam 2012 = AI 79)
+  B8Q14 [Official] ADB Melamchi Water Supply Project RRP (2000) health appendix                                     -> none
+  B8Q15 [Linguistic/Archive] Samacharpatra (Nepali) local/index pages Jun-Sep 2000-2002 (477) - queued in bg_news8.sh -> PENDING
+  B8Q16 [Linguistic/Archive] Gorkhapatra (Nepali) 1999 Jun-Sep local/index (39) - queued in bg_news8.sh             -> PENDING
+  B8Q17 [Academic] KUMJ archive search 'cholera'                                                                       -> none (no machine-readable results)
+  B8Q18 [Academic] WebSearch JNPS/Kanti/BPKIHS paediatric cholera series                                            -> none (Maharjan, Scientific World = src 73)
+  B8Q19 [News] WebSearch downtoearth.org.in Nepal cholera 1999-2006                                                   -> none
+  B8Q20 [Historical/T1] WebSearch 'Nepal 1984 diarrhoea/gastroenteritis epidemic Terai ... cholera El Tor'            -> none
+        (Down To Earth 1998 'Gastro-enteritis deaths' eastern Nepal >100 deaths, 40 Rautahat - AGE, 1998 covered)
+Also during batch 8 (pending harvest from B4Q2 resolved): TRN mirror 1 Jun 2000 -> AI 271 (see revision block below); HealthNet harvest (B6Q18)
+  completed: 108 messages, no Nepal cholera item -> B6Q18 none.
+Sources found: 15+   Registered: none for batch-8 queries (src 241 belongs to B4Q2)
+Rows added   : 0 attributable to batch 8 queries   [B8Q3, B8Q15, B8Q16 pending]
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 3 (batches 6, 7, 8) - provisional: harvests attributed to B2Q8, B4Q2, B6Q14, B8Q3, B8Q15, B8Q16 still running;
+  the stopping decision is deferred until they complete and earlier yields are re-evaluated.
+
+=== BATCH 4 REVISION 2 ===
+  B4Q2 TRN mirror harvest (The Rising Nepal local pages Jun-Sep 2000-2002; ~165/620 saved at this point) -> ROW (AI 271)
+        AI 271 Bagmati (Kathmandu Valley) 1999-01-01..12-31 sCh 91 (src 241: TRN 1 Jun 2000, MoH/DHS EDCD seminar data 'In 1999 there were 91
+        cases of cholera in Kathmandu Valley, according to the data').
+  Batch 4 revised: successful queries 2/20 (B4Q2, B4Q19) -> yield 10% (was 5%).
+
+=== BATCH 9 | PHASE 3 (executed while the batch 6-8 stopping evaluation awaits the news-mirror harvests) | NPL ===
+Gap targeted : T1 1980s (imported-case and cross-border evidence, missionary/USAID archives); T2 1999-2006; held-out years
+Queries      : 20
+  B9Q1  [Humanitarian] ReliefWeb API NPL (cholera/diarrhoea/gastroenteritis/epidemic) 1996-2001 (8) + 4 read         -> none
+        (IFRC Information Bulletin 2 Oct 2000: '250 people have died from cholera and an outbreak of Japanese encephalitis' - combined deaths, no counts)
+  B9Q2  [Historical/Refugee] WebSearch MMWR 1992-1993 Bhutanese refugee camps cholera                                  -> none
+  B9Q3  [Archive] NHRC eLibrary 'epidemiological bulletin' / 'Epidemiology and Statistics Division' (MoH quarterly 1980s) -> none (not held)
+  B9Q4  [Linguistic/Japanese] CiNii '輸入 コレラ ネパール' (imported cholera from Nepal, presence evidence for 1982-1988) (9) -> none
+        (also re-grepped WER annual reports 1982-1988: no imported cases attributed to Nepal)
+  B9Q5  [Official/Academic] WebSearch Nepal Disaster Report 1983-1988 epidemic tables; Pokhrel & Viraraghavan 2004 J Water Health review -> none
+  B9Q6  [Historical/USAID] WebSearch PRITECH / USAID DEC Nepal diarrhoeal-disease trip reports 1985-1988               -> none (USAID DEC not searchable)
+  B9Q7  [Historical] WebSearch site:books.google.com Nepal cholera 1984-1988 -> NHRC library OPAC (Wayback copy)      -> none (rows)
+        LEAD: Singh RR (MoHP/BPKIHS) 2015 'Epidemiology of Cholera in Nepal', NHRC library RES-00748/SIN/2015 (print only; may hold an HMIS
+        series); ENPHO 1990 'A brief report on the cholera out break' (NHRC record 445).
+  B9Q8  [News] OnlineKhabar 'History of epidemics in Nepal (Part I)'                                                   -> none (no counts before 2009)
+  B9Q9  [Humanitarian] ReliefWeb API NPL 1980-1995                                                                     -> none (0 records)
+  B9Q10 [Historical/UN] WebSearch UNDRO situation reports Nepal epidemics 1984-1991                                   -> none
+  B9Q11 [WHO/NGO] WebSearch WHO Disease Outbreak News Nepal 1997-2009 -> INSEC 'Diarrhea Outbreak Chronology' (2009) read -> none (2009 AGE, covered)
+  B9Q12 [News] fitfortravel NHS 'Cholera in Nepal (Kathmandu)'                                                        -> none (certificate expired)
+  B9Q13 [Humanitarian] ReliefWeb TNH 'Nepal: Year in Brief 2005 chronology'                                          -> none
+  B9Q14 [WHO] IRIS SEARO epidemiological bulletins 1990-2009                                                           -> none
+  B9Q15 [WHO] IRIS 'assessment of communicable disease surveillance and response system Nepal'                        -> none
+  B9Q16 [News/Archive] HK Travel Health 'Outbreak News' 2004 weekly digests (54; Wayback harvest, cache/NPL_agent4/hkths_2004) -> none
+        (2004 Nepal items are diarrhoea-labelled: Rautahat Bagahi Apr 2004 '>100 affected'; Xinhua 22 Jun 2004 '5,777 cases ... 20 districts
+         ... 50 deaths' (AGE); Siraha Jun 2004 '9 killed, hundreds infected' (diarrhoea) - AGE rule, not entered)
+  B9Q17 [Archive/Missionary] Wayback CDX patanhospital.org.np (79), umn.org.np (1,020)                                 -> none (UMN pages 1995-96 and
+        2003-04 programme pages; Wayback refusing connections at this point)
+  B9Q18 [News] WebSearch Kathmandu cholera 2002/2003 Teku 'cases of cholera' (+ THT ampArticle 170312 = 24 Aug 2016, covered) -> none
+  B9Q19 [Official/Archive] Wayback CDX nhssp.org.np/NHSSP_Archives (2,207)                                             -> none (2012-2017 documents only)
+  B9Q20 [Regional/Academic] PubMed Nepal in J Commun Dis / Indian J Med Res / Indian J Public Health / J Indian Med Assoc (4) -> none
+        (LEAD, cross-border T1 context: Gupta SN 1985 'Children diarrhoea at Indo-Nepal border', J Indian Med Assoc 83(4):110-2 - print only)
+Harvest results processed during batch 9 (no new rows): TRN 20 Jul 2001 (RSS): 'no cholera cases have been reported at any of the capital's
+  hospitals. Sporadic cases of cholera used to be reported here during this season' (Kathmandu, to 19 Jul 2001) - ABSENCE-CONTEXT for Agent 6
+  (consistent with AMR 2001 = 4 isolates, AI 29); Kantipur 27 Jul 1999 and Gorkhapatra 12 Aug 2000: MPs in parliament on 'हैजाको प्रकोप' in
+  Dhading (1999) and 'हैजाजस्तो महामारी' in Sindhupalchok (2000) - political statements, no counts, not entered.
+EEWARS 2007 bulletins and SEARO RD reports were used as REPORTING EVIDENCE only.
+Sources found: 10+   Registered: none
+Rows added   : 0
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 4 (batches 6-9), provisional pending B6Q14 / B8Q3 / B8Q15 / B8Q16 harvests
+
+=== BATCH 8 REVISION (pending harvest B8Q3 producing rows) ===
+  B8Q3 Kantipur (Nepali) 1999 Jun-Sep harvest (~180/244 saved; Preeti-font text converted with preeti.py) -> ROWS (AI 272, 273), src 242
+        Kantipur 25 Jun 1999 (10 Asar 2056) 'राजधानीमा झाडाबान्ताको प्रकोप':
+          AI 272 Bagmati::Kathmandu 1999-06-15..06-24 sCh 18 ('१८ जना बालबालिकालाई हैजा लागेको कान्ति बाल अस्पतालमा' - 18 children with cholera at Kanti
+                 Children's Hospital, further cases suspected) - subset of AI 271 (Valley 1999 = 91)
+          AI 273 Bagmati::Kathmandu 1998-06-15..07-16 sCh 90 ('गत वर्ष असार महिनामा ... झण्डै १ हजार बिरामी ... तीमध्ये ९० जनामा हैजा देखिएको' - Asar 2055,
+                 ~1,000 diarrhoea patients of whom cholera in 90) - hospital subset of national 1998 (1,745, JHU)
+  Batch 8 revised: successful queries 1/20 (B8Q3) -> yield 5% (was 0%). Consecutive sub-5% run now = 1 (batch 9) -> CONTINUE: batches 10
+  and 11 required (stop at 3 consecutive sub-5% batches or 12).
+=== COUNT-TYPE EVIDENCE === AI:272-273 (Kantipur 25 Jun 1999) | 1998, 1999 | sCh | hospital-diagnosed cholera among ORT/diarrhoea patients at Kanti Children's Hospital; '18 ... हैजा लागेको' explicitly distinguished from 'हैजाको शंका' (suspected); method not stated | https://web.archive.org/web/20030127182026/http://www.nepalnews.com.np/contents/nepalidaily/kantipur/1999/Jun/Jun25/local.htm | "अस्पताल ल्याएकामध्ये १८ जना बालबालिकालाई हैजा लागेको ... अन्य केही बालबालिकालाई पनि हैजाको शंका गरिएको"
+
+=== BATCH 10 | PHASE 3 (required after the batch-8 revision; Nepali-press harvest extensions + residual checks) | NPL ===
+Gap targeted : T2 1999-2006 (Nepali/English press front pages, shoulder months); T4 1961; T1 reporting evidence
+Queries      : 20
+  B10Q1  [WHO/T4] IRIS 'Nepal cholera' dateIssued 1961-62, 1964-65, 1967-68 -> WER 1961 Q2 index, infected-area lists 24 Aug and 6 Sep 1961,
+         WER 36(15) and 36(22) read                                                                                    -> none (rows)
+         REPORTING EVIDENCE (T4): every Nepal entry in WER 1961 is SMALLPOX ('VARIOLE ... NEPAL West Nepal', infected-area lists 'West Nepal
+         B 8.IV'); no 1961 cholera notification found (the SEARO 1965-66 statement that Nepal last reported cholera in 1961 is not backed by
+         a WER count).
+  B10Q2  [News/Historical] WebSearch UPI Jul 1992 Katmandu cholera '194 cases'                                         -> none
+  B10Q3  [News] AsiaNews 'Kathmandu: at least 12 people die and 68 are hospitalised' (= 18 Aug 2016, covered)          -> none
+  B10Q4  [Academic] PubMed Dhakhwa JR (Kanti registrar) (2)                                                            -> none (Ise 1996 only)
+  B10Q5  [Linguistic/Archive] Kantipur (Nepali) May and Oct 1999-2003 local/index pages (487) - queued (bg_news9.sh)    -> PENDING
+  B10Q6  [Linguistic/Archive] Gorkhapatra (Nepali) May and Oct 1999-2002 local/index pages (237) - queued (bg_news9.sh) -> PENDING
+  B10Q7  [News] WebSearch 'Kanti Children's Hospital cholera cases 1998-2004'                                          -> none
+  B10Q8  [Academic] Europe PMC '(cholera OR vibrio) AND (Kanti OR Teku OR Sukraraj OR Infectious Disease Hospital) AND nepal' (48) -> none
+  B10Q9  [News/Archive] Kathmandu Post front pages (index.htm) Jun-Sep 2000-2003 (~480) - queued (bg_news9.sh)         -> PENDING
+  B10Q10 [News/Archive] The Rising Nepal front pages (index.htm) Jun-Sep 2000-2002 (~360) - queued (bg_news9.sh)       -> PENDING
+  B10Q11 [Linguistic] WebSearch '"कान्ति बाल अस्पताल" हैजा बालबालिका संक्रमण पुष्टि'                                     -> none
+  B10Q12 [Archive] NHRC eLibrary 'Kanti Children Hospital diarrhoea' (34) and 'Teku hospital' (132)                   -> none
+  B10Q13 [WHO/T5] IRIS WER 'Cholera in 1970'..'Cholera in 1981' titles                                                 -> none (only a 1973 four-weekly
+         table - weekly-type table, not extracted)
+  B10Q14 [Linguistic/Russian] WebSearch 'холера Непал эпидемия 1984-1988 Катманду' -> CDC MMWR 'Cholera - Worldwide, 1989'   -> none (rows)
+         REPORTING EVIDENCE (T1): MMWR (data as of 30 Apr 1990): 'Cases also appeared in Kuwait, Macao, Myanmar, and Nepal, which did not
+         report cases in 1988.' (https://www.cdc.gov/mmwr/preview/mmwrhtml/00001634.htm)
+  B10Q15 [WHO/Official] WebSearch site:cdc.gov MMWR 'Cholera - Worldwide' 1986-1991 Nepal                              -> none (only the 1989 item)
+  B10Q16 [Archive] NHRC eLibrary 'ENPHO cholera' / 'cholera out break' (ENPHO 1990 brief report)                        -> none (not digitised)
+  B10Q17 [Academic] NHRC eLibrary item 2171 (Pradhan 2004, Bungamati water-borne disease perception) read              -> none
+  B10Q18 [News/T2] WebSearch 'Dhading cholera 1999 Thakre/Khanikhola'                                                  -> none
+  B10Q19 [News] Spotlight Nepal 'The Story of Cholera' (2014)                                                          -> none
+  B10Q20 [News/Historical] WebSearch '1998 cholera outbreak Kathmandu valley Teku Kanti'                               -> none
+Also: DesInventar 'injured, sick' definition confirmed (UNDRR effects page) and cited on AI 264 (revise_observation).
+Sources found: 10+   Registered: none
+Rows added   : 0 so far   [B10Q5, B10Q6, B10Q9, B10Q10 pending]
+Successful queries: 0/20 (provisional)
+Yield        : 0% (provisional)
+Consecutive sub-5% batches: 2 (batches 9, 10) - provisional
+Decision     : CONTINUE to batch 11
+
+=== BATCH 11 | PHASE 3 (front-page headline scans 2004-2009, residual archives, SEARO RD 1997-2003) | NPL ===
+Gap targeted : T2 1999-2006 (front pages / headline scans), T3 2007-2009 (headline scans), T1 1982-1988 (digests, imported-case
+               and refugee context), T5 count/reporting evidence 1997-2000
+Queries      : 20
+  B11Q1  [Linguistic/Archive] Wayback CDX nepalnews nepaliweekly/* (11,207; Dristi, Janastha, Nispakshya, Saptahik 2000-2005) -> none
+         (weekly political papers with non-descriptive file names; not harvested)
+  B11Q2  [Academic/Theses] TUCL eLibrary DSpace REST 'cholera' / 'Vibrio' theses                                    -> none (UNREACHABLE: timeouts)
+  B11Q3  [Academic] PubMed 'diarrhoea AND Nepal' 1980-1992 (etiology studies)                                         -> none (Taylor 1988 JAMA
+         expatriate diarrhoea 1986: no V. cholerae listed - context only)
+  B11Q4  [News/Archive] Wayback CDX kantipuronline kolnews/kolnepalinews monsoon 2004 (2,313) and 2006 (1,559)       -> none (no date or slug in
+         URL; replaced by the front-page headline scan B11Q9)
+  B11Q5  [WHO] IRIS WER 'outbreak news' items 1998-2008 mentioning Nepal                                             -> none
+  B11Q6  [Humanitarian] ReliefWeb API 'Kathmandu hospital cholera' 1996-2010 + WHO HAC Jun/Aug 2004 + Xinhua 12 Sep 2008 -> none
+  B11Q7  [Archive] WebSearch MPP/CRL (Middle East/South Asia microfilm) digitised Gorkhapatra / Rising Nepal 1982-1988 -> none (images only,
+         not text-searchable)
+  B11Q8  [News/Archive] Wayback CDX nepalmag.com.np (Nepal weekly magazine, Kantipur Publications) to 2008            -> none (0 captures)
+  B11Q9  [News/Archive] Kantipur Online front pages, daily captures May-Oct 2004-2007 (267; cache/NPL_agent4/kol_home/), headline + excerpt
+         scan (cache/NPL_agent4_scripts/kol_headlines.py)                                                             -> PENDING (harvest)
+  B11Q10 [WHO/Humanitarian] ReliefWeb API WHO 'Health Action in Crises Highlights' + OCHA Nepal 2004-2009 tagged NPL with cholera (8 read) -> none
+         (OCHA Nepal 13 Jul 2007 '20 cases of cholera were confirmed in Kathmandu, 6 in Rautahat' = 2007 rows already held; OCHA Far-West
+          flood report 22 Oct 2008: 'No epidemic outbreaks reported. Suspected cholera outbreak in Kailali identified as food poisoning' -
+          ABSENCE-CONTEXT for Agent 6, https://reliefweb.int (ReliefWeb id 284355))
+  B11Q11 [Academic] PubMed Nepal + ('watery diarrhoea' / 'rice-water' / 'El Tor' / Ogawa / Inaba) 1975-2012 (18)     -> none (all known;
+         Shakya 2012 World J Microbiol Biotechnol: 522 AMR-network isolates 2007-2010 = AI 35-38 series)
+  B11Q12 [Technical] NCBI BioSample 'Vibrio cholerae' AND Nepal (47)                                                  -> none (no collection years;
+         intended as presence evidence for 1982-1988)
+  B11Q13 [Archive] NHRC eLibrary 'outbreak investigation' / 'epidemic' / 'gastroenteritis', items before 2010        -> none (only 'Jajarkot
+         Diarrhoea Outbreak, 2009', read in B1Q3)
+  B11Q14 [Historical] archive.org Asian Recorder (weekly digest of Asian events) indexes 1976, 1979, 1984, 1990-1999 (15, OCR text) -> none
+         (no Nepal cholera/epidemic entries; weekly issues for 1982-1988 not digitised)
+  B11Q15 [News] WebSearch People's Daily Online (Xinhua) Nepal cholera                                               -> none (5 Aug 2005 item:
+         '3,000 deaths' from all food- and water-borne diseases - not cholera-specific; page 403)
+  B11Q16 [News] WebSearch BBC News Online Nepal cholera/diarrhoea 1998-2009                                          -> none
+  B11Q17 [WHO/T2/T5] IRIS SEARO Regional Director reports 1997-98, 1997-99, 1999-2000, 1999-2001, 2001-02, 2002-03 (6 items) -> none (rows)
+         REPORTING EVIDENCE below (Nepal notified cholera to SEARO in 1997; by 1999-2000 it did not)
+  B11Q18 [News] WebSearch Xinhua / China Daily / china.org.cn Nepal cholera 2002-2006                               -> none (only the Sep 2007
+         Chitwan item, AI 141)
+  B11Q19 [News/Archive] gorkhapatra.org.np (Gorkhapatra / The Rising Nepal) front pages 2005-2009 (144 daily captures) -> PENDING (harvest)
+  B11Q20 [News/Archive] nepalnews.com(.np) front pages May-Oct 2004-2007 (264 daily captures)                         -> PENDING (harvest)
+=== REPORTING EVIDENCE (T2/T5) === WHO SEARO Regional Director reports | 1997; 1999-2000 | Nepal notified cholera to SEARO in 1997 (consistent
+  with JHU 1997 = 245) but was no longer reporting by 1999-2000; SEARO notes cholera reported under 'acute diarrhoeal disease' |
+  https://iris.who.int/handle/10665/126761 ; https://iris.who.int/handle/10665/204396 | "in 1997 only four countries, namely, India,
+  Indonesia, Nepal, and Sri Lanka, notified cholera to the Regional Office" ; "Although cholera is endemic in many countries of the Region,
+  only Bangladesh, India and Sri Lanka report regularly to the Regional Office. Many countries report cholera as acute diarrhoeal disease."
+
+--- Extraction during Batch 11 attributed to B5Q1 (DesInventar re-read; batch 5 yield unchanged, B5Q1 already counted) ---
+  AI 274 Gandaki::Myagdi 2006-10-06..10-12 sCh 40 d 4 (src 236, record 06454 'Died by cholera', Takam VDC, heridos 40, muertos 4, from
+         Kantipur 13 Oct 2006) - corroborated by HK DoH/ProMED 20 Oct 2006 (src 102: 'More than 40 persons have been affected ... Four
+         persons died'); fills the 2006 Myagdi count that Agents 2-3 left as presence only. Not entered from the same re-read: Kathmandu
+         2006-07-27 heridos 20 (record 06300, '14-15 patients per day were referred to the hospital') - inside AI 146 (Kathmandu Jun-Sep
+         2006, 55 notified) and would double-count; deaths-only cholera records 1991-2004 (Bhojpur 1991, Dhankuta 1995, Syangja/Dhading
+         1997, Rautahat/Kapilvastu 1998, Achham 2004) fall in years with national counts and add no case number.
+=== COUNT-TYPE EVIDENCE === JHU:436 | 1974, 1977, 1995, 1997 | deaths | WHO-notified cholera deaths are NOT complete national counts:
+  zero or near-zero WHO deaths are contradicted by press-reported cholera deaths coded in DesInventar (src 236) | https://www.desinventar.net/DesInventar/download/DI_export_npl.zip |
+  1974 WHO 8 cases/0 deaths vs records 74153 'Dhanusa | Janakpur Municipality | Cholera | 1974-9-8 | muertos 13' and 74209 'Siraha | Pipra |
+  cholera | 1974-10-12 | muertos 5'; 1977 WHO 428/4 vs 77166/77167/77103 ('due to diarrohea and cholera' / 'Diarrhoea, Cholera') 13
+  deaths; 1995 WHO 157/0 vs 95179 'Dhankuta | Pame | Due to cholera | 1995-7-27 | muertos 4'; 1997 WHO 245/'...' (JHU 0) vs 97184
+  'Dhading | NAUBISE | Cholera | Khanikhola | 1997-8-3 | muertos 2' and 97251 'Syangja | SHRI KRISNA GANDAKI | Cholera | 1997-9-4 |
+  muertos 4' - read JHU 436 deaths of 0 in these years as 'not reported', not as zero mortality; case totals are likewise notification
+  counts (Teku/hospital-reported), not complete national suspected totals.
+
+=== BATCH 10 FINAL (pending harvests completed) ===
+  B10Q5  Kantipur (Nepali) May + Oct 1999-2003 local/index pages - 487/487 saved (bg_news9 -> bg_news12) -> none
+         (3 pages with हैजा: 19 May 2002 Kathmandu water-quality study (no cases); 21 Oct 2002 Bhojpur hospital 'risk of cholera spreading';
+          no case counts)
+  B10Q6  Gorkhapatra (Nepali) May + Oct 1999-2002 - 237/237 saved -> none (10 Oct 2001 EDCD seminar: 'काठमाडौँ उपत्यकामा हैजा रोगीहरूको
+         सङ्ख्या ५५ प्रतिशत' from a 1999 study in Dhanusha, Banke, Dailekh and Kathmandu Valley - a percentage, no count)
+  B10Q9  Kathmandu Post front pages Jun-Sep 2000-2003 - 473/473 saved -> none (26 Jun 2001 Bajhang gastroenteritis: 'there were no reports
+         of cholera outbreak in the gastro-enteritis affected areas' - absence context; 10 Jul 2003 Teku 'around 30 patients each day' with
+         waterborne diseases, cholera unquantified)
+  B10Q10 The Rising Nepal front pages Jun-Sep 2000-2002 - 313/313 saved (bg_trnindex + short follow-up after the 2 h limit) -> none
+         (15 Aug 2001: '28 people have already died of cholera and gastroenteritis at Bhii and other VDCs in Mugu district and Phagam VDC
+          in Rolpa' - deaths only, cholera and gastroenteritis combined: AGE rule, not entered)
+  Batch 10 final: successful queries 0/20 -> yield 0%.
+
+=== BATCH 11 FINAL (pending harvests completed) ===
+  B11Q9  Kantipur Online front pages May-Oct 2004-2007 - 267 saved, 45 epidemic headlines (cache/NPL_agent4_scripts/kol_headline_hits.txt),
+         25 linked articles retrievable from the Wayback (cache/NPL_agent4/kol_articles/) -> none
+         (2004-2005: diarrhoea/gastroenteritis death tolls only (Achham, Bajura, Kalikot, Dolpa, Humla, Bhojpur) - AGE rule; 1 Jul 2007
+          'Cholera bacteria detected in Rautahat water' - article capture serves a different story; 19-20 Oct 2007 Kalikot Dhaulaguwa:
+          'Some of the dead had developed symptoms of cholera ... around 500 people are already suffering' - unconfirmed, AGE rule; 31 Oct
+          2007 Kalikot '76 people died in 16 VDCs' of diarrhoea - AGE)
+  B11Q19 gorkhapatra.org.np (Gorkhapatra / The Rising Nepal) front pages 2005-2009 - 144/144 saved -> none (rows)
+         Headlines found: 'Cholera hits Kavre VDCs' (TRN front page 26 Jul 2006; article content.php?nid=4914 never archived) and 'Cholera
+         cases up in valley' (TRN 12 Jul 2007, Lalitpur DPHO; article nid=22836 archived only as a 404; Lalitpur 2007 already held as AI 97-98).
+         Follow-up (same query): nepalnews.com news items 20-31 Jul 2006 (150/150 saved) - no cholera or diarrhoea item, so the Kavre 2006
+         event stays PRESENCE-ONLY (headline evidence; not added to the presence file because the headline gives no date range beyond the
+         26 Jul 2006 front page and Kavre 2006 is not otherwise documented - LEAD for Agents 5-6: TRN 25-26 Jul 2006 'Cholera hits Kavre VDCs').
+  B11Q20 nepalnews.com front pages May-Oct 2004-2007 - 259 root captures were framesets (no content); followed the frame to
+         nepalnews.com/archive/main.htm (183 daily captures saved, cache/NPL_agent4/nn_main/) -> none (2004-2005 headline leads are
+         diarrhoea/gastroenteritis tolls: e.g. 11 Jul 2004 'Gastroenteritis spread in 23 districts, 68 die' - AGE; 19 Sep 2003 digest item
+         'Cholera kills two in Sarlahi ... Twenty-four persons have been admitted' appended to AI 264 as corroboration (no new row))
+  Batch 11 final: successful queries 0/20 -> yield 0%.
+
+=== STOPPING DECISION (after batch 11) ===
+  Batch yields (percent, final): B1 10, B2 20, B3 15, B4 10, B5 15, B6 0, B7 0, B8 5, B9 0, B10 0, B11 0.
+  Consecutive sub-5% batches: 3 (batches 9, 10, 11) -> STOP (protocol: >= 3 batches executed, then stop at 3 consecutive batches < 5%).
+  Batches executed: 11 (220 queries). Batch 12 not run.
+  Background harvest status at stop (all resumable with wb_bulk.py; files already saved are skipped):
+    complete - KP local 2000-2003 Jun-Sep; KP front pages 2000-2003 Jun-Sep (473); TRN local 2000-2002 Jun-Sep (620); TRN front pages
+      2000-2002 Jun-Sep (313); Kantipur May/Oct 1999-2003 (487); Gorkhapatra May/Oct 1999-2002 (237); nepalnews digests 2002-2003 (361/362)
+      and 2004 (225/225); nepalnews news 20-31 Jul 2006 (150); Kantipur Online front pages 2004-2007 (267); gorkhapatra.org.np front pages
+      2005-2009 (144); nepalnews main-frame front pages 2004-2007 (183); HK Travel Health 2004 (54); nepalnews mainnews 2000-2001 (181).
+    incomplete (stopped at the 2 h background-task limit and not restarted) - B6Q14 Kantipur Jun-Sep 2000-2003 314/939 pages (2001 partly,
+      2002-2003 not harvested); B6Q14 Gorkhapatra Jun-Sep 2000-2002 83/613; B2Q8 nepalnews news pages Aug-Sep 2006 (0/771) and Jul-Aug
+      2005 (0/359). Small remainders (Kantipur 1999, Gorkhapatra 1999, Samacharpatra 2000-2002) were completed by bg_news13.sh.
+  CORRECTION to B11Q19 above: on reflection the Kavre headline WAS recorded as presence evidence - source 243 registered (The Rising Nepal
+  front page 26 Jul 2006) and a presence row added to ./data/NPL/cholera_presence_ai.csv (Bagmati::Kavrepalanchok 2006-07-20..07-26,
+  headline only, confidence 0.3). Still no count; B11Q19 remains 'none' for yield.
+
+=== AGENT 4 CLOSING SUMMARY (NPL, Nepal pilot) | closed 2026-11-21 ===
+Batches executed : 11 (220 queries). Batch 12 not run.
+Batch yields (%) : B1 10 | B2 20 | B3 15 | B4 10 | B5 15 | B6 0 | B7 0 | B8 5 | B9 0 | B10 0 | B11 0  (final, after harvest revisions)
+Stopping reason  : 3 consecutive batches below 5% (batches 9, 10, 11). The decision waited for the harvests attributed to batches 10-11
+                   (Kantipur/Gorkhapatra May-Oct, KP and TRN front pages, Kantipur Online / Gorkhapatra / nepalnews front pages 2004-2009);
+                   all completed with no new rows.
+Rows added (net) : 35 in ./data/NPL/cholera_data_ai.csv - AI 239-253, 255-274 (AI 254 retracted by me in batch 3, superseded by AI 259).
+                   This continuation added AI 274 (Gandaki::Myagdi 2006-10-06..10-12, sCh 40, d 4, DesInventar record 06454 + HK DoH/ProMED).
+Sources (net)    : 26 in ./data/NPL/metadata_ai.csv - Index 218-243 (243 = The Rising Nepal front page 26 Jul 2006, presence only).
+Presence rows    : 4 in ./data/NPL/cholera_presence_ai.csv - Salyan 1982-07 (src 220), Jhapa 1982-04 and Salyan 1982-06 (src 236),
+                   Kavrepalanchok 2006-07 (src 243).
+Revisions        : AI 264 corroboration notes (nepalnews 19 Sep 2003); earlier: level/overlap notes on AI 28, 39, 234, 236, 262, 263, 268,
+                   conflict notes on AI 246-253, corroboration on AI 266 (all via py/revise_observation.py).
+Years now carrying Agent 4 counts: 1959, 1960, 1990, 1991, 1997, 1998, 1999, 2000, 2001, 2003, 2005, 2006, 2007, 2011, 2015, 2019.
+Targets:
+  T1 1982-1988  - NO COUNT EXISTS in any reachable source. Reporting evidence: WER/SEARO no Nepal entries; MMWR 1989 'did not report
+                  cases in 1988'; DesInventar codes the 1983-1988 epidemics as diarrhoea (label avoidance); presence 1982 (Jhapa, Salyan).
+  T2 1999-2006  - No national suspected total exists (SEARO RD 1999-2000: Nepal no longer reporting; EWARS without a cholera column until
+                  2007). Sub-national counts added for 1999, 2000, 2001, 2003, 2005, 2006; 2002 and 2004 sub-national only via other agents.
+  T3 held-out   - 2007, 2011, 2015, 2019 sub-national counts; no national suspected total with a case definition found beyond HMIS
+                  clinical cholera (JHU 21301, documented by Agents 2-3).
+  T4 pre-1970   - 1959-1960 Kathmandu series (Abou-Gareeb); 1961-1964 and 1967: no counts (WER 1961 Nepal entries are smallpox).
+  T5 count types- COUNT-TYPE / REPORTING EVIDENCE blocks for Agent 7: 1991 WHO = estimate; 1990-1991 lab-confirmed; 1992 first print 764;
+                  1993-1998 WER; 1998 'includes suspect cases'; 1997 deaths '...'; 1974/1977/1995/1997 WHO deaths are not complete
+                  (DesInventar); SEARO 1997 notification / 1999-2000 non-reporting; 2007/2009/2011/2012 WER definitions.
+Cross-country harvest: ./reference/xref/candidates/agent_NPL_a4_20261121.csv (314 rows from WER annual reports; verify: none rejected).
+Archives tried and unreachable: Digital Himalaya (ECONNREFUSED); TUCL eLibrary (timeouts); DTIC (maintenance); HathiTrust full text (403,
+  Agent 2); IRIN/The New Humanitarian (403); People's Daily Online (403); scholar.archive.org (JS challenge); archive.org search-inside (403);
+  ProMED archive search (404); hmis.gov.np; KUMJ (SSL); fitfortravel (expired certificate); OpenAlex and Google Books (HTTP 429 at times);
+  Wayback Machine throttled bulk downloads (connection refused above about 6 concurrent connections).
+Unfinished harvests (stopped at the 2 h background limit; resume with cache/NPL_agent4_scripts/wb_bulk.py, saved files are skipped):
+  Kantipur (Nepali) Jun-Sep 2000-2003 314/939 pages; Gorkhapatra (Nepali) Jun-Sep 2000-2002 83/613; nepalnews news items Aug-Sep 2006
+  (0/771) and Jul-Aug 2005 (0/359). Expected yield is low (about one count-bearing article per 800 pages so far).
+Leads for Agents 5-6:
+  - Singh RR 2015 'Epidemiology of Cholera in Nepal' (NHRC library RES-00748, print) - possible HMIS/EDCD national series.
+  - 'Epidemiological Bulletin (Quarterly)', Epidemiology and Statistics Division, MoH, 1985 (cited by SEARO 1986) - 1980s national data, not online.
+  - ENPHO 1990 'A brief report on the cholera out break' (NHRC record 445, not digitised); Ise 1996 J Trop Pediatr and Marfin 1994 JAMA
+    (paywalled); Gupta 1985 J Indian Med Assoc (print); Cobb 1963 (lending only); CRL/SAMP Nepali weeklies 1983-1996 (images).
+  - TRN 25-26 Jul 2006 'Cholera hits Kavre VDCs' (article never archived) - a Kavre 2006 count may exist in Gorkhapatra print.
+  - NHRC 'Jajarkot Diarrhoea Outbreak, 2009': '13 lab tests, 5 were diagnosed Vibrio cholera' vs AI 142 (3) - reconcile.
+  - Absence context: TRN 20 Jul 2001 (no cholera at Kathmandu hospitals); KP 26 Jun 2001 (Bajhang gastroenteritis, no cholera reports);
+    OCHA 22 Oct 2008 (Kailali suspected cholera = food poisoning); TRN 14 Jul 2000 Bhaktapur Hospital 'not a single case of cholera'.
+Validation: python py/validate_quality.py NPL -> exit 0 (ERROR 0; WARNs are count-basis entries for Agent 7 and AGE-exclusion notes).
+  CORRECTION: the Bhaktapur Hospital 'not a single case of cholera has been detected to date' quote is from The Kathmandu Post 15 Jul 2000 (RSS item dated 14 Jul; nepalnews mirror ktmpost/2000/jul/jul15/local.htm), not TRN.
+
+=== ORCHESTRATOR GATE AFTER AGENT 4 (2026-11-21 11:17:20) ===
+validate_quality.py NPL: ERROR 0, WARN 119 (74 pilot_count_basis_missing, 38 pilot_age_mention, 3 period_single_day, 2 same_period_conflict, 2 CFR_high_flagged_for_review), INFO 148.
+Row count moved 237 -> 272 (+35; AI 239-274 with 254 withdrawn). Sources 217 -> 243 (+26). Presence 10 -> 14. Batches 11. Yields 10,20,15,10,15,0,0,5,0,0,0 (all <=100%).
+Stopping: 3 consecutive sub-5% batches (B9-B11) = yield rule (a). Stopping decision ACCEPTED.
+BUT three archive harvests were truncated by the 2-hour background-task limit and not restarted (B6Q14 Kantipur Jun-Sep 2000-2003 314/939 pages;
+B6Q14 Gorkhapatra Jun-Sep 2000-2002 83/613; B2Q8 nepalnews news items Aug-Sep 2006 0/771 and Jul-Aug 2005 0/359). Work trimmed by elapsed time is not
+complete under the orchestrator rules, and the Aug-Sep 2006 pages target the open 2006-08-01..2006-12-31 gap.
+DECISION: REDEPLOY Agent 4 once (SendMessage, same agent context) to finish these harvests in resumable chunks, scan them, and attribute any rows to
+B2Q8/B6Q14. No new search batch is required (yield rule already met).
+
+=== REDEPLOYMENT: HARVEST COMPLETION === (orchestrator request 2026-11-21; Agent 4, same context)
+Method: cache/NPL_agent4_scripts/wb_bulk2.py (resumable; de-duplicates by page; records Wayback 404/410 as confirmed unavailable;
+  each run stops itself after 105 min) driven by cache/NPL_agent4_scripts/bg_redeploy.sh: two rounds, four harvests side by side
+  (6 Wayback connections). Round 1 11:19-13:05, round 2 13:05-14:18 PST. No transient failures were left over.
+  Integrity check: every saved page is the original page (smallest 9.7 KB; no Wayback error or redirect stub among them).
+Scan: cache/NPL_agent4_scripts/scan_redeploy.py on EVERY page of the four harvests. Terms: 'cholera', 'vibrio', Unicode हैजा; in
+  Kantipur/Preeti/Sagarmatha font runs Preeti 'x}hf' (हैजा), 'sn]/f' (कलेरा), 'sf]n]/f' (कोलेरा), plus Latin 'cholera'/'vibrio' outside
+  font runs; diarrhoea terms ('diarrh'/'gastro', Preeti 'emf8f..kvfnf' = झाडापखाला) as context only, never counted. Text converted with
+  preeti.py. Every cholera hit was read in full: list in cache/NPL_agent4_scripts/redeploy_reviewed.txt.
+Per harvest (pages fetched / unavailable / cholera-hit pages read / diarrhoea-context-only pages):
+  1. B2Q8 nepalnews.com news items Aug-Sep 2006      771/771 fetched (all 771 this redeployment), 0 unavailable, 2 hits, 5 context
+     - 31 Aug 2006 (archive/2006/aug/aug31/news03.php) and 1 Sep 2006 (sep/sep01/news06.php): Banke flood victims (Holiya VDC) 'suffering
+       from cholera, pneumonia, typhoid and common flu'; 'about 500 flood victims in Banke, who were suffering from cholera, typhoid,
+       pneumonia and conjunctivitis' (CDO Bardiya). Lay reports listing mixed illnesses, no cholera count. NOT entered as rows or presence:
+       WHO Nepal situation report no. 3 (31 Aug 2006) states 'no cases of cholera has been reported in any of the three major hospitals in
+       Banke and health facilities in Bardiya', i.e. Agent 3's DOCUMENTED_ABSENCE for Banke/Bardiya 2006-08-25..10-05 covers this. Flagged
+       for Agents 5-6 as an unverified claim that conflicts with the WHO statement.
+     - No item on the Kathmandu Jun-Sep 2006 notifications (AI 146) or on Kavre; Myagdi (Oct 2006) is outside this window.
+  2. B2Q8 nepalnews.com news items Jul-Aug 2005      359/359 fetched (all 359 this redeployment), 0 unavailable, 0 hits, 5 context
+  3. B6Q14 Kantipur (Nepali) Jun-Sep 2000-2003       939/939 fetched (314 before, 625 now), 0 unavailable, 8 hits, 65 context
+     - 13 Aug 2002 (dateline Kathmandu 27 Saun 2059 = 12 Aug 2002): Khotang, Sungdel and Diplsung VDCs after the Asar 30 2059 floods
+       (48 dead): BPKIHS doctor Pramod Rai, 'चार/पाँच दिनदेखि प्रभावित क्षेत्रमा हैजा देखिएको छ' - PRESENCE added (src 244,
+       Koshi::Khotang 2002-08-07..08-12, clinical statement, no count, confidence 0.3). New presence inside the 1999-2006 gap.
+     - Other 7: 14-15 Jul 2000 (garbage crisis: risk of a cholera epidemic, Parliament), 19 Sep 2000 (Pokhara temple legend), 12 Jul 2002
+       (PPR in goats 'like cholera'), 18 Jun 2002 (folklore, epidemic about 60 years earlier), 28 Jul 2002 (post-flood risk), 6 Aug 2002
+       (Hasanpur: 'possibility' of cholera) - no presence, no count.
+     - Kantipur 22 Sep 2003 (DesInventar's source for the Sarlahi outbreak, AI 264) is not in the mirrored local/index sections.
+  4. B6Q14 Gorkhapatra (Nepali) Jun-Sep 2000-2002     613/613 fetched (83 before, 530 now), 0 unavailable, 6 hits, 18 context
+     - 1 Jun 2000: 'सन् १९९९ मा काठमाडौं उपत्यकामा मात्र ९१ जना हैजाले पीडित भएको तथ्यांक पाइन्छ' - same EDCD seminar as AI 271
+       (Valley 1999 = 91): corroboration note appended to AI 271 (py/revise_observation.py); not an independent count.
+     - 30 Jul 2000: 'राजधानीमा हैजा फैलँदैछ' (cholera is spreading in the capital) - context note appended to AI 269 (Kathmandu Jul 2000).
+     - Other 4: 12 Aug 2000 (MPs on a 'cholera-like epidemic' in Sindhupalchok), 23 Jul 2001 and 8 Aug 2002 (water-quality studies: risk
+       of cholera), 15 Sep 2002 (Arghakhanchi: fear of cholera from unburied bodies) - no presence, no count.
+  Diarrhoea-context-only pages (93): screened by script; 13 with laboratory/confirmation wording near the diarrhoea passage were read in
+  full: all concern typhoid, coliform in milk/water or undiagnosed diarrhoea and fever (Dolpa 2001, Udayapur 2003, Chitwan/Gorkha 2002,
+  Nuwakot 2003). None describes cholera; AGE rule, nothing entered.
+Totals: pages fetched 2,682/2,682 (2,285 this redeployment: 771 + 359 + 625 + 530), confirmed unavailable 0; cholera-hit pages read 16; rows added 0 (no new
+  cholera_data_ai.csv indices); presence rows 1 (Koshi::Khotang 2002-08, source 244); sources registered 1 (Index 244); notes appended to
+  AI 269 and AI 271.
+Revised batch yields: unchanged. B2Q8 and B6Q14 produced no new rows, so batch 2 stays 20% (4/20) and batch 6 stays 0% (0/20).
+  Final: B1 10 | B2 20 | B3 15 | B4 10 | B5 15 | B6 0 | B7 0 | B8 5 | B9 0 | B10 0 | B11 0. The yield rule was met at B9-B11.
+=== XREF HARVEST === docs 0 (no WER annual report or other multi-country document opened during the redeployment), candidates 0 new
+  (./reference/xref/candidates/agent_NPL_a4_20261121.csv stays at 314 rows), verify rejects 0
+
+=== ORCHESTRATOR GATE AFTER AGENT 4 REDEPLOYMENT (2026-11-21 14:22:13) ===
+validate_quality.py NPL: ERROR 0, WARN 119, INFO 149. Rows 272 (unchanged), sources 243 -> 244, presence 14 -> 15 (Khotang Aug 2002, src 244).
+All four truncated harvests completed: 2,682/2,682 pages, 0 unavailable; 16 cholera pages read in full; no count rows. Batch yields unchanged.
+workflow_state agent 4 entry rewritten by the agent (stopping_reason = yield rule at B9-B11 + harvests completed). AGENT 4 COMPLETE. Proceeding to Agent 5.

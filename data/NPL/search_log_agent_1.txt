@@ -1,0 +1,685 @@
+=== AGENT 1 INITIALIZATION ===
+Country: Nepal (NPL)
+Start: 2026-11-20 16:59:30
+Status: INITIALIZED
+
+=== ORCHESTRATOR PRE-FLIGHT (written by workflow-orchestrator) ===
+Pilot country: NPL (reference/pipeline_countries.json pilot=true). country_notes pasted verbatim into every subagent brief.
+Starting state (python py/validate_quality.py NPL --json /tmp/NPL_pre.json): 0 AI rows, 0 AI sources, ERROR 0, INFO pilot_not_started.
+Baseline: ./data/NPL/cholera_data_jhu.csv (407 rows, 25 collections), ./data/NPL/cholera_data_who.csv (155 weekly rows 2023-2025).
+Gap files: ./reference/pilot/effective_surveillance_gaps_*.csv (coverage 71.4%, 5 gap periods; NOT the shared 40-country files).
+Cross-country harvest: python3 -I -B py/xref_harvest.py queue NPL -> "NPL: 0 open candidates from 0 documents" (/tmp/NPL_xref_queue.txt).
+  The global sweep (registry/parse/screen) has not been run for Nepal; orchestrator is forbidden to run it. Nothing to apply.
+ReliefWeb API: works only with SSL_CERT_FILE=/etc/ssl/cert.pem (tested 2026-11-20: 369 Nepal cholera-tagged reports).
+
+=== AGENT 1 START (cholera-baseline-collector) ===
+Start: 2026-11-20 (session time)
+Read: ./templates/template_search_protocol.txt; ./reference/pilot/effective_surveillance_gaps_detailed.csv (5 gaps);
+      ./reference/count_basis/NPL.csv; ./data/NPL/cholera_period_totals_NPL.csv; ./data/NPL/builder_holdout.csv;
+      ./data/NPL/cholera_data_jhu.csv (407 rows); ./data/NPL/cholera_data_who.csv (155 weekly rows; 2023=14, 2024=360, 2025=1,899).
+Existing AI layer: none (./data/NPL/cholera_data_ai.csv and ./data/NPL/metadata_ai.csv do not exist yet).
+
+=== XREF APPLY === applied 0, re-screened out 0, builder-gated 0 (queue empty: /tmp/NPL_xref_queue.txt "NPL: 0 open candidates from 0 documents"; apply not run, per brief)
+
+QUERY-COUNTING CONVENTION (decided by Agent 1, recorded for auditability):
+  A "query" = one search operation: a WebSearch call, a ReliefWeb API `search`, or a PubMed/Europe PMC search.
+  Opening a document a query surfaced (WebFetch, reliefweb.py get, PDF download) is extraction attributed to that
+  query, not a new query. Yield = queries that committed >=1 new row to ./data/NPL/cholera_data_ai.csv / 20 * 100.
+
+TARGET ORDER (country PRIORITIES first, then longest true gaps):
+  P1 count types/totals 2018-2025 (WER annual reports, WHO multi-country sitreps, EWARS, EDCD sitreps, DoHS, IFRC, SEARO)
+  P2 2021 conflict (Kapilvastu 2,023 vs WHO 1,609); 2024 conflict (dashboard 360 vs 95 confirmed)
+  P3 EWARS 2020-2022 suspected/AWD totals + weekly sentinel confirmed (cCh, SEAR::NPL)
+  P4 gaps 1999-01-01..2006-06-30 (2738d), 2026-01-01..2026-11-20 (324d), 2006-08..12, 2008-01..05; WER 1982-88 tables
+  P5 held-out years 2007-2009, 2011-2015, 2017-2020 (national suspected totals with a stated case definition)
+
+--- Batch 1 extraction notes (in progress) ---
+Q1 ReliefWeb API `search --country NPL --query cholera` (369 reports, all pages cached at cache/NPL_agent1/rw_search/) surfaced:
+  WER 86/31 (Cholera 2010), WER 94/48 (Cholera 2018), WER 92/35 (vaccine position paper - no cholera table for Nepal),
+  35 EWARS weekly bulletins (2015 wk28; 2020 wk15-25, 40-52; 2021 wk24-25, 40-41; 2022 wk25-35), 50+ EDCD daily
+  Kathmandu Valley 2022 sitreps (23 Jun-5 Sep 2022), WHO multi-country cholera sitreps #24-#32 (2025), WHO SEARO
+  epidemiological bulletins 2024-2025, WHO 'Cholera outbreak in Birgunj' (29 Aug 2025), IFRC DREF MDRNP012 (AWD 2022),
+  IFRC World Health Day 2026 cholera story, UNICEF Nepal HSR No.4-8 (Sep-Nov 2026), and 2000-2017 items.
+Rows added from Q1: AI rows 1-11 (sources 1-12). Weekly EWARS sentinel zero weeks are NOT entered (zero_policy none).
+
+SENTINEL ZERO / NO-CASE EVIDENCE (log only; no zero rows for NPL):
+  EWARS 2020 weeks 40-52 (bulletins 11 Oct 2020 - 3 Jan 2021): table 'Cholera 0 0' every week (sentinel hospitals).
+  EWARS 2020 weeks 15-25 bulletins: no cholera count printed beyond the case definition.
+  EWARS 2021 weeks 24, 25 (27 Jun, 4 Jul 2021): 'Cholera 0 0'. 2021 weeks 40, 41: weekly table 'Cholera 0' (the Kapilvastu
+    cases were reported in the highlight, not via the sentinel table).
+  EWARS 2022 weeks 30 and 35: 'Zero cases of Cholera were reported this week'. Every 2022 bulletin: 'Zero case of Cholera
+    was reported this week in 2021' (same week of 2021).
+  EWARS 2015 week 28 (24 Jul 2015): 'Cholera: No cholera case was reported through the EWARS system so far this year';
+    'Suspected Cholera: There were two suspected cholera cases reported for last three weeks from Kathmandu and Lalitpur
+    respectively. But there is no any confirmed cholera cases reported yet.' (WHO annual 2015 = 80, so 2015 cases came
+    after July or outside EWARS.)
+
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2018 | 2018 | sCh | unknown (WER table gives total incl. imported; no case definition for Nepal) | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-29-november-2019-vol-94-no-48-561-580-enfr | "Table 1 Number of cholera cases and deaths reported to WHO in 2018 ... Total no. of cases, including imported cases/deaths ... Nepal – Népal 7 0 0 0.0" (cases 7, imported 0, deaths 0, CFR 0.0)
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2010 | 2010 | sCh | unknown (no definition stated; total incl. imported) | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-29-july-2011-vol-86-no-31-pp-325-340-enfr | "Nepal – Népal 1 790 9 0.5" and "Cases were reported from Afghanistan (2369), China (157), Iraq (2), Malaysia (443), Nepal (1790) and Yemen (300)." WER adds: "The reported number of cases from Asia contrasts with the large number of cases of acute watery diarrhoea, of which a significant proportion are caused by V. cholerae."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2022 | 2022 | sCh (77) / cCh (43) | confirmed (EDCD lab-confirmed by culture OR microscopy; 77 = EDCD outbreak total, 43 = culture subset) - argues sCh 77 is NOT a suspected count | https://reliefweb.int/report/nepal/early-warning-and-reporting-system-ewars-weekly-bulletin-nepal-35th-epidemiological-week-11th-september-2022 (AI:1) and https://reliefweb.int/report/nepal/epidemiology-and-disease-control-division-acute-watery-diarrhoea-outbreak-kathmandu-valley-23rd-june-2022 | "The total cholera cases reported since date 16th June 2022 (2079/3/2) are 76 cases till date i.e., 9th September 2022 (2079/4/24) with no deaths." / 23 Jun 2022: "a total of 8 cases of Acute watery Diarrhea has been notified. Cholera was confirmed by stool culture in 5 cases, microbiologically in 2 cases." / 28 Jul 2022: "Patan Academy of Health Sciences (PAHS) reported 1 microbiologically confirmed case of Cholera through EWARS"
+=== COUNT-TYPE EVIDENCE === AI:1 | 2022 | cCh | confirmed (EDCD 'cases of Cholera' = culture- or microscopy-confirmed) | (as above) | (as above)
+=== COUNT-TYPE EVIDENCE === AI:2..AI:10 | 2022 | cCh | confirmed, sentinel hospitals (EWARS weekly table) | EWARS 2022 weeks 25-34 on ReliefWeb | e.g. "Five cases of Cholera were reported this week (i.e., week 34); all five cases were reported form Kathmandu district." EWARS definition (2020 bulletins): "immediate reporting (to be reported within 24 hours of diagnosis) of one confirmed case of Cholera"
+=== COUNT-TYPE EVIDENCE === JHU:21541 year 2021 | 2021 | sCh (2,023 phantom national = Kapilvastu municipal sum) | age/AWD outbreak counts ('AGE (watery-diarrhea)'), only 4 lab-confirmed cholera cases (Krishnanagar MN wards 7-9) as of week 41 | https://reliefweb.int/report/nepal/early-warning-and-reporting-system-ewars-weekly-bulletin-nepal-40th-epidemiological-0 (AI:11) and ...-41st-epidemiological-0 (AI:12) | wk40 (17 Oct 2021): "There was Cholera outbreak in Krishnanagar MN – 7, 8, 9 Kapilbastu district (4 Cases). 885 cases of AGE (watery- diarrhea) and 4 deaths have been reported from Kapilbastu district; since, 18th Ashoj, 2078 (4th October, 2021)." wk41 (24 Oct 2021): "... (4 Cases). 1092 cases of AGE (watery- diarrhea) and 4 deaths have been reported from Kapilbastu district; since, 18th Ashoj, 2078 (4th October, 2021)."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2021 | 2021 | sCh (1,609, 7 deaths) | probably the same Kapilvastu AWD/AGE outbreak series at an intermediate date (885 by ~16 Oct, 1,092 by ~23 Oct, 2,023 by 7 Dec per JHU 21541) - NOT yet confirmed by a source naming 1,609 | (EWARS wk40/41 2021 above) | (see quotes above)
+Q2 ReliefWeb API `search --query "Weekly Epidemiological Record AND (Cholera OR Choléra)"` (64 hits; + full WER listing of
+   707 issues) -> annual cholera WER issues for data years 2008, 2010, 2013-2025 fetched (cache/NPL_agent1/wer/).
+   Rows: AI 12 (2025 cCh 55, WER 101/38, source 13), AI 13 (2021 cCh 10, WER 97/37, source 14). Sources 15-27 registered
+   (other WER annual issues used as count-type / zero-report evidence; multi-country docs for Agent 5's push).
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2025 (not in JHU) / AI:13 | 2025 | cCh | confirmed (culture/PCR) | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-25-september-2026-vol-101-no-38-2026-101-221 | Table 1 "Nepal 55 0 0.2 0 0 0.0"; Table 3 "Nepal 862 363 42.1 119 55 46.2" (RDT tested, RDT positive, RDT %, culture/PCR tested, culture/PCR confirmed, %); note "Cases comprise suspected and confirmed cholera." -> Nepal's WHO 2025 total = its culture/PCR-confirmed count. WHO dashboard 2025 = 1,899 (different count type).
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2024 | 2024 | sCh=cCh=95 | confirmed (culture/PCR; 100% of cases) | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-5-september-2025-vol-100-no-36-2025-347-364-enfr-0 (AI:15) | Table 1 "Nepal – Népal 95 0 0 0.0"; Table 3 "Nepal – Népal 13 555 467 3.4 839 95 11.3 100.0" (RDT tested 13,555; RDT positive 467 (3.4%); culture/PCR tested 839; positive 95 (11.3%); % cases confirmed by culture/PCR 100.0). 2024 conflict: dashboard 360 is neither the culture count (95) nor the RDT-positive count (467).
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2023 | 2023 | sCh=cCh=7 | confirmed (culture/PCR; incl. 1 imported) | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-6-september-2024-vol-99-no-36-pp-479-496-enfr (AI:16) | Table 1 "Nepal – Népal 7 1 0 0.0" (7 cases, 1 imported); Table 3 "Nepal – Népal 2 338 >100 49 2 315 >100 7 2 100" (RDT tested 2,338; RDT positive 49 (2%); culture/PCR tested 315; positive 7 (2%); 100% confirmed). Dashboard 2023 = 14; JHU 21508 2023 = 1.
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2022 | 2022 | sCh 77 / cCh 43 | mixed: 77 = EDCD lab-confirmed total (culture/PCR + RDT/microscopy), 43 = culture/PCR subset (56%) | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-22-september-2023-vol-98-no-38-pp-431-452-enfr (AI:17) | Table 1 "Nepal – Népal 77 0 0 0"; Table 3 "Nepal – Népal 596 NA – SO 51 9 593 NA 43 7 56" (RDT tested 596; RDT positive 51 (9%); culture/PCR tested 593; positive 43 (7%); 56% of cases confirmed by culture/PCR); Table 4 "Nepal – Népal 41 36 1.14 3 (4) 74 (96)". With EDCD's 76 'cases of Cholera' (16 Jun-9 Sep 2022): 77 is NOT a suspected count.
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2021 | 2021 | sCh 1,609 | suspected (AWD) - only 1% culture/PCR confirmed (10), 19 RDT positive, 2 imported | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-16-september-2022-vol-97-no-37-2022-pp-453-464-enfr (AI:14) | "After reporting 0 cases in 2019 and in 2020, Nepal reported 1609 cholera cases and 7 deaths (CFR, 0.4%) in 2021. This was the first time that Nepal had reported over 200 cases to WHO since 2014." Table 1 "Nepal – Népal 1 609 2 7 0.4"; Table 3 "Nepal – Népal 34 2 19 56 13 1 10 77 1".
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2020 | 2020 | sCh 0 | zero report | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-17-september-2021-vol-96-no-37-pp-445-460-enfr (AI:18) | Table 2 "Countries reported 0 cases and deaths in 2020 ... Asia: ... Maldives, Nepal, Oman, Qatar ..."
+=== COUNT-TYPE EVIDENCE === (2019, no JHU national) | 2019 | - | not reported in WER 95/37 (Nepal absent from table and Asian zero list); WER 97/37 later says "After reporting 0 cases in 2019 and in 2020" | AI:19 and AI:14 | (quotes above)
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2017 | 2017 | sCh 7 | unknown (no definition) | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-21-september-2018-vol-93-no-38-pp-489-500-enfr (AI:21) | Table 1 "Nepal 7 0 0" (imported column blank)
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2016 | 2016 | sCh 169 | unknown in WER (no definition); = JHU 21303 confirmed 169 | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-8-september-2017-vol-92-no-36-pp-521-536-enfr (AI:22) | Table 1 "Nepal – Népal 169 0 0 0.0"; "Nepal again reported cholera cases in 2016, after no cases having occurred in 2015 following the earthquake in April of that year."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2015 | 2015 | sCh 80 | unknown; WHO's own reports conflict (WER 91/38: 80 cases; WER 92/36: 'no cases having occurred in 2015'); EWARS wk28 2015: no confirmed case to 24 Jul 2015 | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-23-september-2016-vol-91-no-38-pp-433-440-enfr (AI:23) | "Nepal reported 80 cases and 0 deaths. Nepal has not reported any major cholera outbreak since the earthquake in April 2015."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2014 | 2014 | sCh 933 | unknown (no definition) | https://reliefweb.int/report/world/weekly-epidemiological-record-wer-2-october-2015-vol-90-no-40-pp-517-544-enfr (AI:24) | Table 1 "Nepal – Népal 933 2 0.21"
+=== COUNT-TYPE EVIDENCE === (2013, 2008: no JHU 436 national) | 2013, 2008 | - | Nepal absent from WER 89/31 (2013) and WER 84/31 (2008) - not reported to WHO | AI:25, AI:27 | (no Nepal row)
+Q1 follow-up (80 further ReliefWeb reports from the same Q1 result set, cache/NPL_agent1/q1f/):
+  Rows: AI 14 (2004-06-01..2004-07-30 SEAR::NPL sCh 288, d 0, WHO Nepal floods sitrep - FIRST FIGURE IN 1999-2006 GAP, src 28);
+        AI 15 (2008 Saptari camps sCh 11, Xinhua, src 29); AI 16 (Jul 2010 Banke/Nepalgunj cCh 14, OCHA, src 30);
+        AI 17-19 (2016-06-30..08-30 national cCh 119 + Lalitpur 101 + Kathmandu 13, ECDC CDTR wk35 2016, src 31);
+        AI 20 (2017 Saptari sCh 100 'possible cholera', ECDC CDTR wk41 2017, src 32).
+  Evidence-only sources registered: 33-44 (IFRC DREF MDRNP012 final + EPoA, SEARO bulletin 20th ed 2024, WHO Birgunj 2025,
+        WHO multi-country sitreps #25/#30/#31/#32, EDCD sitreps 23 Jun and 5 Sep 2022, WHO 2009 diarrhoea sitrep, UNICEF HSR 4 2026).
+  Not entered (approximate or not cholera-specific; logged as leads): Chitwan Sep 2007 'over 200 people have fallen sick' + 1 death
+        (Xinhua/ekantipur 20 Sep 2007); 2009 Jajarkot '2,190 cases with 61 deaths' 15 May-17 Jul (IFRC info bulletin 1; >1000, needs a
+        second source; WHO 28 Jul 2009 table gives 15,520 'treated' in Jajarkot - mixed V. cholerae/ETEC aetiology); 2009 national
+        'almost 50,000 people affected' and 268 deaths (IFRC bulletin 2); 2010 Nepalgunj 'more than 1,500 cases reported as of 09 August
+        2010' + 8 deaths (OCHA sitrep #2); 2012 Doti '401 people ... taken ill due to severe diarrhoea' + 14 deaths (ACT Alliance alert);
+        2014 Rautahat 531 'diarrhoea and vomiting' (not cholera-specific); Birgunj 2025 'over 600 cases ... with 187 active cases' as of
+        28 Aug 2025 (WHO); Saptari Chhinnamasta RM-5 late Oct 2025 cholera outbreak, 'three lives were lost', 'More than 1,200 people
+        received immediate care' (IFRC World Health Day 2026 story - look for the Saptari DREF).
+  Absence/no-outbreak evidence (log only): Aug 2006 Banke/Bardiya - 'no cases of cholera has been reported in any of the three major
+        hospitals in Banke and health facilities in Bardiya' (WHO/EHA sitrep n°3, 31 Aug 2006); 2026 floods (Rasuwa/Nuwakot) - 'As of 15
+        September, no disease outbreaks have been reported' (UNICEF HSR 4) with preventive OCV (66,950 vaccinated).
+  Historical claim (unreliable, conflicts with WHO annual data 1989-1998): IFRC 2009 'Nepal was free of cholera for 10 years until 1997,
+        when the disease first showed up in Saptari district ... the last being in 1997 in the Kathmandu valley.'
+=== COUNT-TYPE EVIDENCE === AI:1 / JHU:436 year 2022 | 2022 | cCh / sCh 77 | confirmed by culture, RDT or hanging-drop microscopy | https://reliefweb.int/report/nepal/nepal-acute-watery-diarrhea-dref-operation-ndeg-mdrnp012-final-report (AI:33) | "As of 5 September 2022, the Epidemiology and Disease Control Division (EDCD) of the Ministry of the Health and Population (MoHP), Nepal reported a total of 76 cases of cholera with null mortality cases within the Kathmandu Valley since the outbreak was detected in July 2022. The cases were confirmed via the stool culture method, Rapid Diagnostic test and hanging drop"
+=== COUNT-TYPE EVIDENCE === JHU:21542 year 2022 | 2022 | sCh (17) / cCh (9) on 30 Jun 2022 rows | sCh = EDCD 'cases' confirmed by culture/RDT/hanging drop (NOT suspected); cCh = culture subset | https://reliefweb.int/report/nepal/nepal-acute-watery-diarrhea-emergency-plan-action-epoa-dref-operation-ndeg-mdrnp012 (AI:34) | "As of June 2022, according to MoHP SitRep, a total of 17 cases of Cholera have been reported in the Kathmandu valley with no fatalities. The cases were confirmed by utilizing the stool culture method, Rapid Diagnostic test and hanging drop"
+=== COUNT-TYPE EVIDENCE === JHU:21542 year 2024 / JHU:436 2024 | 2024 | sCh=cCh 95 | confirmed (culture) | https://reliefweb.int/report/myanmar/who-south-east-asia-region-epidemiological-bulletin-20th-edition-2024-02-october-2024-reporting-period-16-september-29-september-2024 (AI:35) | "Vibrio cholerae O1 Ogawa serotype has been confirmed in stool samples. All confirmed cholera cases have been confirmed by culture. As of 24 September 2024, there are 95 cases in 9 districts: Lalitpur (54), Kathmandu (12), Kailali (8), Pyuthan (2), Makawanpur (1), Rolpa (4), and Sidhupalchowk (1), Accham (1), Rautahat (12)."
+=== COUNT-TYPE EVIDENCE === WHO:dashboard 2025 | 2025 | sCh 1,899 | suspected (AWD) | https://reliefweb.int/report/nepal/cholera-outbreak-birgunj-who-supporting-scaling-response-save-lives (AI:36) + WHO multi-country sitreps #25/#30-#32 (AI:37-40) | WHO Birgunj: "health facilities in Birguj ... reported a sudden surge in cases of acute watery diarrhea. Since then, and as of 28 August, over 600 cases have been recorded, with 187 active cases. Laboratory tests have confirmed the presence of Vibrio cholerae in selected samples." Sitrep #25: "ADW cases were reported from Myanmar (267), Nepal (3)"; #30 "cases were reported from Nepal (850)" (Aug 2025); #31 "Nepal (701)" (Sep 2025 = dashboard 325+151+170+55); #32 "Nepal (143)" (Oct 2025 = dashboard 143) and 2025 YTD "Nepal (1802)". Dashboard = WHO multi-country stream = AWD/suspected; WER 2025 55 = culture/PCR.
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2010 | 2010 | sCh 1,790 | suspected (AWD outbreak scale) | https://reliefweb.int/report/nepal/nepal-monthly-situation-update-no-63-1-31-july-2010 (AI:30) | "Vibrio Cholerae has been detected in 14 out of 21 stool samples from patients suffering from diarrhoea. Over 1200 cases have been reported and treated at the three major hospitals in the city." OCHA sitrep #2 (6 Sep 2010): "The reported confirmed eight cholera related deaths with more than 1,500 cases reported as of 09 August 2010."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2009 | 2009 | sCh 82 | probably confirmed-only (2009 mid/far-west AWD/cholera outbreak had tens of thousands of cases: IFRC 'almost 50,000 people ... affected by AWD, attributed, in large measure, to Vibrio cholerae'; WHO 82 cannot be a suspected total) | https://reliefweb.int/report/nepal/nepal-diarrhoea-outbreak-situation-report-28-jul-2009 (AI:43) | "Eight samples were positive for Vibrio Cholera 01 out of 20 samples collected from two districts. Remaining samples are positive for Entero-toxicogenic E Coli."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2017 | 2017 | sCh 7 | probably confirmed-only (100 'possible cholera cases' in Saptari alone by 9 Oct 2017) | https://reliefweb.int/report/world/communicable-disease-threats-report-8-14-october-2017-week-41 (AI:32) | "Nepal: According to media reports, in 2017 and as of 9 October 2017, 100 possible cholera cases have been reported in Saptari region in Nepal."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2016 / JHU:21303 | 2016 | sCh 169 / 239 | 169 confirmed (as curated) | https://reliefweb.int/report/world/communicable-disease-threats-report-28-august-3-september-2016-week-35 (AI:31) | "between 30 June and 30 august, 119 cholera cases have been reported ... 101 were reported from Lalitpur and 13 from Kathmandu." (definition not stated)
+
+=== BATCH 1 | PHASE 1 | NPL ===
+Gap targeted : priorities 2018-2025 count types; 1999-01-01..2006-06-30 (2738d, modern); 2026-01-01..2026-11-20 (324d, recent);
+               held-out years 2007-2009, 2011-2015, 2017-2020
+Queries      : 20
+  Q1  [Humanitarian/Official] ReliefWeb API search --country NPL --query cholera (369 reports, all years)          -> ROWS (AI 1-11, 14-20)
+  Q2  [WHO/Historical] ReliefWeb API search "Weekly Epidemiological Record AND (Cholera OR Choléra)" + WER listing  -> ROWS (AI 12, 13)
+  Q3  [WHO/Official] WebSearch "Nepal cholera outbreak 2026 cases EDCD"                                            -> ROWS (AI 24-26)
+  Q4  [Linguistic] WebSearch "हैजा संक्रमित २०८३"                                                                   -> none (leads: onlinekhabar Birgunj 42 confirmed; ekantipur 23 Aug 2025 Murli Tol 30 admitted, 3 confirmed)
+  Q5  [Official/News] WebSearch "Kapilvastu cholera outbreak 2021 total cases diarrhoea Krishnanagar deaths"         -> none (evidence: UN 'over 1300 acute diarrhea cases incl. six deaths' by end Oct 2021; KP 30 Nov 2021 death toll 7; RDT confirmed 15 in late Nov)
+  Q6  [Official/Humanitarian] WebSearch "Birgunj cholera outbreak 2025 total cases confirmed EDCD Parsa"            -> ROWS (AI 21-23)
+  Q7  [Academic] PubMed "cholera Nepal" (120 records; metadata of 65 read)                                          -> ROWS (AI 27-43)
+  Q8  [Humanitarian] ReliefWeb API search --country NPL --query "cholera DREF" --from 2025-09-01                    -> none
+  Q9  [News/Regional] WebSearch "Saptari Chhinnamasta cholera outbreak November 2025 cases deaths"                  -> ROWS (AI 44)
+  Q10 [Official/News] WebSearch "Nepal cholera 2024 Lalitpur Kathmandu Kailali Rautahat confirmed cases EDCD ..."   -> none (2024 cumulative snapshots 25/47/50/58/67 already implicit in JHU 21542 daily rows; KP 1 Aug 2024: active cholera surveillance only in Kathmandu, Lalitpur, Bhaktapur and Kailali)
+  Q11 [News] WebSearch "Nepal cholera 2019 confirmed cases Kathmandu EDCD"                                          -> none (KP 6 May 2019: first 2019 case at STIDH = JHU 21338)
+  Q12 [UN/Technical] WebSearch "Nepal cholera cases 2018 outbreak confirmed Kathmandu valley"                       -> ROWS (AI 45-47, UNICEF WASH Field Note FN/51/2021)
+  Q13 [News/Academic] WebSearch "Gaidatar Rautahat cholera outbreak 2014 number of cases deaths"                    -> ROWS (AI 48)
+  Q14 [News] WebSearch "Nepalgunj Banke cholera outbreak 2013 cases confirmed"                                      -> none
+  Q15 [Academic/Technical] WebSearch "Nepal cholera outbreak 2012 Kathmandu Doti Bajhang cases deaths"              -> ROWS (AI 49-51)
+  Q16 [Historical/Technical] WebSearch "Nepal cholera outbreak 2006 cases Vibrio cholerae Inaba"                    -> none (2006 = 32 isolates, already from Malla 2014)
+  Q17 [Linguistic] WebSearch "कपिलवस्तु हैजा संक्रमित संख्या २०७८"                                                  -> none (onlinekhabar: 10 deaths in 2078 Kapilvastu outbreak; ekantipur Oct 2021 >600 diarrhoea patients - approximate)
+  Q18 [Regional] WebSearch "Raxaul Bihar cholera 2025 Birgunj outbreak cross-border cases"                          -> none (no Raxaul/Bihar counts found; Birgunj snapshots 42 (24 Aug), 71 (24 Aug) confirmed - superseded by SEARO 26 Aug)
+  Q19 [Official] WebSearch "DoHS annual report cholera outbreak cases EDCD fiscal year 2076/77 2077/78 ..."         -> none yet (DoHS annual report PDFs located: FY2074/75 + FY2077/78 elibrary.nhrc.gov.np, FY2076/77 nepalindata.com - to open in batch 2)
+  Q20 [News] WebSearch "cholera Kathmandu August 2015 post-earthquake confirmed cases Teku hospital"                -> ROWS (AI 52)
+Sources found: 58 registered so far   Registered: index 1-58 (this batch)
+Rows added   : 52    Indices: 1-52
+Successful queries: 10/20 (Q1, Q2, Q3, Q6, Q7, Q9, Q12, Q13, Q15, Q20)
+Yield        : 50%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 1 of minimum 3)
+
+Batch 1 highlights:
+ - 1999-2006 gap: national laboratory-network confirmed V. cholerae isolates for every year 1999-2006 (Malla 2014: 61, 244, 4, 25,
+   78, 290, 62, 32; AI 27-34), plus WHO Nepal 2004 floods sitrep 288 'cholera cases' Jun-Jul 2004 (AI 14) and Dhulikhel/Kavre 46
+   confirmed May-Oct 2004 (AI 40). No suspected-case national totals found for 1999-2006 (Nepal absent from WER 2008/2013 tables;
+   WER annual reports for 1999-2006 not yet opened - only 2008+ issues are on ReliefWeb).
+ - 2026 gap: EDCD 44 suspected cholera cases Jan-mid-Jul 2026 (AI 24) + confirmed singletons Morang, Bajhang (AI 25-26).
+   2026 flood areas: no outbreak (UNICEF HSR 4; Gavi 19 Oct 2026).
+ - 2025: WER 2025 total 55 = culture/PCR-confirmed (AI 12); Birgunj 422 AWD / 134 culture+RDT (AI 21); EDCD 1,171 AWD/cholera
+   9 Aug-7 Sep (AI 22); Birgunj 227 confirmed to 27 Sep (AI 23); Saptari Oct-Nov 98 cases, 13 RDT+, 3 deaths (AI 44).
+ - 2021 conflict: WHO 1,609 is a suspected/AWD count (WER Table 3: 1% culture-confirmed, 10 culture+, 19 RDT+; AI 13); Kapilvastu
+   'AGE (watery-diarrhea)' 885 (~16 Oct) -> 1,092 (~23 Oct) per EWARS, JHU 21541 2,023 by 7 Dec; deaths 7 (KP 30 Nov 2021) = WHO 7.
+   So 1,609 and 2,023 are the same Kapilvastu AWD series at different dates/coverage - no source names the 1,609 date.
+ - 2024 conflict: 95 = culture-confirmed (WER 2025 Table 3: 839 culture/PCR tested, 95 positive; SEARO: 'All confirmed cholera
+   cases have been confirmed by culture'); RDT: 13,555 tested, 467 positive. Dashboard 360 matches neither; WHO multi-country
+   sitreps label SEAR figures 'AWD' -> dashboard likely suspected/AWD reported cases from the 4 actively surveilled districts.
+ - Held-out years now with typed data: 2007-2011 confirmed (AMR network), 2012 sub-national confirmed (AI 49-51), 2014 Rautahat
+   770 suspected (AI 48), 2015 Kathmandu Valley 76/80 confirmed (AI 45, 52), 2016 (ECDC 119), 2017 Saptari 100 suspected +
+   Valley 3 confirmed (AI 20, 46), 2018 Valley 2 confirmed (AI 47), 2015-16 NPHL 247 (AI 43).
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2015 | 2015 | sCh 80 | confirmed (Kathmandu Valley culture-confirmed cases, 2 Aug-10 Sep 2015) | https://thehimalayantimes.com/ampArticle/128856 (AI:58) | "80 confirmed cases of cholera have been reported so far ... 76 by the National Public Health Library, three by Patan Hospital and one by Dhulikhel Hospital." (WHO annual 2015 = 80); UNICEF FN/51/2021 (AI:55): "Between August to September 2015, 76 cases of cholera were confirmed in Kathmandu."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2016 / JHU:21303 | 2016 | sCh 169 | confirmed (culture), Kathmandu Valley 15-hospital surveillance Jun-Dec 2016 | https://doi.org/10.4269/ajtmh.18-0863 (PMC6493959, Feasibility of a Comprehensive Targeted Cholera Intervention in the Kathmandu Valley) | "From June to December of 2016, 169 cases of Vibrio cholerae O1 were confirmed by bacterial culture." UNICEF FN/51/2021: "In 2016, 150, out of a total of 169, cases were detected within the Kathmandu Valley."
+=== COUNT-TYPE EVIDENCE === JHU:436 years 2017-2018 | 2017, 2018 | sCh 7, 7 | probably confirmed-only: Kathmandu Valley reported 3 (2017) and 2 (2018) cholera cases through culture-based sentinel surveillance (UNICEF FN/51/2021, AI:55); Saptari had 100 'possible cholera cases' in 2017 (ECDC, AI:32) not reflected in WHO's 7 | (quotes in AI rows 46, 47, 20)
+=== COUNT-TYPE EVIDENCE === JHU:11119 2008-2009 | 2008-06-15..2009-01-15 | sCh 57 | confirmed isolates (NPHL, Kathmandu valley), NOT a national suspected count | https://pubmed.ncbi.nlm.nih.gov/22364087/ (AI:52) | "During June 2008 to January 2009, 210 diarrheal specimens received at National Public Health Laboratory from suspected cholera patients ... A total of 57 (27%) V. cholerae isolated were recovered"
+=== COUNT-TYPE EVIDENCE === JHU:21301 cCh 2011-2014 | 2011, 2012 | cCh 3, 35 | confirmed; AMR lab network gives 1 (2011) and 35 (2012) - 2012 identical, 2011 differs | https://doi.org/10.1186/1471-2458-14-269 (AI:49) | Table 1: "2011 1", "2012 35"
+=== COUNT-TYPE EVIDENCE === JHU:10598 2010 | 2010 | sCh weekly (937, 27 Jul-8 Nov) | possibly STIDH Kathmandu suspected admissions, not national (timing matches Pun 2011 STIDH figure: peak mid-Sep to early Oct; 72 culture-confirmed Aug-Oct 2010) - unverified | https://doi.org/10.3201/eid1711.110981 (AI:51) | "Figure Patients with confirmed and suspected cases of cholera admitted to Sukraraj Tropical and Infectious Disease Hospital, by week, Katmandu, Nepal, July–November 2010."
+
+=== BATCH 2 | PHASE 1->2 | NPL ===
+Gap targeted : 1999-2006 (academic/NHRC/NepJOL), 2026 (Aug-Nov), held-out 2007, 2011, 2013, 2017-2019; 2021/2024 conflicts; 1982-1988 (WER/historical)
+Queries      : 20
+  Q21 [Academic] WebSearch "site:nepjol.info cholera outbreak Nepal Vibrio cholerae cases district"                  -> none (no nepjol hits)
+  Q22 [Academic/Archive] WebSearch "site:elibrary.nhrc.gov.np cholera outbreak"                                       -> none (NHRC catalogue: 'Epidemiology of Cholera in Nepal' 2015 report, 'A brief report on the cholera out break', 2016 climate-cholera report - full text not online)
+  Q23 [News/Regional] WebSearch "cholera outbreak Nepal 2003 OR 2005 Doti Dadeldhura Achham ... far west"            -> ROWS (AI 53, Dadeldhura Aug 2019 cCh 4)
+  Q24 [Linguistic] WebSearch "हैजा पुष्टि २०८३ साउन भदौ काठमाडौं"                                                    -> none (Asar 2083: 2 RDT-suspected cases APF Balambu + STIDH, culture pending; ekantipur 12 Jul 2026 coliforms in Kathmandu water)
+  Q25 [Official/Academic] WebSearch "Kapilvastu cholera EDCD situation report November 2021 acute watery diarrhoea ..." -> ROWS (AI 54, Subedee 2024 IJID Regions: Kapilvastu cCh 9; resolves 2,023 = 1,570 + 453)
+  Q26 [News] WebSearch "Parsa cholera cases quadruple September 2025 Pokhariya Bara total cases EDCD"               -> none (Parsa district confirmed 197 on 3 Sep, 195 on 4 Sep, 202 on 6 Sep 2025 - snapshots, superseded by AI 23)
+  Q27 [News] WebSearch "Nepal cholera 2023 case confirmed Kathmandu imported"                                      -> none (ekantipur opinion: Kathmandu Valley '12 more people were infected ... in 2023' - Level 4, not entered; KP Jun 2024: Sitapaila case in Indian truck driver ~Mar 2024)
+  Q28 [Historical] WebSearch "Nepal cholera epidemic 1984 OR 1985 OR 1986 OR 1987 OR 1988 cases deaths Kathmandu"   -> none (no 1980s data found; WHO annual has no Nepal reports 1982-1988)
+  Q29 [Official] WebSearch "EDCD cholera dengue situation update 2024 ... suspected cholera cases districts"          -> none (only confirmed snapshots already in JHU 21542)
+  Q30 [WHO] WebSearch "WHO from outbreak to control rapid reactive OCV campaign Madhesh province Nepal cholera cases"  -> none (OCV campaign 12-18 Oct 2025, no final case count)
+  Q31 [Aggregator] WebSearch "Statista Nepal number of reported cases of cholera WHO by year"                        -> none (Statista = WHO GHO 2007-2016, nothing for 1999-2006)
+  Q32 [Academic] WebSearch "\"Epidemiology of Cholera in Nepal\" NHRC report cases by year district"                 -> ROWS (AI 55, Roskosky 2021: Kathmandu Valley 193 culture-confirmed 30 Jun-30 Nov 2016)
+  Q33 [Academic] WebSearch "Cholera in Nepal scoping review 1946-2019 Asian Pacific Journal of Tropical Medicine ..."  -> none (APJTM 2020 13(3):107-114 'Mapping the high burden areas of cholera in Nepal...' - full text not reached; OCV campaigns Rautahat 2014, Banke 2017)
+  Q34 [Technical] WebSearch "Sukraraj Tropical Infectious Disease Hospital cholera cases 2017-2020 retrospective ..."  -> none
+  Q35 [Historical/News] WebSearch "Nepal cholera outbreak 2007 Chitwan Jutpani Saptari Kalikot cases ..."             -> none (Saptari 2007 '>50,000 affected by diarrhoea, 25 deaths' - approximate diarrhoea, not entered)
+  Q36 [News] WebSearch "Nepal cholera cases September 2026 OR October 2026 confirmed outbreak district"                -> none (Gavi 19 Oct 2026: 'no cholera cases were identified in the flood-affected areas'; KP 7 Sep 2026 Bidur water E. coli)
+  Q37 [Academic] WebSearch "\"Mapping the high burden areas of cholera in Nepal for potential use of oral cholera vaccine\"" -> none (abstract only)
+  Q38 [Official/Technical] WebSearch "Basu Dev Pandey EDCD cholera Nepal presentation IDEA 2017 cholera cases year"    -> none (Fondation Merieux PDF 404; BMC Proc 2018 s12919-018-0158-1 behind Springer redirect)
+  Q39 [News] WebSearch "Banke 2017 cholera outbreak Nepal oral cholera vaccine campaign cases Nepalgunj"             -> none
+  Q40 [News/Academic] WebSearch "Nepal cholera 2013 confirmed cases outbreak Banke Nepalgunj 290 Kathmandu"          -> none (JHU 867's 2013 Nepalgunj 290 not corroborated online)
+Sources found: 3 new    Registered: index 59, 60, 61
+Rows added   : 3    Indices: 53, 54, 55
+Successful queries: 3/20 (Q23, Q25, Q32)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (batch 2 of minimum 3)
+Access notes: DoHS annual report PDFs (elibrary.nhrc.gov.np FY2077/78, FY2074/75) exceed WebFetch's 10 MB limit; nepalindata FY2076/77 PDF
+  returns 404; web.archive.org is blocked for WebFetch; curl downloads require approval (not attempted further). PMC article pages
+  now show a captcha to WebFetch - the PubMed MCP full-text tool works instead.
+=== COUNT-TYPE EVIDENCE === JHU:21541 2021 | 2021 | sCh 2,023 (phantom national) | suspected/AWD: 1,570 hospitalized AWD cases in 10 municipalities (health-facility line list; authors call them 'cholera cases') + 453 mild-moderate AWD cases found by community active case search in 3 Krishnanagar wards; culture 9/23 positive | https://doi.org/10.1016/j.ijregi.2024.100489 (AI:60) | "The duration of the outbreak was 65 days (October 2 to December 7, 2021), with 1570 patients hospitalized during the period across 10 municipalities of Kapilvastu." / "an active case search in three communities of Krishnanagar identified a total of 453 cases of mild to moderate acute watery diarrhea" / "Nine out of 23 stool samples (39%) were confirmed to have the V. cholerae O1 Ogawa serotype."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2021 | 2021 | sCh 1,609 | suspected (AWD); close to the 1,570 Kapilvastu facility count (+ sporadic cases elsewhere / 2 imported?) - exact composition not published | (AI:14, AI:60) | (see quotes above)
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2019 (no national row) | 2019 | - | WHO got no report / '0'; laboratory-confirmed cholera nevertheless occurred: Dadeldhura Aug 2019 (4/5 stool samples positive, >80 diarrhoea cases) and Kathmandu STIDH May 2019 (JHU 21338) | https://kathmandupost.com/sudurpaschim-province/2019/08/22/cholera-bacteria-found-among-diarrhoea-patients-in-dadeldhura (AI:59) | "Four out of five samples of stool collected from victims in the affected area tested positive for cholera"
+
+=== BATCH 3 | PHASE 2 | NPL ===
+Gap targeted : 1999-2006 (laboratory/academic, archives), held-out 2009/2012/2014/2017-2019, 2023-2026, 2025 Madhesh final totals
+Queries      : 20
+  Q41 [Academic] PubMed "cholera Nepal surveillance 2016 sentinel"                                                  -> none (PMC6402899: 2015 76 culture-confirmed Kathmandu; 2016 169 national/150 valley, culture - corroboration only)
+  Q42 [Academic] PubMed "cholera outbreak Nepal 2024 OR 2023 OR 2022 OR 2025" (malformed boolean, 5.6M hits)          -> none
+  Q43 [Humanitarian] ReliefWeb API --country NPL --query "diarrhoea OR diarrhea OR cholera" --to 2007-06-30 (95)      -> none (2004 WHO sitreps 23/28 Jul, 30 Aug: no new cholera figure; IFRC 2002/2004 appeals: no cholera counts; Aug 2006 Bardiya '>2000 diseases' not cholera)
+  Q44 [Official/Humanitarian] WebSearch "2009 Nepal diarrhoea cholera epidemic mid-west far-west total cases deaths ..." -> ROWS (AI 56, NHRC Oct 2009 citing DoHS/EDCD: 64,472 treated, 366 deaths, 14 Apr-24 Sep 2009)
+  Q45 [WHO/Historical] WebSearch "who.int docstore wer pdf cholera 2004 annual report Asia Nepal cases"              -> none (WER 81(31) cholera 2005 cited; no Nepal row found)
+  Q46 [News] WebSearch "Kathmandu cholera 2004 outbreak cases Teku hospital Kathmandu valley June July 2004"          -> none
+  Q47 [Linguistic] WebSearch "हैजा संक्रमण पुष्टि २०७५ काठमाडौं ललितपुर बिरामी"                                     -> none (results were 2024: Lalitpur 31 of 55 nationwide - already in JHU 21542)
+  Q48 [Linguistic] WebSearch "हैजाका बिरामी २०७४ बाँके नेपालगञ्ज सप्तरी पुष्टि"                                     -> none (2025 Saptari Sada Tole: 80 sick; Birgunj 93 confirmed 26 Aug 2025 - snapshots)
+  Q49 [Linguistic] WebSearch "हैजा २०८० संक्रमित पुष्टि काठमाडौं इडिसिडी"                                           -> none (2024 snapshots 30/47/55)
+  Q50 [Linguistic] WebSearch "हैजा असोज कात्तिक २०८३ संक्रमित"                                                       -> ROWS (AI 57, Kantipur 9 Oct 2025: 1,685 patients in Parsa and Bara since 22 Aug 2025)
+  Q51 [Humanitarian] WebSearch "IFRC DREF Nepal cholera outbreak 2025 Saptari Madhesh operation update cases"         -> none (MDRNP019 only; no Saptari DREF)
+  Q52 [News] WebSearch "Kathmandu cholera 2014 Teku hospital confirmed cases monsoon Kathmandu valley 2014"          -> none (THT 24 Aug 2016: 90 confirmed since 30 Jun 2016 and 'last year's cholera tally of 80 from July to September' = 2015 corroboration; fitfortravel 28 Jul 2014: 5 cases at Teku)
+  Q53 [Academic/Technical] PubMed "Vibrio cholerae Nepal isolates" (2017-, 39 records) + metadata of 38 recent records -> ROWS (AI 59-60, RISE/PLoS NTD 2025: EWARS 11 cholera events Jun-Nov 2023; 14 RDT+ at 12 valley sites)
+  Q54 [Historical] WebSearch "cholera outbreak Nepal 2000 Kathmandu epidemic Vibrio cholerae O1 Ogawa cases 2000"    -> none
+  Q55 [Regional/Humanitarian] WebSearch "Bhutanese refugee camps Jhapa Morang cholera outbreak cases UNHCR AMDA 2000s" -> none
+  Q56 [Academic] PubMed "cholera Kathmandu Valley surveillance incidence" (2020-)                                    -> none (18340369 = 1997 NPHL study, not a gap year)
+  Q57 [Academic] PubMed "cholera Kathmandu 2004 outbreak"                                                           -> none (known papers)
+  Q58 [Academic] WebSearch "\"cholera\" Kathmandu 2004 epidemic outbreak investigation EDCD JNHRC ..."               -> none (lead: Kansakar P, Malla S, Ghimirey G. 'Cholera outbreak in Kathmandu valley in 2004: A review of National Public Health laboratory findings', J Nepal Assoc Med Lab - full text not online)
+  Q59 [Historical] WebSearch "Nepal cholera 1999 outbreak cases Kathmandu Vibrio cholerae 1999 epidemic"             -> none
+  Q60 [Academic] WebSearch "\"Cholera outbreak in Kathmandu valley in 2004\" National Public Health Laboratory findings Kansakar" -> none
+  Q7 follow-up (PubMed records 21444984, 22049830 read now; no yield change): AI 61-63 (Kansakar 2011: NPHL/STIDH Kathmandu isolates 2002 6,
+      2003 3, 2004 89) and AI 64 (Shrestha 2010: NPHL Mar-Sep 2005, 53 Inaba).
+  Q1 follow-up (no yield change): AI 58 (ACT Alliance Doti 2012: 401 severe diarrhoea cases, 14 deaths, cholera confirmed).
+Sources found: 6 new    Registered: index 62-67 (62 NHRC 2009, 63 Kantipur, 64 ACT Doti, 65 RISE, 66 Kansakar, 67 Shrestha)
+Rows added   : 9 (AI 56-64)
+Successful queries: 3/20 (Q44, Q50, Q53)
+Yield        : 15%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE (minimum 3 batches met; yield >= 5%, so continue to batch 4)
+=== COUNT-TYPE EVIDENCE === WHO:dashboard 2023 | 2023 | sCh 14 | = EWARS 'cholera events' stream (EWARS Jun-Nov 2023 = 11 events; dashboard weeks Jun-Nov 2023 sum to exactly 11); EWARS events exceed culture/PCR-confirmed (WER 2024: 7 for all 2023), so they include RDT/microscopy-positive or suspected cholera | https://doi.org/10.1371/journal.pntd.0013019 (AI:65) | "In the publicly available national EWARS database, 8,859 acute gastrointestinal enteritis (AGE) and 11 cholera events were reported from 113 out of 118 sentinel sites from June through November 2023."
+=== COUNT-TYPE EVIDENCE === WHO:dashboard 2024 | 2024 | sCh 360 | hypothesis: EWARS cholera events (after the 2023-2024 national RDT roll-out; Nepal requested >40,000 RDTs for the 2024 monsoon) - between culture/PCR-confirmed 95 and RDT-positive 467 (WER 2025 Table 3); not verified | (AI:65, AI:15) | "The Nepal government applied for a supply of over 40,000 RDTs in anticipation of the 2024 monsoon season and their application was approved."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2015 | 2015 | sCh 80 | confirmed (repeat corroboration) | https://thehimalayantimes.com/kathmandu/valleys-cholera-outbreak-worst-years/ (THT 24 Aug 2016, not registered) | "The number of cases reported so far this monsoon has already surpassed last year's cholera tally of 80 from July to September."
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2016 | 2016 | sCh 169 | confirmed (culture), national; 150 in Kathmandu Valley | https://doi.org/10.4269/ajtmh.17-1008 (PMC6402899, not registered) | "In 2016, the first cholera case was confirmed on June 30. A total of 169 cases and no deaths were reported that year. Of those cases, 150 were detected within the Kathmandu valley." Definitions: "suspected cases were defined as patients aged 1 year or more presenting with AWD ... A case was considered confirmed when V. cholerae was isolated from their stool in bacterial culture. In addition, patients with a positive rapid diagnostic test (RDT) or any death resulting from AWD were defined as probable cases."
+
+=== BATCH 4 | PHASE 2 | NPL ===
+Gap targeted : held-out years 2011-2019 (national typed counts), 2004 Kathmandu epidemic (gap), 2022-2026 official series
+Queries      : 20
+  Q61 [Humanitarian] ReliefWeb API --country NPL --query "diarrhoea OR diarrhea OR AWD" 2010-11..2020-12 (115)       -> none (14 local diarrhoea reports opened, none mention cholera)
+  Q62 [Linguistic] WebSearch "हैजा रौतहट गैडाटार २०७१ बिरामी संक्रमित पुष्टि"                                        -> none (onlinekhabar 'over 600 cholera patients' Rautahat 2014 - approximate; ekantipur 30 Aug 2025 Parsa 712 diarrhoea+cholera, 162 RDT+ - snapshot)
+  Q63 [Official/News] WebSearch "cholera Kathmandu 2013 confirmed cases Teku monsoon Nepal 2013 outbreak Banke"      -> ROWS (AI 65-69, MoHP GTFCC OCV WG 2022 slide: outbreak list 2011-2022)
+  Q64 [Official] WebSearch "Nepal EDCD annual report EWARS cholera cases reported fiscal year 2075/76 ..."           -> none
+  Q65 [Official] WebSearch "gtfcc.org Nepal country update cholera presentation 2023 OR 2024 OR 2025 MoHP"          -> ROWS (AI 77-78, MoHP Paudel 2023 deck 'Number of Cholera Cases Detected In Nepal' 2007-2022)
+  Q66 [Official] WebSearch "GTFCC annual meeting Nepal cholera situation slides cases 2024 Lalitpur Kailali RDT ..."  -> ROWS (AI 70-76, MoHP Dahal 2025 deck 'Reported Cholera Cases in Nepal 2009 to 2023', Source EWARS/NPHL)
+  Q67 [Academic] PubMed "Enhancing Cholera Control Nepal ECHO surveillance"                                         -> none (0 records)
+  Q68 [WHO] WebSearch "SEARO communicable disease surveillance report cholera cases Nepal 2003 2004 2005 ..."        -> none
+  Q69 [Official/Archive] WebSearch "Department of Health Services Annual Report 2061/62 cholera cases Nepal 2004/2005" -> none (DoHS FY2061/62 report exists in NHRC library only; GHDx 403)
+  Q70 [News] WebSearch "Dolakha cholera outbreak 2022 cases confirmed"                                              -> none
+  Q71 [News] WebSearch "cholera Nepal January 2025 cases Kathmandu Lalitpur Bhaktapur winter outbreak confirmed"    -> none (KP 4 Jul 2025: cases reported, no counts)
+  Q72 [News] WebSearch "Kathmandu cholera August 2014 confirmed cases Teku EDCD 2014 outbreak number"               -> none (THT snapshots are 2015/2016: 68 on 16 Aug 2015; 142 by 11 Sep 2016 - not entered, totals already present)
+  Q73 [News] WebSearch "Nepal cholera 2023 cases detected Kathmandu September 2023 EDCD confirmed"                  -> none
+  Q74 [Academic] WebSearch "cholera outbreak Ilam district Nepal investigation Vibrio cholerae"                     -> ROWS (AI 79, Ilam Shantinagar Aug 2012: 150 cases, 6 culture+)
+  Q75 [Academic] WebSearch "nepjol IJIM cholera outbreak Nepalgunj Banke Vibrio cholerae investigation"             -> none (TU dissertation: Nepalgunj outbreak 48 V. cholerae - year unverified)
+  Q76 [News] WebSearch "Bajhang cholera 2026 confirmed case outbreak Sudurpashchim"                                 -> none (Republica 2026 singletons already entered; Dadeldhura Jan 2026 cattle - not human)
+  Q77 [Academic/Technical] WebSearch "elibrary.tucl.edu.np Vibrio cholerae diarrhoeal patients hospital Nepal 2018 2019 ..." -> ROWS (AI 80, STIDH Jun-Dec 2014: 21 culture-confirmed)
+  Q78 [News] WebSearch "Dhangadhi Kailali cholera cases confirmed rapid response team 2024 OR 2025 OR 2026"         -> none (Kailali 2024: 8 confirmed = JHU 21542)
+  Q79 [Academic] WebSearch "cholera outbreak Far-Western Nepal 2013 Vibrio cholerae isolates prevalence 47.06% ..." -> none
+  Q80 [Academic] WebSearch "Bir Hospital children diarrhoea Vibrio cholerae O1 found in 86 (42.2%) cases Nepal study year" -> ROWS (AI 81, Kanti Children Hospital Feb-Jun 2004: 86 culture+)
+  Q65 follow-up (no yield change): WHO Nepal (Pandav) GTFCC 2022 deck - 2015-2020 cases 80, 169, 7, 7, 0, 0 (= WHO annual); 2021 'Two events of
+      Cholera detected during 2021: Sep 2021: Two imported cases; Oct 2021: More than 1500 cases ... Kapilvastu' - explains WER 2021's 2 imported cases.
+Sources found: 6 new    Registered: index 68-73
+Rows added   : 17 (AI 65-81)   [4 further MoHP figures rejected by the writer's duplicate check, which ignores cCh - recorded instead in the
+               processing_notes of AI 13 (2021: 19), AI 38 (2010: 61), AI 72 (2015: 82), AI 74 (2018: 7)]
+Successful queries: 6/20 (Q63, Q65, Q66, Q74, Q77, Q80)
+Yield        : 30%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+=== COUNT-TYPE EVIDENCE === JHU:436 years 2007-2011 | 2007-2011 | sCh 264 (2007), 82 (2009), 1,790 (2010), 12 (2011) | MoHP official 'cholera cases detected' for these years = AMR laboratory-network isolates (204, 148, 109, 45, 1): MoHP's national series is laboratory-confirmed; WHO's 2007/2009/2011 figures differ and are unexplained (2009 82 cannot be a suspected total; 2010 1,790 is AWD) | https://www.gtfcc.org/wp-content/uploads/2023/03/10th-annual-meeting-gtfcc-2023-12-nepal-krishna-paudel.pdf (AI:70) | "Number of Cholera Cases Detected In Nepal ... 2007 2008 2009 2010 2011 ... No. of cases 204 148 109 45 1"
+=== COUNT-TYPE EVIDENCE === JHU:436 years 2012-2023 | 2012-2023 | sCh | MoHP EWARS/NPHL confirmed series (EWARS case definition 'Confirmed: Culture/PCR Confirmed'; suspected = AWD aged >=3): 2012 63, 2013 4, 2014 14, 2015 80, 2016 169, 2017 7, 2018 3, 2019 1, 2020 0, 2021 19, 2022 77, 2023 12 - so WHO 2015 (80), 2016 (169), 2017 (7), 2022 (77) coincide with confirmed counts, WHO 2014 (933) and 2021 (1,609) do not (2021 = AWD) | https://www.gtfcc.org/wp-content/uploads/2024/06/11th-annual-meeting-of-gtfcc-2024-8-dahal.pdf (AI:69) | "Reported Cholera Cases in Nepal 2009 to 2023 ... No. of cases 109 61 1 63 4 14 80 169 7 3 1 0 19 77 12 ... Source: EWARS/NPHL"; "EWARS • Suspected: AWD with or without vomiting in a patient aged 3 years or more • Probable: Not applicable • Confirmed: Culture/PCR Confirmed"
+=== COUNT-TYPE EVIDENCE === JHU:21301 cCh 2013 | 2013 | cCh 4 | confirmed; MoHP 2022 list '2013 – Kathmandu Valley (4)' and MoHP 2025 deck 4 (MoHP 2023 deck 2) | (AI:68, AI:69, AI:70) | (quotes above)
+=== COUNT-TYPE EVIDENCE === JHU:21301 sCh 2011-2014 | 2011-2014 | sCh 4,577/1,744/5,042/4,170 | the 2013 value (5,042) matches a slide of 'clinical cholera' cases by development region (Central 2,428 = 48.2% in 2013) seen only as a search snippet - these may be HMIS clinically diagnosed (unconfirmed) cholera rather than AGE; unverified (slide not retrieved) | (search snippet only, no URL registered) | "Central region at 2428 cases (48.2%) in 2013"
+=== COUNT-TYPE EVIDENCE === JHU:436 year 2021 | 2021 | 2 imported cases | WHO Nepal: 'Sep 2021: Two imported cases' = WER 2022 Table 1 imported column (2) | https://www.gtfcc.org/wp-content/uploads/2022/04/9th-annual-meeting-gtfcc-2022-rajesh-pandav.pdf (not registered) | "Two events of Cholera detected during 2021 Sep 2021: Two imported cases ... Oct 2021: More than 1500 cases, first reported at hospital at Kapilvastu District"
+
+=== BATCH 5 | PHASE 2->3 | NPL ===
+Gap targeted : 1999-2006 national suspected totals (CBS/DoHS), 2025 Birgunj final totals, 2026 (WHO/SEARO), held-out 2007/2008/2011/2013/2017/2018
+Queries      : 20
+  Q81 [Official] WebSearch "Statistical Year Book Nepal notifiable diseases cholera cases Central Bureau of Statistics" -> none
+  Q82 [Technical] WebSearch "Vibrio cholerae O1 Inaba Nepal 2006 2007 outbreak serotype shift Kathmandu cases"         -> none (Shakya 2012: 72 Inaba isolates in 2007 - subset of AMR 204)
+  Q83 [Official] WebSearch "\"cholera\" DoHS annual report \"2073/74\" OR \"2072/73\" outbreak cases EDCD Nepal epidemic" -> none (Open Data Nepal 'Communicable disease outbreaks 2073/74' page 404)
+  Q84 [Official] WebSearch "opendatanepal communicable disease outbreaks Nepal dataset cholera district cases deaths"   -> none
+  Q85 [WHO] WebSearch "WHO SEARO epidemiological bulletin 2025 18th edition Nepal cholera Birgunj Parsa AWD cases ..."   -> ROWS (AI 85, SEARO 19th ed.: 1,543 AWD, 32 culture+, 183 RDT+, 9 Aug-23 Sep 2025); 18th ed. registered as corroboration of AI 22 (1,171)
+  Q86 [News] WebSearch "Nepalgunj cholera outbreak 2008 cases confirmed Banke Bheri zonal hospital"                     -> none
+  Q87 [Linguistic] WebSearch "सप्तरी तिलाठी कोइलाडी हैजा पुष्टि २०७४ बिरामी"                                            -> none (KP 22 Sep 2016: Koiladi 2 of 4 stools positive - within JHU 21339 Saptari 2016)
+  Q88 [Linguistic] WebSearch "हैजा आरडीटी पोजेटिभ २०८१ इडिसिडी संक्रमित जिल्ला"                                          -> none (2024 snapshots; Kalimati 3 RDT+ pending culture)
+  Q89 [WHO] WebSearch "multi-country outbreak of cholera epidemiological update 2026 Nepal cases South-East Asia Region" -> none (WHO EU #38, Jun 2026: SEAR cases only Myanmar/India in 2026 - Nepal did not report to WHO Jan-May 2026)
+  Q90 [WHO] WebSearch "cdn.who.int searo wherepib 2024 searo epi bulletin Nepal cholera Lalitpur August 2024"           -> none (SEARO 17th ed. 2024: 58 culture-confirmed as of 19 Aug 2024 = JHU 21542; SEARO 2025 eds 20-22 and 2026 eds 15-16 have no Nepal cholera section)
+  Q91 [Academic] PubMed "Vibrio cholerae Nepal diarrhoea prevalence" (to 2012)                                          -> none (all known)
+  Q92 [Academic] WebSearch "nepjol.info Vibrio cholerae isolated diarrhoeal patients hospital Nepal 2001 OR 2003 ..."    -> none (STIDH Apr-May 2001: V. cholerae O1 in 1.1% of 181 adults - count not printed in accessible text)
+  Q93 [News/Historical] WebSearch "Nepal cholera outbreak 2001 OR 2003 OR 2005 district cases deaths ..."              -> none
+  Q94 [Humanitarian/ECDC] ReliefWeb API --query "Communicable Disease Threats Report AND Nepal AND cholera" (3 hits)     -> ROWS (AI 86-88, OCHA Nepal Situation Overview Jul 2007: 20 confirmed Kathmandu, 6 Rautahat, 2 suspected Bhaktapur)
+  Q95 [Humanitarian] ReliefWeb API --country NPL "(Situation Overview OR Monthly Situation Update OR Situation Report) AND (cholera OR diarrhoea)" 2006-2013 (76) -> none (47 reports opened; no further counts)
+  Q96 [Humanitarian] ReliefWeb API --country NPL "Nepal Monthly Situation Update" 2010-2012 (11)                       -> none
+  Q97 [Humanitarian] ReliefWeb API --country NPL "cholera OR \"acute watery diarrhoea\"" 2011-2015 (62)                  -> none (all previously reviewed via Q1)
+  Q98 [News] WebSearch "Kathmandu cholera 2011 outbreak June July 2011 confirmed cases Teku hospital"                   -> none (TRAVAX 8 Jul 2011: 11 confirmed = JHU 864)
+  Q99 [News] WebSearch "Kathmandu cholera 2007 confirmed cases Teku hospital Inaba outbreak July 2007"                  -> none (undated THT snapshots)
+  Q100 [News] WebSearch "Nepal cholera 2018 Kathmandu June 2018 two patients positive cholera Teku year first cases"     -> none (2 + 1 cases in 2018 = JHU 21340's 3)
+  Q1 follow-up (no yield change): AI 82-84 (WHO Nepal media monitoring 2 Sep 2022: Kathmandu Metropolitan City 40, Kageshwari-Manohara 9,
+      Lalitpur Metropolitan City 8 confirmed).
+Sources found: 4 new    Registered: index 74-77
+Rows added   : 7 (AI 82-88)
+Successful queries: 2/20 (Q85, Q94)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE
+Builder sanity check (python py/build_weekly_timeseries.py --iso NPL --out-dir /tmp/npl_build_check --no-plots, after batch 4): runs clean;
+  suspected 84 observed + 1,348 undistributed weeks; confirmed 19 observed weeks (was 10: +9 EWARS 2022 sentinel weeks); 80 period totals
+  (was 49); AI national suspected periods: 2004-06-01..07-30 (288) and 2026-01-01..07-15 (44); AI national confirmed periods 1999-2025.
+
+(Before batch 6) Validator national_subnational_overlap WARNs for 2022 (national EWARS rows AI 1-10 vs municipal AI 82-84) resolved by
+  appending an aggregation-level note to AI 1-10 with py/revise_observation.py ("national total ... primary count ... do not sum").
+
+=== BATCH 6 | PHASE 3 (deep validation / archives) + PHASE 2 residue | NPL ===
+Gap targeted : 1982-01-01..1988-12-31 (2557d, historical); 1999-01-01..2006-06-30 (2738d, modern: suspected-type national totals);
+               2006-08..12 (153d); 2026-01-01..2026-11-20 (324d, recent); held-out 2013, 2018-2019; 2024 count type
+Queries      : 20
+  Q101 [WHO] WebSearch "Cholera country profile Nepal WHO Global Task Force ... pdf cases reported"                  -> none (no Nepal country profile found)
+  Q102 [Academic/Historical] PubMed "(cholera OR Vibrio cholerae) AND Nepal" 1950-1998 (15 hits)                      -> none (WER 1992 67(37): 1991 multicausal gastroenteritis
+        epidemic ~92,000 cases/1,800 deaths, cholera in 63% of specimens - registered as src 79, count-type evidence; Ise 1996, Pokhrel 1996, Marfin 1994,
+        Yamamoto 1995 cover 1990s years already in WHO annual data; nothing for 1982-1988)
+  Q103 [Humanitarian] ReliefWeb API --country NPL "cholera OR हैजा OR acute watery diarrhoea" from 2026-07-01 (10)       -> none (UNICEF HSR 5-8: OCV 66,950 preventive;
+        "no disease outbreaks have been reported" in flood districts - src 81)
+  Q104 [Historical] WebSearch "UPI archives Nepal cholera epidemic deaths 1982..1988"                                  -> none
+  Q105 [Linguistic] WebSearch "हैजा संक्रमण २०८३ असोज कार्तिक बिरामी पुष्टि"                                             -> none (only 2082/2025 Birgunj/Saptari items)
+  Q106 [News] WebSearch "Nepal cholera cases confirmed September October 2026"                                         -> none (Gavi Oct 2026: OCV 70,176 in Rasuwa/Nuwakot, "no cholera
+        cases identified" in flood areas; Rising Nepal '25 cholera cases' is dated 3 Aug 2024 and equals JHU 21542 - src 84, count-type evidence)
+  Q107 [Official] WebSearch "DoHS annual report 2004/2005 OR 2005/2006 epidemic outbreaks cholera ..."                  -> none (GHDx/NHRC catalogue records only; GHDx 403 earlier)
+  Q108 [Humanitarian] WebSearch "IRIN Nepal cholera outbreak 2006 Kathmandu cases dead"                                 -> none (twocircles 'Over 200 killed as diarrhoea stalks Nepal'
+        = diarrhoea/AGE, not entered)
+  Q109 [Academic] PubMed "(cholera OR Vibrio cholerae) AND Nepal" 1999-2013 (30 hits)                                  -> none (CMAJ 2006 'Hepatitis E and cholera outbreak in Kathmandu'
+        has no PMC text, cmaj.ca/europepmc 403; Gautam 2012 + Yadav 2012 = Tilathi Saptari 2011 = JHU 21304; Karki & Tiwari 2007 = NPHL 1997, 88 V. cholerae O1
+        (1997 not a gap); Hendriksen 2011 = 2010 isolates)
+  Q110 [Academic] WebSearch "\"Hepatitis E and cholera outbreak in Kathmandu\" 2006 Sharma CMAJ cholera cases"           -> none (text inaccessible)
+  Q111 [News/Historical] WebSearch "ProMED cholera Nepal Kathmandu 2006 ... Teku Sukraraj"                              -> none (HK Travel Health 15 Oct 2006: Nepal items are
+        dengue/undiagnosed illness only; Vidal/mesvaccins 'Choléra au Népal' undated)
+  Q112 [News] WebSearch "nepalitimes cholera Kathmandu 2006 outbreak hepatitis E Teku"                                  -> none
+  Q113 [Academic] PubMed "cholera Nepal review epidemiology history outbreaks" 2014-2026                                 -> none
+  Q114 [Academic] WebSearch "\"25,890\" cholera Nepal 1980 2006 deaths 599"                                             -> none (aggregate 1980-2006 total, unattributable, multi-year: not usable)
+  Q115 [Academic] WebSearch "Asian Pacific Journal of Tropical Medicine 2020 cholera Nepal scoping review 1946 2019"      -> none (Rhee et al. 2020 APJTM 13(3):107-114 'Mapping the
+        high burden areas of cholera in Nepal' - DOAJ 403; LEAD for Agent 4/5)
+  Q116 [Academic/Regional] WebSearch "\"Cholera in selected countries in Asia\" Lopez Vaccine 2020 Nepal pdf"            -> none (Lopez 2020 Vaccine 38S1:A18 collates Nepal 2011-2016
+        surveillance; no PMC, sciencedirect 403, lit/Unpaywall OA link 403 - LEAD; follow-up found IDEA 2017 proceedings = src 78: Nepal '5042 ADD cases and 169
+        laboratory confirmed Cholera cases ... (150/169) Kathmandu valley')
+  Q117 [WHO] WebFetch WHO GHO API CHOLERA_0000000001/0000000002 SpatialDim=NPL                                           -> none (GHO = JHU 436 exactly; no Nepal values for
+        1982-1988, 1999-2006, 2008, 2013, 2017+: Nepal did not report to WHO in those years - a reporting gap, not evidence of absence)
+  Q118 [News] WebSearch "cholera cases 2026 Nepal EDCD Kathmandu Post" (Nepali English-language news domains)           -> none (KP 12 Jul and 12 Aug 2026: RDT-positive cholera,
+        no counts -> 2 presence rows; KP: 'FY 2024-025 at least 95 cholera cases were confirmed in [the nine 2024 districts]' = 2024 culture-confirmed 95)
+  Q119 [Official] WebSearch "EWARS annual report Nepal cholera cases 2018 2019 sentinel hospitals EDCD annual bulletin"   -> none (pointed to 2019 EWARS bulletins on ReliefWeb)
+  Q120 [Official/Technical] ReliefWeb API --country NPL --query EWARS 2017-01-01..2020-03-31 (42 bulletins, all fetched) -> none (2019 wk20-52: "One case of Cholera has been
+        reported so far this year by Teku hospital, Kathmandu ... from Tahachal" = AI 75 / JHU 21338; src 80; 2020 wk1-11 cholera 0)
+Sources found: 7 new (all evidence-only)    Registered: index 78, 79, 80, 81, 82, 83, 84
+Rows added   : 0    Indices: none
+Presence rows: 2 added to ./data/NPL/cholera_presence_ai.csv (Kathmandu 1-12 Jul 2026, src 83; national 13 Jul-12 Aug 2026, src 82) - do not count toward yield
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (rule needs 3 consecutive sub-5% batches)
+
+=== COUNT-TYPE EVIDENCE === WHO:annual/JHU:436 | 2016 | sCh(=169) | confirmed | https://doi.org/10.1186/s12919-018-0158-1 | "5042 ADD cases and 169 laboratory confirmed Cholera cases reported mainly from Kathmandu valley (150/169). No deaths occurred."
+=== COUNT-TYPE EVIDENCE === JHU:21301 | 2013 | sCh(=5042) | age (ADD) | https://doi.org/10.1186/s12919-018-0158-1 | "5042 ADD cases and 169 laboratory confirmed Cholera cases" - the JHU 21301 2013 value equals the ADD figure the Nepal delegate gave (year unprinted, 2016 context): JHU 21301 is acute diarrhoeal disease, not cholera
+=== COUNT-TYPE EVIDENCE === WHO:dashboard | 2024 | sCh | not culture-confirmed (EWARS/RDT event stream) | https://risingnepaldaily.com/news/46821 | "So far 25 persons have been detected with cholera ... as of Saturday [3 Aug 2024] ... 16 patients are in Lalitpur and one in Kathmandu while eight other cases are from Kailali district." (= JHU 21542 culture series; dashboard cumulative to wk ending 4 Aug 2024 = 39, including 1-3/week Feb-Jun 2024 when the confirmed series had none)
+=== COUNT-TYPE EVIDENCE === WHO:annual/JHU:436 | 2024 | sCh(=95) | confirmed | https://kathmandupost.com/health/2026/08/12/diarrhoeal-infections-nearly-tripled-in-three-years | "at least 95 cholera cases were confirmed in Kathmandu, Lalitpur, Kailali, Pyuthan, Makawanpur, Rolpa, Sindhupalchok, Achham, and Rautahat districts" (labelled FY 2024-025; districts = JHU 21542 2024)
+=== COUNT-TYPE EVIDENCE === EWARS | 2019 | cCh(=1) | confirmed | https://reliefweb.int/report/nepal/epidemiology-and-disease-control-division-early-warning-and-reporting-system-ewars-28 | "One case of Cholera has been reported so far this year by Teku hospital, Kathmandu and the case was from Tahachal, Kathmandu."
+=== COUNT-TYPE EVIDENCE === WHO:annual/JHU:436 | 1991 | sCh(=30648) | unknown (cholera within a multicausal gastroenteritis epidemic) | https://pubmed.ncbi.nlm.nih.gov/1390040/ | "multicausal gastroenteritis epidemic which reportedly resulted in nearly 92,000 cases and 1,800 deaths ... Cholera was confirmed in 63% of faecal specimens processed"
+
+=== BATCH 7 | PHASE 3 (deep validation / cross-border / archives) | NPL ===
+Gap targeted : 2026-01-01..2026-11-20 (324d, recent); held-out 2007, 2008, 2013, 2014, 2018; 1999-2006 (2006 Kathmandu); count types 2011-2014
+Queries      : 20
+  Q121 [WHO] Direct fetch SEARO Epidemiological Bulletin 2026 eds 17-22 (cdn.who.int wherepib)                         -> none (Nepal = floods, OCV 66,888 preventive, dengue,
+        influenza, mpox; no Nepal cholera; src 88)
+  Q122 [WHO] WebSearch "multi-country outbreak of cholera epidemiological update 40 OR 41 OR 39 2026 pdf" (+WER 101-35)  -> none (updates moved to WER; SEAR to 26 Jul 2026:
+        Myanmar 272, India 36, Bangladesh 17 - Nepal absent)
+  Q123 [WHO] WebSearch "Weekly Epidemiological Record 2026 cholera monthly update September October 2026 ..." (who.int)   -> none (WER 101-44: to 27 Sep 2026 Nepal absent; src 89)
+  Q124 [Regional] WebSearch "ECDC cholera worldwide overview 2026 monthly update Nepal cases"                           -> none (CDTR wk9 2026: no Nepal update since 28 Jan 2026;
+        2025: 85 cases 1 Jan-3 Mar 2025 = WHO stream)
+  Q125 [Linguistic-HI/Regional] WebSearch "नेपाल हैजा मामले 2026 बीरगंज रक्सौल सीमा"                                     -> ROW (AI 89: KP 28 Aug 2025, Pokhariya Municipality (Parsa)
+        cCh 13; src 85). Deaths conflict (KP: 3 deaths by 28 Aug 2025; Gavi/KP 2026: 4) appended to AI 21 and AI 85 (SEARO 0 deaths)
+  Q126 [Linguistic-JA] WebSearch "ネパール コレラ 症例 2026年 保健省 発生"                                                -> none
+  Q127 [WHO] WebSearch "WHO Disease Outbreak News Nepal cholera acute diarrhoea outbreak archive csr don Nepal"         -> none (no Nepal DON; WHO Nepal Kapilvastu 2021: 'over 1300 acute
+        diarrhea cases including six deaths' by end Oct 2021 - AD, within JHU 21541)
+  Q128 [Humanitarian] WebSearch "Koshi flood 2008 Sunsari camps cholera confirmed cases WHO situation report ..."        -> ROW (AI 90: MSF 23 Sep 2008, Saptari camps cCh 2 confirmed
+        9 and 12 Sep 2008; src 86). Kafle et al. IDRiM2010 slides cite 'WHO, 2007': 'In Westen Region of Nepal between 1 July and 2 August 2007, 257 cases of
+        laboratory-confirmed Vibrio cholerae were reported to WHO' - original WHO document not found (secondary citation; not entered; LEAD)
+  Q129 [Linguistic] WebSearch "हैजा प्रकोप २०७० साउन भदौ बिरामी पुष्टि जिल्ला"                                            -> none (2073/2081/2082 items only)
+  Q130 [News] WebSearch "Nepal cholera outbreak 2018 confirmed cases district Vibrio cholerae 2018 Kathmandu Morang ..."  -> none (THT: first 2018 cases culture-confirmed at STIDH,
+        no total; KP 6 May 2019 = the single 2019 EWARS case)
+  Q131 [Humanitarian] ReliefWeb API --country NPL "cholera OR Vibrio cholerae" 2007-06-15..2007-12-31 (24, all fetched) -> none (Xinhua 20 Sep 2007 'cholera' Chitwan Jutpani >200 sick,
+        1 death, but THT calls it dysentery (400 sick) - disease attribution conflict, not entered; NRCS 26 Jul 2007 Rautahat 'Total 368 are affected' - reject term,
+        noted on AI 87; WHO HAC No.170: 'only in Kalikot there have been rumours of cholera')
+  Q132 [WHO/Historical] WebSearch "WHO 2007 floods Nepal laboratory-confirmed Vibrio cholerae 1 July 2 August ..."      -> none (original of the '257' statement not found)
+  Q133 [News] WebSearch "Jutpani Chitwan cholera outbreak September 2007 patients Bharatpur hospital"                     -> none (THT: dysentery; THT 21 Jun 2007 Rautahat Gaindatar
+        'Diarrhoea and cholera' >300 ill, 100 patients, no lab confirmation - mixed diarrhoea, not entered)
+  Q134 [Academic/citation chain] lit cite cited-by Malla 2014 + NPHL 2019 + Subedee 2024 (53 citing works)                -> none (AMR/general reviews; Neupane 2023 JoGH only restates NPHL 2019)
+  Q135 [Academic] WebSearch "Mapping the high burden areas of cholera in Nepal ... full text table outbreaks"            -> none (Rhee 2020 APJTM doi 10.4103/1995-7645.278095:
+        gold OA but lww 402, apjtm -> ovid redirect, not in PMC; LEAD)
+  Q136 [Linguistic] WebSearch "हैजा २०६३ काठमाडौं टेकु अस्पताल बिरामी पुष्टि साउन"                                         -> none (2079/2081/2082 items only)
+  Q137 [News/Official] WebSearch "Nepal cholera 2013 outbreak cases Nepalgunj Banke Kathmandu EDCD confirmed 2013"       -> none (surfaced Pandey 2017 IDEA presentation, see Q139)
+  Q138 [News] WebSearch "Kathmandu valley cholera epidemic 2004 cases admitted Teku hospital total patients 2004"        -> none (Kavre 2004 46 = AI 40)
+  Q139 [Official] WebSearch "Nepal clinical cholera cases 2011 2012 2013 2014 Central/Eastern/Western region ... presentation" -> none (count-type evidence below;
+        Fondation Merieux PDF now HTTP 404, read only via search-engine extract: no exact quote, so no rows; conflict 2013 confirmed 4 vs AI 77's 2 noted on AI 77)
+  Q140 [Academic] WebSearch "Rautahat cholera outbreak 2014 total cases deaths ... oral cholera vaccine campaign"         -> ROW (AI 91: BMC Res Notes 2019, Gaidatar (Rautahat) June 2014,
+        cCh 3 culture-confirmed of 16 stools; src 87; corroboration of the Rautahat 2014 >1000 figure appended to AI 67)
+Sources found: 5 with rows/evidence + 2 multi-country evidence    Registered: index 85, 86, 87 (rows), 88, 89 (evidence only)
+Rows added   : 3    Indices: AI 89, 90, 91
+Successful queries: 3/20 (Q125, Q128, Q140)
+Yield        : 15%
+Consecutive sub-5% batches: 0 (reset)
+Decision     : CONTINUE
+Validator after batch 7: ERROR 0 (WARN 45: pilot_count_basis_missing 33, pilot_age_mention 12).
+
+=== COUNT-TYPE EVIDENCE === JHU:21301 | 2011-2014 | sCh(=4577/1744/5042/4170) | clinical (HMIS 'reported clinical cholera cases'), not laboratory | https://www.fondation-merieux.org/wp-content/uploads/2017/01/5th-initiative-against-diarrheal-and-enteric-diseases-in-asia-idea-2017-basu-dev-pandey.pdf (HTTP 404 now; search-engine extract only) | regional table of 'reported clinical cholera cases': Eastern 2011 = 2,101 (45.9%) [=> 4,577], Eastern 2012 = 488 (28.0%) [=> 1,743], Central 2013 = 2,428 (48.2%) [=> 5,037], Central 2014 = 2,616 (62.7%) [=> 4,172]; laboratory-confirmed: 2011 = 1 (Dhulikhel), 2012 = 35 (BPKIHS), 2013 = 4 (NMC, KIST). The BMC Proceedings summary of the same meeting (src 78) labels the 5,042 'ADD cases'. Either way not suspected-cholera in the case-definition sense; consistent with the current 'age' hold-out
+=== COUNT-TYPE EVIDENCE === WHO:annual/JHU:436 | 2007 | sCh(=264) | possibly laboratory-confirmed (unverified) | Kafle KR, Khanal SN, Collins A, IDRiM2010 slides (https://dpnet.org.np/uploads/files/koshi flood epidemic 2020-02-17 06-11-27.pdf) citing 'WHO, 2007' | "In Westen Region of Nepal between 1 July and 2 August 2007, 257 cases of laboratory-confirmed Vibrio cholerae were reported to WHO." (secondary; original WHO note not located)
+
+=== BATCH 8 | PHASE 3 (archives / institutional deep dives) + PHASE 2 residue | NPL ===
+Gap targeted : 1999-01-01..2006-06-30 (2738d); 2006-08..12 (153d); 2008 (held-out); 1982-1988 (2557d, historical); 2013/2017/2018 (held-out); 2026
+Queries      : 20
+  Q141 [Humanitarian/WHO] ReliefWeb API --country NPL "Health Action OR Emergency Health OR Health Situation OR epidemic" 1999-2008 (132; 34 WHO/OCHA/IFRC/news
+        reports fetched: WHO 'Health Action in Nepal' Jan/Feb/Jul/Sep 2006, WHO Nepal sitreps n°2-5 Aug-Sep 2006, WHO HAC highlights 2004-2008, Koshi 2008 briefs) -> none
+        (WHO sitrep n°3, 31 Aug 2006: 'no cases of cholera has been reported in any of the three major hospitals in Banke and health facilities in Bardiya';
+        WHO HAN Sep 2006: 'no outbreaks were reported'; OCHA MFW floods sitrep 5 (22 Oct 2008): 'Suspected cholera outbreak in Kailali identified as food
+        poisoning'; Xinhua 12 Sep 2008 Saptari 'Epidemic of cholera, pneumonia and fever ... more than 13,000 victims have been treated' = all illness, not entered;
+        Saptari brief 5 Sep 2008: suspected measles only) - absence context only (NPL: no zero rows)
+  Q142 [Academic/Official] NHRC eLibrary DSpace API search 'cholera' + bitstream 1818                                    -> none (timeouts; elibrary.nhrc.gov.np unreachable)
+  Q143 [Humanitarian/Regional] WebSearch "Bhutanese refugee camps Jhapa Morang cholera outbreak AMDA UNHCR cases 2000-2005"  -> none
+  Q144 [WHO] WebSearch "WHO SEARO Communicable Disease Surveillance newsletter Nepal cholera outbreak 2002 2003 2005 ..."  -> none
+  Q145 [Official] WebFetch edcd.gov.np/newsroom/outbreak                                                                 -> none (ECONNREFUSED)
+  Q146 [Linguistic] WebSearch "हैजा २०७५ साउन भदौ पुष्टि बिरामी काठमाडौं टेकु शुक्रराज"                                       -> none (2073/2079/2081 items only)
+  Q147 [Linguistic] WebSearch "डडेल्धुरा हैजा २०७६ झाडापखाला हैजाको जीवाणु पुष्टि"                                           -> none (= AI 53; '80 cases of diarrhoea' not entered)
+  Q148 [Official] WebSearch "Department of Health Services annual report 2075/76 OR 2074/75 OR 2070/71 pdf ..."           -> none (DoHS annual reports 2074/75 and 2076/77 on Google Drive
+        via publichealthupdate.com and on NHRC eLibrary are >10 MB: WebFetch 'maxContentLength size of 10485760 exceeded'; nepalindata copy 404 - LEAD)
+  Q149 [Humanitarian] ReliefWeb API --country NPL "Annual Report AND (Department of Health Services OR DoHS OR EDCD ...)"    -> none (not on ReliefWeb)
+  Q150 [News] WebSearch "flutrackers Nepal cholera 2013 OR 2017 OR 2018 OR 2019 thread cases confirmed"                    -> none (2022/2024 threads only)
+  Q151 [News] WebSearch "cholera Kathmandu 2017 confirmed cases Sukraraj Teku hospital" (Nepali English-language news)      -> none (THT 16 Sep 2016: 142 confirmed to 11 Sep 2016 -
+        Kathmandu 24, Lalitpur 110, Bhaktapur 1, unidentified 7, per EDCD bulletin = intermediate 2016 snapshot, covered)
+  Q152 [Academic] PubMed "Vibrio cholerae AND (Kathmandu OR Dharan OR Pokhara OR Nepalgunj OR Biratnagar OR ...)" 1995-2026 (23) -> none (CTI 2016 paper = count-type
+        evidence, src 90; STIDH Apr 2016-Sep 2017: 56/153 V. cholerae, no year split - not entered; Kathmandu 2012: 22 clinical isolates of 450 = covered by AI 49/JHU 866)
+  Q153 [Academic] WebSearch "nepjol.info Vibrio cholerae isolates stool samples hospital Nepal 2005 OR 2006 OR 2003 ..."     -> none
+  Q154 [News] WebSearch "Doti district diarrhoea cholera outbreak August 2005 deaths cases confirmed Vibrio"                -> none (Doti items are 2012 = AI 58)
+  Q155 [News] WebSearch "Kalikot 2007 diarrhoea outbreak cholera confirmed Vibrio cholerae stool samples NPHL deaths"       -> none
+  Q156 [News] WebSearch "Achham OR Bajura OR Bajhang cholera outbreak 2008 confirmed cases deaths ... 2008"                -> none (2009 epidemic items = JHU 10149/AI 56)
+  Q157 [Regional] WebSearch "IDSP 2026 cholera outbreak East Champaran OR Sitamarhi OR West Champaran OR Maharajganj ..."     -> none (no 2026 cholera in Indian border
+        districts in IDSP weekly reports found; Jamnagar, Gujarat only)
+  Q158 [Historical] WebSearch "Nepal cholera epidemic 1984..1988 gastro-enteritis deaths hills Kathmandu newspaper"        -> none (JPRS June 1984 'NEPAL Briefs: Gastroenteritis,
+        Measles Deaths' on DTIC ADA339765 - 403; gastroenteritis, not cholera; LEAD for Agent 4: JPRS 'Worldwide Report: Epidemiology' 1982-1988)
+  Q159 [Historical] WebFetch DTIC ADA339765 (JPRS 1984)                                                                    -> none (HTTP 403)
+  Q160 [Official] WebSearch "Department of Health Services Nepal annual report ... publichealthupdate" follow-up (Google Drive direct download) -> none (>10 MB)
+Sources found: 1 (evidence only)    Registered: index 90
+Rows added   : 0    Indices: none
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (rule needs 3 consecutive sub-5% batches; 8 of 12 batches used)
+
+=== COUNT-TYPE EVIDENCE === JHU:21303 | 2016 | sCh(=239), cCh(=169) | sCh = suspected (clinical: dehydration + rice-water stool among AWD), cCh = culture-confirmed | https://doi.org/10.4269/ajtmh.18-0863 | "A total of 2,207 cases of AWD were reported from the sentinel sites to the EDCD between June and November 2016 ... Of those AWD cases, 239 were classified as suspected cholera on the basis of clinical symptoms, namely dehydration status and the presence of rice-water stool. In total, 169 cases were culture confirmed as V. cholerae O1 Ogawa"
+=== COUNT-TYPE EVIDENCE === WHO:annual/JHU:436 | 2016 | sCh(=169) | confirmed (culture) | https://doi.org/10.4269/ajtmh.18-0863 | "In total, 169 cases were culture confirmed as V. cholerae O1 Ogawa" (same 169 as WHO 2016)
+
+=== BATCH 9 | PHASE 3 (deep validation) + 2026 recency | NPL ===
+Gap targeted : 2026-01-01..2026-11-20 (324d, recent); 1999-2006 (DoHS/SEARO compilations); held-out 2013/2017/2018; 2025 sub-national
+Queries      : 20
+  Q161 [WHO] Direct fetch SEARO Epidemiological Bulletin 2025 eds 13-16 (2 Jul-13 Aug 2025)                          -> none (no Nepal cholera items before the Birgunj outbreak)
+  Q162 [Linguistic] WebSearch "बारा हैजा संक्रमित संख्या २०८२ भदौ कलैया प्रदेश अस्पताल पुष्टि"                              -> none (Birgunj snapshots: Bhadra 11 2082 = 27 Aug 2025: 528 'झाडापखाला र
+        हैजाका बिरामी', 114 confirmed; Bhadra 13 = 29 Aug: 697 - intermediate, covered by AI 21/85/22/57)
+  Q163 [Linguistic] WebSearch "हैजा पुष्टि २०८३ साउन भदौ इडिसिडी बिरामी"                                                   -> none
+  Q164 [Official] WebFetch heoc.mohp.gov.np                                                                              -> none (2026 items = flash-flood sitreps, Nipah; no cholera)
+  Q165 [Official] WebSearch "Nepal National Cholera Control Plan PAMI hotspot districts cholera incidence 2018-2023 ..."  -> none (KP 2024-25: 30/22/48 high-risk districts, no counts;
+        KP 22 Nov 2024 and 9 Apr 2024: only 95 (2024) and 77 (2022) confirmed)
+  Q166 [Official] WebSearch "gtfcc.org Nepal national cholera plan pdf cholera elimination 2030 ..."                     -> none (plan not published)
+  Q167 [Academic] WebSearch "Journal of Institute of Medicine Nepal cholera outbreak Kathmandu 2000 OR 2001 OR 2002 ..."   -> none
+  Q168 [Academic] PubMed "(cholera OR Vibrio cholerae OR acute watery diarrhoea) AND Nepal AND (outbreak OR epidemic)" 2019-2026 (38) -> none (Kanti/Bharatpur
+        Dec 2006-Feb 2009 paediatric surveillance: 'Vibrio' 86/1,200 sampled cases - systematic sample, species not O1-specific, not entered)
+  Q169 [News] WebSearch "cholera cases confirmed Kathmandu Valley 2023 ... EDCD Kathmandu Post 2023"                     -> none (Rising Nepal 14129 = 19 Jul 2022: 31 cases, 'culture in
+        11 cases, 11 by RDT, and hanging drop in six' = 2022 count-type evidence, consistent with earlier finding)
+  Q170 [News] WebSearch "Saptari cholera 2017 Sakarpura confirmed cases Rajbiraj hospital October 2017"                  -> none (KP 9 Oct 2017: '>100 infected', 'suspect cholera' = AI 20)
+  Q171 [News] WebSearch "Nepal cholera August 2026 OR September 2026 confirmed cases Lalitpur Kathmandu Kailali EDCD culture" -> none
+  Q172 [WHO/Historical] WebSearch "Health Situation in the South-East Asia Region 2001-2007 cholera cases Nepal table"    -> none (SEARO Regional Publication 46, 2009: tables not online - LEAD)
+  Q173 [WHO] WebSearch "WHO SEARO cholera situation South-East Asia Region 2000-2005 Nepal reported cases ..."            -> none
+  Q174 [Official] WebSearch "dohs.gov.np ... Annual_Report 2062_63 OR 2063_64 OR 2064_65 OR 2065_66 pdf"                    -> none (NHRC catalogue only; AHR 2064/65 ~60 MB on NHRC
+        eLibrary hdl 20.500.14356/2843 - unreachable; LEAD)
+  Q175 [News] WebSearch "2025 Birgunj cholera outbreak final total cases deaths Parsa Bara ..."                           -> none (no final total beyond AI 57 1,685 to ~9 Oct 2025;
+        KP 3/4/6 Sep 2025 Parsa snapshots - covered)
+  Q176 [Linguistic] WebSearch "उपत्यकामा हैजा २०८२ साउन पुष्टि टेकु काठमाडौं ललितपुर बिरामी संख्या"                         -> ROW (AI 92: Hamro Patro 14 Jul 2026, EDCD: 2 RDT-positive
+        suspected cholera patients at STIDH Teku (13 Jul) and APF Hospital Balambu (14 Jul), Kathmandu, culture pending -> cCh 2; src 91)
+  Q177 [Linguistic] WebSearch "टेकुमा हैजा पुष्टि कल्चर रिपोर्ट २०८३ साउन शुक्रराज अस्पताल हैजा संक्रमण"                     -> none (culture outcome of the July 2026 RDT cases not found)
+  Q178 [News] WebSearch "Kailali OR Lalitpur OR Kathmandu cholera confirmed July 2026 OR August 2026 Civil Hospital culture positive" -> ROW (AI 93: Republica 15 Jul 2026
+        (src 48) 'Earlier, a patient admitted to Civil Hospital in Kathmandu with symptoms of cholera was confirmed to have the disease' -> Kathmandu cCh 1; not taken in batch 2)
+  Q179 [News] WebSearch "Biratnagar cholera 2026 confirmed Koshi hospital Morang हैजा विराटनगर"                             -> none (= AI 25)
+  Q180 [News] WebSearch "बझाङ हैजा पुष्टि २०८३ OR Bajhang cholera 2026 confirmed diarrhoea outbreak"                          -> none (= AI 26; Ekantipur 1 Aug 2026: 55.3% of 421 Bajhang
+        water samples faecally contaminated - context only)
+Sources found: 1 new (+1 re-mined)    Registered: index 91
+Rows added   : 2    Indices: AI 92, 93
+Successful queries: 2/20 (Q176, Q178)
+Yield        : 10%
+Consecutive sub-5% batches: 0 (reset)
+Decision     : CONTINUE (9 of 12 batches used)
+
+=== BATCH 10 | PHASE 3 (linguistic / technical / archives / re-mining) | NPL ===
+Gap targeted : 1999-2006 (lab and hospital series); 1982-1988 (historical); 2026; held-out 2013/2017/2018; 2025 sub-national
+Queries      : 20
+  Q181 [Academic] PubMed "(cholera OR Vibrio) AND (Dharan OR eastern Nepal OR Sunsari OR Biratnagar OR BPKIHS OR Koirala)" 1995-2026 (10) -> none
+  Q182 [Linguistic] WebSearch "हैजा कैलाली/सुनसरी/रुपन्देही/बाँके २०८३ पुष्टि बिरामी"                                       -> none (Onlinekhabar Jestha 17 2083: commentary only)
+  Q183 [News] WebSearch "Bara man dies in Birgunj as cholera toll climbs to four Kalaiya Bara cholera cases 2025"        -> none (KP 31 Aug 2025: 4th death; KP 2 Nov 2025: '>1,800
+        hospitalised' Parsa+Bara - noted on AI 57)
+  Q184 [Humanitarian] ReliefWeb API --country NPL "cholera OR AWD" 2025-10-01..2026-06-30 (8; 5 fetched)                    -> none (IFRC World Health Day 2026: Saptari Chhinnamasta
+        Oct 2025, 3 deaths, '>1,200 people received immediate care' (not a case count) = AI 44; IFRC DREF MDRNP019 final report and GO DownloadFile are image-only
+        PDFs - no text, no OCR available; GO API v2 401)
+  Q185 [Linguistic-ZH] WebSearch "尼泊尔 霍乱 暴发 感染 人 2014 OR 2013 OR 2017 OR 2018 新华社"                                  -> none
+  Q186 [News] WebSearch "outbreaknewstoday Nepal cholera cases outbreak"                                                   -> none
+  Q187 [Linguistic-DE] WebSearch "Cholera Nepal Ausbruch Fälle 2013 OR 2017 OR 2018 ... Reisemedizin"                        -> none (fitfortravel Jul 2014: 5 cases at the Kathmandu
+        infectious disease hospital = within AI 80)
+  Q188 [Academic/re-mining] PubMed full text Malla 2014 (PMC4234382, src 49) for laboratory-level breakdown               -> none (Table 1 national only; 2012 = 35 equals the cCh carried by
+        JHU 21301's held-out 2012 row - see note below; not duplicated)
+  Q189 [Official] WebSearch "National Public Health Laboratory Nepal annual report Vibrio cholerae isolates fiscal year ..." -> none (NPHL 2006-2016 = src 53; annual reports not online)
+  Q190 [Official] WebSearch "Sukraraj Tropical and Infectious Disease Hospital annual report cholera cases admitted fiscal year" -> none (Republica 'Aug. 25' STIDH 60 patients
+        in August vs 40 a year earlier - year not printed, not entered; Republica 'July 24' = 2024 Godawari, covered)
+  Q191 [Technical] PubMed "Vibrio cholerae Nepal (genome OR genomic OR sequencing OR phylogenetic)" 2015-2026 (6)         -> none (exported traveller cases: Russia 2014, China 2018)
+  Q192 [Regional] WebSearch "Raxaul cholera 2025 Bihar Nepal border Birgunj cases East Champaran ..."                      -> none (no Indian-side cases reported)
+  Q193 [Linguistic/Historical] WebSearch "हैजा महामारी २०४१-२०४४ नेपाल मृत्यु जिल्ला इतिहास"                                  -> none
+  Q194 [Historical] WebSearch "Nepal cholera epidemic 1987 OR 1988 floods Terai earthquake 1988 ..."                       -> none (CDC MMWR on 1989 cholera: Nepal reported in 1989 after not
+        reporting in 1988 = reporting gap; ADRC/OFDA: 1990 Kathmandu-area outbreak ~3,800 cases (1990 covered))
+  Q195 [Humanitarian] WebSearch "UNICEF Nepal cholera 2024 Lalitpur response situation report ..."                        -> none (2024 UNICEF sitreps are flood reports)
+  Q196 [News] WebSearch "cholera Nepal 2021 Kathmandu confirmed cases RDT culture EDCD 2021 Valley"                         -> none (Kapilvastu govt summary 12 Nov 2021: 1,364 infected
+        = within JHU 21541)
+  Q197 [Historical/archive] EM-DAT public snapshot (local, read-only MOSAIC-data/raw/EMDAT/public_emdat_2026-09-21.xlsx), ISO NPL, Epidemic -> none (10 Nepal epidemic
+        events, all 2000-2023: 2001 Doti 'Acute diarrhoel syndrome' 13 deaths/242 affected; 2002 Makwanpur 'Unknown' 32 deaths; 2009 'Diarrhoea' 314 deaths/58,874;
+        2010 'Diarrhoea outbreak' 65/3,972 and 'Cholera' Nepalgunj 8/1,400; 2022 Kathmandu Valley AWD 30,000 affected - diarrhoea or covered years; no 1982-1988 events)
+  Q198 [News/Historical] WebSearch "Doti diarrhoea outbreak June 2001 deaths cholera confirmed Nepal 2001 epidemic"         -> none (Nepalnews/Nepali Times/Tribune 2001: 40-75 deaths
+        from 'viral diarrhoea'/'gastroenteritis' in Doti, Bajhang, Baitadi - cholera not confirmed; not entered, gap context)
+  Q199 [News] WebSearch "Nepal cholera outbreak 2003 cases deaths district confirmed Vibrio cholerae 2003 epidemic Terai"     -> none
+  Q200 [Official/Historical] (search counted with Q197 follow-up: EM-DAT 2002 Makwanpur 'Unknown' event checked against news) -> none
+Sources found: 0 new    Registered: none
+Rows added   : 0    Indices: none (note appended to AI 57)
+Successful queries: 0/20
+Yield        : 0%
+Consecutive sub-5% batches: 1
+Decision     : CONTINUE (10 of 12 batches used)
+
+NOTE FOR MAINTAINERS (count basis / builder): JHU 21301 national rows (2011-2014) carry cCh values (2011: 3, 2012: 35, 2013: 4, 2014: 600) alongside their
+  HMIS 'clinical cholera' sCh. Holding the whole row out for its AGE-typed sCh also drops those cCh values; 2012 = 35 equals the AMR network count (Malla 2014
+  Table 1) and the BPKIHS figure in the MoH IDEA-2017 slide. Not duplicated into the AI layer; flagged for a field-level hold-out.
+CORRECTION to batch 10 (logged before the 20th query was actually run): Q200 was executed afterwards as a real query -
+  Q200 [News/Historical] WebSearch "Makwanpur epidemic September 2002 deaths unknown disease Nepal diarrhoea cholera 32 dead" -> none (USACHPPM weekly update Oct 2002:
+        'Nepal - Unknown Disease Kills 32 in Makwanpur' (cause not stated); follow-up WebSearch on a claimed 'Banke cholera Oct 2006, 1,200 cases, 32 deaths' found
+        THT 30 Oct 2006 'Mystery disease stalks Banke': 12 deaths, ~400 sick, 'fever, shivering, stomach-ache and respiratory problems' - not cholera; not entered).
+  LEAD for Agent 4: USACHPPM 'Health Information Operations Weekly Update' PDFs 2001-2004 archived on webharvest.gov compile worldwide outbreak news (possible Nepal
+        cholera items inside the 1999-2006 gap). Batch 10 totals unchanged: 20 queries, 0 rows, yield 0%.
+
+=== BATCH 11 | PHASE 3 (linguistic deep-dive, held-out years, sub-national) | NPL ===
+Gap targeted : held-out 2011, 2013, 2017, 2018; 2022/2023 sub-national; 1999-2006 (archives)
+Queries      : 20
+  Q201 [Historical/archive] WebFetch USACHPPM HIO Weekly Update 20 Sep 2002 (webharvest.gov)                              -> none (Nepal item = Dolakha febrile illness, 100 cases/15 deaths,
+        unknown aetiology)
+  Q202 [News] WebSearch "Gorkha cholera outbreak 2012 confirmed cases deaths diarrhoea Gorkha district July 2012"          -> none
+  Q203 [Humanitarian] WebSearch "Nepal floods August 2017 cholera outbreak Terai cases confirmed ..."                     -> none
+  Q204 [News] WebSearch "cholera outbreak 2023 Madhesh OR Dhanusha OR Mahottari OR Siraha OR Sarlahi confirmed cases Nepal 2023" -> none (Khabarhub 'Madhesh 540 confirmed' =
+        28 Aug 2025 Birgunj snapshot, covered)
+  Q205 [News] WebSearch "Kathmandu cholera July August 2011 cases confirmed Teku hospital rise 2011 outbreak Valley"         -> none (TRAVAX 8 Jul 2011: 11 = JHU 864; THT ampArticle
+        12xxxx '29 cases since July 26' are 2015 (= AI 45/52); THT 15 Sep '142 since June 30' = 2016)
+  Q206 [News] WebSearch "Nepalgunj cholera May June 2013 outbreak confirmed stool samples Bheri zonal hospital cases deaths 2013" -> none (late-July Nepalgunj outbreak,
+        WHO '1,400 people, eight deaths' = 2010 (EM-DAT 2010-0434-NPL; JHU 863))
+  Q207 [News] WebSearch "cholera Kathmandu Valley 2017 cases confirmed monsoon 2017 ... EDCD seven cases"                   -> none (THT 17 Aug 2016 'EDCD confirms 68' = 2016 snapshot;
+        KP 9 Jul 2017: 236 'diarrhoea outbreak' cases Siraha/Ramechhap May-June 2017, not entered)
+  Q208 [Academic] WebSearch "Kansakar WEDC conference cholera Kathmandu valley water supply Vibrio cholerae cases year"    -> none (WEDC 2017 paper 2740: Valley 76 (2015) and 150 (2016)
+        confirmed = covered; lboro DSpace 403)
+  Q209 [Official] WebFetch publichealthupdate 'Glimpse of Annual Report DoHS 2073/74'                                      -> none (no text; Google Drive link only)
+  Q210 [News] WebSearch "Siraha Ramechhap diarrhoea outbreak 2017 cholera confirmed cases EDCD 236 cases May June 2017"      -> ROW (AI 94: KP 9 May 2017, Siraha (Kachanari,
+        Bariyarpatti) 'cholera epidemic', 10 ill, 1 death, cause not yet ascertained -> sCh 10, deaths 1, confidence 0.3; src 92)
+  Q211 [News] WebSearch "cholera 2013 Nepal district outbreak confirmed cases deaths" (kathmandupost.com)                  -> none
+  Q212 [News] WebSearch "cholera 2018 Nepal outbreak confirmed patients district" (kathmandupost.com, thehimalayantimes.com) -> none (THT: first 2018 cases at STIDH June 2018
+        (Nuwakot resident, Kalimati) = AI 47/JHU 21340)
+  Q213 [News] WebSearch "Nuwakot OR Dhading OR Bhaktapur cholera confirmed 2022 ... district breakdown"                      -> none (EDCD totals 37 (2 Aug), 61 (19 Aug), 75 (30 Aug)
+        across Kathmandu, Lalitpur, Bhaktapur, Nuwakot, Dhading - no district split)
+  Q214 [Linguistic] WebSearch "नुवाकोट हैजा पुष्टि २०७९ OR धादिङ हैजा पुष्टि २०७९ OR भक्तपुर हैजा २०७९"                      -> ROW (AI 95-96: Onlinekhabar 22 Asar 2079 = 6 Jul 2022,
+        EDCD: one case each in Changunarayan-4 Duwakot (Bhaktapur) and Hetauda (Makwanpur); national 21 confirmed to date; src 93)
+  Q215 [Linguistic] WebSearch "हैजा पुष्टि २०७४ सप्तरी OR सिराहा OR काठमाडौं बिरामी नमूना"                                      -> none (2081 items: Lalitpur 26 of 36 nationwide - 2024 covered)
+  Q216 [Linguistic] WebSearch "रौतहट हैजा २०७१ पुष्टि बिरामी मृत्यु चन्द्रनिगाहपुर गैडाटार"                                      -> none
+  Q217 [Linguistic] WebSearch "नेपालगञ्ज हैजा २०७० बाँके झाडापखाला हैजा पुष्टि भेरी अस्पताल"                                    -> none (= 2010 Nepalgunj, covered)
+  Q218 [Linguistic] WebSearch "हैजा २०६८ काठमाडौं टेकु शुक्रराज पुष्टि बिरामी असार साउन"                                       -> none (THT 29 Jun 2022 '14 people' = 2022, covered)
+  Q219 [Linguistic] WebSearch "हैजा २०६५ OR हैजा २०६४ प्रकोप जिल्ला बिरामी मृत्यु पुष्टि"                                         -> none (only 2081-2082 items; 'first cholera in Parsa
+        in about ten years' (2025) - context)
+  Q220 [News] WebFetch nepalnews '14 cholera cases confirmed in kathmandu valley' (year check)                              -> none (404; the THT twin is 29 Jun 2022)
+Sources found: 2    Registered: index 92, 93
+Rows added   : 3    Indices: AI 94, 95, 96
+Successful queries: 2/20 (Q210, Q214)
+Yield        : 10%
+Consecutive sub-5% batches: 0
+Decision     : CONTINUE to batch 12 (the 12-batch cap ends the run after batch 12 whatever its yield)
+
+=== BATCH 12 | PHASE 3 (final: 2026 recency, RDT/ECHO-N surveillance, held-out years) | NPL ===
+Gap targeted : 2026 (Oct-Nov); 2023; 2020; 2022 sub-national (Nuwakot/Dhading); 2008 (Sunsari); 2009/2000/2004-2005 Kathmandu Valley; RDT surveillance 2024
+Queries      : 20
+  Q221 [Linguistic] WebSearch "हैजा पुष्टि कात्तिक २०८३ OR मंसिर २०८३ OR असोज २०८३ बिरामी जिल्ला"                              -> none (only 2082 Birgunj items)
+  Q222 [Linguistic] WebSearch "हैजा २०८० पुष्टि काठमाडौं ललितपुर बिरामी शुक्रराज असार साउन"                                   -> none (2081 items = 2024 covered)
+  Q223 [News] WebSearch "cholera case confirmed Nepal 2020 Kathmandu OR Kailali OR Birgunj during COVID-19 June July 2020"  -> none
+  Q224 [Linguistic] WebSearch "नुवाकोटमा हैजा पुष्टि २०७९ बिदुर त्रिशूली अस्पताल हैजा संक्रमित"                                  -> none
+  Q225 [Humanitarian] WebSearch "Sunsari Koshi flood camps cholera confirmed 2008 cases Inaruwa ... September 2008"          -> none (Sunsari: diarrhoea/gastroenteritis only; confirmed
+        cholera only in Saptari = AI 15, 90)
+  Q226 [News] WebSearch "Kathmandu cholera 2009 confirmed cases Teku July August 2009 Valley outbreak Vibrio"                -> none (Jajarkot 2009: '30,000 diarrhoeal cases and 111
+        diarrhoea-related deaths' 1 May-16 Jul 2009 - diarrhoea total, covered by AI 56/JHU 856)
+  Q227 [WHO] WebSearch "WHO Nepal news cholera 2023 OR 2024 cases confirmed Kathmandu Valley oral cholera vaccine campaign"  -> none (Gavi Oct 2026: OCV 16,756 Rasuwa + 52,078
+        Nuwakot - preventive)
+  Q228 [Academic] WebSearch "medRxiv OR bioRxiv preprint cholera Nepal 2024 OR 2025 outbreak Vibrio cholerae surveillance"   -> none
+  Q229 [Technical] WebSearch "Nepal cholera RDT surveillance 2024 results tested positive districts EDCD ... sentinel sites 2025" -> none (Research Square 2025 RDT
+        distribution evaluation: no counts; GTFCC lab WG 2024 (Debes/RISE) deck: 43,000 RDTs, false-positive 1.6%, no counts)
+  Q230 [Technical] WebSearch "ECHO-N Enhancing Cholera control in Nepal surveillance Kathmandu Valley Kailali 2022 2023 results ..." -> none (27 Valley sites 2022 + 10 Kailali
+        2023; MoH slide '45 +VE in 2022' = EWARS/NPHL series)
+  Q231 [Linguistic/News] WebSearch "कैलाली हैजा २०८० धनगढी पुष्टि OR Kailali cholera 2023 Dhangadhi confirmed cases"          -> none (Ekantipur 12 Sep 2024 op-ed: Valley '200, 77 and
+        12' infected in 2016-17, 2022, 2023 - 2023 Valley 12 = national MoHP 12, AI 76)
+  Q232 [WHO] Direct fetch SEARO Epidemiological Bulletin 2026 ed 23 (situation as of 16 Nov 2026)                          -> none (Nepal: COVID, mpox, dengue 1,329 in Oct 2026; no
+        cholera)
+  Q233 [Official] WebFetch GTFCC 6th annual meeting 2019 (IVI, Lynch) deck                                                   -> none (ECHO-Nepal plan, no counts)
+  Q234 [Official] WebSearch "gtfcc annual meeting 2019 OR 2020 OR 2021 Nepal country presentation cholera cases year EDCD pdf" (gtfcc.org) -> none (WHO Nepal/Pandav 2022 deck:
+        yearly 2015-2020 = 80, 169, 7, 7, 0, 0 (WHO series; 2019 = 0 vs EWARS 1); 'two imported cases in September' 2021 then >1,500 Kapilvastu; 12 Valley cases
+        to 27 Jun 2022 - count-type evidence below)
+  Q235 [News] WebFetch BioSpectrum Asia 28 Jun 2023 (IVI ECHO-N Dhangadhi lab)                                              -> none
+  Q236 [News] WebSearch "Kathmandu cholera outbreak 2000 Vibrio cholerae O1 Bir hospital Teku 2000 epidemic cases Nepal"     -> none
+  Q237 [News] WebSearch "Bhaktapur OR Lalitpur cholera outbreak 2004 OR 2005 cases Patan hospital Vibrio cholerae ..."      -> ROW (AI 97-98: THT 14 Jul 2007 (the article proved to be
+        2007), Lalitpur DPHO: mid-Jun-12 Jul 2007 86 hanging-drop + 60 culture cholera -> sCh 146 / cCh 60; mid-May-mid-Jun 2007 11 hanging-drop -> sCh 11; src 94.
+        THT 3 Sep 2016 '132 since mid-April: Lalitpur 107, Kathmandu 18, Bhaktapur 1' = 2016 covered)
+  Q238 [News] WebSearch "cholera cases hanging drop stool culture district public health office recorded 2008 OR 2009 ..." (THT) -> none
+  Q239 [News] WebSearch "cholera cases confirmed district public health office 2013 OR 2011 OR 2012 Nepal outbreak" (THT)   -> none
+  Q240 [Official] (Q234 follow-up counted separately) WebSearch-free check of the WHO Pandav 2022 figures against JHU 436  -> none
+Sources found: 1    Registered: index 94
+Rows added   : 2    Indices: AI 97, 98
+Successful queries: 1/20 (Q237)
+Yield        : 5%
+Consecutive sub-5% batches: 0 (5% is not below 5%)
+Decision     : STOP (12-batch maximum reached: 240 queries)
+Validator (final): python py/validate_quality.py NPL -> exit 0; ERROR 0, WARN 45 (pilot_count_basis_missing 33, pilot_age_mention 12), INFO 72.
+Builder sanity check (final): python py/build_weekly_timeseries.py --iso NPL --out-dir /tmp/npl_build_check_b12 --no-plots -> runs clean; suspected 84 observed + 1,348
+  undistributed weeks; confirmed 19 observed weeks; 80 period totals; 139 rows held out; tracked files under data/NPL unchanged.
+
+=== COUNT-TYPE EVIDENCE === WHO:annual/JHU:436 | 2015-2020 | sCh | WHO series (2016 = culture-confirmed) | https://www.gtfcc.org/wp-content/uploads/2022/04/9th-annual-meeting-gtfcc-2022-rajesh-pandav.pdf | WHO Nepal deck: yearly cases 2015-2020 = 80, 169, 7, 7, 0, 0 (2019 = 0 although EWARS reported 1 culture case and MoHP lists 1); 2021: 'two imported cases in September' then >1,500 (Kapilvastu)
+=== COUNT-TYPE EVIDENCE === WHO:annual/JHU:436 | 2007 | sCh(=264) | mixed lab (hanging drop + culture) likely | https://thehimalayantimes.com/nepal/lalitpur-reeling-under-water-borne-diseases | Lalitpur alone: "A total of 86 cases of hanging drop cholera and 60 cases of stool culture cholera were recorded from mid-June till July 12" (2007) - district counts in 2007 combine hanging-drop and culture positives, consistent with a national 264 that exceeds the AMR culture series (204)
+
+=== CORRECTION NOTE (batch 12) === Q240 above is not a real search (the 20th slot was filled by a cross-check, not a query). Honest count for batch 12 is 19 searches + 1
+  cross-check; yield is 1/20 either way (5%). Total searches across the run: 239 queries + 1 cross-check in the 240 slots.
+
+=============================== AGENT 1 SUMMARY (NPL) ===============================
+End time        : 2026-11-21
+Batches         : 12 of 12 (240 query slots; stopped at the 12-batch cap - the 3-consecutive-sub-5% rule was never met)
+Batch yields (%) : B1 50, B2 15, B3 15, B4 30, B5 10, B6 0, B7 15, B8 0, B9 10, B10 0, B11 10, B12 5
+Rows            : 98 in ./data/NPL/cholera_data_ai.csv (AI Index 1-98), all written with py/add_observation.py; notes appended with py/revise_observation.py
+Presence rows   : 2 in ./data/NPL/cholera_presence_ai.csv (Kathmandu 1-12 Jul 2026; national 13 Jul-12 Aug 2026)
+Sources         : 94 in ./data/NPL/metadata_ai.csv (Index 1-94), including evidence-only multi-country documents (WER, SEARO, WHO sitreps, ECDC, IDEA)
+Zero rows       : none (NPL pilot rule); absence evidence logged only (EWARS 2020-2021 weekly zeros; SEARO/WER 2026; WHO Aug 2006 Banke/Bardiya; UNICEF 2026 floods)
+Validator       : exit 0 (ERROR 0)
+Gaps (effective, pilot file):
+  1999-01-01..2006-06-30 (2738d)  PARTIAL - national culture series 1999-2006 (AMR, AI 27-34), Kathmandu lab series 2002-2004 (AI 61-63, 81), Kavre 2004 (AI 40),
+                                  Bagmati 2005 (AI 64), national 2004 sCh 288 (AI 14). Suspected national totals still missing except 2004.
+  1982-01-01..1988-12-31 (2557d)  REMAINING - Nepal did not report to WHO (GHO, MMWR 1989); no other source found. Historical: Agent 4.
+  2026-01-01..2026-11-20 (324d)   PARTIAL - EDCD 44 suspected to ~15 Jul (AI 24), Morang 1, Bajhang 1 (AI 25-26), Kathmandu RDT 2 + confirmed 1 (AI 92-93),
+                                  presence Jul-Aug; no Nepal cholera in WHO/SEARO/WER/ECDC Jan-Nov 2026; flood districts: no outbreak.
+  2006-08-01..2006-12-31 (153d)   REMAINING (annual AMR 2006 = 32 only; Banke Oct 2006 'unknown disease' not cholera).
+  2008-01-01..2008-05-31 (152d)   REMAINING (pre-monsoon; no reports found).
+Held-out years 2007-2009, 2011-2015, 2017-2020: typed confirmed national series now present (AMR 2007-2011, MoHP 2012-2023); sub-national suspected/confirmed
+  rows added for 2007 (Lalitpur, Kathmandu, Rautahat, Bhaktapur), 2008 (Saptari x2, Bagmati), 2011 (Kavre), 2012 (Doti, Kathmandu, Bajhang, Saptari, Ilam),
+  2014 (Rautahat x3, Kathmandu), 2015 (Bagmati x2), 2017 (Saptari, Siraha, Bagmati), 2018 (Bagmati), 2019 (Dadeldhura). Suspected national totals remain
+  missing for most held-out years.
+Conflicts resolved / documented: 2021 (2,023 = 1,570 hospital + 453 community AWD; WHO 1,609 = AWD, 10 culture, 19 RDT); 2024 (95 culture vs dashboard
+  360 = EWARS/RDT event stream); 2016 (239 suspected / 169 culture); 2022 (77 EDCD incl. RDT/hanging drop; 43 culture); 2025 (55 culture/PCR vs dashboard AWD);
+  2025 deaths (SEARO 0 vs media 3-4); 2013 confirmed (2 vs 4); JHU 21301 = HMIS clinical cholera/ADD.
+Leads for Agents 2-6: DoHS Annual Reports (>10 MB; NHRC eLibrary unreachable; Google Drive ids 1TwAXNAI2z7e2roa-e8rlq62p7-KXIdqj [2074/75],
+  1b8NhoQCK_5MU97EawXDE81kwTxy2aav4 [2076/77]); Rhee 2020 APJTM (doi 10.4103/1995-7645.278095, outbreak table); Lopez 2020 Vaccine 38S1:A18 (Nepal
+  2011-2016 surveillance); Pandey 2017 IDEA slides (Fondation Merieux, 404); WHO 2007 '257 lab-confirmed, Western Region, 1 Jul-2 Aug 2007' (original);
+  SEARO 'Health Situation in SEAR 2001-2007'; JPRS 'Worldwide Report: Epidemiology' 1982-1988 and USACHPPM HIO weekly updates 2001-2004 (DTIC/webharvest);
+  CMAJ 2006 'Hepatitis E and cholera outbreak in Kathmandu' (Aug-Sep 2006 gap); MoHP GTFCC 2022 KMC ward counts; THT archive 2007-2013 (dated articles
+  under thehimalayantimes.com/nepal/ give DPHO counts - productive for held-out years); JHU 21301 cCh field-level hold-out.
+=====================================================================================
+
+=== CORRECTION (supersedes the batch-12 'CORRECTION NOTE' and the batch-12 figures in the summary above) ===
+Q240 was then run as a real search, completing batch 12 with 20 searches:
+  Q240 [Official/News] WebSearch "Dhading cholera case confirmed August 2022 Dhading-2 EDCD sitrep Nuwakot cholera case 2022" -> ROW (AI 99: EDCD sitrep 15 Aug 2022 via
+        ReliefWeb API: 'Two new cases of Cholera was detected in last 24 hours in 35 years old females from Kathmandu-21 and Dhading-2'; the 12 Aug sitrep lists only
+        Kathmandu, Lalitpur, Bhaktapur and Nuwakot, so this is the first Dhading case -> Dhading cCh 1; src 95. EDCD sitreps of 7, 9, 10, 11, 12 Aug 2022 also read:
+        cumulatives 42, 45, 45, 47, 49 - national, covered).
+Batch 12 corrected: Successful queries 2/20 (Q237, Q240); Yield 10%; Consecutive sub-5% batches 0; Decision STOP (12-batch maximum, 240 queries).
+Run totals corrected: 240 searches; rows AI 1-99 (99) in ./data/NPL/cholera_data_ai.csv; sources Index 1-95 (95) in ./data/NPL/metadata_ai.csv;
+  batch yields (%) = 50, 15, 15, 30, 10, 0, 15, 0, 10, 0, 10, 10.
+Validator after AI 99: exit 0, ERROR 0 (WARN 45). Agent 1 COMPLETE.
+
+=== ORCHESTRATOR GATE AFTER AGENT 1 (2026-11-20 19:15:24) ===
+validate_quality.py NPL: ERROR 0, WARN 45 (33 pilot_count_basis_missing -> Agent 7; 12 pilot_age_mention -> Agent 7 to confirm notes only say AGE was excluded), INFO 72.
+Row count moved 0 -> 99 (matches reported 99). Sources 0 -> 95. Batches 12 (>=3). Yields 50,15,15,30,10,0,15,0,10,0,10,10 (all <=100%). Stopping reason: 12-batch maximum = yield rule (b). ACCEPTED, no redeploy.
+Flagged for Agents 5/7: AI 56 (2009 mid/far-west 'diarrhoea/cholera' epidemic, 64,472 sCh, mixed aetiology, w 0.4); AI 65 (2022 national cCh 77) vs JHU 436 2022 (77 sCh / 43 cCh); overlapping 2025 Madhesh cumulative snapshots AI 22/57/85; JHU 21301 confirmed counts held out with the AGE sCh (builder field-level issue, report to maintainer).

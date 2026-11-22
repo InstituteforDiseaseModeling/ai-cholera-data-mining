@@ -1,0 +1,451 @@
+=== AGENT 7 INITIALIZATION ===
+Agent: 7 - Quality Auditor (cholera-quality-auditor)
+Country: Nepal (NPL) - PILOT country (SEAR::NPL locations; no zero rows; count-basis table ./reference/count_basis/NPL.csv)
+Start Time: 2026-11-21 17:58:11
+Agent 7 Status: INITIALIZED
+Mode: unattended; no query budget limit; WebSearch session cap shared (~1,250 of 2,000 used at hand-over)
+
+Hand-over state (from orchestrator):
+  ./data/NPL/cholera_data_ai.csv: 387 rows (Index 1-401), 14 retracted (tombstones in ./data/NPL/retracted_rows_ai.csv)
+  ./data/NPL/metadata_ai.csv: 290 sources; ./data/NPL/cholera_presence_ai.csv: 15 rows
+  validate_quality.py NPL (orchestrator): ERROR 0, WARN 184, INFO 169
+
+Constraints observed in this run:
+  - analyze_effective_gaps.py only with --out-dir (shared ./reference/effective_surveillance_*.csv untouched)
+  - no update_dashboard.sh, no git commits
+  - weekly builds only into /tmp via --out-dir (tracked ./data/NPL/cholera_weekly_*.csv untouched)
+  - xref_harvest.py: no registry/fetch-all/excerpt/parse/screen/apply --all/rollback --all
+
+=== STEP 1: VALIDATOR AND INTEGRITY (2026-11-21 18:00) ===
+python py/validate_quality.py NPL --json /tmp/NPL_audit.json
+  -> exit 0; 387 data rows, 290 metadata sources; ERROR 0, WARN 184, INFO 169
+     WARN: 136 pilot_count_basis_missing, 43 pilot_age_mention, 3 period_single_day, 2 CFR_high_flagged_for_review
+  Matches the hand-over state. JSON copied to cache/NPL_agent7/NPL_audit.before.json.
+python py/repair_data_integrity.py --dry-run NPL
+  -> "TOTAL: 0 change(s)". The tool does accept NPL when named (no scope rejection; targets = argv list);
+     it proposes no change, so nothing that could break the pilot rules (AFR prefixes, zero rows).
+  DECISION: --apply NOT run (nothing to apply).
+Backups made before any edit (cache/NPL_agent7/):
+  cholera_data_ai.before.csv (md5 b915d7a9c3600b6ec08d8620dc227b8d), metadata_ai.before.csv,
+  cholera_presence_ai.before.csv, retracted_rows_ai.before.csv, count_basis_NPL.before.csv,
+  build_before/ (copy of /tmp/NPL_build_before/NPL: python py/build_weekly_timeseries.py --iso NPL --out-dir /tmp/NPL_build_before --no-plots)
+  BEFORE build: suspected 86 observed + 1348 undistributed wks; confirmed 72 observed wks; 86 period totals; 139 rows held out.
+
+
+=== ORCHESTRATOR NOTE (2026-11-22 05:25:03) ===
+The orchestrator session running this audit died (API 401: OAuth token expired, ~21:45). Runner attempt 2/3 resumed.
+Data files verified unchanged since the STEP 1 backups (md5 equal for cholera_data_ai, metadata_ai, cholera_presence_ai, retracted_rows_ai, count_basis/NPL.csv).
+Agent 7 redeployed; it resumes at STEP 2 and appends below.
+
+
+=== ORCHESTRATOR NOTE (2026-11-22 10:29:01) ===
+Resume session 2026-11-22 (logs/run_20261122-npl-resume/). Data files re-verified md5-identical to cache/NPL_agent7/*.before.csv.
+Orchestrator changed py/validate_quality.py before this redeployment: pilot_count_basis_missing is now judged from the row source metadata
+(Source/Data_Type/URL identify a WER/WHO annual report), not from processing_notes. NPL: WARN 184 -> 52; pilot_count_basis_missing 136 -> 4
+(AI 12 src 13, AI 13 src 14, AI 259 and AI 260 src 79). Regression gate 84/84 identical. Agent 7 redeployed; it resumes at STEP 2 and appends below.
+
+=== STEP 1 RE-CHECK ON RESUME (2026-11-22 10:31:40) ===
+md5 of cholera_data_ai/metadata_ai/cholera_presence_ai/retracted_rows_ai/count_basis NPL.csv = cache/NPL_agent7/*.before.csv (unchanged).
+python py/validate_quality.py NPL --json /tmp/NPL_audit_resume.json -> exit 0; 387 rows, 290 sources; ERROR 0, WARN 52, INFO 169
+  WARN: 43 pilot_age_mention, 4 pilot_count_basis_missing (AI 12 src 13, AI 13 src 14, AI 259 + AI 260 src 79),
+        3 period_single_day (AI 106, 144, 150), 2 CFR_high_flagged_for_review (AI 255, 270).
+  NOTE: the validator's "row" field is the FILE LINE number (header = line 1), not the Index (Index 255 = line 244, Index 270 = line 259).
+  Matches the orchestrator's 2026-11-22 description. Copied to cache/NPL_agent7/NPL_audit.resume.json.
+
+=== STEP 2: AGENT WORK VERIFICATION (2026-11-22 10:31:40) ===
+Method: unique query ids per log (A1/A2 use global Q1..Q240; A3-A6 use B<n>Q<m>), per-batch counts, yields vs 100%,
+claimed rows vs Index ranges present in ./data/NPL/cholera_data_ai.csv + tombstones in ./data/NPL/retracted_rows_ai.csv.
+  Agent | batches claimed | unique query ids (per batch)            | yields (%)                         | rows claimed | Index range written | present now | own retractions
+  A1    | 12              | 240 (Q1-Q240, none missing)             | 50,15,15,30,10,0,15,0,10,0,10,10   | 99           | 1-99   (99)         | 94          | 0 (AI 3, 8, 53, 56, 94 retracted later by A5)
+  A2    | 12              | 240 (Q1-Q240, none missing)             | 20,10,30,0,25,10,10,20,10,10,5,10  | 68           | 100-167 (68)        | 63          | 0 (AI 100-102, 108, 131 retracted later by A5)
+  A3    | 12              | 240 (20 in each of B1-B12)              | 20,10,0,5,5,15,0,10,5,0,0,0        | 70           | 168-238 (71)        | 70          | AI 221
+  A4    | 11              | 220 (20 in each of B1-B11)              | 10,20,15,10,15,0,0,5,0,0,0         | 35           | 239-274 (36)        | 35          | AI 254 (superseded 1990 preliminary)
+  A5    | 10              | 200 (20 in each of B1-B10)              | 5,5,0,10,5,0,5,0,0,0               | 125          | 275-400 (126)       | 125         | AI 399
+  A6    | 3               | 60 (20 in each of B1-B3)                | 0,0,0                              | 0            | 401 (1)             | 0           | AI 401
+  Totals: 401 written, 14 tombstoned, 387 present (= validator row count). Every agent's rows_added equals its net written rows.
+Findings:
+  - No agent ran fewer than 3 batches. No yield above 100%. No agent claimed rows it did not add.
+  - Every stopping_reason is a yield-rule stop: A1/A2 12-batch max; A3 12-batch max (B10-B12 also sub-5%); A4 B9-B11 sub-5%;
+    A5 B8-B10 sub-5%; A6 B1-B3 sub-5% (3-batch floor). No time-box stops. A4's truncated Wayback harvests completed on redeploy
+    (2,682/2,682 pages, 0 rows, 1 presence row) per the A4 log and orchestrator gate.
+  - FLAG (not a protocol breach): A5 wrote 111 of its 125 net rows from cache re-reads that it gave no yield credit (only 14 rows
+    came from credited queries). This understates A5's yield; had re-reads counted, its stopping point might have come later.
+    The yield rule counts queries, so A5's accounting is the conservative reading. Recorded, no action.
+  - FLAG: A6 was productive only as classification (14 gap blocks, 0 net rows). Accepted by the orchestrator; its gap verdicts
+    are used below (2009 PRESENCE_WITHOUT_COUNTS etc.).
+  - Every AI row carries [NPL-PILOT] (387/387); all Locations start SEAR::NPL; no sCh=0 or cCh=0 rows; 0 [XREF-HARVEST rows.
+VERDICT STEP 2: orchestrator Task A review CONFIRMED; nothing missed that changes a decision.
+=== ITEM STEP2 DONE (2026-11-22 10:31:40) ===
+
+=== ITEM (a): 2009 MID/FAR-WESTERN EPIDEMIC (2026-11-22 10:43:54) ===
+Tombstones checked (./data/NPL/retracted_rows_ai.csv):
+  AI 56 (Multi_Provincial 14 Apr-24 Sep 2009, sCh 64,472 / 366 deaths, NHRC src 62): reason = general diarrhoea/jhadapakhala epidemic
+    total of mixed aetiology ('64,472 returned home after treatment'); WHO 28 Jul 2009: V. cholerae O1 in 8 of 20 samples, rest ETEC.
+    SOUND: the country rule forbids diarrhoea totals in sCh, and the value is 'treated' diarrhoea patients, not suspected cholera.
+  AI 221 (1,400 'clinical' / 109 confirmed, EDCD plan src 180): single source >1,000 (CLAUDE.md Tier 1). SOUND; 1,400 has no second source.
+  Also AI 100-102, 108 (district 'people treated' / DHO diarrhoea morbidity): same reasoning, SOUND.
+Verification: re-read the WHO/Health Cluster sitrep 23 Aug 2009 (src 96) via py/reliefweb.py get (id 321556):
+  "Samples are being tested in National Public Health Laboratory and 36% of total samples have shown the growth of Vibrio Cholerae 01
+   Tor Ogawa and remaining have shown the Enterotoxicogenic E Coli (LT and ST) and Aeromonas species." - verbatim match.
+VERDICT: RETRACT stands (never restore 64,472 as sCh). 2009 is best represented as PRESENCE (cholera confirmed, suspected count not
+  separable) plus the confirmed counts already on file (AI 37 AMR 109; AI 275 Jajarkot 5/13; JHU 436 82 = lab-positive samples).
+ACTION: backup cache/NPL_agent7/cholera_presence_ai.<timestamp>.csv; then
+  python py/add_observation.py add-presence NPL --source-index 96 --location SEAR::NPL::Multi_Provincial --tl 2009-05-01 --tr 2009-08-23
+    --confidence 0.8 --quote "<sitrep lab paragraph> [Agent 7 context: retractions, confirmed counts kept, Agent 6 verdict]"
+  -> presence rows 15 -> 16.
+=== ITEM a DONE (2026-11-22 10:43:54) ===
+
+=== ITEM (c): PRESENCE ROWS (2026-11-22 10:45:39) ===
+File: ./data/NPL/cholera_presence_ai.csv (no tool edits it; edited with /tmp/npl7/presence_edit.py: csv.DictWriter, same header,
+column order and QUOTE_MINIMAL quoting as py/add_observation.py save(); backup cache/NPL_agent7/cholera_presence_ai.20261122-104516.csv;
+round trip checked: 18 -> 16 physical lines, 2 removed, 0 added, order of kept rows preserved, kept rows byte-identical).
+(1) KMC 2023 row (SEAR::NPL::Bagmati::Kathmandu::Kathmandu, 2023-01-01..2023-12-31, src 130 Annapurna Express 31 Jul 2024).
+    Evidence: Agent 2 B12Q239 CORRECTION: Kathmandu Post 25 May 2023 shows the KMC wards 11-13 OCV drive (May 2023) targeted the wards
+    with most cases in the PREVIOUS year's (2022) outbreak, so the Annapurna Express phrase 'outbreak ... in 2023' misdates the 2022
+    outbreak (KMC ward table 16 Jun-10 Oct 2022: wards 11:7, 12:8, 13:10). Real 2023 Kathmandu cases exist but are DISTRICT-level and
+    already counted: EWARS W35 2023 'Two cases of Cholera were reported this week from Kathmandu and Kailali' (AI 182) and W36 2023
+    'from Kathmandu and Okhaldhunga' (AI 183); Bagmati 2023 = 6 (AI 160). No 2023 KMC-ward presence evidence found.
+    VERDICT: DROPPED (misdated; the real 2023 Kathmandu cases have counts, so a presence row adds nothing).
+(2) Source 200 row (SEAR::NPL, 2013-05-01..2013-06-02, HK DoH Outbreak News citing ProMED 16 Jun 2013, 'more than 200 people').
+    Evidence: Agent 3 (A3:554): eKantipur 10-11 Jun 2013 (Wayback) 'An outbreak of a disease symptomatic of cholera has affected local
+    residents of Nepalgunj ... "we are not quite sure if it is cholera," Chand said.' Agent 7 web checks 2026-11-22:
+      WebSearch 'Nepalgunj cholera June 2013 stool test Vibrio confirmed Bheri zonal hospital' -> no confirmation; the Republica item
+        'Cholera bacteria surfaces in Nepalgunj' (dateline Aug 2, samples sent to NPHL 30-31 Jul, Dang diarrhoea toll) is the 2010 outbreak.
+      WebSearch (extended) '"Nepalgunj" cholera 2013 outbreak "200" diarrhoea Banke June 2013 laboratory' -> Sitata alert 'Possible
+        cholera breaks out in Nepalgunj (Banke District)' says laboratory results awaited; no later confirmation anywhere.
+    2013 presence is already evidenced by counts (Kathmandu Valley 4 culture-confirmed: MoHP/HT; JHU 21301 cCh 4; AI 77, AI 136).
+    VERDICT: DROPPED (no confirmed presence for the Nepalgunj event; relabelling would assert cholera that was never confirmed).
+Full text of the removed rows:
+  REMOVED: SEAR::NPL::Bagmati::Kathmandu::Kathmandu,2023-01-01,2023-12-31,presence_confirmed_count_unknown,130,The Annapurna Express: 'Cholera cases ring alarm bells' (31 Jul 2024),0.4,"Source states: 'In the wake of a cholera outbreak in ward numbers 11, 12 and 13 of Kathmandu Metropolitan City in 2023, concerned ward offices administered oral cholera vaccine in coordination with public health authorities. (Annapurna Express 31 Jul 2024; no case count; month not stated)' - cholera confirmed present; no case count available.",AI,
+  REMOVED: SEAR::NPL,2013-05-01,2013-06-02,presence_confirmed_count_unknown,200,"Hong Kong Travel Health Service (Dept of Health, HKSAR): Outbreak News week of 11-17 Jun 2013 - Nepal: Cholera (citing ProMED-mail 16 Jun 2013)",0.3,"Source states: 'As of June 2, an outbreak of cholera affecting more than 200 people was reported in Nepal. [HK DoH Travel Health digest, week of 11-17 Jun 2013, citing ProMED-mail 16 Jun 2013; 'more than 200' affected is a lower bound and 'affected' is not a case count, so no count row; district and onset not given - TL is an assumption (onset before 2 Jun 2013); held-out year 2013, whose only national counts are 2-4 laboratory-confirmed (AI 77, AI 136) and a JHU Nepalgunj 2013 entry (290) that earlier agents could not corroborate]' - cholera confirmed present; no case count available.",AI,
+Presence rows now: 14 (15 at hand-over + 1 added in item a - 2 dropped).
+=== ITEM c DONE (2026-11-22 10:45:39) ===
+
+=== ITEM (d): CFR_HIGH AND SINGLE-DAY ROWS (2026-11-22 10:46:40) ===
+  Index | decision | reason
+  255   | KEEP, w 0.7 (no change) | Bagmati Jun 1959 40 sCh / 8 deaths (Abou-Gareeb 1961 hospital table); Agent 5 verified the June 1959
+        |                         | column and the 1959 column sums (352/41): one denominator; pre-ORS hospital CFR (1958: 14%); 0.7 = repair-tool cap.
+  270   | KEEP, w 0.35 (no change)| Gorkha Laprak Aug 2000 37 / 6 (nepalnews digest, preliminary); denominator one village/period; follow-up digest
+        |                         | relabels 'diarrhoea' but no government contradiction (contrast AI 94); sub-national, never in the national series.
+  106   | single day JUSTIFIED    | 'one cholera case was recorded on 7 September' (IFRC MDRNP004 OU5/OU6, EDCD/NRCS table) - an event date.
+  144   | single day JUSTIFIED    | STIDH patient presenting 3 Jun 2018 (THT opinion 25 Jun 2018) - a presentation date.
+  150   | single day JUSTIFIED    | four isolates, one collection date '30-8-2010' (Hendriksen 2011 mBio Table 2).
+  Action: python py/revise_observation.py NPL --index {255,270,106,144,150} --agent 7 --append-note "AGENT 7 AUDIT (item d): ..."
+  No TL/TR/weight changed. The 2 CFR_high and 3 period_single_day WARNs stay by design (they are prompts; the notes are the evidence).
+=== ITEM d DONE (2026-11-22 10:46:40) ===
+
+=== ITEM (b), DATA-ROW PART (2026-11-22 10:49:26) ===
+(b-ii) AI 167 vs retracted AI 131 (Pyuthan/Gaumukhi Jul-Aug 2024): AI 131 tombstone (Agent 5 conflict O) confirmed. AI 167 notes still
+  contained Agent 2's 'NON-PRIMARY ... AI 131 is the primary row'. Appended AGENT 7 AUDIT note: AI 167 is the PRIMARY and only AI row
+  for the cluster (8 sCh / 3 cCh, news); the Agent 2 non-primary note is void; government culture-confirmed Pyuthan = 2 (EDCD Q3 2024
+  bulletin src 165; JHU 21542). Values unchanged (sub-national; not in the national series).
+(b-iii) 2025 Madhesh overlapping snapshots. Designations appended (python py/revise_observation.py NPL --index N --agent 7 --append-note):
+  Madhesh province  : PRIMARY AI 85 (PHEOC/SEARO 1,543 AWD incl. 215 culture+RDT, 9 Aug-23 Sep); NON-PRIMARY AI 22 (1,171 to 7 Sep,
+                      superseded), AI 57 (Kantipur 1,685 Parsa+Bara to ~9 Oct, later news; no cross-source increments).
+  Parsa district    : PRIMARY AI 394 (DHO via KP 1,054 / 202 to 6 Sep); NON-PRIMARY AI 392 (712/162), AI 393 (965/195), AI 130 (245 cCh to 7 Oct).
+  Birgunj metro     : PRIMARY suspected AI 112 (989, 22 Aug-7 Sep); PRIMARY confirmed AI 23 (227 to 27 Sep); NON-PRIMARY AI 21 (422/134 to 26 Aug).
+  Pokhariya         : PRIMARY AI 125 (16 cCh to 7 Sep, RDT); NON-PRIMARY AI 89 (13 to 28 Aug).
+  Saptari Oct-Nov   : PRIMARY AI 44 (98 / 13 RDT+ / 3 deaths to 15 Nov); NON-PRIMARY AI 395 (Chhinnamasta 80/4/3 to 4 Nov).
+  EWARS district-wks: NON-PRIMARY for totals, kept for weekly timing: Parsa AI 368,370,372,374,375,377,379,381 (sum 381);
+                      Bara AI 369,371,373,376,378,380 (sum 45); Saptari AI 382-383 (3).
+  Cross-check (./data/NPL/cholera_data_who.csv): WHO dashboard 2025 = 1,899 = Jan-Jun 87 + W34-W41 1,715 (Madhesh; W34-W39 = 1,572 vs
+  AI 85's 1,543 to 23 Sep; to 12 Oct 1,715 vs AI 57's 1,685 to 9 Oct) + W45 97 (Saptari; AI 44 = 98). SEARO 17th/18th/19th editions
+  = AI 21 / AI 22 / AI 85 (monotonic chain). Sub-national rows: none enters the national series.
+(b-i 2022, b-iv 2021, b-v 2024/dashboard: count-basis edits, done with item g below.)
+
+=== ITEM (f): 43 pilot_age_mention ROWS - PER-ROW VERDICTS (2026-11-22 10:54:23) ===
+Method: /tmp/npl7/agectx.py printed each flagged row's quote and every AGE/gastroenteritis/झाडापखाला match with context.
+Test applied (country rule + Agent 5 conflict-A test): KEEP when sCh/cCh is lab-confirmed, cholera-labelled, or the outbreak total of a
+lab-confirmed cholera focus described as cholera / suspected / possible cholera / AWD / ADD with no documented mixed aetiology;
+RETRACT/CORRECT when the value is routine AGE, a general diarrhoea total, or a mixed-aetiology epidemic count.
+  Index   | verdict          | one-line reason
+  11      | KEEP             | cCh 4 = Krishnanagar wards 7-9 cholera cases (EWARS W41 2021); the 1,092 'AGE (watery-diarrhea)' are excluded
+  13      | KEEP             | cCh 10 = WER 97/37 culture/PCR-confirmed; AGE only as Kapilvastu context
+  14      | KEEP             | sCh 288 = WHO 'cholera cases' kept apart from 15,895 diarrhoea (excluded); type uncertain (~AMR 290) -> AI:28 entry, provisional
+  24      | KEEP             | sCh 44 = EDCD 'suspected cholera cases' 2026 YTD; the 3,632 diarrhoea cases are excluded
+  46      | KEEP             | cCh 3 = Valley cholera cases 2017; 'AGE' is the name of the preparedness plan
+  52      | KEEP             | cCh 80 = confirmed cholera, Valley 2015; the 972 AGE cases are excluded
+  58      | KEEP (borderline)| sCh 401 = DPHO outbreak count ('severe diarrhoea') of the culture-confirmed 2012 Doti outbreak; w 0.4; note appended
+  59      | KEEP             | cCh 11 = EWARS cholera events Jun-Nov 2023; the 8,859 AGE events are excluded
+  86      | KEEP             | cCh 20 = cholera confirmed in Kathmandu (EDCD via OCHA, 2007); AGE deaths excluded
+  87      | KEEP             | cCh 6 = cholera confirmed in Rautahat; AGE deaths excluded
+  88      | KEEP             | sCh 2 = '2 suspected cases noted in Bhaktapur' (cholera); AGE deaths excluded
+  110     | KEEP             | cCh 2 = V. cholerae isolates; the 947 gastroenteritis line-list cases are excluded
+  112     | KEEP             | sCh 989 = new cases of the declared Birgunj cholera outbreak (health-office records); PHEOC counts them as AWD
+  130     | KEEP             | cCh 245 = cholera confirmed in Parsa; झाडापखाला only describes the patients tested
+  147     | KEEP             | cCh 105 = gastroenteritis admissions found carrying V. cholerae (lab-positive)
+  148     | KEEP             | cCh 46 = V. cholerae found in 46 persons that week
+  167     | KEEP             | sCh 8 / cCh 3 = one-family diarrhoea cluster linked to confirmed cholera (EDCD: single family of 10)
+  170     | KEEP             | cCh 15 = EWARS cholera cases W47 2021 (Kapilvastu); AGE/AWD only as context
+  208     | KEEP             | cCh 1 = EWARS cholera case (Tahachal); 'AGE/Cholera outbreak' is the DoHS table title
+  209     | KEEP             | sCh 193 / cCh 3 = DoHS outbreak total of a culture-confirmed focus (Tilathi Koiladi-3, Oct 2017), 'possible cholera' per ECDC
+  217     | KEEP             | cCh 4 = V. cholerae O1 Ogawa stool isolates (NPHL outbreak investigation, Dailekh)
+  229     | KEEP             | cCh 7 = NPHL-confirmed weekly increment (W38 2016); AGE outbreaks only as context
+  246-253 | KEEP (8 rows)    | sCh = Infectious Diseases Hospital clinical cholera, Kathmandu 1960 (Abou-Gareeb); SEARO gastro-enteritis = context
+  260     | KEEP             | cCh 483 = V. cholerae O1 isolates 1991; the 91,854 gastroenteritis cases are excluded
+  261     | KEEP             | cCh 2 = V. cholerae among 181 STIDH diarrhoea patients (2001)
+  262     | KEEP             | sCh 111 = suspected case-patients of the culture-confirmed Tilathi cholera outbreak (2011, BPKIHS)
+  268     | KEEP             | sCh 81 = rice-watery-stool AWD in a V. cholerae-positive focus (EDCD); news '85 people with cholera'; Agent 5 conflict G
+  270     | KEEP             | sCh 37 = 'Cholera has killed at least six ... and infected 31 others'; the later 'diarrhoea' counts are excluded
+  271     | KEEP             | sCh 91 = '91 cases of cholera in Kathamndu Valley' 1999 (MoH data); diarrhoeal-outbreak reports excluded
+  272     | KEEP             | sCh 18 = children with cholera (हैजा लागेको), Kanti hospital 1999; diarrhoea admissions excluded
+  273     | KEEP             | sCh 90 = cholera found in 90 of ~1,000 diarrhoea patients (Asar 2055); the 1,000 are excluded
+  317     | KEEP             | cCh 24 = NPHL laboratory-confirmed Doti+Dailekh 2012; AGE is the plan's name
+  384-386 | KEEP (3 rows)    | sCh 708/208/220 = outbreak ADD ('loose watery stool') weeks of the culture-confirmed Kapilvastu outbreak (DoHS AR 2078/79)
+  395     | KEEP             | sCh 80 / cCh 4 = diarrhoea-affected residents of Sada Tole, Chhinnamasta, with RDT-confirmed cholera; 3 deaths
+  Total 43 rows: 43 KEEP (1 borderline, AI 58, note appended), 0 retracted, 0 corrected. No row counts routine AGE or a general
+  diarrhoea total. The 43 WARNs stay (the rule is a prompt); this table is the evidence.
+=== ITEM f DONE (2026-11-22 10:54:23) ===
+
+=== ITEMS (b) count-basis part, (e), (g): reference/count_basis/NPL.csv REWRITE (2026-11-22 11:10:04) ===
+Verification done before writing (quotes re-read by Agent 7, not only taken from agent logs):
+  - WER 97(37) 2021, 98(38) 2022, 99(36) 2023, 100(36) 2024, 101(38) 2025: Nepal Table 1 + Table 3 lines and Table 3 headers, from the
+    cached WER texts (cache/NPL_agent1/wer/*/). WER 85(31) 2009 text, WER 67(37) 1990-91 note, WER 66(19) 1990 footnote '**', WER 67(34)
+    1991 footnote '+ = Estimated cases/deaths based on laboratory-confirmed samples', WER 74(31) 1998 footnote 'b Includes suspect cases'
+    (cache/NPL_agent4/wer_*). WER 83(31), 86(31), 88(31), 90(40), 91(38), 92(36), 93(38), 94(48) Nepal lines.
+  - WHO SEARO Nepal surveillance assessment 2023 p.52 (cache/NPL_agent6/who_surv2023/doc.txt): 'Cholera is not currently a notifiable
+    disease in Nepal. Although its inclusion among prioritized/notifiable diseases has been proposed, it is not yet officially approved.'
+    and 'Immediate reporting: Confirmed cholera cases must be reported to EWARS within 24 hours of diagnosis (clinical and/or laboratory)'.
+  - Subedee et al. 2024 IJID Regions (PMC11652746 via PubMed full text): 1,570 hospitalized (Table 1 by municipality) + 453 community AWD
+    (351 without dehydration); 9/23 cultures positive.
+  - AJTMH 2019 (PMC6493959 via PubMed): 2,207 AWD; '239 were classified as suspected cholera'; '169 cases were culture confirmed'.
+  - Karki 2011 (PMID 22364087 via PubMed): 57 V. cholerae isolates of 210 NPHL specimens, Jun 2008-Jan 2009.
+  - IFRC MDRNP012 final report + EPoA (py/reliefweb.py get): 'The cases were confirmed via the stool culture method, Rapid Diagnostic test
+    and hanging drop test' (76 to 5 Sep 2022; 17 to Jun 2022).
+  - EDCD Quarterly Bulletin Jul-Sep 2024 (cache/NPL_agent3/edcd_67caabdd): 'As of 27 September 2024, Nepal reported 95 culture-confirmed
+    cholera cases from nine distinct foci'.
+  - MoHP/EDCD deck, 11th GTFCC meeting (cache/NPL_agent1/gtfcc_2024_dahal): series 2009-2023 'Source: EWARS/NPHL'; EWARS 'Confirmed:
+    Culture/PCR Confirmed'.
+  - EWARS 2025 bulletins W1, W10 (table '(Probable/Suspect/Confirm)'), W11 (confirmed-only table + separate 'Summary Observation
+    (including probable and suspect cases)'; W10 restated as 0); EWARS Guidelines 2016 'Confirmed: A suspected case that is
+    laboratory-confirmed.' (cache/NPL_agent3/edcd_wb/).
+  - WHO 2009 sitrep (src 96), WHO 2004 floods sitrep (src 28) via py/reliefweb.py.
+  - Agent 7 web search: no source explains JHU 21508's 2023 '1 case / 1 death'. Cross-check found: WHO sitrep #27 'Nepal 85' to 25 May 2025
+    = dashboard Jan-May 2025 (82 + 3).
+Method: candidate written by /tmp/npl7/build_count_basis.py (copy in cache/NPL_agent7_scripts/), checked with the builder's own
+  load_count_basis/resolve_basis (/tmp/npl7/usage.py) and an in-memory process_country_typed run: 0 unresolved, 0 ambiguous rows in any year.
+  Backup: cache/NPL_agent7/count_basis_NPL.20261122-110804.csv (= count_basis_NPL.before.csv). Header kept; every evidence cell written ends
+  '(Agent 7, 2026-11-22)'. 26 entries -> 93 entries.
+DECISIONS (with reasons):
+  (b-i) 2022: JHU:436 2022 sCh suspected/provisional -> CONFIRMED/verified. 77 = EDCD laboratory-confirmed by any method (43 culture/PCR +
+        34 RDT/hanging drop; WER 98(38) Table 3: 56% culture/PCR). Chose 'confirmed' over 'mixed' for consistency with the pilot rule
+        (culture- or RDT-confirmed -> cCh), with AI 1 / AI 65 (cCh 76 / 77) and with MoHP's own series. Builder: cCh 43 enters the confirmed
+        series, sCh 77 enters neither. No national suspected total exists for 2022.
+        JHU:21542 split: 2022 (district rows only; EDCD any-method 'cases') and 2024 (culture), both confirmed/verified; new cCh entry.
+  (b-iv) 2021: JHU:21541 2021 suspected/provisional -> MIXED/verified. 2,023 = Subedee 1,570 hospitalized + 453 community active-search
+        AWD. It is outbreak AWD of a culture-confirmed outbreak (suspected under the outbreak definition, NOT routine AGE - the EWARS
+        'AGE (watery- diarrhea)' label notwithstanding), but as a NATIONAL figure it is a derived phantom mixing facility reports with
+        door-to-door case finding outside routine reporting, and its facility part is inside WHO's 1,609. JHU:436 2021 stays suspected,
+        upgraded to verified; it is the primary national suspected 2021 total. Reconciliation (in both evidence cells): 1,609 = facility
+        count 1,570 + ~39 (2 imported Sep 2021, sporadic EWARS); gap to 2,023 is DEFINITIONAL (453 community cases), not an intermediate
+        date (1,609 > final facility count) nor geography; MoHP/DoHS 1,914 ADD is a third scope. Before: both totals claimed 2021 weeks
+        (period totals summing to 3,632); after: one total (1,609).
+  (b-v) 2024 / WHO:dashboard split into 2023, 2024, 2025:
+        2023 -> MIXED/inferred: 14 = EWARS sentinel 'confirmed' stream re-dated one ISO week later (12 of 14 matched; 13 EWARS vs 7
+        culture/PCR). Not suspected; typed 'confirmed' it would double count the AI EWARS rows a week apart, so it is held out of both
+        series. This is a workaround for a builder limitation (see CODE NOTES); flagged for the user.
+        2024 -> SUSPECTED/inferred: 360 = EWARS weekly table stream (probable + suspect + confirmed from W12), shifted one week; the 2024
+        conflict (360 vs 95) is RESOLVED as different count types: 95 culture/PCR (confirmed series) vs 360 sentinel suspected (between
+        95 and the 467 RDT-positives of WER Table 3).
+        2025 -> SUSPECTED/inferred: 1,899 = Jan-Jun 87 + Madhesh outbreak 1,715 + Saptari 97; AWD type apart from 5 confirmed-only weeks.
+  (e) AI:13 (WER 101/38 2025, 55 culture/PCR), AI:14 (WER 97/37 2021, 10 culture/PCR), AI:79 (WER 67/37, 1990 263 and 1991 483
+        lab-confirmed): cCh confirmed/verified with quotes. Secondary restatements: AI:31 (ECDC CDTR 2016: 119 = NPHL confirmed cumulative)
+        confirmed/inferred; AI:28 (WHO floods sitrep 2004: 288 'cholera cases') suspected/PROVISIONAL (may be lab-confirmed: ~AMR 290);
+        AI:48 (EDCD '44 suspected cholera cases' 2026) suspected/verified. The other WER metadata entries (src 15-27, 219, 224-232) carry no
+        rows, so there is nothing to type (no entries added). Validator: pilot_count_basis_missing 4 -> 0.
+  (g) Upgrades/changes (full table below). Notable basis changes: JHU:436 1991 suspected -> mixed (a WHO ESTIMATE, not a count; flagged
+        for the user); 2007, 2011 unknown -> confirmed/provisional; 2009 unknown -> confirmed/verified (WER: 82/158 positive samples);
+        2015, 2017-2018, 2020 unknown -> confirmed/inferred; JHU:21301 sCh age -> mixed/verified (HMIS OPD clinical 'Cholera' column by
+        fiscal year; not the AGE column, not outbreak-sense suspected); JHU:21301 cCh 2014 600 -> unknown (Lopez 2020 survey label);
+        JHU:11119 unknown -> confirmed/verified (NPHL isolates); JHU:21508 2023 -> unknown (unexplained 1 case/1 death, searched).
+        Every source-year 2018-2025 used in either series now resolves through an entry (no 'agent'/'column' typing left); entries with
+        basis unknown in 2018-2025: JHU:21508 2023 only, with the search logged, and it is held out (not used).
+BEFORE -> AFTER TABLE:
+BEFORE (key field years basis/status)                    -> AFTER
+  JHU:436 sCh 1958-1998 suspected/provisional             -> 1958-1989 suspected/provisional; 1990-1990 suspected/verified; 1991-1991 mixed/verified; 1992-1997 suspected/provisional; 1998-1998 suspected/verified
+  JHU:436 sCh 2007-2007 unknown/provisional               -> 2007-2007 confirmed/provisional
+  JHU:436 sCh 2009-2009 unknown/provisional               -> 2009-2009 confirmed/verified
+  JHU:436 sCh 2010-2010 suspected/provisional             -> 2010-2010 suspected/inferred
+  JHU:436 sCh 2011-2011 unknown/provisional               -> 2011-2011 confirmed/provisional
+  JHU:436 sCh 2012-2012 confirmed/inferred                -> 2012-2012 confirmed/inferred
+  JHU:436 sCh 2014-2014 unknown/provisional               -> 2014-2014 unknown/provisional
+  JHU:436 sCh 2015-2015 unknown/provisional               -> 2015-2015 confirmed/inferred
+  JHU:436 sCh 2016-2016 confirmed/inferred                -> 2016-2016 confirmed/inferred
+  JHU:436 sCh 2017-2018 unknown/provisional               -> 2017-2018 confirmed/inferred
+  JHU:436 sCh 2020-2020 unknown/provisional               -> 2020-2020 confirmed/inferred
+  JHU:436 sCh 2021-2021 suspected/provisional             -> 2021-2021 suspected/verified
+  JHU:436 sCh 2022-2022 suspected/provisional             -> 2022-2022 confirmed/verified
+  JHU:436 sCh 2023-2023 confirmed/inferred                -> 2023-2023 confirmed/verified
+  JHU:436 sCh 2024-2024 confirmed/inferred                -> 2024-2024 confirmed/verified
+  JHU:10598 sCh 2010-2010 suspected/provisional           -> 2010-2010 suspected/provisional
+  JHU:11119 sCh 2008-2009 unknown/provisional             -> 2008-2009 confirmed/verified
+  JHU:21301 sCh 2011-2014 age/provisional                 -> 2011-2014 mixed/verified
+  JHU:21301 cCh 2011-2014 confirmed/provisional           -> 2011-2013 confirmed/inferred; 2014-2014 unknown/provisional
+  JHU:21303 sCh 2016-2016 suspected/inferred              -> 2016-2016 suspected/verified
+  JHU:21303 cCh 2016-2016 confirmed/inferred              -> 2016-2016 confirmed/verified
+  JHU:21508 sCh 2023-2024 confirmed/inferred              -> 2023-2023 unknown/provisional; 2024-2024 confirmed/verified
+  JHU:21541 sCh 2021-2021 suspected/provisional           -> 2021-2021 mixed/verified
+  JHU:21542 sCh 2022-2024 confirmed/inferred              -> 2022-2022 confirmed/verified; 2024-2024 confirmed/verified
+  WHO:dashboard sCh 2023-2025 suspected/provisional       -> 2023-2023 mixed/inferred; 2024-2024 suspected/inferred; 2025-2025 suspected/inferred
+NEW ENTRIES (59):
+  (none) -> JHU:436 cCh 2022-2024 confirmed/verified
+  (none) -> JHU:21542 cCh 2022-2024 confirmed/verified
+  (none) -> AI:1 cCh 2022-2022 confirmed/verified
+  (none) -> AI:2 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:4 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:5 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:6 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:7 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:9 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:10 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:13 cCh 2025-2025 confirmed/verified
+  (none) -> AI:14 cCh 2021-2021 confirmed/verified
+  (none) -> AI:28 sCh 2004-2004 suspected/provisional
+  (none) -> AI:31 cCh 2016-2016 confirmed/inferred
+  (none) -> AI:48 sCh 2026-2026 suspected/verified
+  (none) -> AI:65 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:68 cCh 2022-2022 confirmed/verified
+  (none) -> AI:69 cCh 2012-2023 confirmed/verified
+  (none) -> AI:79 cCh 1990-1991 confirmed/verified
+  (none) -> AI:141 cCh 2021-2021 confirmed/inferred
+  (none) -> AI:142 cCh 2021-2021 confirmed/inferred
+  (none) -> AI:143 cCh 2021-2021 confirmed/inferred
+  (none) -> AI:144 cCh 2021-2021 confirmed/inferred
+  (none) -> AI:145 cCh 2021-2021 confirmed/inferred
+  (none) -> AI:146 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:147 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:148 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:149 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:150 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:151 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:152 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:153 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:154 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:155 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:156 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:157 cCh 2024-2024 confirmed/provisional
+  (none) -> AI:158 cCh 2024-2024 confirmed/provisional
+  (none) -> AI:159 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:160 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:161 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:162 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:163 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:164 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:166 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:167 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:168 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:169 cCh 2022-2022 confirmed/inferred
+  (none) -> AI:170 sCh 2024-2025 suspected/verified
+  (none) -> AI:171 sCh 2025-2025 suspected/verified
+  (none) -> AI:172 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:173 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:174 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:175 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:176 cCh 2025-2025 confirmed/inferred
+  (none) -> AI:177 cCh 2018-2018 confirmed/verified
+  (none) -> AI:178 cCh 2018-2018 confirmed/verified
+  (none) -> AI:179 cCh 2019-2019 confirmed/verified
+  (none) -> AI:192 cCh 2023-2023 confirmed/inferred
+  (none) -> AI:279 cCh 2022-2022 confirmed/inferred
+TOTAL: before 25 entries, after 93 entries
+MEASURED EFFECT (python py/build_weekly_timeseries.py --iso NPL --out-dir /tmp/NPL_build_after --no-plots;
+  before = cache/NPL_agent7/build_before/NPL; tracked data/NPL/* outputs untouched, mtimes 07:39 before this session):
+  whole series: suspected 86 observed + 1348 undistributed -> 75 observed + 1244 undistributed; confirmed 72 -> 72 observed weeks;
+  period totals 86 -> 88; holdouts 139 -> 147 (zero rows 126 -> 86; count type mixed 0 -> 58 incl. 52 dashboard-2023 weeks;
+  unknown 9 -> 3; age 4 -> 0). 27 period totals still rest on PROVISIONAL types (pre-2018 WHO annual years, 2007, 2011, AI:28 2004).
+YEAR | SUSPECTED obs wks (sum) before->after | undistributed wks before->after | period totals on first claimed wk (after) | CONFIRMED wks (sum) before->after
+2018 |  0 (     0) ->  0 (     0) |  0 ->  0 | [] |  1 (   1) ->  1 (   1) {'AI': 1}
+2019 |  0 (     0) ->  0 (     0) |  0 ->  0 | [] |  1 (   1) ->  1 (   1) {'AI': 1}
+2020 |  0 (     0) ->  0 (     0) |  0 ->  0 | [] |  0 (   0) ->  0 (   0) {}
+2021 |  0 (     0) ->  0 (     0) | 52 -> 52 | [('1609.0', '2021-01-01', '2021-12-31', 'JHU')] |  5 (  19) ->  5 (  19) {'AI': 5}
+2022 |  0 (     0) ->  0 (     0) | 52 ->  0 | [] | 16 (  42) -> 16 (  42) {'AI': 16}
+2023 | 11 (    14) ->  0 (     0) |  0 ->  0 | [] | 10 (  13) -> 10 (  13) {'AI': 10}
+2024 | 37 (   360) -> 37 (   360) |  0 ->  0 | [] | 12 (  97) -> 12 (  97) {'AI': 2, 'JHU': 10}
+2025 | 23 (  1945) -> 23 (  1945) |  0 ->  0 | [] | 11 (  35) -> 11 (  35) {'AI': 11}
+2018-2025 totals: suspected observed 71 -> 60 | undistributed 104 -> 52 | confirmed observed 56 -> 56
+zero weeks: suspected before 0 after 0 | confirmed before 0 after 0
+methods suspected before {'undistributed': 1348, 'observed': 86} after {'undistributed': 1244, 'observed': 75}
+methods confirmed before {'observed': 72} after {'observed': 72}
+period totals before 86 after 88 | holdouts before 139 after 147
+=== ITEM e DONE (2026-11-22 11:10:04) ===
+=== ITEM g DONE (2026-11-22 11:10:04) ===
+=== ITEM b DONE (2026-11-22 11:10:04) === (data-row part logged above; count-basis part here)
+
+=== ITEM (h): TYPED-BUILDER CHECKS IN /tmp/NPL_build_after (2026-11-22 11:10:04) ===
+  (1) No double count: AI 1 (cCh 76, 16 Jun-9 Sep 2022) is in cholera_period_totals_NPL.csv only (series confirmed, weeks_claimed_
+      undistributed 0, observed_cases_in_span 35) and never in cholera_weekly_confirmed_NPL.csv; same for AI 65/AI:68 (77, observed in
+      span 37) and JHU 436 2022 (43, observed in span 42). _typed_periods(claim=False) for the confirmed series.
+  (2) The period-totals file is NOT additive: 2022 lists JHU:436 43 (culture/PCR subset), AI:1 76 (snapshot to 9 Sep) and AI:68 77 (final)
+      over overlapping spans; 2023 lists AI:69 12, JHU:436 7, AI:65 11; 2018 AI:69 3, JHU:436 7, AI:177 2; 2024 JHU:436 95 plus the JHU
+      21508 cumulative pieces.
+  (3) The weekly confirmed 2022 series = 16 observed weeks, total 42, all EWARS sentinel weeks (AI rows) - an undercount against the
+      outbreak line list (EDCD 76-77; culture/PCR 43).
+VERDICT: confirmed as described by the orchestrator.
+=== ITEM h DONE (2026-11-22 11:10:04) ===
+
+=== STEP 3: IMPACT (2026-11-22 11:12:00) ===
+Commands (out-dir only; shared ./reference/effective_surveillance_*.csv and ./reference/pilot/* untouched - mtimes 10:17 before and after):
+  python py/analyze_effective_gaps.py --out-dir /tmp/NPL_gaps_final                       (pilot rows in /tmp/NPL_gaps_final/pilot/)
+  python py/analyze_effective_gaps.py --layers JHU WHO --prefix baselineonly --out-dir /tmp/NPL_gaps_base
+                       | baseline only (JHU+WHO) | all layers (JHU+WHO+AI)
+  coverage             | 71.4% (488/683 months)  | 87.0% (594/683)       (+106 months)
+  gap periods          | 5                       | 2
+  months_ai / ai_only  | 0 / 0                   | 355 / 105
+  months with positive | 474                     | 583
+  Gap periods closed (3 of 5): 1999-01-01..2006-06-30, 2006-08-01..2006-12-31, 2008-01-01..2008-05-31; 2026-01-01..2026-11-22 narrowed to
+  2026-07-01..2026-11-22. Still open: 1982-01-01..1988-12-31 (2,557 d, historical) and 2026-07-01..2026-11-22 (145 d, recent).
+  Recency: latest observation 2026-07-15 (130 days stale), latest positive 2026-07-15.
+CAVEAT: coverage credits ANY row (sub-national, laboratory isolates, confirmed-only). The 1999-2006 'closure' comes from the AMR
+  laboratory-network confirmed counts and sub-national rows; no national suspected count exists for those years. Typed-series view
+  (/tmp/NPL_build_after): national SUSPECTED counts exist for 1970-1981, 1989-1990, 1992-1998, 2004 (provisional), 2010, 2016, 2021, 2024,
+  2025 (2026 partial); NO national suspected count for 1982-1988, 1991 (WHO estimate held out), 1999-2003, 2005-2009, 2011-2015, 2017-2020,
+  2022-2023. In the 2018-2025 calibration window only 3 of 8 years (2021, 2024, 2025) have a suspected total. Confirmed counts (weekly or
+  period) exist for 1990-1991, 1999-2019 and 2021-2025.
+xref: grep '[XREF-HARVEST' = 0 rows; reference/xref/harvest_log.csv has 0 NPL rows; 'xref_harvest.py queue NPL' -> 0 open candidates from
+  0 documents (global sweep never applied to Nepal). Candidate files agent_NPL_a4/a5_20261121.csv left untouched for the global sweep.
+=== ITEM STEP3 DONE (2026-11-22 11:12:00) ===
+
+=== STEP 4: REPORT (2026-11-22 11:14:15) ===
+Wrote ./data/NPL/search_report.txt (summary + Phase 6 acceptance + metrics appendix).
+
+=== CODE NOTES FOR THE ORCHESTRATOR (no py/ code was edited) ===
+ 1. py/build_weekly_timeseries.py process_country_typed: when a row's sCh is typed 'confirmed' and the row also has cCh, the sCh value
+    is neither used nor written to builder_holdout.csv (JHU 436 2022-2024, JHU 21542 2024 daily rows). Suggest a holdout line such as
+    "sCh typed confirmed; row's cCh used instead".
+ 2. No way to exclude a DUPLICATE source-year except by mis-typing its basis. WHO:dashboard 2023 repeats the AI EWARS weekly rows one ISO
+    week later; it is typed 'mixed' as a workaround (typed 'confirmed' it would double count in the confirmed series). Suggest a
+    count_basis basis such as 'duplicate' (or an exclude flag) with its own holdout reason, or week-offset matching of WHO dashboard
+    weeks against EWARS-sourced AI rows.
+ 3. _typed_periods: an enclosing total (e.g. annual) still claims the weeks outside a nested finer total of the same series, so summing
+    period_total over a year double counts (2021 before this audit: 2,023 + 1,609 = 3,632). Fixed for 2021 by typing JHU:21541 mixed,
+    but the builder should not let an enclosing total claim weeks as if disjoint from a nested total.
+ 4. ISO-week boundary: an annual period claims ISO week 1 of the next year when that Monday falls inside the period (1990 total claims
+    1991-W01), which makes 'years present' counts misleading.
+ 5. py/validate_quality.py pilot_age_mention fires on exclusion notes (43 WARNs, all KEEP this run). Optional: recognise an
+    'AGENT 7 AUDIT' / 'AGE checked' marker so reviewed rows stop re-flagging.
+ 6. Pilot gap metrics: analyze_effective_gaps.py coverage credits any row, including held-out years; a typed-series coverage metric
+    (years with a usable national suspected count) is the meaningful pilot measure (3 of 8 calibration years).
+
+=== VALIDATION QUERIES (Agent 7, no budget) ===
+WebSearch 3 (Nepalgunj 2013 x2, WHO 2023 multi-country sitrep Nepal); WebFetch 4 (Republica 'Cholera bacteria surfaces in Nepalgunj';
+Europe PMC search; Europe PMC full text HTTP 500; PMC captcha); PubMed connector 3 (PMC11652746, PMC6493959 full text; PMID 22364087);
+py/reliefweb.py get 6 (WHO sitreps 23 Aug 2009 and 30 Jul 2004, ACT Alliance Doti 2012, IFRC MDRNP012 final report and EPoA). One
+direct curl to Europe PMC was refused by the permission system and replaced by WebFetch. Not organised in 20-query batches
+(no stopping rule applies to Agent 7); recorded as batches_completed 0.
+
+=== FINAL STATE (2026-11-22 11:14:15) ===
+python py/validate_quality.py NPL --json /tmp/NPL_audit_final.json -> ERROR 0, WARN 48 (43 pilot_age_mention, 3 period_single_day,
+  2 CFR_high_flagged_for_review), INFO 169; pilot_count_basis_missing 0. Copy: cache/NPL_agent7/NPL_audit.final.json.
+Data: ./data/NPL/cholera_data_ai.csv 387 rows (0 added, 0 retracted, 0 values changed; 37 rows with appended AGENT 7 AUDIT notes);
+  ./data/NPL/metadata_ai.csv 290 sources (unchanged); ./data/NPL/cholera_presence_ai.csv 15 -> 14 rows;
+  ./reference/count_basis/NPL.csv 26 -> 93 entries.
+workflow_state.json: agent 7 entry written (batches 0, rows_added 0, sources_discovered 0); agents 1-6 and orchestrator block preserved
+  (backup cache/NPL_agent7/workflow_state.before_agent7_entry.json).
+Not done by design: update_dashboard.sh, git add/commit/push, tracked rebuilds (builder/gaps only to /tmp), xref sweep commands,
+  edits to py/, MOSAIC-pkg, baselines or other countries.
+=== AGENT 7 COMPLETE (2026-11-22 11:14:15) ===
+
+=== ORCHESTRATOR GATE AFTER AGENT 7 (2026-11-22 11:15:24) ===
+validate_quality.py NPL: ERROR 0, WARN 48 (43 pilot_age_mention reviewed per-row, 3 period_single_day + 2 CFR_high justified), INFO 169; pilot_count_basis_missing 0.
+Rows 387 (unchanged), sources 290, presence 15 -> 14, retracted 14. reference/count_basis/NPL.csv 25 -> 93 entries (well-formed, no overlapping key/field/year).
+search_report.txt present. ACCEPTED. Next: tracked rebuild (build_weekly_timeseries --iso NPL), pilot gap files, tests, regression gate, dashboard.

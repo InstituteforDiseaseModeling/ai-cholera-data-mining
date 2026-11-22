@@ -1,0 +1,227 @@
+SEARCH REPORT - NEPAL (NPL), PILOT COUNTRY
+Agent 7 (Quality Auditor), 2026-11-22. Workflow 2026-11-20 to 2026-11-22. Files: ./data/NPL/cholera_data_ai.csv,
+./data/NPL/metadata_ai.csv, ./data/NPL/cholera_presence_ai.csv, ./reference/count_basis/NPL.csv. Full audit trail:
+./data/NPL/search_log_agent_7.txt. Nepal is outside the 40 MOSAIC countries and was processed only because it was named.
+
+1. BOTTOM LINE
+The pipeline ran end to end on a non-African country and the validator passes (ERROR 0). The count-type table now types every
+source-year 2018-2025 that feeds either series, and no zero weeks were produced. The numbers that matter for modelling are
+disappointing, though:
+  - Only 3 of the 8 calibration years (2021, 2024, 2025) have a national SUSPECTED count, and each comes from a different
+    instrument: 2021 is one WHO annual total with no weekly shape (1,609); 2024 is EWARS sentinel weekly reports of all cholera
+    classifications (360); 2025 is mostly a single Madhesh outbreak via the WHO dashboard (1,945).
+  - 2022 and 2023 had suspected values before this audit (77 and 14). Both were the wrong type and were removed from the
+    suspected series. 77 is EDCD's laboratory-confirmed total by any method; 14 is the EWARS confirmed stream re-dated one week.
+  - No national suspected count exists for 29 of the 56 years 1970-2025: 1982-88, 1991, 1999-2003, 2005-09, 2011-15, 2017-20 and
+    2022-23. "Coverage" of 87.0% overstates this, because it credits any row: sub-national rows, laboratory isolates, or
+    confirmed-only counts.
+  - The confirmed series is heterogeneous. EWARS sentinel counts are by definition "clinical and/or laboratory" (RDT included);
+    WHO/WER totals are culture/PCR only. The weekly confirmed 2022 series (42) is about 55% of the outbreak line list (76-77).
+  - 286 of the 387 AI rows are sub-national and never enter the national series. Nothing is known after mid-July 2026, and
+    1982-1988 is still empty.
+  - Context: "Cholera is not currently a notifiable disease in Nepal. Although its inclusion among prioritized/notifiable
+    diseases has been proposed, it is not yet officially approved." (WHO SEARO, Nepal surveillance assessment 2023, p.52)
+
+2. WHAT WAS COLLECTED
+Sources: 290 registered in ./data/NPL/metadata_ai.csv (Level 1: 207, Level 2: 20, Level 3: 56, Level 4: 7). 217 of them are cited
+by at least one live row (L1 155, L2 13, L3 43, L4 6).
+Observations: 387 live rows (401 written, 14 retracted with tombstones in ./data/NPL/retracted_rows_ai.csv). All are case rows:
+there are 0 zero rows, because the pilot rule forbids them. Count types: 238 cCh only, 135 sCh only, 14 both. 101 rows are national
+and 286 sub-national (51 province, 188 district, 44 municipal, 3 ward). Absence evidence lives only in the Agent 3 and 6 logs.
+Presence rows (cholera confirmed, no count): 14 in ./data/NPL/cholera_presence_ai.csv.
+
+Coverage, from python py/analyze_effective_gaps.py run to /tmp only:
+
+  measure          | JHU+WHO only   | JHU+WHO+AI
+  -----------------|----------------|---------------
+  coverage         | 71.4% (488/683)| 87.0% (594/683)
+  gap periods      | 5              | 2
+  months_ai_only   | 0              | 105
+
+Gap periods closed: 1999-01..2006-06, 2006-08..12 and 2008-01..05. The 2026 gap narrowed to 2026-07-01..11-22.
+Gaps still open, with my judgement on whether the data exist:
+  - 1982-1988 (historical). Nepal did not report cholera to WHO, and the press reported "gastroenteritis" epidemics. The only
+    evidence is presence in 1982 (Salyan, Jhapa). National counts were probably never compiled; the 1980s Gorkhapatra and MoH
+    reports are the only remote chance.
+  - 2026-07..11 (recent). The data almost certainly exist (EWARS / new EWARS system, SORMAS), but nothing after week 27 2026 is
+    archived and Nepal is not reporting to WHO in 2026. Recoverable later.
+  - Suspected-type gaps (years listed in section 1). Mostly the data do not exist: cholera is not notifiable, EWARS reports
+    confirmed cases, and the HMIS outpatient "Cholera" column is a clinical label. Possible exception: the DoHS annual reports for
+    1999-2006 (outbreak tables), which are blocked from outside Nepal.
+
+3. AUDIT VERDICTS (items a-h)
+ a) 2009 epidemic. The AI 56 retraction (64,472 'returned home after treatment', mixed V. cholerae/ETEC aetiology) and the AI 221
+    retraction (1,400 'clinical', single source) are sound; never restore them as sCh. I added one presence row (Multi_Provincial,
+    1 May-23 Aug 2009, WHO/Health Cluster sitrep src 96, quote re-read: '36% of total samples have shown the growth of Vibrio
+    Cholerae 01'). Confirmed counts kept: AMR 109 (AI 37), Jajarkot 5/13 (AI 275), WHO 82 = lab-positive samples.
+ b) Conflicts.
+    - 2022: JHU 436 sCh 77 retyped from suspected to CONFIRMED/verified (43 culture/PCR + 34 RDT/hanging drop: 'The cases were
+      confirmed via the stool culture method, Rapid Diagnostic test and hanging drop test', IFRC MDRNP012). JHU 21542 split into
+      2022 and 2024 entries. No national suspected 2022 total exists.
+    - AI 167: note appended making it the primary and only row for the cluster (AI 131 retracted; government Pyuthan figure = 2).
+    - 2025 Madhesh: primaries designated by appended notes. Madhesh AI 85 (1,543 AWD / 215 culture+RDT to 23 Sep); Parsa AI 394;
+      Birgunj AI 112 (suspected) and AI 23 (confirmed); Pokhariya AI 125; Saptari AI 44. AI 22, 57, 392, 393, 130, 21, 89, 395 and
+      all 16 EWARS district-weeks (AI 368-383) are marked non-primary. Cross-check: dashboard 2025 = 1,899 = Jan-Jun 87 + Madhesh
+      1,715 (W34-W41; AI 85's 1,543 to 23 Sep) + W45 97 (Saptari 98).
+    - 2021: 2,023 (JHU 21541) is outbreak AWD of a culture-confirmed outbreak, not AGE. As a national figure, however, it is a
+      derived phantom that adds door-to-door case finding to facility reports (Subedee 2024: 1,570 hospitalized + 453 community
+      cases, 351 without dehydration). Typed MIXED and held out. 1,609 (WHO) is the primary national suspected total. The difference
+      is definitional (the 453), not a date or geography difference: 1,609 = facility count + ~39 (2 imported, sporadic cases).
+    - 2024: resolved as two count types. 95 = culture/PCR national total (WER 100(36) Table 3; EDCD Q3 2024) goes to the confirmed
+      series; 360 = EWARS sentinel probable+suspect+confirmed, shown on the dashboard one ISO week later, goes to the suspected
+      series. WHO:dashboard is now split by year: 2023 mixed (held out), 2024 suspected, 2025 suspected.
+ c) Presence: KMC 2023 row DROPPED (the May 2023 wards 11-13 OCV drive followed the 2022 outbreak). Src 200 2013 row DROPPED: the
+    June 2013 Nepalgunj event was never laboratory-confirmed ('we are not quite sure if it is cholera'; 'laboratory test results
+    awaited'). Removed rows are logged in full; backups are in cache/NPL_agent7/.
+ d) Rows KEPT with justification notes. CFR: AI 255 (20.0%, pre-ORS hospital, denominator verified, w 0.7) and AI 270 (16.2%,
+    preliminary news, w 0.35). Single-day: AI 106, 144 and 150 are event-, presentation- and sample-dated.
+ e) Count-basis entries added: AI:13 (WER 2025: 55 culture/PCR), AI:14 (WER 2021: 10 culture/PCR) and AI:79 (WER 1992: 263 and 483
+    lab-confirmed), all confirmed/verified with quotes. Secondary restatements: AI:31 (ECDC 2016) and AI:28 (WHO 2004, suspected/
+    provisional, may be lab-confirmed). pilot_count_basis_missing went from 4 to 0.
+ f) 43 AGE-mention rows: all KEEP. Each mention is an exclusion or context note; AI 58 (Doti 2012, 401 'severe diarrhoea') is a
+    borderline keep with a note. The per-row table is in the log.
+ g) ./reference/count_basis/NPL.csv went from 26 to 93 entries (summary in the appendix; full before -> after table in the log).
+ h) Confirmed in /tmp/NPL_build_after:
+    (1) No double count: AI 1 (76) and AI 65 (77) appear only as non-claiming confirmed period totals.
+    (2) cholera_period_totals_NPL.csv is NOT additive: 2022 lists 43, 76 and 77 over overlapping spans.
+    (3) Weekly confirmed 2022 = 16 EWARS sentinel weeks, total 42 - an undercount against 76-77.
+Rows retracted by Agent 7: none. Rows added: none. Values changed: none. Rows revised (notes appended only), 37 in all:
+  21, 22, 23, 44, 57, 58, 85, 89, 106, 112, 125, 130, 144, 150, 167, 255, 270, 368-383 (16), 392, 393, 394, 395.
+Presence rows: +1 (2009 Multi_Provincial) and -2 (KMC 2023; national 2013), so 15 -> 14.
+
+4. PHASE 6 PILOT ACCEPTANCE (2018-2025 window; measured in /tmp/NPL_build_after)
+ (1) Count types documented: PASS. All 58 source-key/field combinations feeding either series resolve through an entry; none falls
+     back to column typing. The only 'unknown' in the window is JHU 21508 2023 (1 case, 1 death, unexplained), which is held out and whose
+     search is logged.
+ (2) Totals reconcile, suspected series vs WHO/WER:
+
+     year | suspected  | WHO/WER        | explanation
+     -----|------------|----------------|----------------------------------------------------------------------
+     2018 | none       | 7              | 7 is confirmed-only (now a confirmed period total)
+     2019 | none       | 0 / not reported | EWARS 1 culture case
+     2020 | none       | 0              | zero, held out
+     2021 | 1,609      | 1,609          | MATCH
+     2022 | none       | 77             | 77 is lab-confirmed by any method
+     2023 | none       | 7              | culture/PCR; dashboard 14 = EWARS confirmed stream, held out
+     2024 | 360        | 95             | different types (sentinel suspected vs culture/PCR)
+     2025 | 1,945      | 55 (dashboard 1,899) | 1,945 = 1,899 + EWARS W1 43 + W10 3 in weeks the dashboard shows as 0;
+          |            |                | 55 = culture/PCR
+
+     The 2021 and 2024 conflicts are resolved. Every difference is written into the count-basis evidence.
+ (3) Weeks 2018-2025:
+       suspected observed:      60 (2024: 37, 2025: 23)
+       suspected undistributed: 52 (2021)
+       confirmed observed:      56 (2018: 1, 2019: 1, 2021: 5, 2022: 16, 2023: 10, 2024: 12, 2025: 11)
+     Before the audit these were 71 / 104 / 56.
+ (4) No zero weeks in either series (0 before, 0 after).
+ (5) Validation: python py/validate_quality.py NPL gives ERROR 0, WARN 48 (43 pilot_age_mention, 3 period_single_day,
+     2 CFR_high), INFO 169. All 387 AI rows carry [NPL-PILOT]. I changed no code and no other country's files; the regression gate
+     and the tracked rebuild belong to the orchestrator.
+
+5. AGENT PERFORMANCE
+Batches (yields): A1 12 (50-0%), A2 12, A3 12, A4 11, A5 10, A6 3. All query ids are present; no yield exceeds 100%; every stop was
+a yield-rule stop.
+Net live rows: A1 94, A2 63, A3 70, A4 35, A5 125, A6 0.
+  - Most productive:
+      A1: baseline, count-type evidence, WER series.
+      A5: conflicts A-S, 11 justified retractions. 111 of its 125 rows came from cache re-reads with no yield credit, so its yield
+          understates its work.
+      A3: EWARS 2016 and 2021-2025 weekly series.
+  - A2 and A4 added sub-national and historical depth (1959-60 hospital series, 1990-91 laboratory totals).
+  - A6 added no rows. Its gap classification was useful.
+
+6. WHAT A FUTURE RUN SHOULD TRY
+  - DoHS Annual Health Reports 1999-2006 (e.g. AHR 2059/60), fetched from inside Nepal (giwmscdntwo.gov.np blocks foreign IPs).
+  - Rhee 2020 APJTM Table 3 (EWARS confirmed by province 2014-2018).
+  - Lopez 2020 Vaccine 38 Suppl 1 full text (resolves JHU 21301's 600 for 2014).
+  - EDCD Birgunj sitreps #07-#16 (2025 line list).
+  - EWARS bulletins 2025 W2-W9 / W26-W33 and 2026 after W27.
+  - WHO multi-country sitrep tables for 2023 (to explain JHU 21508's 1 case and 1 death).
+  - Lancet Infect Dis 2025 'Cholera in Nepal: policy priorities'.
+  - Builder (orchestrator's call; details in the log):
+      - Week-offset dedup of the WHO dashboard against EWARS rows, so the 2023 dashboard need not be typed 'mixed' as a workaround.
+      - A holdout line when sCh is typed confirmed but the row's cCh is used.
+      - No week-claiming by enclosing totals over nested totals.
+  - Decisions the user may want to revisit:
+      - JHU 436 1991 (WHO estimate, typed mixed).
+      - WHO:dashboard 2023 (typed mixed to avoid double counting).
+      - JHU 21541 2021 (mixed).
+
+=====================================================================
+APPENDIX - METRICS
+A1. Validator over the audit:
+      2026-11-21 (STEP 1):                          WARN 184 (136 pilot_count_basis_missing)
+      2026-11-22, after the orchestrator's rule fix: WARN 52
+      after Agent 7:                                 WARN 48
+    ERROR 0 throughout. repair_data_integrity.py --dry-run NPL: 0 changes.
+
+A2. Count-basis changes (before -> after), summary:
+    JHU:436 sCh (WHO annual):
+      1958-1998 suspected/prov ->
+        1958-89 suspected/prov; 1990 suspected/verified; 1991 MIXED/verified (WHO estimate);
+        1992-97 suspected/prov; 1998 suspected/verified
+      2007 unknown        -> confirmed/prov
+      2009 unknown        -> confirmed/verified (82/158 positive samples)
+      2010 suspected/prov -> suspected/inferred
+      2011 unknown        -> confirmed/prov
+      2012                   confirmed/inferred (evidence updated)
+      2014                   unknown/prov (search logged)
+      2015 unknown        -> confirmed/inferred
+      2016                   confirmed/inferred (updated)
+      2017-18 unknown     -> confirmed/inferred
+      2020 unknown        -> confirmed/inferred
+      2021 suspected/prov -> suspected/verified
+      2022 suspected/prov -> CONFIRMED/verified
+      2023 conf/inf       -> confirmed/verified
+      2024 conf/inf       -> confirmed/verified
+      NEW: JHU:436 cCh 2022-24 confirmed/verified
+    Other JHU collections:
+      JHU:10598 2010       suspected/prov (updated)
+      JHU:11119 unknown    -> confirmed/verified (NPHL isolates)
+      JHU:21301 sCh age/prov -> MIXED/verified (HMIS clinical label, fiscal years)
+      JHU:21301 cCh conf/prov -> 2011-13 confirmed/inferred; 2014 unknown/prov
+      JHU:21303 sCh, cCh   inferred -> verified
+      JHU:21508 conf/inf   -> 2023 unknown/prov; 2024 confirmed/verified
+      JHU:21541 suspected/prov -> MIXED/verified
+      JHU:21542 sCh        -> 2022 and 2024 confirmed/verified; NEW cCh 2022-24
+    WHO:dashboard 2023-25 suspected/prov -> 2023 MIXED/inferred; 2024 suspected/inferred; 2025 suspected/inferred
+    NEW AI entries (57): EWARS bulletins 2018-2025, WER (AI:13, 14, 79), EDCD/MoHP (AI:1, 68, 69), NPHL (AI:177),
+      PLoS NTD (AI:65), ECDC (AI:31), AI:28, AI:48, AI:170-171 (EWARS 2025 '(Probable/Suspect/Confirm)').
+    Totals: 26 -> 93 entries. Status counts: verified 30, inferred 52, provisional 11. 27 period totals still rest on provisional
+    types (mostly WHO annual years before 2010).
+
+A3. Builder, whole series, before -> after (python py/build_weekly_timeseries.py --iso NPL --out-dir /tmp/NPL_build_after --no-plots):
+      suspected:     86 observed + 1,348 undistributed weeks -> 75 + 1,244
+      confirmed:     72 -> 72 observed weeks
+      period totals: 86 -> 88
+      held out:      139 -> 147 (zero 126 -> 86; mixed 0 -> 58; unknown 9 -> 3; age 4 -> 0)
+
+A4. Per-year 2018-2025 after the audit:
+
+      year | suspected            | confirmed weekly
+      -----|----------------------|-----------------
+      2018 | none                 | 1
+      2019 | none                 | 1
+      2020 | none                 | none
+      2021 | 1,609 (52 wk undist) | 19 (5 wk)
+      2022 | none                 | 42 (16 wk)
+      2023 | none                 | 13 (10 wk)
+      2024 | 360 (37 wk obs)      | 97 (12 wk; 95 culture + 2 EWARS)
+      2025 | 1,945 (23 wk obs)    | 35 (11 wk)
+
+A5. Rows by decade:
+      1950s: 8; 1960s: 8; 1990s: 9; 2000s: 46; 2010s: 82; 2020s: 234
+    Confidence weight: mean 0.64 (range 0.30-0.95).
+    Cross-country harvest: 0 [XREF-HARVEST] rows; 0 harvest-log rows for NPL; queue NPL = 0 open candidates. Candidate files
+    agent_NPL_a4/a5_20261121.csv are held for the global sweep.
+
+A6. Verified quotes re-read by Agent 7:
+      WER 97(37), 98(38), 99(36), 100(36), 101(38), 85(31), 67(37), 66(19), 67(34), 74(31) (cached texts)
+      WHO SEARO 2023 p.52
+      Subedee 2024 (PMC11652746) and AJTMH 2019 (PMC6493959), via PubMed
+      Karki 2011 (PMID 22364087)
+      IFRC MDRNP012
+      EDCD Q3 2024 bulletin
+      MoHP 2025 GTFCC deck
+      EWARS 2025 W1/W10/W11 bulletins and the 2016 guideline
+      WHO sitreps 23 Aug 2009 and 30 Jul 2004
