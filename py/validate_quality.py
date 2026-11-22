@@ -258,6 +258,15 @@ WHO_ANNUAL_SOURCE_RE = re.compile(
     r"\bGlobal\s+Health\s+Observatory\b")
 WHO_ANNUAL_URL_RE = re.compile(r"(?i)weekly-epidemiological-record|/wer/|/wer\d")
 COUNT_BASIS_DIR = ROOT / "reference" / "count_basis"
+# warn_estimate_terms (Bangladesh): a national row whose notes cite an estimate,
+# model or burden figure is probably not an observation.
+ESTIMATE_RE = re.compile(r"(?i)\b(?:estimat\w*|extrapolat\w*|projected|projections?|"
+                         r"modell?ed|model-based|burden)\b")
+# Sentinel-positivity sidecar (Bangladesh): tested/positive by site; the
+# weekly builder never reads it.
+SENTINEL_FILE = "sentinel_positivity_ai.csv"
+SENTINEL_COLUMNS = ["Location", "TL", "TR", "site", "tested", "positive", "test_method",
+                    "serogroup", "sampling", "source_index", "source", "processing_notes"]
 
 
 def who_annual_source(m):
@@ -276,8 +285,12 @@ def pilot_context(iso, meta_rows=()):
             keys = {(r.get("source_key") or "").strip() for r in csv.DictReader(fh)}
     who = {to_index(m.get("Index")) for m in meta_rows if who_annual_source(m)}
     who.discard(None)
-    return {"tag": scope.pilot_tag(iso), "zero_none": scope.settings(iso)["zero_policy"] == "none",
-            "typed_keys": keys, "who_annual_sources": who}
+    st = scope.settings(iso)
+    return {"tag": scope.pilot_tag(iso), "zero_none": st["zero_policy"] == "none",
+            "typed_keys": keys, "who_annual_sources": who,
+            "strict": bool(st.get("strict_basis")),
+            "warn_estimates": bool(st.get("warn_estimate_terms")),
+            "national": set(scope.national_codes(iso))}
 
 
 def check_pilot_row(iso, r, i, notes, is_zero, rep, ctx):
@@ -299,11 +312,63 @@ def check_pilot_row(iso, r, i, notes, is_zero, rep, ctx):
                  "case count; confirm the count is cholera, not AGE", row=i)
     si = to_index(r.get("source_index"))
     key = f"AI:{si}"
+    national = (r.get("Location") or "").strip() in ctx["national"]
     if has_count and si in ctx["who_annual_sources"] and key not in ctx["typed_keys"]:
         rep.warn(iso, "pilot_count_basis_missing",
                  f"row's value comes from a WHO/WER annual report (metadata Index {si}) "
                  f"but {key} has no entry in reference/count_basis/{iso}.csv; WHO annual "
                  f"totals for {iso} are confirmed-only in some years", row=i)
+    elif has_count and national and ctx["strict"] and key not in ctx["typed_keys"]:
+        rep.warn(iso, "pilot_count_basis_missing",
+                 f"national row with a count but {key} has no entry in "
+                 f"reference/count_basis/{iso}.csv; under strict_basis the builder holds it "
+                 f"out until its count type and coverage are recorded (Agent 7)", row=i)
+    if has_count and national and ctx["warn_estimates"] and ESTIMATE_RE.search(notes):
+        rep.warn(iso, "pilot_estimate_mention",
+                 "processing_notes mention an estimate, model or burden figure on a national "
+                 "row with a count; estimates are never observations", row=i)
+
+
+def check_sentinel_sidecar(iso, path, meta_rows, rep):
+    """./data/{ISO}/sentinel_positivity_ai.csv: columns, integers, positive <=
+    tested, ordered ISO dates, a source_index that exists in metadata_ai.csv."""
+    rows, err = read_csv(path)
+    if err:
+        rep.error(iso, "sentinel_readable", err)
+        return
+    if not rows:
+        return
+    header = [k for k in rows[0] if k != "_line"]
+    missing = [c for c in SENTINEL_COLUMNS if c not in header]
+    if missing:
+        rep.error(iso, "sentinel_columns", f"{SENTINEL_FILE} missing columns: {missing}")
+        return
+    meta_idx = {to_index(m.get("Index")) for m in meta_rows}
+    for r in rows:
+        i = r["_line"]
+        vals = {}
+        for c in ("tested", "positive"):
+            v = (r.get(c) or "").strip()
+            if v and not re.fullmatch(r"\d+", v):
+                rep.error(iso, "sentinel_integer", f"{SENTINEL_FILE}: {c} {v!r} is not a "
+                          f"non-negative integer", row=i)
+            vals[c] = int(v) if re.fullmatch(r"\d+", v) else None
+        if vals["positive"] is None:
+            rep.error(iso, "sentinel_integer", f"{SENTINEL_FILE}: positive is required", row=i)
+        elif vals["tested"] is not None and vals["positive"] > vals["tested"]:
+            rep.error(iso, "sentinel_positive_gt_tested",
+                      f"{SENTINEL_FILE}: positive {vals['positive']} > tested {vals['tested']}", row=i)
+        tl, tr = (r.get("TL") or "").strip(), (r.get("TR") or "").strip()
+        if not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", tl) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", tr)) \
+                or tr < tl:
+            rep.error(iso, "sentinel_dates", f"{SENTINEL_FILE}: TL/TR {tl!r}/{tr!r} must be "
+                      f"YYYY-MM-DD with TR >= TL", row=i)
+        if not scope.location_belongs((r.get("Location") or "").strip(), iso):
+            rep.error(iso, "sentinel_location", f"{SENTINEL_FILE}: Location "
+                      f"{r.get('Location')!r} is not a {iso} location", row=i)
+        if to_index(r.get("source_index")) not in meta_idx:
+            rep.error(iso, "sentinel_source_index", f"{SENTINEL_FILE}: source_index "
+                      f"{r.get('source_index')!r} is not in metadata_ai.csv", row=i)
 
 
 def validate_country(iso, rep):
@@ -420,6 +485,8 @@ def validate_country(iso, rep):
 
     pilot = scope.is_pilot(iso)
     pilot_ctx = pilot_context(iso, meta_rows) if pilot else None
+    if pilot and (cdir / SENTINEL_FILE).exists():
+        check_sentinel_sidecar(iso, cdir / SENTINEL_FILE, meta_rows, rep)
     seen_rows = {}
     seen_periods = {}
     used_sources = set()
