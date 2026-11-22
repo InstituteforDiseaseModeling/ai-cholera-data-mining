@@ -1,0 +1,134 @@
+NPL
+
+ORCHESTRATOR BRIEFING - Nepal (NPL) pilot: review, repair, complete, publish
+Written 2026-11-22 by the supervising session for the user. This briefing replaces the plain "NPL"
+prompt the runner normally sends. Your agent definition and the country_notes in
+./reference/country_profiles.json still apply; where this briefing goes further (dashboard, commits,
+push), it is the user's explicit instruction.
+
+=====================================================================================
+1. BACKGROUND
+=====================================================================================
+- Nepal is a PILOT country (outside the 40 MOSAIC countries). Read first:
+  docs/technical/nepal-integration-plan.md (incl. "Implementation status"), CLAUDE.md (pilot exception),
+  reference/pipeline_countries.json, reference/count_basis/NPL.csv, py/scope.py.
+- Branch: the working tree is on `feature/nepal-pilot` (8 commits on top of main: b00984b2..97e84719).
+  main == origin/main (6d0d17a0) and main is an ancestor of feature/nepal-pilot (fast-forward possible),
+  as of 2026-11-22 10:30 PST. Re-check with `git fetch` before merging.
+
+=====================================================================================
+2. HISTORY OF ATTEMPTS
+=====================================================================================
+Run run_20261120-165728 (bash run_all_countries.sh --only NPL --unattended; logs/run_20261120-165728/):
+- Started 2026-11-20 16:58 PST. One orchestrator process (`claude -p NPL`).
+- Agents 1-6 completed, every orchestrator gate accepted (see ./data/NPL/workflow_state.json):
+    A1 12 batches +99 rows | A2 12 batches +68 | A3 12 batches +70 (1 retracted) | A4 11 batches +35
+    A5 10 batches +125 | A6 3 batches +0.
+- Agent 4's bulk Wayback harvests were cut off by the ~2 h background-shell limit; the orchestrator
+  redeployed Agent 4, which finished all four in 105-minute resumable rounds (all pages saved by
+  2026-11-21 14:18) and scanned them.
+- Agent 7 (quality audit) completed only STEP 1 (validator + integrity dry-run + backups in
+  cache/NPL_agent7/) when the session died at ~21:45 on 2026-11-21: API 401, OAuth token expired.
+- Runner retry 2 (05:25 2026-11-22) resumed, verified data unchanged against the STEP 1 backups,
+  redeployed Agent 7 at STEP 2, then died again on auth. Retry 3 (06:37) failed on auth immediately.
+- The manifest (reference/run_manifest.csv) marks NPL `failed`, attempts 3, rows 0->387, sources 0->290.
+- NO search_report.txt exists. Agent 7's count-type table updates were never made.
+
+=====================================================================================
+3. CURRENT STATE (verified 2026-11-22 10:30 PST)
+=====================================================================================
+- ./data/NPL/cholera_data_ai.csv 387 rows; ./data/NPL/metadata_ai.csv 290 sources;
+  ./data/NPL/cholera_presence_ai.csv 15 rows; ./data/NPL/retracted_rows_ai.csv; search_log_agent_1..7.txt.
+- python py/validate_quality.py NPL -> ERROR 0, WARN 184 (136 pilot_count_basis_missing,
+  43 pilot_age_mention, 3 period_single_day, 2 CFR_high_flagged_for_review), INFO 169.
+- reference/xref/candidates/agent_NPL_a4_20261121.csv and agent_NPL_a5_20261121.csv (WER figures for
+  other countries, held for the global sweep - do NOT apply them).
+- Uncommitted: all ./data/NPL/ AI files (untracked); the runner's rebuilt ./data/NPL/cholera_weekly_*.csv,
+  cholera_period_totals_NPL.csv, figures/pilot/NPL/, reference/pilot/*; date-only changes in shared
+  reference/effective_surveillance_*.csv and reference/baseline_checksums.json; reference/run_manifest.csv;
+  dashboard/{dashboard.html,country_status.html,completion_checklist.csv}.
+- DASHBOARD LEAK (bug): py/embed_all_data.py loops over every ./data/* directory, so the local rebuild
+  embedded Nepal's metadata into dashboard/dashboard.html and dashboard/country_status.html by accident.
+  Not published. Fix it as part of task D (deliberate pilot section), not by leaving it as is.
+
+Open items flagged by the orchestrator gates and the supervising session:
+  a. AI 56: 2009 epidemic 64,472 sCh, mixed aetiology (likely includes non-cholera diarrhoea). Decide
+     sCh vs presence vs retract; it can dominate the series.
+  b. Conflicts: AI 65 vs JHU:436 2022; AI 131 vs AI 167 (167 marked non-primary); 2025 Madhesh
+     overlapping snapshots AI 22/57/85; 2021 (2,023 Kapilvastu vs WHO 1,609); 2024 (dashboard 360 vs 95).
+  c. Presence rows to drop/relabel: KMC 2023 (source 130); source 200 (2013).
+  d. 2 CFR_high rows; 3 single-day periods.
+  e. pilot_count_basis_missing (136) is mostly a FALSE POSITIVE of py/validate_quality.py: it fires
+     whenever processing_notes MENTION a WHO/WER annual figure, even as a cross-check. Fix the rule so
+     it fires only when the row's own value is taken from a WHO/WER annual report (judge from the row's
+     source / metadata), add a test in py/tests/test_validator_pilot.py, and add AI:<Index> entries to
+     reference/count_basis/NPL.csv for the rows that genuinely need them.
+  f. pilot_age_mention (43): confirm each is an exclusion note, not an AGE count in sCh/cCh.
+  g. Count types: Agents 1 and 5 documented definitions (e.g. 2016 239 suspected/169 culture;
+     2021 1,609 AWD; 2022 EDCD 77 incl. RDT; 2023-2024 WHO dashboard = EWARS event stream incl. RDT;
+     2024 95 culture; 2025 55 culture/PCR, dashboard = AWD; JHU 21301 2011-2014 = HMIS clinical
+     cholera/ADD). Upgrade reference/count_basis/NPL.csv entries from provisional to verified/inferred
+     with quoted evidence where the logs support it; change basis where the evidence says so.
+  h. AI row 1 (2022 outbreak cumulative cCh 76, 16 Jun-9 Sep) overlaps weekly EWARS cCh rows for the
+     same weeks. Confirm the typed builder does not double count (period total vs observed weeks).
+
+=====================================================================================
+4. TASKS (in order)
+=====================================================================================
+A. REVIEW. Read workflow_state.json, all seven search logs and the gate notes. Decide whether any
+   agent's work was truncated or incomplete beyond what is listed above, and redeploy that agent
+   (same subagent type) to repair it. Do not re-run agents whose work is complete.
+B. AGENT 7. Deploy cholera-quality-auditor to complete the audit (it may resume at STEP 2 if the data
+   files still match cache/NPL_agent7/ backups; otherwise start over). It must resolve items a-h,
+   apply the count-type table updates, and write ./data/NPL/search_report.txt. Pilot rules stand:
+   no zero rows, SEAR:: locations, [NPL-PILOT] tag, AGE never counted.
+C. REBUILD AND GATE.
+   - python py/validate_quality.py NPL  -> 0 ERROR.
+   - python py/build_weekly_timeseries.py --iso NPL  (writes ./data/NPL/ series + figures/pilot/NPL/).
+   - python -m pytest -q py/tests  -> all pass.
+   - Regression gate for the 40 countries (must stay byte-identical):
+       python py/regression_snapshot.py take --as-of 2026-11-18 --out /tmp/npl_final_snapshot.json
+       python py/regression_snapshot.py compare reference/regression/snapshot_c6a1d680_asof_2026-11-18.json /tmp/npl_final_snapshot.json
+     All 84 items identical. If not, stop and report; do not publish.
+D. DASHBOARD - add Nepal deliberately, as a clearly labelled PILOT (user instruction 2026-11-22):
+   - The 40 MOSAIC countries' numbers and figures must not change: mean coverage, gap counts, the
+     completion checklist rows/stats, heatmaps, barplots and any "40 countries" totals exclude pilots.
+   - Show Nepal in a separate "Pilot countries" section (dashboard.html and country_status.html) with a
+     PILOT badge, the note that it is outside the MOSAIC framework and uses SEAR::NPL, its status,
+     rows/sources, coverage from reference/pilot/effective_surveillance_gaps_coverage.csv, and its
+     weekly series figure (figures/pilot/NPL/cholera_timeseries_NPL.png, cache-busted like the others).
+   - Make inclusion explicit via py/scope.py (mosaic_isos() + pilot_isos()), replacing the
+     loop-over-every-directory in py/embed_all_data.py and any similar loop you find.
+   - Extend py/validate_dashboard.py: still require exactly 40 MOSAIC rows, and check the pilot section
+     separately.
+   - bash update_dashboard.sh (no --publish yet) must pass validate_dashboard.py.
+E. COMMIT on feature/nepal-pilot in logical commits (validator fix + tests; Nepal data and count-basis
+   table; dashboard pilot section; regenerated dashboard/reference outputs). Each message ends with:
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+   Do not commit secrets, cache/, or anything outside this repo. Mark NPL done in
+   reference/run_manifest.csv (or use py/reconcile_manifest.py if it supports it).
+F. PUBLISH (user instruction: push to the remote):
+   - git fetch origin. If origin/main moved, merge it into feature/nepal-pilot, re-run step C, and
+     resolve conflicts without touching other countries' data.
+   - git push origin feature/nepal-pilot
+   - git checkout main && git merge --ff-only feature/nepal-pilot && git push origin main
+     (GitHub Pages deploys from main). Never force-push.
+   - Verify the Pages deploy: gh run list --limit 5; then confirm the live dashboard shows the new
+     generated_at and the pilot section. A deploy stuck "waiting" has frozen the site before - report it.
+   - Leave the working tree on main, clean.
+
+=====================================================================================
+5. CONSTRAINTS
+=====================================================================================
+- Do NOT edit MOSAIC-pkg, MOSAIC-data/raw, jhu_cholera_data, ees-cholera-mapping or laser-cholera.
+  (The MOSAIC-pkg country guard lives on its own branch, feature/ai-pilot-iso-guard; that is the
+  user's decision, not yours.)
+- Do not modify other countries' data (./data/<other ISO>/). Do not run xref_harvest.py global
+  stages (registry/parse/screen/apply --all).
+- Long downloads: split background jobs into chunks under ~100 minutes (a ~2 h background-shell limit
+  killed Agent 4's harvests). Tell each subagent this.
+- Auth deaths happened twice. Write ./data/NPL/workflow_state.json after every agent and every task
+  A-F so a resumed session can continue from the last finished step.
+- Final message: what was repaired, Agent 7's findings, the count-type changes, the regression and
+  dashboard validation results, the commits and pushes made (hashes), the Pages deploy status, and
+  anything left for the user to decide.
