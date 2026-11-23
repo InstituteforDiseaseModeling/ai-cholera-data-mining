@@ -1,7 +1,20 @@
 # Development Plan: Bangladesh (BGD) as a Second Pilot Country
 
-**Status:** revised 2026-11-22 after two red-team reviews (pipeline engineering, epidemiology; see `## Changes from the first draft`). Branch `feature/bangladesh-pilot` (from `main` at `c594b1fa`). Work items A–F are set-up; G (the run) waits for the user's review.
+**Status:** set-up (work items A–F) complete on branch `feature/bangladesh-pilot`, 2026-11-22; see `## Set-up status`. Revised after two red-team reviews (pipeline engineering, epidemiology; see `## Changes from the first draft`). G (the run) waits for the user's review.
 **Builds on:** `docs/technical/nepal-integration-plan.md`. Its Phases 0–3 made the pipeline generic: the pilot overlay `reference/pipeline_countries.json`, `py/scope.py`, region prefixes, the typed builder path, `zero_policy: none`, count-basis tables, `reference/pilot/` gap files, the dashboard's pilot section, and the MOSAIC-pkg guard (MOSAIC-pkg branch `feature/ai-pilot-iso-guard`, unmerged). This plan covers only what Bangladesh needs on top.
+
+## Set-up status (2026-11-22)
+
+One commit per work item on `feature/bangladesh-pilot`. After every item: the 40-country regression gate 84/84 identical, the Nepal snapshot (`regression_snapshot.py take --pilots NPL`) 10/10 identical, all tests passing (35, of which 9 new).
+
+- **A** `4044bbdc` scope overlay (`strict_basis`, `warn_estimate_terms` settings), xref pattern, MMR neighbour, agent and orchestrator wording.
+- **B** `a55e161a` builder: `coverage` column (whole-row hold-out), `strict_basis`.
+- **C** `38a62ddd` validator: strict count-basis WARN, `pilot_estimate_mention`, sentinel sidecar checks.
+- **D** `1e8dde84` baseline (449 JHU rows from 26 collections, 34 skipped and logged; 196 WHO dashboard weeks) and `reference/count_basis/BGD.csv` (13 entries).
+- **E** `b422d62f` profile, 14 `country_notes`, 24 authorised domains (iedcr.gov.bd unreachable in testing).
+- **F** validator `BGD`: 0 errors (INFO `pilot_not_started`). Scratch build: suspected 0, confirmed 0, 0 period totals, all 284 national rows held out with a reason (52 JHU 429 `unknown`, 4 JHU 429 `sample`, 2 JHU 21363 `sample`, 29 JHU 21505 and 196 WHO dashboard `subset`, 1 cCh `unknown`). No `cholera_weekly_BGD.csv` written to `data/`. `update_dashboard.sh` (no `--publish`) passes `validate_dashboard.py` with BGD in the pilot section as "Not yet processed"; the regenerated dashboard files were reverted.
+
+Before G: the MOSAIC-pkg guard decision, and `claude auth status`.
 
 ## Why Bangladesh is harder than Nepal
 
