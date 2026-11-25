@@ -129,8 +129,18 @@ def separate_national_subnational_data(data_df):
     
     return national_data, subnational_data
 
-def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_year=2025, monthly=False):
-    """Generate coverage heatmap by country and year or month."""
+# Layering order for priority mode: a cell covered by several sources shows the
+# highest-priority one instead of a "Mixed" colour.
+SOURCE_PRIORITY = ['WHO', 'JHU', 'AI']
+
+
+def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_year=2025, monthly=False,
+                            priority=False):
+    """Generate coverage heatmap by country and year or month.
+
+    priority=True collates sources by SOURCE_PRIORITY (WHO > JHU > AI): each cell
+    takes the highest-priority source present, and no 'Mixed' category is used.
+    """
     
     if monthly:
         # Create month range for specified years
@@ -205,7 +215,12 @@ def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_
                 period_sources = period_data['source_database'].unique()
                 period_sources = [s for s in period_sources if pd.notna(s)]
                 
-                if len(period_sources) == 1:
+                if priority and period_sources:
+                    ranked = [s for s in SOURCE_PRIORITY if s in period_sources]
+                    source = ranked[0] if ranked else period_sources[0]
+                    coverage_matrix[i, j] = source_colors.get(source, 1)
+                    source_matrix[i, j] = source
+                elif len(period_sources) == 1:
                     source = period_sources[0]
                     coverage_matrix[i, j] = source_colors.get(source, 1)
                     source_matrix[i, j] = source
@@ -218,7 +233,8 @@ def create_coverage_heatmap(data_df, data_type="National", start_year=1970, end_
     
     return coverage_matrix, source_matrix, countries, time_periods, time_labels, source_colors
 
-def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_labels, source_colors, data_type="National", monthly=False):
+def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_labels, source_colors, data_type="National", monthly=False,
+                 priority=False):
     """Create and save the coverage heatmap."""
     
     # Create figure with wider aspect ratio for better readability
@@ -258,15 +274,19 @@ def plot_heatmap(coverage_matrix, source_matrix, countries, time_periods, time_l
     # Create legend with larger font
     legend_elements = [
         plt.Rectangle((0,0),1,1, facecolor='white', edgecolor='black', label='No Data'),
-        plt.Rectangle((0,0),1,1, facecolor='#0167af', label='JHU Database'),
         plt.Rectangle((0,0),1,1, facecolor='#E74C3C', label='WHO Dashboard'),
+        plt.Rectangle((0,0),1,1, facecolor='#0167af', label='JHU Database'),
         plt.Rectangle((0,0),1,1, facecolor='#2ECC71', label='AI Enhanced'),
-        plt.Rectangle((0,0),1,1, facecolor='#9B59B6', label='Mixed Sources')
     ]
+    if not priority:
+        legend_elements.append(plt.Rectangle((0,0),1,1, facecolor='#9B59B6', label='Mixed Sources'))
     
     # Place legend below heatmap in 1 horizontal row
     ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.10), 
-             fontsize=26, ncol=5, frameon=False, columnspacing=1.2)  # Further increased text size for 600 DPI
+             fontsize=26, ncol=len(legend_elements), frameon=False, columnspacing=1.2)  # Further increased text size for 600 DPI
+    if priority:
+        ax.text(0.5, -0.16, 'Where sources overlap, cells show the highest-priority source: WHO > JHU > AI',
+                transform=ax.transAxes, ha='center', va='top', fontsize=22, style='italic', color='#444444')
     
     # Add grid
     ax.grid(True, which='major', alpha=0.3, linewidth=0.5)
@@ -373,12 +393,12 @@ def main():
         logger.info("\n🏛️  GENERATING NATIONAL-LEVEL HEATMAP...")
         logger.info("Creating coverage matrix for country-level data...")
         coverage_matrix_nat, source_matrix_nat, countries_nat, time_periods, time_labels, source_colors = create_coverage_heatmap(
-            national_data, data_type="National", monthly=False
+            national_data, data_type="National", monthly=False, priority=True
         )
         
         logger.info("Creating national-level visualization...")
         output_file_nat = plot_heatmap(
-            coverage_matrix_nat, source_matrix_nat, countries_nat, time_periods, time_labels, source_colors, data_type="National", monthly=False
+            coverage_matrix_nat, source_matrix_nat, countries_nat, time_periods, time_labels, source_colors, data_type="National", monthly=False, priority=True
         )
         output_files.append(output_file_nat)
         
@@ -426,7 +446,8 @@ def main():
     logger.info("• Blue cells = JHU historical database")
     logger.info("• Red cells = WHO dashboard data")
     logger.info("• Green cells = AI-enhanced sources")
-    logger.info("• Purple cells = Multiple sources in same year")
+    logger.info("• National: overlapping sources collated by priority WHO > JHU > AI (no mixed category)")
+    logger.info("• Sub-national: Purple cells = Multiple sources in same year")
     logger.info("")
     logger.info("✅ Coverage heatmap generation complete!")
     logger.info(f"📁 Output files generated: {len(output_files)}")
