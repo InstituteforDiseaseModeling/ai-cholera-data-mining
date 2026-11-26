@@ -140,6 +140,46 @@ if ! python py/build_weekly_timeseries.py; then
 fi
 echo "✅ Weekly time series built"
 
+# Province (ADM1) weekly series - built from province-or-below reported counts
+# only (docs/technical/subnational-weekly-series-plan.md). After the national
+# build: its reconciliation file compares against cholera_weekly_{ISO}.csv.
+echo ""
+echo "🗺️ Building province weekly series..."
+if ! python py/build_province_weekly.py; then
+    echo "❌ ERROR: Province weekly series build failed"
+    exit 1
+fi
+if ! python py/validate_province_series.py > /dev/null; then
+    python py/validate_province_series.py | grep ERROR | head -20 || true
+    echo "❌ ERROR: Province series failed validation"
+    exit 1
+fi
+if ! python py/plot_province_series.py > /dev/null; then
+    echo "❌ ERROR: Province figures failed"
+    exit 1
+fi
+echo "✅ Province weekly series built, validated and plotted (figures/province/)"
+
+# District (ADM2) weekly series - after the province build (district templates
+# fall back to province templates; reconciliation compares against provinces).
+# DRC is province-level only. See docs/technical/district-weekly-series-scope.md.
+echo ""
+echo "🗺️ Building district weekly series..."
+if ! python py/build_district_weekly.py; then
+    echo "❌ ERROR: District weekly series build failed"
+    exit 1
+fi
+if ! python py/validate_district_series.py > /dev/null; then
+    python py/validate_district_series.py | grep ERROR | head -20 || true
+    echo "❌ ERROR: District series failed validation"
+    exit 1
+fi
+if ! python py/plot_district_series.py > /dev/null; then
+    echo "❌ ERROR: District figures failed"
+    exit 1
+fi
+echo "✅ District weekly series built, validated and plotted (figures/district/)"
+
 # Completion checklist, dual timeline plots (generate_dual_timeline_plots.py)
 # and the embedded data blobs in dashboard.html.
 echo ""

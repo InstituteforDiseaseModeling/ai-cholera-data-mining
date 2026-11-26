@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""
+Checks for the province (ADM1) weekly series and its reference tables.
+Exits non-zero on any ERROR.
+
+  reference/subnational/adm1_units.csv     current units, one set per country
+  reference/subnational/adm1_aliases.csv   every raw province-slot name -> unit
+  data/{ISO}/cholera_adm1_weekly_{ISO}.csv built by py/build_province_weekly.py
+
+Usage: python py/validate_province_series.py [ISO ...]
+"""
+
+import csv
+import re
+import sys
+from datetime import date, timedelta
+from collections import Counter, defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import build_province_weekly as bpw  # noqa: E402
+
+BASE = Path(__file__).resolve().parent.parent
+METHODS = {"observed", "documented_zero", "inferred_zero"}
+EVIDENCE = {"direct", "rollup", "rollup_partial", "area"}
+
+errors, warns = [], []
+
+
+def err(m):
+    errors.append(m)
+
+
+def warn(m):
+    warns.append(m)
+
+
+def main():
+    targets = [a.upper() for a in sys.argv[1:]] or sorted(bpw.btw.load_country_map())
+    units = bpw.load_units()
+    aliases = bpw.load_aliases()
+
+    # ── units ──
+    for iso in targets:
+        if iso not in units:
+            err(f"{iso}: no units in adm1_units.csv")
+            continue
+        names = list(units[iso])
+        for n in names:
+            if n != n.strip() or not n:
+                err(f"{iso}: unit name has stray whitespace: {n!r}")
+            if not re.fullmatch(r"[A-Za-z0-9 '\-().]+", n):
+                err(f"{iso}: unit name not ASCII-standard: {n!r}")
+        codes = [u.get("adm1_code", "") for u in units[iso].values() if u.get("adm1_code")]
+        for c, k in Counter(codes).items():
+            if k > 1:
+                err(f"{iso}: adm1_code {c} used {k} times")
+        low = Counter(n.lower() for n in names)
+        for n, k in low.items():
+            if k > 1:
+                err(f"{iso}: unit name duplicated (case-insensitive): {n}")
+
+    # ── aliases ──
+    by_iso = defaultdict(list)
+    for (iso, raw, child), rows in aliases.items():
+        by_iso[iso].extend(rows)
+        for a in rows:
+            if a["status"] not in bpw.STATUSES:
+                err(f"{iso}: alias {raw!r}/{child!r} has invalid status {a['status']!r}")
+            if a["status"] in bpw.ASSIGNING | bpw.PART:
+                if a["adm1_name"] not in units.get(iso, {}):
+                    err(f"{iso}: alias {raw!r}/{child!r} -> {a['adm1_name']!r} not a current unit")
+            elif a["adm1_name"]:
+                err(f"{iso}: alias {raw!r} status {a['status']} must not name a unit")
+            if a["status"] == "shifted":
+                try:
+                    if not 0.5 < float(a["successor_share"]) <= 1:
+                        err(f"{iso}: shifted alias {raw!r} successor_share must be in (0.5, 1]")
+                except ValueError:
+                    err(f"{iso}: shifted alias {raw!r} has no successor_share")
+        if len(rows) > 1:
+            spans = sorted((r["_from"], r["_to"]) for r in rows)
+            for (a0, a1), (b0, b1) in zip(spans, spans[1:]):
+                if b0 <= a1:
+                    err(f"{iso}: alias {raw!r}/{child!r} eras overlap")
+
+    # containment entries name a province-slot string that has an alias row
+    for (iso, raw1, cont), inner in bpw.load_containment(bpw.SUB_DIR / bpw.CONTAINMENT_CSV).items():
+        if (iso, raw1, "") not in aliases:
+            err(f"{iso}: containment entry for {raw1!r} has no alias row")
+
+    # row-level overrides point at current units and at a row that still exists
+    data_rows = {}
+    for (iso, src, idx), (loc, tl, unit) in bpw.load_row_overrides(
+            bpw.SUB_DIR / bpw.ROW_OVERRIDES_CSV).items():
+        if unit not in units.get(iso, {}):
+            err(f"{iso}: row override {src} {idx} -> {unit!r} not a current unit")
+        f = BASE / "data" / iso / f"cholera_data_{src.lower()}.csv"
+        if f not in data_rows:
+            data_rows[f] = ({(r["Index"], r["Location"].strip(), r["TL"]) for r in
+                             csv.DictReader(open(f, newline="", encoding="utf-8"))}
+                            if f.exists() else set())
+        if (idx, loc, tl) not in data_rows[f]:
+            err(f"{iso}: row override {src} {idx} {loc} {tl} matches no data row (stale)")
+
+    # every province-slot name in the data has an alias row
+    for iso in targets:
+        seen, seen_dates = set(), []
+        for src in ("jhu", "who", "ai"):
+            f = BASE / "data" / iso / f"cholera_data_{src}.csv"
+            if not f.exists():
+                continue
+            with open(f, newline="", encoding="utf-8") as fh:
+                for r in csv.DictReader(fh):
+                    p = r.get("Location", "").strip().split("::")
+                    if len(p) >= 3 and p[1] == iso:
+                        seen.add(p[2])
+                        try:
+                            seen_dates.append((p[2], date.fromisoformat(r["TL"])))
+                        except ValueError:
+                            pass
+        missing = [s for s in seen if (iso, s, "") not in aliases]
+        outside = [(s, tl) for s, tl in seen_dates
+                   if (iso, s, "") in aliases and not any(a["_from"] <= tl <= a["_to"]
+                                                          for a in aliases[(iso, s, "")])]
+        if outside:
+            warn(f"{iso}: {len(outside)} rows fall outside every era of their alias "
+                 f"(nearest era used), e.g. {outside[:2]}")
+        if missing:
+            err(f"{iso}: {len(missing)} province-slot names have no alias row, e.g. {missing[:5]}")
+
+    # ── outputs ──
+    for iso in targets:
+        if list((BASE / "data" / iso).glob("cholera_weekly_adm1_*.csv")):
+            err(f"{iso}: stale cholera_weekly_adm1_* files - MOSAIC-pkg reads every "
+                f"cholera_weekly_*.csv as a national series; delete them")
+        p = BASE / "data" / iso / f"cholera_adm1_weekly_{iso}.csv"
+        if not p.exists():
+            warn(f"{iso}: no province series built")
+            continue
+        keys = Counter()
+        prov_week = defaultdict(float)
+        with open(p, newline="", encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                keys[(r["adm1_name"], r["year"], r["iso_week"])] += 1
+                mon = date.fromisoformat(r["week_start"])
+                if mon.isocalendar()[:2] != (int(r["year"]), int(r["iso_week"])) or mon.weekday() != 0:
+                    err(f"{iso}: week_start {r['week_start']} disagrees with {r['year']}-W{r['iso_week']}")
+                if r["evidence"] == "area" and r["sCh"] and float(r["sCh"]) != 0:
+                    err(f"{iso}: area-wide evidence on a non-zero week ({r['adm1_name']} {r['week_start']})")
+                if r["disaggregation_method"] != "inferred_zero" and r["sCh"]:
+                    prov_week[(int(r["year"]), int(r["iso_week"]))] += float(r["sCh"])
+                if r["adm1_name"] not in units.get(iso, {}):
+                    err(f"{iso}: series unit {r['adm1_name']!r} not in adm1_units.csv")
+                m = r["disaggregation_method"]
+                if m not in METHODS and not m.startswith("fourier_"):
+                    err(f"{iso}: invalid method {m!r}")
+                if m == "assumed_zero":
+                    err(f"{iso}: assumed_zero must not appear at province level")
+                if r["evidence"] not in EVIDENCE:
+                    err(f"{iso}: invalid evidence {r['evidence']!r}")
+                s = float(r["sCh"]) if r["sCh"] else None
+                if s is None or s < 0:
+                    err(f"{iso}: bad sCh {r['sCh']!r} for {r['adm1_name']} {r['week_start']}")
+                if r["deaths"] and s is not None and float(r["deaths"]) > s + 1e-6:
+                    warn(f"{iso}: deaths > sCh for {r['adm1_name']} {r['week_start']}")
+        nat_p = BASE / "data" / iso / f"cholera_weekly_{iso}.csv"
+        if nat_p.exists():
+            over, nat_week = 0, {}
+            for r in csv.DictReader(open(nat_p, newline="", encoding="utf-8")):
+                if r["disaggregation_method"] == "observed" and r["sCh"]:
+                    n = float(r["sCh"])
+                    k = (int(r["year"]), int(r["iso_week"]))
+                    nat_week[k] = n
+            for k, pv in prov_week.items():
+                # both builders key weekly rows by their midpoint ISO week
+                n = nat_week.get(k, 0)
+                if n > 0 and pv > 2 * n + 10:
+                    over += 1
+            if over:
+                warn(f"{iso}: {over} observed national weeks where provinces sum to > 2x national "
+                     f"(not an error - review in cholera_adm1_reconciliation_{iso}.csv)")
+        dups = [k for k, n in keys.items() if n > 1]
+        if dups:
+            err(f"{iso}: {len(dups)} duplicate province-weeks, e.g. {dups[:3]}")
+
+    for w in warns[:40]:
+        print("WARN ", w)
+    if len(warns) > 40:
+        print(f"WARN  ... {len(warns) - 40} more")
+    for e in errors:
+        print("ERROR", e)
+    print(f"\n{len(errors)} errors, {len(warns)} warnings")
+    sys.exit(1 if errors else 0)
+
+
+if __name__ == "__main__":
+    main()
