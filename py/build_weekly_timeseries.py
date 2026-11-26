@@ -182,7 +182,9 @@ def build_template_from_data(data_rows):
     cases_by_year_week = defaultdict(float)
     for tl, tr, sch in data_rows:
         if (tr - tl).days <= 7 and sch > 0:
-            y, w = tl.isocalendar()[:2]
+            # midpoint week, as in Tier 1 and _sum_subweekly (a Sunday-Saturday
+            # reporting week belongs to the ISO week holding most of its days)
+            y, w = (tl + (tr - tl) / 2).isocalendar()[:2]
             w = min(w, 52)          # fold week 53 into week 52
             cases_by_year_week[(y, w)] += sch
 
@@ -436,6 +438,23 @@ def _sum_subweekly(rows):
             dropped)
 
 
+def _place(r):
+    """Prefix-blind place of a row; a sub-national rollup's place is its part set."""
+    loc = (r.get("location") or "")
+    if loc.startswith("ROLLUP::"):
+        return frozenset(loc[len("ROLLUP::"):].split("|"))
+    return loc.split("::", 1)[-1]
+
+
+def _same_or_inside(earlier, later):
+    """An earlier cumulative report chains into a later one for the same place,
+    or - for rollups - when its parts are a subset of the later report's (a
+    situation report listing more districts as an outbreak spreads)."""
+    if isinstance(earlier, frozenset) and isinstance(later, frozenset):
+        return earlier <= later
+    return earlier == later
+
+
 def _decumulate(rows):
     """
     Convert cumulative reporting chains into increments, within ONE source.
@@ -462,9 +481,17 @@ def _decumulate(rows):
     out = []
     for b in rows:
         b["chain_tl"] = b["tl"]   # cumulative series are identified by their start date
+        # Only reports of the same place chain (prefix-blind, so AFR::SOM and
+        # EMR::SOM are one place). In sub-national builds, reports for different
+        # places mapped to one unit must not difference against each other;
+        # rollups carry a place key built from their part set. Two series filed
+        # under the SAME location can still chain (NGA Maiduguri 2026, a known
+        # data conflict).
+        place = _place(b)
         prev = [a for a in rows
                 if a is not b and abs((a["tl"] - b["tl"]).days) <= 3
-                and a["tr"] < b["tr"] and 0 < a["sch"] <= b["sch"]]
+                and a["tr"] < b["tr"] and 0 < a["sch"] <= b["sch"]
+                and _same_or_inside(_place(a), place)]
         if not prev:
             out.append(b)
             continue
@@ -490,7 +517,7 @@ def _decumulate(rows):
     return out
 
 
-def process_country(iso, template_info, diag=None):
+def process_country(iso, template_info, diag=None, zero_coverage=True):
     """
     Build the national weekly time series dict for one country.
     Returns dict: {(iso_year, iso_week): entry_dict}
@@ -578,7 +605,12 @@ def process_country(iso, template_info, diag=None):
     for label in ("WHO", "JHU", "AI"):
         src_rows = [r for r in rows if r["source"] == label]
         for r in (r for r in src_rows if 6 <= r["span"] <= 7):
-            key = r["tl"].isocalendar()[:2]
+            # Key a weekly row by the ISO week holding its midpoint, as
+            # _sum_subweekly does for sub-weekly rows. Keying by TL put every
+            # Sunday-Saturday reporting week (about 5,800 sub-national and
+            # many national rows) one ISO week early, and let two consecutive
+            # Sun-start and Mon-start rows collide in one week (max kept).
+            key = _midpoint_week(r)
             prev = candidates[key].get(label)
             if prev is None or prev.get("_daily") or r["sch"] > prev["sch"]:
                 candidates[key][label] = entry(key, r["sch"], r["deaths"], label,
@@ -596,6 +628,12 @@ def process_country(iso, template_info, diag=None):
         best.pop("_daily", None)
         merged[key] = best
     observed_keys = set(merged)
+    # zero_coverage=False (sub-national builds): an observed ZERO week stays in the
+    # series but does not count as coverage, so a zero-filled weekly table cannot
+    # make the engine skip a positive total for the same unit. The national
+    # series keeps the default.
+    coverage_keys = observed_keys if zero_coverage else \
+        {k for k in observed_keys if (merged[k]["sch"] or 0) > 0}
 
     # ── Tier 2: aggregates, finest span first ───────────────────────────────
     def agg_order(r):
@@ -626,7 +664,7 @@ def process_country(iso, template_info, diag=None):
                                         "documented_zero", (r["tl"], r["tr"]))
             continue
 
-        covered = sum(1 for k in weeks if k in observed_keys) / len(weeks)
+        covered = sum(1 for k in weeks if k in coverage_keys) / len(weeks)
         if covered >= COVERAGE_THRESHOLD:
             diag["coverage_skipped"] += 1
             continue
@@ -795,6 +833,11 @@ COUNT_BASIS_DIR  = REF_DIR / "count_basis"
 COUNT_BASIS_COLS = ["source_key", "year_from", "year_to", "field", "basis", "status", "evidence"]
 VALID_BASIS      = {"suspected", "confirmed", "age", "mixed", "unknown"}
 VALID_STATUS     = {"verified", "inferred", "provisional"}
+# Optional column. "national" (default when blank or absent) or a count of part
+# of the country stored at the national code: "subset" (camps, one district or
+# city) or "sample" (sentinel sites, systematic samples). Any non-national
+# entry holds the whole row out of both national series (Bangladesh pilot).
+VALID_COVERAGE   = {"national", "subset", "sample"}
 
 
 def _is_typed(iso):
@@ -816,12 +859,14 @@ def load_count_basis(iso):
             try:
                 e = {"key": r["source_key"].strip(), "y0": int(r["year_from"]), "y1": int(r["year_to"]),
                      "field": r["field"].strip(), "basis": r["basis"].strip(),
-                     "status": r["status"].strip(), "line": i}
+                     "status": r["status"].strip(),
+                     "coverage": (r.get("coverage") or "").strip() or "national", "line": i}
             except (KeyError, ValueError) as ex:
                 raise SystemExit(f"{f.name} line {i}: {ex}")
             if e["field"] not in ("sCh", "cCh") or e["basis"] not in VALID_BASIS \
-                    or e["status"] not in VALID_STATUS or e["y0"] > e["y1"]:
-                raise SystemExit(f"{f.name} line {i}: bad field/basis/status/years: {dict(r)}")
+                    or e["status"] not in VALID_STATUS or e["y0"] > e["y1"] \
+                    or e["coverage"] not in VALID_COVERAGE:
+                raise SystemExit(f"{f.name} line {i}: bad field/basis/status/coverage/years: {dict(r)}")
             out.append(e)
     return out
 
@@ -853,6 +898,16 @@ def resolve_basis(entries, key, field, tl, tr):
     return bases.pop(), min((e["status"] for e in found), key=order.index)
 
 
+def resolve_coverage(entries, key, tl, tr):
+    """The first non-national coverage of any entry (either field) for this
+    source key in any year the row touches, else "national"."""
+    for y in range(tl.year, tr.year + 1):
+        for e in entries:
+            if e["key"] == key and e["y0"] <= y <= e["y1"] and e["coverage"] != "national":
+                return e["coverage"]
+    return "national"
+
+
 def _typed_observed(rows, value_key, merged, diag):
     """Tier 1 (observed weeks) over rows already filtered to one count type."""
     def entry(key, v, deaths, source, conf):
@@ -863,7 +918,7 @@ def _typed_observed(rows, value_key, merged, diag):
     for label in ("WHO", "JHU", "AI"):
         src_rows = [dict(r, sch=r[value_key]) for r in rows if r["source"] == label]
         for r in (r for r in src_rows if 6 <= r["span"] <= 7):
-            key = r["tl"].isocalendar()[:2]
+            key = _midpoint_week(r)   # see process_country Tier 1
             prev = candidates[key].get(label)
             if prev is None or prev.get("_daily") or r["sch"] > prev["sch"]:
                 candidates[key][label] = entry(key, r["sch"], r["deaths"], label, r["conf"])
@@ -962,13 +1017,21 @@ def process_country_typed(iso, diag):
         else:
             kept.append(r)
 
+    strict = bool(st.get("strict_basis"))
     for r in kept:
         sch = r["sch"] if r["has_count"] else None
         cch = r["cch"]
+        cov = resolve_coverage(entries, r["skey"], r["tl"], r["tr"]) if entries else "national"
+        if cov != "national":
+            for field, v in (("sCh", sch), ("cCh", cch)):
+                if v is not None:
+                    hold(r, field, v, f"coverage {cov} - not a national count")
+            continue
         # -- suspected: the sCh value, when its source-year is typed suspected
         s_basis = s_status = ""
         if sch is not None:
-            if r["source"] == "AI" and not any(e["key"] == r["skey"] and e["field"] == "sCh" for e in entries):
+            if r["source"] == "AI" and not strict \
+                    and not any(e["key"] == r["skey"] and e["field"] == "sCh" for e in entries):
                 s_basis, s_status = "suspected", "agent"      # agents assign columns by definition
             elif st["count_basis_table"]:
                 s_basis, s_status = resolve_basis(entries, r["skey"], "sCh", r["tl"], r["tr"])
@@ -977,7 +1040,8 @@ def process_country_typed(iso, diag):
         # -- confirmed: cCh when present; else sCh when its basis is confirmed
         c_val, c_basis, c_status = None, "", ""
         if cch is not None:
-            if st["count_basis_table"] and any(e["key"] == r["skey"] and e["field"] == "cCh" for e in entries):
+            if st["count_basis_table"] and (strict or any(e["key"] == r["skey"] and e["field"] == "cCh"
+                                                          for e in entries)):
                 c_basis, c_status = resolve_basis(entries, r["skey"], "cCh", r["tl"], r["tr"])
             else:
                 c_basis, c_status = "confirmed", "column"     # cCh is lab-confirmed by definition

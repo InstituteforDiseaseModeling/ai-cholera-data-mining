@@ -14,7 +14,7 @@ def test_mosaic_is_forty_and_excludes_pilots():
 
 
 def test_npl_is_pilot_only():
-    assert scope.pilot_isos() == ["NPL"]
+    assert scope.pilot_isos() == ["BGD", "NPL"]
     assert scope.is_pilot("NPL") and scope.in_scope("NPL")
 
 
@@ -28,7 +28,8 @@ def test_resolve_accepts_named_pilot_and_rejects_others():
     with pytest.raises(ValueError):
         scope.resolve_isos(["IND"])
     with pytest.raises(ValueError):
-        scope.resolve_isos(["BGD"])
+        scope.resolve_isos(["PAK"])
+    assert scope.resolve_isos(["bgd"]) == ["BGD"]
 
 
 def test_prefixes():

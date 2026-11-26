@@ -38,7 +38,7 @@ REQUIRED_FIELDS = [
 # restriction in CLAUDE.md - but may search them for cross-border evidence.
 # IND and CHN border the pilot country Nepal (reference/pipeline_countries.json).
 OUT_OF_SCOPE_NEIGHBORS = {"DJI", "SDN", "DZA", "LBY", "LSO", "EGY", "MAR", "TUN", "ESH",
-                          "IND", "CHN"}
+                          "IND", "CHN", "MMR"}
 
 
 def load_mosaic_isos():

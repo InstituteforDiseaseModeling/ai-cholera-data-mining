@@ -11,6 +11,12 @@ only the 40 MOSAIC countries' part of each:
                  rows filtered to the 40 ISO codes (pilot rows never count)
   validate/{ISO} py/validate_quality.py --as-of D --json, findings per country
 
+With --pilots NPL[,BGD] it also hashes each named pilot country's outputs
+(pilot/{ISO}/...: the typed builder's four files, its rows in the pilot gap
+files, and its validator findings and exit code), rebuilt the same way into
+the temporary directory. Use it to show that a change for one pilot leaves
+another unchanged. Compare pilot snapshots only with pilot snapshots.
+
 Usage:
   python3 py/regression_snapshot.py take --as-of 2026-11-18 --out snap_before.json
   python3 py/regression_snapshot.py take --as-of 2026-11-18 --out snap_after.json
@@ -65,7 +71,7 @@ def run(cmd):
     return r.returncode, r.stdout, r.stderr
 
 
-def take(as_of, out):
+def take(as_of, out, pilots=()):
     mosaic = set(mosaic_isos())
     snap = {"as_of": as_of, "commit": run(["git", "rev-parse", "HEAD"])[1].strip(),
             "items": {}}
@@ -115,9 +121,42 @@ def take(as_of, out):
                                                       sort_keys=True).encode())
         snap["validate_exit"] = rc
 
+        for iso in pilots:
+            snap_pilot(iso, as_of, tmp, items)
+
     Path(out).write_text(json.dumps(snap, indent=1, sort_keys=True))
     print(f"snapshot of {len(items)} items at commit {snap['commit'][:10]} "
           f"(as of {as_of}) -> {out}")
+
+
+PILOT_BUILD_FILES = ["cholera_weekly_{iso}.csv", "cholera_weekly_confirmed_{iso}.csv",
+                     "cholera_period_totals_{iso}.csv", "builder_holdout.csv"]
+
+
+def snap_pilot(iso, as_of, tmp, items):
+    """Hash one pilot country's builder outputs, gap rows and validator findings."""
+    pdir = tmp / f"pilot_{iso}"
+    rc, so, se = run([PY, "py/build_weekly_timeseries.py", "--iso", iso, "--as-of", as_of,
+                      "--out-dir", str(pdir), "--no-plots"])
+    if rc:
+        sys.exit(f"builder failed for {iso}:\n{se[-2000:]}")
+    for name in PILOT_BUILD_FILES:
+        f = pdir / iso / name.format(iso=iso)
+        items[f"pilot/{iso}/build/{name.format(iso=iso)}"] = sha(f.read_bytes()) if f.exists() else None
+    for name in GAP_FILES:
+        f = tmp / "gaps" / "pilot" / name
+        rows = list(csv.DictReader(open(f, newline="", encoding="utf-8"))) if f.exists() else []
+        keep = [r for r in rows if r.get("iso_code") == iso]
+        items[f"pilot/{iso}/gaps/{name}"] = sha(json.dumps(keep, sort_keys=True).encode())
+    vj = tmp / f"validate_{iso}.json"
+    rc, so, se = run([PY, "py/validate_quality.py", iso, "--as-of", as_of,
+                      "--quiet", "--json", str(vj)])
+    if not vj.exists():
+        sys.exit(f"validator produced no report for {iso} (exit {rc}):\n{se[-2000:]}")
+    found = [{k: f.get(k) for k in ("severity", "check", "message", "row")}
+             for f in json.loads(vj.read_text())["findings"] if f.get("iso") == iso]
+    items[f"pilot/{iso}/validate"] = sha(json.dumps(found, sort_keys=True).encode())
+    items[f"pilot/{iso}/validate_exit"] = str(rc)
 
 
 def compare(a, b):
@@ -146,12 +185,15 @@ def main():
     t = sub.add_parser("take")
     t.add_argument("--as-of", required=True)
     t.add_argument("--out", required=True)
+    t.add_argument("--pilots", default="",
+                   help="comma-separated pilot ISO codes to snapshot as well (e.g. NPL)")
     c = sub.add_parser("compare")
     c.add_argument("a")
     c.add_argument("b")
     args = ap.parse_args()
     if args.cmd == "take":
-        take(args.as_of, args.out)
+        take(args.as_of, args.out,
+             [i.strip().upper() for i in args.pilots.split(",") if i.strip()])
         return 0
     return compare(args.a, args.b)
 
