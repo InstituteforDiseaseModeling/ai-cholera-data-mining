@@ -25,8 +25,14 @@ and the national evidence ladder.
   Seasonal   The district's own Fourier template where it has >= MIN_YEARS
   template   outbreak-years of weekly data; else its province's (from the
              province series' observed weeks, same rule); else the national one.
-  Scope      DRC (COD) is province-level only (decision 2026-11-25: too many
-             districts); pilots are out of scope.
+  Scope      All 40 countries with district rows; pilots are out of scope. DR
+             Congo's districts are its 519 health zones (zones de sante, OCHA RGC
+             list; reference/subnational/cod_health_zones.csv), the unit its
+             surveillance reports in, not administrative territories (decision
+             2026-11-27; DRC was province-only from 2026-11-25 to 2026-11-27).
+             Its weekly health-zone panel for 2018-2022 comes mostly from the JHU
+             public surveillance archive (data/COD/cholera_data_jhu_archive.csv,
+             py/import_jhu_archive.py).
 
 Outputs per country (data/{ISO}/):
   cholera_adm2_weekly_{ISO}.csv, cholera_adm2_reconciliation_{ISO}.csv,
@@ -49,7 +55,7 @@ BASE_DIR = bpw.BASE_DIR
 DATA_DIR = bpw.DATA_DIR
 SUB_DIR = bpw.SUB_DIR
 SUMMARY_CSV = SUB_DIR / "district_build_summary.csv"
-EXCLUDE = {"COD"}   # province level only (user decision 2026-11-25)
+EXCLUDE = set()   # DRC was excluded 2026-11-25 to 2026-11-27; now built at health-zone level
 
 # LOCAL ONLY. Kenya's sub-county series uses the MOSAIC-Kenya line-list weekly
 # aggregates (Kenya MoH / KEMRI record-level data in a private repository). Its

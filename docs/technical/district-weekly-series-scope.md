@@ -1,8 +1,9 @@
 # Weekly district-level cholera series
 
-Status: **implemented 2026-11-25** for 38 countries: every MOSAIC country with
-district rows except DRC (province level only, by decision) and Gambia (no
-district rows). Runs on every `bash update_dashboard.sh` after the province step.
+Status: **implemented 2026-11-25** for 38 countries; **DRC added 2026-11-27** at
+health-zone level (see "DR Congo health zones" below), so every MOSAIC country
+with district rows is built except Gambia (no district rows). Runs on every
+`bash update_dashboard.sh` after the province step.
 The scoping notes that led here follow the implementation section.
 
 ## Implementation
@@ -155,14 +156,95 @@ outputs, then re-verified the fixes. It led to fixes for:
 
 **Decisions (2026-11-25):**
 - **Administrative districts (ADM2)** everywhere, not health districts.
-- **DRC stays at province level only**: too many districts.
+- **DRC stays at province level only**: too many districts. *Superseded
+  2026-11-27: DRC is built at health-zone level (next section).*
+
+## DR Congo health zones (2026-11-27)
+
+The user asked whether DRC could be built at district level after all; the
+answer was yes, and it was built the same day.
+
+**Units: the 519 health zones (zones de sante), not territories.** DRC reports
+cholera by health zone and OCV campaigns target health zones; health zones do
+not nest in territories, so a territory series would have to split or set aside
+many zones. This is the one exception to the administrative-district rule.
+- List: OCHA "DR Congo - Health Zones" (Referentiel Geographique Commun,
+  `RDC_Zone_de_sante_09092019`, https://data.humdata.org/dataset/dr-congo-health-0,
+  sha256 e92e4afecfa7f1ac...), 519 zones, 26 provinces. Territory and pre-2015
+  province come from the GRID3/SNIS layer in
+  `MOSAIC-weather-stations/data/boundaries/rdc_zones_de_sante` (same codes).
+  Both are in `reference/subnational/cod_health_zones.csv` (code, names,
+  territory, old province, DHIS2 id, RGC population, centroid).
+- One correction to the RGC list: **Manika** is placed in Lualaba, not
+  Haut-Katanga (it is a Kolwezi zone; every data source files it under Lualaba;
+  this gives Lualaba 14 zones and Haut-Katanga 27).
+- A territory series can be added later by aggregating zones with the
+  `territory` column.
+
+**New source: the JHU public surveillance archive.** The JHU baseline
+(`cholera_data_jhu.csv`, from the jhu_cholera_data scraper) holds a small
+snapshot of DRC's health-zone collections. The archive in
+`MOSAIC-data/raw/JHU/osfstorage-archive/Public_surveillance_dataset.rds` holds
+16,995 non-phantom weekly health-zone rows for 2018-2022 (343-351 zones a week
+in 2018, zeros included); 13,992 of them (3,664 with cases) are not in the
+baseline. `py/import_jhu_archive.py` writes them to
+`data/COD/cholera_data_jhu_archive.csv` (+ `metadata_jhu_archive.csv`), read only
+by the province and district builders, as JHU rows: where the archive and the
+baseline report the same zone-week the engine keeps the larger value (checked:
+952 such zone-weeks, none double counted). The national builder, the AI-layer
+validators and the dashboard do not read it. Early-2018 archive weeks sum to
+within 1-2% of the national weekly series.
+
+**Reference work (all in `reference/subnational/`):**
+- `adm2_units.csv`: 519 DRC zones (unit_type `health_zone`).
+- `adm2_aliases.csv`: 882 DRC rows. 841 name matches (265 exact, 576 after
+  normalising: "X Health District", accents, Roman numerals, hyphens), about 30
+  reviewed spellings (Kahele -> Kalehe, Kitoyi -> Katoyi, Tshilundu -> Cilundu,
+  Kabondo in Haut-Lomami -> Kabondo Dianda, "Bili 2" -> Bili in Bas-Uele),
+  31 composites (cities: Kisangani, Mbuji-Mayi, Lubumbashi, Bukavu; the former
+  Kolwezi health district; Maluku before its split; JHU multi-zone strings) and
+  10 unknown (health areas, camps, localities, strings not in the RGC list).
+  Health zones written below Orientale::Ituri are matched with `raw_child` rows.
+- `adm1_aliases.csv`: four former districts that became provinces with the same
+  territory in 2015 (Orientale::Ituri, Katanga::Tanganyika, Katanga::Haut-Lomami,
+  Equateur::Sud-Ubangi) changed from `part` to `renamed`; JHU province totals
+  filed one level down (Nord-Kivu::Nord-Kivu, Sud-Kivu::Sud-Kivu) added as the
+  province; three JHU zones filed under the wrong province (Rungu, Kimputu,
+  Kalonda Est) moved to their province.
+- `row_exclusions.csv`: 105 week rows of JHU collection 21140 dated
+  2019-12-30..2020-01-05 that carry each zone's 2020 annual total (54 baseline,
+  51 archive copies; the same collection also gives the 2019-12-30..2020-12-27
+  totals), and AI row 305 (IRIN attributes MSF's Katanga-wide "more than 4,700"
+  to Pweto in 2000; MSF's own figure for Pweto is 1,800, AI row 833). A general
+  same-start restatement rule was tried and rejected: it also dropped genuine
+  first-week counts of small outbreaks in BDI, ETH, KEN, ZAF and ZMB.
+  `py/validate_province_series.py` now flags exclusions that match no data row.
+
+**Result.** 519 zones with at least one week; 335 with cases; 29,213 positive
+zone-weeks (9,408 of them weekly reports). Zone sums against the province
+series: 0.76 (2018, 80% observed), 0.98 (2019, 95% observed), 0.80 (2022), 0.65
+(2023), 0.55 (2025): from 2022 the situation reports list only the most active
+zones, so those weeks are lower bounds and quiet zones are missing, not zero.
+The DRC province series changed only where the archive or the alias fixes add
+evidence (2018: 37,526 -> 38,811, mainly Kongo-Central, where complete
+health-zone tables replace a spread JHU annual total; 2011-2013 +0.2-4%); every
+other country's province and district outputs are unchanged.
+
+**Known limits for DRC.**
+- 108 province-weeks where zones sum to more than twice the province: annual
+  zone totals (2017, 2020) are spread by the seasonal template while the province
+  has weekly reports; annual totals agree (Nord-Kivu 2017: 15,050 both).
+- Eight province-years before 2012 where zones exceed the province by more than
+  1.5x (Tshopo 2011: zone tables about 2,000, province 338). The province series
+  ignores partial lists inside a province total (Part C of the casebook).
+- 196 district rows unallocated (96 composite, 100 unknown; 109 positive).
 
 ## Pilot, re-ranked for administrative districts
 
 District names in the data were matched to the current official ADM2 lists
 (geoBoundaries gbOpen, which mirrors OCHA COD-AB/national sources). Matching was
 exact or fuzzy at 0.85 after accent and suffix folding. Positive district-weeks
-counts only weekly rows; DRC is excluded.
+counts only weekly rows; DRC was excluded here (it was added at health-zone level on 2026-11-27).
 
 | Country | ADM2 list (units, year) | Positive district-weeks | Matching an ADM2 name | Verdict |
 |---|---|---|---|---|
@@ -327,5 +409,5 @@ effort per country.
 ## Decisions
 
 1. Unit type: administrative ADM2 (decided 2026-11-25).
-2. DRC: province level only (decided 2026-11-25).
+2. DRC: province level only (decided 2026-11-25; superseded 2026-11-27, built at health-zone level).
 3. Pilot: ZWE, SOM, MWI, GIN, NGA, SSD + KEN via MOSAIC-Kenya (proposed).

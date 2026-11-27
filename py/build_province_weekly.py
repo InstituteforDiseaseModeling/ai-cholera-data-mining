@@ -214,6 +214,10 @@ def drop_restatements(rows):
     Drop a positive row that restates a longer same-source total: same value,
     same end date (+-1 day), shorter span (SOM JHU 10-12 day rows ending 31 Dec
     that repeat the annual totals, which put a year of cases into one week).
+    A same-START rule was tried 2026-11-27 for COD collection 21140 and rejected:
+    it also drops real first-week counts of small outbreaks whose period total
+    equals week 1 (ZAF Gauteng 2024, ETH Tigray 2018, KEN Uasin Gishu 2022). The
+    COD rows are listed in row_exclusions.csv instead.
     """
     pos = [r for r in rows if r["sch"] > 0]
     drop = set()
@@ -343,12 +347,24 @@ def split_child_index(aliases):
 # Row loading (reuses the national parser through a location allow-list)
 # ---------------------------------------------------------------------------
 
+SOURCE_FILES = (   # (file suffix, source label, engine bucket)
+    ("who", "WHO", "who"),
+    ("jhu", "JHU", "jhu"),
+    # Sub-national rows imported from the JHU public surveillance archive
+    # (py/import_jhu_archive.py; DR Congo health zones). Read only here, as JHU
+    # rows in the JHU bucket: where the archive and the baseline both report a
+    # unit-week the engine keeps the larger value, so the two are never added.
+    ("jhu_archive", "JHU", "jhu"),
+    ("ai", "AI", "ai"),
+)
+
+
 def load_country_rows(iso):
     """All sub-national rows of iso, parsed exactly as the national builder parses rows."""
     d = DATA_DIR / iso
     out = []
     orig = btw.scope.national_codes
-    for src, label in (("who", "WHO"), ("jhu", "JHU"), ("ai", "AI")):
+    for src, label, bucket in SOURCE_FILES:
         f = d / f"cholera_data_{src}.csv"
         if not f.exists():
             continue
@@ -364,7 +380,7 @@ def load_country_rows(iso):
             btw.scope.national_codes = orig
         for r in rows:
             r["source"] = label
-            r["src_file"] = src
+            r["src_file"] = bucket
             r["tl0"], r["tr0"] = r["tl"], r["tr"]   # as reported, for the side files
         out.extend(rows)
     return out
