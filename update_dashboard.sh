@@ -162,7 +162,7 @@ echo "✅ Province weekly series built, validated and plotted (figures/province/
 
 # District (ADM2) weekly series - after the province build (district templates
 # fall back to province templates; reconciliation compares against provinces).
-# DRC is province-level only. See docs/technical/district-weekly-series-scope.md.
+# DRC's districts are its health zones. See docs/technical/district-weekly-series-scope.md.
 echo ""
 echo "🗺️ Building district weekly series..."
 if ! python py/build_district_weekly.py; then

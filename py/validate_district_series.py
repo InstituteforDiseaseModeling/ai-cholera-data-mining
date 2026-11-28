@@ -74,7 +74,7 @@ def main():
         if iso in bdw.EXCLUDE or iso not in units:
             continue
         missing = set()
-        for src in ("jhu", "who", "ai"):
+        for src in ("jhu", "jhu_archive", "who", "ai"):
             f = BASE / "data" / iso / f"cholera_data_{src}.csv"
             if not f.exists():
                 continue
